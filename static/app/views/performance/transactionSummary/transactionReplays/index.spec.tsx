@@ -8,10 +8,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {
-  SPAN_OP_BREAKDOWN_FIELDS,
-  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-} from 'sentry/utils/discover/fields';
+import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
 import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionReplays from 'sentry/views/performance/transactionSummary/transactionReplays';
@@ -108,7 +105,7 @@ describe('TransactionReplays', () => {
     resetMockDate();
   });
 
-  it('should query the events endpoint for replayIds of a transaction', async () => {
+  it('should query the events endpoint with spans dataset for replayIds of a transaction', async () => {
     renderComponent();
 
     await waitFor(() => {
@@ -116,21 +113,17 @@ describe('TransactionReplays', () => {
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
-            cursor: undefined,
-            statsPeriod: '14d',
-            project: ['1'],
-            environment: [],
+            dataset: 'spans',
+            statsPeriod: '90d',
             field: expect.arrayContaining([
               'replayId',
-              'count()',
-              'transaction.duration',
+              'span.duration',
               'trace',
               'timestamp',
               ...SPAN_OP_BREAKDOWN_FIELDS,
-              SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
             ]),
             per_page: 50,
-            query: 'event.type:transaction transaction:"Settings Page" !replayId:""',
+            query: '!replayId:"" is_transaction:true transaction:"Settings Page"',
           }),
         })
       );
@@ -160,7 +153,7 @@ describe('TransactionReplays', () => {
         mockEventsUrl,
         expect.objectContaining({
           query: expect.objectContaining({
-            query: 'event.type:transaction transaction:"Settings Page" !replayId:""',
+            query: '!replayId:"" is_transaction:true transaction:"Settings Page"',
           }),
         })
       );
@@ -168,6 +161,37 @@ describe('TransactionReplays', () => {
   });
 
   it('should show a list of replays and have the correct values', async () => {
+    MockApiClient.addMockResponse({
+      url: mockEventsUrl,
+      statusCode: 200,
+      body: {
+        data: [
+          {
+            replayId: '346789a703f6454384f1de473b8b9fcc',
+            'span.duration': 1000,
+            trace: 'abc123',
+            timestamp: '2022-09-15T06:54:00+00:00',
+            'spans.browser': 100,
+            'spans.db': 200,
+            'spans.http': 300,
+            'spans.resource': 200,
+            'spans.ui': 100,
+          },
+          {
+            replayId: 'b05dae9b6be54d21a4d5ad9f8f02b780',
+            'span.duration': 500,
+            trace: 'def456',
+            timestamp: '2022-09-21T21:40:38+00:00',
+            'spans.browser': 50,
+            'spans.db': 100,
+            'spans.http': 150,
+            'spans.resource': 100,
+            'spans.ui': 50,
+          },
+        ],
+      },
+    });
+
     const mockApi = MockApiClient.addMockResponse({
       url: mockReplaysUrl,
       statusCode: 200,
@@ -211,12 +235,10 @@ describe('TransactionReplays', () => {
 
     renderComponent({location: {query: {query: 'test'}}});
 
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(1);
-    });
-
-    // Expect the table to have 2 rows
-    expect(screen.getAllByText('testDisplayName')).toHaveLength(2);
+    // Wait for the replays to render
+    const displayNames = await screen.findAllByText('testDisplayName');
+    expect(displayNames).toHaveLength(2);
+    expect(mockApi).toHaveBeenCalledTimes(1);
 
     const expectedQuery =
       'playlistEnd=2022-09-28T23%3A29%3A13&playlistStart=2022-09-14T23%3A29%3A13&query=test&referrer=transactionReplays';
@@ -286,8 +308,6 @@ describe('TransactionReplays', () => {
       },
     });
 
-    // hack: Wait for any pending updates to complete
-    // without await the test fails with "An update to _GenericDiscoverQuery inside a test was not wrapped in act(...)"
     await waitFor(() => {
       expect(screen.queryByTestId('replay-table')).not.toBeInTheDocument();
     });

@@ -1,114 +1,63 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
-import * as Sentry from '@sentry/react';
-import type {Location} from 'history';
+import {useMemo} from 'react';
 
-import {DEFAULT_REPLAY_LIST_SORT} from 'sentry/components/replays/table/useReplayTableSort';
-import type {Organization} from 'sentry/types/organization';
-import {EventView} from 'sentry/utils/discover/eventView';
-import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useApi} from 'sentry/utils/useApi';
-import type {ReplayListLocationQuery} from 'sentry/views/explore/replays/types';
-import {REPLAY_LIST_FIELDS} from 'sentry/views/explore/replays/types';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
-type Options = {
-  location: Location;
-  organization: Organization;
-  replayIdsEventView: EventView;
-};
+const FIELDS = [
+  'replayId',
+  'span.duration',
+  'trace',
+  'timestamp',
+  ...SPAN_OP_BREAKDOWN_FIELDS,
+] as SpanProperty[];
 
-export type EventSpanData = {
-  'count()': number;
-  replayId: string;
-  'span_ops_breakdown.relative': string;
-  'spans.browser': null | number;
-  'spans.db': null | number;
-  'spans.http': null | number;
-  'spans.resource': null | number;
-  'spans.ui': null | number;
-  timestamp: string;
-  trace: string;
-  'transaction.duration': number;
-};
+export function useReplaysFromTransaction({transactionName}: {transactionName: string}) {
+  const {selection} = usePageFilters();
 
-type Return = {
-  data: null | {
-    events: EventSpanData[];
-    replayRecordsEventView: EventView;
-  };
-  fetchError: any;
-  isFetching: boolean;
-  pageLinks: null | string;
-};
+  const search = useMemo(() => {
+    const s = new MutableSearch('!replayId:"" is_transaction:true');
+    s.setFilterValues('transaction', [transactionName]);
+    return s;
+  }, [transactionName]);
 
-export function useReplaysFromTransaction({
-  location,
-  organization,
-  replayIdsEventView,
-}: Options): Return {
-  const api = useApi();
+  // Hard-code 90d to match the count query. There's no date selector for the replay tab.
+  const pageFilters = useMemo(
+    () => ({
+      ...selection,
+      datetime: {...selection.datetime, period: '90d', start: null, end: null},
+    }),
+    [selection]
+  );
 
-  const [response, setResponse] = useState<{
-    events: EventSpanData[];
-    pageLinks: null | string;
-    replayIds: undefined | string[];
-  }>({events: [], pageLinks: null, replayIds: undefined});
+  const {data, isPending, error, pageLinks} = useSpans(
+    {
+      search,
+      fields: FIELDS,
+      limit: 50,
+      pageFilters,
+    },
+    'transactionReplays'
+  );
 
-  const [fetchError, setFetchError] = useState<any>();
-
-  const {cursor} = location.query;
-  const fetchReplayIds = useCallback(async () => {
-    try {
-      const [{data}, _textStatus, resp] = await doDiscoverQuery<{data: EventSpanData[]}>(
-        api,
-        `/organizations/${organization.slug}/events/`,
-        replayIdsEventView.getEventsAPIPayload({
-          query: {cursor},
-          // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
-        } as Location<ReplayListLocationQuery>)
-      );
-
-      setResponse({
-        pageLinks: resp?.getResponseHeader('Link') ?? '',
-        replayIds: data.map(record => String(record.replayId)),
-        events: data || [],
-      });
-    } catch (err) {
-      Sentry.captureException(err);
-      setFetchError(err);
-    }
-  }, [api, cursor, organization.slug, replayIdsEventView]);
-
-  const replayRecordsEventView = useMemo(() => {
-    if (!response.replayIds) {
-      return null;
-    }
-
-    return EventView.fromSavedQuery({
-      id: '',
-      name: '',
-      version: 2,
-      fields: REPLAY_LIST_FIELDS,
-      projects: [],
-      query: response.replayIds.length ? `id:[${String(response.replayIds)}]` : undefined,
-      orderby: decodeScalar(location.query.sort, DEFAULT_REPLAY_LIST_SORT),
-    });
-  }, [location.query.sort, response.replayIds]);
-
-  useEffect(() => {
-    fetchReplayIds();
-  }, [fetchReplayIds]);
+  const replayIds = useMemo(
+    () => [
+      ...new Set(
+        (data ?? [])
+          .map(row => String(row.replayId))
+          .filter(id => id && id !== 'undefined')
+      ),
+    ],
+    [data]
+  );
 
   return {
-    data: replayRecordsEventView
-      ? {
-          events: response.events,
-          replayRecordsEventView,
-        }
-      : null,
-    fetchError,
-    isFetching: !fetchError && !response.replayIds,
-    pageLinks: response.pageLinks,
+    replayIds,
+    events: data ?? [],
+    isFetching: isPending,
+    fetchError: error,
+    pageLinks: pageLinks ?? null,
   };
 }
