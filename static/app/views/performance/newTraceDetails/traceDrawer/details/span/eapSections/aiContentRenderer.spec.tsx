@@ -76,4 +76,19 @@ describe('AIContentRenderer', () => {
     expect(screen.getByText('inner')).toBeInTheDocument();
     expect(screen.getByText('nested content')).toBeInTheDocument();
   });
+
+  it('falls back to raw text when markdown renders nothing (empty code fence)', () => {
+    render(<AIContentRenderer text="```" inline />);
+    expect(screen.getByText('```')).toBeInTheDocument();
+  });
+
+  it('falls back to raw text for non-inline empty markdown (span Output "Pretty")', () => {
+    render(<AIContentRenderer text="```" />);
+    expect(screen.getByText('```')).toBeInTheDocument();
+  });
+
+  it('still renders a code fence that has real content', async () => {
+    render(<AIContentRenderer text={'```\nconst x = 1;\n```'} inline />);
+    expect(await screen.findByText(/const x = 1;/)).toBeInTheDocument();
+  });
 });

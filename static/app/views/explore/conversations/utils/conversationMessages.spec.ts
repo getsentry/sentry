@@ -542,6 +542,23 @@ describe('conversationMessages utilities', () => {
       expect(turns[1]?.toolCalls).toHaveLength(1);
       expect(turns[1]?.toolCalls[0]?.name).toBe('search');
     });
+
+    it('treats whitespace-only content as absent so no blank bubble renders', () => {
+      const requestMessages = JSON.stringify([{role: 'user', content: '   '}]);
+      const genNode = createMockNode({
+        id: 'gen-1',
+        startTimestamp: 1000,
+        attributes: {
+          [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: '\n\n',
+        },
+      });
+
+      const turns = buildConversationTurns([genNode as any], []);
+
+      expect(turns[0]?.userContent).toBeNull();
+      expect(turns[0]?.assistantContent).toBeNull();
+    });
   });
 
   describe('mergeEmptyTurns', () => {

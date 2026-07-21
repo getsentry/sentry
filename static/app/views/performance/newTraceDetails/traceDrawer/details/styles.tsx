@@ -53,6 +53,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
+import {markdownRendersVisibleContent} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -1169,6 +1170,14 @@ function MultilineText({
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
+  // Without a custom formatter we render `children` as markdown, but some
+  // markdown (e.g. a bare/empty ``` fence) renders to nothing — leaving the
+  // "Pretty" view blank. Fall back to the raw text in that case. See TET-2670.
+  const defaultFormattingIsBlank = useMemo(
+    () => !renderFormatted && !markdownRendersVisibleContent(children),
+    [renderFormatted, children]
+  );
+
   const content = (
     <MultilineTextWrapper {...hoverProps}>
       <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
@@ -1183,7 +1192,7 @@ function MultilineText({
           </SegmentedControl>
         )}
       </Container>
-      {showRaw
+      {showRaw || defaultFormattingIsBlank
         ? children.trim()
         : (renderFormatted?.(children) ?? (
             <MarkedText as={MarkdownContainer} text={children} />
