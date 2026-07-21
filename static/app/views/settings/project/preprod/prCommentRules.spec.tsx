@@ -79,6 +79,54 @@ describe('PrCommentRules', () => {
     ).toBeInTheDocument();
   });
 
+  it('reflects an enabled project from the option key when the explicit field is absent', async () => {
+    mockRepositories();
+    const project = DetailedProjectFixture({
+      options: {'sentry:preprod_size_pr_comments_enabled': true},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
+    });
+
+    render(<PrCommentRules />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    expect(
+      await screen.findByRole('checkbox', {name: 'Toggle PR comments'})
+    ).toBeChecked();
+    expect(
+      screen.getByRole('button', {name: 'Create PR Comment Rule'})
+    ).toBeInTheDocument();
+  });
+
+  it('reflects a disabled project from the option key when the explicit field is absent', async () => {
+    mockRepositories();
+    const project = DetailedProjectFixture({
+      options: {'sentry:preprod_size_pr_comments_enabled': false},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
+    });
+
+    render(<PrCommentRules />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    expect(
+      await screen.findByRole('checkbox', {name: 'Toggle PR comments'})
+    ).not.toBeChecked();
+    expect(
+      screen.getByText('Enable PR comments above to configure rules.')
+    ).toBeInTheDocument();
+  });
+
   it('enables PR comments when toggled on', async () => {
     mockRepositories();
     const project = DetailedProjectFixture({options: {}});
