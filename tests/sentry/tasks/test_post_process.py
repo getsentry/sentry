@@ -3180,34 +3180,40 @@ class KickOffLightweightRCAClusterTestMixin(BasePostProcessGroupMixin):
 
 @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
 class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
-    @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
-    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
-    @patch("sentry.tasks.seer.autofix.run_automation_only_task.delay")
-    @with_feature({"organizations:gen-ai-features": True})
-    def test_seat_based_org_skips_post_process_automation(
-        self,
-        mock_run_automation,
-        mock_generate_summary_only,
-        mock_generate_summary_and_run_automation,
-        mock_seat_based_tier,
-    ):
-        self.project.update_option("sentry:seer_scanner_automation", True)
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-        )
-
+    def _seat_based_post_process(self, **group_overrides):
+        """Helper: create event, optionally update group fields, run post-process."""
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        if group_overrides:
+            event.group.update(**group_overrides)
         self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
+            is_new=True, is_regression=False, is_new_group_environment=True, event=event
         )
+        return event
 
-        # Nothing is kicked off from post-process for seat-based orgs.
-        mock_generate_summary_and_run_automation.assert_not_called()
+    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
+    @with_feature({"organizations:gen-ai-features": True})
+    @override_options({"seer.post-process-issue-summary-killswitch.enabled": True})
+    def test_seat_based_org_killswitch_prevents_summary(
+        self, mock_generate_summary_only, mock_seat_based_tier
+    ):
+        self._seat_based_post_process()
         mock_generate_summary_only.assert_not_called()
-        mock_run_automation.assert_not_called()
+
+    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
+    @with_feature({"organizations:gen-ai-features": True})
+    def test_seat_based_org_skips_old_issues(
+        self, mock_generate_summary_only, mock_seat_based_tier
+    ):
+        self._seat_based_post_process(first_seen=timezone.now() - timedelta(minutes=10))
+        mock_generate_summary_only.assert_not_called()
+
+    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
+    @with_feature({"organizations:gen-ai-features": True})
+    def test_seat_based_org_skips_when_fixability_exists(
+        self, mock_generate_summary_only, mock_seat_based_tier
+    ):
+        self._seat_based_post_process(seer_fixability_score=0.5)
+        mock_generate_summary_only.assert_not_called()
 
 
 class SeerAutomationHelperFunctionsTestMixin(BasePostProcessGroupMixin):
@@ -3290,6 +3296,18 @@ class PostProcessGroupErrorTest(
     ProcessSimilarityTestMixin,
     CheckIfFlagsSentTestMixin,
 ):
+    @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
+    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
+    @with_feature({"organizations:gen-ai-features": True})
+    def test_seat_based_org_generates_summary_for_new_issues(
+        self, mock_generate_summary_only, mock_seat_based_tier
+    ):
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        self.call_post_process_group(
+            is_new=True, is_regression=False, is_new_group_environment=True, event=event
+        )
+        mock_generate_summary_only.assert_called_once_with(event.group.id)
+
     def setUp(self) -> None:
         super().setUp()
 
