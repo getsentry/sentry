@@ -380,6 +380,7 @@ class SeerAgentClient:
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
         request: Request | None = None,
+        override_bash_mode_enabled: bool = False,
         override_ce_enable: bool = True,
         ui_tools: str | None = None,
     ) -> SeerRun:
@@ -472,7 +473,10 @@ class SeerAgentClient:
             chat_body["ui_tools"] = ui_tools
 
         agent_run_options.update(
-            self._build_agent_run_options(override_ce_enable=override_ce_enable)
+            self._build_agent_run_options(
+                override_bash_mode_enabled=override_bash_mode_enabled,
+                override_ce_enable=override_ce_enable,
+            )
         )
 
         user_id = (
@@ -570,13 +574,25 @@ class SeerAgentClient:
             flush=flush,
         )
 
-    def _build_agent_run_options(self, override_ce_enable: bool = True) -> dict[str, Any]:
+    def _build_agent_run_options(
+        self,
+        *,
+        override_bash_mode_enabled: bool = False,
+        override_ce_enable: bool = True,
+    ) -> dict[str, Any]:
         """Resolve org-flag-driven agent run options, shared by start_run and start_feature_run."""
         opts: dict[str, Any] = {}
 
         if _has_context_engine(self.organization, self.user):
             if random.random() < options.get("seer.explorer.context-engine-rollout"):
                 opts["is_context_engine_enabled"] = True
+
+        if features.has(
+            "organizations:seer-explorer-allow-bash-mode",
+            self.organization,
+            actor=self.user,
+        ):
+            opts["enable_bash_mode"] = override_bash_mode_enabled
 
         if features.has(
             "organizations:seer-explorer-context-engine-allow-fe-override",
