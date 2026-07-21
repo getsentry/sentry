@@ -594,7 +594,6 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
         with self.options(
             {
                 "dynamic-sampling.prioritise_transactions.num_explicit_large_transactions": 1,
-                "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions": 1,
                 "dynamic-sampling.prioritise_transactions.rebalance_intensity": 0.7,
             }
         ):
@@ -609,12 +608,12 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
                     org_id=org_id, proj_id=proj_id, default_rate=0.1
                 )
                 # explicit transactions
-                for transaction_name in ["ts1", "tl5"]:
+                for transaction_name in ["tl5"]:
                     assert (
                         transaction_name in tran_rate
                     )  # check we have some rate calculated for each transaction
                 # implicit transactions
-                for transaction_name in ["ts2", "tm3", "tl4"]:
+                for transaction_name in ["ts1", "ts2", "tm3", "tl4"]:
                     assert (
                         transaction_name not in tran_rate
                     )  # check we have some rate calculated for each transaction
