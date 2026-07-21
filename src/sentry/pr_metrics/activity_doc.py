@@ -112,6 +112,31 @@ def is_failing_conclusion(conclusion: str | None) -> bool:
     return conclusion not in NON_FAILING_CONCLUSIONS and conclusion not in ABORTED_CONCLUSIONS
 
 
+def has_verdict(conclusion: str | None) -> bool:
+    """Whether a conclusion reports an outcome at all — a pass or a failure.
+
+    ``cancelled``/``stale`` and an empty conclusion are the *absence* of a result,
+    not a result: the run was abandoned before CI decided anything.
+    """
+    return bool(conclusion) and conclusion not in ABORTED_CONCLUSIONS
+
+
+def _wins_conclusion(candidate: str | None, current: str | None) -> bool:
+    """Whether a newer conclusion may replace the stored one.
+
+    Latest-wins is the right rule only between verdicts. A rerun that was cancelled
+    reports nothing, so it must not erase what CI already decided: a check that
+    failed and whose rerun was then cancelled is still failing, and letting the
+    cancellation win drops it from ``failing_check_names`` — and, where the app
+    emits no suite event, flips the whole group to ``success``.
+
+    A no-verdict conclusion is still recorded when there is nothing to erase, so a
+    run that only ever aborted (a PR closed mid-CI) reads as aborted rather than
+    silently deriving a pass.
+    """
+    return has_verdict(candidate) or not has_verdict(current)
+
+
 def new_document() -> ActivityDoc:
     """An empty activity document at the current version."""
     return {
@@ -291,15 +316,18 @@ def _apply_check_suite(
 ) -> None:
     """Fold a completed ``check_suite`` into its ``(head_sha, app_slug)`` group.
 
-    The suite carries the aggregate conclusion (latest wins on ``updated_at``) and
-    the run count (``max`` of ``latest_check_runs_count``). A failing suite also
-    lowers ``first_failure_at`` so the signal survives even for CI apps that only
-    emit suite events.
+    The suite carries the aggregate conclusion (latest verdict wins on
+    ``updated_at`` — see :func:`_wins_conclusion` for why an aborted suite does not
+    count) and the run count (``max`` of ``latest_check_runs_count``). A failing
+    suite also lowers ``first_failure_at`` so the signal survives even for CI apps
+    that only emit suite events.
     """
     group = _get_or_create_group(doc, payload)
 
     conclusion = payload.get("conclusion") or ""
-    if _is_newer(suite_updated_at, group.get("suite_updated_at")):
+    if _is_newer(suite_updated_at, group.get("suite_updated_at")) and _wins_conclusion(
+        conclusion, group.get("suite_conclusion")
+    ):
         group["suite_conclusion"] = conclusion
         group["suite_updated_at"] = suite_updated_at
     group["check_runs_count"] = max(
@@ -319,7 +347,9 @@ def _apply_check_run(
     its entry (``failed_attempts`` += 1) and lowers ``first_failure_at``; a
     non-failing run updates an existing (previously-failing) entry in place so a
     fail→rerun-green at the same head reads as recovered rather than vanishing.
-    Latest-wins on ``completed_at`` keeps out-of-order deliveries convergent.
+    Latest-*verdict*-wins on ``completed_at`` keeps out-of-order deliveries
+    convergent while leaving a stored result intact when a rerun aborts without
+    reaching one (see :func:`_wins_conclusion`).
     Redelivery-safe without ``webhook_id`` dedup: a redelivered failing event
     double counts only the magnitude signal, which is accepted.
     """
@@ -338,7 +368,9 @@ def _apply_check_run(
     if entry is not None:
         if failing:
             entry["failed_attempts"] = entry.get("failed_attempts", 0) + 1
-        if _is_newer(completed_at, entry.get("completed_at")):
+        if _is_newer(completed_at, entry.get("completed_at")) and _wins_conclusion(
+            conclusion, entry.get("conclusion")
+        ):
             entry["conclusion"] = conclusion
             entry["completed_at"] = completed_at
     elif failing:
