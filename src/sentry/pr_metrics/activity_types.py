@@ -42,6 +42,10 @@ class OpenedPayload(BaseActivityPayload, SenderMixin):
     commits: int = 0
     head_sha: str | None = None
     base_sha: str | None = None
+    # Visibility of the repo the webhook fired for, straight off the payload's
+    # top-level ``repository.private`` — the only point in the PR's lifecycle
+    # where Sentry observes this, since ``Repository`` never persists it.
+    is_private: bool | None = None
 
 
 @dataclass

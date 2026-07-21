@@ -27,6 +27,7 @@ def process_simple_event_message(
     raw_message: Message[KafkaPayload],
     consumer_type: str,
     reprocess_only_stuck_events: bool,
+    reprocess_only_events_not_in_nodestore: bool,
 ) -> None:
     """
     Processes a single Kafka Message containing a "simple" Event payload.
@@ -70,6 +71,7 @@ def process_simple_event_message(
             message,
             project,
             reprocess_only_stuck_events,
+            reprocess_only_events_not_in_nodestore,
         )
 
     except Exception as exc:

@@ -7,6 +7,7 @@ import {cleanFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filt
 import {getInitialFilterText} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {
+  FilterType,
   TermOperator,
   Token,
   type TokenResult,
@@ -162,4 +163,80 @@ export function newNumericFilterQuery(
     newOperator
   );
   return newFilterQuery;
+}
+
+type DerivedFilterState = {
+  fieldDefinition: FieldDefinition | null;
+  /** Token that represents a value clause (e.g. `browser:chrome`), or null */
+  filterToken: TokenResult<Token.FILTER> | null;
+  /** Token that represents the "(no value)" option, or null. */
+  noValueToken: TokenResult<Token.FILTER> | null;
+};
+
+/**
+ * Splits a stored global filter into its (up to two) clauses.
+ *
+ * filterToken is a value clause e.g (`browser:chrome`),
+ * noValueToken is a "(no value)" clause e.g (`!has:browser`)
+ */
+export function deriveFilterState(globalFilter: GlobalFilter): DerivedFilterState {
+  const fieldDefinition = getFieldDefinitionForDataset(
+    globalFilter.tag,
+    globalFilter.dataset
+  );
+
+  const tokens = globalFilter.value
+    ? parseFilterValue(globalFilter.value, globalFilter)
+    : [];
+
+  return {
+    fieldDefinition,
+    filterToken: tokens.find(token => token.filter !== FilterType.HAS) ?? null,
+    noValueToken: tokens.find(token => token.filter === FilterType.HAS) ?? null,
+  };
+}
+
+/** Sentinel for the "(no value)" option; never sent to the backend. */
+export const NO_VALUE_SENTINEL = '__no_value__';
+export const NO_VALUE_SUPPORTED_OPERATORS = new Set<TermOperator>([
+  TermOperator.DEFAULT,
+  TermOperator.NOT_EQUAL,
+  TermOperator.CONTAINS,
+  TermOperator.DOES_NOT_CONTAIN,
+]);
+
+function isNegatedOperator(operator: TermOperator): boolean {
+  return (
+    operator === TermOperator.NOT_EQUAL ||
+    operator === TermOperator.DOES_NOT_CONTAIN ||
+    operator === TermOperator.DOES_NOT_END_WITH
+  );
+}
+
+export function operatorFromNoValueToken(token: TokenResult<Token.FILTER>): TermOperator {
+  return token.negated ? TermOperator.DEFAULT : TermOperator.NOT_EQUAL;
+}
+
+// Strip 'no value' as an option for operators that don't support this
+export function stripUnsupportedNoValue(
+  values: string[],
+  operator: TermOperator
+): string[] {
+  return NO_VALUE_SUPPORTED_OPERATORS.has(operator)
+    ? values
+    : values.filter(value => value !== NO_VALUE_SENTINEL);
+}
+
+export function buildNoValueFilterQuery(
+  tagKey: string,
+  operator: TermOperator,
+  valueQuery?: string
+): string {
+  const negated = isNegatedOperator(operator);
+  const noValuePart = negated ? `has:${tagKey}` : `!has:${tagKey}`;
+  if (!valueQuery) {
+    return noValuePart;
+  }
+  const joiner = negated ? 'AND' : 'OR';
+  return `(${valueQuery} ${joiner} ${noValuePart})`;
 }

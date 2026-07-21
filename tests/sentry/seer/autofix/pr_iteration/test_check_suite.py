@@ -8,9 +8,14 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
-    CHECK_SUITE_ITERATION_HARD_CAP,
     CheckSuiteAutofixRun,
     CheckSuiteFeedbackSource,
+    GithubCheckSuiteEvent,
+    resolve_check_suite_autofix_run,
+)
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
+    GithubPrReviewCommentFeedbackSource,
+    GithubPullRequestReviewComment,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
@@ -58,6 +63,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
                 "head_sha": "abc",
                 "check_runs_url": "https://github.com/owner/repo/check-runs",
                 "app": {"name": "CI"},
+                "updated_at": "2024-01-01T00:00:00Z",
                 "pull_requests": pull_requests or [],
             },
             "repository": {"html_url": "https://github.com/owner/repo"},
@@ -157,7 +163,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
     ) -> None:
-        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         mock_get_state.return_value = self._agent_state()
         raw = self._raw(pull_requests=[{"id": 555}])
 
@@ -176,7 +182,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
     ) -> None:
-        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         mock_get_state.return_value = self._agent_state()
         raw = self._raw(pull_requests=[{"id": 555}])
 
@@ -188,6 +194,13 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert kwargs["referrer"] == AutofixReferrer.GITHUB_CHECK_SUITE
         assert isinstance(kwargs["feedback"], Feedback)
         assert isinstance(kwargs["feedback"].source, CheckSuiteFeedbackSource)
+        assert kwargs["feedback"].source.updated_at == "2024-01-01T00:00:00Z"
+        assert kwargs["feedback"].source.event.check_suite.updated_at == "2024-01-01T00:00:00Z"
+        autofix = kwargs["feedback"].source.autofix_run
+        assert autofix is not None
+        assert autofix.repository.organization_id == self.organization.id
+        assert autofix.repository.id == 2
+        assert autofix.run_state is not None
         mock_trigger_consume.assert_called_once()
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.sentry_sdk.capture_exception")
@@ -205,7 +218,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     ) -> None:
         from sentry.seer.models import SeerApiError
 
-        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         error = SeerApiError("transient", 500)
         mock_get_state.side_effect = [error, self._agent_state()]
         raw = self._raw(pull_requests=[{"id": 111}, {"id": 222}])
@@ -244,25 +257,122 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_trigger_consume.assert_called_once()
 
 
+class ResolveCheckSuiteAutofixRunTest(TestCase):
+    def _event(self, *, pull_requests: list[dict]) -> GithubCheckSuiteEvent:
+        return GithubCheckSuiteEvent.parse_obj(
+            {
+                "check_suite": {
+                    "id": 1,
+                    "head_sha": "abc",
+                    "check_runs_url": "https://github.com/owner/repo/check-runs",
+                    "app": {"name": "CI"},
+                    "updated_at": "2024-01-01T00:00:00Z",
+                    "pull_requests": pull_requests,
+                },
+                "repository": {"html_url": "https://github.com/owner/repo"},
+            }
+        )
+
+    def _agent_state(self, *, run_id: int) -> SeerRunState:
+        return SeerRunState(
+            run_id=run_id,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
+            metadata={"group_id": 1},
+        )
+
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.logger")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories")
+    def test_warns_and_returns_first_when_multiple_matches(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        repo = MagicMock(organization_id=self.organization.id, id=2)
+        mock_resolve.return_value = [repo]
+        first = self._agent_state(run_id=111)
+        second = self._agent_state(run_id=222)
+        mock_get_state.side_effect = [first, second]
+
+        result = resolve_check_suite_autofix_run(
+            self._event(pull_requests=[{"id": 111}, {"id": 222}])
+        )
+
+        assert result is not None
+        assert result.run_state.run_id == 111
+        assert result.pr_id == 111
+        mock_logger.warning.assert_any_call(
+            "autofix.pr_iteration.check_suite.multiple_autofix_runs",
+            extra={
+                "match_count": 2,
+                "pr_ids": [111, 222],
+                "run_ids": [111, 222],
+                "organization_ids": [self.organization.id, self.organization.id],
+            },
+        )
+
+
+def _run_state(*, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
+    return SeerRunState(
+        run_id=1,
+        blocks=blocks or [],
+        status="completed",
+        updated_at="2024-01-01T00:00:00Z",
+    )
+
+
+def _autofix_run(*, blocks: list[MemoryBlock] | None = None) -> CheckSuiteAutofixRun:
+    return CheckSuiteAutofixRun(
+        repository=MagicMock(organization_id=1, id=2),
+        run_state=_run_state(blocks=blocks or []),
+        pr_id=1,
+        group_id=1,
+    )
+
+
 def _check_suite_source() -> CheckSuiteFeedbackSource:
-    return CheckSuiteFeedbackSource(
+    source = CheckSuiteFeedbackSource(
         event={
             "check_suite": {
                 "id": 1,
                 "head_sha": "abc",
                 "check_runs_url": "https://github.com/owner/repo/check-runs",
                 "app": {"name": "CI"},
+                "updated_at": "2024-01-01T00:00:00Z",
             },
             "repository": {
                 "html_url": "https://github.com/owner/repo",
                 "full_name": "owner/repo",
             },
-        }
+        },
     )
+    with patch(
+        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
+    ):
+        _ = source.autofix_run
+    return source
 
 
 def _check_suite_feedback() -> Feedback:
     return Feedback(source=_check_suite_source())
+
+
+def _review_comment_feedback(*, author_is_bot: bool) -> Feedback:
+    """An inline review-comment feedback item, from a bot or a human reviewer.
+
+    Bot reviews are automated (they share the streak with check suites); human
+    reviews break it.
+    """
+    return Feedback(
+        source=GithubPrReviewCommentFeedbackSource(
+            comment=GithubPullRequestReviewComment(id=1, body="fix this"),
+            author_is_bot=author_is_bot,
+        )
+    )
 
 
 def _iteration_block(index: int, *feedbacks: Feedback) -> MemoryBlock:
@@ -280,25 +390,36 @@ def _iteration_block(index: int, *feedbacks: Feedback) -> MemoryBlock:
     )
 
 
-def _run_state(*, blocks: list[MemoryBlock]) -> SeerRunState:
-    return SeerRunState(
-        run_id=1,
-        blocks=blocks,
-        status="completed",
-        updated_at="2024-01-01T00:00:00Z",
+def _empty_feedback_iteration_block(index: int) -> MemoryBlock:
+    """PR_ITERATION whose feedback metadata parses to no items."""
+    return MemoryBlock(
+        id=f"iter-{index}",
+        message=Message(
+            role="assistant",
+            metadata={
+                "step": "pr_iteration",
+                "iteration_index": str(index),
+                "feedback": "[]",
+            },
+        ),
+        timestamp="2024-01-01T00:00:00Z",
     )
 
 
 class CheckSuiteHardCapTest(TestCase):
+    # Consecutive-automated-iteration streak cap, shared with the review path and
+    # backed by ``autofix.pr-iteration.max-iterations``. Set small so a few blocks
+    # trip it.
+    CAP = 3
+
+    def setUp(self) -> None:
+        super().setUp()
+        self._options_ctx = self.options({"autofix.pr-iteration.max-iterations": self.CAP})
+        self._options_ctx.__enter__()
+        self.addCleanup(lambda: self._options_ctx.__exit__(None, None, None))
+
     def _source(self) -> CheckSuiteFeedbackSource:
-        source = _check_suite_source()
-        source.__dict__["autofix_run"] = CheckSuiteAutofixRun(
-            repository=MagicMock(organization_id=1, id=2),
-            run_state=_run_state(blocks=[]),
-            pr_id=1,
-            group_id=1,
-        )
-        return source
+        return _check_suite_source()
 
     def _run_state_on_head(self, *, blocks: list[MemoryBlock]) -> SeerRunState:
         state = _run_state(blocks=blocks)
@@ -306,14 +427,12 @@ class CheckSuiteHardCapTest(TestCase):
         return state
 
     def test_none_when_cap_reached(self) -> None:
-        cap = CHECK_SUITE_ITERATION_HARD_CAP
-        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap)]
+        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP)]
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) is None
 
     def test_should_queue_false_when_cap_reached(self) -> None:
-        cap = CHECK_SUITE_ITERATION_HARD_CAP
-        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap)]
+        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP)]
 
         assert not self._source().should_queue(self._run_state_on_head(blocks=blocks))
 
@@ -322,23 +441,22 @@ class CheckSuiteHardCapTest(TestCase):
     @patch("sentry.scm.factory.new")
     def test_not_capped_when_fewer_than_cap_iterations(self, mock_new: MagicMock, _pages) -> None:
         mock_new.return_value = MagicMock()
-        cap = CHECK_SUITE_ITERATION_HARD_CAP
-        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap - 1)]
+        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP - 1)]
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages", return_value=[{"data": []}])
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
     @patch("sentry.scm.factory.new")
-    def test_not_capped_when_one_iteration_has_non_check_suite_feedback(
+    def test_not_capped_when_one_iteration_has_human_feedback(
         self, mock_new: MagicMock, _pages
     ) -> None:
+        # A human UI iteration mixed into the last N breaks the automated streak.
         mock_new.return_value = MagicMock()
-        cap = CHECK_SUITE_ITERATION_HARD_CAP
-        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap - 1)]
+        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP - 1)]
         blocks.append(
             _iteration_block(
-                cap,
+                self.CAP,
                 _check_suite_feedback(),
                 Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it")),
             )
@@ -347,13 +465,38 @@ class CheckSuiteHardCapTest(TestCase):
         assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
 
     def test_only_last_n_iterations_considered(self) -> None:
-        cap = CHECK_SUITE_ITERATION_HARD_CAP
         blocks = [_iteration_block(0, Feedback(source=UserUIFeedbackSource(user_id=1)))]
-        blocks += [_iteration_block(i, _check_suite_feedback()) for i in range(1, cap + 1)]
+        blocks += [_iteration_block(i, _check_suite_feedback()) for i in range(1, self.CAP + 1)]
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) is None
 
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.CHECK_SUITE_ITERATION_HARD_CAP", 0)
+    def test_none_when_mixed_automated_streak_reaches_cap(self) -> None:
+        # Check suites and bot reviews share one streak: a mix of the two that
+        # totals CAP consecutive automated iterations trips the cap.
+        assert self.CAP >= 2
+        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP - 1)]
+        blocks.append(_iteration_block(self.CAP - 1, _review_comment_feedback(author_is_bot=True)))
+
+        assert self._source().should_trigger(_run_state(blocks=blocks)) is None
+
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages", return_value=[{"data": []}])
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch("sentry.scm.factory.new")
+    def test_not_capped_when_human_review_breaks_mixed_streak(
+        self, mock_new: MagicMock, _pages
+    ) -> None:
+        # A human review mixed into the automated (check-suite + bot-review) streak
+        # resets it, so check-suite iteration resumes even at CAP iterations.
+        mock_new.return_value = MagicMock()
+        blocks = [_iteration_block(0, _check_suite_feedback())]
+        blocks.append(_iteration_block(1, _review_comment_feedback(author_is_bot=False)))
+        blocks += [
+            _iteration_block(i, _review_comment_feedback(author_is_bot=True))
+            for i in range(2, self.CAP + 1)
+        ]
+
+        assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
+
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages", return_value=[{"data": []}])
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
     @patch("sentry.scm.factory.new")
@@ -361,4 +504,20 @@ class CheckSuiteHardCapTest(TestCase):
         mock_new.return_value = MagicMock()
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(10)]
 
-        assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
+        with self.options({"autofix.pr-iteration.max-iterations": 0}):
+            assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
+
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages", return_value=[{"data": []}])
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch("sentry.scm.factory.new")
+    def test_empty_after_parse_iteration_counts_as_automated(
+        self, mock_new: MagicMock, _pages
+    ) -> None:
+        mock_new.return_value = MagicMock()
+        # An iteration whose feedback parses to [] is a metadata gap, not human
+        # input: it must not reset the automated streak (``iteration_is_automated``
+        # treats no-feedback as automated), so a full window still trips the cap.
+        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP - 1)]
+        blocks.append(_empty_feedback_iteration_block(self.CAP - 1))
+
+        assert self._source().should_trigger(_run_state(blocks=blocks)) is None
