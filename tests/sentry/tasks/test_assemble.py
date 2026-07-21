@@ -19,6 +19,7 @@ from sentry.models.artifactbundle import (
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.tasks.assemble import (
     ArtifactBundlePostAssembler,
@@ -185,6 +186,58 @@ class AssembleDifTest(BaseAssembleTest):
         tmp.close()
         assert f.checksum == file_checksum.hexdigest()
         assert f.type == "dummy.type"
+
+    def test_objectstore_assembly_bypasses_file(self) -> None:
+        sym_file = self.load_fixture("crash.sym")
+        blob = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
+        checksum = sha1(sym_file).hexdigest()
+
+        with self.feature(
+            {
+                "organizations:objectstore-debugfiles-assemble": True,
+                "organizations:objectstore-debugfiles-write": False,
+            }
+        ):
+            assemble_dif(
+                project_id=self.project.id,
+                name="crash.sym",
+                checksum=checksum,
+                chunks=[blob.checksum],
+            )
+
+        dif = ProjectDebugFile.objects.get(project_id=self.project.id, checksum=checksum)
+        assert dif.file_id is None
+        assert dif.storage_path is not None
+        assert dif.file_size == len(sym_file)
+        assert dif.get_file().read() == sym_file
+        assert not File.objects.filter(type="project.dif", checksum=checksum).exists()
+        assert not FileBlobIndex.objects.exists()
+        assert FileBlob.objects.filter(id=blob.id).exists()
+        assert FileBlobOwner.objects.filter(
+            blob=blob, organization_id=self.organization.id
+        ).exists()
+
+    @patch("sentry.models.debugfile._upload_dif_to_objectstore")
+    def test_objectstore_assembly_failure_does_not_fallback(self, upload: MagicMock) -> None:
+        upload.side_effect = RuntimeError
+        sym_file = self.load_fixture("crash.sym")
+        blob = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
+        checksum = sha1(sym_file).hexdigest()
+
+        with self.feature("organizations:objectstore-debugfiles-assemble"):
+            assemble_dif(
+                project_id=self.project.id,
+                name="crash.sym",
+                checksum=checksum,
+                chunks=[blob.checksum],
+            )
+
+        status, detail = get_assemble_status(AssembleTask.DIF, self.project.id, checksum)
+        assert status == ChunkFileState.ERROR
+        assert detail == "internal server error"
+        assert not ProjectDebugFile.objects.filter(project_id=self.project.id).exists()
+        assert not File.objects.filter(type="project.dif").exists()
+        assert not FileBlobIndex.objects.exists()
 
     def test_assemble_debug_id_override(self) -> None:
         sym_file = self.load_fixture("crash.sym")

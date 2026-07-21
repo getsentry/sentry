@@ -314,7 +314,7 @@ class DifAssembleEndpoint(APITestCase):
         if first_dif.uses_objectstore_for_read():
             assert first_dif.storage_path != second_dif.storage_path
             assert first_dif.file_id != second_dif.file_id
-            assert File.objects.filter(type="project.dif", checksum=checksum).count() == 2
+            assert File.objects.filter(type="project.dif", checksum=checksum).count() == 1
         else:
             assert first_dif.file_id == second_dif.file_id
             assert File.objects.filter(type="project.dif", checksum=checksum).count() == 1
