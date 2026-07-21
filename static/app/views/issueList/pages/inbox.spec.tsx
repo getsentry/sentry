@@ -1,7 +1,9 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   render,
@@ -36,6 +38,15 @@ describe('InboxPage', () => {
       },
     },
   };
+  const assignedUser = UserFixture({
+    id: '10',
+    name: 'Jane Doe',
+    avatar: {
+      avatarType: 'upload',
+      avatarUrl: 'https://example.com/avatar.jpg',
+      avatarUuid: '123',
+    },
+  });
   const fixProposedGroup = GroupFixture({
     id: '101',
     shortId: 'PROJECT-101',
@@ -102,6 +113,10 @@ describe('InboxPage', () => {
       projects: [Number(project.id)],
       environments: ['production'],
       datetime: {period: '7d', start: null, end: null, utc: false},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [MemberFixture({id: assignedUser.id, user: assignedUser})],
     });
   });
 
@@ -175,10 +190,6 @@ describe('InboxPage', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       body: [],
     });
@@ -232,6 +243,10 @@ describe('InboxPage', () => {
     expect(within(fixSection).getByText('Fix proposed message')).toBeInTheDocument();
     expect(within(fixSection).getByText('PROJECT-101')).toBeInTheDocument();
     expect(within(fixSection).getByTitle('Jane Doe')).toBeInTheDocument();
+    expect(within(fixSection).getByRole('img', {name: 'Jane Doe'})).toHaveAttribute(
+      'src',
+      'https://example.com/avatar.jpg?s=120'
+    );
     expect(within(fixSection).getByLabelText('Unread issue')).toBeInTheDocument();
     expect(within(fixSection).queryByRole('checkbox')).not.toBeInTheDocument();
     expect(fixSection.querySelectorAll('time')).toHaveLength(2);

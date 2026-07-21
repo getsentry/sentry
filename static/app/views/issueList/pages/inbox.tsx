@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {ActorAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
+import {ActorAvatar, ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -28,9 +28,11 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {ProgressState, type Group} from 'sentry/types/group';
+import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getMessage, getTitle} from 'sentry/utils/events';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
@@ -203,6 +205,8 @@ function InboxSection({isReady, section, selection, selectedIssueId}: InboxSecti
   });
   const groups = queryResult.data?.pages.flatMap(page => page.json) ?? [];
   const count = queryResult.data?.pages[0]?.headers['X-Hits'] ?? groups.length;
+  const {data: members = []} = useMembers();
+  const membersById = new Map(members.map(member => [member.id, member]));
 
   return (
     <Disclosure
@@ -251,7 +255,15 @@ function InboxSection({isReady, section, selection, selectedIssueId}: InboxSecti
           <Stack gap="xs">
             {groups.map(group => (
               <Container key={group.id} padding="0 xs">
-                <InboxIssueCard group={group} selected={selectedIssueId === group.id} />
+                <InboxIssueCard
+                  group={group}
+                  selected={selectedIssueId === group.id}
+                  assignedUser={
+                    group.assignedTo?.type === 'user'
+                      ? membersById.get(group.assignedTo.id)
+                      : undefined
+                  }
+                />
               </Container>
             ))}
             {queryResult.hasNextPage && (
@@ -273,83 +285,88 @@ function InboxSection({isReady, section, selection, selectedIssueId}: InboxSecti
   );
 }
 
-function InboxIssueCard({group, selected}: {group: Group; selected: boolean}) {
+function InboxIssueCard({
+  assignedUser,
+  group,
+  selected,
+}: {
+  group: Group;
+  selected: boolean;
+  assignedUser?: User;
+}) {
   const location = useLocation();
   const {title} = getTitle(group);
   const message = getMessage(group);
 
   return (
-    <Container
-      display="block"
-      position="relative"
-      width="100%"
-      padding="lg xl"
-      radius="md"
+    <IssueCardLink
+      aria-current={selected ? 'true' : undefined}
+      data-selected={selected}
+      to={{
+        pathname: location.pathname,
+        query: {...location.query, [SELECTED_ISSUE_QUERY_PARAM]: group.id},
+      }}
     >
-      {({className}) => (
-        <IssueCardLink
-          className={className}
-          aria-current={selected ? 'true' : undefined}
-          data-selected={selected}
-          to={{
-            pathname: location.pathname,
-            query: {...location.query, [SELECTED_ISSUE_QUERY_PARAM]: group.id},
-          }}
-        >
-          <InteractionStateLayer />
-          <Grid columns="8px minmax(0, 1fr) max-content" gap="md" align="stretch">
-            <Flex align="center">
-              {!group.hasSeen && (
-                <StatusIndicator
-                  variant="accent"
-                  aria-label={t('Unread issue')}
-                  animationIterationCount={0}
-                />
-              )}
-            </Flex>
-            <Stack minWidth={0} gap="xs">
-              <Heading as="h3" size="md" ellipsis>
-                {title}
-              </Heading>
-              <EventMessage level={group.level} message={message} type={group.type} />
-              <Flex align="center" gap="xs">
-                <ProjectAvatar project={group.project} size={18} hasTooltip={false} />
-                <Text size="sm" variant="muted" ellipsis>
-                  {group.shortId}
-                </Text>
-              </Flex>
-            </Stack>
-            <Stack align="end" justify="between" gap="sm">
-              <Flex align="center" gap="xs" wrap="nowrap">
-                <TimeSince
-                  date={group.lastSeen}
-                  suffix=""
-                  unitStyle="extraShort"
-                  tooltipPrefix={t('Last Seen')}
-                  variant="muted"
-                />
-                <Text variant="muted">|</Text>
-                <TimeSince
-                  date={group.firstSeen}
-                  suffix=""
-                  unitStyle="extraShort"
-                  tooltipPrefix={t('First Seen')}
-                  variant="muted"
-                />
-              </Flex>
-              {group.assignedTo && (
-                <ActorAvatar
-                  actor={group.assignedTo}
-                  size={24}
-                  hasTooltip={false}
-                  title={group.assignedTo.name}
-                />
-              )}
-            </Stack>
-          </Grid>
-        </IssueCardLink>
-      )}
-    </Container>
+      <InteractionStateLayer />
+      <Grid columns="8px minmax(0, 1fr) max-content" gap="md" align="stretch">
+        <Flex align="center">
+          {!group.hasSeen && (
+            <StatusIndicator
+              variant="accent"
+              aria-label={t('Unread issue')}
+              animationIterationCount={0}
+            />
+          )}
+        </Flex>
+        <Stack minWidth={0} gap="xs">
+          <Heading as="h3" size="md" ellipsis>
+            {title}
+          </Heading>
+          <EventMessage level={group.level} message={message} type={group.type} />
+          <Flex align="center" gap="xs">
+            <ProjectAvatar project={group.project} size={18} hasTooltip={false} />
+            <Text size="xs" variant="muted" ellipsis>
+              {group.shortId}
+            </Text>
+          </Flex>
+        </Stack>
+        <Stack align="end" justify="between" gap="sm">
+          <Flex align="center" gap="xs" wrap="nowrap">
+            <TimeSince
+              date={group.lastSeen}
+              suffix=""
+              unitStyle="extraShort"
+              tooltipPrefix={t('Last Seen')}
+              variant="muted"
+            />
+            <Text variant="muted">|</Text>
+            <TimeSince
+              date={group.firstSeen}
+              suffix=""
+              unitStyle="extraShort"
+              tooltipPrefix={t('First Seen')}
+              variant="muted"
+            />
+          </Flex>
+          {group.assignedTo &&
+            (group.assignedTo.type === 'user' ? (
+              <UserAvatar
+                user={assignedUser ?? group.assignedTo}
+                size={18}
+                hasTooltip={false}
+                title={group.assignedTo.name}
+              />
+            ) : (
+              <ActorAvatar
+                actor={group.assignedTo}
+                size={18}
+                hasTooltip={false}
+                title={group.assignedTo.name}
+              />
+            ))}
+        </Stack>
+      </Grid>
+    </IssueCardLink>
   );
 }
 
@@ -358,7 +375,12 @@ const InboxSectionContent = styled(Disclosure.Content)`
 `;
 
 const IssueCardLink = styled(Link)`
+  display: block;
+  position: relative;
+  width: 100%;
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   border: 1px solid transparent;
+  border-radius: ${p => p.theme.radius.md};
   color: ${p => p.theme.tokens.content.primary};
 
   &:hover {
