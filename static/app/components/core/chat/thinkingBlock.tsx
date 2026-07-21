@@ -1,0 +1,70 @@
+import {useEffect, useState} from 'react';
+
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {IconSeer} from 'sentry/icons';
+import {getDuration} from 'sentry/utils/duration/getDuration';
+import {SECOND} from 'sentry/utils/formatters';
+
+/**
+ * Returns elapsed ms between `startTime` and `endTime`.
+ * While `endTime` is undefined, ticks every `intervalMs` to keep the value live.
+ */
+function useElapsedTime(
+  startTime: Date,
+  endTime: Date | undefined,
+  intervalMs = 100
+): number {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    if (endTime) {
+      return;
+    }
+    const id = setInterval(() => setNow(new Date()), intervalMs);
+    return () => clearInterval(id);
+  }, [endTime, intervalMs]);
+
+  return (endTime ?? now).getTime() - startTime.getTime();
+}
+
+interface ThinkingBlockProps {
+  startTime: Date;
+  title: string;
+  children?: React.ReactNode;
+  endTime?: Date;
+}
+
+export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlockProps) {
+  const elapsed = useElapsedTime(startTime, endTime);
+  const [isExpanded, setIsExpanded] = useState(!endTime);
+  const isActive = !endTime;
+
+  useEffect(() => {
+    if (!isActive) {
+      setIsExpanded(false);
+    }
+  }, [isActive]);
+
+  return (
+    <Disclosure expanded={isExpanded} onExpandedChange={setIsExpanded} size="sm" flex={1}>
+      <Disclosure.Title
+        trailingItems={
+          <Text variant="secondary" size="sm" align="right" monospace>
+            {getDuration(elapsed / 1000, 1, true, false, false, SECOND)}
+          </Text>
+        }
+      >
+        <Flex align="center" gap="xs">
+          <IconSeer size="xs" animation={isActive ? 'waiting' : undefined} />
+          <Text size="sm" monospace variant="muted">
+            {title}
+          </Text>
+        </Flex>
+      </Disclosure.Title>
+      {children ? <Disclosure.Content>{children}</Disclosure.Content> : null}
+    </Disclosure>
+  );
+}
