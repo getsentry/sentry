@@ -699,9 +699,13 @@ class ReferencedInCommitAction(GroupAction):
         return GroupActionType.REFERENCED_IN_COMMIT
 
 
+SeerActivityStartReason = Literal["issue_predicted_fixable", "night_shift"]
+
+
 class SeerRCAStartedAction(GroupAction):
     user_visible = True
     run_id: Optional[int] = None
+    start_reason: Optional[SeerActivityStartReason] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:

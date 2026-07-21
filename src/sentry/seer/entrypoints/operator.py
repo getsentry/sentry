@@ -1,10 +1,15 @@
 import logging
-from typing import Any, Literal
+from typing import Any
 
 from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.issues.action_log.publish import action_context_scope
-from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActionActor
+from sentry.issues.action_log.types import (
+    SYSTEM_ACTOR,
+    ActionSource,
+    GroupActionActor,
+    SeerActivityStartReason,
+)
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -53,9 +58,7 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_ITERATION_COMPLETED: ActivityType.SEER_ITERATION_COMPLETED,
 }
 
-type _SeerActivityStartReason = Literal["issue_predicted_fixable", "night_shift"]
-
-_AUTOMATIC_START_REASONS: dict[str, _SeerActivityStartReason] = {
+_AUTOMATIC_START_REASONS: dict[str, SeerActivityStartReason] = {
     AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY.value: "issue_predicted_fixable",
     AutofixReferrer.NIGHT_SHIFT.value: "night_shift",
 }
@@ -578,7 +581,7 @@ def _create_seer_activity(
     event_payload: dict[str, Any],
     *,
     user_id: int | None = None,
-    start_reason: _SeerActivityStartReason | None = None,
+    start_reason: SeerActivityStartReason | None = None,
 ) -> None:
     activity_type = SEER_EVENT_TO_ACTIVITY_TYPE.get(event_type)
     if not activity_type:
@@ -630,7 +633,7 @@ def _create_seer_activity(
 
 def _get_seer_activity_start_context(
     *, organization_id: int, run_id: int, event_type: SentryAppEventType
-) -> tuple[int | None, _SeerActivityStartReason | None]:
+) -> tuple[int | None, SeerActivityStartReason | None]:
     if event_type != SentryAppEventType.SEER_ROOT_CAUSE_STARTED:
         return None, None
 
