@@ -25,11 +25,7 @@ from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
 )
-from sentry.seer.autofix.utils import (
-    AutofixStoppingPoint,
-    bulk_read_preferences_from_sentry_db,
-    is_seer_seat_based_tier_enabled,
-)
+from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
@@ -69,6 +65,11 @@ NIGHT_SHIFT_SPREAD_DURATION = timedelta(hours=1)
 BATCH_FEATURE_NAMES = [
     "organizations:seer-night-shift",
     "organizations:gen-ai-features",
+]
+PER_ORG_FEATURE_NAMES = [
+    # INTERNAL handlers aren't routed through batch_has_for_organizations,
+    # so this gets checked per-org on the survivors of the batch loop.
+    "organizations:seat-based-seer-enabled",
 ]
 
 
@@ -423,7 +424,12 @@ def _get_eligible_orgs_from_batch(
     if options.get("seer.night_shift.enable_for_legacy_orgs"):
         return eligible
 
-    return [org for org in eligible if is_seer_seat_based_tier_enabled(org)]
+    for feature_name in PER_ORG_FEATURE_NAMES:
+        eligible = [org for org in eligible if features.has(feature_name, org)]
+        if not eligible:
+            return []
+
+    return eligible
 
 
 def _record_run_error(run: SeerNightShiftRun, message: str) -> None:
