@@ -125,7 +125,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         assert reviewers == ["octocat"]
         marker = self._marker()
         assert marker is not None
-        assert marker["reviewer"] == "octocat"
+        assert marker["reviewers"] == ["octocat"]
         assert marker["head_sha"] == HEAD_SHA
         assert marker["requested_at"]
 
@@ -224,7 +224,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
                     REPO_NAME: {
                         "requested_at": "2024-01-01T00:00:00+00:00",
                         "head_sha": "older-sha",
-                        "reviewer": "octocat",
+                        "reviewers": ["octocat"],
                     }
                 }
             }

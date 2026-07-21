@@ -45,7 +45,7 @@ GREEN_CONCLUSIONS = ("success", "neutral", "skipped")
 
 # SeerRun.extras key holding review-request markers, keyed by repo full name
 # (a run can open PRs in several repos). Each marker records requested_at,
-# head_sha, and reviewer so double-fires never re-ping a human and later
+# head_sha, and reviewers so double-fires never re-ping a human and later
 # re-request logic can compare heads.
 REVIEW_REQUESTS_EXTRA = "review_requests"
 
@@ -152,6 +152,10 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
     if not github_login:
         _skip("no_github_login", log_extra)
         return
+    # A list so future candidate selection (e.g. night-shift routing via code
+    # ownership or blame) can request several users; today it's the triggering
+    # user alone.
+    scm_users = [github_login]
 
     # Importing the SCM factory while the check-suite listener module is
     # initialized pulls in integration handlers before options init.
@@ -189,14 +193,15 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
         _skip("pr_not_open", log_extra)
         return
 
-    # Someone is already on the hook — e.g. a CODEOWNERS auto-request.
+    # Drop anyone already on the hook — e.g. a CODEOWNERS auto-request.
     raw_pr = pull_request["raw"]["data"] or {}
     requested_logins = {
         reviewer["login"].lower()
         for reviewer in (raw_pr.get("requested_reviewers") or [])
         if isinstance(reviewer, dict) and reviewer.get("login")
     }
-    if github_login.lower() in requested_logins:
+    scm_users = [scm_user for scm_user in scm_users if scm_user.lower() not in requested_logins]
+    if not scm_users:
         _skip("already_a_reviewer", log_extra)
         return
 
@@ -216,7 +221,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
                 return
 
             try:
-                scm_actions.request_review(scm, str(pr_number), [github_login])
+                scm_actions.request_review(scm, str(pr_number), scm_users)
             except Exception:
                 # Leave the marker unset so the next green event can retry.
                 _failed("request_review_failed", {**log_extra, "pr_number": pr_number})
@@ -227,7 +232,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
             markers[head_match.repo_name] = {
                 "requested_at": timezone.now().isoformat(),
                 "head_sha": head_match.head_sha,
-                "reviewer": github_login,
+                "reviewers": scm_users,
             }
             extras[REVIEW_REQUESTS_EXTRA] = markers
             seer_run.update(extras=extras)
