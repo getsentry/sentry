@@ -2489,6 +2489,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/issueList/pages/sentryConfiguration')),
     },
     {
+      path: 'inbox/',
+      component: make(() => import('sentry/views/issueList/pages/inbox')),
+    },
+    {
       path: 'awaiting-input/',
       component: make(() => import('sentry/views/issueList/pages/awaitingInput')),
     },
