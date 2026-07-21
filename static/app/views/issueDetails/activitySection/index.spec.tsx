@@ -306,9 +306,7 @@ describe('ActivitySection', () => {
     expect(await screen.findByText('User note')).toBeInTheDocument();
     expect(screen.getByText(`${user.name} commented`)).toBeInTheDocument();
     expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Comment Actions'})
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Comment Actions'})).toBeInTheDocument();
   });
 
   it('renders provider-specific icon for create issue in activity line items', async () => {
@@ -687,7 +685,7 @@ describe('ActivitySection', () => {
 
     render(
       <GroupDataContextProvider group={editGroup} project={editGroup.project}>
-        <ActivitySection group={editGroup} variant="standalone" size="md" />
+        <ActivitySection group={editGroup} />
       </GroupDataContextProvider>,
       {
         organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
@@ -709,14 +707,14 @@ describe('ActivitySection', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
 
     await userEvent.type(screen.getByDisplayValue('Group Test'), ' Updated');
-    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
 
     await waitFor(() => expect(editMock).toHaveBeenCalledTimes(1));
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment updated');
 
     // Editor closes only after the update succeeds.
     await waitFor(() =>
-      expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', {name: 'Save comment'})).not.toBeInTheDocument()
     );
   });
 
