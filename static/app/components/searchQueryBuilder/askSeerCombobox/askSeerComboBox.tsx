@@ -430,6 +430,10 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
 
   const hasResults = (data?.queries?.length ?? 0) > 0;
   const isDisplayingResults = !isPending && !isError && hasResults;
+  const showLeftFooterAction = hasAskSeerUxRework;
+  const showFooter = hasAskSeerUxRework
+    ? isDisplayingResults || isError
+    : Boolean(openForm);
 
   return (
     <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
@@ -481,6 +485,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             <Stack flex="1">
               <AskSeerSearchHeader
                 title={t('An error occurred while fetching Seer queries')}
+                isError={hasAskSeerUxRework}
               />
             </Stack>
           ) : data?.queries && (data?.queries?.length ?? 0) > 0 ? (
@@ -505,18 +510,18 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
               <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
             </Stack>
           )}
-          {(hasAskSeerUxRework ? isDisplayingResults : openForm) ? (
+          {showFooter ? (
             <Flex
-              justify={hasAskSeerUxRework ? 'between' : 'end'}
+              justify={showLeftFooterAction ? 'between' : 'end'}
               borderTop="primary"
               paddingTop="sm"
               paddingBottom="sm"
               paddingLeft="md"
               paddingRight="md"
-              background={hasAskSeerUxRework ? 'secondary' : 'primary'}
+              background={showLeftFooterAction ? 'secondary' : 'primary'}
               onMouseDown={e => e.preventDefault()}
             >
-              {hasAskSeerUxRework ? (
+              {showLeftFooterAction ? (
                 <Button
                   icon={<IconSync />}
                   size="zero"
@@ -534,12 +539,12 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
                     submitQuery(query);
                   }}
                 >
-                  {t('Generate again')}
+                  {isError ? t('Try again') : t('Generate again')}
                 </Button>
               ) : null}
               {openForm ? (
                 <Button
-                  size={hasAskSeerUxRework ? 'zero' : 'xs'}
+                  size={showLeftFooterAction ? 'zero' : 'xs'}
                   icon={<IconMegaphone />}
                   onClick={() =>
                     openForm({
