@@ -43,7 +43,8 @@ describe('parseAggregateExpression', () => {
     expect(result.compactExpression).toBe('A + B');
     expect(result.equationRow?.queryParams.aggregateFields).toEqual([
       new VisualizeEquation(
-        'equation|sum(value,metricA,counter,none) + avg(value,metricB,gauge,none)'
+        'equation|sum(value,metricA,counter,none) + avg(value,metricB,gauge,none)',
+        {internalExpression: 'A + B'}
       ),
     ]);
   });
