@@ -4,7 +4,7 @@ import {BreadcrumbCopyAction} from '@sentry/scraps/breadcrumbList/actions/breadc
 import type {BreadcrumbCopyActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
 import {BreadcrumbMenuAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
 import type {BreadcrumbMenuActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
-import type {ButtonProps, LinkButtonProps} from '@sentry/scraps/button';
+import {Button, type ButtonProps, type LinkButtonProps} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -124,26 +124,46 @@ export function BreadcrumbItemPageTitle({
             title={pagination.previous.tooltip}
             disabled={!pagination.previous.tooltip}
           >
-            <LinkButton
-              size="zero"
-              variant="transparent"
-              icon={<IconChevron direction="left" size="xs" aria-hidden />}
-              aria-label={pagination.previous.ariaLabel}
-              disabled={pagination.previous.disabled || !pagination.previous.to}
-              to={pagination.previous.to ?? ''}
-              onClick={pagination.previous.onClick}
-            />
+            {pagination.previous.to ? (
+              <LinkButton
+                size="zero"
+                variant="transparent"
+                icon={<IconChevron direction="left" size="xs" aria-hidden />}
+                aria-label={pagination.previous.ariaLabel}
+                disabled={pagination.previous.disabled}
+                to={pagination.previous.to}
+                onClick={pagination.previous.onClick}
+              />
+            ) : (
+              <Button
+                size="zero"
+                variant="transparent"
+                icon={<IconChevron direction="left" size="xs" aria-hidden />}
+                aria-label={pagination.previous.ariaLabel}
+                disabled
+              />
+            )}
           </Tooltip>
           <Tooltip title={pagination.next.tooltip} disabled={!pagination.next.tooltip}>
-            <LinkButton
-              size="zero"
-              variant="transparent"
-              icon={<IconChevron direction="right" size="xs" aria-hidden />}
-              aria-label={pagination.next.ariaLabel}
-              disabled={pagination.next.disabled || !pagination.next.to}
-              to={pagination.next.to ?? ''}
-              onClick={pagination.next.onClick}
-            />
+            {pagination.next.to ? (
+              <LinkButton
+                size="zero"
+                variant="transparent"
+                icon={<IconChevron direction="right" size="xs" aria-hidden />}
+                aria-label={pagination.next.ariaLabel}
+                disabled={pagination.next.disabled}
+                to={pagination.next.to}
+                onClick={pagination.next.onClick}
+              />
+            ) : (
+              <Button
+                size="zero"
+                variant="transparent"
+                icon={<IconChevron direction="right" size="xs" aria-hidden />}
+                aria-label={pagination.next.ariaLabel}
+                disabled
+              />
+            )}
           </Tooltip>
         </Flex>
       )}
