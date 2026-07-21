@@ -32,12 +32,17 @@ describe('SeerProjectTable', () => {
   const organization = OrganizationFixture({access: ['org:write']});
   const project = ProjectFixture({id: '2', slug: 'project-slug'});
 
-  function mockBaseEndpoints() {
+  function mockBaseEndpoints({
+    codingAgentsAsyncDelay,
+  }: {codingAgentsAsyncDelay?: number} = {}) {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       body: {
         integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}],
       },
+      ...(codingAgentsAsyncDelay === undefined
+        ? {}
+        : {asyncDelay: codingAgentsAsyncDelay}),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/projects/`,
@@ -184,5 +189,28 @@ describe('SeerProjectTable', () => {
     // blur-to-save flow to persist) and no warning is shown.
     expect(await screen.findByText('Cursor Cloud Agent')).toBeInTheDocument();
     expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it('shows a loading indicator instead of an empty select while agent options are still loading', async () => {
+    // Overrides the beforeEach mock with one that never resolves within the
+    // test, keeping the agentSelectOptions query pending indefinitely.
+    mockBaseEndpoints({codingAgentsAsyncDelay: 100_000});
+
+    renderTable();
+
+    // The project row itself has loaded (its own query is unaffected), but the
+    // agent cell must show a loading indicator rather than a select with an
+    // empty/mismatched value.
+    await screen.findByText('project-slug');
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(screen.queryByText('Seer')).not.toBeInTheDocument();
+  });
+
+  it('shows the real agent value once options finish loading', async () => {
+    mockBaseEndpoints({codingAgentsAsyncDelay: 10});
+
+    renderTable();
+
+    expect(await screen.findByText('Seer')).toBeInTheDocument();
   });
 });

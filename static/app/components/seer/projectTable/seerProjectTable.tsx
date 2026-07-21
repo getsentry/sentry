@@ -97,7 +97,7 @@ export function SeerProjectTable() {
   const {data: knownAgents} = useQuery(
     knownAgentIntegrationsQueryOptions({organization})
   );
-  const {data: agentSelectOptions = []} = useQuery(
+  const {data: agentSelectOptions = [], isPending: isAgentOptionsPending} = useQuery(
     seerAgentIntegrationsSelectQueryOptions({organization})
   );
   const stoppingPointOptions = useStoppingPointSelectOptions();
@@ -270,6 +270,7 @@ export function SeerProjectTable() {
                             item.integrationId
                           )}
                           agentSelectOptions={agentSelectOptions}
+                          optionsPending={isAgentOptionsPending}
                           knownAgents={knownAgents}
                           disabled={!canWrite}
                         />
@@ -321,6 +322,7 @@ interface AgentSelectCellProps {
   disabled: boolean;
   initialValue: AutofixAgentSelectOption;
   knownAgents: AgentIntegration[] | undefined;
+  optionsPending: boolean;
   projectSlug: string;
 }
 
@@ -329,10 +331,23 @@ function AgentSelectCell({
   disabled,
   initialValue,
   knownAgents,
+  optionsPending,
   projectSlug,
 }: AgentSelectCellProps) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
+
+  // The select's value comes from the row data, but its options come from
+  // agentSelectOptions. Rendering before the options load leaves the select
+  // with a value that matches nothing, so it briefly shows blank before the
+  // option pops in. Show a loading indicator instead until options settle.
+  if (optionsPending) {
+    return (
+      <Flex align="center" justify="center">
+        <LoadingIndicator size={20} />
+      </Flex>
+    );
+  }
 
   return (
     <AutoSaveForm

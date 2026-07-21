@@ -19,15 +19,16 @@ export function PreferredAgentDropdownMenu({
   size?: DropdownMenuProps['size'];
 }) {
   const organization = useOrganization();
-  const {data: agentOptions = []} = useQuery(
+  const {data: agentOptions = [], isPending: isAgentOptionsPending} = useQuery(
     seerAgentIntegrationsSelectQueryOptions({organization})
   );
 
   return (
     <DropdownMenu
-      isDisabled={isDisabled}
+      isDisabled={isDisabled || isAgentOptionsPending}
       size={size}
       triggerLabel={t('Agent')}
+      triggerProps={{busy: isAgentOptionsPending}}
       items={
         agentOptions.map(({value, label}) => ({
           key: value,
