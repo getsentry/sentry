@@ -625,6 +625,7 @@ describe('CreateProject', () => {
 
   it('renders framework selection modal if vanilla js is selected', async () => {
     const {organization} = initializeOrg();
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
     const frameWorkModalMockRequests = renderFrameworkModalMockRequests({
       organization,
@@ -660,6 +661,10 @@ describe('CreateProject', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
 
     expect(frameWorkModalMockRequests.projectCreationMockRequest).not.toHaveBeenCalled();
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.select_framework_modal_close_button_clicked',
+      expect.objectContaining({variant: 'legacy'})
+    );
   });
 
   it('should rollback project when rule creation fails', async () => {
