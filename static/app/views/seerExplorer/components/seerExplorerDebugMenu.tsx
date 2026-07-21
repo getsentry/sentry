@@ -69,7 +69,7 @@ export function SeerExplorerDebugMenu({
       size="xs"
       position="bottom-end"
       triggerLabel={
-        <Container as="span" display={{'2xs': 'none', xs: 'inline'}}>
+        <Container as="span" display={{zero: 'none', sm: 'inline'}}>
           {t('Debug')}
         </Container>
       }

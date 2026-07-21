@@ -71,15 +71,15 @@ function BreadCrumbTitle({item}: BreadcrumbListTitleProps) {
 /**
  * Renders a horizontal breadcrumb trail. Uses a container query to collapse
  * parent link crumbs into an overflow (…) menu when the container is narrow
- * (below the 'xs' breakpoint — 500px).
+ * (below the 'sm' breakpoint — 512px).
  *
  * Consumers pass parent crumbs in `items` and render the final page title with
  * `BreadcrumbList.Title`. Keeping those concerns separate means the TopBar can
  * own the page's single heading.
  *
  * Overflow behaviour:
- * - Wide (≥ 500px): all parent items render individually
- * - Narrow (< 500px): parent items hide and link parents collapse into a single
+ * - Wide (≥ 512px): all parent items render individually
+ * - Narrow (< 512px): parent items hide and link parents collapse into a single
  *   BreadcrumbItemMenuBreadcrumbs overflow button; non-link parents (e.g.
  *   'select-projects') just hide.
  */
@@ -103,10 +103,10 @@ export function BreadcrumbList({items, ...props}: BreadcrumbListProps) {
     }));
 
   // Responsive display values using container queries (bare breakpoint keys):
-  //   '2xs' is the smallest breakpoint → applies as the base
-  //   'xs'  = 500px → overrides at container width ≥ 500px
-  const visibleWhenWide = {xs: 'flex', '2xs': 'none'} as const;
-  const visibleWhenNarrow = {xs: 'none', '2xs': 'flex'} as const;
+  //   'zero' is the base (0px) → applies until the first override
+  //   'sm'   = 512px → overrides at container width ≥ 512px
+  const visibleWhenWide = {zero: 'none', sm: 'flex'} as const;
+  const visibleWhenNarrow = {zero: 'flex', sm: 'none'} as const;
 
   return (
     // Renders parent links as inline content (no <nav> landmark). The TopBar

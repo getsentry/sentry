@@ -176,7 +176,7 @@ function MeasuredContentSplit({
 
   return (
     <SplitPanel
-      orientation={{xs: 'vertical', md: 'horizontal'}}
+      orientation={{zero: 'vertical', '2xl': 'horizontal'}}
       defaultSize={MAX_CONTENT_WIDTH}
       initialSize={storedSize}
       minSize={CONTENT_MIN_WIDTH}
@@ -188,8 +188,8 @@ function MeasuredContentSplit({
           flex="1"
           minWidth="0"
           minHeight="0"
-          paddingRight={{xs: '0', md: 'md'}}
-          paddingBottom={{xs: 'md', md: '0'}}
+          paddingRight={{zero: '0', '2xl': 'md'}}
+          paddingBottom={{zero: 'md', '2xl': '0'}}
           maxWidth={`${MAX_CONTENT_WIDTH}px`}
         >
           {content}
@@ -201,8 +201,8 @@ function MeasuredContentSplit({
             flex="1"
             minWidth="0"
             minHeight="0"
-            paddingLeft={{xs: '0', md: 'md'}}
-            paddingTop={{xs: 'md', md: '0'}}
+            paddingLeft={{zero: '0', '2xl': 'md'}}
+            paddingTop={{zero: 'md', '2xl': '0'}}
           >
             {detail}
           </Stack>
