@@ -57,6 +57,11 @@ def apply_gpu_crash_symbolication(
 
     data["platform"] = "native"
     data["level"] = "fatal"
+    # Relay typed the scope-only event as "default" (the exception is added here,
+    # after normalization). Re-type it as an error so the event title is derived
+    # from the exception below instead of defaulting to "<unlabeled event>";
+    # `get_event_type` trusts `data["type"]` and never re-infers it.
+    data["type"] = "error"
     data["fingerprint"] = list(_as_list(response.get("fingerprint"))) or ["gpu", category]
     data["exception"] = {
         "values": [
