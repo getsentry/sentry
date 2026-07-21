@@ -29,7 +29,11 @@ import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {ColumnType} from 'sentry/utils/discover/fields';
+import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {isRateLimitError} from 'sentry/utils/requestError/requestError';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useElementOffset} from 'sentry/utils/useElementOffset';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -66,6 +70,7 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
 import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
+import {LogsRateLimitError} from 'sentry/views/explore/logs/tables/logsRateLimitError';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {useLogsTableColumnWidths} from 'sentry/views/explore/logs/tables/useLogsTableColumnWidths';
 import {
@@ -117,6 +122,7 @@ type LogsTableProps = {
   showCellActions?: boolean;
   showExploreSimilarSpansLink?: boolean;
   stringAttributes?: TagCollection;
+  validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 };
 
 const {info, fmt} = Sentry.logger;
@@ -136,6 +142,7 @@ export function LogsInfiniteTable({
   additionalData,
   showCellActions,
   showExploreSimilarSpansLink,
+  validatedFieldTypes = {},
 }: LogsTableProps) {
   const location = useLocation();
   const linkedRowId = decodeScalar(location.query[LOGS_ROW_ID_KEY]);
@@ -146,9 +153,11 @@ export function LogsInfiniteTable({
   const {
     isPending,
     isEmpty,
-    meta,
+    meta: rawMeta,
     data: originalData,
     isError,
+    error,
+    refetch,
     fetchNextPage,
     fetchPreviousPage,
     isFetchingNextPage,
@@ -160,6 +169,14 @@ export function LogsInfiniteTable({
     resumeAutoFetch,
     totalPayloadBytes,
   } = useLogsPageDataQueryResult();
+  const meta = useMemo(
+    () =>
+      addValidatedFieldTypesToLogsMeta({
+        meta: rawMeta,
+        validatedFieldTypes,
+      }),
+    [rawMeta, validatedFieldTypes]
+  );
 
   const baseData = localOnlyItemFilters?.filteredItems ?? originalData;
   const baseDataLength = useBox(baseData.length);
@@ -546,7 +563,7 @@ export function LogsInfiniteTable({
       <Fragment>
         <Flex justify="center" align="center" height="100%" minHeight="200px">
           {isPending && <LoadingRenderer />}
-          {isError && <ErrorRenderer />}
+          {isError && <ErrorRenderer error={error} onRetry={refetch} />}
           {isEmpty &&
             (emptyRenderer ? (
               emptyRenderer()
@@ -584,6 +601,7 @@ export function LogsInfiniteTable({
             numberAttributes={numberAttributes}
             stringAttributes={stringAttributes}
             booleanAttributes={booleanAttributes}
+            validatedFieldTypes={validatedFieldTypes}
             onResizeMouseDown={onResizeMouseDown}
           />
         )}
@@ -614,7 +632,7 @@ export function LogsInfiniteTable({
               totalPayloadBytes={totalPayloadBytes}
             />
           )}
-          {!hasReplay && isError && <ErrorRenderer />}
+          {!hasReplay && isError && <ErrorRenderer error={error} onRetry={refetch} />}
           {!hasReplay &&
             isEmpty &&
             (emptyRenderer ? (
@@ -716,8 +734,12 @@ function LogsTableHeader({
   booleanAttributes,
   numberAttributes,
   stringAttributes,
+  validatedFieldTypes = {},
   onResizeMouseDown,
-}: Pick<LogsTableProps, 'numberAttributes' | 'stringAttributes' | 'booleanAttributes'> & {
+}: Pick<
+  LogsTableProps,
+  'numberAttributes' | 'stringAttributes' | 'booleanAttributes' | 'validatedFieldTypes'
+> & {
   isFrozen: boolean;
   onResizeMouseDown: (e: React.MouseEvent<HTMLDivElement>, index: number) => void;
 }) {
@@ -726,6 +748,10 @@ function LogsTableHeader({
   const setSortBys = useSetQueryParamsSortBys();
 
   const {data, meta, isError, isPending} = useLogsPageDataQueryResult();
+  const resolvedMeta = useMemo(
+    () => addValidatedFieldTypesToLogsMeta({meta, validatedFieldTypes}),
+    [meta, validatedFieldTypes]
+  );
   const pinningEnabled = !!useLogsPinning();
   return (
     <TableHead>
@@ -736,7 +762,7 @@ function LogsTableHeader({
         {fields.map((field, index) => {
           const direction = sortBys.find(s => s.field === field)?.kind;
 
-          const fieldType = meta?.fields?.[field];
+          const fieldType = resolvedMeta.fields[field];
           const align = logsFieldAlignment(field, fieldType);
           const headerLabel = getTableHeaderLabel(
             field,
@@ -810,10 +836,14 @@ function LogsTableHeader({
   );
 }
 
-function ErrorRenderer() {
+function ErrorRenderer({error, onRetry}: {error?: unknown; onRetry?: () => void}) {
   return (
     <TableStatus>
-      <IconWarning variant="muted" size="lg" />
+      {isRateLimitError(error) ? (
+        <LogsRateLimitError onRetry={onRetry} />
+      ) : (
+        <IconWarning variant="muted" size="lg" />
+      )}
     </TableStatus>
   );
 }
@@ -855,6 +885,37 @@ export function LoadingRenderer({
       </Stack>
     </TableStatus>
   );
+}
+
+export function addValidatedFieldTypesToLogsMeta({
+  meta,
+  validatedFieldTypes,
+}: {
+  meta: EventsMetaType | undefined;
+  validatedFieldTypes: Partial<Record<string, FieldValueType>>;
+}): EventsMetaType {
+  const fields: Record<string, ColumnType> = {...meta?.fields};
+
+  for (const [field, fieldType] of Object.entries(validatedFieldTypes)) {
+    const definitionType = fieldValueTypeToColumnType(
+      getFieldDefinition(field, 'log')?.valueType ?? undefined
+    );
+    const columnType =
+      definitionType ?? fields[field] ?? fieldValueTypeToColumnType(fieldType);
+    if (columnType) {
+      fields[field] = columnType;
+    }
+  }
+
+  return {...meta, fields, units: meta?.units ?? {}};
+}
+
+function fieldValueTypeToColumnType(fieldType?: FieldValueType): ColumnType | undefined {
+  if (!fieldType || fieldType === FieldValueType.NEVER) {
+    return undefined;
+  }
+
+  return fieldType;
 }
 
 const StyledLoadingIndicator = styled(LoadingIndicator)<{

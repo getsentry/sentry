@@ -126,6 +126,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             on_page_context=None,
             page_name=None,
             ui_tools=None,
+            override_bash_mode_enabled=False,
             override_ce_enable=True,
             request=ANY,
         )

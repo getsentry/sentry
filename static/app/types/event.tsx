@@ -650,6 +650,7 @@ export type EventContexts = {
   device?: DeviceContext;
   feedback?: Record<string, any>;
   flags?: Flags;
+  gpu_crash?: Record<string, any>;
   memory_info?: MemoryInfoContext;
   metric_alert?: MetricAlertContextType;
   missing_instrumentation?: MissingInstrumentationContext;

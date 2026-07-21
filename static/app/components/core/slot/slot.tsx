@@ -120,7 +120,7 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
           ...state,
           [action.name]: {
             ...currentSlot,
-            counter: (currentSlot?.counter ?? 0) - 1,
+            counter: currentSlot.counter - 1,
           },
         };
       }
@@ -185,7 +185,10 @@ interface SlotConsumerProps<T extends Slot> {
 }
 
 interface SlotOutletProps<T extends Slot> {
-  children: (props: {ref: React.RefCallback<HTMLElement | null>}) => React.ReactNode;
+  children: (
+    props: {ref: React.RefCallback<HTMLElement | null>},
+    hasConsumers: boolean
+  ) => React.ReactNode;
   name: T;
 }
 
@@ -201,7 +204,7 @@ type SlotModule<T extends Slot> = React.FunctionComponent<SlotConsumerProps<T>> 
 };
 
 function useContextBridges(): ContextBridge[] {
-  const values = KNOWN_BRIDGED_CONTEXTS.map(ctx => use(ctx));
+  const values = KNOWN_BRIDGED_CONTEXTS.map(ctx => use(ctx as React.Context<unknown>));
   const [prev, setPrev] = useState<ContextBridge[]>([]);
 
   const changed =
@@ -317,12 +320,12 @@ function makeSlotOutlet<T extends Slot>(
         name,
         `<Slot.Outlet> for slot "${name}" rendered without a <Slot.Provider>`
       );
-      return props.children({ref: NOOP_REF_CALLBACK});
+      return props.children({ref: NOOP_REF_CALLBACK}, false);
     }
 
     return (
       <outletNameContext.Provider value={name}>
-        {props.children({ref})}
+        {props.children({ref}, (ctx[0][name]?.counter ?? 0) > 0)}
       </outletNameContext.Provider>
     );
   }
@@ -344,7 +347,9 @@ function makeSlotFallback<T extends Slot>(
         'missing-provider',
         'Fallback',
         name ?? 'unknown',
-        `<Slot.Fallback> for slot "${name ?? 'unknown'}" rendered without a <Slot.Provider>`
+        `<Slot.Fallback> for slot "${
+          name ?? 'unknown'
+        }" rendered without a <Slot.Provider>`
       );
       return null;
     }

@@ -344,6 +344,57 @@ class CheckForUpdatesTest(LatestBuildTestBase):
         assert data["currentArtifact"]["buildId"] == str(current.id)
         assert data["currentArtifact"]["appInfo"]["version"] == "1.0.0"
 
+    def test_dotted_build_number_matches_packed_current(self) -> None:
+        # "1.2.3" is packed to 1_000_002_000_003 in build_number; the raw client
+        # value must expand to the same int to match.
+        current = self._create_installable_artifact(
+            build_version="1.0.0", build_number=1_000_002_000_003
+        )
+        newer = self._create_installable_artifact(build_version="2.0.0", build_number=1)
+
+        response = self._get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildVersion": "1.0.0",
+                "buildNumber": "1.2.3",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["currentArtifact"]["buildId"] == str(current.id)
+        assert data["latestArtifact"]["buildId"] == str(newer.id)
+
+    def test_invalid_build_number_returns_400(self) -> None:
+        self._create_installable_artifact(build_version="1.0.0", build_number=1)
+
+        response = self._get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildVersion": "1.0.0",
+                "buildNumber": "not-a-build",
+            },
+        )
+        assert response.status_code == 400
+
+    def test_overflowing_build_number_returns_400(self) -> None:
+        self._create_installable_artifact(build_version="1.0.0", build_number=1)
+
+        response = self._get(
+            self._get_url(),
+            {
+                "appId": "com.example.app",
+                "platform": "android",
+                "buildVersion": "1.0.0",
+                "buildNumber": "99999999999999999999999999",
+            },
+        )
+        assert response.status_code == 400
+
     def test_already_on_latest(self) -> None:
         artifact = self._create_installable_artifact(build_version="2.0.0", build_number=1)
 

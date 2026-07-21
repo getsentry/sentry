@@ -58,6 +58,10 @@ def process_project_derived_data(project_id: int, **kwargs: object) -> None:
     )
 
     if not group_ids:
+        logger.info(
+            "process_project_derived_data.all_groups_covered",
+            extra={"project_id": project_id},
+        )
         return
 
     starts = [group_ids[i] for i in range(0, len(group_ids), batch_size)]

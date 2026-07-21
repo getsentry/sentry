@@ -1,7 +1,7 @@
 import pytest
 
 from sentry.integrations.services.integration.serial import serialize_integration
-from sentry.integrations.utils.hostname import instance_hostname
+from sentry.integrations.utils.hostname import InstanceHostnameError, instance_hostname
 from sentry.testutils.cases import TestCase
 
 
@@ -27,7 +27,7 @@ class InstanceHostnameTest(TestCase):
                 assert instance_hostname(integration) == expected
                 assert instance_hostname(serialize_integration(integration)) == expected
 
-    def test_unsupported_provider(self) -> None:
+    def test_unsupported_provider_raises(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="slack",
@@ -35,3 +35,23 @@ class InstanceHostnameTest(TestCase):
         )
         with pytest.raises(NotImplementedError):
             instance_hostname(integration)
+
+    def test_missing_metadata_raises(self) -> None:
+        cases = [
+            ("github_enterprise", {}),
+            ("github_enterprise", {"domain_name": ""}),
+            ("gitlab", {}),
+            ("gitlab", {"instance": ""}),
+        ]
+        for i, (provider, metadata) in enumerate(cases):
+            with self.subTest(provider=provider, metadata=metadata):
+                integration = self.create_integration(
+                    organization=self.organization,
+                    provider=provider,
+                    external_id=f"{provider}:{i}",
+                    metadata=metadata,
+                )
+                with pytest.raises(InstanceHostnameError):
+                    instance_hostname(integration)
+                with pytest.raises(InstanceHostnameError):
+                    instance_hostname(serialize_integration(integration))

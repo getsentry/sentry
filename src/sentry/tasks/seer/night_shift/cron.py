@@ -157,7 +157,12 @@ def schedule_night_shift(
         eligible = _get_eligible_orgs_from_batch(org_batch)
         for org in eligible:
             delay = int(md5_text(str(org.id)).hexdigest(), 16) % spread_seconds
-            run_night_shift_for_org.apply_async(args=[org.id], kwargs=task_kwargs, countdown=delay)
+            run_night_shift_for_org.apply_async(
+                args=[org.id],
+                kwargs=task_kwargs,
+                countdown=delay,
+                headers={"sentry-propagate-traces": False},
+            )
             batch_index += 1
 
         if chunk_index % 10 == 0:

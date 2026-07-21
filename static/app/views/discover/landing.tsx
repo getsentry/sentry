@@ -33,7 +33,7 @@ import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import QueryList from './queryList';
-import {getPrebuiltQueries} from './utils';
+import {getDiscoverDeprecation, getPrebuiltQueries} from './utils';
 
 const SORT_OPTIONS = [
   {label: t('My Queries'), value: 'myqueries'},
@@ -245,16 +245,26 @@ function DiscoverLanding() {
                 <LoadingError message={error.message} />
               ) : (
                 <QueriesContainer>
-                  {organization.features.includes('expose-migrated-discover-queries') && (
-                    <Alert variant="info">
-                      {tct(
-                        'Your saved transactions queries are also available in the new Explore UI. Try them out in [exploreLink:Explore] instead.',
-                        {
-                          exploreLink: <Link to="/explore/saved-queries/" />,
-                        }
-                      )}
-                    </Alert>
-                  )}
+                  {organization.features.includes('expose-migrated-discover-queries') &&
+                    (getDiscoverDeprecation(organization) ? (
+                      <Alert variant="info">
+                        {tct(
+                          'Your saved transactions queries are no longer available in this UI. Try them out in the [exploreLink:Explore Queries] page instead.',
+                          {
+                            exploreLink: <Link to="/explore/saved-queries/" />,
+                          }
+                        )}
+                      </Alert>
+                    ) : (
+                      <Alert variant="info">
+                        {tct(
+                          'Your saved transactions queries are also available in the new Explore UI. Try them out in [exploreLink:Explore] instead.',
+                          {
+                            exploreLink: <Link to="/explore/saved-queries/" />,
+                          }
+                        )}
+                      </Alert>
+                    ))}
                   <QueryList
                     pageLinks={savedQueriesPageLinks ?? ''}
                     savedQueries={savedQueries}

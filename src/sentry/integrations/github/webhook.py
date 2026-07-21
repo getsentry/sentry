@@ -52,6 +52,11 @@ from sentry.integrations.utils.metrics import IntegrationWebhookEvent, Integrati
 from sentry.integrations.utils.scope import clear_organization_info
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
+from sentry.issues.action_log import (
+    ActionSource,
+    action_context_scope,
+    resolve_action_actor,
+)
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
@@ -75,10 +80,7 @@ from sentry.pr_metrics.webhooks import handle_review_comment as pr_metrics_handl
 from sentry.pr_metrics.webhooks import handle_review_thread as pr_metrics_handle_review_thread
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
-from sentry.seer.autofix.pr_iteration.mention import (
-    handle_issue_comment_for_autofix_iteration,
-    handle_pull_request_review_comment_for_autofix_iteration,
-)
+from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.seer.code_review.contributor_seats import (
     record_contributor_action,
@@ -168,7 +170,7 @@ def _handle_pr_webhook_for_autofix_processor(
     if organization and action and user:
         # Because we require that the sentry github integration be installed for autofix, we can piggyback
         # on this webhook for autofix for now. We may move to a separate autofix github integration in the future
-        handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
+        handle_github_pr_webhook_for_autofix(organization, action, pull_request, user, repo.id)
 
 
 def _track_contributor_action_processor(
@@ -1103,6 +1105,7 @@ class PullRequestEventWebhook(GitHubWebhook):
         # Activity must be written before emission so the verdict check in
         # handle_activity sees no verdict yet on the open/sync events, and so the
         # SYNCHRONIZED rows are present when select_verdict runs on the close event.
+        # This ordering is pinned by test_pull_request_processor_order_contract.
         pr_metrics_handle_activity,
         pr_metrics_handle_emission,
     )
@@ -1295,10 +1298,7 @@ class PullRequestReviewCommentEventWebhook(GitHubWebhook):
     """https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request_review_comment"""
 
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST_REVIEW_COMMENT
-    WEBHOOK_EVENT_PROCESSORS = (
-        pr_metrics_handle_review_comment,
-        handle_pull_request_review_comment_for_autofix_iteration,
-    )
+    WEBHOOK_EVENT_PROCESSORS = (pr_metrics_handle_review_comment,)
 
 
 class PullRequestReviewThreadEventWebhook(GitHubWebhook):
@@ -1376,7 +1376,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         return options.get("github-app.webhook-secret")
 
     def post(self, request: HttpRequest) -> HttpResponse:
-        return self.handle(request)
+        with action_context_scope(ActionSource.GITHUB, resolve_action_actor(request)):
+            return self.handle(request)
 
     def handle(self, request: HttpRequest) -> HttpResponse:
         clear_organization_info()

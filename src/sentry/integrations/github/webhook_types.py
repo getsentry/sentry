@@ -33,6 +33,18 @@ CELL_PROCESSED_GITHUB_EVENTS = frozenset(
     t.value for t in GithubWebhookType if t not in _CONTROL_ONLY_EVENTS
 )
 
+# Every action GitHub sends for check_run events; used to bound metric tag cardinality.
+GITHUB_CHECK_RUN_ACTIONS = frozenset({"completed", "created", "requested_action", "rerequested"})
+
+# check_run actions that a cell-side processor actually consumes
+# (see CheckRunEventWebhook.WEBHOOK_EVENT_PROCESSORS):
+#   completed        -> sentry.pr_metrics.webhooks.handle_check_run
+#   requested_action -> sentry.preprod.vcs.webhooks.github_check_run
+#   rerequested      -> sentry.seer.code_review.webhooks.check_run
+# The control parser drops the other actions (notably "created") before forwarding,
+# so a new consumer must add its action here to receive those events.
+CELL_PROCESSED_CHECK_RUN_ACTIONS = frozenset({"completed", "requested_action", "rerequested"})
+
 
 class GitHubInstallationRepo(TypedDict):
     id: int

@@ -301,8 +301,8 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="currency",
         ),
         ResolvedAttribute(
-            public_alias="gen_ai.request.reasoning_effort",
-            internal_name="gen_ai.request.reasoning_effort",
+            public_alias="gen_ai.request.reasoning.level",
+            internal_name="gen_ai.request.reasoning.level",
             search_type="string",
         ),
         ResolvedAttribute(

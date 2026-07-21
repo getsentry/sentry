@@ -5,13 +5,13 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconReleases} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
+import {ProgressState} from 'sentry/types/group';
 import type {Commit, PullRequest, Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import {StatusBannerFrame} from 'sentry/views/issueDetails/actions/statusBanner';
 import {CommitChip} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/commitChip';
 import {InlineChip} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/inlineChip';
 import {PullRequestChip} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/pullRequestChip';
-import {ProgressState} from 'sentry/views/issueList/utils/progress';
 
 const repository: Repository = {
   dateCreated: '2025-01-01T00:00:00Z',
