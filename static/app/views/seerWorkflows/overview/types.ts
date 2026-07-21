@@ -74,7 +74,6 @@ export interface OverviewRow {
   statePending: boolean;
   title: string;
   userCount: number;
-  fixabilityScore?: number | null;
   // Plain-language title from the run's root-cause answer (see runQuestions).
   // Falls back to the raw issue title.
   headline?: string;

@@ -98,22 +98,6 @@ function PatchFilesTooltip({stats}: {stats: PatchStats}) {
   );
 }
 
-// Buckets the raw 0–1 score into a scannable label; the 0.7 threshold matches
-// isIssueQuickFixable (sentry/components/events/autofix/utils).
-function FixabilityTag({score}: {score: number}) {
-  const high = score > 0.7;
-  const label = high
-    ? t('High fixability')
-    : score > 0.4
-      ? t('Medium fixability')
-      : t('Low fixability');
-  return (
-    <Tooltip title={t('Fixability score: %s', score.toFixed(2))}>
-      <Tag variant={high ? 'success' : 'muted'}>{label}</Tag>
-    </Tooltip>
-  );
-}
-
 export function IssueCard({
   orgSlug,
   row,
@@ -394,17 +378,13 @@ export function IssueCard({
             card width */}
         {analysisExpanded && detailEntries.length > 0 && (
           <Stack gap="md" id={analysisId} borderTop="muted" paddingTop="sm">
-            {/* Compact identity strip: the level, short id, and Seer's
-                fixability read — the raw title lives in the headline
-                tooltip, not here */}
+            {/* Compact identity strip: the level and short id — the raw
+                title lives in the headline tooltip, not here */}
             <Flex gap="sm" align="center">
               <ErrorLevel level={row.level} />
               <Text size="xs" monospace variant="muted">
                 {row.shortId}
               </Text>
-              {typeof row.fixabilityScore === 'number' && (
-                <FixabilityTag score={row.fixabilityScore} />
-              )}
             </Flex>
             {/* Sections share the body blocks' icon+label voice and sit side
                 by side on wide screens instead of leaving the card's right

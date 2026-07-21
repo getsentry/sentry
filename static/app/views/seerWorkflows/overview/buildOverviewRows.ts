@@ -248,7 +248,6 @@ function buildOverviewRow(issue: AutofixIssue): OverviewRow {
     eventCount: Number.isFinite(eventCount) ? eventCount : 0,
     userCount: issue.userCount,
     lastSeen: issue.lastSeen,
-    fixabilityScore: issue.seerFixabilityScore,
     lastActivityAt:
       state?.updated_at ??
       issue.run?.lastTriggeredAt ??

@@ -22,7 +22,6 @@ describe('AutofixOverview', () => {
     title: 'TypeError in checkout cart',
     count: '100',
     userCount: 5,
-    seerFixabilityScore: 0.75,
   });
 
   // A run that reached every stage and opened a PR.
@@ -263,8 +262,6 @@ describe('AutofixOverview', () => {
     ).toBeVisible();
     expect(screen.getByText('Verify the proxy accepts both headers.')).toBeVisible();
     expect(screen.queryByText(/•/)).not.toBeInTheDocument();
-    // Fixability lives in the expanded state as a bucketed tag (0.75 > 0.7).
-    expect(screen.getByText('High fixability')).toBeVisible();
     // The issue level moved off the header into the identity strip — exactly
     // one occurrence (ErrorLevel's visually-hidden label).
     expect(screen.getAllByText('Level: Warning')).toHaveLength(1);
