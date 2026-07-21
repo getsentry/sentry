@@ -161,11 +161,14 @@ export function QueryTokens({
   }
 
   if (sort && sort.length > 0) {
+    const descending = sort[0] === '-';
+    const rawSort = descending ? sort.slice(1) : sort;
+    const formattedSort = isEquation(rawSort) ? stripEquationPrefix(rawSort) : rawSort;
     tokens.push(
       <Flex as="span" align="center" wrap="wrap" gap="xs" overflow="hidden" key="sort">
         <ExploreParamTitle>{t('Sort')}</ExploreParamTitle>
         <ExploreGroupBys>
-          {sort[0] === '-' ? sort.slice(1) + ' Desc' : sort + ' Asc'}
+          {formattedSort + (descending ? ' Desc' : ' Asc')}
         </ExploreGroupBys>
       </Flex>
     );
