@@ -300,7 +300,9 @@ describe('InboxPage', () => {
 
     const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
     expect(await within(fixSection).findByText('Fix proposed issue')).toBeInTheDocument();
-    const loadMoreButton = within(fixSection).getByRole('button', {name: 'See more'});
+    const loadMoreButton = within(fixSection).getByRole('button', {
+      name: 'Show 5 more',
+    });
 
     await userEvent.click(loadMoreButton);
 
@@ -310,7 +312,7 @@ describe('InboxPage', () => {
     ).toBeInTheDocument();
     expect(within(fixSection).getByText('Fix proposed issue')).toBeInTheDocument();
     expect(
-      within(fixSection).queryByRole('button', {name: 'See more'})
+      within(fixSection).queryByRole('button', {name: 'Show 5 more'})
     ).not.toBeInTheDocument();
   });
 
