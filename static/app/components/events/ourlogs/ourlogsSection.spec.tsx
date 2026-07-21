@@ -409,7 +409,7 @@ describe('OurlogsSection', () => {
     expect(mockRequest).not.toHaveBeenCalled();
   });
 
-  it('renders Open in explore button with correct URL when trace_id exists', async () => {
+  it('renders Open in Explore button with correct URL when trace_id exists', async () => {
     render(<OurlogsSection event={event} project={project} group={group} />, {
       organization: OrganizationFixture({
         features: ['ourlogs-enabled', 'visibility-explore-view'],
@@ -434,7 +434,7 @@ describe('OurlogsSection', () => {
     expect(aside).toBeInTheDocument();
 
     const openInExploreButton = within(aside).getByRole('button', {
-      name: 'Open in explore',
+      name: 'Open in Explore',
     });
     expect(openInExploreButton).toBeInTheDocument();
     expect(openInExploreButton).toHaveAttribute('target', '_blank');

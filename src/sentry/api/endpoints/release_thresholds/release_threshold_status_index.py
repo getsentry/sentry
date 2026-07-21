@@ -215,11 +215,13 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
             )
             .order_by("-date")
             .distinct()
+            # prefetch the release_thresholds via the projects model
+            .prefetch_related(
+                "projects__release_thresholds__environment",
+                "releaseprojectenvironment_set",
+                "deploy_set",
+            )
         )
-        # prefetching the release_thresholds via the projects model
-        queryset.prefetch_related("projects__release_thresholds__environment")
-        queryset.prefetch_related("releaseprojectenvironment_set")
-        queryset.prefetch_related("deploy_set")
 
         logger.info(
             "Fetched releases",

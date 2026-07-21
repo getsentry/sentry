@@ -704,7 +704,18 @@ def _detect_performance_problems(
 
     for detector in detectors:
         with start_span(op="function", name=f"run_detector_on_data.{detector.type.value}"):
-            run_detector_on_data(detector, data)
+            try:
+                run_detector_on_data(detector, data)
+            except Exception:
+                logger.exception(
+                    f"Error running issue detector `{detector.__class__.__name__}`",
+                    extra={
+                        "project_id": project.id,
+                        "org_id": organization.id,
+                        "event_id": event_id,
+                        "standalone": standalone,
+                    },
+                )
 
     with start_span(op="function", name="report_metrics_for_detectors"):
         # Metrics reporting only for detection, not created issues.

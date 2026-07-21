@@ -248,6 +248,7 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
         return
 
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)
+    min_sample_rate = options.get("dynamic-sampling.prioritise_transactions.min_sample_rate")
 
     model = TransactionsRebalancingModel()
     rebalanced_transactions = guarded_run(
@@ -258,6 +259,7 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
             total_num_classes=total_num_classes,
             total=total_num_transactions,
             intensity=intensity,
+            min_sample_rate=min_sample_rate,
         ),
     )
     # In case the result of the model is None, it means that an error occurred, thus we want to early return.

@@ -272,10 +272,10 @@ const appConfig: Configuration = {
      *
      * The order here matters for `getsentry`
      */
-    app: ['sentry/utils/statics-setup', 'sentry'],
+    app: ['sentry/utils/setupStatics', 'sentry'],
 
     // admin interface
-    gsAdmin: ['sentry/utils/statics-setup', path.join(staticPrefix, 'gsAdmin')],
+    gsAdmin: ['sentry/utils/setupStatics', path.join(staticPrefix, 'gsAdmin')],
 
     /**
      * Legacy CSS Webpack appConfig for Django-powered views.
@@ -476,7 +476,7 @@ const appConfig: Configuration = {
     alias: {
       'type-loader': path.resolve(
         import.meta.dirname,
-        'static/app/stories/type-loader.ts'
+        'static/app/stories/typeLoader.ts'
       ),
     },
   },

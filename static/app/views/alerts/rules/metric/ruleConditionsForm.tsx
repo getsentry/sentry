@@ -73,6 +73,7 @@ import {
 } from 'sentry/views/alerts/wizard/options';
 import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 import {SESSIONS_FILTER_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {canUseMetricsEquationsInAlerts} from 'sentry/views/explore/metrics/metricsFlags';
@@ -340,7 +341,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     if (
       organization.features.includes('performance-view') &&
-      alertType === 'custom_transactions'
+      alertType === 'custom_transactions' &&
+      !getDiscoverDeprecation(organization)
     ) {
       dataSourceOptions.push({
         label: t('Transactions'),

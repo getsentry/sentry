@@ -21,6 +21,8 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.features import (
+    BLOCKER,
+    LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
     PROGRESS,
     STATUS,
@@ -37,6 +39,7 @@ from sentry.issues.derived.framework import (
     resolve,
 )
 from sentry.issues.progress_state import IssueProgressState
+from sentry.types.group import IssueAutofixStep, IssueBlocker
 
 
 def _pipeline(
@@ -95,6 +98,13 @@ def _pr_closed(has_other: bool | None = None, *, pr_id: int = 101, hour: int = 0
     if has_other is not None:
         data["has_other_open_prs"] = has_other
     return FakeEntry(type=GroupActionType.PULL_REQUEST_CLOSED, date_added=_ts(hour=hour), data=data)
+
+
+def _pr_terminal(action: GroupActionType, has_other: bool | None) -> FakeEntry:
+    data: dict[str, object] = {"pull_request": 101}
+    if has_other is not None:
+        data["has_other_open_prs"] = has_other
+    return FakeEntry(type=action, data=data)
 
 
 # ---------------------------------------------------------------------------
@@ -1023,6 +1033,292 @@ def test_last_progressed_at_set_on_reopen() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Blocker
+# ---------------------------------------------------------------------------
+
+
+def test_blocker_defaults_to_none() -> None:
+    assert _run_for_feature(BLOCKER, []) == IssueBlocker.NONE
+
+
+@pytest.mark.parametrize(
+    ("action", "expected"),
+    [
+        (GroupActionType.ROOT_CAUSE_IDENTIFIED, IssueBlocker.APPROVE_ROOT_CAUSE),
+        (GroupActionType.SEER_RCA_COMPLETED, IssueBlocker.APPROVE_ROOT_CAUSE),
+        (GroupActionType.SEER_SOLUTION_COMPLETED, IssueBlocker.APPROVE_PLAN),
+        (GroupActionType.AUTOFIX_CODING_COMPLETE, IssueBlocker.APPROVE_CODE_CHANGES),
+        (GroupActionType.SEER_CODING_COMPLETED, IssueBlocker.APPROVE_CODE_CHANGES),
+        (GroupActionType.SEER_PR_CREATED, IssueBlocker.NONE),
+        (GroupActionType.SEER_ITERATION_COMPLETED, IssueBlocker.NONE),
+    ],
+)
+def test_completed_action_sets_blocker(action: GroupActionType, expected: IssueBlocker) -> None:
+    assert _run_for_feature(BLOCKER, [FakeEntry(type=action)]) == expected
+
+
+@pytest.mark.parametrize(
+    ("action", "data"),
+    [
+        (GroupActionType.RESOLVED_IN_PULL_REQUEST, _resolved_pr_data(101)),
+        (GroupActionType.PULL_REQUEST_REOPENED, {"pull_request": 101}),
+    ],
+)
+def test_open_pr_action_sets_merge_blocker(
+    action: GroupActionType, data: dict[str, object]
+) -> None:
+    assert _run_for_feature(BLOCKER, [FakeEntry(type=action, data=data)]) == IssueBlocker.MERGE_PR
+
+
+def test_latest_completed_action_replaces_sticky_blocker() -> None:
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(type=GroupActionType.SEER_CODING_COMPLETED),
+                FakeEntry(type=GroupActionType.SEER_RCA_COMPLETED),
+            ],
+        )
+        == IssueBlocker.APPROVE_ROOT_CAUSE
+    )
+
+
+@pytest.mark.parametrize(
+    ("started_action", "expected"),
+    [
+        (GroupActionType.SEER_RCA_STARTED, IssueAutofixStep.ROOT_CAUSE),
+        (GroupActionType.SEER_SOLUTION_STARTED, IssueAutofixStep.SOLUTION),
+        (GroupActionType.SEER_CODING_STARTED, IssueAutofixStep.CODE_CHANGES),
+        (GroupActionType.SEER_ITERATION_STARTED, IssueAutofixStep.PR_ITERATION),
+    ],
+)
+def test_started_action_sets_autofix_step(
+    started_action: GroupActionType, expected: IssueAutofixStep
+) -> None:
+    assert (
+        _run_for_feature(
+            LAST_COMPLETED_AUTOFIX_STEP,
+            [
+                FakeEntry(type=GroupActionType.SEER_CODING_COMPLETED),
+                FakeEntry(type=started_action),
+            ],
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "terminal_action",
+    [
+        GroupActionType.PULL_REQUEST_CLOSED,
+        GroupActionType.PULL_REQUEST_MERGED,
+        GroupActionType.PULL_REQUEST_UNLINKED,
+    ],
+)
+def test_last_pr_terminal_action_falls_back_to_completed_blocker(
+    terminal_action: GroupActionType,
+) -> None:
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(type=GroupActionType.SEER_CODING_COMPLETED),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                _pr_terminal(terminal_action, has_other=False),
+            ],
+        )
+        == IssueBlocker.APPROVE_CODE_CHANGES
+    )
+
+
+@pytest.mark.parametrize(
+    "autofix_action",
+    [GroupActionType.SEER_PR_CREATED, GroupActionType.SEER_ITERATION_COMPLETED],
+)
+def test_last_pr_closed_clears_merge_blocker_after_pr_autofix_step(
+    autofix_action: GroupActionType,
+) -> None:
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(type=autofix_action),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                _pr_terminal(GroupActionType.PULL_REQUEST_CLOSED, has_other=False),
+            ],
+        )
+        == IssueBlocker.NONE
+    )
+
+
+@pytest.mark.parametrize("has_other", [True, None])
+def test_pr_terminal_action_with_remaining_or_unknown_prs_preserves_merge_blocker(
+    has_other: bool | None,
+) -> None:
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                _pr_terminal(GroupActionType.PULL_REQUEST_CLOSED, has_other=has_other),
+            ],
+        )
+        == IssueBlocker.MERGE_PR
+    )
+
+
+def test_reopened_pr_restores_merge_blocker() -> None:
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(type=GroupActionType.SEER_SOLUTION_COMPLETED),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                _pr_terminal(GroupActionType.PULL_REQUEST_CLOSED, has_other=False),
+                FakeEntry(type=GroupActionType.PULL_REQUEST_REOPENED, data={"pull_request": 101}),
+            ],
+        )
+        == IssueBlocker.MERGE_PR
+    )
+
+
+@pytest.mark.parametrize(
+    "closing_entry",
+    [
+        FakeEntry(type=GroupActionType.RESOLVE),
+        FakeEntry(type=GroupActionType.ARCHIVE),
+        _reconcile_entry(IssueStatus.CLOSED),
+    ],
+)
+def test_completed_blocker_survives_close_and_restores_on_reopen(
+    closing_entry: FakeEntry,
+) -> None:
+    # The last completed blocker is sticky: it survives closure, so reopening
+    # the issue restores it.
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(type=GroupActionType.SEER_CODING_COMPLETED),
+                closing_entry,
+                FakeEntry(type=GroupActionType.UNRESOLVE),
+            ],
+        )
+        == IssueBlocker.APPROVE_CODE_CHANGES
+    )
+
+
+@pytest.mark.parametrize(
+    "closing_entry",
+    [
+        FakeEntry(type=GroupActionType.RESOLVE),
+        FakeEntry(type=GroupActionType.ARCHIVE),
+        _reconcile_entry(IssueStatus.CLOSED),
+    ],
+)
+def test_blocker_is_none_while_closed(closing_entry: FakeEntry) -> None:
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(type=GroupActionType.SEER_CODING_COMPLETED),
+                closing_entry,
+            ],
+        )
+        == IssueBlocker.NONE
+    )
+
+
+@pytest.mark.parametrize(
+    "closing_entry",
+    [
+        FakeEntry(type=GroupActionType.RESOLVE),
+        FakeEntry(type=GroupActionType.ARCHIVE),
+        _reconcile_entry(IssueStatus.CLOSED),
+    ],
+)
+def test_open_fix_pr_survives_close_and_restores_merge_blocker_on_reopen(
+    closing_entry: FakeEntry,
+) -> None:
+    # A fix PR that is still open when the issue is closed survives the closure,
+    # so reopening the issue restores the MERGE_PR blocker.
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                closing_entry,
+                FakeEntry(type=GroupActionType.UNRESOLVE),
+            ],
+        )
+        == IssueBlocker.MERGE_PR
+    )
+
+
+@pytest.mark.parametrize(
+    ("initial_entry", "expected"),
+    [
+        (
+            FakeEntry(type=GroupActionType.SEER_CODING_COMPLETED),
+            IssueBlocker.APPROVE_CODE_CHANGES,
+        ),
+        (
+            FakeEntry(
+                type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                data=_resolved_pr_data(101),
+            ),
+            IssueBlocker.MERGE_PR,
+        ),
+    ],
+)
+def test_regression_preserves_blocker(initial_entry: FakeEntry, expected: IssueBlocker) -> None:
+    """When the issue regresses we are intentionally preserving the last autofix step as the blocker.
+    This matches the UI behavior, which will display the same autofix status regardless of issue state changes."""
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                initial_entry,
+                FakeEntry(type=GroupActionType.SET_REGRESSED),
+            ],
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "unrelated_action",
+    [GroupActionType.VIEW, GroupActionType.COMMENT, GroupActionType.ASSIGN],
+)
+def test_unrelated_action_preserves_blocker(unrelated_action: GroupActionType) -> None:
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(type=GroupActionType.SEER_SOLUTION_COMPLETED),
+                FakeEntry(type=unrelated_action),
+            ],
+        )
+        == IssueBlocker.APPROVE_PLAN
+    )
+
+
+# ---------------------------------------------------------------------------
 # Full pipeline
 # ---------------------------------------------------------------------------
 
@@ -1114,6 +1410,7 @@ def test_full_pipeline_constructs() -> None:
     assert state[STATUS] == IssueStatus.OPEN
     assert state[VIEW_COUNT] == 0
     assert state[PROGRESS] == IssueProgressState.IDENTIFIED
+    assert state[BLOCKER] == IssueBlocker.NONE
 
 
 def test_full_pipeline_mixed_events() -> None:
