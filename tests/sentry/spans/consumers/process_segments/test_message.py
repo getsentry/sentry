@@ -4,12 +4,19 @@ from typing import Any
 from unittest import mock
 
 import pytest
+from django.utils import timezone
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.environment import Environment
 from sentry.models.release import Release
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.spans.consumers.process_segments import message as message_module
-from sentry.spans.consumers.process_segments.message import _verify_compatibility, process_segment
+from sentry.spans.consumers.process_segments.message import (
+    _bump_release_last_seen,
+    _verify_compatibility,
+    process_segment,
+)
 from sentry.spans.consumers.process_segments.shim import build_shim_event_data
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.testutils.cases import TestCase
@@ -22,6 +29,10 @@ from tests.sentry.spans.consumers.process import build_mock_span
 class TestSpansTask(TestCase):
     def setUp(self) -> None:
         self.project = self.create_project()
+        message_module.cache = None
+
+    def tearDown(self) -> None:
+        message_module.cache = None
 
     def generate_basic_spans(self):
         segment_span = build_mock_span(
@@ -152,6 +163,49 @@ class TestSpansTask(TestCase):
             organization_id=self.organization.id,
             name="a" * 64,
         )
+
+    def test_create_models_auto_creation_disabled(self) -> None:
+        self.project.update_option("sentry:enable_auto_release_creation", False)
+        spans = self.generate_basic_spans()
+
+        with self.feature("organizations:auto-release-creation"):
+            assert process_segment(spans)
+
+        Environment.objects.get(organization_id=self.organization.id, name="development")
+        assert not Release.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_create_models_auto_creation_disabled_associates_existing_release(self) -> None:
+        # A release created out-of-band (e.g. via the CLI) is still associated even
+        # when auto-creation is disabled.
+        self.project.update_option("sentry:enable_auto_release_creation", False)
+        release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8",
+        )
+        spans = self.generate_basic_spans()
+
+        with self.feature("organizations:auto-release-creation"):
+            assert process_segment(spans)
+
+        assert ReleaseProject.objects.filter(release=release, project=self.project).exists()
+        assert ReleaseProjectEnvironment.objects.filter(
+            release_id=release.id, project_id=self.project.id
+        ).exists()
+
+    def test_create_models_auto_creation_disabled_without_feature_flag(self) -> None:
+        self.project.update_option("sentry:enable_auto_release_creation", False)
+        spans = self.generate_basic_spans()
+        assert process_segment(spans)
+
+        assert Release.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_bump_release_last_seen_auto_creation_disabled(self) -> None:
+        self.project.update_option("sentry:enable_auto_release_creation", False)
+
+        with self.feature("organizations:auto-release-creation"):
+            _bump_release_last_seen(self.project, "development", "1.0", timezone.now())
+
+        assert not Release.objects.filter(organization_id=self.organization.id).exists()
 
     @override_options({"spans.process-segments.detect-performance-problems.enable": True})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")

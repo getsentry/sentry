@@ -75,6 +75,7 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import ReleaseQuerySet, SemverFilter
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.releases.auto_creation import should_auto_create_releases
 from sentry.releases.use_cases.release import serialize as release_serializer
 from sentry.search.events.constants import (
     OPERATOR_TO_DJANGO,
@@ -90,6 +91,7 @@ from sentry.signals import release_created
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import deprecated_utcnow
@@ -307,9 +309,16 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
             # happen if the release only had health data so far.  For these cases
             # we want to create the release the first time we observed it on the
             # health side.
+            project.set_cached_field_value("organization", organization)
             release = Release.get_or_create(
-                project=project, version=version, date_added=dates.get((project_id, version))
+                project=project,
+                version=version,
+                date_added=dates.get((project_id, version)),
+                create=should_auto_create_releases(project),
             )
+            if release is None:
+                metrics.incr("organization_releases.release_autocreation_skipped")
+                continue
 
             # Make sure that the release knows about this project.  Like we had before
             # the project might not have been associated with this release yet.
