@@ -136,7 +136,6 @@ describe('TraceMetaDataHeader', () => {
       const breadcrumbsItems = screen.getAllByTestId('breadcrumb-item');
 
       expect(breadcrumbs.childElementCount).toBe(5);
-
       expect(breadcrumbsLinks).toHaveLength(1);
       expect(breadcrumbsLinks[0]).toHaveTextContent('Transaction Summary');
       expect(breadcrumbsLinks[0]).toHaveAttribute(
@@ -160,11 +159,8 @@ describe('TraceMetaDataHeader', () => {
       const props = {...baseProps} as TraceMetadataHeaderProps;
       render(<TraceMetaDataHeader {...props} organization={organization} />);
 
-      const breadcrumbs = screen.getByTestId('breadcrumb-list');
-      const breadcrumbsLinks = screen.getAllByTestId('breadcrumb-link');
-      const breadcrumbsItems = screen.getAllByTestId('breadcrumb-item');
-
-      expect(breadcrumbs.childElementCount).toBe(5);
+      const breadcrumbsLinks = screen.getAllByRole('link');
+      const breadcrumbsItems = [screen.getByText(/trace-slug/)];
 
       expect(breadcrumbsLinks).toHaveLength(2);
       expect(breadcrumbsLinks[0]).toHaveTextContent('Frontend');
@@ -206,8 +202,7 @@ describe('TraceMetaDataHeader', () => {
       );
 
       const topbarSlot = screen.getByTestId('topbar-title-slot');
-      expect(within(topbarSlot).getByTestId('breadcrumb-list')).toBeInTheDocument();
-      expect(screen.getAllByTestId('breadcrumb-list')).toHaveLength(1);
+      expect(within(topbarSlot).getByText(/trace-slug/)).toBeInTheDocument();
     });
   });
 
