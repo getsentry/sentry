@@ -20,7 +20,7 @@ import {
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceViewQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
-export type TraceDataAvailability = 'loading' | 'present' | 'absent' | 'unknown';
+type TraceDataAvailability = 'loading' | 'present' | 'absent' | 'unknown';
 
 export interface TraceOverviewData {
   isRepresentativeLoading: boolean;
