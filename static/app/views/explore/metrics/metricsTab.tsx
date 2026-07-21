@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {closestCenter, DndContext} from '@dnd-kit/core';
 import {SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 
@@ -12,8 +13,10 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/e
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
+import {IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {
   ExploreBodyContent,
@@ -28,6 +31,7 @@ import {useEquationReferencedLabels} from 'sentry/views/explore/metrics/hooks/us
 import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import {useSortableMetricQueries} from 'sentry/views/explore/metrics/hooks/useSortableMetricQueries';
 import {SortableMetricPanel} from 'sentry/views/explore/metrics/metricPanel/sortableMetricPanel';
+import {canUseMetricDescriptions} from 'sentry/views/explore/metrics/metricsFlags';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricSaveAs} from 'sentry/views/explore/metrics/metricToolbar/metricSaveAs';
 import {
@@ -39,6 +43,7 @@ import {
   FilterBarWithSaveAsContainer,
   StyledPageFilterBar,
 } from 'sentry/views/explore/metrics/styles';
+import {makeMetricsPathname} from 'sentry/views/explore/metrics/utils';
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -65,6 +70,7 @@ function MetricsTabContentInner({datePageFilterProps}: MetricsTabProps) {
 }
 
 function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
+  const organization = useOrganization();
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
   const addEquationQuery = useAddMetricQuery({type: 'equation'});
@@ -87,6 +93,18 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
             />
           </StyledPageFilterBar>
           <Flex gap="sm" align="center">
+            {canUseMetricDescriptions(organization) ? (
+              <LinkButton
+                size="md"
+                icon={<IconList />}
+                to={makeMetricsPathname({
+                  organizationSlug: organization.slug,
+                  path: '/descriptions/',
+                })}
+              >
+                {t('Metric Descriptions')}
+              </LinkButton>
+            ) : null}
             <ToolbarVisualizeAddChart
               add={addMetricQuery}
               disabled={isAddMetricDisabled}

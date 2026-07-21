@@ -2171,6 +2171,10 @@ function buildRoutes(): RouteObject[] {
       index: true,
       component: make(() => import('sentry/views/explore/metrics/content')),
     },
+    {
+      path: 'descriptions/',
+      component: make(() => import('sentry/views/explore/metrics/metricDescriptions')),
+    },
     traceView,
   ];
 
