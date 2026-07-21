@@ -5,6 +5,12 @@ import pytest
 from pydantic import ValidationError
 
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
+from sentry.seer.autofix.pr_iteration.check_suites import (
+    CheckSuiteAutofixRun,
+    GithubCheckSuiteEvent,
+    get_check_suite_url,
+    resolve_check_suite_repositories,
+)
 from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
     parse_feedback,
@@ -12,12 +18,8 @@ from sentry.seer.autofix.pr_iteration.feedback import (
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
-    CheckSuiteAutofixRun,
     CheckSuiteFeedbackSource,
-    GithubCheckSuiteEvent,
     MissingCheckSuiteAutofixRun,
-    get_check_suite_url,
-    resolve_check_suite_repositories,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubIssueComment,
@@ -30,6 +32,7 @@ from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
+CHECK_SUITES_PATH = "sentry.seer.autofix.pr_iteration.check_suites"
 
 
 def _check_suite_event(*, updated_at: str | None = "2024-01-01T00:00:00Z") -> dict:
@@ -705,15 +708,15 @@ class CheckSuiteShouldTriggerTest(TestCase):
     def test_now_when_scm_init_fails(self, _mock_new: MagicMock) -> None:
         assert self._source().should_trigger(_run_state()) == ConsumeTask.Now
 
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", type("Other", (), {}))
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", type("Other", (), {}))
     @patch("sentry.scm.factory.new")
     def test_now_when_unsupported_provider(self, mock_new: MagicMock) -> None:
         mock_new.return_value = MagicMock()
 
         assert self._source().should_trigger(_run_state()) == ConsumeTask.Now
 
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages")
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.iter_all_pages")
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
     @patch("sentry.scm.factory.new")
     def test_later_when_a_check_suite_not_completed(
         self,
@@ -725,8 +728,8 @@ class CheckSuiteShouldTriggerTest(TestCase):
 
         assert self._source().should_trigger(_run_state()) == ConsumeTask.Later(timedelta(hours=1))
 
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages")
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.iter_all_pages")
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
     @patch("sentry.scm.factory.new")
     def test_now_when_all_completed(
         self,
@@ -738,8 +741,8 @@ class CheckSuiteShouldTriggerTest(TestCase):
 
         assert self._source().should_trigger(_run_state()) == ConsumeTask.Now
 
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages", side_effect=Exception("boom"))
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", side_effect=Exception("boom"))
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
     @patch("sentry.scm.factory.new")
     def test_now_when_list_check_suites_fails(
         self,
@@ -764,7 +767,7 @@ class ResolveCheckSuiteRepositoriesTest(TestCase):
             == []
         )
 
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.integration_service.organization_contexts")
+    @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
     def test_empty_when_no_integration(self, mock_contexts: MagicMock) -> None:
         mock_contexts.return_value = MagicMock(integration=None, organization_integrations=[])
 
@@ -780,7 +783,7 @@ class ResolveCheckSuiteRepositoriesTest(TestCase):
 
         assert result == []
 
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.integration_service.organization_contexts")
+    @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
     def test_returns_matching_repos(self, mock_contexts: MagicMock) -> None:
         repo = self.create_repo(
             project=self.project,
@@ -805,7 +808,7 @@ class ResolveCheckSuiteRepositoriesTest(TestCase):
 
         assert [r.id for r in result] == [repo.id]
 
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.integration_service.organization_contexts")
+    @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
     def test_returns_all_matching_repos_across_orgs(self, mock_contexts: MagicMock) -> None:
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)

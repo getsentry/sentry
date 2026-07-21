@@ -154,7 +154,12 @@ function AskSeerPollingPopoverContent({
         {hasAskSeerUxRework ? null : (
           <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
         )}
-        <AskSeerSearchListBox {...listBoxProps} listBoxRef={listBoxRef} state={state} />
+        <AskSeerSearchListBox
+          {...listBoxProps}
+          hasAskSeerUxRework={hasAskSeerUxRework}
+          listBoxRef={listBoxRef}
+          state={state}
+        />
       </SeerContent>
     );
   }
