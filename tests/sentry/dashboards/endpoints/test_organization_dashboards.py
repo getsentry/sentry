@@ -897,15 +897,11 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert visited_at == [now, one_hour_ago]
 
     def test_recently_viewed_sort_is_per_user_with_flag(self) -> None:
-        # Clean up existing dashboards setup for this test.
         Dashboard.objects.all().delete()
 
         now = before_now(minutes=0)
         one_hour_ago = before_now(hours=1)
 
-        # Org-level `last_visited` is deliberately the INVERSE of this user's
-        # per-user visits, so the ordering can only be correct if it is driven
-        # by the per-user DashboardLastVisited rows and not the org column.
         dashboard_a = Dashboard.objects.create(
             title="Dashboard A",
             organization=self.organization,
@@ -919,6 +915,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             last_visited=one_hour_ago,
         )
 
+        # Should respect this last_visited, not the independent dashboard's
         DashboardLastVisited.objects.create(
             organization=self.organization,
             user_id=self.user.id,
@@ -937,14 +934,12 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         assert response.status_code == 200, response.content
         titles = [row["title"] for row in response.data]
-        # Per-user order (B most recent), NOT the org-level order (A most recent).
         assert titles == ["Dashboard B", "Dashboard A"]
 
         visited_at = [row.get("lastVisited") for row in response.data]
         assert visited_at == [now, one_hour_ago]
 
-    def test_recently_viewed_sort_unvisited_dashboards_sort_last_with_flag(self) -> None:
-        # Clean up existing dashboards setup for this test.
+    def test_recently_viewed_sort_unvisited_last_with_flag(self) -> None:
         Dashboard.objects.all().delete()
 
         now = before_now(minutes=0)
@@ -955,8 +950,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             created_by_id=self.user.id,
             last_visited=before_now(hours=1),
         )
-        # This user has never visited this dashboard, so it has no per-user row
-        # even though the org-level `last_visited` is the most recent.
         never_visited = Dashboard.objects.create(
             title="Never visited by me",
             organization=self.organization,
@@ -976,7 +969,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         assert response.status_code == 200, response.content
         titles = [row["title"] for row in response.data]
-        # Never-visited (null per-user last_visited) sorts last, not first.
         assert titles == ["Visited by me", "Never visited by me"]
 
         assert response.data[0]["title"] == visited.title

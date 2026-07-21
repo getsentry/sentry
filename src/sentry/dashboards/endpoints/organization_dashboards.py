@@ -563,9 +563,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            # TODO: Once `dashboards-user-last-visited` is fully rolled out,
-            # keep only the per-user `user_last_visited` branch and drop the
-            # org-level `last_visited` fallback.
+            # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
             if use_user_last_visited:
                 order_by = [
                     F("user_last_visited").asc(nulls_last=True)
@@ -609,9 +607,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "myDashboardsAndRecentlyViewed":
-            # TODO: Once `dashboards-user-last-visited` is fully rolled out,
-            # keep only the per-user `user_last_visited` ordering and drop the
-            # org-level `last_visited` fallback.
+            # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
             order_by = [
                 Case(When(created_by_id=request.user.id, then=-1), default=1),
                 F("user_last_visited").desc(nulls_last=True)
