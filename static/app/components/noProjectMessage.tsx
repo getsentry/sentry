@@ -16,11 +16,13 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 type Props = {
   organization: Organization;
   children?: React.ReactNode;
+  isLoading?: boolean;
   superuserNeedsToBeProjectMember?: boolean;
 };
 
 export function NoProjectMessage({
   children,
+  isLoading,
   organization,
   superuserNeedsToBeProjectMember,
 }: Props) {
@@ -34,7 +36,7 @@ export function NoProjectMessage({
 
   const orgHasProjects = !!projects?.length;
 
-  if (hasProjectAccess || !projectsLoaded) {
+  if (isLoading || hasProjectAccess || !projectsLoaded) {
     return <Fragment>{children}</Fragment>;
   }
 

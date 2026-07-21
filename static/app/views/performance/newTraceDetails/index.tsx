@@ -237,12 +237,16 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     </ViewportConstrainedPage>
   );
 
+  const isInitialTraceLoading = meta.status === 'pending' || tree.type === 'loading';
+
   return (
     <SentryDocumentTitle
       title={`${t('Trace Details')} - ${traceSlug}`}
       orgSlug={organization.slug}
     >
-      <NoProjectMessage organization={organization}>{content}</NoProjectMessage>
+      <NoProjectMessage organization={organization} isLoading={isInitialTraceLoading}>
+        {content}
+      </NoProjectMessage>
     </SentryDocumentTitle>
   );
 }
