@@ -1,8 +1,11 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Badge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -18,23 +21,26 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {Sticky} from 'sentry/components/sticky';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAutofixIssues} from 'sentry/views/autofixIssuesDemo/useAutofixIssues';
 
-import {
-  ATTENTION_META,
-  ATTENTION_REASONS,
-  getAttentionReason,
-  getTriageRank,
-} from './attentionBadge';
+import {ATTENTION_META, ATTENTION_REASONS, getAttentionReason} from './attentionBadge';
 import {buildOverviewRows} from './buildOverviewRows';
 import {IssueCard} from './issueCard';
 import {RUN_QUESTION_PROMPTS} from './runQuestions';
+import {
+  getStatusGroup,
+  STATUS_GROUP_META,
+  STATUS_GROUP_ORDER,
+  type StatusGroupKey,
+} from './statusGroups';
 import type {AttentionReason, AutofixOutcome} from './types';
 
 // Only autofix runs. `source` is the run's origin surface (autofix, chat,
@@ -72,10 +78,11 @@ const ATTENTION_FILTER_OPTIONS: Array<{
   label: ATTENTION_META[value].label,
 }));
 
-type SortValue = 'triage' | 'activity' | 'events';
+// Urgency ordering lives in the status groups now; the sort only orders
+// cards within each group.
+type SortValue = 'activity' | 'events';
 
 const SORT_OPTIONS: Array<{label: string; value: SortValue}> = [
-  {value: 'triage', label: t('Needs you first')},
   {value: 'activity', label: t('Recent activity')},
   {value: 'events', label: t('Most events')},
 ];
@@ -108,7 +115,8 @@ export default function AutofixOverview() {
   // const triggerFilter = decodeList(location.query.trigger) as AutofixTrigger[];
   const attentionFilter = decodeList(location.query.attention) as AttentionReason[];
   const period = decodeScalar(location.query.period);
-  const sort = (decodeScalar(location.query.sort) as SortValue | undefined) ?? 'triage';
+  // Legacy ?sort=triage (and anything unknown) decodes to the default.
+  const sort = decodeScalar(location.query.sort) === 'events' ? 'events' : 'activity';
 
   // Project scoping comes from the canonical page-filters selection; the
   // issues request is gated until the persisted selection is restored so the
@@ -169,30 +177,44 @@ export default function AutofixOverview() {
     return true;
   });
 
-  // Default is the triage-queue order, what needs a human first
-  // (by urgency tier), highest impact within a tier, run recency as
-  // the tiebreak.
+  // The sort orders cards within each status group; the groups themselves
+  // are fixed in triage order.
   const byActivity = (
     a: (typeof filteredRows)[number],
     b: (typeof filteredRows)[number]
   ) => Date.parse(b.row.lastActivityAt) - Date.parse(a.row.lastActivityAt);
-  const sortedRows = [...filteredRows].sort((a, b) => {
-    if (sort === 'activity') {
-      return byActivity(a, b);
-    }
-    if (sort === 'events') {
-      return b.row.eventCount - a.row.eventCount || byActivity(a, b);
-    }
-    return (
-      getTriageRank(a.row, a.attention) - getTriageRank(b.row, b.attention) ||
-      b.row.eventCount - a.row.eventCount ||
-      byActivity(a, b)
-    );
-  });
+  const sortedRows = [...filteredRows].sort((a, b) =>
+    sort === 'events'
+      ? b.row.eventCount - a.row.eventCount || byActivity(a, b)
+      : byActivity(a, b)
+  );
 
-  // Focus mode shows the fetched issue as-is — client-side filters and sort
-  // don't apply to a single deep-linked card.
+  // Focus mode shows the fetched issue as-is — client-side filters, sort,
+  // and grouping don't apply to a single deep-linked card.
   const visibleRows = selectedId ? rowsWithAttention : sortedRows;
+
+  // Linear-style sections in fixed triage order; empty groups don't render.
+  const groupedRows = STATUS_GROUP_ORDER.map(
+    groupKey =>
+      [
+        groupKey,
+        sortedRows.filter(
+          ({row, attention}) => getStatusGroup(row, attention) === groupKey
+        ),
+      ] as const
+  ).filter(([, rows]) => rows.length > 0);
+
+  const [collapsedGroups, setCollapsedGroups] = useLocalStorageState<StatusGroupKey[]>(
+    'seer-autofix-overview:collapsed-groups',
+    []
+  );
+  const toggleGroup = (groupKey: StatusGroupKey, expanded: boolean) => {
+    setCollapsedGroups(previous =>
+      expanded
+        ? previous.filter(key => key !== groupKey)
+        : [...previous.filter(key => key !== groupKey), groupKey]
+    );
+  };
 
   const hasActiveFilters =
     outcomeFilter.length > 0 ||
@@ -330,7 +352,7 @@ export default function AutofixOverview() {
                       updateQuery({
                         // Default sort keeps the URL clean.
                         sort:
-                          selected.value === 'triage'
+                          selected.value === 'activity'
                             ? undefined
                             : String(selected.value),
                       })
@@ -366,16 +388,51 @@ export default function AutofixOverview() {
                       : t('No completed autofix runs yet.')}
                 </Text>
               </Container>
-            ) : (
+            ) : selectedId ? (
               <Stack gap="md">
                 {visibleRows.map(({row}) => (
                   <IssueCard
                     key={row.id}
                     row={row}
                     orgSlug={organization.slug}
-                    defaultExpanded={Boolean(selectedId)}
+                    defaultExpanded
                   />
                 ))}
+              </Stack>
+            ) : (
+              <Stack gap="lg">
+                {groupedRows.map(([groupKey, rows]) => {
+                  const meta = STATUS_GROUP_META[groupKey];
+                  return (
+                    <Disclosure
+                      key={groupKey}
+                      size="sm"
+                      expanded={!collapsedGroups.includes(groupKey)}
+                      onExpandedChange={next => toggleGroup(groupKey, next)}
+                    >
+                      <GroupHeader>
+                        <Disclosure.Title>
+                          <Flex gap="sm" align="center">
+                            <meta.Icon size="sm" aria-hidden />
+                            <Text bold>{meta.label}</Text>
+                            <Badge variant="muted">{rows.length}</Badge>
+                          </Flex>
+                        </Disclosure.Title>
+                      </GroupHeader>
+                      <Disclosure.Content>
+                        <Stack gap="md" paddingTop="sm">
+                          {rows.map(({row}) => (
+                            <IssueCard
+                              key={row.id}
+                              row={row}
+                              orgSlug={organization.slug}
+                            />
+                          ))}
+                        </Stack>
+                      </Disclosure.Content>
+                    </Disclosure>
+                  );
+                })}
               </Stack>
             )}
 
@@ -388,6 +445,22 @@ export default function AutofixOverview() {
     </Feature>
   );
 }
+
+// Linear-style section header: parks below the top bar while its group
+// scrolls, then gets pushed away by the next header (sticky is bounded by
+// its group's box). Opaque so cards slide underneath cleanly; z-index isn't
+// a layout-primitive prop, hence the styled override.
+const GroupHeader = styled(Sticky)`
+  z-index: ${p => p.theme.zIndex.initial};
+  width: 100%;
+  background: ${p => p.theme.tokens.background.secondary};
+  border-radius: ${p => p.theme.radius.md};
+
+  &[data-stuck] {
+    border-radius: 0;
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  }
+`;
 
 function NoAccess() {
   return (

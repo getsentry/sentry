@@ -90,6 +90,8 @@ describe('AutofixOverview', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    // Collapsed status groups persist to localStorage; keep tests isolated.
+    localStorage.clear();
 
     // The project page filter needs seeded page-filter + project stores, or
     // PageFiltersContainer never reports ready and the issues query stays
@@ -416,8 +418,9 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    // The merged run wears a Merged tag instead of a Review PR action.
-    expect(await screen.findByText('Merged')).toBeInTheDocument();
+    // The merged run wears a Merged tag (and its group header) instead of a
+    // Review PR action.
+    expect(await screen.findAllByText('Merged')).toHaveLength(2);
     expect(screen.queryByRole('button', {name: 'Review PR'})).not.toBeInTheDocument();
 
     // The step indicator renders its terminal all-success state: checkmark
@@ -430,7 +433,7 @@ describe('AutofixOverview', () => {
     expect(await screen.findByText('Issue fixed')).toBeInTheDocument();
   });
 
-  it('orders cards as a triage queue: actionable, then working, then merged', async () => {
+  it('groups cards under collapsible status sections in triage order', async () => {
     // A merged, B awaiting PR review, C still processing → B, C, A.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/`,
@@ -474,7 +477,22 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    expect(await screen.findByText('Merged')).toBeInTheDocument();
+    // One sticky section per status, in fixed triage order, with counts.
+    const reviewHeader = await screen.findByRole('button', {
+      name: 'Awaiting your review 1',
+    });
+    const runningHeader = screen.getByRole('button', {name: 'Running 1'});
+    const mergedHeader = screen.getByRole('button', {name: 'Merged 1'});
+    expect(
+      reviewHeader.compareDocumentPosition(runningHeader) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      runningHeader.compareDocumentPosition(mergedHeader) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+
+    // Cards land under their section: B needs review, C runs, A is merged.
     const titles = screen
       .getAllByRole('link')
       .map(link => link.textContent)
@@ -487,6 +505,11 @@ describe('AutofixOverview', () => {
         name: 'Autofix progress: 3 of 5 steps — Code changes (Running)',
       })
     ).toBeInTheDocument();
+
+    // Collapsing a section hides only its cards.
+    await userEvent.click(mergedHeader);
+    expect(screen.queryByRole('link', {name: 'Issue A'})).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Issue B'})).toBeInTheDocument();
   });
 
   it('surfaces the blocking question when a run awaits user input', async () => {
