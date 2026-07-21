@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
@@ -9,6 +10,7 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -43,6 +45,7 @@ import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 const TITLE = t('Inbox');
 const ISSUE_LIMIT = 5;
 const SELECTED_ISSUE_QUERY_PARAM = 'preview';
+type AssignmentFilter = 'me' | 'my_teams';
 
 interface InboxSectionConfig {
   defaultExpanded: boolean;
@@ -100,6 +103,7 @@ export default function InboxPage() {
 
 function InboxContent() {
   const {selection, isReady} = usePageFilters();
+  const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>('me');
   const [selectedIssueId, setSelectedIssueId] = useQueryState(
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
@@ -133,10 +137,35 @@ function InboxContent() {
           background="primary"
           borderRight="muted"
         >
+          <Flex
+            as="header"
+            align="center"
+            justify="between"
+            padding="md lg"
+            background="secondary"
+            borderBottom="muted"
+            flexShrink={0}
+          >
+            <Heading as="h2" size="md">
+              {t('Issues')}
+            </Heading>
+            <SegmentedControl
+              aria-label={t('Issue assignee')}
+              size="xs"
+              value={assignmentFilter}
+              onChange={setAssignmentFilter}
+            >
+              <SegmentedControl.Item key="me">{t('Me')}</SegmentedControl.Item>
+              <SegmentedControl.Item key="my_teams">
+                {t('My Teams')}
+              </SegmentedControl.Item>
+            </SegmentedControl>
+          </Flex>
           {SECTIONS.map(section => (
             <InboxSection
               key={section.key}
               section={section}
+              assignmentFilter={assignmentFilter}
               selection={selection}
               isReady={isReady}
               selectedIssueId={selectedIssueId}
@@ -174,13 +203,20 @@ function InboxContent() {
 }
 
 interface InboxSectionProps {
+  assignmentFilter: AssignmentFilter;
   isReady: boolean;
   section: InboxSectionConfig;
   selectedIssueId: string | null;
   selection: ReturnType<typeof usePageFilters>['selection'];
 }
 
-function InboxSection({isReady, section, selection, selectedIssueId}: InboxSectionProps) {
+function InboxSection({
+  assignmentFilter,
+  isReady,
+  section,
+  selection,
+  selectedIssueId,
+}: InboxSectionProps) {
   const organization = useOrganization();
   const {start, end, period, utc} = selection.datetime;
   const queryResult = useInfiniteQuery({
@@ -189,7 +225,7 @@ function InboxSection({isReady, section, selection, selectedIssueId}: InboxSecti
       query: {
         project: selection.projects,
         environment: selection.environments,
-        query: section.query,
+        query: `${section.query} assigned:${assignmentFilter}`,
         sort: IssueSortOptions.PROGRESS,
         limit: ISSUE_LIMIT,
         expand: ['owners', 'derivedData'],
