@@ -60,6 +60,36 @@ def test_reraises_and_emits_error_status(
     emit.assert_called_once_with("dynamic_sampling.boom.status", expected_status)
 
 
+@pytest.mark.parametrize(
+    ("gate_overrides", "expected_status"),
+    [
+        ({"dynamic-sampling.per_org.killswitch": True}, DynamicSamplingStatus.KILLSWITCHED),
+        ({"dynamic-sampling.per_org.rollout-rate": 0.0}, DynamicSamplingStatus.ROLLOUT_DISABLED),
+    ],
+)
+def test_gate_short_circuits_without_calling_function(
+    gate_overrides: dict[str, object], expected_status: DynamicSamplingStatus
+) -> None:
+    calls = []
+
+    @track_dynamic_sampling
+    def gated() -> None:
+        calls.append(1)
+
+    timer, timer_tags = _capture_timer_tags()
+    with (
+        override_options({**_GATE_OPTIONS, **gate_overrides}),
+        patch("sentry.dynamic_sampling.per_org.telemetry.metrics") as mock_metrics,
+        patch("sentry.dynamic_sampling.per_org.telemetry.emit_status") as emit,
+    ):
+        mock_metrics.timer.side_effect = timer
+        assert gated() == expected_status
+
+    assert calls == []
+    assert timer_tags["status"] == expected_status.value
+    emit.assert_called_once_with("dynamic_sampling.gated.status", expected_status)
+
+
 @override_options(_GATE_OPTIONS)
 def test_passes_result_through_and_emits_completed_on_success() -> None:
     @track_dynamic_sampling
