@@ -20,16 +20,14 @@ import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTa
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
 import {adjustLogTraceID, getLogsUrl} from 'sentry/views/explore/logs/utils';
 
-type UseTraceViewLogsDataProps = {
+type ProviderProps = {
   children: React.ReactNode;
-  traceSlug: string;
-  disabled?: boolean;
 };
 
 export function TraceViewLogsQueryParamsProvider({
   traceSlug,
   children,
-}: Omit<UseTraceViewLogsDataProps, 'disabled'>) {
+}: ProviderProps & {traceSlug: string}) {
   return (
     <LogsQueryParamsProvider
       analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
@@ -41,25 +39,8 @@ export function TraceViewLogsQueryParamsProvider({
   );
 }
 
-export function TraceViewLogsPageDataProvider({
-  children,
-  disabled,
-}: Omit<UseTraceViewLogsDataProps, 'traceSlug'>) {
-  return <LogsPageDataProvider disabled={disabled}>{children}</LogsPageDataProvider>;
-}
-
-export function TraceViewLogsDataProvider({
-  traceSlug,
-  children,
-  disabled,
-}: UseTraceViewLogsDataProps) {
-  return (
-    <TraceViewLogsQueryParamsProvider traceSlug={traceSlug}>
-      <TraceViewLogsPageDataProvider disabled={disabled}>
-        {children}
-      </TraceViewLogsPageDataProvider>
-    </TraceViewLogsQueryParamsProvider>
-  );
+export function TraceViewLogsPageDataProvider({children}: ProviderProps) {
+  return <LogsPageDataProvider>{children}</LogsPageDataProvider>;
 }
 
 export function TraceViewLogsSection() {
