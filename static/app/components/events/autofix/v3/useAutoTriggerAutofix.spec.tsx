@@ -1,16 +1,17 @@
 import {GroupFixture} from 'sentry-fixture/group';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 function makeAutofix(
   overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
 ): ReturnType<typeof useExplorerAutofix> {
   const base: ReturnType<typeof useExplorerAutofix> = {
     runState: null,
-    startStep: jest.fn(),
+    startStep: jest.fn().mockResolvedValue(undefined),
     createPR: jest.fn(),
     reset: jest.fn(),
     triggerCodingAgentHandoff: jest.fn(),
@@ -62,5 +63,54 @@ describe('useAutoTriggerAutofix', () => {
     rerender();
 
     expect(autofix.startStep).toHaveBeenCalledTimes(1);
+  });
+
+  it('resets autofix state on 402 quota exhausted error', async () => {
+    const error = new RequestError('POST', '/autofix/', new Error('test'), {
+      status: 402,
+      statusText: 'Payment Required',
+      responseText: '{"detail": "Quota exhausted"}',
+      responseJSON: {detail: 'Quota exhausted'},
+      getResponseHeader: () => null,
+    });
+
+    const autofix = makeAutofix({
+      startStep: jest.fn().mockRejectedValue(error),
+    });
+    const group = GroupFixture({
+      seerAutofixLastTriggered: '2024-01-01T00:00:00Z',
+      seerExplorerAutofixLastTriggered: null,
+    });
+
+    renderHook(() => useAutoTriggerAutofix({autofix, group}));
+
+    await waitFor(() => {
+      expect(autofix.reset).toHaveBeenCalled();
+    });
+  });
+
+  it('catches non-402 errors without resetting', async () => {
+    const error = new RequestError('POST', '/autofix/', new Error('test'), {
+      status: 500,
+      statusText: 'Internal Server Error',
+      responseText: '{"detail": "Internal Error"}',
+      responseJSON: {detail: 'Internal Error'},
+      getResponseHeader: () => null,
+    });
+
+    const autofix = makeAutofix({
+      startStep: jest.fn().mockRejectedValue(error),
+    });
+    const group = GroupFixture({
+      seerAutofixLastTriggered: '2024-01-01T00:00:00Z',
+      seerExplorerAutofixLastTriggered: null,
+    });
+
+    renderHook(() => useAutoTriggerAutofix({autofix, group}));
+
+    await waitFor(() => {
+      expect(autofix.startStep).toHaveBeenCalled();
+    });
+    expect(autofix.reset).not.toHaveBeenCalled();
   });
 });

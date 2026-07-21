@@ -2,6 +2,7 @@ import {useEffect, useRef} from 'react';
 
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {Group} from 'sentry/types/group';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 interface UseAutoTriggerAutofixOptions {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -11,8 +12,9 @@ interface UseAutoTriggerAutofixOptions {
 export function useAutoTriggerAutofix({autofix, group}: UseAutoTriggerAutofixOptions) {
   const alreadyTriggered = useRef(false);
 
-  // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
+  // extract startStep and reset first here so we can depend on them directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
+  const reset = autofix.reset;
 
   useEffect(() => {
     if (alreadyTriggered.current) {
@@ -29,6 +31,15 @@ export function useAutoTriggerAutofix({autofix, group}: UseAutoTriggerAutofixOpt
     }
 
     alreadyTriggered.current = true;
-    startStep('root_cause');
-  }, [group, startStep]);
+    startStep('root_cause').catch((error: unknown) => {
+      // If the org has exhausted its Seer quota (402), silently reset
+      // so the user sees the normal start card instead of an error.
+      if (error instanceof RequestError && error.status === 402) {
+        reset();
+      }
+      // For all errors: startStep already sets error state in the query cache
+      // before re-throwing, so we just need to catch here to prevent unhandled
+      // promise rejections from this auto-triggered (non-user-initiated) call.
+    });
+  }, [group, startStep, reset]);
 }
