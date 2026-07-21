@@ -385,6 +385,31 @@ describe('LogsInfiniteTable', () => {
     });
   });
 
+  it('shows a rate limit message and retry button when the query is rate limited', async () => {
+    MockApiClient.clearMockResponses();
+    const mockResponse = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 429,
+    });
+
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
+
+    expect(
+      await screen.findByText(
+        'Your organization has had a lot of activity. Wait a few seconds and then try again.'
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    await waitFor(() => {
+      expect(mockResponse).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it('quantizes log timestamps for replay links', async () => {
     const replayId = 'abc123def456';
     const replayId2 = 'abc123eef457';
@@ -520,7 +545,7 @@ describe('LogsInfiniteTable', () => {
     await screen.findByText('abc123ee');
   });
 
-  it('renders a pin button on a hovered row when ourlogs-pinning is enabled', async () => {
+  it('renders a pin button on a row when hovering', async () => {
     renderWithProviders(
       <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
       {
@@ -544,19 +569,6 @@ describe('LogsInfiniteTable', () => {
     expect(
       await within(firstRow!).findByRole('button', {name: 'Pin log row'})
     ).toBeInTheDocument();
-  });
-
-  it('does not render a pin button when ourlogs-pinning is disabled', async () => {
-    renderWithProviders(
-      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
-    );
-
-    const [firstRow] = await screen.findAllByTestId('log-table-row');
-    await userEvent.hover(firstRow!);
-
-    expect(
-      within(firstRow!).queryByRole('button', {name: 'Pin log row'})
-    ).not.toBeInTheDocument();
   });
 
   it('marks the row as pinned when its id is in the logsPinned query', async () => {

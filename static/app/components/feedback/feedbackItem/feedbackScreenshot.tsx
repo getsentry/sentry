@@ -107,11 +107,9 @@ const StyledImageVisualization = styled(ImageVisualization)`
   border: 0;
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
-  img {
-    width: auto;
-    height: auto;
-  }
+  width: auto;
   height: auto;
+  object-fit: unset;
 `;
 const FileDownload = styled('a')`
   cursor: pointer;

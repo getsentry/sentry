@@ -49,7 +49,6 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 	pnpm run deref-api-docs
 
 watch-api-docs:
-	@cd api-docs/ && pnpm install --frozen-lockfile
 	@cd api-docs/ && node ./watch.ts
 
 diff-api-docs:

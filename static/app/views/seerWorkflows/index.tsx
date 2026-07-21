@@ -9,7 +9,7 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -42,6 +42,7 @@ import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {getRelativeExplorerUrl} from 'sentry/views/seerExplorer/utils';
 import {
   CATEGORY_LABELS,
@@ -233,7 +234,7 @@ function SeerWorkflows() {
     <SentryDocumentTitle title={t('Sentry Workflows')} orgSlug={organization.slug}>
       <Stack gap="lg" padding="xl">
         <Stack gap="2xs">
-          <Heading as="h1">{t('Sentry Workflows')}</Heading>
+          <TopBar.Slot name="title">{t('Sentry Workflows')}</TopBar.Slot>
           <Text as="p" variant="muted">
             {t('Historical runs of Sentry workflows for this organization.')}
           </Text>
@@ -490,27 +491,25 @@ const PERIOD_TO_DAYS: Record<string, number> = {
   '30d': 30,
 };
 
-const STATUS_VARIANT: Record<
+const STATUS_VARIANT = {
+  succeeded: {Icon: IconCheckmark, label: 'Succeeded', text: 'success'},
+  failed: {Icon: IconClose, label: 'Failed', text: 'danger'},
+  skipped: {Icon: IconWarning, label: 'Skipped', text: 'muted'},
+  running: {Icon: IconRefresh, label: 'Running', text: 'warning'},
+} as const satisfies Record<
   RunStatus,
   {
     Icon: React.ComponentType<{size?: 'xs' | 'sm' | 'md'}>;
     label: string;
     text: 'success' | 'danger' | 'muted' | 'warning';
   }
-> = {
-  succeeded: {Icon: IconCheckmark, label: 'Succeeded', text: 'success'},
-  failed: {Icon: IconClose, label: 'Failed', text: 'danger'},
-  skipped: {Icon: IconWarning, label: 'Skipped', text: 'muted'},
-  running: {Icon: IconRefresh, label: 'Running', text: 'warning'},
-};
+>;
 
 function StatusIcon({status}: {status: RunStatus}) {
   const {Icon, label, text} = STATUS_VARIANT[status];
   return (
     <Tooltip title={label} skipWrapper>
-      <Text variant={text} aria-label={label}>
-        <Icon size="sm" />
-      </Text>
+      <Icon aria-label={label} variant={text} size="sm" />
     </Tooltip>
   );
 }
@@ -792,7 +791,11 @@ const ACTION_TAG_VARIANT: Record<string, TagVariant> = {
 };
 
 function IssueStatusTag({issue}: {issue: SeerNightShiftRunIssue}) {
-  const label = getActionLabel(issue.action);
+  const actionLabel = getActionLabel(issue.action);
+  const label =
+    issue.action === 'skip' && issue.skipReason
+      ? `${actionLabel}: ${issue.skipReason.replaceAll('_', ' ')}`
+      : actionLabel;
   const variant = ACTION_TAG_VARIANT[issue.action] ?? 'muted';
   if (!issue.seerRunId) {
     return <Tag variant={variant}>{label}</Tag>;

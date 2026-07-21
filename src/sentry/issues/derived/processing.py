@@ -153,33 +153,54 @@ def _process_batch(
 
 
 class GroupLogTimeout(Exception):
-    """Raised when process_group_log cannot finish within its timeout."""
+    """Raised when processing cannot finish within its time budget."""
+
+
+def _drain_log(
+    derived: GroupDerivedData,
+    pipeline: Pipeline[GroupActionLogEntry],
+    batch_size: int = DEFAULT_BATCH_SIZE,
+    *,
+    time_limit: timedelta,
+) -> bool:
+    """Process pending log entries into *derived*, batching as needed.
+
+    Returns True if all entries were processed, False if the time limit was
+    reached and more entries remain. The limit is checked between batches,
+    so a single slow batch can exceed it.
+    """
+    deadline = time.monotonic() + time_limit.total_seconds()
+    while _process_batch(pipeline, derived, derived.group_id, batch_size):
+        if time.monotonic() >= deadline:
+            return False
+    return True
 
 
 def process_group_log(
     group_id: int,
     batch_size: int = DEFAULT_BATCH_SIZE,
-    target_pipeline: Pipeline[GroupActionLogEntry] | None = None,
+    pipeline: Pipeline[GroupActionLogEntry] | None = None,
     timeout: timedelta | None = None,
 ) -> GroupDerivedData:
-    """Fully drain all pending entries for a group, processing in batches.
+    """Fully drain all pending entries for a group's row.
 
     Raises Group.DoesNotExist if the group has been deleted.
     Raises GroupLogTimeout if *timeout* elapses before all
     entries are processed.
     """
-    p = target_pipeline or PIPELINE
-    timeout_seconds = timeout.total_seconds() if timeout is not None else None
-    start = time.monotonic()
+    p = pipeline or PIPELINE
 
     with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
         derived = _ensure_derived(group_id, p.pipeline_hash)
 
-    has_more = _process_batch(p, derived, group_id, batch_size)
-    while has_more:
-        if timeout_seconds is not None and time.monotonic() - start >= timeout_seconds:
+    if timeout is not None:
+        drained = _drain_log(derived, p, batch_size, time_limit=timeout)
+        if not drained:
             raise GroupLogTimeout(group_id)
-        has_more = _process_batch(p, derived, group_id, batch_size)
+    else:
+        # No timeout — drain to completion.
+        while _process_batch(p, derived, derived.group_id, batch_size):
+            pass
 
     return derived
 
