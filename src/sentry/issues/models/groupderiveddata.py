@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from django.db import models
+from django.db.models.functions import Now
+from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -29,6 +31,11 @@ class GroupDerivedData(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     group = FlexibleForeignKey("sentry.Group", unique=True)
+
+    # Timestamp of when the generation that produced this state *started*
+    # processing. Defaults to row creation time.
+    generated_at = models.DateTimeField(default=timezone.now, db_default=Now())
+
     cursor_date = models.DateTimeField(default=EPOCH)
     cursor_id = BoundedBigIntegerField(default=0)
 
@@ -39,12 +46,11 @@ class GroupDerivedData(DefaultFieldsModel):
 
     # Column-backed features — promoted from JSON for indexing/querying.
 
-    # This is here just for demonstration purposes.
     view_count = BoundedPositiveIntegerField(default=0)
     # Stores the current Progress value as a string.
     progress = models.CharField(max_length=32, null=True, default="identified")
 
-    # The last time the above column was changed.
+    # The last time ``progress`` was changed.
     last_progressed_at = models.DateTimeField(null=True, default=None)
 
     # Pipeline hash stamped at row creation. If it doesn't match the current
@@ -60,4 +66,4 @@ class GroupDerivedData(DefaultFieldsModel):
             models.Index(fields=["last_progressed_at", "group"]),
         ]
 
-    __repr__ = sane_repr("group_id", "cursor_date", "cursor_id")
+    __repr__ = sane_repr("group_id", "generated_at", "cursor_date", "cursor_id")

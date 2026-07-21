@@ -155,6 +155,16 @@ def _agentic_triage_snuba_factors(
             dt = parse_datetime(ts)
             factors["max_timestamp"] = dt.timestamp() if dt else 0.0
         result[factors.pop("group_id")] = factors
+
+    logger.info(
+        "night_shift.agentic_snuba_factors",
+        extra={
+            "organization_id": organization_id,
+            "num_groups_queried": len(group_ids),
+            "num_groups_with_data": len(result),
+            "lookback_seconds": lookback,
+        },
+    )
     return result
 
 
@@ -185,7 +195,17 @@ def _agentic_triage_score(
         rng = mx - mn
         normed[k] = [(v - mn) / rng if rng else 0.0 for v in vals]
 
-    return {gid: sum(w * normed[k][i] for k, w in active) for i, gid in enumerate(group_ids)}
+    scores = {gid: sum(w * normed[k][i] for k, w in active) for i, gid in enumerate(group_ids)}
+
+    logger.info(
+        "night_shift.agentic_triage_score",
+        extra={
+            "num_candidates": len(group_ids),
+            "num_active_factors": len(active),
+            "active_factors": [k for k, _ in active],
+        },
+    )
+    return scores
 
 
 def _fetch_and_score(
@@ -320,6 +340,14 @@ def _fetch_and_score_agentic(
         if len(candidates) >= fetch_limit:
             break
 
+    logger.info(
+        "night_shift.agentic_search_results",
+        extra={
+            "organization_id": projects[0].organization_id,
+            "num_candidates": len(candidates),
+        },
+    )
+
     if not candidates:
         return []
 
@@ -347,10 +375,22 @@ def _fetch_and_score_agentic(
         reverse=True,
     )
 
-    return [
+    selected = [
         ScoredCandidate(group=g, fixability=g.seer_fixability_score, times_seen=g.times_seen)
         for g in eligible[:max_candidates]
     ]
+
+    logger.info(
+        "night_shift.agentic_selected",
+        extra={
+            "organization_id": projects[0].organization_id,
+            "num_selected": len(selected),
+            "num_with_snuba_data": len(with_data),
+            "num_without_snuba_data": len(without_data),
+        },
+    )
+
+    return selected
 
 
 def priority_label(priority: int | None) -> str | None:
