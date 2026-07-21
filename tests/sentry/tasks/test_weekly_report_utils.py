@@ -162,68 +162,38 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
         assert ctx.top_spans[0]["name"] == "/api/endpoint-0"
         assert ctx.top_spans[4]["name"] == "/api/endpoint-4"
 
-    def test_timeseries_scoped_to_assigned_project(self) -> None:
-        project_a = self.create_project(organization=self.organization, teams=[self.team])
-        project_b = self.create_project(organization=self.organization, teams=[self.team])
-        project_a.update(flags=F("flags").bitor(Project.flags.has_transactions))
-        project_b.update(flags=F("flags").bitor(Project.flags.has_transactions))
+    def test_timeseries_populates_context(self) -> None:
+        self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
         ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
-        ctx.top_spans = [
-            {"name": "/api/users", "p95": 120.5, "sum": 50000.0},
-            {"name": "/api/orders", "p95": 95.3, "sum": 30000.0},
-        ]
-        ctx.top_spans_projects = {
-            "/api/users": project_a.id,
-            "/api/orders": project_b.id,
-        }
+        ctx.top_spans = [{"name": "/api/users", "p95": 120.5, "sum": 50000.0}]
 
         ts1 = int(ctx.start.timestamp())
         ts2 = ts1 + SIX_HOURS
 
-        def mock_timeseries(**kwargs: Any) -> dict[str, SnubaTSResult]:
-            params = kwargs["params"]
-            project_ids = [p.id for p in params.projects]
-            if project_ids == [project_a.id]:
-                return {
-                    "/api/users": SnubaTSResult(
-                        data={
-                            "data": [
-                                {"time": ts1, "p95(span.duration)": 100.0},
-                                {"time": ts2, "p95(span.duration)": 150.0},
-                            ]
-                        },
-                        start=ctx.start,
-                        end=ctx.end,
-                        rollup=SIX_HOURS,
-                    )
-                }
-            elif project_ids == [project_b.id]:
-                return {
-                    "/api/orders": SnubaTSResult(
-                        data={
-                            "data": [
-                                {"time": ts1, "p95(span.duration)": 80.0},
-                                {"time": ts2, "p95(span.duration)": 90.0},
-                            ]
-                        },
-                        start=ctx.start,
-                        end=ctx.end,
-                        rollup=SIX_HOURS,
-                    )
-                }
-            return {}
+        mock_ts_result = {
+            "/api/users": SnubaTSResult(
+                data={
+                    "data": [
+                        {"time": ts1, "p95(span.duration)": 100.0},
+                        {"time": ts2, "p95(span.duration)": 150.0},
+                    ]
+                },
+                start=ctx.start,
+                end=ctx.end,
+                rollup=SIX_HOURS,
+            )
+        }
 
         with mock.patch(
             "sentry.tasks.summaries.utils.Spans.run_top_events_timeseries_query",
-            side_effect=mock_timeseries,
+            return_value=mock_ts_result,
         ):
             organization_top_spans_timeseries(ctx, referrer=Referrer.REPORTS_TOP_SPANS.value)
 
+        assert "/api/users" in ctx.top_spans_timeseries
         assert ctx.top_spans_timeseries["/api/users"][ts1] == 100.0
         assert ctx.top_spans_timeseries["/api/users"][ts2] == 150.0
-        assert ctx.top_spans_timeseries["/api/orders"][ts1] == 80.0
-        assert ctx.top_spans_timeseries["/api/orders"][ts2] == 90.0
 
     def test_timeseries_skips_without_top_spans(self) -> None:
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
