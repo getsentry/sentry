@@ -8,7 +8,7 @@ resources:
   figma: https://www.figma.com/design/a638AEl7pFxj29zMODCiOB/Specs--Page-Frame-v1?node-id=1198-17420
 ---
 
-import {ProjectsSavedBadge} from '@sentry/scraps/projectsSavedBadge';
+import {ProjectsBadge} from '@sentry/scraps/badge';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {IconEllipsis, IconGlobe} from 'sentry/icons';
@@ -211,7 +211,7 @@ demo below mirrors that heading and flex layout.
 ## Leading graphics
 
 All parent and title items that display text accept an optional `leadingGraphic`
-typed as `React.ReactNode` — for example, a `ProjectsSavedBadge`, avatar, or
+typed as `React.ReactNode` — for example, a `ProjectsBadge`, avatar, or
 Sentry icon. It is rendered as decorative content in a fixed 16×16 slot, so the
 label carries the meaning.
 
@@ -222,9 +222,7 @@ label carries the meaning.
         type: 'link',
         label: 'My Projects',
         to: '/settings/org-slug/projects/',
-        leadingGraphic: (
-          <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
-        ),
+        leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
       },
     ]}
     title={
@@ -232,9 +230,7 @@ label carries the meaning.
         item={{
           type: 'page-title',
           label: 'Client Keys (DSN)',
-          leadingGraphic: (
-            <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
-          ),
+          leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
         }}
       />
     }
@@ -248,9 +244,7 @@ label carries the meaning.
         type: 'link',
         label: 'My Projects',
         to: '/settings/org-slug/projects/',
-        leadingGraphic: (
-          <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
-        ),
+        leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
       },
     ]}
   />
@@ -260,7 +254,7 @@ label carries the meaning.
     item={{
       type: 'page-title',
       label: 'Client Keys (DSN)',
-      leadingGraphic: <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />,
+      leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
     }}
   />
 </TopBar.Slot>
@@ -445,9 +439,7 @@ Drag the sizing handle below to see the transition:
         type: 'link',
         label: 'Settings',
         to: '/settings/',
-        leadingGraphic: (
-          <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
-        ),
+        leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
       },
       {
         type: 'link',
