@@ -226,7 +226,6 @@ function buildAnalysis(outputs: RunQuestion[] | undefined): {
     entries.push({
       key: config.key,
       label: config.label,
-      placement: config.placement,
       answer,
     });
   });

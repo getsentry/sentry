@@ -25,17 +25,12 @@ export type AttentionReason =
   | 'review_pr'
   | 'errored';
 
-// Where an answered run question renders on the card: on the face (always
-// visible) or inside the collapsed "More details" disclosure.
-export type AnswerPlacement = 'face' | 'details';
-
 // One answered run question joined to its question config
 // See ./runQuestions.ts
 export interface RunAnalysisEntry {
   answer: string;
   key: string;
   label: string;
-  placement: AnswerPlacement;
 }
 
 // One changed file within the run's drafted diff.

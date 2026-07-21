@@ -127,21 +127,10 @@ describe('AutofixOverview', () => {
             {
               key: 'user_1',
               question: RUN_QUESTIONS[1]!.prompt,
-              answer:
-                'JWT viewer auth landed before the proxy supported it, so requests fail; the run opened a PR restoring the header.',
-            },
-            {
-              key: 'user_2',
-              question: RUN_QUESTIONS[2]!.prompt,
               answer: 'Restores the Authorization header as a fallback.',
             },
-            {
-              key: 'user_3',
-              question: RUN_QUESTIONS[3]!.prompt,
-              // Inline "•" bullets — the normalizer must split them into a list.
-              answer:
-                '• Confirm the fallback header does not leak the key. • Verify the proxy accepts both headers.',
-            },
+            // reviewer_notes answers empty on fix cards, and empty answers
+            // never become entries.
           ],
         },
       ],
@@ -190,20 +179,6 @@ describe('AutofixOverview', () => {
       'https://github.com/getsentry/sentry/pull/123'
     );
 
-    // The step indicator reads the full Seer pipeline with the PR-opened
-    // glyph — merge is the outstanding final step. Hovering reveals the
-    // checklist.
-    const indicator = screen.getByRole('img', {
-      name: 'Autofix progress: 4 of 5 steps — PR opened',
-    });
-    // The ring carries the steps-remaining count…
-    expect(indicator).toHaveTextContent('1');
-    // …and its tooltip spells the count out above the checklist.
-    await userEvent.hover(indicator);
-    expect(await screen.findByText('1 step until issue fix')).toBeInTheDocument();
-    expect(screen.getByText('✓ Root cause')).toBeInTheDocument();
-    expect(screen.getByText('○ Merged')).toBeInTheDocument();
-
     // Exact patch stats from merged_file_patches, not an LLM estimate.
     expect(screen.getByText('1 file')).toBeInTheDocument();
     expect(screen.getByText('+42')).toBeInTheDocument();
@@ -222,54 +197,33 @@ describe('AutofixOverview', () => {
     expect(screen.getByText(/100 events/)).toBeInTheDocument();
   });
 
-  it('shows a single body block and collapses the full analysis', async () => {
+  it('renders the analysis on the card face in thought order', async () => {
     renderPage();
 
-    // The body is either/or: code was drafted, so the proposed-fix block
-    // renders and the summary does not (it would describe the same change).
-    expect(await screen.findByText('Proposed fix')).toBeVisible();
+    // Both sections render with no expansion needed…
+    const rootCause = await screen.findByText('Root cause');
+    const proposedFix = screen.getByText('Proposed fix');
+    expect(
+      screen.getByText('Commit c5bb895 stopped sending the Authorization header.')
+    ).toBeVisible();
     expect(
       screen.getByText('Restores the Authorization header as a fallback.')
     ).toBeVisible();
+
+    // …in thought order: what broke, then what changed.
     expect(
-      screen.queryByText(
-        'JWT viewer auth landed before the proxy supported it, so requests fail; the run opened a PR restoring the header.'
-      )
-    ).not.toBeInTheDocument();
+      rootCause.compareDocumentPosition(proposedFix) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
 
     // The timestamp is labeled as run activity.
     expect(screen.getByText(/^updated/)).toBeInTheDocument();
 
-    // Root cause, notes, and the short id stay behind the analysis toggle,
-    // which renders its block only when expanded.
-    const disclosure = screen.getByRole('button', {name: 'More details'});
-    expect(
-      screen.queryByText('Commit c5bb895 stopped sending the Authorization header.')
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText('PROJ-1')).not.toBeInTheDocument();
-
-    await userEvent.click(disclosure);
-
+    // Identity sits in the tail: short id + exactly one level marker.
     expect(screen.getByText('PROJ-1')).toBeVisible();
-    // Section headings are the clean labels, never the raw prompt text.
-    expect(screen.getByText('Root cause')).toBeVisible();
-    expect(
-      screen.getByText('Commit c5bb895 stopped sending the Authorization header.')
-    ).toBeVisible();
-    // Code was drafted, so the notes section is a review checklist, with the
-    // inline-bullet answer normalized into separate list items.
-    expect(screen.getByText('Review checklist')).toBeVisible();
-    expect(
-      screen.getByText('Confirm the fallback header does not leak the key.')
-    ).toBeVisible();
-    expect(screen.getByText('Verify the proxy accepts both headers.')).toBeVisible();
-    expect(screen.queryByText(/•/)).not.toBeInTheDocument();
-    // The issue level moved off the header into the identity strip — exactly
-    // one occurrence (ErrorLevel's visually-hidden label).
     expect(screen.getAllByText('Level: Warning')).toHaveLength(1);
   });
 
-  it('shows Diagnosis and Next steps when no code was drafted', async () => {
+  it('leads with the root cause and a single next step when no code was drafted', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/runs/`,
       body: [
@@ -282,15 +236,9 @@ describe('AutofixOverview', () => {
           dateCreated: '2026-07-14T09:00:00Z',
           outputs: [
             {
-              key: 'user_1',
-              question: RUN_QUESTIONS[1]!.prompt,
-              answer: 'A mechanism sentence without any drafted fix.',
-            },
-            {
-              key: 'user_3',
-              question: RUN_QUESTIONS[3]!.prompt,
-              // Space-less "•" bullets — the normalizer must split them.
-              answer: '•Decide whether to relax the constraint. •Verify the consumers.',
+              key: 'user_2',
+              question: RUN_QUESTIONS[2]!.prompt,
+              answer: 'Decide whether to relax the constraint.',
             },
           ],
         },
@@ -304,23 +252,10 @@ describe('AutofixOverview', () => {
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
 
-    // No drafted fix → the body block is the Diagnosis variant.
-    expect(screen.getByText('Diagnosis')).toBeVisible();
-    expect(
-      screen.getByText('A mechanism sentence without any drafted fix.')
-    ).toBeVisible();
+    // No drafted fix → no fix section; the notes read as the next step.
     expect(screen.queryByText('Proposed fix')).not.toBeInTheDocument();
-
-    // …and the notes are promoted onto the face as their own Next-steps
-    // block — no expansion needed, no Review checklist anywhere, and the
-    // inline "•" bullets normalized into separate list items. With nothing
-    // left for the details, the More-details toggle doesn't render at all.
     expect(screen.getByText('Next steps')).toBeVisible();
     expect(screen.getByText('Decide whether to relax the constraint.')).toBeVisible();
-    expect(screen.getByText('Verify the consumers.')).toBeVisible();
-    expect(screen.queryByText(/•/)).not.toBeInTheDocument();
-    expect(screen.queryByText('Review checklist')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'More details'})).not.toBeInTheDocument();
   });
 
   it('applies the outcome filter with AND semantics', async () => {
@@ -392,11 +327,6 @@ describe('AutofixOverview', () => {
       'href',
       `/organizations/${organization.slug}/issues/2/?seerDrawer=true`
     );
-
-    // A settled run gets no status word — just how far it got.
-    expect(
-      screen.getByRole('img', {name: 'Autofix progress: 1 of 5 steps — Root cause'})
-    ).toBeInTheDocument();
   });
 
   it('shows merged state when the API returns PR state', async () => {
@@ -422,15 +352,6 @@ describe('AutofixOverview', () => {
     // Review PR action.
     expect(await screen.findAllByText('Merged')).toHaveLength(2);
     expect(screen.queryByRole('button', {name: 'Review PR'})).not.toBeInTheDocument();
-
-    // The step indicator renders its terminal all-success state: checkmark
-    // only, no steps-remaining digit, and the tooltip leads with the verdict.
-    const indicator = screen.getByRole('img', {
-      name: 'Autofix progress: 5 of 5 steps — PR merged',
-    });
-    expect(indicator).not.toHaveTextContent(/\d/);
-    await userEvent.hover(indicator);
-    expect(await screen.findByText('Issue fixed')).toBeInTheDocument();
   });
 
   it('groups cards under collapsible status sections in triage order', async () => {
@@ -499,13 +420,6 @@ describe('AutofixOverview', () => {
       .filter(text => text === 'Issue A' || text === 'Issue B' || text === 'Issue C');
     expect(titles).toEqual(['Issue B', 'Issue C', 'Issue A']);
 
-    // Issue C is in flight — its ring wears the running status word.
-    expect(
-      screen.getByRole('img', {
-        name: 'Autofix progress: 3 of 5 steps — Code changes (Running)',
-      })
-    ).toBeInTheDocument();
-
     // Collapsing a section hides only its cards.
     await userEvent.click(mergedHeader);
     expect(screen.queryByRole('link', {name: 'Issue A'})).not.toBeInTheDocument();
@@ -555,15 +469,11 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByText('Seer asked: Which environment should I target?')
     ).toBeInTheDocument();
-    // The indicator's current step wears the paused status.
-    expect(
-      screen.getByRole('img', {
-        name: 'Autofix progress: 1 of 5 steps — Root cause (Needs your input)',
-      })
-    ).toBeInTheDocument();
+    // …and the card lands in the Needs-your-input section.
+    expect(screen.getByRole('button', {name: 'Needs your input 1'})).toBeInTheDocument();
   });
 
-  it('shows an errored step indicator at the step the run died on', async () => {
+  it('sections errored runs under the Errored group', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/2/autofix/`,
       body: {
@@ -597,10 +507,7 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    const indicator = await screen.findByRole('img', {
-      name: 'Autofix progress: 2 of 5 steps — Plan (Errored)',
-    });
-    expect(indicator).toHaveTextContent('3');
+    expect(await screen.findByRole('button', {name: 'Errored 1'})).toBeInTheDocument();
   });
 
   it('scopes the issue stream to the selected projects', async () => {

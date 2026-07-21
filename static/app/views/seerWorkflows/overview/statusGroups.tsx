@@ -1,3 +1,6 @@
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {
   IconCode,
   IconCommit,
@@ -9,7 +12,7 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 
 import type {AttentionReason, OverviewRow} from './types';
 
@@ -37,21 +40,95 @@ export const STATUS_GROUP_ORDER: StatusGroupKey[] = [
   'merged',
 ];
 
-export const STATUS_GROUP_META: Record<
-  StatusGroupKey,
-  {Icon: React.ComponentType<SVGIconProps>; label: string}
-> = {
-  awaiting_input: {Icon: IconUser, label: t('Needs your input')},
-  review_pr: {Icon: IconPullRequest, label: t('Awaiting your review')},
-  code_changes_ready: {Icon: IconCommit, label: t('Code changes ready')},
-  solution_ready: {Icon: IconCode, label: t('Ready to generate code')},
-  errored: {Icon: IconWarning, label: t('Errored')},
+interface StatusGroupMeta {
+  Icon: React.ComponentType<SVGIconProps>;
+  label: string;
+  // Description shown in the header icon's tooltip for groups whose members
+  // span pipeline stages; staged groups render the step checklist instead.
+  description?: string;
+  // How far through the pipeline every member of this group is (1-4). Unset
+  // for variable-stage groups and merged.
+  fill?: number;
+}
+
+export const STATUS_GROUP_META: Record<StatusGroupKey, StatusGroupMeta> = {
+  awaiting_input: {
+    Icon: IconUser,
+    label: t('Needs your input'),
+    description: t(
+      'Autofix paused and is asking for more information before it can proceed.'
+    ),
+  },
+  review_pr: {Icon: IconPullRequest, label: t('Awaiting your review'), fill: 4},
+  code_changes_ready: {Icon: IconCommit, label: t('Code changes ready'), fill: 3},
+  solution_ready: {Icon: IconCode, label: t('Ready to generate code'), fill: 2},
+  errored: {
+    Icon: IconWarning,
+    label: t('Errored'),
+    description: t('These runs errored. Open one to investigate or retry.'),
+  },
   // Same magnifier as the cards' Diagnosis block: these runs stopped at a
   // diagnosis, and their Next-steps bullets are manual verify/decide work.
-  needs_investigation: {Icon: IconSearch, label: t('Needs investigation')},
-  running: {Icon: IconSeer, label: t('Running')},
+  needs_investigation: {Icon: IconSearch, label: t('Needs investigation'), fill: 1},
+  running: {
+    Icon: IconSeer,
+    label: t('Running'),
+    description: t('Seer is still working on these runs.'),
+  },
   merged: {Icon: IconMerge, label: t('Merged')},
 };
+
+const STEP_LABELS = [
+  t('Root cause'),
+  t('Plan'),
+  t('Code changes'),
+  t('PR opened'),
+  t('Merged'),
+];
+
+/**
+ * The pipeline checklist for a group's header icon: where every card in the
+ * group is and how many steps remain until the fix lands. Staged groups get
+ * the ✓/○ rows; variable-stage groups get their one-line description.
+ */
+export function StatusGroupTooltip({groupKey}: {groupKey: StatusGroupKey}) {
+  const meta = STATUS_GROUP_META[groupKey];
+  const merged = groupKey === 'merged';
+  const fill = merged ? STEP_LABELS.length : meta.fill;
+
+  if (fill === undefined) {
+    return (
+      <Text size="xs" align="left">
+        {meta.description}
+      </Text>
+    );
+  }
+
+  return (
+    <Stack gap="2xs" align="stretch">
+      <Text size="xs" bold variant={merged ? 'success' : 'primary'} align="left">
+        {merged
+          ? t('Issue fixed')
+          : tn(
+              '%s step until issue fix',
+              '%s steps until issue fix',
+              STEP_LABELS.length - fill
+            )}
+      </Text>
+      {STEP_LABELS.map((label, index) =>
+        index < fill ? (
+          <Text key={label} size="xs" variant="success" align="left">
+            {`✓ ${label}`}
+          </Text>
+        ) : (
+          <Text key={label} size="xs" variant="muted" align="left">
+            {`○ ${label}`}
+          </Text>
+        )
+      )}
+    </Stack>
+  );
+}
 
 /**
  * Which section a row belongs to. Precedence mirrors the card's own header

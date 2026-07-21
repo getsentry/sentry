@@ -11,6 +11,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -39,6 +40,7 @@ import {
   getStatusGroup,
   STATUS_GROUP_META,
   STATUS_GROUP_ORDER,
+  StatusGroupTooltip,
   type StatusGroupKey,
 } from './statusGroups';
 import type {AttentionReason, AutofixOutcome} from './types';
@@ -440,7 +442,15 @@ export default function AutofixOverview() {
                       <GroupHeader>
                         <Disclosure.Title>
                           <Flex gap="sm" align="center">
-                            <meta.Icon size="sm" aria-hidden />
+                            {/* The pipeline tooltip lives on the section
+                                icon — every card in a group shares its
+                                stage, so the checklist is group-level info */}
+                            <Tooltip
+                              title={<StatusGroupTooltip groupKey={groupKey} />}
+                              skipWrapper
+                            >
+                              <meta.Icon size="sm" aria-hidden />
+                            </Tooltip>
                             <Text bold>{meta.label}</Text>
                             <Badge variant="muted">{rows.length}</Badge>
                           </Flex>
