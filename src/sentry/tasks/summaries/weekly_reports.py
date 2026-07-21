@@ -908,12 +908,44 @@ def render_template_context(
             if span_project_id not in user_project_ids:
                 continue
             project = project_by_id.get(span_project_id)
+            base_params = {
+                "query": f'span.description:"{span["name"]}"',
+                "project": span_project_id,
+                "referrer": "weekly_report",
+                "notification_uuid": notification_uuid,
+            }
+            explore_path = f"/organizations/{ctx.organization.slug}/explore/spans/"
+            span_url = ctx.organization.absolute_url(
+                explore_path,
+                query=urlencode(base_params),
+            )
+            p95_url = ctx.organization.absolute_url(
+                explore_path,
+                query=urlencode(
+                    {
+                        **base_params,
+                        "visualize": json.dumps({"yAxes": ["p95(span.duration)"]}),
+                    }
+                ),
+            )
+            sum_url = ctx.organization.absolute_url(
+                explore_path,
+                query=urlencode(
+                    {
+                        **base_params,
+                        "visualize": json.dumps({"yAxes": ["sum(span.duration)"]}),
+                    }
+                ),
+            )
             top_spans_table.append(
                 {
                     "name": span["name"],
                     "p95": span["p95"],
                     "sum": span["sum"],
                     "project_slugs": project.slug if project else "",
+                    "url": span_url,
+                    "p95_url": p95_url,
+                    "sum_url": sum_url,
                 }
             )
 

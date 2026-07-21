@@ -468,31 +468,32 @@
   {% endif %}
 
   {% if total_spans_count and not enhanced_privacy %}
-  <div id="total-spans" style="margin-bottom: 20px;">
-    <h4 class="total-count-title" style="font-weight: bold;">Total Spans</h4>
-    <h1 style="margin: 0; font-weight: bold;" class="total-count">
+  <div id="total-spans" style="margin-top: 36px; margin-bottom: 20px;">
+    <h4 class="total-count-title" style="font-weight: bold; margin-top: 0; margin-bottom: 0;">Total Spans</h4>
+    <h1 style="margin: 0; font-weight: bold;">
       {{ total_spans_count|small_count:1 }}
     </h1>
     <a href="{% org_url organization '/explore/spans/' %}"
        style="font-size: 12px; margin-bottom: 16px; display: block; font-weight: bold;">View All Spans</a>
 
     {% if top_spans_table %}
-    <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
+    <h4 style="margin-bottom: 0;">Top Spans</h4>
+    <table style="width: 100%; border-collapse: collapse;">
       <thead>
         <tr style="border-bottom: 1px solid #DEE7EB;">
-          <th style="font-size: 12px; text-align: left; color: #80708F; font-weight: 700; padding: 8px 0;">Span Description</th>
-          <th style="font-size: 12px; text-align: left; color: #80708F; font-weight: 700; padding: 8px 0;">Project</th>
-          <th style="font-size: 12px; text-align: right; color: #80708F; font-weight: 700; padding: 8px 0;">P95</th>
-          <th style="font-size: 12px; text-align: right; color: #80708F; font-weight: 700; padding: 8px 0;">Total Duration</th>
+          <th style="font-size: 12px; text-transform: uppercase; color: #80708F; font-weight: 700; text-align: left; padding-top: 8px; padding-bottom: 8px;">Span Description</th>
+          <th style="font-size: 12px; text-transform: uppercase; color: #80708F; font-weight: 700; text-align: left; padding-top: 8px; padding-bottom: 8px;">Project</th>
+          <th style="font-size: 12px; text-transform: uppercase; color: #80708F; font-weight: 700; text-align: center; padding-top: 8px; padding-bottom: 8px;">P95</th>
+          <th style="font-size: 12px; text-transform: uppercase; color: #80708F; font-weight: 700; text-align: right; padding-top: 8px; padding-bottom: 8px;">Total<br>Duration</th>
         </tr>
       </thead>
       <tbody>
       {% for span in top_spans_table %}
         <tr style="border-bottom: 1px solid #DEE7EB;">
-          <td style="font-size: 14px; font-weight: 700; padding: 8px 0; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ span.name }}">{{ span.name }}</td>
-          <td style="font-size: 14px; padding: 8px 0; color: #80708F;">{{ span.project_slugs }}</td>
-          <td style="font-size: 14px; text-align: right; padding: 8px 0; color: #4674ca;">{{ span.p95|format_duration_ms }}</td>
-          <td style="font-size: 14px; text-align: right; padding: 8px 0; color: #4674ca;">{{ span.sum|format_duration_ms }}</td>
+          <td style="font-size: 14px; font-weight: 700; vertical-align: middle; padding-top: 8px; padding-bottom: 8px; padding-right: 16px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ span.name }}"><a href="{{ span.url }}" style="font-weight: 700;">{{ span.name }}</a></td>
+          <td style="font-size: 14px; vertical-align: middle; padding-top: 8px; padding-bottom: 8px; padding-right: 16px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ span.project_slugs }}">{{ span.project_slugs }}</td>
+          <td style="font-size: 14px; text-align: center; padding-top: 8px; padding-bottom: 8px;"><a href="{{ span.p95_url }}" style="color: #4674ca;">{{ span.p95|format_duration_ms }}</a></td>
+          <td style="font-size: 14px; text-align: right; padding-top: 8px; padding-bottom: 8px;"><a href="{{ span.sum_url }}" style="color: #4674ca;">{{ span.sum|format_duration_ms }}</a></td>
         </tr>
       {% endfor %}
       </tbody>

@@ -208,7 +208,13 @@ class DebugWeeklyReportView(MailPreviewView):
 
             ctx.projects_context_map[project.id] = project_context
 
-        span_names = ["/api/users", "/api/events", "/api/projects", "/api/issues", "/api/search"]
+        span_names = [
+            "GET /api/0/organizations/{organization_slug}/issues/",
+            'db - SELECT "sentry_project"."id", "sentry_project"."name" FROM "sentry_project"',
+            "POST /api/0/organizations/{organization_slug}/events/",
+            "tasks.store.save_event",
+            "GET /api/0/projects/{organization_slug}/{project_slug}/stats/",
+        ]
         all_project_ids = set(ctx.projects_context_map.keys())
         ctx.top_spans = [
             {
@@ -246,6 +252,9 @@ class DebugWeeklyReportView(MailPreviewView):
                     "project_slugs": project_by_id[ctx.top_spans_projects[span["name"]]].slug
                     if ctx.top_spans_projects.get(span["name"]) in project_by_id
                     else "",
+                    "url": "#",
+                    "p95_url": "#",
+                    "sum_url": "#",
                 }
                 for span in ctx.top_spans
             ]
