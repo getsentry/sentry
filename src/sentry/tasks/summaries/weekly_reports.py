@@ -914,7 +914,7 @@ def render_template_context(
                 "referrer": "weekly_report",
                 "notification_uuid": notification_uuid,
             }
-            explore_path = f"/organizations/{ctx.organization.slug}/explore/spans/"
+            explore_path = f"/organizations/{ctx.organization.slug}/explore/traces/"
             span_url = ctx.organization.absolute_url(
                 explore_path,
                 query=urlencode(base_params),
