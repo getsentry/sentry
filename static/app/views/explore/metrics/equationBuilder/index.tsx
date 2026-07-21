@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useTransition} from 'react';
+import {useCallback, useEffect, useEffectEvent, useMemo, useTransition} from 'react';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
@@ -40,22 +40,17 @@ export function EquationBuilder({
   const internalExpression =
     storedInternalExpression ?? unresolveExpression(expression, referenceMap);
 
-  // Report which labels this equation references after unresolving.
-  // Cleans up on unmount so deleted equations don't block metric deletion.
-  useEffect(() => {
-    const expr = new Expression(internalExpression, references);
-    onReferenceLabelsChange?.(extractReferenceLabels(expr));
-    return () => {
-      onReferenceLabelsChange?.([]);
-    };
-  }, [internalExpression, references, onReferenceLabelsChange]);
+  const onLabelsChange = useEffectEvent((labels: string[]) => {
+    onReferenceLabelsChange?.(labels);
+  });
 
   useEffect(() => {
-    handleExpressionChange(
-      resolveExpression(new Expression(internalExpression, references), referenceMap),
-      internalExpression
-    );
-  }, [referenceMap, handleExpressionChange, internalExpression, references]);
+    const expr = new Expression(internalExpression, references);
+    onLabelsChange(extractReferenceLabels(expr));
+    return () => {
+      onLabelsChange([]);
+    };
+  }, [internalExpression, references]);
 
   const handleInternalExpressionChange = useCallback(
     (newExpression: Expression) => {
@@ -73,7 +68,6 @@ export function EquationBuilder({
 
   return (
     <ArithmeticBuilder
-      key={expression}
       aggregations={[]}
       expression={internalExpression}
       functionArguments={[]}

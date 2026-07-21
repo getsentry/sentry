@@ -67,6 +67,12 @@ export function useArithmeticBuilderAction({
   };
 } {
   const [expressionString, setExpressionString] = useState(initialExpression);
+  const [prevInitialExpression, setPrevInitialExpression] = useState(initialExpression);
+  if (prevInitialExpression !== initialExpression) {
+    // If the initial expression changes, we need to reset the internal state to reflect the new expression
+    setPrevInitialExpression(initialExpression);
+    setExpressionString(initialExpression);
+  }
   const [focusOverride, setFocusOverride] = useState<FocusOverride | null>(null);
 
   // Recreate the Expression when the string or references change because

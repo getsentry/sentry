@@ -93,12 +93,16 @@ function makeMetricQuery(
   };
 }
 
-function makeEquationRow(prefixedEquation: string, query?: string): BaseMetricQuery {
+function makeEquationRow(
+  prefixedEquation: string,
+  query?: string,
+  internalExpression?: string
+): BaseMetricQuery {
   const base = defaultMetricQuery({type: 'equation'});
   return {
     metric: {name: '', type: ''},
     queryParams: base.queryParams.replace({
-      aggregateFields: [new VisualizeEquation(prefixedEquation)],
+      aggregateFields: [new VisualizeEquation(prefixedEquation, {internalExpression})],
       query: query ?? '',
     }),
     label: getEquationLabel(),
@@ -166,6 +170,6 @@ export function parseAggregateExpression(
   return {
     metricQueries,
     compactExpression,
-    equationRow: makeEquationRow(aggregate, query),
+    equationRow: makeEquationRow(aggregate, query, compactExpression),
   };
 }
