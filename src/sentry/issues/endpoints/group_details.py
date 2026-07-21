@@ -27,6 +27,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.helpers.group_index.validators import GroupValidator
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupDetailsResponse
+from sentry.api.serializers.models.groupactionlogentry import serialize_first_seen_entry
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
@@ -55,6 +56,7 @@ from sentry.issues.constants import (
 from sentry.issues.derived.features import STATUS, IssueStatus
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
@@ -375,6 +377,21 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     "count": get_group_global_count(group),
                 }
             )
+
+            if features.has(
+                "projects:issue-action-log-write-to-db", group.project, actor=request.user
+            ):
+                action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
+                if action_log:
+                    # swap action log data in under the activity name
+                    first_seen_entry = cast(dict[str, Any], serialize_first_seen_entry(group))
+                    data.update(
+                        {"activity": [*serialize(action_log, request.user), first_seen_entry]}
+                    )
+                else:
+                    logger.info(
+                        "group_details.groupactionlogentry.not_found", extra={"group_id": group.id}
+                    )
 
             if "stats" not in collapse:
                 hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)

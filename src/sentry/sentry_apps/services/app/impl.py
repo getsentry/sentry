@@ -132,6 +132,12 @@ class DatabaseBackedAppService(AppService):
             serialize_sentry_app(app=app, avatars=list(app.avatar.all())) for app in sentry_apps
         ]
 
+    def get_sentry_apps_by_ids(self, *, ids: list[int]) -> list[RpcSentryApp]:
+        sentry_apps = SentryApp.objects.filter(id__in=ids).prefetch_related("avatar")
+        return [
+            serialize_sentry_app(app=app, avatars=list(app.avatar.all())) for app in sentry_apps
+        ]
+
     def get_installations_for_organization(
         self, *, organization_id: int
     ) -> list[RpcSentryAppInstallation]:
