@@ -602,12 +602,11 @@ def _create_seer_activity(
             .values_list("user_id", "referrer")
             .first()
         )
-        if run_context is not None:
-            user_id, referrer = run_context
-            if user_id is None and referrer is not None:
-                start_reason = _AUTOMATIC_START_REASONS.get(referrer)
-                if start_reason is not None:
-                    activity_data["start_reason"] = start_reason
+        user_id, referrer = run_context if run_context is not None else (None, None)
+        # For system-started runs, translate known referrers into an activity start reason.
+        start_reason = _AUTOMATIC_START_REASONS.get(referrer) if referrer is not None else None
+        if user_id is None and start_reason is not None:
+            activity_data["start_reason"] = start_reason
     elif event_type == SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
         root_cause = event_payload.get("root_cause")
         if root_cause:
