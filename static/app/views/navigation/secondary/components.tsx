@@ -30,23 +30,17 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
-import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
+import {ProjectsSavedBadge} from '@sentry/scraps/projectsSavedBadge';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {useHovercardContext} from 'sentry/components/hovercard';
-import {
-  IconAllProjects,
-  IconChevron,
-  IconClose,
-  IconGrabbable,
-  IconMyProjects,
-} from 'sentry/icons';
+import {IconChevron, IconClose, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -505,49 +499,8 @@ interface SecondaryNavigationProjectIconProps {
 }
 
 function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconProps) {
-  let icons: React.ReactNode;
-
-  switch (props.projectPlatforms.length) {
-    case 0:
-      icons = props.allProjects ? (
-        <IconAllProjects size="md" aria-hidden="true" />
-      ) : (
-        <IconMyProjects size="md" aria-hidden="true" />
-      );
-      break;
-    case 1:
-      icons = (
-        <PlatformIcon platform={props.projectPlatforms[0]!} size={16} aria-hidden />
-      );
-      break;
-    default:
-      icons = (
-        <Fragment>
-          <Container position="absolute" top="0" right="6px" width="12px" height="12px">
-            {p => (
-              <PlatformIcon
-                {...p}
-                platform={props.projectPlatforms[0]!}
-                size={12}
-                aria-hidden
-              />
-            )}
-          </Container>
-          <Container position="absolute" bottom="0" right="0" width="12px" height="12px">
-            {p => (
-              <PlatformIcon
-                {...p}
-                platform={props.projectPlatforms[1]!}
-                size={12}
-                aria-hidden
-              />
-            )}
-          </Container>
-        </Fragment>
-      );
-  }
-
   return (
+    // Keep the 18×18 nav-specific outer Stack; ProjectsSavedBadge renders at 16×16 inside it.
     <Stack
       flexShrink={0}
       justify="center"
@@ -558,7 +511,10 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
       data-project-icon
       aria-hidden="true"
     >
-      {icons}
+      <ProjectsSavedBadge
+        projectPlatforms={props.projectPlatforms}
+        allProjects={props.allProjects}
+      />
     </Stack>
   );
 }

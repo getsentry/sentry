@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import color from 'color';
 
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -29,7 +30,10 @@ import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
-import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
+import {
+  IssueIdBreadcrumb,
+  useIssueIdBreadcrumbItem,
+} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -74,22 +78,52 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const crumbs = [
-    {
-      label: 'Issues',
-      to: {pathname: `/organizations/${organization.slug}/issues/`, query},
-    },
-    {label: <IssueIdBreadcrumb project={project} group={group} />},
-  ];
+  const hasNewBreadcrumbs = organization.features.includes('ui-migration-breadcrumbs');
+  const issueItem = useIssueIdBreadcrumbItem({project, group});
 
   return (
     <Fragment>
       <Header>
         <Flex justify="between">
           <Flex align="center" gap="md">
-            <TopBar.Slot name="title">
-              <StyledBreadcrumbs crumbs={crumbs} />
-            </TopBar.Slot>
+            {hasNewBreadcrumbs ? (
+              <Fragment>
+                <TopBar.Slot name="breadcrumbs">
+                  <BreadcrumbList
+                    items={[
+                      {
+                        type: 'link',
+                        label: t('Issues'),
+                        to: {
+                          pathname: `/organizations/${organization.slug}/issues/`,
+                          query,
+                        },
+                      },
+                    ]}
+                  />
+                </TopBar.Slot>
+                <TopBar.Slot name="title">
+                  <BreadcrumbList.Title item={issueItem} />
+                </TopBar.Slot>
+              </Fragment>
+            ) : (
+              <TopBar.Slot name="title">
+                <StyledBreadcrumbs
+                  crumbs={[
+                    {
+                      label: 'Issues',
+                      to: {
+                        pathname: `/organizations/${organization.slug}/issues/`,
+                        query,
+                      },
+                    },
+                    {
+                      label: <IssueIdBreadcrumb project={project} group={group} />,
+                    },
+                  ]}
+                />
+              </TopBar.Slot>
+            )}
             {hasErrorUpsampling && (
               <Tooltip
                 title={t(

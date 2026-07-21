@@ -440,7 +440,7 @@ function findLargestBreakpoint(
  * CSS-only responsive props don't need this — they resolve natively via
  * `@container` queries. This context exists purely for the JS resolution path.
  */
-const ContainerQueryContext = createContext<ContainerBreakpointSize | null>(null);
+export const ContainerQueryContext = createContext<ContainerBreakpointSize | null>(null);
 
 /**
  * The JS equivalent of a CSS container query: returns the active breakpoint of
@@ -465,6 +465,15 @@ const ContainerQueryContext = createContext<ContainerBreakpointSize | null>(null
  */
 export function useContainerBreakpoint(): ContainerBreakpointSize {
   return useContext(ContainerQueryContext) ?? 'zero';
+}
+
+/**
+ * Whether the current element is inside a query container. This is useful for
+ * components that can either establish their own container or use an existing
+ * one to avoid introducing size containment into an intrinsic-size layout.
+ */
+export function useHasContainerQuery(): boolean {
+  return useContext(ContainerQueryContext) !== null;
 }
 
 /**
