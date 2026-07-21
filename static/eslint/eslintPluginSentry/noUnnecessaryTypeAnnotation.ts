@@ -70,26 +70,41 @@ export const noUnnecessaryTypeAnnotation = ESLintUtils.RuleCreator.withoutDocs({
 
     /**
      * Returns true if the AST node contains an arrow/function expression
-     * with untyped parameters at any nesting level. Traverses through
-     * ternaries, logical expressions, and call expression arguments.
+     * with untyped parameters at any relevant nesting level. Use visitor keys
+     * so that nested functions in expression forms are included. Block-bodied
+     * functions are not traversed because their local functions are not
+     * contextually typed by the enclosing variable annotation.
      */
     function containsUntypedFunction(node: TSESTree.Node): boolean {
       if (node.type === 'ArrowFunctionExpression' || node.type === 'FunctionExpression') {
-        return node.params.some(
-          param => !('typeAnnotation' in param) || !param.typeAnnotation
-        );
+        if (
+          node.params.some(param => !('typeAnnotation' in param) || !param.typeAnnotation)
+        ) {
+          return true;
+        }
+        if (node.body.type === 'BlockStatement') {
+          return false;
+        }
       }
-      if (node.type === 'ConditionalExpression') {
-        return (
-          containsUntypedFunction(node.consequent) ||
-          containsUntypedFunction(node.alternate)
-        );
-      }
-      if (node.type === 'LogicalExpression') {
-        return containsUntypedFunction(node.left) || containsUntypedFunction(node.right);
-      }
-      if (node.type === 'CallExpression') {
-        return node.arguments.some(arg => containsUntypedFunction(arg));
+
+      const keys = context.sourceCode.visitorKeys[node.type] ?? [];
+      for (const key of keys) {
+        const child = node[key as keyof typeof node] as
+          | TSESTree.Node
+          | TSESTree.Node[]
+          | null
+          | undefined;
+        if (Array.isArray(child)) {
+          if (
+            child.some(
+              item => item !== null && item !== undefined && containsUntypedFunction(item)
+            )
+          ) {
+            return true;
+          }
+        } else if (child && containsUntypedFunction(child)) {
+          return true;
+        }
       }
       return false;
     }
