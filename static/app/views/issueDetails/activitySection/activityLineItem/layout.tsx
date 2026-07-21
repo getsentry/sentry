@@ -18,7 +18,7 @@ export function ActivityLineHeadline({
   timestamp,
 }: ActivityLineHeadlineProps) {
   return (
-    <Flex column={3} row={1} minWidth={0} minHeight="22px" align="baseline">
+    <Flex column={2} row={1} minWidth={0} minHeight="22px" align="baseline">
       <ActivityLineSentence>
         <ActivityLineTitleText
           as="span"
@@ -53,7 +53,7 @@ export function ActivityLineHeadline({
 export const ActivityLineRow = styled('div')`
   position: relative;
   display: grid;
-  grid-template-columns: 22px 22px minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   grid-template-rows: auto auto;
   align-items: start;
   column-gap: ${p => p.theme.space.xs};
@@ -92,7 +92,7 @@ const ActivityLineMeta = styled('span')`
 `;
 
 export const ActivityLineContent = styled('div')`
-  grid-column: 3;
+  grid-column: 2;
   grid-row: 2;
   min-width: 0;
 `;

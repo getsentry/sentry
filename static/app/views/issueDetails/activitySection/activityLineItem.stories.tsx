@@ -1,6 +1,9 @@
+import type {ReactNode} from 'react';
+import {useId, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
@@ -8,6 +11,8 @@ import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, IssueCategory, PriorityLevel} from 'sentry/types/group';
 import type {Commit, PullRequest, Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
 import {
@@ -303,15 +308,51 @@ const seerActivities = [
 ];
 
 export default Storybook.story('Issue Activity', story => {
-  story('Resolution', () => <ResolutionExamples />);
-  story('Archived', () => <ActivityExamples items={archivedActivities} />);
-  story('Assignment', () => <ActivityExamples items={assignmentActivities} />);
-  story('Priority and escalation', () => <ActivityExamples items={priorityActivities} />);
-  story('Source control', () => <ActivityExamples items={sourceControlActivities} />);
-  story('Issue changes', () => <ActivityExamples items={issueActivities} />);
-  story('Comments', () => <CommentExample />);
-  story('Seer', () => <ActivityExamples items={seerActivities} />);
+  const activityStory = (name: string, render: () => ReactNode) =>
+    story(name, () => <ActivityStory>{render()}</ActivityStory>);
+
+  activityStory('Resolution', () => <ResolutionExamples />);
+  activityStory('Archived', () => <ActivityExamples items={archivedActivities} />);
+  activityStory('Assignment', () => <ActivityExamples items={assignmentActivities} />);
+  activityStory('Priority and escalation', () => (
+    <ActivityExamples items={priorityActivities} />
+  ));
+  activityStory('Source control', () => (
+    <ActivityExamples items={sourceControlActivities} />
+  ));
+  activityStory('Issue changes', () => <ActivityExamples items={issueActivities} />);
+  activityStory('Comments', () => <CommentExample />);
+  activityStory('Seer', () => <ActivityExamples items={seerActivities} />);
 });
+
+function ActivityStory({children}: {children: ReactNode}) {
+  const checkboxId = useId();
+  const organization = useOrganization();
+  const [showProgress, setShowProgress] = useState(false);
+  const features = organization.features.filter(
+    feature => feature !== 'issue-activity-progress'
+  );
+
+  if (showProgress) {
+    features.push('issue-activity-progress');
+  }
+
+  return (
+    <OrganizationContext.Provider value={{...organization, features}}>
+      <Stack gap="lg">
+        <Flex as="label" align="center" gap="sm" htmlFor={checkboxId}>
+          <Checkbox
+            id={checkboxId}
+            checked={showProgress}
+            onChange={() => setShowProgress(value => !value)}
+          />
+          <Text>Show progress indicators</Text>
+        </Flex>
+        {children}
+      </Stack>
+    </OrganizationContext.Provider>
+  );
+}
 
 function ResolutionExamples() {
   return (

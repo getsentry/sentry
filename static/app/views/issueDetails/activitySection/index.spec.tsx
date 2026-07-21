@@ -1135,6 +1135,36 @@ describe('ActivitySection', () => {
     expect(screen.getByRole('img', {name: 'Activity update'})).toBeInTheDocument();
   });
 
+  it('shows progress markers behind activity progress', () => {
+    const activityGroup = GroupFixture({
+      id: '1339',
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED,
+          id: 'resolved-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {},
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} variant="standalone" size="md" />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({
+          features: ['issue-activity-feed-v2', 'issue-activity-progress'],
+        }),
+      }
+    );
+
+    expect(screen.getByRole('img', {name: 'Fix Applied'})).toBeInTheDocument();
+    expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
+  });
+
   it.each([
     {
       name: 'deleted attachments',
