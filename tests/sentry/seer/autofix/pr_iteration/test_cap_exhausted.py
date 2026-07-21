@@ -173,7 +173,7 @@ class AssignUserForExhaustedCapTest(TestCase):
                 CAP_EXHAUSTED_EXTRA: {
                     REPO_NAME: {
                         "recorded_at": "2024-01-01T00:00:00+00:00",
-                        "head_sha": "older-sha",
+                        "head_sha": HEAD_SHA,
                         "assignees": ["octocat"],
                         "commented": True,
                     }
@@ -188,6 +188,48 @@ class AssignUserForExhaustedCapTest(TestCase):
         mock_actions.get_pull_request.assert_not_called()
         mock_actions.update_issue.assert_not_called()
         mock_actions.create_pull_request_comment.assert_not_called()
+
+    @patch(f"{CAP_EXHAUSTED_PATH}.scm_actions")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
+    @patch(f"{CAP_EXHAUSTED_PATH}.get_github_username_for_user", return_value="octocat")
+    @patch(f"{CAP_EXHAUSTED_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{CAP_EXHAUSTED_PATH}.UpdateIssueProtocol", object)
+    @patch(f"{CAP_EXHAUSTED_PATH}.CreatePullRequestCommentProtocol", object)
+    def test_rehandles_when_cap_exhausted_on_new_head(
+        self,
+        _mock_username: MagicMock,
+        _mock_scm: MagicMock,
+        mock_actions: MagicMock,
+        _mock_cap: MagicMock,
+    ) -> None:
+        # A previous handoff on an older head; the user then sent Seer back
+        # with guidance and the new streak exhausted the cap again.
+        self.seer_run.update(
+            extras={
+                CAP_EXHAUSTED_EXTRA: {
+                    REPO_NAME: {
+                        "recorded_at": "2024-01-01T00:00:00+00:00",
+                        "head_sha": "older-sha",
+                        "assignees": ["octocat"],
+                        "commented": True,
+                    }
+                }
+            }
+        )
+        mock_actions.get_pull_request.return_value = _pull_request_result(
+            assignees=[{"login": "octocat"}]
+        )
+
+        with self.feature(FLAG):
+            assign_user_for_exhausted_cap(_event(), self._resolved())
+
+        # The user must learn the run went quiet again: a fresh comment, no
+        # re-assignment (they still are), marker moved to the new head.
+        mock_actions.update_issue.assert_not_called()
+        mock_actions.create_pull_request_comment.assert_called_once()
+        marker = self._marker()
+        assert marker is not None
+        assert marker["head_sha"] == HEAD_SHA
 
     @patch(f"{CAP_EXHAUSTED_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
@@ -334,6 +376,32 @@ class AssignUserForExhaustedCapTest(TestCase):
         assert marker is not None
         assert marker["assignees"] == ["octocat"]
         assert marker["commented"] is False
+
+    @patch(f"{CAP_EXHAUSTED_PATH}.scm_actions")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
+    @patch(f"{CAP_EXHAUSTED_PATH}.get_github_username_for_user", return_value="octocat")
+    @patch(f"{CAP_EXHAUSTED_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{CAP_EXHAUSTED_PATH}.UpdateIssueProtocol", object)
+    @patch(f"{CAP_EXHAUSTED_PATH}.CreatePullRequestCommentProtocol", object)
+    def test_comment_failure_with_preexisting_assignment_retries(
+        self,
+        _mock_username: MagicMock,
+        _mock_scm: MagicMock,
+        mock_actions: MagicMock,
+        _mock_cap: MagicMock,
+    ) -> None:
+        mock_actions.get_pull_request.return_value = _pull_request_result(
+            assignees=[{"login": "octocat"}]
+        )
+        mock_actions.create_pull_request_comment.side_effect = Exception("boom")
+
+        with self.feature(FLAG):
+            assign_user_for_exhausted_cap(_event(), self._resolved())
+
+        # With the user already assigned, the comment is the only thing we add;
+        # if it fails, nothing new reached them, so the next suite must retry.
+        mock_actions.update_issue.assert_not_called()
+        assert self._marker() is None
 
     @patch(f"{CAP_EXHAUSTED_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())

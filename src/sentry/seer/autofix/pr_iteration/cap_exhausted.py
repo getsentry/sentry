@@ -37,7 +37,8 @@ logger = logging.getLogger(__name__)
 
 # SeerRun.extras key holding cap-exhausted markers, keyed by repo full name
 # (a run can open PRs in several repos). Each marker records what reached the
-# human so retries and later suite events never re-ping them.
+# human for one head, so duplicate suite events never re-ping them but a later
+# cap exhaustion on a new head is handled afresh.
 CAP_EXHAUSTED_EXTRA = "cap_exhausted"
 
 
@@ -60,6 +61,17 @@ def _cap_exhausted_marker(seer_run: SeerRun, repo_name: str) -> dict[str, Any] |
     return get_run_marker(seer_run, CAP_EXHAUSTED_EXTRA, repo_name)
 
 
+def _already_handed_off(seer_run: SeerRun, repo_name: str, head_sha: str) -> bool:
+    """A marker only suppresses re-handling for the head it recorded.
+
+    After a handoff the user can send Seer back (``@sentry <guidance>``); if
+    that later streak exhausts the cap again, it does so on a new head, and
+    the run would otherwise go quiet without ever telling them.
+    """
+    marker = _cap_exhausted_marker(seer_run, repo_name)
+    return marker is not None and marker.get("head_sha") == head_sha
+
+
 def _record_cap_exhausted_marker(
     seer_run: SeerRun,
     repo_name: str,
@@ -69,7 +81,7 @@ def _record_cap_exhausted_marker(
     commented: bool,
     preexisting: bool = False,
 ) -> None:
-    """Write the per-repo marker; caller must hold the run's cap-exhausted lock.
+    """Write the per-repo marker; caller must hold the repo's cap-exhausted lock.
 
     ``preexisting`` records that the user was already assigned by someone else
     rather than by us.
@@ -140,7 +152,7 @@ def assign_user_for_exhausted_cap(
         # often this fires sizes the need for candidate-reviewer selection.
         _skip("no_triggering_user", log_extra)
         return
-    if _cap_exhausted_marker(seer_run, head_match.repo_name):
+    if _already_handed_off(seer_run, head_match.repo_name, head_match.head_sha):
         _skip("already_handed_off", log_extra)
         return
 
@@ -197,20 +209,22 @@ def assign_user_for_exhausted_cap(
 
     # A suite completes once per app/workflow, so several failing events can
     # race for the same head; the lock plus a marker re-check makes sure only
-    # one of them pings the human.
+    # one of them pings the human. Scoped per repo — markers are per-repo and
+    # written atomically, so on a multi-repo run one repo's handoff must not
+    # make another's bail with UnableToAcquireLock.
     lock = locks.get(
-        f"autofix:pr_iteration:cap_exhausted:{seer_run.id}",
+        f"autofix:pr_iteration:cap_exhausted:{seer_run.id}:{head_match.repo_name}",
         duration=30,
         name="autofix_pr_cap_exhausted",
     )
     try:
         with lock.acquire():
             seer_run.refresh_from_db()
-            if _cap_exhausted_marker(seer_run, head_match.repo_name):
+            if _already_handed_off(seer_run, head_match.repo_name, head_match.head_sha):
                 _skip("already_handed_off", log_extra)
                 return
 
-            assigned = already_assigned
+            newly_assigned = False
             if not already_assigned:
                 try:
                     # The issues PATCH replaces the assignee list wholesale, so
@@ -218,11 +232,12 @@ def assign_user_for_exhausted_cap(
                     scm_actions.update_issue(
                         scm, str(pr_number), assignees=[*existing_assignees, github_login]
                     )
-                    assigned = True
+                    newly_assigned = True
                 except Exception:
                     # Best effort — e.g. the user may not be assignable in this
                     # repo; the @-mention in the comment still notifies them.
                     _failed("assign_failed", {**log_extra, "pr_number": pr_number})
+            assigned = already_assigned or newly_assigned
 
             commented = False
             try:
@@ -233,9 +248,10 @@ def assign_user_for_exhausted_cap(
             except Exception:
                 _failed("comment_failed", {**log_extra, "pr_number": pr_number})
 
-            if not assigned and not commented:
-                # Nothing reached the human; leave the marker unset so the
-                # next failing suite retries.
+            if not newly_assigned and not commented:
+                # Nothing new reached the human — a preexisting assignment
+                # doesn't tell them Seer stopped — so leave the marker unset
+                # and let the next failing suite retry.
                 return
 
             _record_cap_exhausted_marker(
