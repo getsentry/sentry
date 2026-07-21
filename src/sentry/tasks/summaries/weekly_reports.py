@@ -900,6 +900,7 @@ def render_template_context(
         and ctx.total_spans_count > 0
     )
     top_spans_table: list[dict[str, Any]] = []
+    user_total_spans_count = 0
     if show_spans:
         user_project_ids = {p.project.id for p in user_projects}
         project_by_id = {p.project.id: p.project for p in user_projects}
@@ -907,35 +908,22 @@ def render_template_context(
             span_project_id = ctx.top_spans_projects.get(span["name"])
             if span_project_id not in user_project_ids:
                 continue
+            user_total_spans_count += span.get("count", 0)
             project = project_by_id.get(span_project_id)
-            base_params = {
-                "query": f'span.description:"{span["name"]}"',
-                "project": span_project_id,
-                "referrer": "weekly_report",
-                "notification_uuid": notification_uuid,
-            }
-            explore_path = f"/organizations/{ctx.organization.slug}/explore/traces/"
+            span_query = urlencode(
+                {
+                    "query": f'span.description:"{span["name"]}"',
+                    "project": span_project_id,
+                    "visualize": json.dumps(
+                        {"yAxes": ["p95(span.duration)", "sum(span.duration)"]}
+                    ),
+                    "referrer": "weekly_report",
+                    "notification_uuid": notification_uuid,
+                }
+            )
             span_url = ctx.organization.absolute_url(
-                explore_path,
-                query=urlencode(base_params),
-            )
-            p95_url = ctx.organization.absolute_url(
-                explore_path,
-                query=urlencode(
-                    {
-                        **base_params,
-                        "visualize": json.dumps({"yAxes": ["p95(span.duration)"]}),
-                    }
-                ),
-            )
-            sum_url = ctx.organization.absolute_url(
-                explore_path,
-                query=urlencode(
-                    {
-                        **base_params,
-                        "visualize": json.dumps({"yAxes": ["sum(span.duration)"]}),
-                    }
-                ),
+                f"/organizations/{ctx.organization.slug}/explore/traces/",
+                query=span_query,
             )
             top_spans_table.append(
                 {
@@ -944,8 +932,6 @@ def render_template_context(
                     "sum": span["sum"],
                     "project_slugs": project.slug if project else "",
                     "url": span_url,
-                    "p95_url": p95_url,
-                    "sum_url": sum_url,
                 }
             )
 
@@ -967,7 +953,7 @@ def render_template_context(
             "organizations:weekly-report-week-over-week-metric", ctx.organization
         ),
         "notification_settings_link": "/settings/account/notifications/reports/",
-        "total_spans_count": ctx.total_spans_count,
+        "total_spans_count": user_total_spans_count,
         "top_spans_table": top_spans_table,
     }
 

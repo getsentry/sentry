@@ -745,13 +745,12 @@ def organization_top_spans(
             sampling_mode=None,
         )
 
-    total_count = 0
+    span_counts: dict[str, int] = {}
     for row in result.get("data", []):
         span_name = row.get("span.name", "")
         project_id = row.get("project.id")
         if not span_name or not project_id:
             continue
-        total_count += row.get("count()", 0)
         if span_name not in ctx.top_spans_projects:
             if len(ctx.top_spans) >= TOP_SPANS_LIMIT:
                 break
@@ -763,7 +762,12 @@ def organization_top_spans(
                     "sum": row.get("sum(span.duration)", 0),
                 }
             )
-    ctx.total_spans_count = total_count
+        if span_name in ctx.top_spans_projects:
+            span_counts[span_name] = span_counts.get(span_name, 0) + row.get("count()", 0)
+
+    for span in ctx.top_spans:
+        span["count"] = span_counts.get(span["name"], 0)
+    ctx.total_spans_count = sum(span_counts.values())
 
 
 def organization_top_spans_timeseries(

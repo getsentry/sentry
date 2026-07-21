@@ -253,8 +253,6 @@ class DebugWeeklyReportView(MailPreviewView):
                     if ctx.top_spans_projects.get(span["name"]) in project_by_id
                     else "",
                     "url": "#",
-                    "p95_url": "#",
-                    "sum_url": "#",
                 }
                 for span in ctx.top_spans
             ]
