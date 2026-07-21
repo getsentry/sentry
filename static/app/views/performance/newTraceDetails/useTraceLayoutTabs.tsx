@@ -60,9 +60,11 @@ const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
 function getTabOptions({
   sections,
   overview,
+  tabSlugFromUrl,
 }: {
   overview: TraceOverviewData;
   sections: ReturnType<typeof useTraceContextSections>;
+  tabSlugFromUrl: string | undefined;
 }): Tab[] {
   const tabOptions: Tab[] = [];
 
@@ -74,11 +76,21 @@ function getTabOptions({
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.PROFILES]);
   }
 
-  if (sections.hasLogs || overview.logs.availability === 'unknown') {
+  if (
+    sections.hasLogs ||
+    overview.logs.availability === 'unknown' ||
+    (overview.logs.availability === 'loading' &&
+      tabSlugFromUrl === TraceLayoutTabKeys.LOGS)
+  ) {
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS]);
   }
 
-  if (sections.hasMetrics || overview.metrics.availability === 'unknown') {
+  if (
+    sections.hasMetrics ||
+    overview.metrics.availability === 'unknown' ||
+    (overview.metrics.availability === 'loading' &&
+      tabSlugFromUrl === TraceLayoutTabKeys.METRICS)
+  ) {
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.METRICS]);
   }
 
@@ -168,6 +180,9 @@ export function useTraceLayoutTabs({
 }: UseTraceLayoutTabsProps): TraceLayoutTabsConfig {
   const navigate = useNavigate();
   const organization = useOrganization();
+  const queryParams = qs.parse(window.location.search);
+  const tabSlugFromUrl =
+    typeof queryParams.tab === 'string' ? queryParams.tab : undefined;
   const sections = useTraceContextSections({
     tree,
     logs: overview.logs.representative ? [overview.logs.representative] : undefined,
@@ -178,9 +193,7 @@ export function useTraceLayoutTabs({
     logsEnabled,
     metricsEnabled,
   });
-  const tabOptions = getTabOptions({overview, sections});
-
-  const queryParams = qs.parse(window.location.search);
+  const tabOptions = getTabOptions({overview, sections, tabSlugFromUrl});
 
   const initialTab = getInitialTab({
     isLoading,
@@ -189,7 +202,7 @@ export function useTraceLayoutTabs({
     meta,
     sections,
     tabOptions,
-    tabSlugFromUrl: typeof queryParams.tab === 'string' ? queryParams.tab : undefined,
+    tabSlugFromUrl,
   });
 
   const [currentTab, setCurrentTab] = useState(initialTab.slug);

@@ -1,7 +1,14 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
+
 import type {EAPTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/types';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   getInitialTab,
   TraceLayoutTabKeys,
+  useTraceLayoutTabs,
 } from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
 const sections = {
@@ -117,4 +124,54 @@ describe('getInitialTab', () => {
       }).slug
     ).toBe(TraceLayoutTabKeys.WATERFALL);
   });
+});
+
+describe('useTraceLayoutTabs', () => {
+  it.each([
+    [TraceLayoutTabKeys.LOGS, 'Logs'],
+    [TraceLayoutTabKeys.METRICS, 'Application Metrics'],
+  ])(
+    'includes the deep-linked %s tab while its availability is loading',
+    (tabSlug, tabLabel) => {
+      setWindowLocation(
+        `http://localhost/organizations/org-slug/traces/trace-id/?tab=${tabSlug}`
+      );
+      const organization = OrganizationFixture();
+      const {result} = renderHookWithProviders(
+        () =>
+          useTraceLayoutTabs({
+            isLoading: true,
+            logsEnabled: true,
+            metricsEnabled: true,
+            overview: {
+              isRepresentativeLoading: false,
+              isTabLoading: true,
+              logs: {
+                availability: 'loading',
+                count: undefined,
+                representative: undefined,
+              },
+              metrics: {
+                availability: 'loading',
+                count: undefined,
+              },
+            },
+            tree: new TraceTree().build(),
+          }),
+        {organization}
+      );
+
+      expect(result.current.currentTab).toBe(tabSlug);
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.tabOptions).toContainEqual({
+        label: tabLabel,
+        slug: tabSlug,
+      });
+      expect(result.current.tabOptions.map(tab => tab.slug)).not.toContain(
+        tabSlug === TraceLayoutTabKeys.LOGS
+          ? TraceLayoutTabKeys.METRICS
+          : TraceLayoutTabKeys.LOGS
+      );
+    }
+  );
 });
