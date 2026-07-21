@@ -142,9 +142,9 @@ describe('InboxPage', () => {
 
   function mockSuccessfulSections() {
     return [
-      mockSection('issue.progress:fix_proposed', [fixProposedGroup], 200, 2),
-      mockSection('issue.progress:diagnosed', [diagnosedGroup], 200, 2),
-      mockSection('issue.progress:assigned', [assignedGroup], 200, 12),
+      mockSection('issue.progress:fix_proposed assigned:me', [fixProposedGroup], 200, 2),
+      mockSection('issue.progress:diagnosed assigned:me', [diagnosedGroup], 200, 2),
+      mockSection('issue.progress:assigned assigned:me', [assignedGroup], 200, 12),
     ];
   }
 
@@ -208,11 +208,13 @@ describe('InboxPage', () => {
     expect(await screen.findByText('Diagnosed issue')).toBeInTheDocument();
     const assignedIssue = await screen.findByText('Assigned issue');
     expect(assignedIssue).not.toBeVisible();
+    expect(screen.getByRole('heading', {name: 'Inbox', level: 1})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Issues', level: 2})).toBeInTheDocument();
 
     for (const [index, query] of [
-      'issue.progress:fix_proposed',
-      'issue.progress:diagnosed',
-      'issue.progress:assigned',
+      'issue.progress:fix_proposed assigned:me',
+      'issue.progress:diagnosed assigned:me',
+      'issue.progress:assigned assigned:me',
     ].entries()) {
       await waitFor(() =>
         expect(requests[index]).toHaveBeenCalledWith(
@@ -237,6 +239,12 @@ describe('InboxPage', () => {
     const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
     const diagnosedSection = screen.getByRole('region', {name: 'Diagnosed'});
     const assignedSection = screen.getByRole('region', {name: 'Assigned'});
+    expect(
+      within(fixSection).getByRole('heading', {name: 'Fix Proposed', level: 3})
+    ).toBeInTheDocument();
+    expect(
+      within(fixSection).getByRole('heading', {name: 'Fix proposed issue', level: 4})
+    ).toBeInTheDocument();
     expect(within(fixSection).getByText('2')).toBeInTheDocument();
     expect(within(diagnosedSection).getByText('2')).toBeInTheDocument();
     expect(within(assignedSection).getByText('12')).toBeInTheDocument();
@@ -276,6 +284,31 @@ describe('InboxPage', () => {
     expect(assignedIssue).toBeVisible();
   });
 
+  it('filters sections by the selected assignee', async () => {
+    mockSuccessfulSections();
+    const myTeamsRequests = [
+      mockSection('issue.progress:fix_proposed assigned:my_teams', [fixProposedGroup]),
+      mockSection('issue.progress:diagnosed assigned:my_teams', [diagnosedGroup]),
+      mockSection('issue.progress:assigned assigned:my_teams', [assignedGroup]),
+    ];
+
+    const {router} = render(<InboxPage />, {organization, initialRouterConfig});
+
+    const meFilter = screen.getByRole('radio', {name: 'Me'});
+    const myTeamsFilter = screen.getByRole('radio', {name: 'My Teams'});
+    expect(meFilter).toBeChecked();
+    expect(myTeamsFilter).not.toBeChecked();
+    expect(await screen.findByText('Fix proposed issue')).toBeInTheDocument();
+
+    await userEvent.click(myTeamsFilter);
+
+    expect(myTeamsFilter).toBeChecked();
+    expect(router.location.query.assignment).toBe('my_teams');
+    for (const request of myTeamsRequests) {
+      await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    }
+  });
+
   it('loads and appends the next page of a section', async () => {
     const nextFixProposedGroup = GroupFixture({
       id: '104',
@@ -289,7 +322,9 @@ describe('InboxPage', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
-      match: [MockApiClient.matchQuery({query: 'issue.progress:fix_proposed'})],
+      match: [
+        MockApiClient.matchQuery({query: 'issue.progress:fix_proposed assigned:me'}),
+      ],
       body: [fixProposedGroup],
       headers: {
         'X-Hits': '2',
@@ -300,7 +335,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: 'issue.progress:fix_proposed',
+          query: 'issue.progress:fix_proposed assigned:me',
           cursor: '0:5:0',
         }),
       ],
@@ -308,8 +343,8 @@ describe('InboxPage', () => {
       headers: {'X-Hits': '2'},
       asyncDelay: 100,
     });
-    mockSection('issue.progress:diagnosed', [diagnosedGroup]);
-    mockSection('issue.progress:assigned', [assignedGroup]);
+    mockSection('issue.progress:diagnosed assigned:me', [diagnosedGroup]);
+    mockSection('issue.progress:assigned assigned:me', [assignedGroup]);
 
     render(<InboxPage />, {organization, initialRouterConfig});
 
