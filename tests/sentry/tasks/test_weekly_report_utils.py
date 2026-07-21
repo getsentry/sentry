@@ -46,6 +46,7 @@ class OrganizationTopSpansTest(BaseSpansTestCase, TestCase):
                 timestamp=self.now - timedelta(days=1),
                 duration=duration,
                 transaction=transaction,
+                name=transaction,
             )
 
     def test_populates_top_spans_and_counts(self) -> None:
