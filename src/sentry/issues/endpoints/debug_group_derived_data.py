@@ -14,7 +14,8 @@ from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.group import Group
 
-DEFAULT_LIMIT = 2000
+DEFAULT_LIMIT = 1000
+MAX_LIMIT = 10000
 
 
 def _state_to_dict(pipeline: Pipeline[Any], state: State) -> dict[str, Any]:
@@ -36,6 +37,8 @@ class DebugGroupDerivedDataEndpoint(GroupEndpoint):
             return Response({"detail": f"Invalid limit: {raw_limit!r}"}, status=400)
         if limit < 1:
             return Response({"detail": "limit must be at least 1"}, status=400)
+        if limit > MAX_LIMIT:
+            return Response({"detail": f"limit must be at most {MAX_LIMIT}"}, status=400)
 
         # --- Stored state ---
         try:

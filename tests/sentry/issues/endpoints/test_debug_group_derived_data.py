@@ -85,3 +85,8 @@ class DebugGroupDerivedDataEndpointTest(APITestCase):
         self.get_error_response(
             self.organization.slug, self.group.id, qs_params={"limit": "-1"}, status_code=400
         )
+
+    def test_over_max_limit(self) -> None:
+        self.get_error_response(
+            self.organization.slug, self.group.id, qs_params={"limit": "10001"}, status_code=400
+        )
