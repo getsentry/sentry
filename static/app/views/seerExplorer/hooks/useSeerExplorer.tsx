@@ -156,8 +156,10 @@ export const useSeerExplorer = () => {
         return 'on'; // default
       }
     );
-  const [overrideBashModeEnabled, setOverrideBashModeEnabled] =
-    useLocalStorageState<boolean>('seer-explorer.override.bash-mode', false);
+  const [overrideBashModeEnabled, setOverrideBashModeEnabled] = useLocalStorageState(
+    'seer-explorer.override.bash-mode',
+    false
+  );
 
   const {runId, chatStates} = useSeerExplorerChatState();
   const dispatch = useSeerExplorerChatDispatch();
