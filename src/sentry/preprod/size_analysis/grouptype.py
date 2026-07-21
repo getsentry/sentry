@@ -124,7 +124,7 @@ def _build_evidence_text(
 
     # Threshold: type > value
     threshold_part = ""
-    condition_evaluations = evaluation.data["condition_evaluations"]
+    condition_evaluations = evaluation.data.get("condition_evaluations", [])
     if condition_evaluations:
         condition = condition_evaluations[0].condition
         threshold_label = _THRESHOLD_TYPE_LABELS.get(threshold_type, threshold_type)
