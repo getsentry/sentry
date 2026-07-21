@@ -271,4 +271,102 @@ describe('useLiveRefresh', () => {
     expect(queryClient.getQueryState(replayOptions.queryKey)?.isInvalidated).toBe(true);
     expect(queryClient.getQueryState(segmentsOptions.queryKey)?.isInvalidated).toBe(true);
   });
+
+  it('should reset isReplayExpired state when navigating to a new replay', async () => {
+    const now = Date.now();
+    const expiredReplay = ReplayRecordFixture({
+      id: 'old-replay-id',
+      started_at: new Date(now - 2 * 60 * 60_000), // 2 hours ago (expired)
+      count_segments: 5,
+    });
+
+    const newReplay = ReplayRecordFixture({
+      id: 'new-replay-id',
+      started_at: new Date(now - 60_000), // 1 minute ago (not expired)
+      count_segments: 3,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${newReplay.id}/`,
+      body: {data: newReplay},
+    });
+
+    const {result, rerender} = renderHook(
+      ({replay}) => useLiveRefresh({replay}),
+      {
+        wrapper: createWrapper(),
+        initialProps: {replay: expiredReplay},
+      }
+    );
+
+    // Expired replay should not be polling
+    const expiredEndpoint = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${expiredReplay.id}/`,
+      body: {data: expiredReplay},
+    });
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(30_000 + 1);
+    });
+    expect(expiredEndpoint).not.toHaveBeenCalled();
+
+    // Navigate to new replay
+    rerender({replay: newReplay});
+
+    // New replay should enable polling since it's not expired
+    const newEndpoint = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${newReplay.id}/`,
+      body: {data: {...newReplay, count_segments: 10}},
+    });
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(30_000 + 1);
+    });
+
+    // Polling should happen for the new non-expired replay
+    expect(newEndpoint).toHaveBeenCalled();
+  });
+
+  it('should enable polling when replay loads after being initially undefined', async () => {
+    const now = Date.now();
+    const liveReplay = ReplayRecordFixture({
+      started_at: new Date(now - 60_000), // 1 minute ago (not expired)
+      count_segments: 5,
+    });
+
+    const {result, rerender} = renderHook(
+      ({replay}) => useLiveRefresh({replay}),
+      {
+        wrapper: createWrapper(),
+        initialProps: {replay: undefined},
+      }
+    );
+
+    // Initially undefined - no polling should happen
+    const initialEndpoint = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${liveReplay.id}/`,
+      body: {data: liveReplay},
+    });
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(30_000 + 1);
+    });
+    expect(initialEndpoint).not.toHaveBeenCalled();
+
+    // Replay loads
+    rerender({replay: liveReplay});
+
+    // Polling should now be enabled for the live replay
+    const liveEndpoint = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${liveReplay.id}/`,
+      body: {data: {...liveReplay, count_segments: 10}},
+    });
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(30_000 + 1);
+    });
+
+    // Polling should happen for the loaded live replay
+    expect(liveEndpoint).toHaveBeenCalled();
+  });
 });
