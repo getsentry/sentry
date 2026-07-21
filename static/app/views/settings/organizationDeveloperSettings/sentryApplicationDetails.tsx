@@ -724,25 +724,23 @@ function SentryApplicationForm({
           )}
         </form.AppField>
 
-        {organization.features.includes('sentry-apps-custom-webhook-headers') && (
-          <form.AppField name="webhookHeaders">
-            {field => (
-              <field.Layout.Row
-                label={t('Webhook Headers')}
-                hintText={t(
-                  'Custom headers to include with every webhook request. Only certain headers are allowed, such as Authorization or X-* custom headers. Enter one header per line in the format: Header-Name: value. Saved header values are masked.'
-                )}
-              >
-                <field.TextArea
-                  autosize
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  placeholder={'Authorization: Bearer <token>\nX-Custom-Header: value'}
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-        )}
+        <form.AppField name="webhookHeaders">
+          {field => (
+            <field.Layout.Row
+              label={t('Webhook Headers')}
+              hintText={t(
+                'Custom headers to include with every webhook request. Only certain headers are allowed, such as Authorization or X-* custom headers. Enter one header per line in the format: Header-Name: value. Saved header values are masked.'
+              )}
+            >
+              <field.TextArea
+                autosize
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder={'Authorization: Bearer <token>\nX-Custom-Header: value'}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
 
         {!isInternal && (
           <form.AppField name="redirectUrl">
