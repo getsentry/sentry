@@ -4,11 +4,6 @@ import {ProgressMarker, type ProgressMarkerStep} from 'sentry/components/progres
 import {t} from 'sentry/locale';
 import {ProgressState} from 'sentry/types/group';
 
-// Re-export so consumers (and rspack's ESM linker) can resolve the enum from
-// this module. A value import from `sentry/types/group` alone has been flaky
-// under circular deps / stale rspack graphs.
-export {ProgressState};
-
 const PROGRESS_STATE_LABELS: Record<ProgressState, string> = {
   [ProgressState.IDENTIFIED]: t('Identified'),
   [ProgressState.ASSIGNED]: t('Assigned'),
