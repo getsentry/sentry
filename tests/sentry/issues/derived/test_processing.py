@@ -460,7 +460,7 @@ class ProcessGroupLogTest(TestCase):
         # between our load and the UPDATE in _process_batch.
         GroupDerivedData.objects.filter(group_id=group.id).update(pipeline_hash="reset")
 
-        processing._process_batch(processing.PIPELINE, derived, group.id, 1)
+        processing._process_batch(processing.PIPELINE, derived, 1)
 
         # The UPDATE should not have matched because the DB hash changed
         derived.refresh_from_db()

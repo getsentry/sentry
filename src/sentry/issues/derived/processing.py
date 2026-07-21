@@ -75,7 +75,6 @@ def _cursor_lte(cursor_date: datetime, cursor_id: int) -> Q:
 def _process_batch(
     p: Pipeline[GroupActionLogEntry],
     derived: GroupDerivedData,
-    group_id: int,
     batch_size: int,
 ) -> bool:
     """
@@ -96,6 +95,7 @@ def _process_batch(
     last-writer-wins semantics are safe because all writers compute the
     same deterministic result for overlapping entry ranges.
     """
+    group_id = derived.group_id
     entries = _entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, batch_size)
 
     if not entries:
@@ -170,7 +170,7 @@ def _drain_log(
     so a single slow batch can exceed it.
     """
     deadline = time.monotonic() + time_limit.total_seconds()
-    while _process_batch(pipeline, derived, derived.group_id, batch_size):
+    while _process_batch(pipeline, derived, batch_size):
         if time.monotonic() >= deadline:
             return False
     return True
@@ -199,7 +199,7 @@ def process_group_log(
             raise GroupLogTimeout(group_id)
     else:
         # No timeout — drain to completion.
-        while _process_batch(p, derived, derived.group_id, batch_size):
+        while _process_batch(p, derived, batch_size):
             pass
 
     return derived
@@ -237,7 +237,7 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
         except ObjectDoesNotExist:
             return
 
-        has_more = _process_batch(pipeline, derived, group_id, INLINE_BATCH_SIZE)
+        has_more = _process_batch(pipeline, derived, INLINE_BATCH_SIZE)
     if has_more:
         # Derived data will be stale for any code running between now and
         # when the task completes.
