@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
+import {ProgressState} from 'sentry/types/group';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 
 import {formatActivityMarkerState, type ActivityMarkerState} from './variant';
@@ -28,6 +29,10 @@ export function ActivityProgressMarker({
         {getProgressIcon(state)}
       </ProgressIconFrame>
     );
+
+  if (state === 'activity' || state === ProgressState.FIX_APPLIED) {
+    return marker;
+  }
 
   return (
     <Tooltip title={label} {...tooltipProps} skipWrapper>
