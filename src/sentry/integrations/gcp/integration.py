@@ -20,7 +20,7 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.gcp.utils import (
-    GCP_MCP_ENDPOINTS,
+    GCP_MCP_URLS,
     generate_sentry_sa,
     validate_gcp_project_id,
 )
@@ -235,11 +235,11 @@ class GcpOrgMonitoringProvider(OrgMonitoringProvider):
 
         return [
             MonitoringProviderConnectionData(
-                provider_key=provider_key,
+                provider_key=self.provider_key,
                 url=url,
                 auth_method="gcp_adc",
                 refreshable=False,
                 gcp_project_ids=projects,
             )
-            for provider_key, url in GCP_MCP_ENDPOINTS
+            for url in GCP_MCP_URLS
         ]

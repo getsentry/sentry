@@ -464,8 +464,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         result = get_monitoring_provider_connections(self.organization, self.user.id)
 
         assert len(result) == 3
-        provider_keys = {c["provider_key"] for c in result}
-        assert provider_keys == {"gcp_logging", "gcp_monitoring", "gcp_trace"}
+        assert all(c["provider_key"] == "gcp" for c in result)
         urls = {c["url"] for c in result}
         assert urls == {
             "https://logging.googleapis.com/mcp",
@@ -519,7 +518,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         result = get_monitoring_provider_connections(self.organization, self.user.id)
 
         assert len(result) == 4
-        gcp_conns = [c for c in result if c["provider_key"].startswith("gcp_")]
+        gcp_conns = [c for c in result if c["provider_key"] == "gcp"]
         dd_conns = [c for c in result if c["provider_key"] == "datadog"]
         assert len(gcp_conns) == 3
         assert len(dd_conns) == 1

@@ -9,7 +9,7 @@ from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.services.identity import identity_service
-from sentry.integrations.gcp.utils import GCP_MCP_ENDPOINTS
+from sentry.integrations.gcp.utils import GCP_MCP_URLS
 from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.organization import Organization
 from sentry.seer.sentry_data_models import MonitoringProviderConnectionData
@@ -149,13 +149,13 @@ _SENTRY_ORG_GCP_PROJECT_IDS = ["internal-sentry"]
 def _get_gcp_connections_for_sentry_org() -> list[MonitoringProviderConnectionData]:
     return [
         MonitoringProviderConnectionData(
-            provider_key=provider_key,
+            provider_key="gcp",
             url=url,
             auth_method="gcp_adc",
             refreshable=False,
             gcp_project_ids=_SENTRY_ORG_GCP_PROJECT_IDS,
         )
-        for provider_key, url in GCP_MCP_ENDPOINTS
+        for url in GCP_MCP_URLS
     ]
 
 

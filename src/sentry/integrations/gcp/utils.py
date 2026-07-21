@@ -6,13 +6,11 @@ from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 
 GCP_PROJECT_ID_RE = re.compile(r"^[a-z][a-z0-9-]{4,28}[a-z0-9]$")
 
-GCP_MCP_ENDPOINTS: tuple[tuple[str, str], ...] = (
-    ("gcp_logging", "https://logging.googleapis.com/mcp"),
-    ("gcp_monitoring", "https://monitoring.googleapis.com/mcp"),
-    ("gcp_trace", "https://cloudtrace.googleapis.com/mcp"),
+GCP_MCP_URLS: tuple[str, ...] = (
+    "https://logging.googleapis.com/mcp",
+    "https://monitoring.googleapis.com/mcp",
+    "https://cloudtrace.googleapis.com/mcp",
 )
-
-GCP_MCP_URLS: tuple[str, ...] = tuple(url for _, url in GCP_MCP_ENDPOINTS)
 
 
 def validate_gcp_project_id(project_id: str) -> None:
