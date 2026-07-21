@@ -421,6 +421,9 @@ def _get_eligible_orgs_from_batch(
         if not eligible:
             return []
 
+    if options.get("seer.night_shift.enable_for_legacy_orgs"):
+        return eligible
+
     for feature_name in PER_ORG_FEATURE_NAMES:
         eligible = [org for org in eligible if features.has(feature_name, org)]
         if not eligible:
