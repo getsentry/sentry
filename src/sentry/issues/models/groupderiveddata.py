@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from django.db import models
+from django.db.models.functions import Now
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -33,7 +34,7 @@ class GroupDerivedData(DefaultFieldsModel):
 
     # Timestamp of when the generation that produced this state *started*
     # processing. Defaults to row creation time.
-    generated_at = models.DateTimeField(default=timezone.now, db_default=models.functions.Now())
+    generated_at = models.DateTimeField(default=timezone.now, db_default=Now())
 
     cursor_date = models.DateTimeField(default=EPOCH)
     cursor_id = BoundedBigIntegerField(default=0)
