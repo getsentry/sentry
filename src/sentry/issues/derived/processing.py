@@ -68,10 +68,6 @@ def _entries_after_cursor(
     )
 
 
-def _cursor_lte(cursor_date: datetime, cursor_id: int) -> Q:
-    return Q(cursor_date__lt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__lte=cursor_id)
-
-
 def _process_batch(
     p: Pipeline[GroupActionLogEntry],
     derived: GroupDerivedData,
@@ -86,7 +82,7 @@ def _process_batch(
 
     1. The action log is append-only and the pipeline is deterministic, so
        any caller processing the same entries produces the same result.
-    2. The UPDATE uses a cursor guard (_cursor_lte) that only succeeds if no
+    2. The UPDATE uses a cursor guard that only succeeds if no
        other caller has already advanced the cursor past our batch. If it
        fails (updated == 0), a concurrent caller already wrote a superset
        of our work, so we refresh and check if more remains.
@@ -109,8 +105,8 @@ def _process_batch(
     state_update = GroupDerivedDataStore.build_update(p, result)
 
     updated = GroupDerivedData.objects.filter(
-        Q(group_id=group_id)
-        & _cursor_lte(last_date, last_id)
+        Q(id=derived.id, generated_at=derived.generated_at)
+        & (Q(cursor_date__lt=last_date) | Q(cursor_date=last_date, cursor_id__lte=last_id))
         & Q(pipeline_hash=derived.pipeline_hash)
     ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
 
