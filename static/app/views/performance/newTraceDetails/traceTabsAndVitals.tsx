@@ -53,7 +53,7 @@ export function TraceTabsAndVitals({
   rootEventResults,
   tree,
 }: TraceTabsAndVitalsProps) {
-  const {tabOptions, currentTab, onTabChange} = tabsConfig;
+  const {tabOptions, currentTab, isLoading, onTabChange} = tabsConfig;
   const containerRef = useRef<HTMLDivElement>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const [containerWidth, setContainerWidth] = useState<number>();
@@ -96,7 +96,7 @@ export function TraceTabsAndVitals({
     };
   }, []);
 
-  if (rootEventResults.isLoading || tree.type === 'loading') {
+  if (isLoading || rootEventResults.isLoading || tree.type === 'loading') {
     return <Placeholder />;
   }
 

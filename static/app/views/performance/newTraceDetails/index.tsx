@@ -50,6 +50,7 @@ import {useTraceState, TraceStateProvider} from './traceState/traceStateProvider
 import {ErrorsOnlyWarnings} from './traceTypeWarnings/errorsOnlyWarnings';
 import {TraceMetaDataHeader} from './traceHeader';
 import {useTraceEventView} from './useTraceEventView';
+import {useTraceOverviewData} from './useTraceOverviewData';
 import {useTraceQueryParams} from './useTraceQueryParams';
 import {useTraceStateAnalytics} from './useTraceStateAnalytics';
 
@@ -120,6 +121,17 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     ],
   });
   const tree = useTraceTree({traceSlug, trace, replay: null});
+  const overview = useTraceOverviewData({
+    logsEnabled,
+    meta: meta.data,
+    metricsEnabled,
+    queryParams,
+    traceSlug,
+    tree,
+  });
+  const representativeLogs = overview.logs.representative
+    ? [overview.logs.representative]
+    : undefined;
 
   useTraceStateAnalytics({
     trace,
@@ -131,18 +143,22 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
 
   const rootEventResults = useTraceRootEvent({
     tree,
-    logs: undefined,
+    logs: representativeLogs,
     timestamp: queryParams.timestamp,
     traceId: traceSlug,
   });
 
-  const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
-    isLoading: meta.status === 'pending' || tree.type === 'loading',
+  const tabsConfig = useTraceLayoutTabs({
+    isLoading:
+      meta.status === 'pending' || tree.type === 'loading' || overview.isTabLoading,
     tree,
     meta: meta.data,
     logsEnabled,
     metricsEnabled,
+    overview,
   });
+  const {currentTab} = tabsConfig;
+  const isResolvingEmptyTraceTab = tree.type === 'empty' && tabsConfig.isLoading;
 
   // Push trace metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
@@ -175,19 +191,16 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
         tree={tree}
         metaResults={meta}
         organization={organization}
+        overview={overview}
         traceSlug={traceSlug}
       />
       <TraceInnerLayout>
         <TraceTabsAndVitals
-          tabsConfig={{
-            tabOptions,
-            currentTab,
-            onTabChange,
-          }}
+          tabsConfig={tabsConfig}
           rootEventResults={rootEventResults}
           tree={tree}
         />
-        {currentTab === TraceLayoutTabKeys.WATERFALL ? (
+        {!isResolvingEmptyTraceTab && currentTab === TraceLayoutTabKeys.WATERFALL ? (
           <Fragment>
             <ErrorsOnlyWarnings
               tree={tree}
@@ -196,7 +209,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
             />
             <PartialTraceDataWarning
               timestamp={queryParams.timestamp}
-              logs={undefined}
+              logs={representativeLogs}
               tree={tree}
             />
             <TraceViewLogsPageDataProvider
@@ -217,20 +230,20 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
             </TraceViewLogsPageDataProvider>
           </Fragment>
         ) : null}
-        {currentTab === TraceLayoutTabKeys.PROFILES ? (
+        {!isResolvingEmptyTraceTab && currentTab === TraceLayoutTabKeys.PROFILES ? (
           <TraceProfiles tree={tree} />
         ) : null}
-        {currentTab === TraceLayoutTabKeys.LOGS ? (
+        {!isResolvingEmptyTraceTab && currentTab === TraceLayoutTabKeys.LOGS ? (
           <TraceViewLogsPageDataProvider>
             <TraceViewLogsSection />
           </TraceViewLogsPageDataProvider>
         ) : null}
-        {currentTab === TraceLayoutTabKeys.METRICS ? (
+        {!isResolvingEmptyTraceTab && currentTab === TraceLayoutTabKeys.METRICS ? (
           <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
             <TraceViewMetricsSection />
           </TraceViewMetricsProviderWrapper>
         ) : null}
-        {currentTab === TraceLayoutTabKeys.AI_SPANS ? (
+        {!isResolvingEmptyTraceTab && currentTab === TraceLayoutTabKeys.AI_SPANS ? (
           <TraceAiTab traceSlug={traceSlug} />
         ) : null}
       </TraceInnerLayout>

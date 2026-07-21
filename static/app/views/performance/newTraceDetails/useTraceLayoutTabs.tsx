@@ -12,6 +12,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
+import type {TraceOverviewData} from 'sentry/views/performance/newTraceDetails/useTraceOverviewData';
 
 export enum TraceLayoutTabKeys {
   WATERFALL = 'waterfall',
@@ -28,6 +29,7 @@ interface Tab {
 
 export interface TraceLayoutTabsConfig {
   currentTab: TraceLayoutTabKeys;
+  isLoading: boolean;
   onTabChange: (slug: TraceLayoutTabKeys) => void;
   tabOptions: Tab[];
 }
@@ -57,7 +59,9 @@ const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
 
 function getTabOptions({
   sections,
+  overview,
 }: {
+  overview: TraceOverviewData;
   sections: ReturnType<typeof useTraceContextSections>;
 }): Tab[] {
   const tabOptions: Tab[] = [];
@@ -70,11 +74,11 @@ function getTabOptions({
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.PROFILES]);
   }
 
-  if (sections.hasLogs) {
+  if (sections.hasLogs || overview.logs.availability === 'unknown') {
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS]);
   }
 
-  if (sections.hasMetrics) {
+  if (sections.hasMetrics || overview.metrics.availability === 'unknown') {
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.METRICS]);
   }
 
@@ -102,9 +106,8 @@ export function getInitialTab({
   meta?: TraceMetaQueryResults['data'];
   metricsEnabled?: boolean;
 }): Tab {
-  const hasNoLogs = logsEnabled && getTraceMetaLogsCount(meta) === 0 && !sections.hasLogs;
-  const hasNoMetrics =
-    metricsEnabled && getTraceMetaMetricsCount(meta) === 0 && !sections.hasMetrics;
+  const hasNoLogs = logsEnabled && getTraceMetaLogsCount(meta) === 0;
+  const hasNoMetrics = metricsEnabled && getTraceMetaMetricsCount(meta) === 0;
 
   const shouldKeepLogsTabWhileLoading =
     logsEnabled && !hasNoLogs && tabSlugFromUrl === TraceLayoutTabKeys.LOGS;
@@ -135,13 +138,22 @@ export function getInitialTab({
     return TAB_DEFINITIONS[TraceLayoutTabKeys.WATERFALL];
   }
 
-  return TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS];
+  if (sections.hasLogs) {
+    return TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS];
+  }
+
+  if (sections.hasMetrics) {
+    return TAB_DEFINITIONS[TraceLayoutTabKeys.METRICS];
+  }
+
+  return TAB_DEFINITIONS[TraceLayoutTabKeys.WATERFALL];
 }
 
 interface UseTraceLayoutTabsProps {
   isLoading: boolean;
   logsEnabled: boolean;
   metricsEnabled: boolean;
+  overview: TraceOverviewData;
   tree: TraceTree;
   meta?: TraceMetaQueryResults['data'];
 }
@@ -152,25 +164,21 @@ export function useTraceLayoutTabs({
   meta,
   logsEnabled,
   metricsEnabled,
+  overview,
 }: UseTraceLayoutTabsProps): TraceLayoutTabsConfig {
   const navigate = useNavigate();
   const organization = useOrganization();
   const sections = useTraceContextSections({
     tree,
-    logs: undefined,
+    logs: overview.logs.representative ? [overview.logs.representative] : undefined,
+    logsCount: overview.logs.count,
     meta,
     metrics: undefined,
+    metricsCount: overview.metrics.count,
     logsEnabled,
     metricsEnabled,
   });
-  const logsCount = getTraceMetaLogsCount(meta);
-  const metricsCount = getTraceMetaMetricsCount(meta);
-  const sectionsWithUnknownData = {
-    ...sections,
-    hasLogs: logsEnabled && (logsCount === undefined || logsCount > 0),
-    hasMetrics: metricsEnabled && (metricsCount === undefined || metricsCount > 0),
-  };
-  const tabOptions = getTabOptions({sections: sectionsWithUnknownData});
+  const tabOptions = getTabOptions({overview, sections});
 
   const queryParams = qs.parse(window.location.search);
 
@@ -179,12 +187,13 @@ export function useTraceLayoutTabs({
     logsEnabled,
     metricsEnabled,
     meta,
-    sections: sectionsWithUnknownData,
+    sections,
     tabOptions,
     tabSlugFromUrl: typeof queryParams.tab === 'string' ? queryParams.tab : undefined,
   });
 
   const [currentTab, setCurrentTab] = useState(initialTab.slug);
+  const isCurrentTabRequested = queryParams.tab === currentTab;
 
   const onTabChange = useCallback(
     (slug: Tab['slug']) => {
@@ -215,8 +224,9 @@ export function useTraceLayoutTabs({
     () => ({
       tabOptions,
       currentTab,
+      isLoading: isLoading && !isCurrentTabRequested,
       onTabChange,
     }),
-    [tabOptions, currentTab, onTabChange]
+    [tabOptions, currentTab, isCurrentTabRequested, isLoading, onTabChange]
   );
 }

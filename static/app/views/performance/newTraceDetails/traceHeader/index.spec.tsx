@@ -6,6 +6,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {
   TraceMetaDataHeader,
@@ -43,6 +44,19 @@ const baseProps: Partial<TraceMetadataHeaderProps> = {
   rootEventResults: {
     data: TransactionEventFixture(),
   } as any,
+  overview: {
+    isRepresentativeLoading: false,
+    isTabLoading: false,
+    logs: {
+      availability: 'absent',
+      count: 0,
+      representative: undefined,
+    },
+    metrics: {
+      availability: 'absent',
+      count: 0,
+    },
+  },
   tree: new TraceTree().build(),
   traceSlug: 'trace-slug',
 };
@@ -265,6 +279,50 @@ describe('TraceMetaDataHeader', () => {
   });
 
   describe('meta', () => {
+    it('renders representative information for a log-only trace', () => {
+      useLocationMock.mockReturnValue(
+        LocationFixture({
+          pathname: '/organizations/org-slug/traces/trace/trace-slug',
+        })
+      );
+      const logsOrganization = OrganizationFixture({features: ['ourlogs-enabled']});
+      const representativeLog = {
+        [OurLogKnownFieldKey.MESSAGE]: 'Representative log message',
+        [OurLogKnownFieldKey.PROJECT_ID]: '1',
+        [OurLogKnownFieldKey.SEVERITY]: 'info',
+      } as TraceMetadataHeaderProps['overview']['logs']['representative'];
+      const tree = new TraceTree().build();
+      const findRepresentativeTraceNode = jest
+        .spyOn(tree, 'findRepresentativeTraceNode')
+        .mockReturnValue({event: representativeLog!, dataset: null});
+      const props = {
+        ...baseProps,
+        tree,
+        overview: {
+          isRepresentativeLoading: false,
+          isTabLoading: false,
+          logs: {
+            availability: 'present',
+            count: 4,
+            representative: representativeLog,
+          },
+          metrics: {
+            availability: 'absent',
+            count: 0,
+          },
+        },
+      } as TraceMetadataHeaderProps;
+
+      render(<TraceMetaDataHeader {...props} organization={logsOrganization} />);
+
+      expect(screen.getByText('Representative log message')).toBeInTheDocument();
+      expect(screen.getByText('Logs')).toBeInTheDocument();
+      expect(screen.getByText('4')).toBeInTheDocument();
+      expect(findRepresentativeTraceNode).toHaveBeenCalledWith({
+        logs: [representativeLog],
+      });
+    });
+
     it('should render logs count from trace meta before logs have loaded', () => {
       useLocationMock.mockReturnValue(
         LocationFixture({

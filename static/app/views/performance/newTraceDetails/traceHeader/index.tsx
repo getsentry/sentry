@@ -19,6 +19,7 @@ import {PlaceHolder} from 'sentry/views/performance/newTraceDetails/traceHeader/
 import {Projects} from 'sentry/views/performance/newTraceDetails/traceHeader/projects';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceOverviewData} from 'sentry/views/performance/newTraceDetails/useTraceOverviewData';
 
 import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {Meta} from './meta';
@@ -27,6 +28,7 @@ import {Title} from './title';
 export interface TraceMetadataHeaderProps {
   metaResults: TraceMetaQueryResults;
   organization: Organization;
+  overview: TraceOverviewData;
   rootEventResults: TraceRootEventQueryResults;
   traceSlug: string;
   tree: TraceTree;
@@ -52,7 +54,10 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     return <PlaceHolder organization={props.organization} traceSlug={props.traceSlug} />;
   }
 
-  const rep = props.tree.findRepresentativeTraceNode({logs: undefined});
+  const representativeLogs = props.overview.logs.representative
+    ? [props.overview.logs.representative]
+    : undefined;
+  const rep = props.tree.findRepresentativeTraceNode({logs: representativeLogs});
   const project = projects.find(p => {
     const id =
       rep?.event && OurLogKnownFieldKey.PROJECT_ID in rep.event
@@ -91,6 +96,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
           <Meta
             tree={props.tree}
             meta={props.metaResults.data}
+            overview={props.overview}
             representativeEvent={rep}
             logsEnabled={logsEnabled}
             metricsEnabled={metricsEnabled}
@@ -103,7 +109,14 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             organization={props.organization}
           />
           <Flex align="center" gap="md" marginLeft="auto">
-            <Projects tree={props.tree} />
+            <Projects
+              projectSlugs={Array.from(
+                new Set([
+                  ...Array.from(props.tree.projects.values()).map(p => p.slug),
+                  ...(project ? [project.slug] : []),
+                ])
+              )}
+            />
           </Flex>
         </TraceHeaderComponents.HeaderRow>
       </TraceHeaderComponents.HeaderContent>
