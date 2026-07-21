@@ -444,16 +444,8 @@ export function GlobalCommandPaletteActions() {
         </CMDKAction>
 
         <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
-          {hasPrebuiltDashboards && (
-            <CMDKAction
-              display={{label: t('Dashboards')}}
-              to={`${prefix}/dashboards/?filter=${DashboardFilter.ALL}`}
-            />
-          )}
           <CMDKAction
-            display={{
-              label: hasPrebuiltDashboards ? t('Custom Dashboards') : t('All Dashboards'),
-            }}
+            display={{label: t('All Dashboards')}}
             to={`${prefix}/dashboards/`}
           />
           {hasPrebuiltDashboards && (
@@ -477,7 +469,7 @@ export function GlobalCommandPaletteActions() {
             </CMDKAction>
           )}
           <CMDKAction
-            display={{label: t('All Dashboards'), icon: <IconSearch />}}
+            display={{label: t('Search Dashboards'), icon: <IconSearch />}}
             prompt={t('Search for a dashboard...')}
             limit={5}
             resource={query =>

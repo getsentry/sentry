@@ -124,8 +124,9 @@ def _build_evidence_text(
 
     # Threshold: type > value
     threshold_part = ""
-    if evaluation.result:
-        condition = evaluation.result[0].condition
+    condition_evaluations = evaluation.data.get("condition_evaluations", [])
+    if condition_evaluations:
+        condition = condition_evaluations[0].condition
         threshold_label = _THRESHOLD_TYPE_LABELS.get(threshold_type, threshold_type)
 
         if threshold_type == "relative_diff":
@@ -254,7 +255,7 @@ class PreprodSizeAnalysisDetectorHandler(
 
         priorities = [
             condition_evaluation.result
-            for condition_evaluation in group_evaluation.result
+            for condition_evaluation in group_evaluation.data["condition_evaluations"]
             if isinstance(condition_evaluation.result, DetectorPriorityLevel)
         ]
         if not priorities:
@@ -323,7 +324,7 @@ class PreprodSizeAnalysisDetectorHandler(
             "value": self.extract_value(data_packet),
             "conditions": [
                 condition_evaluation.condition.get_snapshot()
-                for condition_evaluation in evaluation.result
+                for condition_evaluation in evaluation.data["condition_evaluations"]
             ],
             "config": self.detector.config,
         }

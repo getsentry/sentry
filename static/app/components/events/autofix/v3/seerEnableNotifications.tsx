@@ -35,6 +35,9 @@ const funMessages = [
 export function SeerEnableNotifications({status}: Props) {
   const organization = useOrganization();
   const [isSuccessVisible, setIsSuccessVisible] = useState(false);
+  const [funMessage] = useState(
+    () => funMessages[Math.floor(Math.random() * funMessages.length)]!
+  );
   const {isServiceWorkerSupported, controller} = useServiceWorker();
   const {permission, supportsNotifications, askNotificationPermission} =
     useNotificationPermission();
@@ -131,8 +134,6 @@ export function SeerEnableNotifications({status}: Props) {
   }
 
   if (permission === 'default') {
-    const funMessage = funMessages[Math.floor(Math.random() * funMessages.length)]!;
-
     return (
       <Stack gap="lg" justify="center" align="center">
         <Text align="center">{t('Get notified when Seer has an update.')}</Text>

@@ -31,7 +31,7 @@ class ConditionTestCase(BaseWorkflowTest):
     ) -> None:
         evaluation = data_condition.evaluate_value(job)
 
-        assert evaluation.value == job
+        assert evaluation.data == job
         assert evaluation.outcome.triggered is True
         assert evaluation.result == data_condition.get_condition_result()
 
@@ -39,7 +39,7 @@ class ConditionTestCase(BaseWorkflowTest):
         self, data_condition: DataCondition, job: WorkflowEventData | DataPacket[Any]
     ) -> None:
         evaluation = data_condition.evaluate_value(job)
-        assert evaluation.value == job
+        assert evaluation.data == job
         assert evaluation.outcome.triggered is False
         assert evaluation.result != data_condition.get_condition_result()
 

@@ -118,6 +118,7 @@ from sentry.net.http import connection_from_url
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
 from sentry.receivers.onboarding import record_release_received
+from sentry.releases.auto_creation import should_auto_create_releases
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.services.eventstore.processing import event_processing_store
@@ -731,12 +732,7 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
         project = projects[job["project_id"]]
         date = job["event"].datetime
 
-        # When the org has the feature flag and the project has disabled
-        # auto-creation, we only associate with releases that already exist
-        # (e.g. created via the CLI) and never create new ones from telemetry.
-        create_release = not features.has(
-            "organizations:auto-release-creation", project.organization
-        ) or project.get_option("sentry:enable_auto_release_creation")
+        create_release = should_auto_create_releases(project)
 
         try:
             release = Release.get_or_create(

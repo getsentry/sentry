@@ -13,6 +13,8 @@ from sentry.tasks.summaries.utils import (
     fetch_past_resolved_issue_links,
     org_key_error_issues,
     organization_project_issue_summaries,
+    organization_top_spans,
+    organization_top_spans_timeseries,
     project_event_counts_for_organization,
     project_key_performance_issues,
     project_past_resolved_issues,
@@ -248,6 +250,26 @@ class OrganizationReportContextFactory:
 
             fetch_past_resolved_issue_links(ctx)
 
+    @metrics.wraps("weekly_report.create_context.top_spans")
+    def _append_organization_top_spans(self, ctx: OrganizationReportContext) -> None:
+        with start_span(
+            op="weekly_reports.organization_top_spans",
+            name="weekly_reports.organization_top_spans",
+        ):
+            referrer = Referrer.REPORTS_TOP_SPANS.value
+            try:
+                organization_top_spans(ctx, referrer=referrer)
+            except Exception:
+                sentry_sdk.capture_exception()
+                ctx.top_spans = []
+                ctx.top_spans_projects = {}
+                return
+            try:
+                organization_top_spans_timeseries(ctx, referrer=referrer)
+            except Exception:
+                sentry_sdk.capture_exception()
+                ctx.top_spans_timeseries = {}
+
     def create_context(self) -> OrganizationReportContext:
         ctx = OrganizationReportContext(self.timestamp, self.duration, self.organization)
 
@@ -270,5 +292,7 @@ class OrganizationReportContextFactory:
                 self._hydrate_key_performance_issues(ctx)
                 if features.has("organizations:weekly-report-past-issues", self.organization):
                     self._append_project_past_resolved_issues(ctx)
+                if features.has("organizations:weekly-report-spans-chart", self.organization):
+                    self._append_organization_top_spans(ctx)
 
         return ctx

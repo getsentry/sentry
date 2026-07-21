@@ -358,6 +358,51 @@ class TransactionBalancingCalculationsTest(TestCase):
         assert model_run.call_count == 1
         assert set(result.keys()) == {project_a.id}
 
+    def test_run_transaction_balancing_passes_min_sample_rate_option(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.get_project_sample_rates.return_value = {project.id: 0.5}
+
+        with override_options({"dynamic-sampling.prioritise_transactions.min_sample_rate": 0.002}):
+            with patch(
+                "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
+                side_effect=lambda model_input: ([], model_input.sample_rate),
+            ) as model_run:
+                run_transaction_balancing(
+                    config,
+                    [_project_volume(project.id)],
+                    [_project_transactions(org.id, project.id, [("/a", 1.0)])],
+                )
+
+        assert model_run.call_args.args[-1].min_sample_rate == 0.002
+
+    def test_run_transaction_balancing_floors_dominant_transaction(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.get_project_sample_rates.return_value = {project.id: 0.05}
+
+        project_volume = ProjectVolume(
+            project_id=project.id,
+            total=2_000_000,
+            keep=100_000,
+            drop=1_900_000,
+            num_distinct_transactions=100_000,
+        )
+        project_transactions = _project_transactions(org.id, project.id, [("/big", 1_000_000.0)])
+
+        with override_options({"dynamic-sampling.prioritise_transactions.min_sample_rate": 0.001}):
+            result = run_transaction_balancing(config, [project_volume], [project_transactions])
+
+        named_rates, implicit_rate = result[project.id]
+        (big_rate,) = named_rates
+        # without the floor this rate collapses to 1e-6 (a 1,000,000x extrapolation factor)
+        assert big_rate.new_sample_rate == pytest.approx(0.001)
+        assert implicit_rate == pytest.approx(0.099)
+
     def test_get_cached_rebalanced_transaction_sample_rates(self) -> None:
         org = self.create_organization()
         project_hit = self.create_project(organization=org)
