@@ -42,7 +42,16 @@ const TITLE = t('Inbox');
 const ISSUE_LIMIT = 5;
 const SELECTED_ISSUE_QUERY_PARAM = 'preview';
 
-const SECTIONS = [
+interface InboxSectionConfig {
+  defaultExpanded: boolean;
+  emptyMessage: string;
+  key: string;
+  label: string;
+  progress: ProgressState;
+  query: string;
+}
+
+const SECTIONS: InboxSectionConfig[] = [
   {
     key: 'fix-proposed',
     label: t('Fix Proposed'),
@@ -67,7 +76,7 @@ const SECTIONS = [
     progress: ProgressState.ASSIGNED,
     defaultExpanded: false,
   },
-] as const;
+];
 
 export default function InboxPage() {
   const organization = useOrganization();
@@ -164,7 +173,7 @@ function InboxContent() {
 
 interface InboxSectionProps {
   isReady: boolean;
-  section: (typeof SECTIONS)[number];
+  section: InboxSectionConfig;
   selectedIssueId: string | null;
   selection: ReturnType<typeof usePageFilters>['selection'];
 }
