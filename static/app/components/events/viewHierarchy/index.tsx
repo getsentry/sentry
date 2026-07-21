@@ -77,8 +77,8 @@ export type ViewHierarchyWindow = {
 
 export type ViewHierarchyData = {
   rendering_system: string;
-  windows: ViewHierarchyWindow[];
   positioning?: 'absolute' | 'relative';
+  windows?: ViewHierarchyWindow[];
 };
 
 export type ViewHierarchyNodeField = 'type' | 'name';
@@ -102,11 +102,11 @@ function ViewHierarchy({
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
-  const [selectedNode, setSelectedNode] = useState(viewHierarchy?.windows?.[0]);
+  const [selectedNode, setSelectedNode] = useState(viewHierarchy.windows?.[0]);
   const [userHasSelected, setUserHasSelected] = useState(false);
   const hierarchy = useMemo(() => {
-    return viewHierarchy?.windows ?? [];
-  }, [viewHierarchy?.windows]);
+    return viewHierarchy.windows ?? [];
+  }, [viewHierarchy.windows]);
 
   const renderRow: UseVirtualizedTreeProps<ViewHierarchyWindow>['renderRow'] = (
     r,
