@@ -27,6 +27,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.helpers.group_index.validators import GroupValidator
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupDetailsResponse
+from sentry.api.serializers.models.groupactionlogentry import serialize_first_seen_entry
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
@@ -381,7 +382,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 100)
                 if action_log:
                     # swap action log data in under the activity name
-                    data.update({"activity": serialize(action_log, request.user)})
+                    first_seen_entry = cast(dict[str, Any], serialize_first_seen_entry(group))
+                    data.update(
+                        {"activity": [first_seen_entry, *serialize(action_log, request.user)]}
+                    )
                 else:
                     logger.info(
                         "group_details.groupactionlogentry.not_found", extra={"group_id": group.id}

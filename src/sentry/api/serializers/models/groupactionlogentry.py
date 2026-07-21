@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Sequence, TypedDict
+from typing import TYPE_CHECKING, Any, Sequence, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.activity import _ActivitySentryAppEmbed
@@ -12,12 +12,16 @@ from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatar
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.types.activity import ActivityType
+from sentry.types.group import PriorityLevel
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.action_log.activity_translator import (
     ACTIVITY_TYPE_TO_ARG_TRANSLATIONS,
     ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE,
 )
+
+if TYPE_CHECKING:
+    from sentry.models.group import Group
 
 # GroupActionTypes are serialized with the same `type` string as their
 # equivalent Activity so the frontend can consume both identically
@@ -66,6 +70,25 @@ class GroupActionLogEntrySerializerResponse(TypedDict):
     type: str
     data: dict[str, Any]
     dateCreated: datetime
+
+
+def serialize_first_seen_entry(group: "Group") -> GroupActionLogEntrySerializerResponse:
+    """
+    GALE has no FIRST_SEEN action type, so synthesize the entry the same way
+    ActivityManager.get_activities_for_group does.
+    """
+    initial_priority_value = group.get_event_metadata().get("initial_priority")
+    initial_priority = (
+        PriorityLevel(initial_priority_value).to_str() if initial_priority_value else None
+    )
+    return {
+        "id": "0",
+        "user": None,
+        "sentry_app": None,
+        "type": ActivityType.FIRST_SEEN.name.lower(),
+        "data": {"priority": initial_priority},
+        "dateCreated": group.first_seen,
+    }
 
 
 @register(GroupActionLogEntry)
