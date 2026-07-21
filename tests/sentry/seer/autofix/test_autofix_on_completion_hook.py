@@ -910,7 +910,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
         repo_pr_states: dict[str, RepoPRState] | None = None,
     ) -> SeerRunState:
         state = run_state(blocks=[self._synced_pr_iteration_block(sources, commit_sha=commit_sha)])
-        state.status = status  # type: ignore[assignment]
+        state.status = status
         state.repo_pr_states = (
             repo_pr_states
             if repo_pr_states is not None
