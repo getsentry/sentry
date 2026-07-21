@@ -9,6 +9,7 @@ from sentry.issues.action_log.types import (
     ActionSource,
     GroupActionActor,
     SeerRCAStartedAction,
+    SeerRCAStartReason,
 )
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
@@ -304,6 +305,14 @@ class SeerOperatorTest(TestCase):
             )
             mock_on_autofix_update.assert_not_called()
 
+            # Invalid group_id/run_id
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
+                event_payload={"run_id": "invalid", "group_id": self.group.id},
+                organization_id=self.organization.id,
+            )
+            assert not Activity.objects.filter(group=self.group).exists()
+
             # Invalid event type
             process_autofix_updates(
                 event_type=SentryAppEventType.ISSUE_CREATED,
@@ -576,7 +585,7 @@ class SeerOperatorTest(TestCase):
         self._assert_automatic_start_reason(AutofixReferrer.NIGHT_SHIFT, "night_shift")
 
     def _assert_automatic_start_reason(
-        self, referrer: AutofixReferrer, expected_start_reason: str
+        self, referrer: AutofixReferrer, expected_start_reason: SeerRCAStartReason
     ) -> None:
         self.create_seer_run(
             organization=self.organization,

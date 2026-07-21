@@ -8,7 +8,7 @@ from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
     ActionSource,
     GroupActionActor,
-    SeerActivityStartReason,
+    SeerRCAStartReason,
 )
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -58,7 +58,7 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_ITERATION_COMPLETED: ActivityType.SEER_ITERATION_COMPLETED,
 }
 
-_AUTOMATIC_START_REASONS: dict[str, SeerActivityStartReason] = {
+_AUTOMATIC_START_REASONS: dict[str, SeerRCAStartReason] = {
     AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY.value: "issue_predicted_fixable",
     AutofixReferrer.NIGHT_SHIFT.value: "night_shift",
 }
@@ -580,8 +580,7 @@ def _create_seer_activity(
     event_type: SentryAppEventType,
     event_payload: dict[str, Any],
     *,
-    user_id: int | None = None,
-    start_reason: SeerActivityStartReason | None = None,
+    run_id: int,
 ) -> None:
     activity_type = SEER_EVENT_TO_ACTIVITY_TYPE.get(event_type)
     if not activity_type:
@@ -590,15 +589,25 @@ def _create_seer_activity(
     if not options.get("issues.record-seer-actions-as-activities"):
         return
 
-    run_id = event_payload.get("run_id")
-
-    activity_data: dict[str, Any] = {}
-    if run_id is not None:
-        activity_data["run_id"] = run_id
+    activity_data: dict[str, Any] = {"run_id": run_id}
+    user_id = None
 
     if event_type == SentryAppEventType.SEER_ROOT_CAUSE_STARTED:
-        if start_reason is not None:
-            activity_data["start_reason"] = start_reason
+        # Legacy runs may predate SeerRun mirroring; keep those system-attributed.
+        run_context = (
+            SeerRun.objects.filter(
+                organization_id=group.project.organization_id,
+                seer_run_state_id=run_id,
+            )
+            .values_list("user_id", "referrer")
+            .first()
+        )
+        if run_context is not None:
+            user_id, referrer = run_context
+            if user_id is None and referrer is not None:
+                start_reason = _AUTOMATIC_START_REASONS.get(referrer)
+                if start_reason is not None:
+                    activity_data["start_reason"] = start_reason
     elif event_type == SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
         root_cause = event_payload.get("root_cause")
         if root_cause:
@@ -622,36 +631,15 @@ def _create_seer_activity(
         if iteration_index is not None:
             activity_data["iteration_index"] = iteration_index
 
-    Activity.objects.create_group_activity(
-        group,
-        activity_type,
-        user_id=user_id,
-        data=activity_data if activity_data else None,
-        send_notification=False,
-    )
-
-
-def _get_seer_activity_start_context(
-    *, organization_id: int, run_id: int, event_type: SentryAppEventType
-) -> tuple[int | None, SeerActivityStartReason | None]:
-    if event_type != SentryAppEventType.SEER_ROOT_CAUSE_STARTED:
-        return None, None
-
-    run_context = (
-        SeerRun.objects.filter(
-            organization_id=organization_id,
-            seer_run_state_id=run_id,
+    actor = GroupActionActor.user(user_id) if user_id is not None else SYSTEM_ACTOR
+    with action_context_scope(ActionSource.SEER_EXPLORER, actor):
+        Activity.objects.create_group_activity(
+            group,
+            activity_type,
+            user_id=user_id,
+            data=activity_data,
+            send_notification=False,
         )
-        .values_list("user_id", "referrer")
-        .first()
-    )
-    if run_context is None:
-        return None, None
-    user_id, referrer = run_context
-    if user_id is not None:
-        return user_id, None
-
-    return None, _AUTOMATIC_START_REASONS.get(referrer or "")
 
 
 @instrumented_task(
@@ -684,8 +672,12 @@ def process_autofix_updates(
             }
         )
 
-        if not run_id or not group_id:
+        if run_id is None or group_id is None:
             lifecycle.record_failure(failure_reason="missing_identifiers")
+            return
+
+        if not isinstance(run_id, int) or not isinstance(group_id, int):
+            lifecycle.record_failure(failure_reason="invalid_identifiers")
             return
 
         if event_type not in SEER_EVENT_TO_ACTIVITY_TYPE:
@@ -705,20 +697,12 @@ def process_autofix_updates(
             return
 
         try:
-            user_id, start_reason = _get_seer_activity_start_context(
-                organization_id=organization_id,
+            _create_seer_activity(
+                group,
+                event_type,
+                event_payload,
                 run_id=run_id,
-                event_type=event_type,
             )
-            actor = GroupActionActor.user(user_id) if user_id is not None else SYSTEM_ACTOR
-            with action_context_scope(ActionSource.SEER_EXPLORER, actor):
-                _create_seer_activity(
-                    group,
-                    event_type,
-                    event_payload,
-                    user_id=user_id,
-                    start_reason=start_reason,
-                )
         except Exception:
             logger.exception(
                 "seer.activity_creation_failed",
