@@ -16,6 +16,7 @@ from sentry.identity.oauth2 import (
 )
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.gcp.utils import GCP_MCP_URLS
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
@@ -34,13 +35,6 @@ class GCPOAuth2LoginView(OAuth2LoginView):
             "consent"  # Forces consent screen so refresh token is returned even on re-auth
         )
         return params
-
-
-GCP_MCP_URLS: tuple[str, ...] = (
-    "https://logging.googleapis.com/mcp",
-    "https://monitoring.googleapis.com/mcp",
-    "https://cloudtrace.googleapis.com/mcp",
-)
 
 
 class GCPIdentityProvider(McpIdentityProvider, OAuth2Provider):
