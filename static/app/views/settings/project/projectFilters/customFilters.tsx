@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
@@ -7,7 +8,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {InputGroup} from '@sentry/scraps/input';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -51,6 +52,13 @@ type CustomInboundFilter = {
 
 type PropertyOption = {label: string; value: ConditionType};
 
+// The data type a filter applies to. Mirrors the backend's "primary" condition
+// types: a filter targets exactly one data type, which determines the condition
+// properties available to it.
+type FilterDataType = 'error' | 'metric' | 'log';
+
+type DataTypeOption = {label: string; value: FilterDataType};
+
 // A single editable condition row in the modal. The API stores a list of
 // values per condition, but the UI edits one glob per row, so each row maps to
 // a single-element value list.
@@ -61,59 +69,67 @@ type ConditionFormValue = {
 
 type FilterFormValues = {
   conditions: ConditionFormValue[];
+  dataType: FilterDataType;
   name: string;
 };
 
-// Mirrors the custom data filters available on the legacy inbound filters
-// page (error messages, metric names, log messages, releases). Conditions
-// are glob patterns matched against the selected property.
-const ALL_PROPERTY_OPTIONS: PropertyOption[] = [
-  {value: 'error_message', label: t('Error Message')},
-  {value: 'metric_name', label: t('Metric Name')},
-  {value: 'log_message', label: t('Log Message')},
-  {value: 'release', label: t('Release')},
+const DATA_TYPE_OPTIONS: DataTypeOption[] = [
+  {value: 'error', label: t('Errors')},
+  {value: 'metric', label: t('Metrics')},
+  {value: 'log', label: t('Logs')},
 ];
 
-// Some condition types require the same org ingestion features the legacy data
-// filters UI gates them behind. Offering them without the feature lets the user
-// build a filter the API rejects on save, so mirror that gating here.
-const PROPERTY_FEATURE_FLAGS: Partial<Record<ConditionType, string>> = {
-  log_message: 'ourlogs-ingestion',
-  metric_name: 'tracemetrics-ingestion',
+// Log and metric filters require the same org ingestion features the API
+// validates on save. Offering them without the feature lets the user build a
+// filter the API rejects, so mirror that gating here.
+const DATA_TYPE_FEATURE_FLAGS: Partial<Record<FilterDataType, string>> = {
+  log: 'ourlogs-ingestion',
+  metric: 'tracemetrics-ingestion',
 };
 
-function getAvailablePropertyOptions(organization: Organization): PropertyOption[] {
-  return ALL_PROPERTY_OPTIONS.filter(option => {
-    const requiredFeature = PROPERTY_FEATURE_FLAGS[option.value];
+const PRIMARY_PROPERTY_BY_DATA_TYPE: Record<FilterDataType, ConditionType> = {
+  error: 'error_message',
+  metric: 'metric_name',
+  log: 'log_message',
+};
+
+const DATA_TYPE_BY_PRIMARY_PROPERTY: Partial<Record<ConditionType, FilterDataType>> = {
+  error_message: 'error',
+  metric_name: 'metric',
+  log_message: 'log',
+};
+
+const PROPERTY_LABELS: Record<ConditionType, string> = {
+  error_message: t('Error Message'),
+  metric_name: t('Metric Name'),
+  log_message: t('Log Message'),
+  release: t('Release'),
+};
+
+// Each data type offers its primary property plus `release`, which applies to
+// every data type.
+function getPropertyOptions(dataType: FilterDataType): PropertyOption[] {
+  const properties: ConditionType[] = [
+    PRIMARY_PROPERTY_BY_DATA_TYPE[dataType],
+    'release',
+  ];
+  return properties.map(value => ({value, label: PROPERTY_LABELS[value]}));
+}
+
+function getAvailableDataTypeOptions(organization: Organization): DataTypeOption[] {
+  return DATA_TYPE_OPTIONS.filter(option => {
+    const requiredFeature = DATA_TYPE_FEATURE_FLAGS[option.value];
     return !requiredFeature || organization.features.includes(requiredFeature);
   });
 }
 
-// A filter can only target a single data category, so these properties are
-// mutually exclusive within one filter — you can't mix error, metric, and log
-// conditions. Multiple conditions of the same exclusive property (e.g. two
-// error message globs) are still allowed. `release` is not in this set, so it
-// can be combined with any other property.
-const EXCLUSIVE_PROPERTIES = new Set<ConditionType>([
-  'error_message',
-  'metric_name',
-  'log_message',
-]);
-
-function isExclusiveProperty(property: ConditionType) {
-  return EXCLUSIVE_PROPERTIES.has(property);
-}
-
-function getActiveExclusiveProperty(conditions: ConditionFormValue[]) {
-  return conditions.find(condition => isExclusiveProperty(condition.property))?.property;
-}
-
-function emptyCondition(property: ConditionType = 'error_message'): ConditionFormValue {
+function emptyCondition(property: ConditionType): ConditionFormValue {
   return {property, value: ''};
 }
 
 const filterSchema = z.object({
   name: z.string().trim().min(1, t('Give the filter a name')),
+  dataType: z.enum(['error', 'metric', 'log']),
   conditions: z
     .array(
       z.object({
@@ -125,13 +141,23 @@ const filterSchema = z.object({
 });
 
 // Expand the API's per-condition value lists into one editable row per value.
+// The data type is not stored on the filter; it is implied by the primary
+// condition property, so derive it (release-only filters default to errors).
 function filterToFormValues(filter: CustomInboundFilter): FilterFormValues {
   const conditions = filter.conditions.flatMap(condition =>
     condition.value.map(value => ({property: condition.type, value}))
   );
+  const dataType =
+    conditions
+      .map(condition => DATA_TYPE_BY_PRIMARY_PROPERTY[condition.property])
+      .find(Boolean) ?? 'error';
   return {
     name: filter.name ?? '',
-    conditions: conditions.length > 0 ? conditions : [emptyCondition()],
+    dataType,
+    conditions:
+      conditions.length > 0
+        ? conditions
+        : [emptyCondition(PRIMARY_PROPERTY_BY_DATA_TYPE[dataType])],
   };
 }
 
@@ -157,7 +183,7 @@ function getErrorDetail(error: unknown, fallback: string): string {
 }
 
 function getPropertyLabel(value: string) {
-  return ALL_PROPERTY_OPTIONS.find(option => option.value === value)?.label ?? value;
+  return value in PROPERTY_LABELS ? PROPERTY_LABELS[value as ConditionType] : value;
 }
 
 function getValuePlaceholder(property: ConditionType) {
@@ -175,40 +201,32 @@ function getValuePlaceholder(property: ConditionType) {
   }
 }
 
-// For a given condition, drop any exclusive property already claimed by a
-// different condition, so the dropdown only offers valid categories. Two
-// conditions sharing the same exclusive property is fine, and `release` is
-// never exclusive so it always stays available. The condition's own current
-// property is always kept so the select can display the active value.
-function getConditionPropertyOptions(
-  propertyOptions: PropertyOption[],
-  conditions: ConditionFormValue[],
-  index: number
-) {
-  const currentProperty = conditions[index]?.property;
-  // An existing filter may reference a property whose ingestion feature is now
-  // off, so it's missing from propertyOptions. Keep the stored option available
-  // for this row so the select can still display and retain it.
-  const availableOptions =
-    currentProperty && !propertyOptions.some(option => option.value === currentProperty)
-      ? [
-          ...propertyOptions,
-          ...ALL_PROPERTY_OPTIONS.filter(option => option.value === currentProperty),
-        ]
-      : propertyOptions;
-  return availableOptions.filter(option => {
-    if (option.value === currentProperty || !isExclusiveProperty(option.value)) {
-      return true;
-    }
-    const conflicts = conditions.some(
-      (other, otherIndex) =>
-        otherIndex !== index &&
-        isExclusiveProperty(other.property) &&
-        other.property !== option.value
-    );
-    return !conflicts;
-  });
+// An existing filter may target a data type whose ingestion feature is now
+// off, so it's missing from the available options. Keep the stored option
+// available so the select can still display and retain it.
+function getModalDataTypeOptions(
+  availableOptions: DataTypeOption[],
+  storedDataType: FilterDataType | undefined
+): DataTypeOption[] {
+  if (
+    !storedDataType ||
+    availableOptions.some(option => option.value === storedDataType)
+  ) {
+    return availableOptions;
+  }
+  return DATA_TYPE_OPTIONS.filter(
+    option =>
+      option.value === storedDataType ||
+      availableOptions.some(available => available.value === option.value)
+  );
 }
+
+// Condition values are glob patterns that can get long (full error messages,
+// release ranges), so give the modal more room than the 640px default.
+const filterModalCss = css`
+  max-width: 800px;
+  width: 90vw;
+`;
 
 function ConditionTag({type, value}: {type: ConditionType; value: string}) {
   return (
@@ -226,18 +244,28 @@ function CustomFilterModal({
   Footer,
   closeModal,
   filter,
-  propertyOptions,
+  dataTypeOptions,
   onSave,
 }: ModalRenderProps & {
+  dataTypeOptions: DataTypeOption[];
   onSave: (values: FilterFormValues) => Promise<unknown>;
-  propertyOptions: PropertyOption[];
   filter?: CustomInboundFilter;
 }) {
+  const defaultValues = filter
+    ? filterToFormValues(filter)
+    : {
+        name: '',
+        dataType: 'error' as const,
+        conditions: [emptyCondition('error_message')],
+      };
+  const modalDataTypeOptions = getModalDataTypeOptions(
+    dataTypeOptions,
+    filter ? defaultValues.dataType : undefined
+  );
+
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: filter
-      ? filterToFormValues(filter)
-      : {name: '', conditions: [emptyCondition()]},
+    defaultValues,
     validators: {onDynamic: filterSchema},
     onSubmit: ({value}) =>
       onSave(value)
@@ -254,86 +282,117 @@ function CustomFilterModal({
       </Header>
       <Body>
         <Stack gap="xl">
-          <form.AppField name="name">
-            {field => (
-              <field.Layout.Stack label={t('Name')} required>
-                <field.Input
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  placeholder={t('e.g. Ignore flaky connection errors')}
-                />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
+          <Grid columns="4fr 1fr" gap="md">
+            <form.AppField name="name">
+              {field => (
+                <field.Layout.Stack label={t('Name')} required>
+                  <field.Input
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder={t('e.g. Ignore flaky connection errors')}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
 
-          <form.AppField name="conditions">
-            {conditionsField => {
-              const conditions = conditionsField.state.value;
-              const activeExclusiveProperty = getActiveExclusiveProperty(conditions);
-              return (
-                <Stack gap="sm">
-                  <Flex justify="between" align="center" gap="md">
-                    <Text variant="muted" size="sm">
-                      {t(
-                        'Events must match all conditions (combined with AND) to be filtered. Each condition is a glob pattern matched against the selected field.'
-                      )}
-                    </Text>
-                    <Button
-                      size="sm"
-                      icon={<IconAdd />}
-                      onClick={() =>
-                        conditionsField.pushValue(emptyCondition(activeExclusiveProperty))
-                      }
-                    >
-                      {t('Add Condition')}
-                    </Button>
-                  </Flex>
-                  {conditions.map((condition, index) => (
-                    <Flex key={index} gap="md" align="center">
-                      <Container width="160px">
-                        <form.AppField name={`conditions[${index}].property`}>
-                          {propertyField => (
-                            <propertyField.Select
-                              aria-label={t('Condition property')}
-                              clearable={false}
-                              options={getConditionPropertyOptions(
-                                propertyOptions,
-                                conditions,
-                                index
-                              )}
-                              value={propertyField.state.value}
-                              onChange={value => propertyField.handleChange(value)}
-                            />
+            <form.AppField name="dataType">
+              {dataTypeField => (
+                <dataTypeField.Layout.Stack label={t('Data Type')} required>
+                  <dataTypeField.Select
+                    clearable={false}
+                    options={modalDataTypeOptions}
+                    value={dataTypeField.state.value}
+                    onChange={value => {
+                      dataTypeField.handleChange(value);
+                      // Carry existing rows over to the new data type: primary
+                      // properties are remapped, release rows stay as they are.
+                      form.setFieldValue('conditions', conditions =>
+                        conditions.map(condition =>
+                          condition.property === 'release'
+                            ? condition
+                            : {
+                                ...condition,
+                                property: PRIMARY_PROPERTY_BY_DATA_TYPE[value],
+                              }
+                        )
+                      );
+                    }}
+                  />
+                </dataTypeField.Layout.Stack>
+              )}
+            </form.AppField>
+          </Grid>
+
+          <form.Subscribe selector={state => state.values.dataType}>
+            {dataType => (
+              <form.AppField name="conditions">
+                {conditionsField => {
+                  const conditions = conditionsField.state.value;
+                  return (
+                    <Stack gap="sm">
+                      <Flex justify="between" align="center" gap="md">
+                        <Text variant="muted" size="sm">
+                          {t(
+                            'Events must match all conditions (combined with AND) to be filtered. Each condition is a glob pattern matched against the selected field.'
                           )}
-                        </form.AppField>
-                      </Container>
-                      <Text variant="muted">{t('matches')}</Text>
-                      <Flex flex={1}>
-                        <form.AppField name={`conditions[${index}].value`}>
-                          {valueField => (
-                            <valueField.Input
-                              aria-label={t('Condition value')}
-                              placeholder={getValuePlaceholder(condition.property)}
-                              value={valueField.state.value}
-                              onChange={valueField.handleChange}
-                            />
-                          )}
-                        </form.AppField>
+                        </Text>
+                        <Button
+                          size="sm"
+                          icon={<IconAdd />}
+                          onClick={() =>
+                            conditionsField.pushValue(
+                              emptyCondition(PRIMARY_PROPERTY_BY_DATA_TYPE[dataType])
+                            )
+                          }
+                        >
+                          {t('Add Condition')}
+                        </Button>
                       </Flex>
-                      <Button
-                        size="sm"
-                        variant="transparent"
-                        icon={<IconDelete />}
-                        aria-label={t('Remove condition')}
-                        disabled={conditions.length === 1}
-                        onClick={() => conditionsField.removeValue(index)}
-                      />
-                    </Flex>
-                  ))}
-                </Stack>
-              );
-            }}
-          </form.AppField>
+                      {conditions.map((condition, index) => (
+                        <Grid
+                          key={index}
+                          columns="160px max-content 1fr max-content"
+                          gap="md"
+                          align="center"
+                        >
+                          <form.AppField name={`conditions[${index}].property`}>
+                            {propertyField => (
+                              <propertyField.Select
+                                aria-label={t('Condition property')}
+                                clearable={false}
+                                options={getPropertyOptions(dataType)}
+                                value={propertyField.state.value}
+                                onChange={value => propertyField.handleChange(value)}
+                              />
+                            )}
+                          </form.AppField>
+                          <Text variant="muted">{t('matches')}</Text>
+                          <form.AppField name={`conditions[${index}].value`}>
+                            {valueField => (
+                              <valueField.Input
+                                aria-label={t('Condition value')}
+                                placeholder={getValuePlaceholder(condition.property)}
+                                value={valueField.state.value}
+                                onChange={valueField.handleChange}
+                              />
+                            )}
+                          </form.AppField>
+                          <Button
+                            size="sm"
+                            variant="transparent"
+                            icon={<IconDelete />}
+                            aria-label={t('Remove condition')}
+                            disabled={conditions.length === 1}
+                            onClick={() => conditionsField.removeValue(index)}
+                          />
+                        </Grid>
+                      ))}
+                    </Stack>
+                  );
+                }}
+              </form.AppField>
+            )}
+          </form.Subscribe>
         </Stack>
       </Body>
       <Footer>
@@ -372,7 +431,7 @@ export function CustomFilters({project}: {project: Project}) {
   const [query, setQuery] = useState('');
 
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
-  const propertyOptions = getAvailablePropertyOptions(organization);
+  const dataTypeOptions = getAvailableDataTypeOptions(organization);
 
   const queryOptions = apiOptions.as<CustomInboundFilter[]>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/',
@@ -496,13 +555,16 @@ export function CustomFilters({project}: {project: Project}) {
               : {title: t('You need project write access to add filters.')}
           }
           onClick={() =>
-            openModal(deps => (
-              <CustomFilterModal
-                {...deps}
-                propertyOptions={propertyOptions}
-                onSave={handleCreate}
-              />
-            ))
+            openModal(
+              deps => (
+                <CustomFilterModal
+                  {...deps}
+                  dataTypeOptions={dataTypeOptions}
+                  onSave={handleCreate}
+                />
+              ),
+              {modalCss: filterModalCss}
+            )
           }
         >
           {t('Add Rule')}
@@ -578,14 +640,17 @@ export function CustomFilters({project}: {project: Project}) {
                     aria-label={t('Edit filter')}
                     disabled={!hasWriteAccess}
                     onClick={() =>
-                      openModal(deps => (
-                        <CustomFilterModal
-                          {...deps}
-                          filter={filter}
-                          propertyOptions={propertyOptions}
-                          onSave={values => handleEdit(filter.id, values)}
-                        />
-                      ))
+                      openModal(
+                        deps => (
+                          <CustomFilterModal
+                            {...deps}
+                            filter={filter}
+                            dataTypeOptions={dataTypeOptions}
+                            onSave={values => handleEdit(filter.id, values)}
+                          />
+                        ),
+                        {modalCss: filterModalCss}
+                      )
                     }
                   />
                   <Confirm

@@ -433,6 +433,10 @@ describe('ProjectFilters', () => {
       'Custom Filters',
       'Discarded Issues',
     ]);
+    expect(screen.getByRole('tab', {name: 'Custom Filters'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
     expect(await screen.findByRole('table')).toBeInTheDocument();
     for (const column of [
       'Active',
@@ -446,6 +450,29 @@ describe('ProjectFilters', () => {
     }
     expect(screen.getByText('Ignore flaky connection errors')).toBeInTheDocument();
     expect(screen.getByText('Drop debug log spam')).toBeInTheDocument();
+  });
+
+  it('falls back to the data filters tab for unknown filter type segments', async () => {
+    // Stale link using the pre-rename segment (was renamed to custom-filters)
+    render(<ProjectFilters />, {
+      organization: inboundFiltersV2Org,
+      outletContext: {project},
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/projects/${project.slug}/filters/inbound-filters/`,
+        },
+        route: '/settings/:orgId/projects/:projectId/filters/:filterType/',
+      },
+    });
+
+    expect(await screen.findByRole('tab', {name: 'Data Filters'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('tab', {name: 'Custom Filters'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
   });
 
   it('loads custom filters from the API and filters them by search', async () => {
@@ -616,7 +643,7 @@ describe('ProjectFilters', () => {
     expect(await screen.findByText('Updated name')).toBeInTheDocument();
   });
 
-  it('keeps a gated condition property selectable when editing', async () => {
+  it('keeps a gated data type selectable when editing', async () => {
     renderInboundFilters([
       CustomInboundFilterFixture({
         id: '1',
@@ -628,10 +655,13 @@ describe('ProjectFilters', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Edit filter'}));
     expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
 
-    const propertySelect = screen.getByRole('textbox', {name: 'Condition property'});
-    expect(screen.getByText('Log Message')).toBeInTheDocument();
+    // The data type is derived from the stored log_message condition and stays
+    // selectable even though the org lacks the logs ingestion feature.
+    expect(screen.getByText('Logs')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
+    expect(screen.getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
 
-    await userEvent.click(propertySelect);
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
     expect(screen.getByRole('menuitemradio', {name: 'Log Message'})).toBeInTheDocument();
   });
 
@@ -662,25 +692,20 @@ describe('ProjectFilters', () => {
     await waitFor(() => expect(screen.queryByText('Delete me')).not.toBeInTheDocument());
   });
 
-  it('gates log and metric condition options behind ingestion features', async () => {
+  it('gates log and metric data types behind ingestion features', async () => {
     renderInboundFilters([]);
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Rule'}));
-    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
 
+    expect(screen.getByRole('menuitemradio', {name: 'Errors'})).toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Logs'})).not.toBeInTheDocument();
     expect(
-      screen.getByRole('menuitemradio', {name: 'Error Message'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Release'})).toBeInTheDocument();
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Log Message'})
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Metric Name'})
+      screen.queryByRole('menuitemradio', {name: 'Metrics'})
     ).not.toBeInTheDocument();
   });
 
-  it('offers log and metric options when the ingestion features are enabled', async () => {
+  it('offers log and metric data types when the ingestion features are enabled', async () => {
     MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
       body: [],
@@ -696,13 +721,13 @@ describe('ProjectFilters', () => {
     renderGlobalModal();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Rule'}));
-    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
 
-    expect(screen.getByRole('menuitemradio', {name: 'Log Message'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Metric Name'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Metrics'})).toBeInTheDocument();
   });
 
-  it('drops conflicting category options from other conditions', async () => {
+  it('only offers condition properties for the selected data type', async () => {
     MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
       body: [],
@@ -718,12 +743,9 @@ describe('ProjectFilters', () => {
     renderGlobalModal();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Rule'}));
-    // First condition defaults to Error Message; add a second condition and
-    // open its property dropdown.
-    await userEvent.click(screen.getByRole('button', {name: 'Add Condition'}));
-    await userEvent.click(
-      screen.getAllByRole('textbox', {name: 'Condition property'})[1]!
-    );
+    // Data type defaults to Errors, so even with all ingestion features
+    // enabled the property dropdown only offers error properties.
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
 
     expect(
       screen.getByRole('menuitemradio', {name: 'Error Message'})
@@ -735,6 +757,32 @@ describe('ProjectFilters', () => {
     expect(
       screen.queryByRole('menuitemradio', {name: 'Log Message'})
     ).not.toBeInTheDocument();
+  });
+
+  it('remaps condition properties when the data type changes', async () => {
+    MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      body: [],
+    });
+    render(<ProjectFilters />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: ['inbound-filters-v2', 'ourlogs-ingestion', 'tracemetrics-ingestion'],
+      }),
+      outletContext: {project},
+      initialRouterConfig: inboundFiltersRouterConfig,
+    });
+    renderGlobalModal();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Rule'}));
+    expect(screen.getByText('Error Message')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Metrics'}));
+
+    // The existing condition row is remapped to the new type's primary property
+    expect(screen.getByText('Metric Name')).toBeInTheDocument();
+    expect(screen.queryByText('Error Message')).not.toBeInTheDocument();
   });
 
   it('disables custom filter controls without project:write access', async () => {
