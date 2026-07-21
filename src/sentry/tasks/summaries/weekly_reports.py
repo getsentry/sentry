@@ -913,7 +913,9 @@ def render_template_context(
             project = project_by_id.get(span_project_id)
             span_query = urlencode(
                 {
-                    "query": f'span.name:"{span["name"]}"',
+                    "query": 'span.name:"{}"'.format(
+                        span["name"].replace("\\", "\\\\").replace('"', '\\"')
+                    ),
                     "project": span_project_id,
                     "visualize": json.dumps(
                         {"yAxes": ["p95(span.duration)", "sum(span.duration)"]}
