@@ -129,13 +129,12 @@ class OrganizationAgentTokenTest(APITestCase):
             )
             assert approval.status_code == 200, approval.content
             token = self._mint(sessionId="s1").data["token"]
-
-        write = self.client.put(
-            f"/api/0/organizations/{self.org.slug}/",
-            data={},
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {token}",
-        )
+            write = self.client.put(
+                f"/api/0/organizations/{self.org.slug}/",
+                data={},
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token}",
+            )
         assert write.status_code == 200
 
     def test_token_is_rejected_against_a_different_org(self) -> None:
@@ -146,13 +145,12 @@ class OrganizationAgentTokenTest(APITestCase):
         self.login_as(self.owner)
         with self.feature(FLAG):
             token = self._mint(sessionId="s1").data["token"]
-
-        write = self.client.put(
-            f"/api/0/organizations/{other_org.slug}/",
-            data={},
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {token}",
-        )
+            write = self.client.put(
+                f"/api/0/organizations/{other_org.slug}/",
+                data={},
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token}",
+            )
         assert write.status_code == 403
 
     def test_end_to_end_read_allowed_write_denied(self) -> None:
@@ -162,14 +160,13 @@ class OrganizationAgentTokenTest(APITestCase):
         self.login_as(self.owner)
         with self.feature(FLAG):
             token = self._mint(sessionId="s1").data["token"]
+            details_url = f"/api/0/organizations/{self.org.slug}/"
+            read = self.client.get(details_url, HTTP_AUTHORIZATION=f"Bearer {token}")
+            assert read.status_code == 200
 
-        details_url = f"/api/0/organizations/{self.org.slug}/"
-        read = self.client.get(details_url, HTTP_AUTHORIZATION=f"Bearer {token}")
-        assert read.status_code == 200
-
-        write = self.client.put(
-            details_url, data={}, format="json", HTTP_AUTHORIZATION=f"Bearer {token}"
-        )
+            write = self.client.put(
+                details_url, data={}, format="json", HTTP_AUTHORIZATION=f"Bearer {token}"
+            )
         assert write.status_code == 403
         assert write["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:write"'
         assert not SeerAgentWriteGrant.objects.filter(organization_id=self.org.id).exists()

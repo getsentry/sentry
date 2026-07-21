@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Iterable
 from datetime import datetime, timedelta
 from typing import Any
@@ -46,6 +47,7 @@ class AgentTokenAuthAndGateTest(TestCase):
         session_id: str = "sess-1",
         method: str = "PUT",
         ttl: timedelta | None = None,
+        feature_enabled: bool = True,
     ) -> Request:
         token, _ = agent_token.encode_agent_token(
             user_id=user.id,
@@ -58,7 +60,9 @@ class AgentTokenAuthAndGateTest(TestCase):
         request.session = SessionBase()
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
         drf_request = drf_request_from_request(request)
-        result = AgentTokenAuthentication().authenticate(drf_request)
+        feature = self.feature(FLAG) if feature_enabled else contextlib.nullcontext()
+        with feature:
+            result = AgentTokenAuthentication().authenticate(drf_request)
         assert result is not None
         drf_request.user, drf_request.auth = result
         return drf_request
@@ -95,10 +99,12 @@ class AgentTokenAuthAndGateTest(TestCase):
         assert request.auth.user_id == self.owner.id
         assert request.auth.get_scopes() == ["org:read"]
 
-    def _auth(self, bearer: str) -> tuple[Any, Any] | None:
+    def _auth(self, bearer: str, *, feature_enabled: bool = True) -> tuple[Any, Any] | None:
         request = RequestFactory().get("/api/0/organizations/")
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {bearer}"
-        return AgentTokenAuthentication().authenticate(drf_request_from_request(request))
+        feature = self.feature(FLAG) if feature_enabled else contextlib.nullcontext()
+        with feature:
+            return AgentTokenAuthentication().authenticate(drf_request_from_request(request))
 
     def _typed_token(self, payload: dict[str, Any], *, key: str = SECRET) -> str:
         return jwt.encode(
@@ -185,6 +191,17 @@ class AgentTokenAuthAndGateTest(TestCase):
     def test_expired_token_is_rejected(self) -> None:
         with pytest.raises(AuthenticationFailed):
             self._agent_request(self.owner, ["org:read"], ttl=timedelta(seconds=-1))
+
+    def test_feature_off_rejects_already_issued_token(self) -> None:
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.owner.id,
+            organization_id=self.org.id,
+            scopes=["org:read"],
+            session_id="s1",
+        )
+
+        with pytest.raises(AuthenticationFailed):
+            self._auth(token, feature_enabled=False)
 
     def test_signed_but_malformed_claims_are_rejected(self) -> None:
         # Right key and audience but broken claims -> clean auth failure, not a 500.

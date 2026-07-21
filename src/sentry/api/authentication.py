@@ -25,7 +25,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from sentry_relay.exceptions import UnpackError
 
-from sentry import options
+from sentry import features, options
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
@@ -638,6 +638,20 @@ class AgentTokenAuthentication(StandardAuthentication):
         # The delegating user must still be valid even though they are not the request user.
         user = user_service.get_user(user_id=user_id)
         if user is None or not user.is_active or getattr(user, "is_suspended", False):
+            raise AuthenticationFailed("Invalid agent token")
+
+        org_context = organization_service.get_organization_by_id(
+            id=auth_token.organization_id,
+            user_id=user_id,
+            include_projects=False,
+            include_teams=False,
+        )
+        if org_context is None or not features.has(
+            agent_token.FEATURE_FLAG,
+            org_context.organization,
+            actor=user,
+            skip_experiment_exposure=True,
+        ):
             raise AuthenticationFailed("Invalid agent token")
 
         return self.transform_auth(None, auth_token)
