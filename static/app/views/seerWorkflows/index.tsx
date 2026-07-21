@@ -9,7 +9,7 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -42,6 +42,7 @@ import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {getRelativeExplorerUrl} from 'sentry/views/seerExplorer/utils';
 import {
   CATEGORY_LABELS,
@@ -233,7 +234,7 @@ function SeerWorkflows() {
     <SentryDocumentTitle title={t('Sentry Workflows')} orgSlug={organization.slug}>
       <Stack gap="lg" padding="xl">
         <Stack gap="2xs">
-          <Heading as="h1">{t('Sentry Workflows')}</Heading>
+          <TopBar.Slot name="title">{t('Sentry Workflows')}</TopBar.Slot>
           <Text as="p" variant="muted">
             {t('Historical runs of Sentry workflows for this organization.')}
           </Text>
