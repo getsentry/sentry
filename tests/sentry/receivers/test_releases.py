@@ -307,6 +307,20 @@ class ResolvedInPullRequestTest(TestCase):
             provider=ExternalProviders.GITHUB.value,
             external_name="@newdev",
         )
+        other_user = self.create_user(email="other@example.com")
+        self.create_member(organization=group.organization, user=other_user)
+        other_integration = self.create_integration(
+            organization=group.organization,
+            external_id="github:2",
+            provider="github",
+        )
+        self.create_external_user(
+            user=other_user,
+            organization=group.organization,
+            integration=other_integration,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@newdev",
+        )
         repo = self.create_repo(
             project=group.project,
             provider="integrations:github",

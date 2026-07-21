@@ -60,8 +60,14 @@ outcome_aggregator = OutcomeAggregator()
 
 @metrics.wraps("spans.consumers.process_segments.process_segment")
 def process_segment(
-    unprocessed_spans: list[SpanEvent], skip_produce: bool = False, skip_enrichment: bool = False
+    unprocessed_spans: list[SpanEvent],
+    skip_produce: bool = False,
+    skip_enrichment: bool = False,
+    start_new_transaction: bool = True,
 ) -> list[CompatibleSpan]:
+    if not start_new_transaction:
+        return _process_segment(unprocessed_spans, skip_produce, skip_enrichment)
+
     sample_rate = (
         settings.SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE
         * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING

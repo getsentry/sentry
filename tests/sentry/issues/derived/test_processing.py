@@ -460,7 +460,7 @@ class ProcessGroupLogTest(TestCase):
         # between our load and the UPDATE in _process_batch.
         GroupDerivedData.objects.filter(group_id=group.id).update(pipeline_hash="reset")
 
-        processing._process_batch(processing.PIPELINE, derived, group.id, 1)
+        processing._process_batch(processing.PIPELINE, derived, 1)
 
         # The UPDATE should not have matched because the DB hash changed
         derived.refresh_from_db()
@@ -475,6 +475,34 @@ class ProcessGroupLogTest(TestCase):
         invalidate_group_derived_data(group.id)
         derived = process_group_log(group.id)
         assert derived.pipeline_hash == PIPELINE.pipeline_hash
+
+    def test_generated_at_change_skips_incremental_write(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        derived = process_group_log(group.id)
+        first_cursor = derived.cursor_id
+
+        GroupActionLogEntry.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.SYSTEM,
+            actor_id=0,
+            source=SOURCE,
+            data={},
+        )
+
+        # Simulate a generation promoting between our read and the UPDATE
+        # in _process_batch — generated_at changed.
+        GroupDerivedData.objects.filter(id=derived.id).update(
+            generated_at=datetime.now(timezone.utc)
+        )
+
+        processing._process_batch(processing.PIPELINE, derived, 1)
+
+        derived.refresh_from_db()
+        assert derived.cursor_id == first_cursor
 
 
 # --- Pure Python tests (no DB) ---

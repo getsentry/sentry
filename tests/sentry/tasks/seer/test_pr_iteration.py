@@ -7,10 +7,10 @@ from sentry.seer.autofix.autofix_agent import (
     PrIterationNoPullRequestException,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
-    CheckSuiteAutofixRun,
     CheckSuiteFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
