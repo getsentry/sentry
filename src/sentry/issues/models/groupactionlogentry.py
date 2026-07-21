@@ -23,12 +23,40 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
+# GALE-only action types that have no Activity equivalent. The frontend activity
+# feed only understands Activity-mirrored types, so these are excluded from
+# get_actions_for_group to avoid unknown-activity noise and empty UI rows.
+_ACTIVITY_FEED_EXCLUDED_TYPES = frozenset(
+    t.value
+    for t in (
+        GroupActionType.VIEW,
+        GroupActionType.MERGE_INTO_OTHER,
+        GroupActionType.DELETE,
+        GroupActionType.BOOKMARK,
+        GroupActionType.COMMENT_EDIT,
+        GroupActionType.COMMENT_DELETE,
+        GroupActionType.SUBSCRIBE,
+        GroupActionType.UNSUBSCRIBE,
+        GroupActionType.TRIGGER_AUTOFIX,
+        GroupActionType.CREATE_EXTERNAL_ISSUE,
+        GroupActionType.LINK_EXTERNAL_ISSUE,
+        GroupActionType.UNLINK_EXTERNAL_ISSUE,
+        GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE,
+        GroupActionType.LINK_PLATFORM_EXTERNAL_ISSUE,
+        GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+        GroupActionType.AUTOFIX_PR_CREATED,
+        GroupActionType.ROOT_CAUSE_IDENTIFIED,
+        GroupActionType.AUTOFIX_CODING_COMPLETE,
+        GroupActionType.RECONCILE_STATUS,
+    )
+)
+
+
 class GroupActionLogEntryManager(BaseManager["GroupActionLogEntry"]):
     def get_actions_for_group(self, group: Group, num: int) -> Sequence[GroupActionLogEntry]:
         return list(
             self.filter(group_id=group.id)
-            # XXX: hard code exclude for now - in the future make this an attribute on GroupAction
-            .exclude(type=GroupActionType.VIEW.value)
+            .exclude(type__in=_ACTIVITY_FEED_EXCLUDED_TYPES)
             .order_by("-date_added", "-id")[:num]
         )
 
