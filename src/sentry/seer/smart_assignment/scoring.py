@@ -20,18 +20,16 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-# How far down the ranked candidate list a correct name still earns a hit rank. The
-# agent delivers a short best-first list; a match past this is treated as a miss.
+# Right now the agent only returns 3 ranked candidates; this is the limit we score against.
 HIT_RANK_LIMIT = 3
 
 
 def _get_run(group_id: int) -> SeerAgentRun | None:
-    """The canonical smart-assignment run mirror for a group (latest wins).
+    """The canonical smart-assignment run for a group (latest wins).
 
-    Dedup keeps this to one per group in practice; always picking the latest keeps the
-    prediction and ground-truth writers agreeing on the same row even in the rare case
-    a race dispatched more than one run, and matches the run Seer most recently
-    delivered against.
+    For now there's only one run per issue, but we may enable subsequent runs
+    when the initial prediction is rejected by the user.
+    We pick the latest run so that the prediction and ground-truth writers agree on the same row.
     """
     return (
         SeerAgentRun.objects.filter(group_id=group_id, source=SEER_FEATURE_ID)
@@ -42,11 +40,7 @@ def _get_run(group_id: int) -> SeerAgentRun | None:
 
 
 def record_prediction(run: SeerAgentRun, predicted_assignee_user_ids: list[int | None]) -> None:
-    """Record the delivered ranked picks (best-first, each resolved to a user) on the
-    run mirror, then score if the ground truth already landed. A position we couldn't
-    map to an org user is stored as ``None`` so each candidate keeps its rank; an
-    empty list means the agent abstained. Stored so we don't re-treat the run as
-    undelivered, but never scored on its own -- scoring waits for ground truth."""
+    """Record the predicted assignee user IDs on the run."""
     _apply(run.id, {"predicted_assignee_user_ids": predicted_assignee_user_ids})
 
 
@@ -55,7 +49,7 @@ def record_ground_truth(
     activity_type: ActivityType,
     activity: Activity | None = None,
 ) -> None:
-    """Record who the issue actually belonged to on the run mirror, then score.
+    """Record who the issue actually belonged to, then score the prediction.
 
     No-op if no run was dispatched for the group, or the outcome carries no useful
     signal: a Seer AI-step start or an automatic resolution with no acting user.
@@ -90,10 +84,8 @@ def record_ground_truth(
 
 
 def _apply(run_id: int, updates: dict[str, Any]) -> bool:
-    """Merge `updates` into the run mirror's extras under a row lock and, if that
-    completes the (prediction, ground truth) pair, emit `smart_assignment.scored`
-    once. The lock serializes the prediction and ground-truth writers so neither a
-    lost update nor a double emit is possible. Returns whether the updates were
+    """Record the delivered ranked picks (best-first, each resolved to a user) on the
+    run mirror, then score if the ground truth already landed. Returns whether the updates were
     persisted -- ``False`` when the row is already a terminal snapshot."""
     with transaction.atomic(using=router.db_for_write(SeerAgentRun)):
         run = SeerAgentRun.objects.select_for_update().select_related("run").get(id=run_id)
@@ -104,6 +96,7 @@ def _apply(run_id: int, updates: dict[str, Any]) -> bool:
             # actually scored against, leaving `result`/`hit_rank` inconsistent.
             return False
         extras.update(updates)
+        # Score the prediction against the ground truth if it's already landed.
         result, hit_rank = _score(run.run.organization_id, extras)
         if result is not None:
             extras["result"] = str(result)
@@ -122,23 +115,22 @@ def _apply(run_id: int, updates: dict[str, Any]) -> bool:
 def _score(
     organization_id: int, extras: dict[str, Any]
 ) -> tuple[SmartAssignmentScore | None, int | None]:
-    """Grade the ranked predictions in `extras` against the ground truth, returning the
-    top pick's coarse outcome paired with the 1-based rank at which the actual assignee
-    appears (capped at `HIT_RANK_LIMIT`, None if they aren't among those top picks so a
-    correct-but-not-top name still counts for something). None if the pair isn't
-    complete yet or it's already been scored."""
     if extras.get("result"):
+        # Already scored; do nothing.
         return None, None
     predicted_user_ids = extras.get("predicted_assignee_user_ids") or []
     actual_user_id = extras.get("actual_assignee_user_id")
     actual_team_id = extras.get("actual_assignee_team_id")
     if not predicted_user_ids:
+        # No prediction; do nothing.
         return None, None
     if actual_user_id is None and actual_team_id is None:
+        # No ground truth (yet); do nothing.
         return None, None
 
     hit_rank: int | None = None
     if actual_user_id is not None:
+        # Score the prediction against the ground truth.
         for rank, user_id in enumerate(predicted_user_ids[:HIT_RANK_LIMIT], start=1):
             if user_id == actual_user_id:
                 hit_rank = rank
