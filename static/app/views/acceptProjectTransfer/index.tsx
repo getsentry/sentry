@@ -2,9 +2,10 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Heading} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -13,10 +14,9 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
 type TransferDetails = {
@@ -53,8 +53,6 @@ function AcceptProjectTransferForm({
   transferData,
   regionHost,
 }: TransferFormProps) {
-  const api = useApi({persistInFlight: true});
-
   const options = transferDetails.organizations.map(org => ({
     label: org.slug,
     value: org.slug,
@@ -62,10 +60,11 @@ function AcceptProjectTransferForm({
 
   const {mutateAsync: submitTransfer} = useMutation({
     mutationFn: (payload: {data: unknown; organization: string}) =>
-      api.requestPromise('/accept-transfer/', {
+      fetchMutation({
         method: 'POST',
-        host: regionHost,
+        url: '/accept-transfer/',
         data: payload,
+        options: {host: regionHost},
       }),
     onSuccess: (_data, payload) => {
       const orgSlug = payload.organization;
@@ -86,7 +85,11 @@ function AcceptProjectTransferForm({
           ? error.responseJSON.detail
           : '';
 
-      addErrorMessage(t('Unable to transfer project. %s', errorMsg));
+      addErrorMessage(
+        errorMsg
+          ? t('Unable to transfer project. %s', errorMsg)
+          : t('Unable to transfer project.')
+      );
     },
   });
 
@@ -132,6 +135,7 @@ function AcceptProjectTransfer() {
     isPending,
     isError,
     error,
+    refetch,
   } = useApiQuery<TransferDetails>(
     [getApiUrl('/accept-transfer/'), {query: location.query, host: getRegionHost()}],
     {
@@ -144,18 +148,23 @@ function AcceptProjectTransfer() {
   }
 
   if (isError) {
-    // Check if there is an error message with `transferDetails` endpoint
-    // If so, show as toast and ignore, otherwise log to sentry
-    if (error?.responseJSON && typeof error.responseJSON.detail === 'string') {
-      addErrorMessage(error.responseJSON.detail);
-    }
+    return (
+      <LoadingError
+        message={
+          typeof error?.responseJSON?.detail === 'string'
+            ? error.responseJSON.detail
+            : undefined
+        }
+        onRetry={refetch}
+      />
+    );
   }
 
   return (
     <NarrowLayout>
       <SentryDocumentTitle title={t('Accept Project Transfer')} />
       <Heading as="h1">{t('Approve Transfer Project Request')}</Heading>
-      <p>
+      <Text as="p">
         {tct(
           'Projects must be transferred to a specific [organization]. You can grant specific teams access to the project later under the [projectSettings]. (Note that granting access to at least one team is necessary for the project to appear in all parts of the UI.)',
           {
@@ -163,14 +172,14 @@ function AcceptProjectTransfer() {
             projectSettings: <strong>{t('Project Settings')}</strong>,
           }
         )}
-      </p>
+      </Text>
       {transferDetails && (
-        <p>
+        <Text as="p">
           {tct('Please select which [organization] you want for the project [project].', {
             organization: <strong>{t('Organization')}</strong>,
             project: transferDetails.project.slug,
           })}
-        </p>
+        </Text>
       )}
       {transferDetails && (
         <AcceptProjectTransferForm
