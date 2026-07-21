@@ -56,7 +56,10 @@ class GroupDerivedData(DefaultFieldsModel):
     group = FlexibleForeignKey("sentry.Group", unique=True)
 
     # Timestamp of when the generation that produced this state *started*
-    # processing. Defaults to row creation time.
+    # processing. The start time (not finish time) reflects the log state
+    # the generation observed. Used as a CAS version — incremental writes
+    # check equality, generation promotes require their timestamp to be
+    # newer. Defaults to row creation time.
     generated_at = models.DateTimeField(default=timezone.now, db_default=Now())
 
     cursor_date = models.DateTimeField(default=EPOCH)
