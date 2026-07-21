@@ -11,10 +11,12 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.notification_action.registry import activity_handler_registry
+from sentry.notifications.notifications.activity.assigned import get_assignee_str
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.templates.activity import (
     ACTIVITY_TYPE_TO_SOURCE,
     ActivityNotificationData,
+    AssignedNotificationData,
     SetResolvedInCommitNotificationData,
     SetResolvedInReleaseNotificationData,
 )
@@ -133,6 +135,17 @@ def build_activity_notification_data(
                     query=urlencode({"project": project.id}),
                 )
             return SetResolvedInReleaseNotificationData(**action_data, release_url=release_url)
+
+        case ActivityType.ASSIGNED.value:
+            assignee_label = get_assignee_str(activity=activity, organization=organization)
+            assignee_email = activity.data.get("assigneeEmail")
+            assignee_url = None
+            # TODO(Leander): If a team is assigned, maybe link to the team page?
+            if assignee_email:
+                assignee_url = f"mailto:{assignee_email}"
+            return AssignedNotificationData(
+                **action_data, assignee_label=assignee_label, assignee_url=assignee_url
+            )
         case _:
             return ActivityNotificationData(**action_data)
 

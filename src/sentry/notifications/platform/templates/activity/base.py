@@ -31,6 +31,9 @@ ACTIVITY_TYPE_TO_SOURCE: dict[int, NotificationSource] = {
     ActivityType.SET_ESCALATING.value: NotificationSource.ACTIVITY_SET_ESCALATING,
     ActivityType.SET_IGNORED.value: NotificationSource.ACTIVITY_SET_IGNORED,
     ActivityType.SET_UNRESOLVED.value: NotificationSource.ACTIVITY_SET_UNRESOLVED,
+    ActivityType.NOTE.value: NotificationSource.ACTIVITY_NOTE,
+    ActivityType.ASSIGNED.value: NotificationSource.ACTIVITY_ASSIGNED,
+    ActivityType.UNASSIGNED.value: NotificationSource.ACTIVITY_UNASSIGNED,
 }
 
 EXAMPLE_PROJECT_URL = "https://sentry.io/organizations/acme/issues/?project=123"
@@ -91,6 +94,11 @@ class SetResolvedInCommitNotificationData(ActivityNotificationData):
 
 class SetResolvedInReleaseNotificationData(ActivityNotificationData):
     release_url: str | None = None
+
+
+class AssignedNotificationData(ActivityNotificationData):
+    assignee_label: str
+    assignee_url: str | None = None
 
 
 def build_footer(data: ActivityNotificationData) -> list[NotificationTextBlock]:
