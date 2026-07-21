@@ -1,4 +1,4 @@
-import type {containers} from 'sentry/utils/theme/scraps/tokens/containers';
+import type {size} from 'sentry/utils/theme/scraps/tokens/size';
 
 /**
  * Font size constraint for body typography.
@@ -18,10 +18,10 @@ export type BreakpointSize = SizeRange<'2xs', '2xl'>;
 /**
  * Container query breakpoint size constraint (`@container`). A dedicated scale,
  * separate from the viewport `BreakpointSize`, with `zero` as the always-applied
- * base. Derived from the `containers` token so it can't drift from it.
- * See `theme.containers`.
+ * base. Derived from the generated `size.container` token so it can't drift from it.
+ * See `theme.container`.
  */
-export type ContainerBreakpointSize = keyof typeof containers;
+export type ContainerBreakpointSize = keyof (typeof size)['container'];
 
 /**
  * Spacing size constraint for margin, padding, and gap.

@@ -20,7 +20,7 @@ import type {
 } from 'sentry/utils/theme';
 
 // A responsive prop resolves against two independent axes with their own scales:
-// - the container axis (bare keys like `md`) → `@container`, `theme.containers`
+// - the container axis (bare keys like `md`) → `@container`, `theme.container`
 // - the viewport axis (`screen:`-prefixed keys) → `@media`, `theme.breakpoints`
 // The breakpoint passed to a resolver can come from either scale.
 type ResponsiveBreakpoint = BreakpointSize | ContainerBreakpointSize;
@@ -92,7 +92,7 @@ export function rc<T>(
   };
 
   for (const breakpoint of CONTAINER_ORDER) {
-    emit(breakpoint, breakpoint, '@container', theme.containers[breakpoint]);
+    emit(breakpoint, breakpoint, '@container', theme.container[breakpoint]);
   }
   for (const {key, token} of VIEWPORT_ORDER) {
     emit(key, token, '@media', theme.breakpoints[token]);
@@ -101,7 +101,7 @@ export function rc<T>(
   return declarations.join('');
 }
 
-// The container query scale (bare keys) — resolved against `theme.containers`.
+// The container query scale (bare keys) — resolved against `theme.container`.
 const CONTAINER_ORDER: readonly ContainerBreakpointSize[] = [
   'zero',
   '3xs',
@@ -144,7 +144,7 @@ export type Shorthand<T extends string, N extends 4 | 2> = N extends 4
  * Responsive prop keys come in two flavors, drawn from two independent scales,
  * and may be combined on one prop:
  * - bare keys (`zero`, `md`, ...) resolve against the nearest query container
- *   (`@container`, `theme.containers`). Container queries are the default, so
+ *   (`@container`, `theme.container`). Container queries are the default, so
  *   they take no prefix.
  * - `screen:`-prefixed keys (`screen:md`, ...) resolve against the viewport
  *   (`@media`, `theme.breakpoints`).
@@ -315,7 +315,7 @@ export function useResponsivePropValue<T extends Responsive<any>>(
   // Walk the same mobile-first cascade rc() emits — container axis first, then
   // viewport axis on top — and keep the value of the last rule whose condition is
   // currently satisfied. Bare keys are matched against the nearest container's
-  // breakpoint (`theme.containers` scale), `screen:` keys against the viewport
+  // breakpoint (`theme.container` scale), `screen:` keys against the viewport
   // (`theme.breakpoints` scale). Whichever axis is emitted later wins a tie.
   const containerIndex = CONTAINER_ORDER.indexOf(containerBreakpoint);
   const viewportIndex = VIEWPORT_ORDER.findIndex(e => e.token === viewportBreakpoint);
@@ -450,7 +450,7 @@ const ContainerQueryContext = createContext<ContainerBreakpointSize | null>(null
  * no container ancestor it resolves to `zero` (the base, matching CSS's plain
  * base declaration).
  *
- * The returned key is on the container scale (`theme.containers`: `zero`, `3xs`,
+ * The returned key is on the container scale (`theme.container`: `zero`, `3xs`,
  * …, `5xl`) — distinct from the viewport scale used by `useActiveBreakpoint`.
  *
  * Prefer CSS responsive props (bare breakpoint keys like `{md: …}`) when
@@ -529,12 +529,12 @@ export function ContainerQueryProvider({
       if (bp === undefined) {
         continue;
       }
-      if (inlineSize >= parseInt(theme.containers[bp], 10)) {
+      if (inlineSize >= parseInt(theme.container[bp], 10)) {
         return bp;
       }
     }
     return 'zero';
-  }, [inlineSize, theme.containers]);
+  }, [inlineSize, theme.container]);
 
   return <ContainerQueryContext value={breakpoint}>{children}</ContainerQueryContext>;
 }

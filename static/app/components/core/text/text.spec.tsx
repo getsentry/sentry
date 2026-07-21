@@ -168,7 +168,7 @@ describe('Text', () => {
       // ...and the explicit value overrides it from md up.
       expect(getEmotionRules(element)).toContainEqual(
         expect.stringMatching(
-          new RegExp(`@container \\(min-width: ${theme.containers.md}\\).*display: none`)
+          new RegExp(`@container \\(min-width: ${theme.container.md}\\).*display: none`)
         )
       );
     });
@@ -186,7 +186,7 @@ describe('Text', () => {
       // ...and the explicit value overrides it from md up.
       expect(getEmotionRules(element)).toContainEqual(
         expect.stringMatching(
-          new RegExp(`@container \\(min-width: ${theme.containers.md}\\).*display: none`)
+          new RegExp(`@container \\(min-width: ${theme.container.md}\\).*display: none`)
         )
       );
     });

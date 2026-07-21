@@ -132,12 +132,12 @@ describe('rc', () => {
 
   it('emits @container queries for bare breakpoint keys', () => {
     // Bare keys (no prefix) resolve against the nearest query container, using
-    // the dedicated container scale (`theme.containers`).
+    // the dedicated container scale (`theme.container`).
     const output = rc('flex-direction', {xs: 'column', md: 'row'}, theme);
     assert(output);
     expect(output).toContain('@container');
     expect(output).not.toContain('@media');
-    expect(output).toContain(`@container (min-width: ${theme.containers.md})`);
+    expect(output).toContain(`@container (min-width: ${theme.container.md})`);
   });
 
   it('emits @media queries for screen: breakpoint keys', () => {
@@ -172,7 +172,7 @@ describe('rc', () => {
     assert(output);
     // xs (the base) is a bare declaration, not inside an at-rule.
     expect(output).toContain('flex-direction: column;');
-    expect(output).not.toContain(`(min-width: ${theme.containers.xs})`);
+    expect(output).not.toContain(`(min-width: ${theme.container.xs})`);
   });
 
   it('returns a plain declaration (no at-rule) for non-responsive values', () => {
@@ -204,7 +204,7 @@ describe('getBorder', () => {
     // Present below lg…
     expect(output).toContain(`border-bottom: 1px solid ${theme.tokens.border.primary}`);
     // …and explicitly removed at lg via `none`.
-    expect(output).toContain(`@container (min-width: ${theme.containers.lg})`);
+    expect(output).toContain(`@container (min-width: ${theme.container.lg})`);
     expect(output).toContain('border-bottom: none');
   });
 });
