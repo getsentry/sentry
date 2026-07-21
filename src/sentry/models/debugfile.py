@@ -532,7 +532,7 @@ def _get_dif_objectstore_filename(meta: DifMeta) -> str:
 def create_objectstore_dif_from_id(
     project: Project,
     meta: DifMeta,
-    fileobj: BinaryIO,
+    fileobj: IO[bytes],
     checksum: str,
     file_size: int,
 ) -> tuple[ProjectDebugFile, bool]:
