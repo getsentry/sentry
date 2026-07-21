@@ -4,6 +4,7 @@ import pytest
 from django.template import engines
 
 from sentry.models.organization import Organization
+from sentry.templatetags.sentry_helpers import format_duration_ms
 from sentry.testutils.helpers.features import Feature
 
 
@@ -198,6 +199,4 @@ def test_sanitize_periods_breaks_url_scheme() -> None:
     ),
 )
 def test_format_duration_ms(value: object, expected: str) -> None:
-    from sentry.templatetags.sentry_helpers import format_duration_ms
-
     assert format_duration_ms(value) == expected
