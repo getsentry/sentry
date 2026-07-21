@@ -1,12 +1,15 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.groupactionlogentry import serialize_first_seen_entry
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 
@@ -26,6 +29,16 @@ class GroupActivitiesEndpoint(GroupEndpoint):
         """
         Retrieve all the Activities for a Group
         """
+        if features.has("projects:issue-action-log-write-to-db", group.project, actor=request.user):
+            action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
+            serialized = serialize(action_log, request.user)
+            serialized.append(serialize_first_seen_entry(group))
+            return Response(
+                {
+                    "activity": serialized,
+                }
+            )
+
         activity = Activity.objects.get_activities_for_group(group, num=100)
         return Response(
             {
