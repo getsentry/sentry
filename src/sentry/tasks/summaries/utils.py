@@ -776,7 +776,7 @@ def organization_top_spans(
             continue
         if span_name not in ctx.top_spans_projects:
             if len(ctx.top_spans) >= TOP_SPANS_LIMIT:
-                continue
+                break
             ctx.top_spans_projects[span_name] = int(project_id)
             ctx.top_spans.append(
                 {
