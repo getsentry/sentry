@@ -63,13 +63,6 @@ import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
 const {warn} = Sentry.logger;
 
-const USER_AGENT = typeof navigator === 'undefined' ? '' : navigator.userAgent;
-const CHART_RENDERER =
-  USER_AGENT.includes('Firefox') ||
-  (USER_AGENT.includes('Safari') && !USER_AGENT.includes('Chrome'))
-    ? 'canvas'
-    : 'svg';
-
 export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChartWidgetProps> {
   /**
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
@@ -671,7 +664,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         <BaseChart
           ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
           autoHeightResize
-          renderer={CHART_RENDERER}
+          renderer="canvas"
           series={allSeries}
           grid={{
             // NOTE: Adding a few pixels of left padding prevents ECharts from
