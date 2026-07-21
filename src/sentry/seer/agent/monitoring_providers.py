@@ -12,7 +12,10 @@ from sentry.identity.services.identity import identity_service
 from sentry.integrations.gcp.utils import GCP_MCP_URLS
 from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.organization import Organization
-from sentry.seer.sentry_data_models import MonitoringProviderConnectionData
+from sentry.seer.sentry_data_models import (
+    HeaderAuthConnectionData,
+    MonitoringProviderConnectionData,
+)
 from sentry.seer.utils import encrypt_access_token_for_seer
 from sentry.utils.registry import Registry
 
@@ -125,7 +128,7 @@ def _get_personal_monitoring_connections(
             auth_method = "oauth" if is_oauth_provider else "pat"
             for url in urls:
                 connections.append(
-                    MonitoringProviderConnectionData(
+                    HeaderAuthConnectionData(
                         provider_key=provider_type,
                         url=url,
                         encrypted_auth_headers={"Authorization": encrypted_auth_header},
@@ -143,9 +146,9 @@ def _get_personal_monitoring_connections(
 _SENTRY_ORG_GCP_PROJECT_IDS = ["internal-sentry"]
 
 
-def _get_gcp_connections_for_sentry_org() -> list[MonitoringProviderConnectionData]:
+def _get_gcp_connections_for_sentry_org() -> list[HeaderAuthConnectionData]:
     return [
-        MonitoringProviderConnectionData(
+        HeaderAuthConnectionData(
             provider_key="gcp",
             url=url,
             auth_method="gcp_adc",
