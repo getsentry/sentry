@@ -27,6 +27,9 @@ class GroupActionLogEntryManager(BaseManager["GroupActionLogEntry"]):
         return self.filter(type__in=GroupAction.get_user_visible_types())
 
     def get_actions_for_group(self, group: Group, num: int) -> Sequence[GroupActionLogEntry]:
+        """
+        Fetch user visible GALE rows for a given group
+        """
         return list(
             self.user_visible().filter(group_id=group.id).order_by("-date_added", "-id")[:num]
         )

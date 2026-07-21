@@ -7,7 +7,13 @@ from django.contrib.auth.models import AnonymousUser
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.activity import _ActivitySentryAppEmbed
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
-from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.issues.action_log.types import (
+    ACTION_TYPES_WITH_COMMIT_DATA,
+    COMMIT_ACTION_TYPES,
+    PULL_REQUEST_ACTION_TYPES,
+    GroupActionType,
+    GroupActorType,
+)
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.commit import Commit
 from sentry.models.pullrequest import PullRequest
@@ -21,50 +27,12 @@ from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.action_log.activity_translator import (
-    ACTIVITY_TYPE_TO_ARG_TRANSLATIONS,
-    ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE,
+    GROUP_ACTION_TYPE_TO_ACTIVITY_KEYS,
+    GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE,
 )
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
-
-# GroupActionTypes are serialized with the same `type` string as their
-# equivalent Activity so the frontend can consume both identically
-_GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE = {
-    action_cls.get_type().value: activity_type
-    for activity_type, action_cls in ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE.items()
-}
-
-# GALE payloads are stored with the snake_case GroupAction field names, but the
-# frontend consumes the Activity `data` shape. Reverse the camelCase -> snake_case
-# renames that activity_translator applies when mirroring Activities into
-# GroupActions, keyed by GroupActionType value.
-_GROUP_ACTION_TYPE_TO_ACTIVITY_KEYS = {
-    action_cls.get_type().value: {
-        gale_key: activity_key
-        for activity_key, gale_key in ACTIVITY_TYPE_TO_ARG_TRANSLATIONS[activity_type].items()
-    }
-    for activity_type, action_cls in ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE.items()
-    if activity_type in ACTIVITY_TYPE_TO_ARG_TRANSLATIONS
-}
-
-COMMIT_ACTION_TYPES = {
-    GroupActionType.SET_RESOLVED_IN_COMMIT.value,
-    GroupActionType.REFERENCED_IN_COMMIT.value,
-}
-
-ACTION_TYPES_WITH_COMMIT_DATA = {
-    *COMMIT_ACTION_TYPES,
-    GroupActionType.SET_RESOLVED_IN_RELEASE.value,
-}
-
-PULL_REQUEST_ACTION_TYPES = {
-    GroupActionType.RESOLVED_IN_PULL_REQUEST.value,
-    GroupActionType.PULL_REQUEST_CLOSED.value,
-    GroupActionType.PULL_REQUEST_REOPENED.value,
-    GroupActionType.PULL_REQUEST_MERGED.value,
-    GroupActionType.PULL_REQUEST_UNLINKED.value,
-}
 
 
 class GroupActionLogEntrySerializerResponse(TypedDict):
@@ -208,7 +176,7 @@ class GroupActionLogEntrySerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> GroupActionLogEntrySerializerResponse:
-        activity_type = _GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE.get(obj.type)
+        activity_type = GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE.get(obj.type)
         type_display = (
             ActivityType(activity_type).name.lower()
             if activity_type is not None
@@ -231,7 +199,7 @@ class GroupActionLogEntrySerializer(Serializer):
             data = {"issues": [{"id": str(group_id)} for group_id in counterpart_group_ids]}
         else:
             raw_data = obj.data or {}
-            key_translations = _GROUP_ACTION_TYPE_TO_ACTIVITY_KEYS.get(obj.type)
+            key_translations = GROUP_ACTION_TYPE_TO_ACTIVITY_KEYS.get(obj.type)
             if key_translations:
                 data = {key_translations.get(key, key): value for key, value in raw_data.items()}
             else:
