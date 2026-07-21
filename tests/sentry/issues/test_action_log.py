@@ -160,6 +160,11 @@ class TestResolveActionActor(TestCase):
         request = self._request(auth=auth, user=self.user)
         assert resolve_action_actor(request) == GroupActionActor.user(self.user.id)
 
+    def test_agent_token(self) -> None:
+        auth = AuthenticatedToken(kind="agent_token", user_id=self.user.id)
+        request = self._request(auth=auth)
+        assert resolve_action_actor(request) == GroupActionActor.user(self.user.id)
+
     def test_org_auth_token(self) -> None:
         auth = AuthenticatedToken(kind="org_auth_token", organization_id=self.organization.id)
         request = self._request(auth=auth)
