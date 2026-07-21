@@ -1,9 +1,5 @@
 import enum
 
-# Legacy Seer agent capability-token prefix. New tokens are raw JWTs identified by their
-# protected ``typ`` header; keep accepting this prefix for already-issued five-minute tokens.
-SENTRY_AGENT_TOKEN_PREFIX = "sntryag_"
-
 
 class AuthTokenType(enum.StrEnum):
     """

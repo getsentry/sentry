@@ -21,7 +21,6 @@ from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
-from sentry.types.token import SENTRY_AGENT_TOKEN_PREFIX
 from sentry.users.models.user import User
 from sentry.utils import jwt
 
@@ -121,7 +120,7 @@ class AgentTokenAuthAndGateTest(TestCase):
             session_id="s1",
         )
 
-        assert not token.startswith(SENTRY_AGENT_TOKEN_PREFIX)
+        assert token.count(".") == 2
         assert jwt.peek_header(token)["typ"] == agent_token.AGENT_TOKEN_TYPE
 
     def test_non_agent_bearer_is_deferred(self) -> None:
@@ -146,25 +145,6 @@ class AgentTokenAuthAndGateTest(TestCase):
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
 
         assert UserAuthTokenAuthentication().authenticate(drf_request_from_request(request)) is None
-
-    def test_legacy_prefixed_token_still_authenticates(self) -> None:
-        now = timezone.now()
-        token = SENTRY_AGENT_TOKEN_PREFIX + jwt.encode(
-            {
-                "aud": agent_token.AGENT_TOKEN_AUDIENCE,
-                "sub": str(self.owner.id),
-                "org": self.org.id,
-                "scopes": ["org:read"],
-                "sid": "legacy",
-                "iat": int(now.timestamp()),
-                "exp": int((now + timedelta(minutes=5)).timestamp()),
-            },
-            SECRET,
-        )
-
-        result = self._auth(token)
-        assert result is not None
-        assert result[1].kind == agent_token.AGENT_TOKEN_KIND
 
     def test_wrong_audience_is_rejected(self) -> None:
         token = self._typed_token({"aud": "something-else", "sub": "1", "org": 1, "scopes": []})

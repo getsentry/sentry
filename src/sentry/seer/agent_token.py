@@ -21,7 +21,6 @@ from sentry.seer.models.agent_write_grant import (
     DEFAULT_EXPIRATION,
     SeerAgentWriteGrant,
 )
-from sentry.types.token import SENTRY_AGENT_TOKEN_PREFIX
 from sentry.utils import jwt
 
 FEATURE_FLAG = "organizations:seer-agent-token-flow"
@@ -126,8 +125,6 @@ def is_agent_token_string(token_str: str) -> bool:
     The header is only a routing hint here. ``decode_agent_token`` still verifies the signature,
     audience, expiry, algorithm, and protected ``typ`` before the credential is trusted.
     """
-    if token_str.startswith(SENTRY_AGENT_TOKEN_PREFIX):
-        return True
     if token_str.count(".") != 2:
         return False
     try:
@@ -176,12 +173,10 @@ def _validate_claims(claims: dict[str, Any]) -> AgentTokenClaims:
 def decode_agent_token(token_str: str) -> AgentTokenClaims:
     """Verify signature, ``exp`` and ``aud``; return the claims. Raises a pyjwt error on any
     invalid token."""
-    is_legacy = token_str.startswith(SENTRY_AGENT_TOKEN_PREFIX)
-    encoded_token = token_str.removeprefix(SENTRY_AGENT_TOKEN_PREFIX) if is_legacy else token_str
-    if not is_legacy and not is_agent_token_string(encoded_token):
+    if not is_agent_token_string(token_str):
         raise jwt.DecodeError("not an agent token")
     claims = jwt.decode(
-        encoded_token,
+        token_str,
         _signing_key(),
         audience=AGENT_TOKEN_AUDIENCE,
         algorithms=["HS256"],

@@ -13,9 +13,9 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
-from sentry.types.token import SENTRY_AGENT_TOKEN_PREFIX
 from sentry.users.models.userip import UserIP
 from sentry.users.services.user.service import user_service
+from sentry.utils import jwt
 from sentry.utils.auth import login
 
 
@@ -136,7 +136,12 @@ class AuthenticationMiddlewareTestCase(TestCase):
 
     def test_process_request_invalid_agent_token(self) -> None:
         request = Request(self.make_request(method="GET", path="/api/0/organizations/"))
-        request.META["HTTP_AUTHORIZATION"] = f"Bearer {SENTRY_AGENT_TOKEN_PREFIX}garbage"
+        invalid_token = jwt.encode(
+            {"aud": agent_token.AGENT_TOKEN_AUDIENCE},
+            "wrong-secret",
+            headers={"typ": agent_token.AGENT_TOKEN_TYPE},
+        )
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {invalid_token}"
         with (
             override_settings(SEER_API_SHARED_SECRET="test-secret"),
             self.feature(agent_token.FEATURE_FLAG),
