@@ -9,15 +9,13 @@ import {usePress} from '@react-aria/interactions';
 import {useDisclosureState, type DisclosureState} from '@react-stately/disclosure';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, type StackProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
 
 interface DisclosureProps
-  extends
-    Omit<AriaDisclosureProps, 'isDisabled' | 'isExpanded'>,
-    React.HTMLAttributes<HTMLDivElement> {
+  extends Omit<AriaDisclosureProps, 'isDisabled' | 'isExpanded'>, Omit<StackProps, 'as'> {
   children: NonNullable<React.ReactNode>;
   as?: 'section' | 'div';
   disabled?: boolean;
