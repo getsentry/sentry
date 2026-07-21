@@ -2,9 +2,11 @@
 
 A review request from Seer must always mean "CI is green, ready to judge" so
 that its requests stay trustworthy. We therefore only request a review after
-every check run on the PR's current head has completed without failures, and
-we request the user who triggered the run — the person most invested in the
-fix landing.
+every check run on the PR's current head has completed without failures.
+
+We ask the best reviewer candidate (see ``reviewer_candidates``) — today
+the user who triggered the run, the person most invested in the fix
+landing.
 """
 
 from __future__ import annotations
@@ -30,10 +32,13 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     resolve_check_suite_repositories,
     sweep_check_runs,
 )
+from sentry.seer.autofix.pr_iteration.reviewer_candidates import (
+    ReviewerCandidate,
+    collect_reviewer_candidates,
+    record_reviewer_candidates_marker,
+)
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
 from sentry.seer.models.run import SeerRun
-from sentry.seer.utils import get_github_username_for_user
-from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -49,6 +54,10 @@ GREEN_CONCLUSIONS = ("success", "neutral", "skipped")
 # head_sha, and reviewers so double-fires never re-ping a human and later
 # re-request logic can compare heads.
 REVIEW_REQUESTS_EXTRA = "review_requests"
+
+# How many candidates to try when a request fails (e.g. the provider rejects
+# a login without repo access) before giving up until the next green event.
+MAX_REQUEST_ATTEMPTS = 3
 
 
 def _skip(reason: str, log_extra: dict[str, Any]) -> None:
@@ -154,10 +163,6 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
         # Legacy runs predating SeerRun mirroring have no row to hold the marker.
         _skip("no_seer_run", log_extra)
         return
-    if seer_run.user_id is None:
-        # System runs (e.g. Night Shift) have no triggering user to ask.
-        _skip("no_triggering_user", log_extra)
-        return
     if _review_request_marker(seer_run, head_match.repo_name):
         _skip("already_requested", log_extra)
         return
@@ -167,19 +172,6 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
     if pr_number is None:
         _skip("no_pr_number", log_extra)
         return
-
-    user = user_service.get_user(user_id=seer_run.user_id)
-    if user is None:
-        _skip("user_not_found", log_extra)
-        return
-    github_login = get_github_username_for_user(user, organization.id, referrer="pr_review_request")
-    if not github_login:
-        _skip("no_github_login", log_extra)
-        return
-    # A list so future candidate selection (e.g. night-shift routing via code
-    # ownership or blame) can request several users; today it's the triggering
-    # user alone.
-    scm_users = [github_login]
 
     # Importing the SCM factory while the check-suite listener module is
     # initialized pulls in integration handlers before options init.
@@ -224,6 +216,23 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
         if isinstance(reviewer, dict) and reviewer.get("login")
     }
 
+    # Computed only now — lazily at decision time — because most green events
+    # return before this point and the sources go stale.
+    pr_author = (raw_pr.get("user") or {}).get("login")
+    candidates = collect_reviewer_candidates(
+        organization=organization,
+        seer_run=seer_run,
+        exclude_logins={pr_author} if pr_author else (),
+        log_extra=log_extra,
+    )
+    metrics.incr(
+        "autofix.pr_iteration.reviewer_candidates.computed",
+        tags={"top_source": candidates[0].source if candidates else "none"},
+    )
+    if not candidates:
+        _skip("no_candidates", log_extra)
+        return
+
     # A suite completes once per app/workflow, so several green events can race
     # for the same head; the lock plus a marker re-check makes sure only one of
     # them pings the human.
@@ -232,6 +241,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
         duration=30,
         name="autofix_pr_review_request",
     )
+    requested_candidate: ReviewerCandidate | None = None
     try:
         with lock.acquire():
             seer_run.refresh_from_db()
@@ -239,14 +249,21 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
                 _skip("already_requested", log_extra)
                 return
 
-            # Drop anyone already on the hook — e.g. a CODEOWNERS auto-request.
-            scm_users = [
-                scm_user for scm_user in scm_users if scm_user.lower() not in requested_logins
-            ]
-            if not scm_users:
-                # Record the existing request as the marker so later green
-                # events short-circuit on the marker pre-check instead of
-                # re-fetching check runs and the PR from the provider.
+            # Persist the ranked list with provenance: fallbacks for later
+            # re-request, and the data to measure which source's reviewers
+            # actually respond.
+            record_reviewer_candidates_marker(
+                seer_run,
+                head_match.repo_name,
+                head_sha=head_match.head_sha,
+                candidates=candidates,
+            )
+
+            if any(c.login.lower() in requested_logins for c in candidates):
+                # Someone we would pick is already on the hook — e.g. a
+                # CODEOWNERS auto-request. Record it so later green events
+                # short-circuit on the marker pre-check, and don't rebuild the
+                # bystander effect by adding a second person.
                 _record_review_request_marker(
                     seer_run,
                     head_match.repo_name,
@@ -257,25 +274,37 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
                 _skip("already_a_reviewer", log_extra)
                 return
 
-            try:
-                scm_actions.request_review(scm, str(pr_number), scm_users)
-            except Exception:
+            for candidate in candidates[:MAX_REQUEST_ATTEMPTS]:
+                try:
+                    scm_actions.request_review(scm, str(pr_number), [candidate.login])
+                    requested_candidate = candidate
+                    break
+                except Exception:
+                    # E.g. the login has no access to this repo; a
+                    # lower-ranked candidate may still be requestable.
+                    _failed(
+                        "request_review_failed",
+                        {**log_extra, "pr_number": pr_number, "source": candidate.source},
+                    )
+            if requested_candidate is None:
                 # Leave the marker unset so the next green event can retry.
-                _failed("request_review_failed", {**log_extra, "pr_number": pr_number})
                 return
 
             _record_review_request_marker(
                 seer_run,
                 head_match.repo_name,
                 head_sha=head_match.head_sha,
-                reviewers=scm_users,
+                reviewers=[requested_candidate.login],
             )
     except UnableToAcquireLock:
         _skip("locked", log_extra)
         return
 
-    metrics.incr("autofix.pr_iteration.review_request.requested")
+    metrics.incr(
+        "autofix.pr_iteration.review_request.requested",
+        tags={"source": requested_candidate.source},
+    )
     logger.info(
         "autofix.pr_iteration.review_request.requested",
-        extra={**log_extra, "pr_number": pr_number},
+        extra={**log_extra, "pr_number": pr_number, "reviewers": [requested_candidate.login]},
     )
