@@ -41,7 +41,7 @@ function ReleaseOverflow({releases}: {releases: BaseRelease[]}) {
         </Stack>
       }
     >
-      <Text as="span" size="sm" variant="muted">
+      <Text as="span" density="comfortable" variant="muted">
         {tn('%s other', '%s others', count)}
       </Text>
     </Tooltip>

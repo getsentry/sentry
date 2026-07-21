@@ -30,14 +30,14 @@ class BackfillGroupActionLogForGroupTest(TestCase):
         self.now = timezone.now()
 
     def test_backfills_activities_for_group(self) -> None:
-        self.create_group_activity(
+        resolved_activity = self.create_group_activity(
             group=self.group,
             type=ActivityType.SET_RESOLVED.value,
             data={},
             user_id=self.user.id,
             datetime=self.now - timedelta(minutes=2),
         )
-        self.create_group_activity(
+        assigned_activity = self.create_group_activity(
             group=self.group,
             type=ActivityType.ASSIGNED.value,
             data={"assignee": str(self.user.id), "assigneeType": "user"},
@@ -50,7 +50,11 @@ class BackfillGroupActionLogForGroupTest(TestCase):
         entries = GroupActionLogEntry.objects.filter(group_id=self.group.id).order_by("date_added")
         assert entries.count() == 2
         assert entries[0].type == GroupActionType.RESOLVE.value
+        assert entries[0].date_added == resolved_activity.datetime
+        assert entries[0].date_updated > entries[0].date_added
         assert entries[1].type == GroupActionType.ASSIGN.value
+        assert entries[1].date_added == assigned_activity.datetime
+        assert entries[1].date_updated > entries[1].date_added
 
     def test_sets_actor_from_user_id(self) -> None:
         self.create_group_activity(
@@ -454,3 +458,10 @@ class BackfillGroupActionLogForProjectTest(TestCase):
             )
 
         mock_reset.assert_not_called()
+
+    @patch("sentry.issues.derived.tasks.process_project_derived_data.delay")
+    def test_triggers_derived_data_on_completion(self, mock_derived: Any) -> None:
+        with self._options():
+            backfill_group_action_log_for_project(self.project.id)
+
+        mock_derived.assert_called_once_with(project_id=self.project.id)

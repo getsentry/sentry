@@ -862,9 +862,11 @@ class ExecuteTimeseriesQueryErrorResponse(BaseModel):
 class MonitoringProviderConnectionData(BaseModel):
     provider_key: str
     url: str
-    encrypted_access_token: str
-    identity_id: int
+    encrypted_auth_headers: dict[str, str] | None = None
+    identity_id: int | None = None
     auth_method: str
+    refreshable: bool = True
+    gcp_project_ids: list[str] | None = None
 
     def __getitem__(self, key: str) -> Any:
         return self.dict()[key]
@@ -872,8 +874,8 @@ class MonitoringProviderConnectionData(BaseModel):
 
 class MonitoringProviderConnectionsResponse(BaseModel):
     """`get_monitoring_provider_connections` success: the caller's connected
-    monitoring provider identities, each carrying a freshly-encrypted access
-    token."""
+    monitoring provider identities, each carrying freshly-encrypted auth
+    headers."""
 
     connections: list[MonitoringProviderConnectionData]
 
@@ -882,11 +884,7 @@ class MonitoringProviderConnectionsResponse(BaseModel):
 
 
 class RefreshMonitoringProviderTokenSuccessResponse(BaseModel):
-    """`refresh_monitoring_provider_token` success: the freshly-encrypted access
-    token plus the Unix-second expiry the OAuth2 base helper stamps onto
-    `identity.data["expires"]` (`int(time()) + int(payload["expires_in"])`)."""
-
-    encrypted_access_token: str
+    encrypted_auth_headers: dict[str, str]
     expires: int | None
 
     def __getitem__(self, key: str) -> Any:

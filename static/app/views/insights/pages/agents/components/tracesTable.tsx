@@ -1,7 +1,6 @@
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
-import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -14,6 +13,16 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
+import {modifyFilterValue} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
+import {
+  escapeTagValueForSearch,
+  getFilterValueType,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {
+  getInitialInputValue,
+  getSelectedValuesFromText,
+  prepareInputValueForSaving,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {
   COL_WIDTH_UNDEFINED,
   GridEditable,
@@ -25,11 +34,24 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {FieldKind} from 'sentry/utils/fields';
 import {isOverflown} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {WidgetType, type DashboardFilters} from 'sentry/views/dashboards/types';
-import {applyDashboardFilters} from 'sentry/views/dashboards/utils';
+import {
+  getFieldDefinitionForDataset,
+  getFilterToken,
+} from 'sentry/views/dashboards/globalFilter/utils';
+import {
+  WidgetType,
+  type DashboardFilters,
+  type GlobalFilter,
+} from 'sentry/views/dashboards/types';
+import {
+  applyDashboardFilters,
+  getDashboardFiltersFromURL,
+} from 'sentry/views/dashboards/utils';
 import {FRAMELESS_STYLES} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
@@ -54,6 +76,7 @@ import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
+import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
@@ -438,13 +461,113 @@ const BodyCell = memo(function BodyCell({
 function AgentTags({agents}: {agents: string[]}) {
   const [showAll, setShowAll] = useState(false);
   const location = useLocation();
-  const [agentFilters] = useQueryState(
-    'agent',
-    parseAsArrayOf(parseAsString).withDefault([])
+  const navigate = useNavigate();
+  const parsedGlobalFilters = useMemo(
+    () => getDashboardFiltersFromURL(location)?.globalFilter ?? [],
+    [location]
   );
+
   const [showToggle, setShowToggle] = useState(false);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const agentGlobalFilter = useMemo(
+    () =>
+      parsedGlobalFilters.find(
+        filter =>
+          filter.dataset === WidgetType.SPANS &&
+          filter.tag.key === SpanFields.GEN_AI_AGENT_NAME
+      ),
+    [parsedGlobalFilters]
+  );
+
+  const agentFilterValues = useMemo(
+    // this logic is borrowed from the global filter selector
+    // to account for array filter values
+    () => {
+      if (!agentGlobalFilter) {
+        return [];
+      }
+      const fieldDefinition = getFieldDefinitionForDataset(
+        agentGlobalFilter.tag,
+        agentGlobalFilter.dataset
+      );
+      const filterToken = getFilterToken(agentGlobalFilter, fieldDefinition);
+      if (!filterToken) {
+        return [];
+      }
+      const filterValueString = agentGlobalFilter.value
+        ? getInitialInputValue(filterToken, true)
+        : '';
+      const filterValueItems = getSelectedValuesFromText(filterValueString);
+      return filterValueItems.map(item => item.value);
+    },
+    [agentGlobalFilter]
+  );
+
+  // this logic is borrowed from the global filter selector
+  // to correctly build array filter values and escape characters
+  const buildGlobalFilterValue = (filter: GlobalFilter, newValues: string[]): string => {
+    if (newValues.length === 0) {
+      return '';
+    }
+    const fieldDefinition = getFieldDefinitionForDataset(filter.tag, filter.dataset);
+    const filterToken = getFilterToken(filter, fieldDefinition);
+    if (!filterToken) {
+      return '';
+    }
+    const cleanedValue = prepareInputValueForSaving(
+      getFilterValueType(filterToken, fieldDefinition),
+      newValues.map(v => escapeTagValueForSearch(v, {allowArrayValue: false})).join(',')
+    );
+    return modifyFilterValue(filterToken.text, filterToken, cleanedValue);
+  };
+
+  const handleAgentClick = (agent: string) => {
+    const isAgentInUrl = agentFilterValues.includes(agent);
+    let newFilters: GlobalFilter[];
+
+    // if agent global filter exists, update the filter value
+    // to either add or remove the selected agent from the filter
+    if (agentGlobalFilter) {
+      const newValues = isAgentInUrl
+        ? agentFilterValues.filter(v => v !== agent)
+        : [...agentFilterValues, agent];
+
+      newFilters = parsedGlobalFilters.map(filter => {
+        if (
+          filter.dataset === WidgetType.SPANS &&
+          filter.tag.key === SpanFields.GEN_AI_AGENT_NAME
+        ) {
+          return {...filter, value: buildGlobalFilterValue(filter, newValues)};
+        }
+        return filter;
+      });
+    } else {
+      const newFilter: GlobalFilter = {
+        dataset: WidgetType.SPANS,
+        tag: {
+          key: SpanFields.GEN_AI_AGENT_NAME,
+          name: SpanFields.GEN_AI_AGENT_NAME,
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      };
+      newFilters = [
+        ...parsedGlobalFilters,
+        {...newFilter, value: buildGlobalFilterValue(newFilter, [agent])},
+      ];
+    }
+
+    navigate({
+      ...location,
+      query: {
+        ...location.query,
+        globalFilter: newFilters.map(filter => JSON.stringify(filter)),
+        [TableUrlParams.CURSOR]: null,
+      },
+    });
+  };
 
   const handleShowAll = () => {
     setShowAll(!showAll);
@@ -491,7 +614,7 @@ function AgentTags({agents}: {agents: string[]}) {
       onMouseLeave={() => setShowToggle(false)}
     >
       {agents.map(agent => {
-        const isAgentInUrl = agentFilters.includes(agent);
+        const isAgentInUrl = agentFilterValues.includes(agent);
         return (
           <Tooltip
             key={agent}
@@ -499,22 +622,9 @@ function AgentTags({agents}: {agents: string[]}) {
             maxWidth={500}
             skipWrapper
           >
-            <Link
-              to={{
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  agent: isAgentInUrl
-                    ? agentFilters.filter(urlAgent => urlAgent !== agent)
-                    : [...agentFilters, agent],
-                  [TableUrlParams.CURSOR]: null,
-                },
-              }}
-            >
-              <Tag key={agent} variant="muted">
-                {agent}
-              </Tag>
-            </Link>
+            <Tag key={agent} variant="muted" onClick={() => handleAgentClick(agent)}>
+              {agent}
+            </Tag>
           </Tooltip>
         );
       })}

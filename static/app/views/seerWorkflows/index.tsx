@@ -762,8 +762,8 @@ function IssueRow({
             </Link>
           </Container>
           <Stack gap="xs" align="end" flexShrink={0}>
-            {issue.pullRequests.length > 0 ? (
-              issue.pullRequests.map(pullRequest => (
+            {(issue.pullRequests ?? []).length > 0 ? (
+              (issue.pullRequests ?? []).map(pullRequest => (
                 <IssuePullRequestChip
                   key={`${pullRequest.repository.id}:${pullRequest.id}`}
                   pullRequest={pullRequest}
@@ -792,7 +792,11 @@ const ACTION_TAG_VARIANT: Record<string, TagVariant> = {
 };
 
 function IssueStatusTag({issue}: {issue: SeerNightShiftRunIssue}) {
-  const label = getActionLabel(issue.action);
+  const actionLabel = getActionLabel(issue.action);
+  const label =
+    issue.action === 'skip' && issue.skipReason
+      ? `${actionLabel}: ${issue.skipReason.replaceAll('_', ' ')}`
+      : actionLabel;
   const variant = ACTION_TAG_VARIANT[issue.action] ?? 'muted';
   if (!issue.seerRunId) {
     return <Tag variant={variant}>{label}</Tag>;

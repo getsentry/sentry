@@ -1,7 +1,7 @@
 from typing import Any
 from unittest.mock import patch
 
-from sentry.pr_metrics.tasks import forward_pr_to_seer_task
+from sentry.pr_metrics.tasks import forward_pr_to_seer_task, reap_stuck_judge_verdicts_task
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -107,3 +107,11 @@ class CleanupPrActivityTaskTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pull_request).exists()
         assert PullRequestActivity.objects.filter(pull_request=other_pr).exists()
+
+
+@cell_silo_test
+class ReapStuckJudgeVerdictsTaskTest(TestCase):
+    @patch("sentry.pr_metrics.tasks.reap_stuck_judge_verdicts")
+    def test_delegates_to_reaper(self, mock_reap: Any) -> None:
+        reap_stuck_judge_verdicts_task()
+        mock_reap.assert_called_once_with()

@@ -74,8 +74,8 @@ class OrganizationMemberResponse(TypedDict):
     id: str
     email: str
     name: str
-    # User may be optional b/c invites don't have users yet
-    user: NotRequired[UserSerializerResponse]
+    # Null for invited members (no account yet) and unresolvable users.
+    user: UserSerializerResponse | None
     orgRole: str
     pending: bool
     expired: bool

@@ -5,8 +5,9 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
@@ -24,7 +25,11 @@ const analyticsView = 'new_integration_modal';
 function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRenderProps) {
   const theme = useTheme();
   const organization = useOrganization();
+  const hasCreationTemplates = organization.features.includes(
+    'sentry-apps-creation-templates'
+  );
   const [option, selectOption] = useState('internal');
+  const baseUrl = `/settings/${organization.slug}/developer-settings/`;
   const choices = [
     [
       'internal',
@@ -99,43 +104,150 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
             )}
           </Alert>
         </Alert.Container>
-        <StyledRadioGroup
-          choices={choices}
-          label={t('Avatar Type')}
-          onChange={value => selectOption(value)}
-          value={option}
-        />
+        {hasCreationTemplates ? (
+          <Stack gap="xl">
+            <Stack gap="sm">
+              <Text bold>{t('Start from scratch')}</Text>
+              <Stack border="primary" radius="md">
+                <ChoiceRow
+                  title={t('Internal Integration')}
+                  description={tct(
+                    'Internal integrations are meant for custom integrations unique to your organization. See more info on [docsLink].',
+                    {
+                      docsLink: (
+                        <ExternalLink
+                          href={platformEventLinkMap[PlatformEvents.INTERNAL_DOCS]}
+                          onClick={() => {
+                            trackIntegrationAnalytics(PlatformEvents.INTERNAL_DOCS, {
+                              organization,
+                              view: analyticsView,
+                            });
+                          }}
+                        >
+                          {t('Internal Integrations')}
+                        </ExternalLink>
+                      ),
+                    }
+                  )}
+                  action={
+                    <LinkButton
+                      variant="secondary"
+                      size="sm"
+                      to={`${baseUrl}new-internal/`}
+                      onClick={() => {
+                        trackIntegrationAnalytics(PlatformEvents.CHOSE_INTERNAL, {
+                          organization,
+                          view: analyticsView,
+                        });
+                        closeModal();
+                      }}
+                    >
+                      {t('Get started')}
+                    </LinkButton>
+                  }
+                />
+                <Stack.Separator />
+                <ChoiceRow
+                  title={t('Public Integration')}
+                  description={tct(
+                    'A public integration will be available for all Sentry users for installation. See more info on [docsLink].',
+                    {
+                      docsLink: (
+                        <ExternalLink
+                          href={platformEventLinkMap[PlatformEvents.PUBLIC_DOCS]}
+                          onClick={() => {
+                            trackIntegrationAnalytics(PlatformEvents.PUBLIC_DOCS, {
+                              organization,
+                              view: analyticsView,
+                            });
+                          }}
+                        >
+                          {t('Public Integrations')}
+                        </ExternalLink>
+                      ),
+                    }
+                  )}
+                  action={
+                    <LinkButton
+                      variant="secondary"
+                      size="sm"
+                      to={`${baseUrl}new-public/`}
+                      onClick={() => {
+                        trackIntegrationAnalytics(PlatformEvents.CHOSE_PUBLIC, {
+                          organization,
+                          view: analyticsView,
+                        });
+                        closeModal();
+                      }}
+                    >
+                      {t('Get started')}
+                    </LinkButton>
+                  }
+                />
+              </Stack>
+            </Stack>
+          </Stack>
+        ) : (
+          <StyledRadioGroup
+            choices={choices}
+            label={t('Integration Type')}
+            onChange={value => selectOption(value)}
+            value={option}
+          />
+        )}
       </Body>
       <Footer>
         <Button
           size="sm"
           onClick={() => closeModal()}
-          style={{marginRight: theme.space.md}}
+          style={hasCreationTemplates ? undefined : {marginRight: theme.space.md}}
         >
           {t('Cancel')}
         </Button>
-        <LinkButton
-          variant="primary"
-          size="sm"
-          to={`/settings/${organization.slug}/developer-settings/${
-            option === 'public' ? 'new-public' : 'new-internal'
-          }/`}
-          onClick={() => {
-            trackIntegrationAnalytics(
-              option === 'public'
-                ? PlatformEvents.CHOSE_PUBLIC
-                : PlatformEvents.CHOSE_INTERNAL,
-              {
-                organization,
-                view: analyticsView,
-              }
-            );
-          }}
-        >
-          {t('Next')}
-        </LinkButton>
+        {!hasCreationTemplates && (
+          <LinkButton
+            variant="primary"
+            size="sm"
+            to={`${baseUrl}${option === 'public' ? 'new-public' : 'new-internal'}/`}
+            onClick={() => {
+              trackIntegrationAnalytics(
+                option === 'public'
+                  ? PlatformEvents.CHOSE_PUBLIC
+                  : PlatformEvents.CHOSE_INTERNAL,
+                {
+                  organization,
+                  view: analyticsView,
+                }
+              );
+            }}
+          >
+            {t('Next')}
+          </LinkButton>
+        )}
       </Footer>
     </Fragment>
+  );
+}
+
+function ChoiceRow({
+  title,
+  description,
+  action,
+}: {
+  action: ReactNode;
+  description: ReactNode;
+  title: ReactNode;
+}) {
+  return (
+    <Flex justify="between" align="center" gap="xl" padding="md lg">
+      <Stack gap="2xs">
+        <Text bold>{title}</Text>
+        <Text variant="muted" size="sm">
+          {description}
+        </Text>
+      </Stack>
+      {action}
+    </Flex>
   );
 }
 
@@ -145,6 +257,7 @@ const StyledRadioGroup = styled(RadioGroup)`
     padding-bottom: ${p => p.theme.space.md};
   }
 `;
+
 const RadioChoiceHeader = styled('h6')`
   margin: 0;
 `;

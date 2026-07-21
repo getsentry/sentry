@@ -71,13 +71,14 @@ class OrganizationTraceItemMetricContextEndpointTest(
         assert response.data["attributeValue"] == "checkout.requests"
         assert response.data["dataset"] == "tracemetrics"
         assert response.data["attributeType"] == "counter"
-        assert response.data["project"] == str(self.project.id)
+        # Context is always org-level for now, even though a project was passed.
+        assert response.data["project"] is None
         assert response.data["brief"] == "Checkout requests"
         assert response.data["additionalContext"] == "Longer notes about the metric."
 
         context = TraceItemAttributeValueContext.objects.get(
             organization=self.organization,
-            project=self.project,
+            project=None,
             attribute_value="checkout.requests",
         )
         assert context.attribute_name == "metric.name"
@@ -210,35 +211,26 @@ class OrganizationTraceItemMetricContextEndpointTest(
         assert response.status_code == 400, response.data
         assert "metricType" in response.data
 
-    def test_org_wide_context(self) -> None:
+    def test_writes_org_level_for_multiple_projects(self) -> None:
+        # Any project selection (including multiple projects) writes org-level
+        # context — the project scope is not used.
+        other_project = self.create_project(organization=self.organization)
         self.store_metric("checkout.requests")
 
-        response = self.do_request(
-            "checkout.requests",
-            {
-                "metricType": "counter",
-                "brief": "Checkout requests",
+        url = reverse(
+            self.viewname,
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "metric": "checkout.requests",
             },
-            query={"project": -1},
         )
-
-        assert response.status_code == 201, response.data
-        assert response.data["project"] is None
-        context = TraceItemAttributeValueContext.objects.get(attribute_value="checkout.requests")
-        assert context.project_id is None
-
-    def test_org_wide_context_all_projects_sentinel(self) -> None:
-        self.store_metric("checkout.requests")
-
-        # `$all` is the other all-projects sentinel and must also scope org-wide.
-        response = self.do_request(
-            "checkout.requests",
-            {
-                "metricType": "counter",
-                "brief": "Checkout requests",
-            },
-            query={"project": "$all"},
-        )
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                url,
+                {"metricType": "counter", "brief": "Checkout requests"},
+                format="json",
+                QUERY_STRING=f"project={self.project.id}&project={other_project.id}",
+            )
 
         assert response.status_code == 201, response.data
         assert response.data["project"] is None
