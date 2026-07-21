@@ -74,8 +74,9 @@ export const RUN_QUESTIONS: RunQuestionConfig[] = [
       'checklist — three to five markdown bullets a reviewer should verify ' +
       'before trusting or merging the change, each naming the specific risk, ' +
       'assumption, or untested path and why it matters (at most 25 words per ' +
-      'bullet). If the run produced no code: next steps instead — two to four ' +
-      'markdown bullets on how an engineer should take this forward (what to ' +
+      'bullet). If the run produced no code: next steps instead — at most ' +
+      'three markdown bullets, only the highest-leverage ones, on how an ' +
+      'engineer should take this forward (what to ' +
       'confirm in the codebase, what decision to make, what to investigate), ' +
       'concrete and specific to this issue, never generic advice. Never ' +
       'include a step telling the reader to have Seer or an AI generate the ' +
