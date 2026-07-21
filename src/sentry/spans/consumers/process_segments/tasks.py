@@ -45,5 +45,5 @@ _snuba_items_topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_t
     silo_mode=SiloMode.CELL,
 )
 def process_segment_task(segment_bytes: bytes) -> None:
-    for payload in _process_segment_bytes(segment_bytes):
+    for payload in _process_segment_bytes(segment_bytes, start_new_transaction=False):
         _snuba_items_task_producer.produce(_snuba_items_topic, payload)

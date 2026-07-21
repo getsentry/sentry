@@ -65,6 +65,12 @@ SAMPLED_TASKS = {
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.save_event": 0.1 * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.save_event_transaction": 0.1 * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
+    # Mirror the rate the process-segments consumer used for its
+    # per-message transaction, now that the work runs as a task.
+    "sentry.spans.process_segments.process_segment": (
+        settings.SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE
+        * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING
+    ),
     "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.process_commit_context": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.post_process.post_process_group": settings.SENTRY_POST_PROCESS_GROUP_APM_SAMPLING,
