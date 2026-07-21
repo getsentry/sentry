@@ -80,8 +80,6 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
         "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.DATA_BROWSING
-    # Authoring metric context is writing telemetry metadata, not organization
-    # settings, so scope it to `event:write` rather than `org:write`.
     permission_classes = (OrganizationEventPermission,)
 
     def put(self, request: Request, organization: Organization, metric: str) -> Response:
