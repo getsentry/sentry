@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';

@@ -13,11 +13,13 @@ export type Column<T> = {
 interface UseDragAndDropColumnsProps<T> {
   columns: T[];
   setColumns: (columns: T[], op: 'insert' | 'update' | 'delete' | 'reorder') => void;
+  canReorder?: (oldIndex: number, newIndex: number) => boolean;
 }
 
 export function useDragNDropColumns<T>({
   columns,
   setColumns,
+  canReorder,
 }: UseDragAndDropColumnsProps<T>) {
   const uniqueIdsRef = useRef<string[]>([]);
 
@@ -58,7 +60,7 @@ export function useDragNDropColumns<T>({
     if (active.id !== over?.id) {
       const oldIndex = editableColumns.findIndex(({id}) => id === active.id);
       const newIndex = editableColumns.findIndex(({id}) => id === over?.id);
-      if (oldIndex < 0 || newIndex < 0) {
+      if (oldIndex < 0 || newIndex < 0 || canReorder?.(oldIndex, newIndex) === false) {
         return;
       }
       uniqueIdsRef.current = arrayMove(uniqueIdsRef.current, oldIndex, newIndex);

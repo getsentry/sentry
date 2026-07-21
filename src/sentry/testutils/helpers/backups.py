@@ -106,7 +106,6 @@ from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.models.rule import RuleActivity, RuleActivityType
-from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
@@ -607,13 +606,6 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             type=SearchType.ISSUE.value,
             query=f"some query for {slug}",
-        )
-        SavedSearch.objects.create(
-            organization=org,
-            name=f"Saved query for {slug}",
-            query=f"saved query for {slug}",
-            visibility=Visibility.ORGANIZATION,
-            owner_id=owner_id,
         )
 
         # misc

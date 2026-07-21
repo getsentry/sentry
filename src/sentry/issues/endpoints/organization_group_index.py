@@ -10,7 +10,6 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import start_span
 
 from sentry import analytics, features, search
 from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
@@ -37,7 +36,11 @@ from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializerSnuba,
     StreamGroupSerializerSnubaResponse,
 )
-from sentry.api.utils import get_date_range_from_stats_period, handle_query_errors
+from sentry.api.utils import (
+    get_date_range_from_stats_period,
+    handle_query_errors,
+    to_valid_int_id_list,
+)
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -66,6 +69,7 @@ from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
 from sentry.utils.cursors import Cursor, CursorResult
+from sentry.utils.tracing import start_span
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d' and 'auto'"
@@ -172,7 +176,7 @@ def search_issues(
     environments: Sequence[Environment],
     extra_query_kwargs: None | Mapping[str, Any] = None,
 ) -> tuple[CursorResult[Group], Mapping[str, Any]]:
-    with start_span(op="_search"):
+    with start_span(name="_search", op="_search"):
         query_kwargs = build_query_params_from_request(
             request, organization, projects, environments
         )
@@ -183,6 +187,19 @@ def search_issues(
         query_kwargs["environments"] = environments if environments else None
 
         query_kwargs["actor"] = request.user
+        # Serve the v2 scorer behind the single "Recommended" sort; clients never
+        # see the recommended_v2 sort key, so the flag can flip scoring per-org
+        # without any client state changing. sort=recommended_v1 and
+        # sort=recommended_v2 remain explicit escape hatches for comparing the
+        # two scorers regardless of the flag.
+        if query_kwargs["sort_by"] == "recommended" and features.has(
+            "organizations:issue-stream-recommended-sort-experimental",
+            organization,
+            actor=request.user,
+        ):
+            query_kwargs["sort_by"] = "recommended_v2"
+        elif query_kwargs["sort_by"] == "recommended_v1":
+            query_kwargs["sort_by"] = "recommended"
         if query_kwargs["sort_by"] == "progress" and not features.has(
             "organizations:issue-stream-progress-sort", organization, actor=request.user
         ):
@@ -521,7 +538,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             self.get_environments(request, organization),
         )
 
-        ids = [int(id) for id in request.GET.getlist("id")]
+        ids = to_valid_int_id_list("id", request.GET.getlist("id"))
         return update_groups_with_search_fn(request, ids, projects, organization.id, search_fn)
 
     @extend_schema(

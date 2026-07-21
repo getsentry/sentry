@@ -61,6 +61,10 @@ export const HiddenTraceMetricSearchFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.METRIC_UNIT,
 ];
 
+export const HiddenTraceMetricTraceViewSearchFields: TraceMetricFieldKey[] = [
+  ...AlwaysHiddenTraceMetricFields,
+];
+
 export const HiddenTraceMetricGroupByFields: TraceMetricFieldKey[] = [
   ...HiddenTraceMetricSearchFields,
   TraceMetricKnownFieldKey.TIMESTAMP,

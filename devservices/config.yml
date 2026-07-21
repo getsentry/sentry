@@ -84,8 +84,21 @@ x-sentry-service-config:
         repo_name: chartcuterie
         branch: master
         repo_link: https://github.com/getsentry/chartcuterie.git
+    # Must stay a remote dependency (STREAM-1613): remote deps resolve to one
+    # container shared across all repos that depend on it, so this stays a
+    # single instance instead of colliding on port 50051 with e.g. Seer's.
     taskbroker:
       description: Service used to process asynchronous tasks
+      remote:
+        repo_name: taskbroker
+        branch: main
+        repo_link: https://github.com/getsentry/taskbroker.git
+        mode: containerized
+    # Sentry's own taskbroker for tasks internal to Sentry, mostly raw-mode
+    # topics (ingest-profiles, subscription results, replay recordings).
+    # Local rather than remote since it needs a custom mounted config.
+    taskbroker-sentry:
+      description: Sentry's own taskbroker for tasks internal to Sentry, mostly raw-mode topics (ingest-profiles, subscription results, replay recordings)
     memcached:
       description: Memcached used for caching
     spotlight:
@@ -117,6 +130,8 @@ x-sentry-service-config:
     # Taskworker services
     taskworker:
       description: Workers that process tasks from the taskbroker
+    taskworker-sentry:
+      description: Workers that process tasks internal to Sentry (mostly raw-mode) from taskbroker-sentry
     taskworker-scheduler:
       description: Task scheduler that can spawn tasks based on their schedules
     # Kafka consumer services for event ingestion
@@ -167,10 +182,30 @@ x-sentry-service-config:
     migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
     chartcuterie: [postgres, snuba, chartcuterie, spotlight]
-    launchpad: [snuba, postgres, launchpad, taskbroker, taskworker, objectstore]
-    taskbroker: [snuba, postgres, relay, spotlight, taskbroker]
+    launchpad:
+      [
+        snuba,
+        postgres,
+        launchpad,
+        taskbroker,
+        taskbroker-sentry,
+        taskworker,
+        taskworker-sentry,
+        objectstore,
+      ]
+    taskbroker: [snuba, postgres, relay, spotlight, taskbroker, taskbroker-sentry]
     taskworker:
-      [snuba, postgres, relay, taskbroker, spotlight, taskworker, taskworker-scheduler]
+      [
+        snuba,
+        postgres,
+        relay,
+        taskbroker,
+        taskbroker-sentry,
+        spotlight,
+        taskworker,
+        taskworker-sentry,
+        taskworker-scheduler,
+      ]
     backend-ci:
       [snuba, postgres, redis, bigtable, redis-cluster, symbolicator, objectstore]
     symbolicator: [postgres, snuba, symbolicator, spotlight, objectstore]
@@ -193,7 +228,9 @@ x-sentry-service-config:
         ingest-occurrences,
         process-segments,
         taskbroker,
+        taskbroker-sentry,
         taskworker,
+        taskworker-sentry,
       ]
     crons:
       [
@@ -206,7 +243,9 @@ x-sentry-service-config:
         monitors-clock-tasks,
         monitors-incident-occurrences,
         taskbroker,
+        taskbroker-sentry,
         taskworker,
+        taskworker-sentry,
       ]
     profiling:
       [
@@ -219,7 +258,9 @@ x-sentry-service-config:
         ingest-transactions,
         ingest-occurrences,
         taskbroker,
+        taskbroker-sentry,
         taskworker,
+        taskworker-sentry,
         post-process-forwarder-errors,
         post-process-forwarder-transactions,
       ]
@@ -232,7 +273,9 @@ x-sentry-service-config:
         ingest-events,
         ingest-transactions,
         taskbroker,
+        taskbroker-sentry,
         taskworker,
+        taskworker-sentry,
       ]
     ingest:
       [
@@ -242,7 +285,9 @@ x-sentry-service-config:
         spotlight,
         objectstore,
         taskbroker,
+        taskbroker-sentry,
         taskworker,
+        taskworker-sentry,
         ingest-events,
         ingest-transactions,
         ingest-attachments,
@@ -258,7 +303,9 @@ x-sentry-service-config:
         spotlight,
         objectstore,
         taskbroker,
+        taskbroker-sentry,
         taskworker,
+        taskworker-sentry,
         ingest-events,
         post-process-forwarder-errors,
       ]
@@ -269,10 +316,12 @@ x-sentry-service-config:
         snuba,
         redis,
         taskbroker,
+        taskbroker-sentry,
         spotlight,
         objectstore,
         synapse,
         taskworker,
+        taskworker-sentry,
         taskworker-scheduler,
         ingest-events,
         post-process-forwarder-errors,
@@ -288,7 +337,9 @@ x-sentry-service-config:
         postgres,
         relay,
         taskbroker,
+        taskbroker-sentry,
         taskworker,
+        taskworker-sentry,
         ingest-events,
         ingest-transactions,
         uptime-checker,
@@ -320,7 +371,9 @@ x-sentry-service-config:
         snuba,
         spotlight,
         taskbroker,
+        taskbroker-sentry,
         taskworker,
+        taskworker-sentry,
         vroom,
       ]
     full:
@@ -352,7 +405,9 @@ x-sentry-service-config:
         post-process-forwarder-transactions,
         post-process-forwarder-issue-platform,
         taskbroker,
+        taskbroker-sentry,
         taskworker,
+        taskworker-sentry,
         taskworker-scheduler,
       ]
 
@@ -361,6 +416,8 @@ x-programs:
     command: sentry devserver
   taskworker:
     command: sentry run taskworker
+  taskworker-sentry:
+    command: sentry run taskworker --rpc-host localhost:50052
   taskworker-scheduler:
     command: sentry run taskworker-scheduler
   ingest-events:
@@ -497,13 +554,13 @@ services:
     labels:
       - orchestrator=devservices
     restart: unless-stopped
-  taskbroker:
+  taskbroker-sentry:
     image: ghcr.io/getsentry/taskbroker:nightly
     command: ['/opt/taskbroker', '--config', '/etc/taskbroker/config.yml']
     ports:
-      - '127.0.0.1:50051:50051'
+      - '127.0.0.1:50052:50051'
     volumes:
-      - ./config/taskbroker.yml:/etc/taskbroker/config.yml
+      - ./config/taskbroker-sentry.yml:/etc/taskbroker/config.yml
     networks:
       - devservices
     extra_hosts:

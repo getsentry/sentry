@@ -256,13 +256,13 @@ export function DataScrubFormModal({
                     hintText={t('The dataset targeted by the scrubbing rule')}
                     variant="compact"
                   >
-                    <Flex direction="column" gap="lg">
+                    <Stack gap="lg">
                       {sortBy(enabledDatasets).map(value => (
                         <field.Radio.Item key={value} value={value}>
                           {getDatasetLabelLong(value)}
                         </field.Radio.Item>
                       ))}
-                    </Flex>
+                    </Stack>
                   </field.Layout.Stack>
                 </field.Radio.Group>
               )}

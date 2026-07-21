@@ -65,6 +65,13 @@ class PullRequestVerdict(models.TextChoices):
     # event won't forward twice; Seer's callback overwrites it with a real verdict.
     # Never a judge *result* — the callback rejects it coming back from Seer.
     JUDGE_IN_PROGRESS = "judge_in_progress"
+    # Transient, internal: a terminal event has been claimed at the close/merge
+    # webhook and an emission task scheduled, but the cooldown window (during which
+    # late attribution and activity settle) hasn't elapsed yet. Reuses the verdict
+    # column as the redelivery guard so a redelivered terminal event won't schedule
+    # a second task; the cooldown task overwrites it with a real verdict (or the
+    # JUDGE_IN_PROGRESS sentinel). Never a judge *result*.
+    WAITING_EVENT_COOLDOWN = "waiting_event_cooldown"
 
 
 # SCM providers that can legitimately back a Repository. A reporting source (Seer, a
@@ -387,16 +394,19 @@ class PullRequestActivityType(models.TextChoices):
     AUTO_MERGE_ENABLED = "auto_merge_enabled"
     CHECK_RUN_COMPLETED = "check_run_completed"
     CHECK_SUITE_COMPLETED = "check_suite_completed"
+    CLOSED = "closed"
     COMMENT_CREATED = "comment_created"
-    COMMENT_DELETED = "comment_deleted"
     COMMENT_EDITED = "comment_edited"
     CONVERTED_TO_DRAFT = "converted_to_draft"
     DEQUEUED = "dequeued"
+    EDITED = "edited"
     ENQUEUED = "enqueued"
     LABELED = "labeled"
     LOCKED = "locked"
+    MERGED = "merged"
     OPENED = "opened"
     READY_FOR_REVIEW = "ready_for_review"
+    REOPENED = "reopened"
     REVIEW_DISMISSED = "review_dismissed"
     REVIEW_REQUESTED = "review_requested"
     REVIEW_REQUEST_REMOVED = "review_request_removed"
@@ -431,6 +441,32 @@ class PullRequestActivity(DefaultFieldsModel):
         unique_together = (("pull_request", "webhook_id"),)
 
     __repr__ = sane_repr("pull_request_id", "event_type")
+
+
+@cell_silo_model
+class PullRequestActivityLog(DefaultFieldsModel):
+    """One reduced activity document per PR — the 1:1 replacement for the
+    per-webhook-event ``PullRequestActivity`` rows (see
+    ``sentry.pr_metrics.activity_doc`` for the document shape and reducer).
+
+    A dedicated 1:1 model rather than a field on ``PullRequestMetrics``: the doc
+    is swept at the terminal emit while the metrics row must survive, and
+    ``handle_metrics`` rewrites the metrics row on every ``pull_request`` webhook.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    pull_request = models.OneToOneField(
+        "sentry.PullRequest", on_delete=models.CASCADE, related_name="activity_log"
+    )
+    # Column is TOAST-compressed with lz4 (set in migration 1133).
+    data = models.JSONField(default=dict)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pullrequest_activity_log"
+
+    __repr__ = sane_repr("pull_request_id")
 
 
 @cell_silo_model
@@ -476,6 +512,22 @@ class PullRequestMetrics(DefaultFieldsModel):
     participants_count = BoundedPositiveIntegerField(default=0)
     reviews_count = BoundedPositiveIntegerField(default=0)
     is_assigned = models.BooleanField(default=False)
+    # Human-involvement splits derived from the activity log at the terminal event
+    # (see ``pr_metrics.emit``). ``reviews_count`` = reviews_bot_count +
+    # reviews_human_count. Pushes count push events (opened + synchronize), not
+    # individual commits, split by the pusher's account class. All 0 when activity
+    # isn't tracked.
+    reviews_bot_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    reviews_human_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    pushes_bot_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    pushes_human_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    # Who opened / closed the PR, by account class: True = Bot, False = human, null
+    # = the event was never recorded (activity not tracked, or a missed webhook).
+    # ``opened_and_closed_by_same_actor`` compares the opener's and closer's logins;
+    # null when either side is unknown.
+    opened_by_bot = models.BooleanField(null=True)
+    closed_by_bot = models.BooleanField(null=True)
+    opened_and_closed_by_same_actor = models.BooleanField(null=True)
 
     class Meta:
         app_label = "sentry"

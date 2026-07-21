@@ -9,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconClock, IconContract, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
@@ -48,7 +47,6 @@ import {
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface ExploreChartsProps {
-  confidences: Confidence[];
   extrapolate: boolean;
   query: string;
   rawSpanCounts: RawCounts;

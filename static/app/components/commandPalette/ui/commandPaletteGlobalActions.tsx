@@ -50,7 +50,7 @@ import {
   IconTerminal,
   IconUser,
 } from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, toggleLocaleDebug} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -108,10 +108,12 @@ export function isNavItemVisible(
   return typeof item.show === 'function' ? item.show(context) : item.show;
 }
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
 import {useCommandPaletteState} from './commandPaletteStateContext';
+import {FeatureFlagCommandPaletteActions} from './featureFlagCommandPaletteActions';
 
 const DSN_ICONS: React.ReactElement[] = [
   <IconIssues key="issues" />,
@@ -386,12 +388,22 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/explore/metrics/`}
             />
           )}
-          {organization.features.includes('explore-errors') && (
-            <CMDKAction display={{label: t('Errors')}} to={`${prefix}/explore/errors/`} />
-          )}
+          {organization.features.includes('explore-errors') &&
+            !getDiscoverDeprecation(organization) && (
+              <CMDKAction
+                display={{label: t('Errors')}}
+                to={`${prefix}/explore/errors-v2/`}
+              />
+            )}
           <CMDKAction
-            display={{label: t('Discover')}}
-            to={`${prefix}/explore/discover/homepage/`}
+            display={{
+              label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
+            }}
+            to={
+              getDiscoverDeprecation(organization)
+                ? `${prefix}/explore/errors/homepage/`
+                : `${prefix}/explore/discover/homepage/`
+            }
           />
           {organization.features.includes('profiling') && (
             <CMDKAction
@@ -756,6 +768,7 @@ export function GlobalCommandPaletteActions() {
 
       {user.isStaff && (
         <CMDKAction display={{label: t('Admin')}}>
+          <FeatureFlagCommandPaletteActions />
           <CMDKAction
             display={{label: t('Open _admin'), icon: <IconOpen />}}
             keywords={[t('superuser')]}
@@ -1116,6 +1129,16 @@ export function GlobalCommandPaletteActions() {
               '_blank',
               'noreferrer'
             );
+          }}
+        />
+      )}
+
+      {(NODE_ENV === 'development' || user.isStaff) && (
+        <CMDKAction
+          display={{label: t('Toggle Translation Markers'), icon: <IconFlag />}}
+          keywords={['locale', 'debug', 'i18n', 'translation', 'markers']}
+          onAction={() => {
+            toggleLocaleDebug();
           }}
         />
       )}

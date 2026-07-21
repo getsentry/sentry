@@ -1,6 +1,7 @@
 import enum
 import logging
-from datetime import datetime
+import time
+from datetime import datetime, timedelta
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, router, transaction
@@ -12,15 +13,12 @@ from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.derived.tasks import process_group_log_task
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
+from sentry.models.group import Group
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-# Pipeline with current aggregators. Versioned because in principle
-# we may want to change it in place and correlate that to existing derived data
-# for invalidation purposes.
-# TODO: Shouldn't it be versioned by a feature set hash? To be sorted out later.
-PIPELINE: Pipeline[GroupActionLogEntry] = Pipeline(AGGREGATORS, version=1)
+PIPELINE: Pipeline[GroupActionLogEntry] = Pipeline(AGGREGATORS)
 
 DEFAULT_BATCH_SIZE = 1000
 INLINE_BATCH_SIZE = 100
@@ -32,7 +30,7 @@ class ProcessingStrategy(enum.Enum):
     INLINE = "inline"  # try to process all pending actions quickly; fall back to ASYNC
 
 
-def _ensure_derived(group_id: int) -> GroupDerivedData:
+def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData:
     """Get or create the GroupDerivedData row for a group.
 
     Raises Group.DoesNotExist if the group has been deleted.
@@ -42,13 +40,15 @@ def _ensure_derived(group_id: int) -> GroupDerivedData:
     except GroupDerivedData.DoesNotExist:
         pass
 
-    # Deferred to avoid circular import: group.py → action_log → processing.py
-    from sentry.models.group import Group
-
     try:
         derived, _created = GroupDerivedData.objects.get_or_create(
             group_id=group_id,
-            defaults={"cursor_date": EPOCH, "cursor_id": 0, "data": {}},
+            defaults={
+                "cursor_date": EPOCH,
+                "cursor_id": 0,
+                "data": {},
+                "pipeline_hash": pipeline_hash,
+            },
         )
     except IntegrityError:
         raise Group.DoesNotExist(f"Group {group_id} does not exist")
@@ -59,10 +59,12 @@ def _entries_after_cursor(
     group_id: int, cursor_date: datetime, cursor_id: int, batch_size: int
 ) -> list[GroupActionLogEntry]:
     return list(
-        GroupActionLogEntry.objects.filter(
-            Q(group_id=group_id)
-            & (Q(date_added__gt=cursor_date) | Q(date_added=cursor_date, id__gt=cursor_id))
-        ).order_by("date_added", "id")[:batch_size]
+        GroupActionLogEntry.objects.filter(group_id=group_id)
+        .extra(
+            where=['ROW("date_added", "id") > ROW(%s, %s)'],
+            params=[cursor_date, cursor_id],
+        )
+        .order_by("date_added", "id")[:batch_size]
     )
 
 
@@ -107,7 +109,9 @@ def _process_batch(
     state_update = GroupDerivedDataStore.build_update(p, result)
 
     updated = GroupDerivedData.objects.filter(
-        Q(group_id=group_id) & _cursor_lte(last_date, last_id)
+        Q(group_id=group_id)
+        & _cursor_lte(last_date, last_id)
+        & Q(pipeline_hash=derived.pipeline_hash)
     ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
 
     if updated:
@@ -148,23 +152,55 @@ def _process_batch(
         return bool(_entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, 1))
 
 
+class GroupLogTimeout(Exception):
+    """Raised when processing cannot finish within its time budget."""
+
+
+def _drain_log(
+    derived: GroupDerivedData,
+    pipeline: Pipeline[GroupActionLogEntry],
+    batch_size: int = DEFAULT_BATCH_SIZE,
+    *,
+    time_limit: timedelta,
+) -> bool:
+    """Process pending log entries into *derived*, batching as needed.
+
+    Returns True if all entries were processed, False if the time limit was
+    reached and more entries remain. The limit is checked between batches,
+    so a single slow batch can exceed it.
+    """
+    deadline = time.monotonic() + time_limit.total_seconds()
+    while _process_batch(pipeline, derived, derived.group_id, batch_size):
+        if time.monotonic() >= deadline:
+            return False
+    return True
+
+
 def process_group_log(
     group_id: int,
     batch_size: int = DEFAULT_BATCH_SIZE,
-    target_pipeline: Pipeline[GroupActionLogEntry] | None = None,
+    pipeline: Pipeline[GroupActionLogEntry] | None = None,
+    timeout: timedelta | None = None,
 ) -> GroupDerivedData:
-    """Fully drain all pending entries for a group, processing in batches.
+    """Fully drain all pending entries for a group's row.
 
     Raises Group.DoesNotExist if the group has been deleted.
+    Raises GroupLogTimeout if *timeout* elapses before all
+    entries are processed.
     """
-    p = target_pipeline or PIPELINE
+    p = pipeline or PIPELINE
 
     with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
-        derived = _ensure_derived(group_id)
+        derived = _ensure_derived(group_id, p.pipeline_hash)
 
-    has_more = _process_batch(p, derived, group_id, batch_size)
-    while has_more:
-        has_more = _process_batch(p, derived, group_id, batch_size)
+    if timeout is not None:
+        drained = _drain_log(derived, p, batch_size, time_limit=timeout)
+        if not drained:
+            raise GroupLogTimeout(group_id)
+    else:
+        # No timeout — drain to completion.
+        while _process_batch(p, derived, derived.group_id, batch_size):
+            pass
 
     return derived
 
@@ -192,14 +228,16 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
 
     assert strategy is ProcessingStrategy.INLINE
 
+    pipeline = PIPELINE
+
     with metrics.timer("issues.derived.inline_processing"):
         try:
             with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
-                derived = _ensure_derived(group_id)
+                derived = _ensure_derived(group_id, pipeline.pipeline_hash)
         except ObjectDoesNotExist:
             return
 
-        has_more = _process_batch(PIPELINE, derived, group_id, INLINE_BATCH_SIZE)
+        has_more = _process_batch(pipeline, derived, group_id, INLINE_BATCH_SIZE)
     if has_more:
         # Derived data will be stale for any code running between now and
         # when the task completes.
@@ -211,7 +249,8 @@ def invalidate_group_derived_data(
     group_id: int,
     cursor: tuple[datetime, int] | None = None,
 ) -> None:
-    """Delete derived state so it is rebuilt from scratch on the next pass.
+    """Delete derived state so it is rebuilt from scratch on the next pass,
+    then kicks off an async task to regenerate the derived data.
 
     If *cursor* is ``(date_added, id)`` of the earliest affected entry, the
     row is only deleted when its cursor is at or past that point; otherwise
@@ -220,6 +259,7 @@ def invalidate_group_derived_data(
     """
     if cursor is None:
         GroupDerivedData.objects.filter(group_id=group_id).delete()
+        process_group_log_task.delay(group_id)
         return
 
     # Only invalidate if the row has already processed past the affected point.
@@ -237,3 +277,4 @@ def invalidate_group_derived_data(
                 "cursor_id": cursor_id,
             },
         )
+        process_group_log_task.delay(group_id)

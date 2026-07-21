@@ -6,7 +6,7 @@ import * as qs from 'query-string';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
@@ -371,7 +371,7 @@ export default function IntegrationOrganizationLink() {
     return (
       <IntegrationFeatures organization={organization} features={featuresComponents}>
         {({disabled, disabledReason}) => (
-          <Flex direction="column" align="center" justify="center">
+          <Stack align="center" justify="center">
             <Button
               variant="primary"
               disabled={!hasAccess || disabled}
@@ -380,7 +380,7 @@ export default function IntegrationOrganizationLink() {
               {t('Install %s', provider.name)}
             </Button>
             {disabled && <IntegrationLayout.DisabledNotice reason={disabledReason} />}
-          </Flex>
+          </Stack>
         )}
       </IntegrationFeatures>
     );

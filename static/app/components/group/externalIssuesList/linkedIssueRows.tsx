@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -23,10 +23,9 @@ const DEFAULT_ICON_OFFSET = -1;
 
 export function LinkedIssueRows({linkedIssues}: LinkedIssueRowsProps) {
   return (
-    <Flex
+    <Stack
       as="ul"
       aria-label={t('Linked issues')}
-      direction="column"
       border="primary"
       radius="md"
       overflow="hidden"
@@ -43,7 +42,7 @@ export function LinkedIssueRows({linkedIssues}: LinkedIssueRowsProps) {
           <LinkedIssueRow linkedIssue={linkedIssue} />
         </Container>
       ))}
-    </Flex>
+    </Stack>
   );
 }
 

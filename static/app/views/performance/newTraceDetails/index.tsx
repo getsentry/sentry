@@ -1,7 +1,7 @@
 import {useEffect, useMemo, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -212,7 +212,6 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
             metaResults={meta}
             organization={organization}
             traceSlug={traceSlug}
-            traceEventView={traceEventView}
             logs={logsData}
             metrics={traceMetricsData}
           />
@@ -273,10 +272,9 @@ const TraceViewImpl = registerLLMContext('trace', TraceViewImplInner);
 
 function TraceInnerLayout(props: FlexProps) {
   return (
-    <Flex
+    <Stack
       {...props}
       background="primary"
-      direction="column"
       gap="md"
       paddingLeft="xl"
       paddingRight="xl"

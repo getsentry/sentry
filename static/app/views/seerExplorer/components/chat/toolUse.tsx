@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {ToolCallIndicator, type ToolCallStatus} from '@sentry/scraps/chat';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -8,10 +9,10 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconCheckmark, IconClose, IconLink, IconWarning} from 'sentry/icons';
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {Block, TodoItem} from 'sentry/views/seerExplorer/types';
@@ -22,14 +23,7 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 import type {ToolUseBlockProps} from './shared';
-import {
-  type BlockStatus,
-  MessagePlaceholder,
-  SeerMarkdown,
-  Spinner,
-  getBlockStatus,
-  hasValidContent,
-} from './shared';
+import {MessagePlaceholder, getBlockStatus, hasValidContent} from './shared';
 
 export function ToolUseBlock({
   block,
@@ -117,7 +111,6 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
   } = useToolLinks(block);
   const toolsUsed = getToolsStringFromBlock(block);
   const blockStatus = getBlockStatus(block);
-  const isLoading = blockStatus === 'loading' || blockStatus === 'pending';
 
   return (
     <Stack gap="md" width="100%" minWidth={0} paddingRight="lg">
@@ -168,7 +161,6 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
             key={toolCall.id ?? `${toolCall.function}-${idx}`}
             toolString={toolsUsed[idx] ?? ''}
             blockStatus={idx === 0 ? blockStatus : undefined}
-            isLoading={isLoading}
             toolUrl={toolUrl}
             failureTooltip={failureTooltip}
             onLinkClick={handleLinkClick}
@@ -188,9 +180,8 @@ function ToolCallRow({
   onLinkClick,
   todos,
 }: {
-  blockStatus: BlockStatus | undefined;
+  blockStatus: ToolCallStatus | undefined;
   failureTooltip: string | null;
-  isLoading: boolean;
   todos: TodoItem[] | null;
   toolString: string;
   toolUrl: ReturnType<typeof buildToolLinkUrl>;
@@ -218,7 +209,7 @@ function ToolCallRow({
           flexShrink={0}
           style={{transform: 'translateY(0.15em)'}}
         >
-          {blockStatus && <BlockStatusIndicator status={blockStatus} />}
+          {blockStatus && <ToolCallIndicator status={blockStatus} />}
         </Flex>
         {hasLink ? (
           <ToolCallLink to={toolUrl} onClick={onLinkClick}>
@@ -252,51 +243,6 @@ function TodoList({todos}: {todos: TodoItem[]}) {
       })}
     </Stack>
   );
-}
-
-function BlockStatusIndicator({status}: {status: BlockStatus}) {
-  switch (status) {
-    case 'loading':
-      return (
-        <Tooltip title={t('Running...')}>
-          <Spinner />
-        </Tooltip>
-      );
-    case 'pending':
-      return (
-        <Tooltip title={t('Waiting for approval')}>
-          <Spinner />
-        </Tooltip>
-      );
-    case 'failure':
-      return (
-        <Tooltip title={t('All tool calls failed')}>
-          <Text variant="danger">
-            <IconClose size="xs" />
-          </Text>
-        </Tooltip>
-      );
-    case 'mixed':
-      return (
-        <Tooltip title={t('Some tool calls succeeded and some failed')}>
-          <Text variant="warning">
-            <IconWarning size="xs" />
-          </Text>
-        </Tooltip>
-      );
-    case 'success':
-      return (
-        <Tooltip title={t('All tool calls succeeded')}>
-          <Text variant="success">
-            <IconCheckmark size="xs" />
-          </Text>
-        </Tooltip>
-      );
-    case 'content':
-      return null;
-    default:
-      return unreachable(status);
-  }
 }
 
 const ToolCallText = styled(Text)`

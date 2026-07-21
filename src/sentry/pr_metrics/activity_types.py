@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 # Known values: "Bot", "User", "Organization".
 # Typed as str to remain forward-compatible with enterprise account types
@@ -52,6 +52,20 @@ class SynchronizePayload(BaseActivityPayload, SenderMixin):
 
 
 @dataclass
+class ReopenedPayload(BaseActivityPayload, SenderMixin):
+    action: str = "reopened"
+
+
+@dataclass
+class EditedPayload(BaseActivityPayload, SenderMixin):
+    action: str = "edited"
+    # Names of the changed PR properties (the keys of the webhook ``changes``
+    # object — e.g. ``["base", "title"]``), never their values: ``changes`` carries
+    # the OLD title/body text, which the structural-only posture excludes.
+    changed_fields: list[str] = field(default_factory=list)
+
+
+@dataclass
 class LabeledPayload(BaseActivityPayload, SenderMixin):
     action: str = "labeled"
     label_name: str = ""
@@ -92,6 +106,21 @@ class ConvertedToDraftPayload(BaseActivityPayload, SenderMixin):
 @dataclass
 class ReadyForReviewPayload(BaseActivityPayload, SenderMixin):
     action: str = "ready_for_review"
+
+
+@dataclass
+class ClosedPayload(BaseActivityPayload, SenderMixin):
+    # GitHub fires one "closed" action for both outcomes; a set ``merged_at`` on the
+    # PR row disambiguates. This payload is the closed-without-merge case, so the
+    # sender is whoever closed the PR (Bot vs human is the human-involvement signal).
+    action: str = "closed"
+
+
+@dataclass
+class MergedPayload(BaseActivityPayload, SenderMixin):
+    # The merged case of GitHub's "closed" action: the sender is whoever merged the
+    # PR (or the app, for auto-merge).
+    action: str = "merged"
 
 
 @dataclass
@@ -158,7 +187,7 @@ class ReviewDismissedPayload(BaseActivityPayload, SenderMixin):
 
 
 @dataclass
-class AutoMergeEnabledPayload(BaseActivityPayload):
+class AutoMergeEnabledPayload(BaseActivityPayload, SenderMixin):
     action: str = "auto_merge_enabled"
     # "merge", "squash", or "rebase" — a bounded enum; the auto-merge commit
     # title/message are deliberately excluded.
@@ -166,17 +195,17 @@ class AutoMergeEnabledPayload(BaseActivityPayload):
 
 
 @dataclass
-class AutoMergeDisabledPayload(BaseActivityPayload):
+class AutoMergeDisabledPayload(BaseActivityPayload, SenderMixin):
     action: str = "auto_merge_disabled"
 
 
 @dataclass
-class EnqueuedPayload(BaseActivityPayload):
+class EnqueuedPayload(BaseActivityPayload, SenderMixin):
     action: str = "enqueued"
 
 
 @dataclass
-class DequeuedPayload(BaseActivityPayload):
+class DequeuedPayload(BaseActivityPayload, SenderMixin):
     action: str = "dequeued"
     # Why GitHub removed the PR from the merge queue (e.g. "MERGE", "CI_FAILURE",
     # "MERGE_CONFLICT", "MANUAL"). A bounded enum carrying the merge-intent signal.

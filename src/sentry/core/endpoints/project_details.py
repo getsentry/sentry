@@ -279,6 +279,10 @@ E.g. `['release', 'environment']`""",
     )
     secondaryGroupingExpiry = serializers.IntegerField(min_value=1, required=False, allow_null=True)
     scrapeJavaScript = serializers.BooleanField(required=False)
+    enableAutoReleaseCreation = serializers.BooleanField(
+        required=False,
+        help_text="Automatically create releases from ingested events. When disabled, releases must be created manually (e.g. via the Sentry CLI).",
+    )
     allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
 
     copy_from_project = serializers.IntegerField(required=False)
@@ -790,6 +794,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("scrapeJavaScript") is not None:
             if project.update_option("sentry:scrape_javascript", result["scrapeJavaScript"]):
                 changed_proj_settings["sentry:scrape_javascript"] = result["scrapeJavaScript"]
+        if result.get("enableAutoReleaseCreation") is not None:
+            if project.update_option(
+                "sentry:enable_auto_release_creation", result["enableAutoReleaseCreation"]
+            ):
+                changed_proj_settings["sentry:enable_auto_release_creation"] = result[
+                    "enableAutoReleaseCreation"
+                ]
         if result.get("allowedDomains"):
             if project.update_option("sentry:origins", result["allowedDomains"]):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
