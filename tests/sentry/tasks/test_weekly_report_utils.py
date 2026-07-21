@@ -51,7 +51,6 @@ class OrganizationTopSpansTest(BaseSpansTestCase, TestCase):
 
     def test_populates_top_spans_and_counts(self) -> None:
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
-
         self._store_segments(self.project, "/api/users", count=3, duration=200)
         self._store_segments(self.project, "/api/orders", count=2, duration=100)
 
@@ -80,7 +79,6 @@ class OrganizationTopSpansTest(BaseSpansTestCase, TestCase):
 
     def test_limits_to_top_5_spans(self) -> None:
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
-
         for i in range(8):
             self._store_segments(
                 self.project,
@@ -111,7 +109,6 @@ class OrganizationTopSpansTest(BaseSpansTestCase, TestCase):
 
     def test_timeseries_populates_context(self) -> None:
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
-
         self._store_segments(self.project, "/api/users", count=3, duration=200)
 
         ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
@@ -123,7 +120,6 @@ class OrganizationTopSpansTest(BaseSpansTestCase, TestCase):
 
     def test_timeseries_skips_without_top_spans(self) -> None:
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
-
         ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
         organization_top_spans_timeseries(ctx, referrer=Referrer.REPORTS_TOP_SPANS.value)
 
@@ -148,7 +144,6 @@ class OrganizationTopSpansTest(BaseSpansTestCase, TestCase):
 
     def test_feature_flag_gates_query(self) -> None:
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
-
         self._store_segments(self.project, "/api/users", count=2)
 
         factory = OrganizationReportContextFactory(
@@ -197,7 +192,6 @@ class OrganizationTopSpansTest(BaseSpansTestCase, TestCase):
     @with_feature("organizations:weekly-report-spans-chart")
     def test_factory_exception_resets_spans_count(self) -> None:
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
-
         factory = OrganizationReportContextFactory(
             timestamp=self.timestamp,
             duration=ONE_DAY * 7,
