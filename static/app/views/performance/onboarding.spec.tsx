@@ -7,6 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 
@@ -106,9 +107,10 @@ describe('Testing new onboarding ui', () => {
   });
 
   it('links to Trace Explorer docs when the tracing checklist is unavailable', async () => {
-    const projectMock = ProjectFixture({
-      platform: 'react-native',
-    });
+    const platform = 'react-native';
+    expect(withPerformanceOnboarding.has(platform)).toBe(false);
+
+    const projectMock = ProjectFixture({platform});
 
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
