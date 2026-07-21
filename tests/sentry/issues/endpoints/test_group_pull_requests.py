@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
+from django.core.cache import cache
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -24,6 +25,9 @@ from sentry.types.activity import ActivityType
 class GroupPullRequestsEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
+        # The provider PR lookup is cached by pull-request id, which repeats
+        # across test databases.
+        cache.clear()
         self.login_as(user=self.user)
         self.group = self.create_group()
         self.repo = self.create_repo(
@@ -273,29 +277,15 @@ class GroupPullRequestsEndpointTest(APITestCase):
         }
 
     @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
-    def test_status_derivation_prefers_stored_lifecycle_fields(
-        self, mock_get_integration: Mock
-    ) -> None:
+    def test_terminal_stored_status_skips_provider(self, mock_get_integration: Mock) -> None:
         self.create_linked_pull_request(
             key="1",
-            linked_delta=timedelta(days=5),
-            state=PullRequestLifecycleState.OPEN,
-            draft=False,
-        )
-        self.create_linked_pull_request(
-            key="2",
-            linked_delta=timedelta(days=4),
-            state=PullRequestLifecycleState.OPEN,
-            draft=True,
-        )
-        self.create_linked_pull_request(
-            key="3",
             linked_delta=timedelta(days=3),
             state=PullRequestLifecycleState.CLOSED,
             draft=True,
         )
         self.create_linked_pull_request(
-            key="4",
+            key="2",
             linked_delta=timedelta(days=2),
             state=PullRequestLifecycleState.MERGED,
             merged_at=timezone.now(),
@@ -307,10 +297,83 @@ class GroupPullRequestsEndpointTest(APITestCase):
         assert [item["status"] for item in response.data["pullRequests"]] == [
             "merged",
             "closed",
-            "draft",
-            "open",
         ]
+        assert [item["mergeableState"] for item in response.data["pullRequests"]] == [None, None]
         mock_get_integration.assert_not_called()
+
+    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    def test_open_pull_requests_fetch_mergeable_state(self, mock_get_integration: Mock) -> None:
+        self.create_linked_pull_request(
+            key="1",
+            linked_delta=timedelta(days=2),
+            state=PullRequestLifecycleState.OPEN,
+            draft=False,
+        )
+        self.create_linked_pull_request(
+            key="2",
+            linked_delta=timedelta(days=1),
+            state=PullRequestLifecycleState.OPEN,
+            draft=True,
+        )
+
+        client = self.set_provider_pull_request_response(mock_get_integration, {})
+        client.get_pull_request.side_effect = lambda _repo, key: {
+            # Uppercase to prove normalization.
+            "1": {"state": "open", "draft": False, "mergeable_state": "CLEAN"},
+            "2": {"state": "open", "draft": True, "mergeable_state": "dirty"},
+        }[key]
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        by_id = {item["id"]: item for item in response.data["pullRequests"]}
+        assert by_id["1"]["status"] == "open"
+        assert by_id["1"]["mergeableState"] == "clean"
+        assert by_id["2"]["status"] == "draft"
+        assert by_id["2"]["mergeableState"] == "dirty"
+
+    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    def test_unrecognized_mergeable_state_collapses_to_unknown(
+        self, mock_get_integration: Mock
+    ) -> None:
+        self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
+        self.set_provider_pull_request_response(
+            mock_get_integration,
+            {"state": "open", "draft": False, "mergeable_state": "wacky_new_state"},
+        )
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response.data["pullRequests"][0]["mergeableState"] == "unknown"
+
+    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    def test_provider_failure_falls_back_to_stored_status(self, mock_get_integration: Mock) -> None:
+        self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
+        client = self.set_provider_pull_request_response(mock_get_integration, {})
+        client.get_pull_request.side_effect = RuntimeError("nope")
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response.data["pullRequests"][0]["status"] == "open"
+        assert response.data["pullRequests"][0]["mergeableState"] is None
+
+    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    def test_provider_lookup_is_cached_between_requests(self, mock_get_integration: Mock) -> None:
+        self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
+        client = self.set_provider_pull_request_response(
+            mock_get_integration,
+            {"state": "open", "draft": False, "mergeable_state": "blocked"},
+        )
+
+        first = self.client.get(self.path)
+        second = self.client.get(self.path)
+
+        assert first.status_code == 200
+        assert second.status_code == 200
+        assert second.data["pullRequests"][0]["mergeableState"] == "blocked"
+        assert client.get_pull_request.call_count == 1
 
     @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
     def test_incomplete_stored_status_falls_back_to_provider(
