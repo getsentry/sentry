@@ -67,6 +67,16 @@ SCM_SYNC_PROVIDERS = [
 
 SYNC_BATCH_SIZE = 100
 
+# Cap the number of provider pages we fetch during a single periodic sync.
+# sync_repos_for_org has a 120s processing deadline; each page of ~100 repos
+# costs ~2s to fetch serially, so 50 pages (~5,000 repos) leaves headroom for
+# the rest of the task. Installations larger than this hit the cap and are
+# handled via the ApiPaginationTruncated path below (partial create/restore,
+# no disable), instead of running past the deadline and being SIGALRM-killed.
+# Providers whose client already caps below this (e.g. GitLab, bounded to 10
+# pages) simply never reach it.
+SYNC_PAGE_NUMBER_LIMIT = 50
+
 # Final safety guard before auto-disabling a repo: if it has any commit, PR,
 # or code review event row in the last DISABLE_ACTIVITY_CUTOFF_DAYS days, we
 # skip the disable even if the provider isn't returning the repo right now.
@@ -174,7 +184,9 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
 
         fetch_truncated = False
         try:
-            provider_repos = installation.get_repositories(raise_on_page_limit=True)
+            provider_repos = installation.get_repositories(
+                page_number_limit=SYNC_PAGE_NUMBER_LIMIT, raise_on_page_limit=True
+            )
         except ApiPaginationTruncated as e:
             # Provider fetch hit a pagination cap with more data still
             # available. We keep the partial result for create/restore — those

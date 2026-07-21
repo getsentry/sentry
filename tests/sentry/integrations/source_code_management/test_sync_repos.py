@@ -14,6 +14,7 @@ from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.perforce.integration import PerforceIntegrationProvider
 from sentry.integrations.source_code_management.sync_repos import (
+    SYNC_PAGE_NUMBER_LIMIT,
     sync_repos_for_org,
 )
 from sentry.locks import locks
@@ -352,6 +353,25 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             assert Repository.objects.filter(
                 organization_id=self.organization.id, external_id="1"
             ).exists()
+
+    @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
+    def test_fetch_caps_pages_to_deadline_budget(
+        self, mock_get_repos: MagicMock, _: MagicMock
+    ) -> None:
+        # The periodic sync must bound provider pagination so it can't run past
+        # the task's processing deadline on installations with thousands of
+        # repos. Assert the page cap is forwarded to the client.
+        mock_get_repos.return_value = [
+            {"id": 1, "full_name": "getsentry/sentry", "name": "sentry"},
+        ]
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        assert mock_get_repos.call_count == 1
+        _, kwargs = mock_get_repos.call_args
+        assert kwargs["page_number_limit"] == SYNC_PAGE_NUMBER_LIMIT
+        assert kwargs["raise_on_page_limit"] is True
 
 
 @control_silo_test
