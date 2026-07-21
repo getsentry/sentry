@@ -77,6 +77,10 @@ class _GithubPrCommentFeedbackSourceBase(FeedbackSourceBase):
     # Top-level PR comments require it; inline review comments don't.
     require_command: ClassVar[bool]
     comment: GithubIssueComment
+    # "owner/repo" slug captured at trigger time so completion handling can rebuild
+    # the SCM client for the right repo. Optional so pre-existing serialized blobs
+    # still parse.
+    repo_name: str | None = None
     # Derived from `comment` by `_parse_comment` — the single place a comment is
     # turned into feedback. Declared as a field (default "") so it serializes,
     # mirroring `CheckSuiteFeedbackSource.app_name`.
