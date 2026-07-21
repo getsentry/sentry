@@ -78,8 +78,8 @@ function getTabOptions({
 
   if (
     sections.hasLogs ||
-    overview.logs.availability === 'unknown' ||
-    (overview.logs.availability === 'loading' &&
+    ((overview.logs.availability === 'loading' ||
+      overview.logs.availability === 'unknown') &&
       tabSlugFromUrl === TraceLayoutTabKeys.LOGS)
   ) {
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS]);
@@ -87,8 +87,8 @@ function getTabOptions({
 
   if (
     sections.hasMetrics ||
-    overview.metrics.availability === 'unknown' ||
-    (overview.metrics.availability === 'loading' &&
+    ((overview.metrics.availability === 'loading' ||
+      overview.metrics.availability === 'unknown') &&
       tabSlugFromUrl === TraceLayoutTabKeys.METRICS)
   ) {
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.METRICS]);

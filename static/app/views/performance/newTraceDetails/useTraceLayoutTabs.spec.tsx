@@ -176,6 +176,82 @@ describe('useTraceLayoutTabs', () => {
     }
   );
 
+  it.each([
+    [TraceLayoutTabKeys.LOGS, 'Logs'],
+    [TraceLayoutTabKeys.METRICS, 'Application Metrics'],
+  ])(
+    'includes only the deep-linked %s tab when availability is unknown',
+    (tabSlug, tabLabel) => {
+      setWindowLocation(
+        `http://localhost/organizations/org-slug/traces/trace-id/?tab=${tabSlug}`
+      );
+      const organization = OrganizationFixture();
+      const {result} = renderHookWithProviders(
+        () =>
+          useTraceLayoutTabs({
+            isLoading: false,
+            logsEnabled: true,
+            metricsEnabled: true,
+            overview: {
+              isRepresentativeLoading: false,
+              isTabLoading: false,
+              logs: {
+                availability: 'unknown',
+                count: undefined,
+                representative: undefined,
+              },
+              metrics: {
+                availability: 'unknown',
+                count: undefined,
+              },
+            },
+            tree: new TraceTree().build(),
+          }),
+        {organization}
+      );
+
+      expect(result.current.currentTab).toBe(tabSlug);
+      expect(result.current.tabOptions).toContainEqual({label: tabLabel, slug: tabSlug});
+      expect(result.current.tabOptions.map(tab => tab.slug)).not.toContain(
+        tabSlug === TraceLayoutTabKeys.LOGS
+          ? TraceLayoutTabKeys.METRICS
+          : TraceLayoutTabKeys.LOGS
+      );
+    }
+  );
+
+  it('does not include optional tabs with unknown availability by default', () => {
+    setWindowLocation('http://localhost/organizations/org-slug/traces/trace-id/');
+    const organization = OrganizationFixture();
+    const {result} = renderHookWithProviders(
+      () =>
+        useTraceLayoutTabs({
+          isLoading: false,
+          logsEnabled: true,
+          metricsEnabled: true,
+          overview: {
+            isRepresentativeLoading: false,
+            isTabLoading: false,
+            logs: {
+              availability: 'unknown',
+              count: undefined,
+              representative: undefined,
+            },
+            metrics: {
+              availability: 'unknown',
+              count: undefined,
+            },
+          },
+          tree: new TraceTree().build(),
+        }),
+      {organization}
+    );
+
+    expect(result.current.tabOptions.map(tab => tab.slug)).toEqual([
+      TraceLayoutTabKeys.WATERFALL,
+    ]);
+  });
+
   it.each([TraceLayoutTabKeys.LOGS, TraceLayoutTabKeys.METRICS])(
     'switches directly from loading to the resolved %s tab',
     resolvedTab => {
