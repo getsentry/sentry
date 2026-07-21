@@ -161,6 +161,8 @@ def test_apply_gpu_crash_symbolication_shape() -> None:
     assert data["release"] == "game@1.2.3"
     # teapot's decode is applied.
     assert data["level"] == "fatal"
+    # Typed as an error so the title comes from the exception, not "<unlabeled event>".
+    assert data["type"] == "error"
     exc = data["exception"]["values"][0]
     assert exc["type"] == "GPU hang in vertex_02"
     assert exc["mechanism"] == {"type": "gpu_crash", "handled": False}
