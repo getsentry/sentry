@@ -105,6 +105,24 @@ describe('Testing new onboarding ui', () => {
     ).toBeInTheDocument();
   });
 
+  it('links to Trace Explorer docs when the tracing checklist is unavailable', async () => {
+    const projectMock = ProjectFixture({
+      platform: 'react-native',
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: projectMock,
+    });
+
+    render(<Onboarding organization={organization} project={projectMock} />);
+
+    expect(
+      await screen.findByRole('button', {name: 'Go to Documentation'})
+    ).toHaveAttribute('href', 'https://docs.sentry.io/product/trace-explorer/');
+  });
+
   it('when the first trace is received, display a busy button "Take me to my trace"', async () => {
     const projectMock = ProjectFixture({
       platform: 'javascript-react',
