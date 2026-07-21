@@ -138,7 +138,6 @@ function InboxContent() {
           as="section"
           aria-label={t('Issue inbox')}
           minHeight={0}
-          overflowY="auto"
           display={selectedIssueId ? {'screen:xs': 'none', 'screen:md': 'flex'} : 'flex'}
           background="primary"
           borderRight="muted"
@@ -167,16 +166,18 @@ function InboxContent() {
               </SegmentedControl.Item>
             </SegmentedControl>
           </Flex>
-          {SECTIONS.map(section => (
-            <InboxSection
-              key={section.key}
-              section={section}
-              assignmentFilter={assignmentFilter}
-              selection={selection}
-              isReady={isReady}
-              selectedIssueId={selectedIssueId}
-            />
-          ))}
+          <Stack flex={1} minHeight={0} overflowY="auto">
+            {SECTIONS.map(section => (
+              <InboxSection
+                key={section.key}
+                section={section}
+                assignmentFilter={assignmentFilter}
+                selection={selection}
+                isReady={isReady}
+                selectedIssueId={selectedIssueId}
+              />
+            ))}
+          </Stack>
         </Stack>
         <Stack
           as="aside"
