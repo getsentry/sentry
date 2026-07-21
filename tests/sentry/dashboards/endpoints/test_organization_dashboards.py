@@ -910,42 +910,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             organization=self.organization, title="12345"
         ).exists()
 
-    def test_post_with_numeric_string_title(self) -> None:
-        # Create a dashboard with an all-numeric string title first so the
-        # duplicate-title retry path runs and incremental_title is exercised.
-        Dashboard.objects.create(
-            title="12345",
-            created_by_id=self.user.id,
-            organization=self.organization,
-        )
-        response = self.do_request("post", self.url, data={"title": "12345"})
-        assert response.status_code == 201
-        assert Dashboard.objects.filter(
-            organization=self.organization, title="12345 copy"
-        ).exists()
-
-    def test_post_with_numeric_string_title_multiple_increments(self) -> None:
-        # Pre-create "12345" and "12345 copy" so that the third POST must
-        # produce "12345 copy 1".
-        Dashboard.objects.create(
-            title="12345",
-            created_by_id=self.user.id,
-            organization=self.organization,
-        )
-        Dashboard.objects.create(
-            title="12345 copy",
-            created_by_id=self.user.id,
-            organization=self.organization,
-        )
-        response = self.do_request("post", self.url, data={"title": "12345"})
-        assert response.status_code == 201
-        assert Dashboard.objects.filter(
-            organization=self.organization, title="12345 copy 1"
-        ).exists()
-
     def test_post_with_numeric_string_title_keeps_incrementing(self) -> None:
-        # Repeatedly POST with title "12345" and confirm the copy count keeps
-        # incrementing: "12345" -> "12345 copy" -> "12345 copy 1" -> "12345 copy 2"
         expected_titles = ["12345", "12345 copy", "12345 copy 1", "12345 copy 2"]
         for expected_title in expected_titles:
             response = self.do_request("post", self.url, data={"title": "12345"})
