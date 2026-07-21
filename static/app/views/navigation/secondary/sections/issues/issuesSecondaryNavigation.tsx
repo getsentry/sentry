@@ -34,15 +34,26 @@ export function IssuesSecondaryNavigation() {
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
             {organization.features.includes('issue-stream-progress-ui') && (
-              <SecondaryNavigation.ListItem>
-                <SecondaryNavigation.Link
-                  to={`${baseUrl}/awaiting-input/`}
-                  end
-                  analyticsItemName="issues_awaiting_input"
-                >
-                  {t('Awaiting Input')}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
+              <Fragment>
+                <SecondaryNavigation.ListItem>
+                  <SecondaryNavigation.Link
+                    to={`${baseUrl}/inbox/`}
+                    end
+                    analyticsItemName="issues_inbox"
+                  >
+                    {t('Inbox')}
+                  </SecondaryNavigation.Link>
+                </SecondaryNavigation.ListItem>
+                <SecondaryNavigation.ListItem>
+                  <SecondaryNavigation.Link
+                    to={`${baseUrl}/awaiting-input/`}
+                    end
+                    analyticsItemName="issues_awaiting_input"
+                  >
+                    {t('Awaiting Input')}
+                  </SecondaryNavigation.Link>
+                </SecondaryNavigation.ListItem>
+              </Fragment>
             )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
