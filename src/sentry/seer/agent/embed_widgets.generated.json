@@ -128,5 +128,24 @@
         }
       }
     ]
+  },
+  {
+    "name": "issue",
+    "description": "Reference a Sentry issue. Inline renders a compact link labeled with the issue short id; block renders the full issue feed row. Provide the numeric groupId and the human-readable shortId (e.g. \"JAVASCRIPT-2X4\").",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "groupId": {
+          "type": "string"
+        },
+        "shortId": {
+          "type": "string"
+        }
+      },
+      "required": ["groupId", "shortId"],
+      "additionalProperties": false
+    }
   }
 ]
