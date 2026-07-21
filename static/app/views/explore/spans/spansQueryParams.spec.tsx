@@ -404,6 +404,16 @@ describe('getReadableQueryParamsFromLocation', () => {
 });
 
 describe('getTargetWithReadableQueryParams', () => {
+  it('removes the aggregate cursor when it is reset', () => {
+    const location = locationFixture({aggregateCursor: '0:50:0'});
+    const target = getTargetWithReadableQueryParams(location, {
+      aggregateCursor: null,
+      query: 'span.name:checkout',
+    });
+
+    expect(target.query).toEqual({query: 'span.name:checkout'});
+  });
+
   it('writes breakdown query params', () => {
     const location = locationFixture({});
     const target = getTargetWithReadableQueryParams(location, {
