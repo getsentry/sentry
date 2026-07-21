@@ -420,12 +420,10 @@ def _get_eligible_orgs_from_batch(
         if not eligible:
             return []
 
-    # Skip the per-org tier lookup entirely once legacy orgs are enabled, rather
-    # than OR'ing it into the filter per org.
-    if not options.get("seer.night_shift.enable_for_legacy_orgs"):
-        eligible = [org for org in eligible if is_seer_seat_based_tier_enabled(org)]
+    if options.get("seer.night_shift.enable_for_legacy_orgs"):
+        return eligible
 
-    return eligible
+    return [org for org in eligible if is_seer_seat_based_tier_enabled(org)]
 
 
 def _record_run_error(run: SeerNightShiftRun, message: str) -> None:
