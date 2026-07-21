@@ -340,13 +340,17 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         set_assemble_status(AssembleTask.DIF, project_id, checksum, ChunkFileState.ASSEMBLING)
 
         if features.has("organizations:objectstore-debugfiles-assemble", project.organization):
-            rv = assemble_file_blobs_to_temp(AssembleTask.DIF, project, name, checksum, chunks)
-            if rv is None:
+            temporary_result = assemble_file_blobs_to_temp(
+                AssembleTask.DIF, project, name, checksum, chunks
+            )
+            if temporary_result is None:
                 return
 
-            with rv.temp_file:
+            with temporary_result.temp_file:
                 try:
-                    meta = detect_dif_from_file(rv.temp_file.name, name=name, debug_id=debug_id)
+                    meta = detect_dif_from_file(
+                        temporary_result.temp_file.name, name=name, debug_id=debug_id
+                    )
                 except BadDif as e:
                     set_assemble_status(
                         AssembleTask.DIF,
@@ -358,16 +362,20 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                     return
 
                 dif, created = create_objectstore_dif_from_id(
-                    project, meta, rv.temp_file, rv.checksum, rv.file_size
+                    project,
+                    meta,
+                    temporary_result.temp_file,
+                    temporary_result.checksum,
+                    temporary_result.file_size,
                 )
         else:
-            rv = assemble_file(
+            assemble_result = assemble_file(
                 AssembleTask.DIF, project, name, checksum, chunks, file_type="project.dif"
             )
-            if rv is None:
+            if assemble_result is None:
                 return
 
-            file, temp_file = rv
+            file, temp_file = assemble_result
             delete_file = True
 
             with temp_file:
