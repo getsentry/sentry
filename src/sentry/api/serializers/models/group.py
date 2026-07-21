@@ -113,6 +113,39 @@ class GroupProjectResponse(TypedDict):
     platform: str | None
 
 
+class FeedbackSdkMetadataResponse(TypedDict):
+    """SDK identity stored in Feedback issue metadata when available."""
+
+    name: str
+    name_normalized: str
+
+
+class FeedbackGroupMetadataOptional(TypedDict, total=False):
+    """Feedback metadata omitted from historical issues or absent by design."""
+
+    associated_event_id: str
+    initial_priority: int
+    sdk: FeedbackSdkMetadataResponse
+    source: str | None
+    summary: str | None
+
+
+class FeedbackGroupMetadataResponse(FeedbackGroupMetadataOptional):
+    """Metadata returned for modern User Feedback issue groups."""
+
+    contact_email: str | None
+    message: str
+    name: str | None
+    title: str
+    value: str
+
+
+# Issue endpoints return heterogeneous group categories. Keeping the generic
+# branch preserves metadata from other issue types while exposing Feedback's
+# stable fields to generated OpenAPI clients.
+GroupMetadataResponse = dict[str, Any] | FeedbackGroupMetadataResponse
+
+
 class BaseGroupResponseOptional(TypedDict, total=False):
     isUnhandled: bool
     count: str
@@ -145,7 +178,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     type: EventTypeStr
     issueType: str
     issueCategory: str
-    metadata: dict[str, Any]
+    metadata: GroupMetadataResponse
     numComments: int
     assignedTo: ActorSerializerResponse | None
     isBookmarked: bool
@@ -1222,7 +1255,7 @@ class SimpleGroupSerializerResponse(TypedDict):
     type: EventTypeStr
     issueType: str
     issueCategory: str
-    metadata: dict[str, Any]
+    metadata: GroupMetadataResponse
     numComments: int
     firstSeen: datetime | None
     lastSeen: datetime | None

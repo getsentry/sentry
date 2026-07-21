@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any, Literal, TypedDict
+from unittest.mock import patch
 
 import pytest
 from drf_spectacular.openapi import AutoSchema
@@ -9,6 +10,8 @@ from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry.api.serializers import Serializer
+from sentry.api.serializers.models.group import GroupDetailsResponse
+from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnubaResponse
 from sentry.apidocs.extensions import (
     RestrictedJsonFieldExtension,
     SentryInlineResponseSerializerExtension,
@@ -121,6 +124,68 @@ def test_sentry_inline_response_serializer_extension() -> None:
             "required": ["b", "c", "d", "e", "f", "g", "h", "i"],
         },
     }
+
+
+@patch.dict("os.environ", {"OPENAPIGENERATE": "1"})
+def test_issue_responses_document_feedback_metadata() -> None:
+    detail_serializer = inline_sentry_response_serializer("IssueDetail", GroupDetailsResponse)
+    detail_schema = SentryInlineResponseSerializerExtension(detail_serializer).map_serializer(
+        AutoSchema(), "response"
+    )
+    list_serializer = inline_sentry_response_serializer(
+        "IssueList", list[StreamGroupSerializerSnubaResponse]
+    )
+    list_schema = SentryInlineResponseSerializerExtension(list_serializer).map_serializer(
+        AutoSchema(), "response"
+    )
+    metadata_schemas = [
+        detail_schema["properties"]["metadata"],
+        list_schema["items"]["properties"]["metadata"],
+    ]
+
+    for metadata_schema in metadata_schemas:
+        assert metadata_schema["anyOf"][0] == {
+            "type": "object",
+            "additionalProperties": {},
+        }
+        feedback_schema = metadata_schema["anyOf"][1]
+
+        assert set(feedback_schema["properties"]) == {
+            "associated_event_id",
+            "contact_email",
+            "initial_priority",
+            "message",
+            "name",
+            "sdk",
+            "source",
+            "summary",
+            "title",
+            "value",
+        }
+        assert set(feedback_schema["required"]) == {
+            "contact_email",
+            "message",
+            "name",
+            "title",
+            "value",
+        }
+        assert feedback_schema["properties"]["initial_priority"] == {"type": "integer"}
+        assert feedback_schema["properties"]["contact_email"] == {
+            "type": "string",
+            "nullable": True,
+        }
+        assert feedback_schema["properties"]["name"] == {
+            "type": "string",
+            "nullable": True,
+        }
+        assert feedback_schema["properties"]["sdk"]["properties"] == {
+            "name": {"type": "string"},
+            "name_normalized": {"type": "string"},
+        }
+        assert feedback_schema["properties"]["sdk"]["required"] == [
+            "name",
+            "name_normalized",
+        ]
 
 
 def test_sentry_fails_when_serializer_not_typed() -> None:

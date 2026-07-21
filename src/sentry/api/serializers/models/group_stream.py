@@ -16,6 +16,7 @@ from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupAnnotation,
     GroupLevelStr,
+    GroupMetadataResponse,
     GroupProjectResponse,
     GroupSerializer,
     GroupSerializerSnuba,
@@ -270,7 +271,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     type: NotRequired[EventTypeStr]
     issueType: NotRequired[str]
     issueCategory: NotRequired[str]
-    metadata: NotRequired[dict[str, Any]]
+    metadata: NotRequired[GroupMetadataResponse]
     numComments: NotRequired[int]
     assignedTo: NotRequired[ActorSerializerResponse | None]
     isBookmarked: NotRequired[bool]
