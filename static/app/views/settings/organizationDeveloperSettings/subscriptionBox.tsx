@@ -29,7 +29,6 @@ type Props = {
   onEventChange: (event: WebhookGranularEvent, checked: boolean) => void;
   resource: Resource;
   selectedEvents: WebhookGranularEvent[];
-  webhookDisabled?: boolean;
 };
 
 export function SubscriptionBox({
@@ -40,7 +39,6 @@ export function SubscriptionBox({
   onEventChange,
   resource,
   selectedEvents,
-  webhookDisabled = false,
 }: Props) {
   const {features} = useOrganization();
 
@@ -51,7 +49,7 @@ export function SubscriptionBox({
     return null;
   }
 
-  let disabled = disabledFromPermissions || webhookDisabled;
+  let disabled = disabledFromPermissions;
   let message = t(
     "Must have at least 'Read' permissions enabled for %s",
     PERMISSIONS_MAP[resource]
@@ -62,10 +60,6 @@ export function SubscriptionBox({
     message = t(
       'Your organization does not have access to the error subscription resource.'
     );
-  }
-
-  if (webhookDisabled) {
-    message = t('Cannot enable webhook subscription without specifying a webhook url');
   }
 
   const granular = features.includes('sentry-apps-granular-events');

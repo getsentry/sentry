@@ -87,7 +87,7 @@ export function OurlogsDrawer({
     [event, propAdditionalData?.scrollToDisabled]
   );
 
-  const exploreUrl = useEventLogsUrl(event, project);
+  const exploreUrl = useEventLogsUrl(event);
 
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProps}>

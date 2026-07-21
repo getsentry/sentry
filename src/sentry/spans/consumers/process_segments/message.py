@@ -39,6 +39,7 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.receivers.features import record_generic_event_processed
 from sentry.receivers.onboarding import record_release_received
+from sentry.releases.auto_creation import should_auto_create_releases
 from sentry.signals import first_insight_span_received, first_transaction_received
 from sentry.spans.consumers.process_segments.enrichment import TreeEnricher, compute_breakdowns
 from sentry.spans.consumers.process_segments.shim import build_shim_event_data, make_compatible
@@ -59,8 +60,14 @@ outcome_aggregator = OutcomeAggregator()
 
 @metrics.wraps("spans.consumers.process_segments.process_segment")
 def process_segment(
-    unprocessed_spans: list[SpanEvent], skip_produce: bool = False, skip_enrichment: bool = False
+    unprocessed_spans: list[SpanEvent],
+    skip_produce: bool = False,
+    skip_enrichment: bool = False,
+    start_new_transaction: bool = True,
 ) -> list[CompatibleSpan]:
+    if not start_new_transaction:
+        return _process_segment(unprocessed_spans, skip_produce, skip_enrichment)
+
     sample_rate = (
         settings.SENTRY_PROCESS_SEGMENTS_TRANSACTIONS_SAMPLE_RATE
         * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING
@@ -269,13 +276,22 @@ def _create_models(
         return
 
     try:
-        release = Release.get_or_create(project=project, version=release_name, date_added=date)
+        release = Release.get_or_create(
+            project=project,
+            version=release_name,
+            date_added=date,
+            create=should_auto_create_releases(project),
+        )
     except ValidationError:
         # Avoid catching a stacktrace here, the codepath is very hot
         logger.warning(
             "Failed creating Release due to ValidationError",
             extra={"project": project, "version": release_name},
         )
+        return
+
+    if release is None:
+        metrics.incr("spans.consumers.process_segments.release_autocreation_skipped")
         return
 
     if dist_name:
@@ -462,8 +478,17 @@ def _bump_release_last_seen(
     environment = Environment.get_or_create(project=project, name=environment_name)
 
     try:
-        release = Release.get_or_create(project=project, version=release_name, date_added=date)
+        release = Release.get_or_create(
+            project=project,
+            version=release_name,
+            date_added=date,
+            create=should_auto_create_releases(project),
+        )
     except ValidationError:
+        return
+
+    if release is None:
+        metrics.incr("spans.consumers.process_segments.release_autocreation_skipped")
         return
 
     # Bumps release-environment last-seen.

@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -51,10 +52,12 @@ export function HeaderCheckOpRow({node}: {node: HeaderCheckOpTreeNode}) {
   );
 
   return (
-    <Tooltip title={<Text variant="muted">{content}</Text>} showOnlyOnOverflow>
-      <Text variant="muted" ellipsis>
-        {content}
-      </Text>
-    </Tooltip>
+    <InfoText
+      title={<Text variant="muted">{content}</Text>}
+      mode="overflowOnly"
+      variant="muted"
+    >
+      {content}
+    </InfoText>
   );
 }

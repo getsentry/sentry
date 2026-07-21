@@ -87,6 +87,17 @@ ruleTester.run('no-unnecessary-type-annotation', noUnnecessaryTypeAnnotation, {
       filename: 'valid.ts',
     },
     {
+      name: 'nested arrow function with untyped parameter (annotation provides contextual parameter types)',
+      code: `
+        declare function TrackingContextProvider(props: {
+          value: () => (props: {eventName?: string}) => void;
+        }): React.ReactNode;
+        const tracking: React.ComponentProps<typeof TrackingContextProvider>['value'] =
+          () => props => {};
+      `,
+      filename: 'valid.ts',
+    },
+    {
       name: 'call expression with untyped callback (contextual typing flows through generic)',
       code: `
         declare function useCallback<T>(fn: T): T;
@@ -228,6 +239,23 @@ ruleTester.run('no-unnecessary-type-annotation', noUnnecessaryTypeAnnotation, {
       name: 'let with literal that TypeScript already widens',
       code: "let x: string = '';",
       output: "let x = '';",
+      errors: [{messageId: 'unnecessary' as const}],
+      filename: 'invalid.ts',
+    },
+    {
+      name: 'unnecessary annotation despite unrelated untyped helper in function body',
+      code: `
+        const fn: (x: number) => number = (x: number) => {
+          const helper = y => y;
+          return x;
+        };
+      `,
+      output: `
+        const fn = (x: number) => {
+          const helper = y => y;
+          return x;
+        };
+      `,
       errors: [{messageId: 'unnecessary' as const}],
       filename: 'invalid.ts',
     },

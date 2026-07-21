@@ -924,6 +924,88 @@ describe('ArtifactCard', () => {
       expect(screen.getByTestId('icon-github')).toBeInTheDocument();
     });
 
+    it('shows a formatted check-suite label instead of the raw feedback text', () => {
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [
+            {
+              text: 'raw text',
+              ui_text: 'check suite for app CI failed',
+              source: {
+                type: 'check-suite',
+                app_name: 'CI',
+                event: {
+                  check_suite: {id: 999, head_sha: 'abc123'},
+                  repository: {html_url: 'https://github.com/org/repo'},
+                },
+              },
+            },
+          ],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('CI check suite failed')).toBeInTheDocument();
+      expect(screen.queryByText(/raw text/)).not.toBeInTheDocument();
+    });
+
+    it('links check-suite feedback to the failing check suite', () => {
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [
+            {
+              text: 'raw text',
+              source: {
+                type: 'check-suite',
+                app_name: 'CI',
+                event: {
+                  check_suite: {id: 999, head_sha: 'abc123'},
+                  repository: {html_url: 'https://github.com/org/repo'},
+                },
+              },
+            },
+          ],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      const link = screen.getByRole('link', {name: 'CI check suite failed'});
+      expect(link).toHaveAttribute(
+        'href',
+        'https://github.com/org/repo/commit/abc123/checks?check_suite_id=999'
+      );
+    });
+
     it('shows the code changes for queued feedback without the feature flag', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,

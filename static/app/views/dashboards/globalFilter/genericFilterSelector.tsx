@@ -13,27 +13,17 @@ export type GenericFilterSelectorProps = {
   disableRemoveFilter?: boolean;
 };
 
-function getFilterSelector(
-  globalFilter: GlobalFilter
-): React.ComponentType<GenericFilterSelectorProps> {
-  const fieldDefinition = getFieldDefinitionForDataset(
-    globalFilter.tag,
-    globalFilter.dataset
-  );
-  switch (fieldDefinition?.valueType) {
-    case FieldValueType.NUMBER:
-    case FieldValueType.DURATION:
-      return NumericFilterSelector;
-    case FieldValueType.STRING:
-    default:
-      return FilterSelector;
-  }
-}
-
 export function GenericFilterSelector({
   globalFilter,
   ...props
 }: GenericFilterSelectorProps) {
-  const FilterSelectorForType = getFilterSelector(globalFilter);
-  return <FilterSelectorForType globalFilter={globalFilter} {...props} />;
+  const fieldDefinition = getFieldDefinitionForDataset(
+    globalFilter.tag,
+    globalFilter.dataset
+  );
+  const isNumericType =
+    fieldDefinition?.valueType === FieldValueType.NUMBER ||
+    fieldDefinition?.valueType === FieldValueType.DURATION;
+  const Component = isNumericType ? NumericFilterSelector : FilterSelector;
+  return <Component globalFilter={globalFilter} {...props} />;
 }

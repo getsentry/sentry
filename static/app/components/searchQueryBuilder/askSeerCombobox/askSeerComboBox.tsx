@@ -485,9 +485,12 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             </Stack>
           ) : data?.queries && (data?.queries?.length ?? 0) > 0 ? (
             <Stack flex="1" onMouseLeave={onMouseLeave}>
-              <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
+              {hasAskSeerUxRework ? null : (
+                <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
+              )}
               <AskSeerSearchListBox
                 {...listBoxProps}
+                hasAskSeerUxRework={hasAskSeerUxRework}
                 listBoxRef={listBoxRef}
                 state={state}
               />

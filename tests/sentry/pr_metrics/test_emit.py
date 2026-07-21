@@ -8,6 +8,7 @@ from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
     PullRequestActivity,
+    PullRequestActivityLog,
     PullRequestActivityType,
     PullRequestAttribution,
     PullRequestAttributionSignalType,
@@ -328,6 +329,136 @@ class PrMetricsEmissionTest(TestCase):
         assert row.review_comments_count == 6
         assert row.is_assigned is True
 
+    def test_build_row_carries_repository_provider(self) -> None:
+        # setUp's repo is created with the prefixed "integrations:github" form —
+        # the row carries the normalized slug.
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.repository_provider == "github"
+
+    def test_build_row_repository_provider_null_when_repository_deleted(self) -> None:
+        self.repo.delete()
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.repository_provider is None
+
+    def test_build_row_repository_is_public_null_when_no_opened_activity(self) -> None:
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.repository_is_public is None
+
+    def test_build_row_repository_is_public_from_legacy_activity_row(self) -> None:
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="opened-1",
+            event_type=PullRequestActivityType.OPENED,
+            payload={"is_private": False},
+        )
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.repository_is_public is True
+
+    def test_build_row_repository_is_public_false_for_private_repo(self) -> None:
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="opened-1",
+            event_type=PullRequestActivityType.OPENED,
+            payload={"is_private": True},
+        )
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.repository_is_public is False
+
+    def test_build_row_repository_is_public_from_activity_document(self) -> None:
+        # The doc-routed store takes priority over (and here, is the only)
+        # source — mirrors the webhook side's per-PR routing.
+        PullRequestActivityLog.objects.create(
+            pull_request=self.pull_request,
+            data={
+                "version": 1,
+                "events": [
+                    {
+                        "event_type": PullRequestActivityType.OPENED,
+                        "ts": "2020-06-04T09:00:00Z",
+                        "event_at": None,
+                        "webhook_id": "opened-1",
+                        "payload": {"is_private": False},
+                    }
+                ],
+            },
+        )
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.repository_is_public is True
+
+    def test_build_row_repository_is_public_empty_document_fallback_to_legacy(self) -> None:
+        # Edge case: PullRequestActivityLog exists but has empty data {}
+        # Should fall back to legacy store instead of treating as document
+        PullRequestActivityLog.objects.create(
+            pull_request=self.pull_request,
+            data={},  # Empty document - no version field
+        )
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="opened-1",
+            event_type=PullRequestActivityType.OPENED,
+            payload={"is_private": False},
+        )
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        # Should read from legacy store, not fail due to empty document
+        assert row.repository_is_public is True
+
+    def test_build_row_repository_is_public_no_version_document_fallback_to_legacy(self) -> None:
+        # Edge case: PullRequestActivityLog exists but has no version field
+        # Should fall back to legacy store (orphaned document from failed fold)
+        PullRequestActivityLog.objects.create(
+            pull_request=self.pull_request,
+            data={"events": []},  # Document without version - treated as orphaned
+        )
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="opened-1",
+            event_type=PullRequestActivityType.OPENED,
+            payload={"is_private": False},
+        )
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        # Should read from legacy store, not fail due to versionless document
+        assert row.repository_is_public is True
+
     def test_build_row_counters_default_to_zero_when_metrics_row_absent(self) -> None:
         # A PR Sentry never saw active has no PullRequestMetrics row; emit
         # coalesces every counter to its zero/false default.
@@ -646,6 +777,7 @@ class PrMetricsEmissionTest(TestCase):
             PrCloseMetricsEvent(
                 organization_id=self.organization.id,
                 repository_id=self.repo.id,
+                repository_provider="github",
                 pull_request_id=self.pull_request.id,
                 pr_key="42",
                 group_ids=[],
