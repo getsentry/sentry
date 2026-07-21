@@ -206,7 +206,9 @@ export function useTraceOverviewData({
   );
 
   const representativeLogLoading =
-    shouldFetchRepresentativeLog && representativeLogResult.status === 'pending';
+    tree.type === 'empty' &&
+    (logsAvailability === 'loading' ||
+      (shouldFetchRepresentativeLog && representativeLogResult.status === 'pending'));
   const summaryLoading =
     logsAvailability === 'loading' || metricsAvailability === 'loading';
 

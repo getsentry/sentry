@@ -46,7 +46,7 @@ import {
   getInitialTracePreferences,
   TRACE_WATERFALL_TIME_COMPRESSION_FEATURE,
 } from './traceState/tracePreferences';
-import {useTraceState, TraceStateProvider} from './traceState/traceStateProvider';
+import {TraceStateProvider} from './traceState/traceStateProvider';
 import {ErrorsOnlyWarnings} from './traceTypeWarnings/errorsOnlyWarnings';
 import {TraceMetaDataHeader} from './traceHeader';
 import {useTraceEventView} from './useTraceEventView';
@@ -102,7 +102,6 @@ export default function TraceView() {
 
 function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
-  const traceState = useTraceState();
   const logsEnabled = isLogsEnabled(organization);
   const metricsEnabled = canUseMetricsUI(organization);
   const queryParams = useTraceQueryParams();
@@ -212,22 +211,18 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
               logs={representativeLogs}
               tree={tree}
             />
-            <TraceViewLogsPageDataProvider
-              disabled={traceState.tabs.current_tab === null}
-            >
-              <TraceWaterfall
-                tree={tree}
-                trace={trace}
-                meta={meta}
-                replay={null}
-                source="performance"
-                rootEventResults={rootEventResults}
-                traceSlug={traceSlug}
-                traceEventView={traceEventView}
-                organization={organization}
-                hideIfNoData={false}
-              />
-            </TraceViewLogsPageDataProvider>
+            <TraceWaterfall
+              tree={tree}
+              trace={trace}
+              meta={meta}
+              replay={null}
+              source="performance"
+              rootEventResults={rootEventResults}
+              traceSlug={traceSlug}
+              traceEventView={traceEventView}
+              organization={organization}
+              hideIfNoData={false}
+            />
           </Fragment>
         ) : null}
         {!isResolvingEmptyTraceTab && currentTab === TraceLayoutTabKeys.PROFILES ? (
