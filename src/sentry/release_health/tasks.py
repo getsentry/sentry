@@ -196,7 +196,7 @@ def _handle_release_adoption(
     except (Release.DoesNotExist, ReleaseProjectEnvironment.DoesNotExist):
         metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
         try:
-            project = Project.objects.get(id=project_id)
+            project = Project.objects.select_related("organization").get(id=project_id)
             create_release = should_auto_create_releases(project)
 
             env = Environment.objects.get_or_create(name=environment_name, organization_id=org_id)[
