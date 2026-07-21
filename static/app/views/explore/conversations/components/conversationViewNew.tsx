@@ -1,6 +1,6 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {parseAsBoolean, parseAsStringLiteral, useQueryStates} from 'nuqs';
+import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
@@ -16,6 +16,7 @@ import {
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
 import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
+import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -52,7 +53,6 @@ export function ConversationViewContentNew({
 
   const [detailState, setDetailState] = useQueryStates(
     {
-      detailOpen: parseAsBoolean.withDefault(true),
       detailTab: parseAsStringLiteral(CONVERSATION_SPAN_DETAIL_TABS).withDefault('input'),
     },
     {history: 'replace'}
@@ -64,17 +64,49 @@ export function ConversationViewContentNew({
     onSelectSpan,
     focusedTool,
     isLoading,
-    // Neither view auto-selects a span on load. The span detail only opens on
-    // user action or when a span is deep-linked in the URL.
+    // The hook never auto-selects a default: `selectedNode` reflects only the
+    // sticky selection from the URL (a user click or a deep link), which is why
+    // it survives switching tabs. The timeline's default span is layered on
+    // below as view-local state so it never leaks back into the transcript.
     autoSelectDefaultNode: false,
   });
+
+  // The timeline opens on its first span by default; the transcript opens on
+  // nothing. This default is view-local (never written to the URL) so returning
+  // to the transcript only keeps a span open when one was selected manually.
+  const defaultTimelineNode = useMemo(() => getDefaultSelectedNode(nodes), [nodes]);
+  const [timelineDefaultDismissed, setTimelineDefaultDismissed] = useState(false);
+
+  // Re-show the timeline default each time the user enters the timeline tab.
+  useEffect(() => {
+    setTimelineDefaultDismissed(false);
+  }, [activeTab]);
+
+  const displayedNode = useMemo(() => {
+    if (selectedNode) {
+      return selectedNode;
+    }
+    if (isTimeline && !timelineDefaultDismissed) {
+      return defaultTimelineNode;
+    }
+    return;
+  }, [selectedNode, isTimeline, timelineDefaultDismissed, defaultTimelineNode]);
+
   const handleSelectAndOpenDetail = useCallback(
     (node: AITraceSpanNode) => {
-      setDetailState({detailOpen: true});
+      setTimelineDefaultDismissed(false);
       handleSelectNode(node);
     },
-    [handleSelectNode, setDetailState]
+    [handleSelectNode]
   );
+
+  const handleCloseDetail = useCallback(() => {
+    // Dismiss the timeline default and clear any sticky selection so the pane
+    // closes on both tabs and does not spring back to the default.
+    setTimelineDefaultDismissed(true);
+    setDetailState({detailTab: null});
+    onDeselectSpan?.();
+  }, [onDeselectSpan, setDetailState]);
 
   useEffect(() => {
     if (!isLoading && !error && nodes.length === 0) {
@@ -103,7 +135,7 @@ export function ConversationViewContentNew({
             <MessagesPanelNew
               isLoading={isLoading}
               nodes={nodes}
-              selectedNodeId={selectedNode?.id ?? null}
+              selectedNodeId={displayedNode?.id ?? null}
               onSelectNode={handleSelectAndOpenDetail}
               onViewTimeline={onViewTimeline}
             />
@@ -111,28 +143,25 @@ export function ConversationViewContentNew({
             <AiSpanTimeline
               isLoading={isLoading}
               nodes={nodes}
-              selectedNodeKey={selectedNode?.id ?? ''}
+              selectedNodeKey={displayedNode?.id ?? ''}
               onSelectNode={handleSelectAndOpenDetail}
               compressGaps
             />
           )
         }
         right={
-          // Only show the detail pane (and its loading skeleton) when a span is
-          // deep-linked in the URL, or once the user has selected one.
-          detailState.detailOpen &&
-          (isLoading ? Boolean(selectedSpanId) : Boolean(selectedNode)) ? (
+          // Show the detail pane once a span is resolved: a deep link or manual
+          // selection (either tab), or the timeline's default span. While
+          // loading, only the deep-linked skeleton is known.
+          (isLoading ? Boolean(selectedSpanId) : Boolean(displayedNode)) ? (
             <ConversationSpanDetail
               isLoading={isLoading}
               scrollResetKey={activeTab}
-              node={selectedNode ?? undefined}
-              traceId={selectedNode ? (nodeTraceMap?.get(selectedNode.id) ?? '') : ''}
+              node={displayedNode ?? undefined}
+              traceId={displayedNode ? (nodeTraceMap?.get(displayedNode.id) ?? '') : ''}
               activeTab={detailState.detailTab}
               onTabChange={detailTab => setDetailState({detailTab})}
-              onClose={() => {
-                setDetailState({detailOpen: false, detailTab: null});
-                onDeselectSpan?.();
-              }}
+              onClose={handleCloseDetail}
             />
           ) : null
         }
