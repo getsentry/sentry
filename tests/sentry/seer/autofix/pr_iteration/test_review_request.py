@@ -5,12 +5,15 @@ import orjson
 
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
-from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
-from sentry.seer.autofix.pr_iteration.ci_green import CI_GREEN_EXTRA
+from sentry.seer.autofix.pr_iteration.check_suites import (
+    CheckRunsSweep,
+    CheckSuiteAutofixRun,
+    bootstrap_green_check_suite,
+)
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.review_request import (
     REVIEW_REQUESTS_EXTRA,
-    request_review_for_green_check_suite,
+    request_review_from_context,
 )
 from sentry.seer.autofix.pr_iteration.reviewer_candidates import (
     REVIEWER_CANDIDATES_EXTRA,
@@ -81,7 +84,14 @@ def _pull_request_result(
     }
 
 
-class RequestReviewForGreenCheckSuiteTest(TestCase):
+def _request_review(event: CheckSuiteEvent | None = None) -> None:
+    ctx = bootstrap_green_check_suite(event or _green_event())
+    if ctx is None:
+        return
+    request_review_from_context(ctx)
+
+
+class RequestReviewFromContextTest(TestCase):
     """End-to-end through the real candidate collection."""
 
     def setUp(self) -> None:
@@ -92,7 +102,6 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         self.seer_run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=RUN_ID, user_id=self.user.id
         )
-        self._mark_ci_green()
         repos_patcher = patch(
             f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories", return_value=[self.repo]
         )
@@ -106,16 +115,12 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         proto_patcher = patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
         proto_patcher.start()
         self.addCleanup(proto_patcher.stop)
-
-    def _mark_ci_green(self, *, head_sha: str = HEAD_SHA) -> None:
-        self.seer_run.update(
-            extras={
-                **(self.seer_run.extras or {}),
-                CI_GREEN_EXTRA: {
-                    REPO_NAME: {"marked_at": "2024-01-01T00:00:00+00:00", "head_sha": head_sha}
-                },
-            }
+        sweep_patcher = patch(
+            f"{CHECK_SUITES_PATH}.sweep_check_runs",
+            return_value=CheckRunsSweep(total=1, incomplete=0, failed=0),
         )
+        sweep_patcher.start()
+        self.addCleanup(sweep_patcher.stop)
 
     def _resolved(self, *, commit_sha: str = HEAD_SHA) -> CheckSuiteAutofixRun:
         run_state = SeerRunState(
@@ -154,7 +159,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         self.get_pr.return_value = _pull_request_result()
 
         with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
+            _request_review(_green_event())
 
         scm, pr_number, reviewers = mock_actions.request_review.call_args[0]
         assert pr_number == str(PR_NUMBER)
@@ -181,7 +186,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
     ) -> None:
         mock_resolve.return_value = self._resolved()
 
-        request_review_for_green_check_suite(_green_event())
+        _request_review(_green_event())
 
         # The flag gate runs before any Seer lookup so disabled orgs cost nothing.
         mock_resolve.assert_not_called()
@@ -195,11 +200,11 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         self, _mock_resolve: MagicMock, mock_actions: MagicMock, mock_metrics: MagicMock
     ) -> None:
         with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
+            _request_review(_green_event())
 
         mock_actions.request_review.assert_not_called()
         mock_metrics.incr.assert_called_once_with(
-            "autofix.pr_iteration.review_request.run_resolved", tags={"found": "false"}
+            "autofix.pr_iteration.green_check_suite.run_resolved", tags={"found": "false"}
         )
 
     @patch(f"{CHECK_SUITES_PATH}.sentry_sdk.capture_exception")
@@ -208,7 +213,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         self, mock_resolve: MagicMock, mock_capture: MagicMock
     ) -> None:
         with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event(raw={"check_suite": {"id": 1}}))
+            _request_review(_green_event(raw={"check_suite": {"id": 1}}))
 
         mock_capture.assert_called_once()
         mock_resolve.assert_not_called()
@@ -229,7 +234,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         self.get_pr.return_value = _pull_request_result(head_sha="newer-sha")
 
         with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
+            _request_review(_green_event())
 
         mock_actions.request_review.assert_not_called()
         assert self._marker() is None
@@ -251,7 +256,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         self.get_pr.return_value = _pull_request_result()
 
         with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
+            _request_review(_green_event())
 
         mock_actions.request_review.assert_not_called()
         assert self._marker() is None
@@ -265,7 +270,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         mock_resolve.return_value = self._resolved()
 
         with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
+            _request_review(_green_event())
 
         mock_actions.request_review.assert_not_called()
 
@@ -292,7 +297,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         mock_resolve.return_value = self._resolved()
 
         with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
+            _request_review(_green_event())
 
         # Shared bootstrap loads the PR; the marker check still skips the request.
         mock_actions.request_review.assert_not_called()
@@ -314,30 +319,10 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         self.get_pr.return_value = _pull_request_result()
 
         with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
+            _request_review(_green_event())
 
         mock_actions.request_review.assert_not_called()
         assert self._marker() is None
-
-    @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
-    @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
-    @patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
-    @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
-    def test_skips_when_ci_not_green(
-        self,
-        mock_resolve: MagicMock,
-        _mock_scm: MagicMock,
-        mock_actions: MagicMock,
-    ) -> None:
-        self.seer_run.update(extras={})
-        mock_resolve.return_value = self._resolved()
-        self.get_pr.return_value = _pull_request_result()
-
-        with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
-
-        mock_actions.request_review.assert_not_called()
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
@@ -354,7 +339,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         self.get_pr.return_value = _pull_request_result(state="closed", merged=True)
 
         with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
+            _request_review(_green_event())
 
         mock_actions.request_review.assert_not_called()
         assert self._marker() is None
@@ -376,7 +361,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         self.get_pr.return_value = _pull_request_result(requested_reviewers=[{"login": "Octocat"}])
 
         with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
+            _request_review(_green_event())
 
         mock_actions.request_review.assert_not_called()
         # The existing request is recorded as a preexisting marker so later
@@ -404,7 +389,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         mock_actions.request_review.side_effect = Exception("boom")
 
         with self.feature(FLAG), patch(f"{REVIEW_REQUEST_PATH}.metrics") as mock_metrics:
-            request_review_for_green_check_suite(_green_event())
+            _request_review(_green_event())
 
         assert self._marker() is None
         mock_metrics.incr.assert_any_call(
@@ -431,7 +416,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
             self.feature(FLAG),
             patch.object(SeerRun, "refresh_from_db", side_effect=SeerRun.DoesNotExist),
         ):
-            request_review_for_green_check_suite(_green_event())
+            _request_review(_green_event())
 
         mock_actions.request_review.assert_not_called()
 
@@ -463,13 +448,6 @@ class RequestReviewFromCandidatesTest(TestCase):
         self.seer_run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=RUN_ID, user_id=None
         )
-        self.seer_run.update(
-            extras={
-                CI_GREEN_EXTRA: {
-                    REPO_NAME: {"marked_at": "2024-01-01T00:00:00+00:00", "head_sha": HEAD_SHA}
-                }
-            }
-        )
         repos_patcher = patch(
             f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories", return_value=[self.repo]
         )
@@ -482,6 +460,12 @@ class RequestReviewFromCandidatesTest(TestCase):
         proto_patcher = patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
         proto_patcher.start()
         self.addCleanup(proto_patcher.stop)
+        sweep_patcher = patch(
+            f"{CHECK_SUITES_PATH}.sweep_check_runs",
+            return_value=CheckRunsSweep(total=1, incomplete=0, failed=0),
+        )
+        sweep_patcher.start()
+        self.addCleanup(sweep_patcher.stop)
 
     def _resolved(self) -> CheckSuiteAutofixRun:
         run_state = SeerRunState(
@@ -514,7 +498,7 @@ class RequestReviewFromCandidatesTest(TestCase):
         self.get_pr.return_value = _pull_request_result(author="seer[bot]")
 
         with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
+            _request_review(_green_event())
 
         _scm, pr_number, reviewers = mock_actions.request_review.call_args[0]
         assert pr_number == str(PR_NUMBER)
@@ -543,7 +527,7 @@ class RequestReviewFromCandidatesTest(TestCase):
         self.get_pr.return_value = _pull_request_result()
 
         with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
+            _request_review(_green_event())
 
         mock_actions.request_review.assert_not_called()
         assert self._marker() is None
@@ -565,7 +549,7 @@ class RequestReviewFromCandidatesTest(TestCase):
         )
 
         with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
+            _request_review(_green_event())
 
         mock_actions.request_review.assert_not_called()
         marker = self._marker()
@@ -585,7 +569,7 @@ class RequestReviewFromCandidatesTest(TestCase):
         mock_actions.request_review.side_effect = [Exception("no repo access"), None]
 
         with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
+            _request_review(_green_event())
 
         _scm, _pr_number, reviewers = mock_actions.request_review.call_args[0]
         assert reviewers == ["reviewer-two"]
@@ -605,7 +589,7 @@ class RequestReviewFromCandidatesTest(TestCase):
         mock_actions.request_review.side_effect = Exception("no repo access")
 
         with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
+            _request_review(_green_event())
 
         assert mock_actions.request_review.call_count == len(CANDIDATES)
         # The request marker stays unset so the next green event retries, but

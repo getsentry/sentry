@@ -286,7 +286,7 @@ def check_suite_matches_pr_head(
 
 @dataclass(frozen=True)
 class GreenCheckSuiteContext:
-    """Shared bootstrap for green ``check_suite`` handlers (ci_green + review-request)."""
+    """Shared bootstrap for the green ``check_suite`` path (undraft + review-request)."""
 
     event: GithubCheckSuiteEvent
     organization: Organization
@@ -302,14 +302,12 @@ class GreenCheckSuiteContext:
 
 def bootstrap_green_check_suite(
     check_suite_event: CheckSuiteEvent,
-    *,
-    metric_namespace: str,
 ) -> GreenCheckSuiteContext | None:
-    """Parse, flag-gate, resolve the Autofix run, and load the live PR head.
+    """Load a confirmed-green Autofix PR tip from a green ``check_suite`` event.
 
-    Shared by ``ci_green`` and ``review_request`` so the green path stays in
-    lockstep. Returns ``None`` when the event should be ignored (expected skips
-    and hard failures are metered under ``metric_namespace``).
+    Parses the payload, flag-gates, resolves the run, loads the live PR head,
+    and sweeps check runs so the tip is fully green. Returns ``None`` when the
+    event should be ignored.
     """
     try:
         raw = orjson.loads(check_suite_event.subscription_event["event"])
@@ -335,7 +333,7 @@ def bootstrap_green_check_suite(
 
     autofix_run = resolve_check_suite_autofix_run(event, flagged_repos)
     metrics.incr(
-        f"autofix.pr_iteration.{metric_namespace}.run_resolved",
+        "autofix.pr_iteration.green_check_suite.run_resolved",
         tags={"found": str(autofix_run is not None).lower()},
     )
     if autofix_run is None:
@@ -353,14 +351,14 @@ def bootstrap_green_check_suite(
     pr_state = autofix_run.run_state.repo_pr_states.get(repo_name) if repo_name else None
     pr_number = pr_state.pr_number if pr_state else None
     if not repo_name or pr_number is None:
-        _green_bootstrap_skip(metric_namespace, "no_pr_number", log_extra)
+        _skip("no_pr_number", log_extra)
         return None
 
     seer_run = SeerRun.objects.filter(
         seer_run_state_id=autofix_run.run_state.run_id, organization=organization
     ).first()
     if seer_run is None:
-        _green_bootstrap_skip(metric_namespace, "no_seer_run", log_extra)
+        _skip("no_seer_run", log_extra)
         return None
 
     # Importing the SCM factory while the check-suite listener module is
@@ -370,30 +368,42 @@ def bootstrap_green_check_suite(
     try:
         scm = make_scm(organization.id, autofix_run.repository.id, referrer="seer")
     except Exception:
-        _green_bootstrap_failed(metric_namespace, "scm_init_failed", log_extra)
+        _failed("scm_init_failed", log_extra)
         return None
 
     if not isinstance(scm, GetPullRequestProtocol):
-        _green_bootstrap_skip(metric_namespace, "unsupported_provider", log_extra)
+        _skip("unsupported_provider", log_extra)
         return None
 
     try:
         pull_request = scm_actions.get_pull_request(scm, str(pr_number))
     except Exception:
-        _green_bootstrap_failed(
-            metric_namespace, "get_pull_request_failed", {**log_extra, "pr_number": pr_number}
-        )
+        _failed("get_pull_request_failed", {**log_extra, "pr_number": pr_number})
         return None
 
     head_match = check_suite_matches_pr_head(
         event, pr_head_sha=pull_request["data"]["head"].get("sha")
     )
     if not head_match.matched or not head_match.head_sha:
-        _green_bootstrap_skip(
-            metric_namespace, "stale_head", {**log_extra, "head_sha": head_match.head_sha}
+        _skip("stale_head", {**log_extra, "head_sha": head_match.head_sha})
+        return None
+
+    sweep = sweep_check_runs(scm, head_match.head_sha, log_extra=log_extra)
+    if sweep is None:
+        _skip("sweep_failed", log_extra)
+        return None
+    if not sweep.is_green:
+        _skip(
+            "not_green",
+            {
+                **log_extra,
+                "incomplete_count": sweep.incomplete,
+                "failed_count": sweep.failed,
+            },
         )
         return None
 
+    metrics.incr("autofix.pr_iteration.green_check_suite.confirmed")
     return GreenCheckSuiteContext(
         event=event,
         organization=organization,
@@ -408,15 +418,18 @@ def bootstrap_green_check_suite(
     )
 
 
-def _green_bootstrap_skip(namespace: str, reason: str, log_extra: dict[str, Any]) -> None:
-    metrics.incr(f"autofix.pr_iteration.{namespace}.skipped", tags={"reason": reason})
-    logger.info(f"autofix.pr_iteration.{namespace}.skipped", extra={**log_extra, "reason": reason})
+def _skip(reason: str, log_extra: dict[str, Any]) -> None:
+    metrics.incr("autofix.pr_iteration.green_check_suite.skipped", tags={"reason": reason})
+    logger.info(
+        "autofix.pr_iteration.green_check_suite.skipped",
+        extra={**log_extra, "reason": reason},
+    )
 
 
-def _green_bootstrap_failed(namespace: str, reason: str, log_extra: dict[str, Any]) -> None:
-    metrics.incr(f"autofix.pr_iteration.{namespace}.failed", tags={"reason": reason})
+def _failed(reason: str, log_extra: dict[str, Any]) -> None:
+    metrics.incr("autofix.pr_iteration.green_check_suite.failed", tags={"reason": reason})
     logger.warning(
-        f"autofix.pr_iteration.{namespace}.failed",
+        "autofix.pr_iteration.green_check_suite.failed",
         extra={**log_extra, "reason": reason},
         exc_info=True,
     )

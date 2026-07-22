@@ -4,16 +4,19 @@ import orjson
 
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
-from sentry.seer.autofix.pr_iteration.check_suites import CheckRunsSweep, CheckSuiteAutofixRun
-from sentry.seer.autofix.pr_iteration.ci_green import (
-    CI_GREEN_EXTRA,
-    mark_ci_green_for_check_suite,
-    should_open_autofix_pr_as_draft,
+from sentry.seer.autofix.pr_iteration.check_suites import (
+    CheckRunsSweep,
+    CheckSuiteAutofixRun,
+    bootstrap_green_check_suite,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.ready_for_review import (
+    READY_FOR_REVIEW_EXTRA,
+    mark_ready_for_review,
+)
 from sentry.testutils.cases import TestCase
 
-CI_GREEN_PATH = "sentry.seer.autofix.pr_iteration.ci_green"
+READY_FOR_REVIEW_PATH = "sentry.seer.autofix.pr_iteration.ready_for_review"
 CHECK_SUITES_PATH = "sentry.seer.autofix.pr_iteration.check_suites"
 
 RUN_ID = 67890
@@ -64,14 +67,14 @@ def _green_event(raw: dict | None = None) -> CheckSuiteEvent:
     )
 
 
-class ShouldOpenAutofixPrAsDraftTest(TestCase):
-    def test_follows_review_request_flag(self) -> None:
-        assert should_open_autofix_pr_as_draft(self.organization) is False
-        with self.feature(REVIEW_REQUEST_FLAG):
-            assert should_open_autofix_pr_as_draft(self.organization) is True
+def _mark_ready(event: CheckSuiteEvent | None = None) -> None:
+    ctx = bootstrap_green_check_suite(event or _green_event())
+    if ctx is None:
+        return
+    mark_ready_for_review(ctx)
 
 
-class MarkCiGreenForCheckSuiteTest(TestCase):
+class MarkReadyForReviewTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.repo = self.create_repo(
@@ -93,6 +96,9 @@ class MarkCiGreenForCheckSuiteTest(TestCase):
         proto_patcher = patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
         proto_patcher.start()
         self.addCleanup(proto_patcher.stop)
+        sweep_patcher = patch(f"{CHECK_SUITES_PATH}.sweep_check_runs", return_value=GREEN_SWEEP)
+        sweep_patcher.start()
+        self.addCleanup(sweep_patcher.stop)
 
     def _resolved(self, *, commit_sha: str = HEAD_SHA) -> CheckSuiteAutofixRun:
         run_state = SeerRunState(
@@ -112,25 +118,27 @@ class MarkCiGreenForCheckSuiteTest(TestCase):
 
     def _marker(self) -> dict | None:
         self.seer_run.refresh_from_db()
-        return (self.seer_run.extras or {}).get(CI_GREEN_EXTRA, {}).get(REPO_NAME)
+        return (self.seer_run.extras or {}).get(READY_FOR_REVIEW_EXTRA, {}).get(REPO_NAME)
 
-    @patch(f"{CI_GREEN_PATH}.MarkPullRequestDraftStateProtocol", object)
-    @patch(f"{CI_GREEN_PATH}.scm_actions")
+    def _wire_scm_actions(self, mock_actions: MagicMock, *, head_sha: str = HEAD_SHA) -> None:
+        mock_actions.get_pull_request.return_value = _pull_request_result(head_sha=head_sha)
+
+    @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{CI_GREEN_PATH}.sweep_check_runs", return_value=GREEN_SWEEP)
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
-    def test_marks_green_and_undrafts(
+    def test_undrafts(
         self,
         mock_resolve: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
     ) -> None:
         # Live PR head matches the suite even if run_state.commit_sha is stale.
         mock_resolve.return_value = self._resolved(commit_sha="stale-run-state")
+        self._wire_scm_actions(mock_actions)
 
         with self.feature(REVIEW_REQUEST_FLAG):
-            mark_ci_green_for_check_suite(_green_event())
+            _mark_ready(_green_event())
 
         marker = self._marker()
         assert marker is not None
@@ -141,18 +149,16 @@ class MarkCiGreenForCheckSuiteTest(TestCase):
 
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
     def test_noop_when_flag_disabled(self, mock_resolve: MagicMock) -> None:
-        mark_ci_green_for_check_suite(_green_event())
+        _mark_ready(_green_event())
         mock_resolve.assert_not_called()
         assert self._marker() is None
 
-    @patch(f"{CI_GREEN_PATH}.scm_actions")
+    @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{CI_GREEN_PATH}.sweep_check_runs", return_value=GREEN_SWEEP)
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
     def test_skips_stale_head(
         self,
         mock_resolve: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
     ) -> None:
@@ -160,15 +166,15 @@ class MarkCiGreenForCheckSuiteTest(TestCase):
         self.get_pr.return_value = _pull_request_result(head_sha="newer")
 
         with self.feature(REVIEW_REQUEST_FLAG):
-            mark_ci_green_for_check_suite(_green_event())
+            _mark_ready(_green_event())
 
         assert self._marker() is None
         mock_actions.mark_pull_request_ready_for_review.assert_not_called()
 
-    @patch(f"{CI_GREEN_PATH}.scm_actions")
+    @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
     @patch(
-        f"{CI_GREEN_PATH}.sweep_check_runs",
+        f"{CHECK_SUITES_PATH}.sweep_check_runs",
         return_value=CheckRunsSweep(total=2, incomplete=1, failed=0),
     )
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
@@ -182,27 +188,47 @@ class MarkCiGreenForCheckSuiteTest(TestCase):
         mock_resolve.return_value = self._resolved()
 
         with self.feature(REVIEW_REQUEST_FLAG):
-            mark_ci_green_for_check_suite(_green_event())
+            _mark_ready(_green_event())
 
         assert self._marker() is None
         mock_actions.mark_pull_request_ready_for_review.assert_not_called()
 
-    @patch(f"{CI_GREEN_PATH}.MarkPullRequestDraftStateProtocol", object)
-    @patch(f"{CI_GREEN_PATH}.scm_actions")
+    @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{CI_GREEN_PATH}.sweep_check_runs", return_value=GREEN_SWEEP)
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
     def test_undraft_failure_leaves_marker_unset(
         self,
         mock_resolve: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
     ) -> None:
         mock_resolve.return_value = self._resolved()
+        self._wire_scm_actions(mock_actions)
         mock_actions.mark_pull_request_ready_for_review.side_effect = RuntimeError("boom")
 
         with self.feature(REVIEW_REQUEST_FLAG):
-            mark_ci_green_for_check_suite(_green_event())
+            _mark_ready(_green_event())
 
         assert self._marker() is None
+
+    @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    def test_stale_head_under_lock_skips_undraft(
+        self,
+        mock_resolve: MagicMock,
+        _mock_scm: MagicMock,
+        mock_actions: MagicMock,
+    ) -> None:
+        """Bootstrap saw a matching tip; tip moved before the undraft lock write."""
+        mock_resolve.return_value = self._resolved()
+        # Bootstrap get_pr matches; under-lock re-fetch does not.
+        self._wire_scm_actions(mock_actions, head_sha="moved")
+
+        with self.feature(REVIEW_REQUEST_FLAG):
+            _mark_ready(_green_event())
+
+        assert self._marker() is None
+        mock_actions.mark_pull_request_ready_for_review.assert_not_called()

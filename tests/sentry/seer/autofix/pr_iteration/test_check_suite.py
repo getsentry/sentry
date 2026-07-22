@@ -90,26 +90,48 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         pr_iteration_from_check_suite_listener(self._event(conclusion="cancelled"))
         mock_get_state.assert_not_called()
 
-    @patch(f"{CHECK_PATH}.request_review_for_green_check_suite")
-    @patch(f"{CHECK_PATH}.mark_ci_green_for_check_suite")
+    @patch(f"{CHECK_PATH}.request_review_from_context")
+    @patch(f"{CHECK_PATH}.mark_ready_for_review")
+    @patch(f"{CHECK_PATH}.bootstrap_green_check_suite")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
-    def test_green_conclusion_routes_to_ci_green_then_review_request(
+    def test_green_conclusion_bootstraps_then_side_effects(
         self,
         mock_get_state: MagicMock,
-        mock_mark_ci_green: MagicMock,
+        mock_bootstrap: MagicMock,
+        mock_mark_ready: MagicMock,
         mock_request_review: MagicMock,
     ) -> None:
         event = self._event(self._raw(), conclusion="success")
+        ctx = MagicMock()
+        mock_bootstrap.return_value = ctx
         call_order: list[str] = []
-        mock_mark_ci_green.side_effect = lambda *_a, **_k: call_order.append("ci_green")
-        mock_request_review.side_effect = lambda *_a, **_k: call_order.append("review_request")
+        mock_mark_ready.side_effect = lambda *_a, **_k: call_order.append("ready")
+        mock_request_review.side_effect = lambda *_a, **_k: call_order.append("review")
 
         pr_iteration_from_check_suite_listener(event)
 
-        mock_mark_ci_green.assert_called_once_with(event)
-        mock_request_review.assert_called_once_with(event)
+        mock_bootstrap.assert_called_once_with(event)
+        mock_mark_ready.assert_called_once_with(ctx)
+        mock_request_review.assert_called_once_with(ctx)
+        assert call_order == ["ready", "review"]
         mock_get_state.assert_not_called()
-        assert call_order == ["ci_green", "review_request"]
+
+    @patch(f"{CHECK_PATH}.request_review_from_context")
+    @patch(f"{CHECK_PATH}.mark_ready_for_review")
+    @patch(f"{CHECK_PATH}.bootstrap_green_check_suite", return_value=None)
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    def test_green_conclusion_skips_side_effects_when_bootstrap_empty(
+        self,
+        mock_get_state: MagicMock,
+        _mock_bootstrap: MagicMock,
+        mock_mark_ready: MagicMock,
+        mock_request_review: MagicMock,
+    ) -> None:
+        pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
+
+        mock_mark_ready.assert_not_called()
+        mock_request_review.assert_not_called()
+        mock_get_state.assert_not_called()
 
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories", return_value=[])
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")

@@ -1,14 +1,17 @@
 """Request a human review on a Seer-authored PR once its CI is green.
 
-A review request from Seer must always mean "CI is green, ready to judge" so
-that its requests stay trustworthy. CI green confirmation is owned by
-``ci_green.mark_ci_green_for_check_suite`` (runs first in the check-suite
-listener); this module only requests a review when that marker is present for
-the PR's current head.
+Called from the check-suite listener after ``bootstrap_green_check_suite``.
+This module owns the review-request side effect: pick a reviewer, call SCM,
+and record a ``review_requests`` marker.
 
-We ask the best reviewer candidate (see ``reviewer_candidates``) — today
-the user who triggered the run, the person most invested in the fix
-landing.
+That marker (+ lock) avoids duplicate GitHub calls *and* re-pinging: requesting
+review again after an approve/dismiss clears ``requested_reviewers`` creates a
+new ``ReviewRequestedEvent`` and notifies the human. Later green suites for the
+same run must not do that. (Undraft's ``ready_for_review`` marker is only for
+skipping redundant API calls — undraft is idempotent when already ready.)
+
+The ready-for-review marker is intentionally *not* a gate here — undraft and
+review-request succeed/fail/retry independently.
 """
 
 from __future__ import annotations
@@ -21,13 +24,7 @@ from scm import actions as scm_actions
 from scm.types import RequestReviewProtocol
 
 from sentry.locks import locks
-from sentry.scm.types import CheckSuiteEvent
-from sentry.seer.autofix.pr_iteration.check_suites import (
-    GREEN_CONCLUSIONS,
-    bootstrap_green_check_suite,
-)
-from sentry.seer.autofix.pr_iteration.ci_green import is_ci_green_for_head
-from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.check_suites import GreenCheckSuiteContext
 from sentry.seer.autofix.pr_iteration.reviewer_candidates import (
     ReviewerCandidate,
     collect_reviewer_candidates,
@@ -40,18 +37,12 @@ from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
-# Re-export for listeners/tests that historically imported this from here.
-__all__ = (
-    "GREEN_CONCLUSIONS",
-    "REVIEW_REQUEST_FLAG",
-    "REVIEW_REQUESTS_EXTRA",
-    "request_review_for_green_check_suite",
-)
-
 # SeerRun.extras key holding review-request markers, keyed by repo full name
-# (a run can open PRs in several repos). Each marker records requested_at,
-# head_sha, and reviewers so double-fires never re-ping a human and later
-# re-request logic can compare heads.
+# (a run can open PRs in several repos). Presence means "we already asked (or
+# found a preexisting request) for this run+repo" — skip later green events so
+# we neither re-hit the API nor re-notify after approve/dismiss clears the
+# request list. Stores requested_at / head_sha / reviewers for observability
+# (and possible future re-request logic); decisions today only check presence.
 REVIEW_REQUESTS_EXTRA = "review_requests"
 
 # How many candidates to try when a request fails (e.g. the provider rejects
@@ -103,25 +94,14 @@ def _record_review_request_marker(
     record_run_marker(seer_run, REVIEW_REQUESTS_EXTRA, repo_name, marker)
 
 
-def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> None:
-    """Entry point from the check-suite listener for green suite conclusions."""
-    ctx = bootstrap_green_check_suite(check_suite_event, metric_namespace="review_request")
-    if ctx is None:
-        return
-
+def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
+    """Request review for an already-confirmed green tip (own lock + marker)."""
     if _review_request_marker(ctx.seer_run, ctx.repo_name):
         _skip("already_requested", ctx.log_extra)
         return
 
     if not isinstance(ctx.scm, RequestReviewProtocol):
         _skip("unsupported_provider", ctx.log_extra)
-        return
-
-    # CI green confirmation lives in ``mark_ci_green_for_check_suite`` (runs
-    # first in the listener). Never request a review without that marker for
-    # the current head — that keeps "Seer asked for review" == "CI is green".
-    if not is_ci_green_for_head(ctx.seer_run, ctx.repo_name, ctx.head_sha):
-        _skip("ci_not_green", ctx.log_extra)
         return
 
     if ctx.pull_request["data"]["state"] != "open" or ctx.pull_request["data"]["merged"]:
