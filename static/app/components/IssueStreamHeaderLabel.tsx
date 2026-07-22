@@ -8,26 +8,24 @@ type Props = ContainerProps & {
   hideDivider?: boolean;
 };
 
-export function IssueStreamHeaderLabel({align, hideDivider, style, ...props}: Props) {
+export function IssueStreamHeaderLabel({align, hideDivider, ...props}: Props) {
   const theme = useTheme();
 
   return (
     <Container
       {...props}
-      style={{
-        position: 'relative',
-        display: props.display === undefined ? 'inline-block' : undefined,
-        marginRight: theme.space.xl,
-        fontSize: '13px',
-        fontWeight: theme.font.weight.sans.medium,
-        color: theme.tokens.content.secondary,
-        whiteSpace: 'nowrap',
-        paddingRight: align === 'right' ? theme.space.xl : undefined,
-        textAlign: align === 'right' ? 'right' : 'left',
-        ...style,
-      }}
-      css={
-        !hideDivider &&
+      display={props.display ?? 'inline-block'}
+      position="relative"
+      marginRight="xl"
+      whiteSpace="nowrap"
+      paddingRight={align === 'right' ? 'xl' : undefined}
+      css={css`
+        font-size: 13px;
+        font-weight: ${theme.font.weight.sans.medium};
+        color: ${theme.tokens.content.secondary};
+        text-align: ${align === 'right' ? 'right' : 'left'};
+
+        ${!hideDivider &&
         css`
           &::before {
             content: '';
@@ -39,8 +37,8 @@ export function IssueStreamHeaderLabel({align, hideDivider, style, ...props}: Pr
 
             background-color: ${theme.colors.gray200};
           }
-        `
-      }
+        `}
+      `}
     />
   );
 }

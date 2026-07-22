@@ -217,26 +217,28 @@ export function LoadingStreamGroup({
         <Placeholder height="58px" />
       </GroupSummary>
       {withColumns.includes('lastSeen') && (
-        <Container
+        <Flex
           display={{zero: 'none', [COLUMN_BREAKPOINTS.LAST_SEEN]: 'flex'}}
           width="86px"
           paddingRight="xl"
           marginRight="xl"
-          style={{alignItems: 'center', justifyContent: 'flex-end'}}
+          align="center"
+          justify="end"
         >
           <Placeholder height="18px" width="70px" />
-        </Container>
+        </Flex>
       )}
       {withColumns.includes('firstSeen') && (
-        <Container
+        <Flex
           display={{zero: 'none', [COLUMN_BREAKPOINTS.FIRST_SEEN]: 'flex'}}
           width="50px"
           paddingRight="xl"
           marginRight="xl"
-          style={{alignItems: 'center', justifyContent: 'flex-end'}}
+          align="center"
+          justify="end"
         >
           <Placeholder height="18px" width="30px" />
-        </Container>
+        </Flex>
       )}
       {withChart && !displayReprocessingLayout && (
         <Container
@@ -293,64 +295,67 @@ export function LoadingStreamGroup({
             </Flex>
           )}
           {withColumns.includes('event') && (
-            <Container
+            <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'flex'}}
               alignSelf="center"
               paddingRight="xl"
               marginRight="xl"
               width="60px"
-              style={{alignItems: 'center', justifyContent: 'flex-end'}}
+              align="center"
+              justify="end"
             >
               <Placeholder height="18px" width="40px" />
-            </Container>
+            </Flex>
           )}
           {withColumns.includes('users') && (
-            <Container
+            <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.USERS]: 'flex'}}
               alignSelf="center"
               paddingRight="xl"
               marginRight="xl"
               width="60px"
-              style={{alignItems: 'center', justifyContent: 'flex-end'}}
+              align="center"
+              justify="end"
             >
               <Placeholder height="18px" width="40px" />
-            </Container>
+            </Flex>
           )}
           {withColumns.includes('progress') && (
-            <Container
+            <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.PROGRESS]: 'flex'}}
               width="124px"
               paddingRight="xl"
               marginRight="xl"
               alignSelf="center"
-              style={{justifyContent: 'flex-start'}}
+              justify="start"
             >
               <Placeholder height="18px" />
-            </Container>
+            </Flex>
           )}
           {withColumns.includes('priority') && (
-            <Container
+            <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'flex'}}
               width="64px"
               paddingRight="xl"
               marginRight="xl"
               alignSelf="center"
-              style={{justifyContent: 'flex-end'}}
+              justify="end"
             >
               <Placeholder height="24px" />
-            </Container>
+            </Flex>
           )}
           {withColumns.includes('assignee') && (
-            <Container
+            <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'flex'}}
               alignSelf="center"
               width="66px"
               paddingRight="xl"
               marginRight="xl"
-              style={{justifyContent: 'flex-end', textAlign: 'right'}}
+              justify="end"
+              style={{textAlign: 'right'}}
             >
               <Placeholder height="24px" />
-            </Container>
+            </Flex>
           )}
         </Fragment>
       )}
@@ -556,7 +561,7 @@ export function StreamGroup({
 
     return (
       <Fragment>
-        <Container
+        <Flex
           width={{zero: '85px', sm: '140px'}}
           alignSelf="center"
           margin="0 xl"
@@ -565,7 +570,7 @@ export function StreamGroup({
           style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
         >
           <TimeSince date={dateCreated} />
-        </Container>
+        </Flex>
         <Container
           width={{zero: '75px', sm: '140px'}}
           alignSelf="center"
@@ -789,27 +794,29 @@ export function StreamGroup({
       {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
 
       {withColumns.includes('lastSeen') && (
-        <Container
+        <Flex
           display={{zero: 'none', [COLUMN_BREAKPOINTS.LAST_SEEN]: 'flex'}}
           width="86px"
           paddingRight="xl"
           marginRight="xl"
-          style={{alignItems: 'center', justifyContent: 'flex-end'}}
+          align="center"
+          justify="end"
         >
           <GroupLastSeen group={group} />
-        </Container>
+        </Flex>
       )}
 
       {withColumns.includes('firstSeen') && (
-        <Container
+        <Flex
           display={{zero: 'none', [COLUMN_BREAKPOINTS.FIRST_SEEN]: 'flex'}}
           width="50px"
           paddingRight="xl"
           marginRight="xl"
-          style={{alignItems: 'center', justifyContent: 'flex-end'}}
+          align="center"
+          justify="end"
         >
           <GroupFirstSeen group={group} />
-        </Container>
+        </Flex>
       )}
 
       {withChart && !displayReprocessingLayout && (
@@ -849,59 +856,61 @@ export function StreamGroup({
             </Flex>
           )}
           {withColumns.includes('event') && (
-            <Container
+            <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'flex'}}
               alignSelf="center"
               paddingRight="xl"
               marginRight="xl"
               width="60px"
-              style={{alignItems: 'center', justifyContent: 'flex-end'}}
+              align="center"
+              justify="end"
             >
               {issueTypeConfig.stats.enabled && defined(primaryCount) ? (
                 groupCount
               ) : issueTypeConfig.stats.enabled ? (
                 <Placeholder height="18px" width="40px" />
               ) : null}
-            </Container>
+            </Flex>
           )}
           {withColumns.includes('users') && (
-            <Container
+            <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.USERS]: 'flex'}}
               alignSelf="center"
               paddingRight="xl"
               marginRight="xl"
               width="60px"
-              style={{alignItems: 'center', justifyContent: 'flex-end'}}
+              align="center"
+              justify="end"
             >
               {issueTypeConfig.stats.enabled && defined(primaryUserCount) ? (
                 groupUsersCount
               ) : issueTypeConfig.stats.enabled ? (
                 <Placeholder height="18px" width="40px" />
               ) : null}
-            </Container>
+            </Flex>
           )}
           {withColumns.includes('priority') && (
-            <Container
+            <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'flex'}}
               width="64px"
               paddingRight="xl"
               marginRight="xl"
               alignSelf="center"
-              style={{justifyContent: 'flex-end'}}
+              justify="end"
             >
               {group.priority ? (
                 <GroupPriority group={group} onChange={onPriorityChange} />
               ) : null}
-            </Container>
+            </Flex>
           )}
           {withColumns.includes('progress') && (
-            <Container
+            <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.PROGRESS]: 'flex'}}
               width="124px"
               paddingRight="xl"
               marginRight="xl"
               alignSelf="center"
-              style={{justifyContent: 'flex-start'}}
+              justify="start"
             >
               {progressState ? (
                 <Container position="relative">
@@ -915,16 +924,17 @@ export function StreamGroup({
               ) : (
                 <Placeholder height="18px" />
               )}
-            </Container>
+            </Flex>
           )}
           {withColumns.includes('assignee') && (
-            <Container
+            <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'flex'}}
               alignSelf="center"
               width="66px"
               paddingRight="xl"
               marginRight="xl"
-              style={{justifyContent: 'flex-end', textAlign: 'right'}}
+              justify="end"
+              style={{textAlign: 'right'}}
             >
               <AssigneeSelector
                 group={group}
@@ -932,7 +942,7 @@ export function StreamGroup({
                 handleAssigneeChange={handleAssigneeChange}
                 memberList={memberList}
               />
-            </Container>
+            </Flex>
           )}
         </Fragment>
       )}

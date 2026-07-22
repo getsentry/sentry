@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
@@ -72,12 +72,13 @@ export function SupergroupRow({supergroup, aggregatedStats}: SupergroupRowProps)
         </MetaRow>
       </Summary>
 
-      <Container
+      <Flex
         display={{zero: 'none', [COLUMN_BREAKPOINTS.LAST_SEEN]: 'flex'}}
         width="86px"
         paddingRight="xl"
         marginRight="xl"
-        style={{alignItems: 'center', justifyContent: 'flex-end'}}
+        align="center"
+        justify="end"
       >
         {aggregatedStats?.lastSeen ? (
           <TimeSince
@@ -88,21 +89,22 @@ export function SupergroupRow({supergroup, aggregatedStats}: SupergroupRowProps)
         ) : (
           <Placeholder height="18px" width="70px" />
         )}
-      </Container>
+      </Flex>
 
-      <Container
+      <Flex
         display={{zero: 'none', [COLUMN_BREAKPOINTS.FIRST_SEEN]: 'flex'}}
         width="50px"
         paddingRight="xl"
         marginRight="xl"
-        style={{alignItems: 'center', justifyContent: 'flex-end'}}
+        align="center"
+        justify="end"
       >
         {aggregatedStats?.firstSeen ? (
           <TimeSince date={aggregatedStats.firstSeen} unitStyle="short" suffix="" />
         ) : (
           <Placeholder height="18px" width="30px" />
         )}
-      </Container>
+      </Flex>
 
       <Container
         display={{zero: 'none', [COLUMN_BREAKPOINTS.TREND]: 'block'}}
@@ -127,13 +129,14 @@ export function SupergroupRow({supergroup, aggregatedStats}: SupergroupRowProps)
         )}
       </Container>
 
-      <Container
+      <Flex
         display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'flex'}}
         alignSelf="center"
         paddingRight="xl"
         marginRight="xl"
         width="60px"
-        style={{alignItems: 'center', justifyContent: 'flex-end'}}
+        align="center"
+        justify="end"
       >
         {aggregatedStats ? (
           <Stack position="relative">
@@ -147,15 +150,16 @@ export function SupergroupRow({supergroup, aggregatedStats}: SupergroupRowProps)
         ) : (
           <Placeholder height="18px" width="40px" />
         )}
-      </Container>
+      </Flex>
 
-      <Container
+      <Flex
         display={{zero: 'none', [COLUMN_BREAKPOINTS.USERS]: 'flex'}}
         alignSelf="center"
         paddingRight="xl"
         marginRight="xl"
         width="60px"
-        style={{alignItems: 'center', justifyContent: 'flex-end'}}
+        align="center"
+        justify="end"
       >
         {aggregatedStats ? (
           <Stack position="relative">
@@ -169,7 +173,7 @@ export function SupergroupRow({supergroup, aggregatedStats}: SupergroupRowProps)
         ) : (
           <Placeholder height="18px" width="40px" />
         )}
-      </Container>
+      </Flex>
 
       <Container
         display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'block'}}
