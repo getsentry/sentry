@@ -2,10 +2,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import omit from 'lodash/omit';
 
-import {
-  getSdkPlatformKey,
-  PlatformPicker,
-} from 'sentry/components/platformPicker';
+import {getSdkPlatformKey, PlatformPicker} from 'sentry/components/platformPicker';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';

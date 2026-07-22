@@ -25,11 +25,7 @@ describe('PlatformPicker', () => {
   it('returns Expo as an alias for the React Native SDK', async () => {
     const setPlatform = jest.fn();
     render(
-      <PlatformPicker
-        {...baseProps}
-        defaultCategory="mobile"
-        setPlatform={setPlatform}
-      />
+      <PlatformPicker {...baseProps} defaultCategory="mobile" setPlatform={setPlatform} />
     );
 
     await userEvent.click(screen.getByTestId('platform-expo'));
