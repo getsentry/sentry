@@ -62,12 +62,7 @@ export function TraceTabsAndVitals({
   }
 
   return (
-    <Flex
-      containerType="inline-size"
-      justify="between"
-      align="center"
-      minHeight={`${CONTAINER_MIN_HEIGHT}px`}
-    >
+    <Flex justify="between" align="center" minHeight={`${CONTAINER_MIN_HEIGHT}px`}>
       <Tabs value={currentTab} onChange={onTabChange}>
         <TabList variant="floating">
           {tabOptions.map(tab => (
