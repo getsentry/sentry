@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from django.db import router, transaction
 
@@ -114,7 +114,12 @@ def _apply(run_id: int, updates: RunUpdates) -> bool:
             return False
         extras.update(updates)
         # Score the prediction against the ground truth if it's already landed.
-        result, hit_rank = _score(run.run.organization_id, extras)
+        result, hit_rank = _score(
+            run.run.organization_id,
+            predicted_user_ids=extras.get("predicted_assignee_user_ids") or [],
+            actual_user_id=extras.get("actual_assignee_user_id"),
+            actual_team_id=extras.get("actual_assignee_team_id"),
+        )
         if result is not None:
             extras["result"] = str(result)
             extras["hit_rank"] = hit_rank
@@ -130,14 +135,11 @@ def _apply(run_id: int, updates: RunUpdates) -> bool:
 
 
 def _score(
-    organization_id: int, extras: dict[str, Any]
+    organization_id: int,
+    predicted_user_ids: list[int | None],
+    actual_user_id: int | None,
+    actual_team_id: int | None,
 ) -> tuple[SmartAssignmentScore | None, int | None]:
-    if extras.get("result"):
-        # Already scored; do nothing.
-        return None, None
-    predicted_user_ids = extras.get("predicted_assignee_user_ids") or []
-    actual_user_id = extras.get("actual_assignee_user_id")
-    actual_team_id = extras.get("actual_assignee_team_id")
     if not predicted_user_ids:
         # No prediction; do nothing.
         return None, None
