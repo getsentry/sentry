@@ -9,10 +9,9 @@ resources:
 
 import {useState} from 'react';
 
-import {UserMessage} from '@sentry/scraps/chat';
+import {Button} from '@sentry/scraps/button';
+import {MessageRow, UserMessage} from '@sentry/scraps/chat';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Switch} from '@sentry/scraps/switch';
-import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
@@ -24,19 +23,19 @@ alignment within the conversation is the caller's responsibility.
 
 ## Usage
 
-Wrap the bubble in a right-aligned row for user messages so it sits opposite the
+Wrap the bubble in a `MessageRow` with `from="user"` so it sits opposite the
 agent's responses.
 
 <Storybook.Demo>
-  <Flex justify="end" width="100%">
+  <MessageRow from="user">
     <UserMessage>How many errors happened in the last 24 hours?</UserMessage>
-  </Flex>
+  </MessageRow>
 </Storybook.Demo>
 
 ```jsx
-<Flex justify="end" width="100%">
+<MessageRow from="user">
   <UserMessage>How many errors happened in the last 24 hours?</UserMessage>
-</Flex>
+</MessageRow>
 ```
 
 ## Width
@@ -46,12 +45,12 @@ never spans the full conversation width. Override `maxWidth` for narrower or
 wider surfaces.
 
 <Storybook.Demo>
-  <Flex justify="end" width="100%">
+  <MessageRow from="user">
     <UserMessage maxWidth="60%">
       A longer question that wraps onto multiple lines once it reaches the max width of
       the bubble.
     </UserMessage>
-  </Flex>
+  </MessageRow>
 </Storybook.Demo>
 
 ```jsx
@@ -69,14 +68,15 @@ export function WidthDemo() {
   const [fill, setFill] = useState(false);
   return (
     <Stack gap="md" width="100%">
-      <Flex gap="sm" align="center">
-        <Switch checked={fill} onChange={() => setFill(v => !v)} />
-        <Text>{fill ? 'width="100%"' : 'width unset (fit-content)'}</Text>
-      </Flex>
-      <Flex justify="end" width="100%">
+      <MessageRow from="user">
         <UserMessage width={fill ? '100%' : undefined}>
           {'Which of my issues are getting worse?\nAnd which ones are new this week?'}
         </UserMessage>
+      </MessageRow>
+      <Flex justify="end" padding="xl">
+        <Button variant="primary" onClick={() => setFill(v => !v)}>
+          {fill ? 'Fit content' : 'Fill width'}
+        </Button>
       </Flex>
     </Stack>
   );
@@ -87,5 +87,7 @@ export function WidthDemo() {
 </Storybook.Demo>
 
 ```jsx
-<UserMessage width="100%">…</UserMessage>
+<UserMessage width="100%">
+  Which of my issues are getting worse? And which ones are new this week?
+</UserMessage>
 ```
