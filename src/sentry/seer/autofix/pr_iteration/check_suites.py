@@ -12,22 +12,29 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
+import orjson
 import sentry_sdk
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from scm import actions as scm_actions
 from scm.helpers import iter_all_pages
 from scm.manager import SourceCodeManager
-from scm.types import ListCheckRunsForRefProtocol
+from scm.types import ActionResult, GetPullRequestProtocol, ListCheckRunsForRefProtocol, PullRequest
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
+from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.models import SeerApiError
+from sentry.seer.models.run import SeerRun
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -275,6 +282,144 @@ def check_suite_matches_pr_head(
     repo_name = event.repository.full_name
     matched = bool(head_sha and pr_head_sha and head_sha == pr_head_sha)
     return CheckSuiteHeadMatch(head_sha=head_sha, repo_name=repo_name, matched=matched)
+
+
+@dataclass(frozen=True)
+class GreenCheckSuiteContext:
+    """Shared bootstrap for green ``check_suite`` handlers (ci_green + review-request)."""
+
+    event: GithubCheckSuiteEvent
+    organization: Organization
+    autofix_run: CheckSuiteAutofixRun
+    seer_run: SeerRun
+    scm: SourceCodeManager
+    pull_request: ActionResult[PullRequest]
+    repo_name: str
+    pr_number: int
+    head_sha: str
+    log_extra: dict[str, Any]
+
+
+def bootstrap_green_check_suite(
+    check_suite_event: CheckSuiteEvent,
+    *,
+    metric_namespace: str,
+) -> GreenCheckSuiteContext | None:
+    """Parse, flag-gate, resolve the Autofix run, and load the live PR head.
+
+    Shared by ``ci_green`` and ``review_request`` so the green path stays in
+    lockstep. Returns ``None`` when the event should be ignored (expected skips
+    and hard failures are metered under ``metric_namespace``).
+    """
+    try:
+        raw = orjson.loads(check_suite_event.subscription_event["event"])
+        event = GithubCheckSuiteEvent.parse_obj(raw)
+    except (orjson.JSONDecodeError, ValidationError, TypeError, ValueError) as e:
+        sentry_sdk.capture_exception(e)
+        return None
+
+    organizations: dict[int, Organization] = {}
+    flagged_repos = []
+    for repo in resolve_check_suite_repositories(event):
+        organization = organizations.get(repo.organization_id)
+        if organization is None:
+            try:
+                organization = Organization.objects.get_from_cache(id=repo.organization_id)
+            except Organization.DoesNotExist:
+                continue
+            organizations[repo.organization_id] = organization
+        if features.has(REVIEW_REQUEST_FLAG, organization):
+            flagged_repos.append(repo)
+    if not flagged_repos:
+        return None
+
+    autofix_run = resolve_check_suite_autofix_run(event, flagged_repos)
+    metrics.incr(
+        f"autofix.pr_iteration.{metric_namespace}.run_resolved",
+        tags={"found": str(autofix_run is not None).lower()},
+    )
+    if autofix_run is None:
+        return None
+    organization = organizations[autofix_run.repository.organization_id]
+
+    log_extra: dict[str, Any] = {
+        "organization_id": autofix_run.repository.organization_id,
+        "repo_id": autofix_run.repository.id,
+        "run_id": autofix_run.run_state.run_id,
+        "pr_id": autofix_run.pr_id,
+    }
+
+    repo_name = event.repository.full_name
+    pr_state = autofix_run.run_state.repo_pr_states.get(repo_name) if repo_name else None
+    pr_number = pr_state.pr_number if pr_state else None
+    if not repo_name or pr_number is None:
+        _green_bootstrap_skip(metric_namespace, "no_pr_number", log_extra)
+        return None
+
+    seer_run = SeerRun.objects.filter(
+        seer_run_state_id=autofix_run.run_state.run_id, organization=organization
+    ).first()
+    if seer_run is None:
+        _green_bootstrap_skip(metric_namespace, "no_seer_run", log_extra)
+        return None
+
+    # Importing the SCM factory while the check-suite listener module is
+    # initialized pulls in integration handlers before options init.
+    from sentry.scm.factory import new as make_scm
+
+    try:
+        scm = make_scm(organization.id, autofix_run.repository.id, referrer="seer")
+    except Exception:
+        _green_bootstrap_failed(metric_namespace, "scm_init_failed", log_extra)
+        return None
+
+    if not isinstance(scm, GetPullRequestProtocol):
+        _green_bootstrap_skip(metric_namespace, "unsupported_provider", log_extra)
+        return None
+
+    try:
+        pull_request = scm_actions.get_pull_request(scm, str(pr_number))
+    except Exception:
+        _green_bootstrap_failed(
+            metric_namespace, "get_pull_request_failed", {**log_extra, "pr_number": pr_number}
+        )
+        return None
+
+    head_match = check_suite_matches_pr_head(
+        event, pr_head_sha=pull_request["data"]["head"].get("sha")
+    )
+    if not head_match.matched or not head_match.head_sha:
+        _green_bootstrap_skip(
+            metric_namespace, "stale_head", {**log_extra, "head_sha": head_match.head_sha}
+        )
+        return None
+
+    return GreenCheckSuiteContext(
+        event=event,
+        organization=organization,
+        autofix_run=autofix_run,
+        seer_run=seer_run,
+        scm=scm,
+        pull_request=pull_request,
+        repo_name=repo_name,
+        pr_number=pr_number,
+        head_sha=head_match.head_sha,
+        log_extra=log_extra,
+    )
+
+
+def _green_bootstrap_skip(namespace: str, reason: str, log_extra: dict[str, Any]) -> None:
+    metrics.incr(f"autofix.pr_iteration.{namespace}.skipped", tags={"reason": reason})
+    logger.info(f"autofix.pr_iteration.{namespace}.skipped", extra={**log_extra, "reason": reason})
+
+
+def _green_bootstrap_failed(namespace: str, reason: str, log_extra: dict[str, Any]) -> None:
+    metrics.incr(f"autofix.pr_iteration.{namespace}.failed", tags={"reason": reason})
+    logger.warning(
+        f"autofix.pr_iteration.{namespace}.failed",
+        extra={**log_extra, "reason": reason},
+        exc_info=True,
+    )
 
 
 @dataclass(frozen=True)

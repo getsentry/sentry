@@ -21,6 +21,7 @@ from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import TestCase
 
 REVIEW_REQUEST_PATH = "sentry.seer.autofix.pr_iteration.review_request"
+CHECK_SUITES_PATH = "sentry.seer.autofix.pr_iteration.check_suites"
 CANDIDATES_PATH = "sentry.seer.autofix.pr_iteration.reviewer_candidates"
 FLAG = REVIEW_REQUEST_FLAG
 
@@ -93,10 +94,18 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         )
         self._mark_ci_green()
         repos_patcher = patch(
-            f"{REVIEW_REQUEST_PATH}.resolve_check_suite_repositories", return_value=[self.repo]
+            f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories", return_value=[self.repo]
         )
         repos_patcher.start()
         self.addCleanup(repos_patcher.stop)
+        self.get_pr = MagicMock(return_value=_pull_request_result())
+        get_pr_patcher = patch(f"{CHECK_SUITES_PATH}.scm_actions.get_pull_request", self.get_pr)
+        get_pr_patcher.start()
+        self.addCleanup(get_pr_patcher.stop)
+        # MagicMock does not satisfy runtime_checkable SCM protocols.
+        proto_patcher = patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
+        proto_patcher.start()
+        self.addCleanup(proto_patcher.stop)
 
     def _mark_ci_green(self, *, head_sha: str = HEAD_SHA) -> None:
         self.seer_run.update(
@@ -131,8 +140,8 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
     @patch(f"{CANDIDATES_PATH}.get_github_username_for_user", return_value="octocat")
-    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
-    @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    @patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
     @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
     def test_requests_review_from_triggering_user(
         self,
@@ -142,7 +151,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         mock_actions: MagicMock,
     ) -> None:
         mock_resolve.return_value = self._resolved()
-        mock_actions.get_pull_request.return_value = _pull_request_result()
+        self.get_pr.return_value = _pull_request_result()
 
         with self.feature(FLAG):
             request_review_for_green_check_suite(_green_event())
@@ -163,7 +172,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
     def test_noop_when_flag_disabled(
         self,
         mock_resolve: MagicMock,
@@ -179,9 +188,9 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         mock_actions.request_review.assert_not_called()
         assert self._marker() is None
 
-    @patch(f"{REVIEW_REQUEST_PATH}.metrics")
+    @patch(f"{CHECK_SUITES_PATH}.metrics")
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
-    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run", return_value=None)
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run", return_value=None)
     def test_noop_when_no_run_resolved(
         self, _mock_resolve: MagicMock, mock_actions: MagicMock, mock_metrics: MagicMock
     ) -> None:
@@ -193,8 +202,8 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
             "autofix.pr_iteration.review_request.run_resolved", tags={"found": "false"}
         )
 
-    @patch(f"{REVIEW_REQUEST_PATH}.sentry_sdk.capture_exception")
-    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
+    @patch(f"{CHECK_SUITES_PATH}.sentry_sdk.capture_exception")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
     def test_invalid_payload_captures_and_returns(
         self, mock_resolve: MagicMock, mock_capture: MagicMock
     ) -> None:
@@ -206,8 +215,8 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
-    @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    @patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
     @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
     def test_skips_stale_head(
         self,
@@ -217,7 +226,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
     ) -> None:
         # Live PR head is ahead of the check-suite commit — ignore this event.
         mock_resolve.return_value = self._resolved(commit_sha=HEAD_SHA)
-        mock_actions.get_pull_request.return_value = _pull_request_result(head_sha="newer-sha")
+        self.get_pr.return_value = _pull_request_result(head_sha="newer-sha")
 
         with self.feature(FLAG):
             request_review_for_green_check_suite(_green_event())
@@ -227,8 +236,8 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
-    @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    @patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
     @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
     def test_skips_night_shift_run_without_candidates(
         self,
@@ -239,7 +248,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         # No triggering user, so no candidate resolves.
         self.seer_run.update(user_id=None)
         mock_resolve.return_value = self._resolved()
-        mock_actions.get_pull_request.return_value = _pull_request_result()
+        self.get_pr.return_value = _pull_request_result()
 
         with self.feature(FLAG):
             request_review_for_green_check_suite(_green_event())
@@ -248,7 +257,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         assert self._marker() is None
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
-    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
     def test_skips_when_no_seer_run_row(
         self, mock_resolve: MagicMock, mock_actions: MagicMock
     ) -> None:
@@ -261,9 +270,13 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         mock_actions.request_review.assert_not_called()
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
-    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
     def test_skips_when_already_requested(
-        self, mock_resolve: MagicMock, mock_actions: MagicMock
+        self,
+        mock_resolve: MagicMock,
+        _mock_scm: MagicMock,
+        mock_actions: MagicMock,
     ) -> None:
         self.seer_run.update(
             extras={
@@ -281,15 +294,14 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         with self.feature(FLAG):
             request_review_for_green_check_suite(_green_event())
 
-        # The marker pre-check must short-circuit before any SCM work.
-        mock_actions.get_pull_request.assert_not_called()
+        # Shared bootstrap loads the PR; the marker check still skips the request.
         mock_actions.request_review.assert_not_called()
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
     @patch(f"{CANDIDATES_PATH}.get_github_username_for_user", return_value=None)
-    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
-    @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    @patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
     @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
     def test_skips_when_no_candidate_resolves(
         self,
@@ -299,7 +311,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         mock_actions: MagicMock,
     ) -> None:
         mock_resolve.return_value = self._resolved()
-        mock_actions.get_pull_request.return_value = _pull_request_result()
+        self.get_pr.return_value = _pull_request_result()
 
         with self.feature(FLAG):
             request_review_for_green_check_suite(_green_event())
@@ -309,8 +321,8 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
-    @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    @patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
     @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
     def test_skips_when_ci_not_green(
         self,
@@ -320,7 +332,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
     ) -> None:
         self.seer_run.update(extras={})
         mock_resolve.return_value = self._resolved()
-        mock_actions.get_pull_request.return_value = _pull_request_result()
+        self.get_pr.return_value = _pull_request_result()
 
         with self.feature(FLAG):
             request_review_for_green_check_suite(_green_event())
@@ -329,8 +341,8 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
-    @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    @patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
     @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
     def test_skips_when_pr_not_open(
         self,
@@ -339,9 +351,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         mock_actions: MagicMock,
     ) -> None:
         mock_resolve.return_value = self._resolved()
-        mock_actions.get_pull_request.return_value = _pull_request_result(
-            state="closed", merged=True
-        )
+        self.get_pr.return_value = _pull_request_result(state="closed", merged=True)
 
         with self.feature(FLAG):
             request_review_for_green_check_suite(_green_event())
@@ -352,8 +362,8 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
     @patch(f"{CANDIDATES_PATH}.get_github_username_for_user", return_value="octocat")
-    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
-    @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    @patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
     @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
     def test_skips_when_already_in_requested_reviewers(
         self,
@@ -363,9 +373,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         mock_actions: MagicMock,
     ) -> None:
         mock_resolve.return_value = self._resolved()
-        mock_actions.get_pull_request.return_value = _pull_request_result(
-            requested_reviewers=[{"login": "Octocat"}]
-        )
+        self.get_pr.return_value = _pull_request_result(requested_reviewers=[{"login": "Octocat"}])
 
         with self.feature(FLAG):
             request_review_for_green_check_suite(_green_event())
@@ -381,8 +389,8 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
     @patch(f"{CANDIDATES_PATH}.get_github_username_for_user", return_value="octocat")
-    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
-    @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    @patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
     @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
     def test_request_failure_leaves_marker_unset(
         self,
@@ -392,7 +400,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         mock_actions: MagicMock,
     ) -> None:
         mock_resolve.return_value = self._resolved()
-        mock_actions.get_pull_request.return_value = _pull_request_result()
+        self.get_pr.return_value = _pull_request_result()
         mock_actions.request_review.side_effect = Exception("boom")
 
         with self.feature(FLAG), patch(f"{REVIEW_REQUEST_PATH}.metrics") as mock_metrics:
@@ -406,8 +414,8 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
     @patch(f"{CANDIDATES_PATH}.get_github_username_for_user", return_value="octocat")
-    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
-    @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    @patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
     @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
     def test_skips_when_run_deleted_before_marker_write(
         self,
@@ -417,7 +425,7 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         mock_actions: MagicMock,
     ) -> None:
         mock_resolve.return_value = self._resolved()
-        mock_actions.get_pull_request.return_value = _pull_request_result()
+        self.get_pr.return_value = _pull_request_result()
 
         with (
             self.feature(FLAG),
@@ -439,8 +447,8 @@ CANDIDATES = [
 @patch(f"{REVIEW_REQUEST_PATH}.collect_reviewer_candidates", return_value=CANDIDATES)
 @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
 @patch("sentry.scm.factory.new", return_value=MagicMock())
-@patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
-@patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
+@patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+@patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
 @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
 class RequestReviewFromCandidatesTest(TestCase):
     """Wiring of the (mocked) candidate list into the request flow: markers,
@@ -463,10 +471,17 @@ class RequestReviewFromCandidatesTest(TestCase):
             }
         )
         repos_patcher = patch(
-            f"{REVIEW_REQUEST_PATH}.resolve_check_suite_repositories", return_value=[self.repo]
+            f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories", return_value=[self.repo]
         )
         repos_patcher.start()
         self.addCleanup(repos_patcher.stop)
+        self.get_pr = MagicMock(return_value=_pull_request_result())
+        get_pr_patcher = patch(f"{CHECK_SUITES_PATH}.scm_actions.get_pull_request", self.get_pr)
+        get_pr_patcher.start()
+        self.addCleanup(get_pr_patcher.stop)
+        proto_patcher = patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
+        proto_patcher.start()
+        self.addCleanup(proto_patcher.stop)
 
     def _resolved(self) -> CheckSuiteAutofixRun:
         run_state = SeerRunState(
@@ -496,7 +511,7 @@ class RequestReviewFromCandidatesTest(TestCase):
         mock_collect: MagicMock,
     ) -> None:
         mock_resolve.return_value = self._resolved()
-        mock_actions.get_pull_request.return_value = _pull_request_result(author="seer[bot]")
+        self.get_pr.return_value = _pull_request_result(author="seer[bot]")
 
         with self.feature(FLAG):
             request_review_for_green_check_suite(_green_event())
@@ -525,7 +540,7 @@ class RequestReviewFromCandidatesTest(TestCase):
     ) -> None:
         mock_collect.return_value = []
         mock_resolve.return_value = self._resolved()
-        mock_actions.get_pull_request.return_value = _pull_request_result()
+        self.get_pr.return_value = _pull_request_result()
 
         with self.feature(FLAG):
             request_review_for_green_check_suite(_green_event())
@@ -545,7 +560,7 @@ class RequestReviewFromCandidatesTest(TestCase):
         # The lower-ranked candidate is already on the hook (e.g. CODEOWNERS
         # auto-request) — adding a second person would rebuild the bystander
         # effect, so no request is made.
-        mock_actions.get_pull_request.return_value = _pull_request_result(
+        self.get_pr.return_value = _pull_request_result(
             requested_reviewers=[{"login": "Reviewer-Two"}]
         )
 
@@ -566,7 +581,7 @@ class RequestReviewFromCandidatesTest(TestCase):
         _mock_collect: MagicMock,
     ) -> None:
         mock_resolve.return_value = self._resolved()
-        mock_actions.get_pull_request.return_value = _pull_request_result()
+        self.get_pr.return_value = _pull_request_result()
         mock_actions.request_review.side_effect = [Exception("no repo access"), None]
 
         with self.feature(FLAG):
@@ -586,7 +601,7 @@ class RequestReviewFromCandidatesTest(TestCase):
         _mock_collect: MagicMock,
     ) -> None:
         mock_resolve.return_value = self._resolved()
-        mock_actions.get_pull_request.return_value = _pull_request_result()
+        self.get_pr.return_value = _pull_request_result()
         mock_actions.request_review.side_effect = Exception("no repo access")
 
         with self.feature(FLAG):
