@@ -100,7 +100,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["firstRelease"] is None
         assert response.data["lastRelease"] is None
 
-    @with_feature("projects:issue-action-log-write-to-db")
+    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
     def test_group_action_log_entry(self) -> None:
         group = self.create_group()
 

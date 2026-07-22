@@ -33,7 +33,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0028_seer_run_pull_request_coding_agent_handoff
 
-sentry: 1141_add_generated_at_to_group_derived_data
+sentry: 1142_remove_organizationmemberteamreplica_pending
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

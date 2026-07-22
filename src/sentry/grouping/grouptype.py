@@ -6,8 +6,8 @@ from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.endpoints.validators.error_detector import ErrorDetectorValidator
 from sentry.workflow_engine.handlers.detector.base import DetectorHandler
 from sentry.workflow_engine.models.data_source import DataPacket
+from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
     DetectorGroupKey,
     DetectorSettings,
 )
@@ -18,7 +18,7 @@ class ErrorDetectorHandler(DetectorHandler[object]):
 
     def evaluate(
         self, data_packet: DataPacket[object]
-    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+    ) -> dict[DetectorGroupKey, DetectorEvaluation]:
         return {}
 
 
