@@ -114,7 +114,9 @@ function extractPr(
 // The pending-input payload is untyped (Record<string, unknown>). The canonical
 // ask_user_question shape is {questions: [{question, options}]} (see
 // usePendingUserInput's AskUserQuestionData); fall back to a flat key otherwise.
-function extractPendingQuestion(state: ExplorerAutofixState | null): string | undefined {
+export function extractPendingQuestion(
+  state: ExplorerAutofixState | null
+): string | undefined {
   if (state?.status !== 'awaiting_user_input') {
     return undefined;
   }
@@ -140,7 +142,7 @@ const MAX_HEADLINE_LENGTH = 140;
 
 // The root_cause prompt asks for "headline|root cause". Split on the first
 // pipe; strip stray emphasis/quote characters the model might wrap it in.
-function parseRootCause(answer: string): {answer: string; headline?: string} {
+export function parseRootCause(answer: string): {answer: string; headline?: string} {
   const pipeIndex = answer.indexOf('|');
   if (pipeIndex === -1) {
     return {answer};
@@ -159,7 +161,7 @@ function parseRootCause(answer: string): {answer: string; headline?: string} {
 // The model sometimes emits inline "•" bullets run together in one paragraph;
 // markdown only renders a list when each item is its own "- " line. The bullet
 // may be followed by no space ("•Item"), so the trailing \s is optional.
-function normalizeBulletList(answer: string): string {
+export function normalizeBulletList(answer: string): string {
   if (!answer.includes('•')) {
     return answer;
   }

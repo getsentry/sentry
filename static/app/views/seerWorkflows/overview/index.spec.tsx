@@ -36,93 +36,78 @@ describe('AutofixOverview', () => {
     userCount: 5,
   });
 
-  // A run that reached every stage and opened a PR.
-  const autofixState = {
-    run_id: 1,
-    status: 'completed',
-    updated_at: '2026-07-14T10:00:00Z',
-    blocks: [
-      {
-        id: 'b1',
-        timestamp: '2026-07-14T09:00:00Z',
-        message: {
-          role: 'assistant',
-          content: 'rca',
-          metadata: {step: 'root_cause'},
-        },
-      },
-      {
-        id: 'b2',
-        timestamp: '2026-07-14T09:10:00Z',
-        message: {
-          role: 'assistant',
-          content: 'plan',
-          metadata: {step: 'solution'},
-        },
-      },
-      {
-        id: 'b3',
-        timestamp: '2026-07-14T09:20:00Z',
-        message: {
-          role: 'assistant',
-          content: 'code',
-          metadata: {step: 'code_changes'},
-        },
-        merged_file_patches: [
-          {
-            repo_name: 'getsentry/sentry',
-            diff: '--- a/src/cart.py\n+++ b/src/cart.py',
-            patch: {
-              path: 'src/cart.py',
-              source_file: 'src/cart.py',
-              target_file: 'src/cart.py',
-              type: 'M',
-              added: 42,
-              removed: 7,
-              hunks: [],
-            },
-          },
-        ],
-      },
-    ],
-    repo_pr_states: {
-      'getsentry/sentry': {
-        repo_name: 'getsentry/sentry',
-        branch_name: 'fix/cart',
-        commit_sha: null,
-        pr_creation_error: null,
-        pr_creation_status: 'completed',
-        pr_id: null,
-        pr_number: 123,
-        pr_url: 'https://github.com/getsentry/sentry/pull/123',
-        title: 'Fix nil cart',
-      },
-    },
-  };
+  // One answered run question keyed to its prompt (the endpoint echoes the
+  // prompt back), so buildAnalysis joins it to its question config by text.
+  function makeOutput(questionIndex: number, answer: string) {
+    return {question: RUN_QUESTIONS[questionIndex]!.prompt, answer};
+  }
+
+  // A pipeline block. Only `message.metadata.step` (section bucketing),
+  // `message.role`/`content` (section completion), and `merged_file_patches`
+  // (the diff artifact) are read, so the builder carries just those.
+  function makeBlock(step: string, overrides: Record<string, unknown> = {}) {
+    return {message: {role: 'assistant', content: step, metadata: {step}}, ...overrides};
+  }
 
   // The per-card runs payload: a night_shift-triggered run whose one-shot
-  // answers become the card's Root cause / Proposed fix prose.
-  const defaultRun = {
-    id: 'run-1',
-    type: 'explorer',
-    groupId: '2',
-    source: 'night_shift',
-    lastTriggeredAt: '2026-07-14T09:00:00Z',
-    dateCreated: '2026-07-14T09:00:00Z',
-    outputs: [
-      {
-        key: 'user_0',
-        question: RUN_QUESTIONS[0]!.prompt,
-        answer:
-          'Proxy requests fail without Authorization header|Commit c5bb895 stopped sending the Authorization header.',
+  // answers become the card's Root cause / Proposed fix prose. Tests spread
+  // overrides to vary source, outputs, or linked PRs.
+  function makeRun(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 'run-1',
+      groupId: '2',
+      source: 'night_shift',
+      lastTriggeredAt: '2026-07-14T09:00:00Z',
+      outputs: [
+        makeOutput(
+          0,
+          'Proxy requests fail without Authorization header|Commit c5bb895 stopped sending the Authorization header.'
+        ),
+        makeOutput(1, 'Restores the Authorization header as a fallback.'),
+      ],
+      ...overrides,
+    };
+  }
+
+  // A run that reached every stage and opened a PR. Tests spread overrides to
+  // vary status, blocks, the pending-input payload, or the PR states.
+  function makeAutofixState(overrides: Record<string, unknown> = {}) {
+    return {
+      run_id: 1,
+      status: 'completed',
+      updated_at: '2026-07-14T10:00:00Z',
+      blocks: [
+        makeBlock('root_cause'),
+        makeBlock('solution'),
+        makeBlock('code_changes', {
+          merged_file_patches: [
+            {
+              repo_name: 'getsentry/sentry',
+              diff: '--- a/src/cart.py\n+++ b/src/cart.py',
+              patch: {
+                path: 'src/cart.py',
+                source_file: 'src/cart.py',
+                target_file: 'src/cart.py',
+                type: 'M',
+                added: 42,
+                removed: 7,
+                hunks: [],
+              },
+            },
+          ],
+        }),
+      ],
+      repo_pr_states: {
+        'getsentry/sentry': {
+          repo_name: 'getsentry/sentry',
+          pr_creation_status: 'completed',
+          pr_number: 123,
+          pr_url: 'https://github.com/getsentry/sentry/pull/123',
+        },
       },
-      {
-        key: 'user_1',
-        question: RUN_QUESTIONS[1]!.prompt,
-        answer: 'Restores the Authorization header as a fallback.',
-      },
-    ],
-  };
+      ...overrides,
+    };
+  }
 
   // The repo-wide IntersectionObserver mock (tests/js/setup.ts) is a no-op
   // whose observe() never fires its callback, so LazyRender content would
@@ -192,11 +177,11 @@ describe('AutofixOverview', () => {
     // card as in view, so these fire once per rendered card.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/runs/`,
-      body: [defaultRun],
+      body: [makeRun()],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/2/autofix/`,
-      body: {autofix: autofixState},
+      body: {autofix: makeAutofixState()},
     });
   });
 
@@ -362,21 +347,10 @@ describe('AutofixOverview', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/runs/`,
       body: [
-        {
-          id: 'run-1',
-          type: 'explorer',
-          groupId: '2',
+        makeRun({
           source: 'autofix',
-          lastTriggeredAt: '2026-07-14T09:00:00Z',
-          dateCreated: '2026-07-14T09:00:00Z',
-          outputs: [
-            {
-              key: 'user_2',
-              question: RUN_QUESTIONS[2]!.prompt,
-              answer: 'Decide whether to relax the constraint.',
-            },
-          ],
-        },
+          outputs: [makeOutput(2, 'Decide whether to relax the constraint.')],
+        }),
       ],
     });
 
@@ -416,16 +390,11 @@ describe('AutofixOverview', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/runs/`,
       body: [
-        {
-          id: 'run-1',
-          type: 'explorer',
-          groupId: '2',
+        makeRun({
           source: 'autofix',
-          lastTriggeredAt: '2026-07-14T09:00:00Z',
-          dateCreated: '2026-07-14T09:00:00Z',
-          pullRequests: [{status: 'merged', mergedAt: '2026-07-15T09:00:00Z'}],
+          pullRequests: [{status: 'merged'}],
           outputs: [],
-        },
+        }),
       ],
     });
 
@@ -530,31 +499,18 @@ describe('AutofixOverview', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/2/autofix/`,
       body: {
-        autofix: {
-          run_id: 1,
+        autofix: makeAutofixState({
           status: 'awaiting_user_input',
-          updated_at: '2026-07-14T10:00:00Z',
-          blocks: [
-            {
-              id: 'b1',
-              timestamp: '2026-07-14T09:00:00Z',
-              message: {
-                role: 'assistant',
-                content: 'rca',
-                metadata: {step: 'root_cause'},
-              },
-            },
-          ],
+          blocks: [makeBlock('root_cause')],
           // Canonical ask_user_question shape: the text is nested under
           // questions[0].question, not a flat key.
           pending_user_input: {
-            id: 'input-1',
             input_type: 'ask_user_question',
             data: {
               questions: [{question: 'Which environment should I target?', options: []}],
             },
           },
-        },
+        }),
       },
     });
 
@@ -595,19 +551,9 @@ describe('AutofixOverview', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/2/autofix/`,
       body: {
-        autofix: {
-          run_id: 1,
-          status: 'completed',
-          updated_at: '2026-07-14T10:00:00Z',
+        autofix: makeAutofixState({
           blocks: [
-            {
-              id: 'b1',
-              timestamp: '2026-07-14T09:00:00Z',
-              message: {
-                role: 'assistant',
-                content: 'code',
-                metadata: {step: 'code_changes'},
-              },
+            makeBlock('code_changes', {
               merged_file_patches: [
                 {
                   repo_name: 'getsentry/sentry',
@@ -661,9 +607,10 @@ describe('AutofixOverview', () => {
                   },
                 },
               ],
-            },
+            }),
           ],
-        },
+          repo_pr_states: {},
+        }),
       },
     });
 
@@ -690,19 +637,9 @@ describe('AutofixOverview', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/2/autofix/`,
       body: {
-        autofix: {
-          run_id: 1,
-          status: 'completed',
-          updated_at: '2026-07-14T10:00:00Z',
+        autofix: makeAutofixState({
           blocks: [
-            {
-              id: 'b1',
-              timestamp: '2026-07-14T09:00:00Z',
-              message: {
-                role: 'assistant',
-                content: 'code',
-                metadata: {step: 'code_changes'},
-              },
+            makeBlock('code_changes', {
               merged_file_patches: [
                 {
                   repo_name: 'getsentry/sentry',
@@ -735,9 +672,9 @@ describe('AutofixOverview', () => {
                   },
                 },
               ],
-            },
+            }),
           ],
-        },
+        }),
       },
     });
 
