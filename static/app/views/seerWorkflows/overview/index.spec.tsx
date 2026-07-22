@@ -497,6 +497,35 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
   });
 
+  it('caps a section at the render limit and reveals the rest on demand', async () => {
+    // More issues than the per-section render cap: only the cap hydrates, the
+    // rest stay unmounted behind a Show-more affordance while the header badge
+    // still reports the full X-Hits total.
+    const many = Array.from({length: 30}, (_, index) =>
+      GroupFixture({
+        id: `${100 + index}`,
+        shortId: `PROJ-${100 + index}`,
+        title: `Capped issue ${index}`,
+      })
+    );
+    many.forEach(group => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+        body: {autofix: null},
+      });
+    });
+    mockSection(SECTION_QUERIES.review_pr, {body: many, hits: '30'});
+
+    renderPage();
+
+    await screen.findByRole('button', {name: 'Awaiting your review 30'});
+    expect(screen.getAllByRole('link', {name: /Capped issue/})).toHaveLength(25);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show 5 more issues'}));
+
+    expect(screen.getAllByRole('link', {name: /Capped issue/})).toHaveLength(30);
+  });
+
   it('surfaces the blocking question when a run awaits user input', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/2/autofix/`,
