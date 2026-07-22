@@ -394,6 +394,8 @@ def build_and_promote_derived_data(
 
     Raises GroupLogTimeout (with ``generation_id`` set) if the time-limited
     drain could not finish, so the caller can re-enqueue.
+    Raises PromotionFailed if promotion cannot succeed after retries.
+    Raises Group.DoesNotExist if the group has been deleted.
     """
     pipeline_hash = PIPELINE.pipeline_hash
     generated_at: datetime
@@ -410,6 +412,8 @@ def build_and_promote_derived_data(
             )
 
     if derived is None:
+        if not Group.objects.filter(id=group_id).exists():
+            raise Group.DoesNotExist(f"Group {group_id} does not exist")
         generated_at = timezone.now()
         derived = GroupDerivedData(
             group_id=group_id,
@@ -453,6 +457,8 @@ def build_and_promote_derived_data(
         # next _drain_log builds on the correct base, not stale aggregations.
         live_row = GroupDerivedData.objects.filter(group_id=group_id).first()
         if live_row is None:
+            if not Group.objects.filter(id=group_id).exists():
+                raise Group.DoesNotExist(f"Group {group_id} does not exist")
             break
         for field in _STATE_FIELDS:
             setattr(derived, field, getattr(live_row, field))

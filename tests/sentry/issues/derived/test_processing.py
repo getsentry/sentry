@@ -548,6 +548,11 @@ class PromoteToLiveTest(TestCase):
         assert live.view_count == 1
         assert live.generated_at == gen_time
 
+    def test_build_and_promote_raises_for_deleted_group(self) -> None:
+        nonexistent_group_id = 999999999
+        with pytest.raises(Group.DoesNotExist):
+            build_and_promote_derived_data(nonexistent_group_id, time_limit=timedelta(minutes=5))
+
     def test_promote_updates_existing_row(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
