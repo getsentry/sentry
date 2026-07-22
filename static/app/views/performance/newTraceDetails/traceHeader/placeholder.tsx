@@ -37,7 +37,7 @@ export function PlaceHolder({
   return (
     <TraceHeaderComponents.HeaderLayout>
       <TraceHeaderComponents.HeaderContent>
-        <TraceHeaderComponents.HeaderRow>
+        <Flex justify="between" align="center" gap="md">
           <TopBar.Slot name="title">
             <Breadcrumbs
               crumbs={getTraceViewBreadcrumbs({
@@ -61,8 +61,8 @@ export function PlaceHolder({
               </FeedbackButton>
             </TopBar.Slot>
           </Grid>
-        </TraceHeaderComponents.HeaderRow>
-        <TraceHeaderComponents.HeaderRow>
+        </Flex>
+        <Flex justify="between" gap="md">
           <Stack gap="xs">
             <TraceHeaderComponents.StyledPlaceholder _width={300} _height={20} />
             <TraceHeaderComponents.StyledPlaceholder _width={200} _height={18} />
@@ -71,15 +71,15 @@ export function PlaceHolder({
             <TraceHeaderComponents.StyledPlaceholder _width={300} _height={18} />
             <TraceHeaderComponents.StyledPlaceholder _width={300} _height={24} />
           </Stack>
-        </TraceHeaderComponents.HeaderRow>
-        <TraceHeaderComponents.HeaderRow>
+        </Flex>
+        <Flex justify="between" align="center" gap="md">
           <Flex align="center" gap="md">
             <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
             <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
             <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
           </Flex>
           <TraceHeaderComponents.StyledPlaceholder _width={50} _height={28} />
-        </TraceHeaderComponents.HeaderRow>
+        </Flex>
       </TraceHeaderComponents.HeaderContent>
     </TraceHeaderComponents.HeaderLayout>
   );

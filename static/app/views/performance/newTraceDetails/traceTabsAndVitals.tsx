@@ -62,7 +62,13 @@ export function TraceTabsAndVitals({
   }
 
   return (
-    <Flex justify="between" align="center" minHeight={`${CONTAINER_MIN_HEIGHT}px`}>
+    <Flex
+      direction={{zero: 'column-reverse', xl: 'row'}}
+      justify="between"
+      align={{zero: 'start', xl: 'center'}}
+      gap="md"
+      minHeight={`${CONTAINER_MIN_HEIGHT}px`}
+    >
       <Tabs value={currentTab} onChange={onTabChange}>
         <TabList variant="floating">
           {tabOptions.map(tab => (
