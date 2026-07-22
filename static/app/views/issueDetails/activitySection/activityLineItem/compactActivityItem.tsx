@@ -16,7 +16,6 @@ import type {PullRequest} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
-import {getAutofixTriggerActivityCopy} from 'sentry/views/issueDetails/activitySection/autofixTriggerActivity';
 
 import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
@@ -507,9 +506,16 @@ export function getCompactGroupActivityItem({
       };
     }
     case GroupActivityType.TRIGGER_AUTOFIX:
-      return {
-        title: getAutofixTriggerActivityCopy(activity.data.referrer).compactTitle,
-      };
+      switch (activity.data.referrer) {
+        case 'slack':
+          return {title: t('Autofix triggered from Slack')};
+        case 'issue_summary.post_process_fixability':
+          return {title: t('Autofix triggered automatically after event ingestion')};
+        case 'night_shift':
+          return {title: t('Autofix triggered during agentic triage')};
+        default:
+          return {title: t('Autofix triggered')};
+      }
   }
 
   Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {

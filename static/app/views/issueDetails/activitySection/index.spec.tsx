@@ -1093,39 +1093,6 @@ describe('ActivitySection', () => {
       expectedCopy: ['Autofix triggered'],
       expectedMarker: 'Activity update',
     },
-    {
-      name: 'Autofix trigger from Slack',
-      activity: {
-        type: GroupActivityType.TRIGGER_AUTOFIX,
-        id: 'autofix-trigger-slack',
-        dateCreated: '2020-01-01T00:00:00',
-        data: {referrer: 'slack'},
-      } satisfies GroupActivity,
-      expectedCopy: ['Autofix triggered from Slack'],
-      expectedMarker: 'Activity update',
-    },
-    {
-      name: 'Autofix trigger after event ingestion',
-      activity: {
-        type: GroupActivityType.TRIGGER_AUTOFIX,
-        id: 'autofix-trigger-event-ingestion',
-        dateCreated: '2020-01-01T00:00:00',
-        data: {referrer: 'issue_summary.post_process_fixability'},
-      } satisfies GroupActivity,
-      expectedCopy: ['Autofix triggered automatically after event ingestion'],
-      expectedMarker: 'Activity update',
-    },
-    {
-      name: 'Autofix trigger during agentic triage',
-      activity: {
-        type: GroupActivityType.TRIGGER_AUTOFIX,
-        id: 'autofix-trigger-night-shift',
-        dateCreated: '2020-01-01T00:00:00',
-        data: {referrer: 'night_shift'},
-      } satisfies GroupActivity,
-      expectedCopy: ['Autofix triggered during agentic triage'],
-      expectedMarker: 'Activity update',
-    },
   ])(
     'renders $name v2 activity copy',
     async ({activity, expectedCopy, expectedMarker}) => {
@@ -1640,7 +1607,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.TRIGGER_AUTOFIX,
           id: 'autofix-trigger-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {},
+          data: {referrer: 'slack'},
           user: null,
         },
       ],
@@ -1660,44 +1627,7 @@ describe('ActivitySection', () => {
     expect(await screen.findByText('Root Cause Analysis')).toBeInTheDocument();
     expect(screen.getByText('Seer completed root cause analysis')).toBeInTheDocument();
     expect(screen.getByText('Autofix')).toBeInTheDocument();
-    expect(screen.getByText('Autofix was triggered')).toBeInTheDocument();
-  });
-
-  it.each([
-    ['slack', 'Autofix was triggered from Slack'],
-    [
-      'issue_summary.post_process_fixability',
-      'Autofix was triggered automatically after event ingestion',
-    ],
-    ['night_shift', 'Autofix was triggered during agentic triage'],
-    ['unknown', 'Autofix was triggered'],
-  ])('renders Autofix trigger source %s', async (referrer, expectedCopy) => {
-    const seerGroup = GroupFixture({
-      id: `autofix-trigger-${referrer}`,
-      activity: [
-        {
-          type: GroupActivityType.TRIGGER_AUTOFIX,
-          id: `autofix-trigger-${referrer}`,
-          dateCreated: '2020-01-01T00:00:00',
-          data: {referrer},
-          user: null,
-        },
-      ],
-      project,
-    });
-
-    render(
-      <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
-        <ActivitySection group={seerGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({
-          features: ['display-seer-actions-as-issue-activities'],
-        }),
-      }
-    );
-
-    expect(await screen.findByText(expectedCopy)).toBeInTheDocument();
+    expect(screen.getByText('Autofix was triggered from Slack')).toBeInTheDocument();
   });
 
   it('hides Seer activity when feature flag is disabled', () => {

@@ -30,7 +30,6 @@ import {
   getAssignmentIntegrationName,
   isAutoAssignmentIntegration,
 } from 'sentry/views/issueDetails/activitySection/assignmentIntegration';
-import {getAutofixTriggerActivityCopy} from 'sentry/views/issueDetails/activitySection/autofixTriggerActivity';
 
 function getAuthorName(item: GroupActivity) {
   if (item.sentry_app) {
@@ -880,11 +879,23 @@ export function getGroupActivityItem(
           message: t('Seer finished iterating on the pull request'),
         };
       }
-      case GroupActivityType.TRIGGER_AUTOFIX:
-        return {
-          title: t('Autofix'),
-          message: getAutofixTriggerActivityCopy(activity.data.referrer).legacyMessage,
-        };
+      case GroupActivityType.TRIGGER_AUTOFIX: {
+        let message = t('Autofix was triggered');
+        switch (activity.data.referrer) {
+          case 'slack':
+            message = t('Autofix was triggered from Slack');
+            break;
+          case 'issue_summary.post_process_fixability':
+            message = t('Autofix was triggered automatically after event ingestion');
+            break;
+          case 'night_shift':
+            message = t('Autofix was triggered during agentic triage');
+            break;
+          default:
+            break;
+        }
+        return {title: t('Autofix'), message};
+      }
       default:
         Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {
           contexts: {activity: activityContext},

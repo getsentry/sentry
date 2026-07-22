@@ -824,9 +824,28 @@ interface GroupActivityPullRequestUnlinked extends GroupActivityBase {
   type: GroupActivityType.PULL_REQUEST_UNLINKED;
 }
 
+/**
+ * Mirrors `sentry.seer.autofix.constants.AutofixReferrer` on the backend.
+ * Keep these values in sync when the backend enum changes.
+ */
+export type AutofixReferrer =
+  | 'api.cli'
+  | 'api.group_ai_autofix'
+  | 'api.linear_agent'
+  | 'api.mcp'
+  | 'api.web'
+  | 'autofix.on_completion_hook'
+  | 'github.check_suite'
+  | 'github.pr_comment'
+  | 'github.pr_review'
+  | 'issue_summary.post_process_fixability'
+  | 'night_shift'
+  | 'slack'
+  | 'unknown';
+
 interface GroupActivityTriggerAutofix extends GroupActivityBase {
   data: {
-    referrer?: string;
+    referrer?: AutofixReferrer;
   };
   type: GroupActivityType.TRIGGER_AUTOFIX;
 }
