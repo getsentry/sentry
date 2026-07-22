@@ -222,7 +222,8 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     })),
   });
 
-  const isInitialTraceLoading = meta.status === 'pending' || tree.type === 'loading';
+  const isInitialTraceLoading =
+    Boolean(traceSlug) && (meta.status === 'pending' || tree.type === 'loading');
 
   return (
     <SentryDocumentTitle
