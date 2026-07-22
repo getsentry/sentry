@@ -516,31 +516,28 @@ def configure_sdk():
                             relay_envelope.items = safe_items
 
                         # Only transactions are sampled at a lower rate.
-                        if envelope.get_transaction_event() is None:
-                            getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
-                            return
+                        if envelope.get_transaction_event() is not None:
+                            trace = relay_envelope.headers.get("trace")
 
-                        trace = relay_envelope.headers.get("trace")
+                            prior_sample_rate = None
+                            try:
+                                prior_sample_rate = float(trace["sample_rate"])
+                            except Exception:
+                                pass
 
-                        prior_sample_rate = None
-                        try:
-                            prior_sample_rate = float(trace["sample_rate"])
-                        except Exception:
-                            pass
-
-                        if (
-                            isinstance(trace, dict)
-                            and isinstance(prior_sample_rate, float)
-                            and isinstance(s4s_sample_rate, float)
-                        ):
-                            # Maintain accurate extrapolation by incorporating sampling factor.
-                            relay_envelope.headers = {
-                                **relay_envelope.headers,
-                                "trace": {
-                                    **trace,
-                                    "sample_rate": str(prior_sample_rate * s4s_sample_rate),
-                                },
-                            }
+                            if (
+                                isinstance(trace, dict)
+                                and isinstance(prior_sample_rate, float)
+                                and isinstance(s4s_sample_rate, float)
+                            ):
+                                # Maintain accurate extrapolation by incorporating sampling factor.
+                                relay_envelope.headers = {
+                                    **relay_envelope.headers,
+                                    "trace": {
+                                        **trace,
+                                        "sample_rate": str(prior_sample_rate * s4s_sample_rate),
+                                    },
+                                }
 
                     getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
