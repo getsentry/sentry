@@ -42,6 +42,10 @@ export const PIPELINE: PipelineStage[] = [
 
 export const SECTION_ORDER: AutofixStateKey[] = PIPELINE.map(stage => stage.key);
 
+// Toolbar controls, persisted in the URL (sort) and localStorage (view).
+export type SortValue = 'activity' | 'events';
+export type OverviewView = 'cards' | 'table';
+
 // Live run status, mirrored straight from ExplorerAutofixState.status. Drives
 // the transient card overlays (Running / Retry / Add context), never the
 // section-driven primary action.
