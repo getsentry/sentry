@@ -1,20 +1,20 @@
 ---
-title: UserBubble
+title: UserMessage
 description: A single message bubble for the sender's own messages in an agent conversation.
 category: chat
 source: '@sentry/scraps/chat'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/userBubble.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/userMessage.tsx
 ---
 
 import {Flex} from '@sentry/scraps/layout';
-import {UserBubble} from '@sentry/scraps/chat';
+import {UserMessage} from '@sentry/scraps/chat';
 
 import * as Storybook from 'sentry/stories';
 
-export const documentation = import('!!type-loader!@sentry/scraps/chat/userBubble');
+export const documentation = import('!!type-loader!@sentry/scraps/chat/userMessage');
 
-The `UserBubble` renders a single message bubble, styled for the
+The `UserMessage` renders a single message bubble, styled for the
 sender's own messages in an agent conversation. It is presentation only —
 alignment within the conversation is the caller's responsibility.
 
@@ -25,13 +25,13 @@ agent's responses.
 
 <Storybook.Demo>
   <Flex justify="end" width="100%">
-    <UserBubble>How many errors happened in the last 24 hours?</UserBubble>
+    <UserMessage>How many errors happened in the last 24 hours?</UserMessage>
   </Flex>
 </Storybook.Demo>
 
 ```jsx
 <Flex justify="end" width="100%">
-  <UserBubble>How many errors happened in the last 24 hours?</UserBubble>
+  <UserMessage>How many errors happened in the last 24 hours?</UserMessage>
 </Flex>
 ```
 
@@ -43,15 +43,15 @@ wider surfaces.
 
 <Storybook.Demo>
   <Flex justify="end" width="100%">
-    <UserBubble maxWidth="60%">
+    <UserMessage maxWidth="60%">
       A longer question that wraps onto multiple lines once it reaches the max width of
       the bubble.
-    </UserBubble>
+    </UserMessage>
   </Flex>
 </Storybook.Demo>
 
 ```jsx
-<UserBubble maxWidth="60%">…</UserBubble>
+<UserMessage maxWidth="60%">…</UserMessage>
 ```
 
 Whitespace and long unbroken tokens are preserved and wrapped, so pasted URLs
