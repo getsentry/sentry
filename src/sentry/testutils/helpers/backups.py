@@ -572,7 +572,6 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
         DashboardLastVisited.objects.create(
-            organization=org,
             user_id=owner_id,
             dashboard=dashboard,
             last_visited=timezone.now(),

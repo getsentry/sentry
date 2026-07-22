@@ -917,13 +917,11 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         # Should respect this last_visited, not the independent dashboard's
         DashboardLastVisited.objects.create(
-            organization=self.organization,
             user_id=self.user.id,
             dashboard=dashboard_a,
             last_visited=one_hour_ago,
         )
         DashboardLastVisited.objects.create(
-            organization=self.organization,
             user_id=self.user.id,
             dashboard=dashboard_b,
             last_visited=now,
@@ -958,7 +956,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         )
 
         DashboardLastVisited.objects.create(
-            organization=self.organization,
             user_id=self.user.id,
             dashboard=visited,
             last_visited=now,

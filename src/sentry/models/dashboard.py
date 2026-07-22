@@ -318,7 +318,6 @@ class DashboardLastVisited(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
-    organization = FlexibleForeignKey("sentry.Organization")
     dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
     last_visited = models.DateTimeField(null=False, default=timezone.now)
 
@@ -327,8 +326,8 @@ class DashboardLastVisited(DefaultFieldsModel):
         db_table = "sentry_dashboardlastvisited"
         constraints = [
             UniqueConstraint(
-                fields=["user_id", "organization_id", "dashboard_id"],
-                name="sentry_dashboardlastvisited_unique_per_org_user_dashboard",
+                fields=["user_id", "dashboard_id"],
+                name="sentry_dashboardlastvisited_unique_per_user_dashboard",
             )
         ]
 

@@ -529,22 +529,25 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         use_user_last_visited = features.has(
             "organizations:dashboards-user-last-visited", organization, actor=request.user
         )
-        if use_user_last_visited:
-            dashboards = dashboards.annotate(
-                user_last_visited=Subquery(
-                    DashboardLastVisited.objects.filter(
-                        organization=organization,
-                        user_id=request.user.id,
-                        dashboard_id=OuterRef("id"),
-                    ).values("last_visited")[:1]
-                )
-            )
 
         sort_by = request.query_params.get("sort")
         if sort_by and sort_by.startswith("-"):
             sort_by, desc = sort_by[1:], True
         else:
             desc = False
+
+        if use_user_last_visited and sort_by in (
+            "recentlyViewed",
+            "myDashboardsAndRecentlyViewed",
+        ):
+            dashboards = dashboards.annotate(
+                user_last_visited=Subquery(
+                    DashboardLastVisited.objects.filter(
+                        user_id=request.user.id,
+                        dashboard_id=OuterRef("id"),
+                    ).values("last_visited")[:1]
+                )
+            )
 
         order_by: list[Case | str | OrderBy]
         if sort_by == "title":

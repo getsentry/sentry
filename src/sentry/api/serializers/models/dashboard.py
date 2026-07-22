@@ -526,7 +526,6 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             user_last_visited_map = {
                 dlv.dashboard_id: dlv.last_visited
                 for dlv in DashboardLastVisited.objects.filter(
-                    organization=organization,
                     user_id=user.id,
                     dashboard_id__in=item_dict.keys(),
                 )

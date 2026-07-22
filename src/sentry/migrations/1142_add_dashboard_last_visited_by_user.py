@@ -54,19 +54,13 @@ class Migration(CheckedMigration):
                         on_delete=django.db.models.deletion.CASCADE, to="sentry.dashboard"
                     ),
                 ),
-                (
-                    "organization",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.organization"
-                    ),
-                ),
             ],
             options={
                 "db_table": "sentry_dashboardlastvisited",
                 "constraints": [
                     models.UniqueConstraint(
-                        fields=("user_id", "organization_id", "dashboard_id"),
-                        name="sentry_dashboardlastvisited_unique_per_org_user_dashboard",
+                        fields=("user_id", "dashboard_id"),
+                        name="sentry_dashboardlastvisited_unique_per_user_dashboard",
                     )
                 ],
             },

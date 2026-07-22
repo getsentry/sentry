@@ -266,7 +266,6 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
             and request.user.is_authenticated
         ):
             DashboardLastVisited.objects.update_or_create(
-                organization=organization,
                 user_id=request.user.id,
                 dashboard=dashboard,
                 defaults={"last_visited": timezone.now()},
