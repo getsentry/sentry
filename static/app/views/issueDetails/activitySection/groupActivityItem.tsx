@@ -879,6 +879,11 @@ export function getGroupActivityItem(
           message: t('Seer finished iterating on the pull request'),
         };
       }
+      case GroupActivityType.TRIGGER_AUTOFIX:
+        return {
+          title: t('Autofix'),
+          message: t('Autofix was triggered'),
+        };
       default:
         Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {
           contexts: {activity: activityContext},

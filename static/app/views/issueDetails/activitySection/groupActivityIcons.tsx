@@ -204,6 +204,11 @@ export const groupActivityTypeIconMapping: Record<
     defaultProps: {},
     propsFunction: () => ({variant: 'success'}),
   },
+  [GroupActivityType.TRIGGER_AUTOFIX]: {
+    Component: IconSeer,
+    defaultProps: {},
+    propsFunction: () => ({}),
+  },
 };
 
 const StyledUserAvatar = styled(UserAvatar)`
