@@ -247,7 +247,7 @@ def _validate_events_query_params(
                 or "Query timed out. Try a smaller date range or fewer projects."
             )
             return ExecuteQueryErrorResponse(error=str(detail))
-        logger.warning(
+        logger.exception(
             "execute_table_query: validate request failed",
             extra={"org_id": organization.id},
         )
