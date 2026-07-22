@@ -56,7 +56,7 @@ def _check_for_mismatched_hashes(
 
         if hash_mismatch:
             metrics.incr("event_grouping_info.hash_mismatch")
-            logger.error(
+            logger.info(
                 "event_grouping_info.hash_mismatch",
                 extra={"project_id": project.id, "event_id": event.event_id},
             )
