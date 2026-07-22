@@ -66,12 +66,17 @@ class SCIMSchemaEndpointTest(SCIMTestCase):
             "detail": "Filtering is not supported on this endpoint.",
         }
 
-    def test_create_time_attributes_are_writable(self) -> None:
-        # Entra excludes non-writable attributes from provisioning payloads
-        # entirely, and cannot create users without sending userName/emails.
+    def test_mutability_matches_provisioning_behavior(self) -> None:
+        # userName is consumed only at create (Sentry has no rename), so it
+        # is immutable — not readOnly, because Entra excludes readOnly
+        # attributes from provisioning payloads entirely and cannot create
+        # users without sending userName. emails/name are derived server-side
+        # and never consumed; active is the PATCH deprovisioning path.
         user_attrs = {a["name"]: a for a in SCIM_USER_ATTRIBUTES_SCHEMA["attributes"]}
-        assert user_attrs["userName"]["mutability"] == "readWrite"
-        assert user_attrs["emails"]["mutability"] == "readWrite"
+        assert user_attrs["userName"]["mutability"] == "immutable"
+        assert user_attrs["emails"]["mutability"] == "readOnly"
+        assert user_attrs["name"]["mutability"] == "readOnly"
+        assert user_attrs["active"]["mutability"] == "readWrite"
 
     def test_every_attribute_declares_mutability(self) -> None:
         # RFC 7643 §2.2 defaults mutability when omitted, but Entra's SCIM

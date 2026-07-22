@@ -28,9 +28,11 @@ SCIM_USER_ATTRIBUTES_SCHEMA: dict[str, Any] = {
             "description": "Unique identifier for the User, which for Sentry is an email address.",
             "required": True,
             "caseExact": False,
-            # Clients must be able to send create-time attributes: Entra
-            # excludes non-writable attributes from provisioning payloads.
-            "mutability": "readWrite",
+            # Consumed only at create (it becomes the member's email); Sentry
+            # does not support renames. Not readOnly: Entra excludes readOnly
+            # attributes from provisioning payloads entirely and cannot
+            # create users without sending userName.
+            "mutability": "immutable",
             "returned": "default",
             "uniqueness": "server",
         },
@@ -48,7 +50,7 @@ SCIM_USER_ATTRIBUTES_SCHEMA: dict[str, Any] = {
                     "description": "Email addresses for the user.  The value is canonicalized to be lowercase.",
                     "required": False,
                     "caseExact": False,
-                    "mutability": "readWrite",
+                    "mutability": "readOnly",
                     "returned": "default",
                     "uniqueness": "none",
                 },
@@ -71,7 +73,7 @@ SCIM_USER_ATTRIBUTES_SCHEMA: dict[str, Any] = {
                     "required": False,
                     "caseExact": False,
                     "canonicalValues": ["work", "home", "other"],
-                    "mutability": "readWrite",
+                    "mutability": "readOnly",
                     "returned": "default",
                     "uniqueness": "none",
                 },
@@ -81,11 +83,12 @@ SCIM_USER_ATTRIBUTES_SCHEMA: dict[str, Any] = {
                     "multiValued": False,
                     "description": "A Boolean value indicating the 'primary' or preferred attribute value for this attribute. The primary attribute value 'true' MUST appear no more than once.",
                     "required": False,
-                    "mutability": "readWrite",
+                    "mutability": "readOnly",
                     "returned": "default",
                 },
             ],
-            "mutability": "readWrite",
+            # Derived from userName; values sent by clients are ignored.
+            "mutability": "readOnly",
             "returned": "default",
             "uniqueness": "none",
         },
@@ -112,7 +115,7 @@ SCIM_USER_ATTRIBUTES_SCHEMA: dict[str, Any] = {
                     "description": "The family name of the User, Sentry does not support this attribute and will return N/A as a string for compatibility purposes.",
                     "required": False,
                     "caseExact": False,
-                    "mutability": "readWrite",
+                    "mutability": "readOnly",
                     "returned": "default",
                     "uniqueness": "none",
                 },
@@ -123,14 +126,14 @@ SCIM_USER_ATTRIBUTES_SCHEMA: dict[str, Any] = {
                     "description": "The given name of the User, Sentry does not support this attribute and will return N/A as a string for compatibility purposes.",
                     "required": False,
                     "caseExact": False,
-                    "mutability": "readWrite",
+                    "mutability": "readOnly",
                     "returned": "default",
                     "uniqueness": "none",
                 },
             ],
             # RFC 7643 §2.2 defaults these when omitted, but Entra's SCIM
             # validator requires mutability to be present on every attribute.
-            "mutability": "readWrite",
+            "mutability": "readOnly",
             "returned": "default",
             "uniqueness": "none",
         },
