@@ -32,7 +32,6 @@ from sentry.types.condition_activity import (
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import options_override
 
-INFINITE_PERCENT_INCREASE = 10_000_000
 STANDARD_INTERVALS: dict[str, tuple[str, timedelta]] = {
     "1m": ("one minute", timedelta(minutes=1)),
     "5m": ("5 minutes", timedelta(minutes=5)),
@@ -1028,9 +1027,10 @@ def bucket_count(start: datetime, end: datetime, buckets: dict[datetime, int]) -
 
 
 def percent_increase(result: int | float, comparison_result: int | float) -> int:
-    # No baseline to compare against: infinite increase if there's any activity, else no change.
+    # No baseline to compare against: treat the current count as the full increase over an
+    # effectively empty prior period, i.e. 0 -> N reads as N*100%.
     if comparison_result <= 0:
-        return INFINITE_PERCENT_INCREASE if result > 0 else 0
+        return int(max(0, result) * 100)
 
     change = (result - comparison_result) / comparison_result * 100
     return int(max(0, change))

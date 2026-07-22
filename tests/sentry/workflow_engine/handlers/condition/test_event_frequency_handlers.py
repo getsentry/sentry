@@ -228,7 +228,7 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
             condition_result=True,
         )
 
-        results = [10, -1]
+        results = [10, 0]
         self.assert_slow_condition_passes(dc, results)
 
     def _test_dual_write(self, value: str | int | float) -> None:
