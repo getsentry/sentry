@@ -1,12 +1,12 @@
-import {Component, Fragment} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 
 import {logout} from 'sentry/actionCreators/account';
-import type {Client} from 'sentry/api';
-import {Form} from 'sentry/components/forms/form';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Override} from 'sentry/components/override';
 import {WebAuthn} from 'sentry/components/webAuthn';
@@ -14,7 +14,9 @@ import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Authenticator} from 'sentry/types/auth';
-import {withApi} from 'sentry/utils/withApi';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {useApi} from 'sentry/utils/useApi';
 
 interface WebAuthnParams {
   challenge: string;
@@ -24,150 +26,95 @@ interface WebAuthnParams {
   superuserReason?: string;
 }
 
-type Props = {
-  api: Client;
-  hasStaff: boolean;
+type AuthPayload = {
+  challenge?: string;
+  isSuperuserModal?: boolean;
+  response?: string;
+  superuserAccessCategory?: string;
+  superuserReason?: string;
 };
 
 type State = {
-  authenticators: Authenticator[];
   error: boolean;
   errorType: string;
-  isLoading: boolean;
   showAccessForms: boolean;
   superuserAccessCategory: string;
   superuserReason: string;
 };
 
-class SuperuserStaffAccessFormContent extends Component<Props, State> {
-  constructor(props: any) {
-    super(props);
-    this.authUrl = this.props.hasStaff ? '/staff-auth/' : '/auth/';
-    this.state = {
-      authenticators: [],
-      error: false,
-      errorType: '',
-      showAccessForms: true,
-      superuserAccessCategory: '',
-      superuserReason: '',
-      isLoading: true,
-    };
-  }
+type Props = {
+  hasStaff: boolean;
+};
 
-  async componentDidMount() {
-    const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
+function SuperuserStaffAccessForm({hasStaff}: Props) {
+  const api = useApi();
+  const authUrl = hasStaff ? '/staff-auth/' : '/auth/';
+  const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
+  // On staff local dev with U2F disabled we skip the authenticator fetch and
+  // submit immediately (see the auto-submit effect below).
+  const skipAuthenticators = hasStaff && disableU2FForSUForm;
 
-    // If using staff and on local dev, skip U2F and immediately submit
-    if (this.props.hasStaff && disableU2FForSUForm) {
-      await this.handleSubmit(this.state);
-      return;
-    }
+  const [state, setState] = useState<State>({
+    error: false,
+    errorType: '',
+    showAccessForms: true,
+    superuserAccessCategory: '',
+    superuserReason: '',
+  });
 
-    const authenticators = await this.getAuthenticators();
-    this.setState({authenticators});
+  const {error, errorType, showAccessForms} = state;
 
-    // Set the error state if there are no authenticators and U2F is on
-    if (!authenticators.length && !disableU2FForSUForm) {
-      this.handleError(ErrorCodes.NO_AUTHENTICATOR);
-    }
-    this.setState({isLoading: false});
-  }
+  const {data: authenticators = [], isFetched} = useQuery({
+    ...apiOptions.as<Authenticator[]>()('/authenticators/', {staleTime: 0}),
+    enabled: !skipAuthenticators,
+    retry: false,
+    refetchOnWindowFocus: true,
+  });
 
-  authUrl: string;
+  const autoSubmittedRef = useRef(false);
 
-  handleSubmitCOPS = () => {
-    this.setState({
-      superuserAccessCategory: 'cops_csm',
-      superuserReason: 'COPS and CSM use',
-    });
-  };
+  const {mutateAsync: authenticate} = useMutation({
+    // authUrl is a runtime branch (/auth/ or /staff-auth/), not a known URL
+    // literal, so it's passed to fetchMutation as a plain string.
+    mutationFn: (data: AuthPayload) => fetchMutation({method: 'PUT', url: authUrl, data}),
+  });
 
-  handleSubmit = async (data: any) => {
-    const {api} = this.props;
-    const {superuserAccessCategory, superuserReason, authenticators} = this.state;
-    const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
-
-    const suAccessCategory = superuserAccessCategory || data.superuserAccessCategory;
-    const suReason = superuserReason || data.superuserReason;
-
-    if (!authenticators.length && !disableU2FForSUForm) {
-      this.handleError(ErrorCodes.NO_AUTHENTICATOR);
-      return;
-    }
-
-    // Set state to setup for U2F tap
-    if (this.state.showAccessForms && !disableU2FForSUForm) {
-      this.setState({
-        showAccessForms: false,
-        superuserAccessCategory: suAccessCategory,
-        superuserReason: suReason,
-      });
-      // If U2F is disabled, authenticate immediately
-    } else {
-      try {
-        await api.requestPromise(this.authUrl, {
-          method: 'PUT',
-          data,
-        });
-        this.handleSuccess();
-      } catch (err) {
-        this.handleError(err);
-      }
-    }
-  };
-
-  handleWebAuthn = async (data: WebAuthnParams) => {
-    const {api} = this.props;
-
-    if (!this.props.hasStaff) {
-      data.isSuperuserModal = true;
-      data.superuserAccessCategory = this.state.superuserAccessCategory;
-      data.superuserReason = this.state.superuserReason;
-    }
-    try {
-      await api.requestPromise(this.authUrl, {method: 'PUT', data});
-      this.handleSuccess();
-    } catch (err) {
-      this.handleError(err);
-      // u2fInterface relies on this
-      throw err;
-    }
-  };
-
-  handleSuccess = () => {
+  const handleSuccess = useCallback(() => {
     window.location.reload();
-  };
+  }, []);
 
-  handleError = (err: any) => {
-    let errorType = '';
+  const handleError = useCallback((err: any) => {
+    let newErrorType = '';
+
     if (err.status === 403) {
       if (err.responseJSON.detail.code === 'no_u2f') {
-        errorType = ErrorCodes.NO_AUTHENTICATOR;
+        newErrorType = ErrorCodes.NO_AUTHENTICATOR;
       } else {
-        errorType = ErrorCodes.INVALID_PASSWORD;
+        newErrorType = ErrorCodes.INVALID_PASSWORD;
       }
     } else if (err.status === 401) {
-      errorType = ErrorCodes.INVALID_SSO_SESSION;
+      newErrorType = ErrorCodes.INVALID_SSO_SESSION;
     } else if (err.status === 400) {
       if (err.responseJSON.detail.code === 'missing_password_or_u2f') {
-        errorType = ErrorCodes.MISSING_PASSWORD_OR_U2F;
+        newErrorType = ErrorCodes.MISSING_PASSWORD_OR_U2F;
       } else {
-        errorType = ErrorCodes.INVALID_ACCESS_CATEGORY;
+        newErrorType = ErrorCodes.INVALID_ACCESS_CATEGORY;
       }
     } else if (err === ErrorCodes.NO_AUTHENTICATOR) {
-      errorType = ErrorCodes.NO_AUTHENTICATOR;
+      newErrorType = ErrorCodes.NO_AUTHENTICATOR;
     } else {
-      errorType = ErrorCodes.UNKNOWN_ERROR;
+      newErrorType = ErrorCodes.UNKNOWN_ERROR;
     }
-    this.setState({
-      error: true,
-      errorType,
-      showAccessForms: true,
-      isLoading: false,
-    });
-  };
 
-  handleLogout = () => {
+    setState(prevState => ({
+      ...prevState,
+      error: true,
+      errorType: newErrorType,
+      showAccessForms: true,
+    }));
+  }, []);
+
+  const handleLogout = useCallback(() => {
     const {superuserUrl} = window.__initialData.links;
     const urlOrigin =
       window.__initialData.customerDomain && superuserUrl
@@ -177,76 +124,167 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
     const nextUrl = new URL('/auth/login/', urlOrigin);
     nextUrl.searchParams.set('next', window.location.href);
 
-    logout(this.props.api, nextUrl.toString());
+    logout(api, nextUrl.toString());
+  }, [api]);
+
+  const handleSubmitCOPS = () => {
+    setState(prevState => ({
+      ...prevState,
+      superuserAccessCategory: 'cops_csm',
+      superuserReason: 'COPS and CSM use',
+    }));
   };
 
-  async getAuthenticators() {
-    const {api} = this.props;
+  const handleWebAuthn = useCallback(
+    async (data: WebAuthnParams) => {
+      const payload: AuthPayload = {...data};
+      if (!hasStaff) {
+        payload.isSuperuserModal = true;
+        payload.superuserAccessCategory = state.superuserAccessCategory;
+        payload.superuserReason = state.superuserReason;
+      }
+      try {
+        await authenticate(payload);
+        handleSuccess();
+      } catch (err) {
+        handleError(err);
+        // u2fInterface relies on this
+        throw err;
+      }
+    },
+    [
+      authenticate,
+      handleError,
+      handleSuccess,
+      hasStaff,
+      state.superuserAccessCategory,
+      state.superuserReason,
+    ]
+  );
 
-    try {
-      const authenticators = await api.requestPromise('/authenticators/');
-      return authenticators ?? [];
-    } catch {
-      // ignore errors
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {},
+    onSubmit: async ({formApi}) => {
+      // TODO(scraps-forms): The superuser access category / reason fields come
+      // from the `component:superuser-access-category` getsentry override, which
+      // still renders legacy (unbound) form fields, so read their values from
+      // the DOM. COPS/CSM populates them via state first. Remove this scrape once
+      // that override renders scraps bound fields that flow through `value` (this
+      // requires migrating both consumers — this form and sudoModal.tsx).
+      const formEl = document.getElementById(formApi.formId);
+      const formData = formEl instanceof HTMLFormElement ? new FormData(formEl) : null;
+      const domCategory = formData?.get('superuserAccessCategory');
+      const domReason = formData?.get('superuserReason');
+
+      const suAccessCategory =
+        state.superuserAccessCategory ||
+        (typeof domCategory === 'string' ? domCategory : '');
+      const suReason =
+        state.superuserReason || (typeof domReason === 'string' ? domReason : '');
+
+      if (!authenticators.length && !disableU2FForSUForm) {
+        handleError(ErrorCodes.NO_AUTHENTICATOR);
+        return;
+      }
+
+      // First submit reveals the WebAuthn prompt (U2F tap).
+      if (state.showAccessForms && !disableU2FForSUForm) {
+        setState(prevState => ({
+          ...prevState,
+          showAccessForms: false,
+          superuserAccessCategory: suAccessCategory,
+          superuserReason: suReason,
+        }));
+        return;
+      }
+
+      try {
+        await authenticate({
+          isSuperuserModal: true,
+          superuserAccessCategory: suAccessCategory,
+          superuserReason: suReason,
+        });
+        handleSuccess();
+      } catch (err) {
+        formApi.reset();
+        handleError(err);
+      }
+    },
+  });
+
+  // Raise NO_AUTHENTICATOR once the fetch resolves with no authenticators and
+  // U2F is required.
+  useEffect(() => {
+    if (skipAuthenticators || !isFetched) {
+      return;
     }
-    return [];
+    if (!authenticators.length && !disableU2FForSUForm) {
+      handleError(ErrorCodes.NO_AUTHENTICATOR);
+    }
+    // Only react to the fetch completing; handleError is stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFetched]);
+
+  // Staff local dev with U2F disabled: submit immediately on mount (once).
+  useEffect(() => {
+    if (!skipAuthenticators || autoSubmittedRef.current) {
+      return;
+    }
+    autoSubmittedRef.current = true;
+    authenticate({superuserAccessCategory: '', superuserReason: ''})
+      .then(handleSuccess)
+      .catch(handleError);
+    // Run exactly once at mount, matching the old componentDidMount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (errorType === ErrorCodes.INVALID_SSO_SESSION) {
+    handleLogout();
+    return null;
   }
 
-  render() {
-    const {authenticators, error, errorType, showAccessForms, isLoading} = this.state;
-    if (errorType === ErrorCodes.INVALID_SSO_SESSION) {
-      this.handleLogout();
-      return null;
-    }
+  // On the auto-submit path show the spinner until it fails (success reloads).
+  const isLoading = skipAuthenticators ? !error : !isFetched;
 
-    return (
-      <Fragment>
-        {this.props.hasStaff ? (
-          isLoading ? (
-            <LoadingIndicator />
-          ) : (
-            <Fragment>
-              {error && <Alert variant="danger">{errorType}</Alert>}
-              <WebAuthn
-                mode="sudo"
-                authenticators={authenticators}
-                onWebAuthn={this.handleWebAuthn}
-              />
-            </Fragment>
-          )
+  return (
+    <Fragment>
+      {hasStaff ? (
+        isLoading ? (
+          <LoadingIndicator />
         ) : (
-          <Form
-            submitLabel={t('Continue')}
-            onSubmit={this.handleSubmit}
-            initialData={{isSuperuserModal: true}}
-            extraButton={
-              <BackWrapper>
-                <Button type="submit" onClick={this.handleSubmitCOPS}>
-                  {t('COPS/CSM')}
-                </Button>
-              </BackWrapper>
-            }
-            resetOnError
-          >
+          <Fragment>
             {error && <Alert variant="danger">{errorType}</Alert>}
-            {showAccessForms && <Override name="component:superuser-access-category" />}
-            {!showAccessForms && (
-              <WebAuthn
-                mode="sudo"
-                authenticators={authenticators}
-                onWebAuthn={this.handleWebAuthn}
-              />
-            )}
-          </Form>
-        )}
-      </Fragment>
-    );
-  }
+            <WebAuthn
+              mode="sudo"
+              authenticators={authenticators}
+              onWebAuthn={handleWebAuthn}
+            />
+          </Fragment>
+        )
+      ) : (
+        <form.AppForm form={form}>
+          {error && <Alert variant="danger">{errorType}</Alert>}
+          {showAccessForms && <Override name="component:superuser-access-category" />}
+          {!showAccessForms && (
+            <WebAuthn
+              mode="sudo"
+              authenticators={authenticators}
+              onWebAuthn={handleWebAuthn}
+            />
+          )}
+          <Flex justify="between" align="center" gap="md" margin="xl 0 0">
+            <Flex align="center" margin="0 3xl">
+              <Button type="submit" onClick={handleSubmitCOPS}>
+                {t('COPS/CSM')}
+              </Button>
+            </Flex>
+            <form.SubmitButton>{t('Continue')}</form.SubmitButton>
+          </Flex>
+        </form.AppForm>
+      )}
+    </Fragment>
+  );
 }
 
-export default withApi(SuperuserStaffAccessFormContent);
-
-const BackWrapper = styled('div')`
-  width: 100%;
-  margin-left: ${p => p.theme.space['3xl']};
-`;
+export default SuperuserStaffAccessForm;
