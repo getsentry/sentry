@@ -47,10 +47,11 @@ export function TraceContextVitals({rootEventResults, tree}: Props) {
   const totalCount = vitalsToDisplay.length;
 
   // How many vitals fit inline before collapsing into "+N more", resolved
-  // against the container width. Web shows all from xl up; mobile ramps 2 → 3 → all.
+  // against the container width. Web shows all from xl up; mobile ramps 2 → 3
+  // and stays at 3 — showing all 7 mobile vitals inline crowds/overflows the row.
   const primaryCountByBreakpoint: Responsive<number> = isWeb
     ? {zero: 2, xl: totalCount}
-    : {zero: 2, xl: 3, '5xl': totalCount};
+    : {zero: 2, xl: 3};
   const resolvedCount = useResponsivePropValue(primaryCountByBreakpoint);
   const primaryVitalsCount =
     typeof resolvedCount === 'number' ? resolvedCount : totalCount;
