@@ -4,6 +4,7 @@ import {
   deriveSectionKey,
   extractPatchInfo,
   extractPendingQuestion,
+  extractPrCiStatus,
   INLINE_DIFF_MAX_CHANGED_LINES,
   INLINE_DIFF_MAX_FILES,
   mostRecentTimestamp,
@@ -298,6 +299,38 @@ describe('extractPendingQuestion', () => {
 
     const noPayload = makeState({status: 'awaiting_user_input'});
     expect(extractPendingQuestion(noPayload)).toBeUndefined();
+  });
+});
+
+describe('extractPrCiStatus', () => {
+  it('prefers the pull request whose id matches the linked PR number', () => {
+    const run = makeRun({
+      pullRequests: [
+        {status: 'open', id: '9', ciStatus: 'failed'},
+        {status: 'open', id: '10', ciStatus: 'passed'},
+      ],
+    });
+    expect(extractPrCiStatus(run, 10)).toBe('passed');
+  });
+
+  it('falls back to the first non-merged pull request when no id matches', () => {
+    const run = makeRun({
+      pullRequests: [
+        {status: 'merged', id: '1', ciStatus: 'passed'},
+        {status: 'open', id: '2', ciStatus: 'running'},
+      ],
+    });
+    expect(extractPrCiStatus(run, 99)).toBe('running');
+  });
+
+  it('returns undefined when the matched pull request has no ci status', () => {
+    const run = makeRun({pullRequests: [{status: 'open', id: '9', ciStatus: null}]});
+    expect(extractPrCiStatus(run, 9)).toBeUndefined();
+  });
+
+  it('returns undefined when there are no pull requests', () => {
+    expect(extractPrCiStatus(makeRun(), undefined)).toBeUndefined();
+    expect(extractPrCiStatus(null, 9)).toBeUndefined();
   });
 });
 

@@ -14,6 +14,7 @@ import {
   type OverviewRow,
   type PatchStats,
   PIPELINE,
+  type PrCiStatus,
   type RunAnalysisEntry,
   type RunQuestion,
   type SeerRun,
@@ -110,6 +111,23 @@ function extractPr(
     repoPr => repoPr.pr_creation_status === 'completed' && repoPr.pr_url
   );
   return pr ? {prUrl: pr.pr_url ?? undefined, prNumber: pr.pr_number ?? undefined} : {};
+}
+
+// The CI status of the linked PR: prefer the run's pullRequests entry whose id
+// matches the PR the card links to, else the first non-merged entry. Null or a
+// missing status (present only when the runs fetch requested includeCiStatus)
+// yields no value, so no badge renders.
+export function extractPrCiStatus(
+  run: SeerRun | null,
+  prNumber: number | undefined
+): PrCiStatus | undefined {
+  const pullRequests = run?.pullRequests ?? [];
+  const match =
+    (prNumber === undefined
+      ? undefined
+      : pullRequests.find(pr => pr.id === String(prNumber))) ??
+    pullRequests.find(pr => pr.status !== 'merged');
+  return match?.ciStatus ?? undefined;
 }
 
 // The pending-input payload is untyped (Record<string, unknown>). The canonical
@@ -243,6 +261,7 @@ export function buildOverviewRow(
 ): OverviewRow {
   const eventCount = Number(issue.count);
   const {entries: analysis, headline} = buildAnalysis(run?.outputs);
+  const pr = extractPr(state);
 
   return {
     headline,
@@ -267,6 +286,7 @@ export function buildOverviewRow(
     analysis,
     ...extractPatchInfo(state),
     pendingQuestion: extractPendingQuestion(state),
-    ...extractPr(state),
+    ...pr,
+    prCiStatus: extractPrCiStatus(run, pr.prNumber),
   };
 }
