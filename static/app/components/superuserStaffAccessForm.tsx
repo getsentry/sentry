@@ -35,7 +35,6 @@ type AuthPayload = {
 };
 
 type State = {
-  error: boolean;
   errorType: string;
   showAccessForms: boolean;
   superuserAccessCategory: string;
@@ -55,14 +54,14 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
   const skipAuthenticators = hasStaff && disableU2FForSUForm;
 
   const [state, setState] = useState<State>({
-    error: false,
     errorType: '',
     showAccessForms: true,
     superuserAccessCategory: '',
     superuserReason: '',
   });
 
-  const {error, errorType, showAccessForms} = state;
+  const {errorType, showAccessForms} = state;
+  const error = errorType !== '';
 
   const {data: authenticators = [], isFetched} = useQuery({
     ...apiOptions.as<Authenticator[]>()('/authenticators/', {staleTime: 0}),
@@ -108,7 +107,6 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
 
     setState(prevState => ({
       ...prevState,
-      error: true,
       errorType: newErrorType,
       showAccessForms: true,
     }));
