@@ -472,6 +472,7 @@
     <a href="{% org_url organization '/explore/traces/' %}"
        style="font-size: 12px; margin-bottom: 16px; display: block; font-weight: bold;">View All Spans</a>
 
+    <h4 style="margin-bottom: 0;">p95 for Top Spans</h4>
     {% if spans_chart_url %}
     <div style="margin-bottom: 16px;">
       <img src="{{ spans_chart_url }}" width="600" height="200" alt="Top spans p95 chart" style="max-width: 100%;" />
@@ -479,7 +480,6 @@
     {% endif %}
 
     {% if top_spans_table %}
-    <h4 style="margin-bottom: 0;">Top Spans</h4>
     <table style="width: 100%; border-collapse: collapse;">
       <thead>
         <tr style="border-bottom: 1px solid #DEE7EB;">
