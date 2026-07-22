@@ -27,6 +27,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.helpers.group_index.validators import GroupValidator
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupDetailsResponse
+from sentry.api.serializers.models.groupactionlogentry import serialize_first_seen_entry
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
@@ -52,11 +53,14 @@ from sentry.issues.constants import (
     cache_key_for_issue_view,
     get_issue_tsdb_group_model,
 )
+from sentry.issues.derived.features import STATUS, IssueStatus
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
@@ -80,6 +84,13 @@ logger = logging.getLogger(__name__)
 def get_group_global_count(group: Group) -> str:
     fetch_buffered_group_stats(group)
     return str(group.times_seen_with_pending)
+
+
+_GROUP_STATUS_TO_DERIVED_STATUS = {
+    GroupStatus.UNRESOLVED: IssueStatus.OPEN,
+    GroupStatus.RESOLVED: IssueStatus.CLOSED,
+    GroupStatus.IGNORED: IssueStatus.CLOSED,
+}
 
 
 @extend_schema(tags=["Events"])
@@ -115,6 +126,53 @@ class GroupDetailsEndpoint(GroupEndpoint):
     def _get_seen_by(self, request: Request, group: Group) -> list[dict[str, Any]]:
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return [seen for seen in serialize(seen_by, request.user) if seen is not None]
+
+    def _reconcile_status(self, request: Request, group: Group) -> None:
+        """Detect divergence between the Group model status (source of truth) and
+        the action-log-derived status and publish a ReconcileStatusAction to fix it.
+
+        This is a best-effort, non-essential side effect on a read path; callers
+        must ensure a failure here never breaks the group view.
+        """
+        if not features.has("projects:issue-status-reconciliation", group.project):
+            return
+
+        expected_status = _GROUP_STATUS_TO_DERIVED_STATUS.get(group.status)
+        if expected_status is None:
+            # XXX: some statuses like pending deletion, merge, etc. are skipped
+            # as they don't map to a derived status
+            return
+
+        derived = GroupDerivedData.objects.filter(group_id=group.id).first()
+        if derived is None:
+            # nothing to reconcile against
+            return
+
+        raw = derived.data.get(STATUS.name)
+        derived_status = STATUS.from_json(raw) if raw is not None else STATUS.initial_value()
+        if derived_status == expected_status:
+            return
+
+        metrics.incr(
+            "issues.status_reconciliation.diverged",
+            sample_rate=1.0,
+            tags={
+                "derived_status": derived_status.value,
+                "expected_status": expected_status.value,
+            },
+        )
+        # Status reconciliation is disabled for now; log divergences so we can
+        # find and investigate these cases automatically instead of publishing a
+        # ReconcileStatusAction.
+        logger.info(
+            "issues.status_reconciliation.diverged",
+            extra={
+                "group_id": group.id,
+                "project_id": group.project_id,
+                "derived_status": derived_status.value,
+                "expected_status": expected_status.value,
+            },
+        )
 
     @staticmethod
     def __group_hourly_daily_stats(
@@ -204,7 +262,9 @@ class GroupDetailsEndpoint(GroupEndpoint):
             # WARNING: the rest of this endpoint relies on this serializer
             # populating the cache SO don't move this :)
             data: GroupDetailsResponse = serialize(
-                group, request.user, GroupSerializerSnuba(environment_ids=environment_ids)
+                group,
+                request.user,
+                GroupSerializerSnuba(environment_ids=environment_ids, expand=expand),
             )
 
             # TODO: these probably should be another endpoint
@@ -318,6 +378,21 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 }
             )
 
+            if features.has(
+                "projects:issue-action-log-write-to-db", group.project, actor=request.user
+            ):
+                action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
+                if action_log:
+                    # swap action log data in under the activity name
+                    first_seen_entry = cast(dict[str, Any], serialize_first_seen_entry(group))
+                    data.update(
+                        {"activity": [*serialize(action_log, request.user), first_seen_entry]}
+                    )
+                else:
+                    logger.info(
+                        "group_details.groupactionlogentry.not_found", extra={"group_id": group.id}
+                    )
+
             if "stats" not in collapse:
                 hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)
                 data["stats"] = {"24h": hourly_stats, "30d": daily_stats}
@@ -339,6 +414,11 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 project=group.project,
                 actor=resolve_action_actor(request),
             )
+
+            try:
+                self._reconcile_status(request, group)
+            except Exception:
+                logger.exception("group.details.get.reconcile_status_failed")
 
             metrics.incr(
                 "group.get.http_response",

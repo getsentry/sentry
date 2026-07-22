@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import type {mat3} from 'gl-matrix';
 
 import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';

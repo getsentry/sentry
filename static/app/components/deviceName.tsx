@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {iOSDeviceMapping} from 'sentry/constants/ios-device-list';
+import {iOSDeviceMapping} from 'sentry/constants/iosDeviceList';
 
 export function deviceNameMapper(model: string | undefined): string | null {
   // If we have no model, render nothing

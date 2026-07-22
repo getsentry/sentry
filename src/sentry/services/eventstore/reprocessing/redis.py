@@ -9,7 +9,7 @@ from django.conf import settings
 from sentry.utils.dates import to_datetime
 from sentry.utils.redis import redis_clusters
 
-from .base import ReprocessingStore
+from .base import ReprocessingInfo, ReprocessingStore
 
 
 def _get_sync_counter_key(group_id: int) -> str:
@@ -152,17 +152,20 @@ class RedisReprocessingStore(ReprocessingStore):
         return new_decremented_value == 0
 
     def start_reprocessing(
-        self, group_id: int, date_created: Any, sync_count: int, event_count: int
+        self, group_id: int, date_created: datetime, sync_count: int, event_count: int
     ) -> None:
+        info: ReprocessingInfo = {
+            "dateCreated": date_created.isoformat(),
+            "syncCount": sync_count,
+            "totalEvents": event_count,
+        }
         self.redis.setex(
             _get_sync_counter_key(group_id), settings.SENTRY_REPROCESSING_SYNC_TTL, sync_count
         )
         self.redis.setex(
             _get_info_reprocessed_key(group_id),
             settings.SENTRY_REPROCESSING_SYNC_TTL,
-            orjson.dumps(
-                {"dateCreated": date_created, "syncCount": sync_count, "totalEvents": event_count},
-            ).decode(),
+            orjson.dumps(info).decode(),
         )
 
     def get_pending(self, group_id: int) -> tuple[str | None, int]:
@@ -171,7 +174,7 @@ class RedisReprocessingStore(ReprocessingStore):
         ttl = self.redis.ttl(pending_key)
         return pending, ttl
 
-    def get_progress(self, group_id: int) -> dict[str, Any] | None:
+    def get_progress(self, group_id: int) -> ReprocessingInfo | None:
         info = self.redis.get(_get_info_reprocessed_key(group_id))
         if info is None:
             return None

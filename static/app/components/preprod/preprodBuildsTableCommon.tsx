@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -112,11 +113,14 @@ export function PreprodBuildsRowCells({
                   <Text size="sm" variant="muted">
                     {' • '}
                   </Text>
-                  <Tooltip title={t('Build configuration')}>
-                    <Text size="sm" variant="muted" monospace>
-                      {build.app_info.build_configuration}
-                    </Text>
-                  </Tooltip>
+                  <InfoText
+                    title={t('Build configuration')}
+                    size="sm"
+                    variant="muted"
+                    monospace
+                  >
+                    {build.app_info.build_configuration}
+                  </InfoText>
                 </Fragment>
               )}
             </Flex>
@@ -163,15 +167,14 @@ export function PreprodBuildsRowCells({
                   –
                 </Text>
                 <Flex flex={1} minWidth={0} overflow="hidden">
-                  <Tooltip
+                  <InfoText
                     title={build.vcs_info?.head_ref || undefined}
-                    showOnlyOnOverflow
-                    skipWrapper
+                    mode="overflowOnly"
+                    size="sm"
+                    variant="muted"
                   >
-                    <Text size="sm" variant="muted" ellipsis>
-                      {build.vcs_info?.head_ref || '--'}
-                    </Text>
-                  </Tooltip>
+                    {build.vcs_info?.head_ref || t('N/A')}
+                  </InfoText>
                 </Flex>
               </Fragment>
             )}

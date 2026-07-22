@@ -26,9 +26,8 @@ class NotificationCategory(StrEnum):
     ISSUE = "issue"
     METRIC_ALERT = "metric-alert"
     SENTRY_APP = "sentry-app"
-
-    # Refers to net-new alerts built on the workflow engine (not metric/issue alerts)
-    ALERTS = "alerts"
+    ACTIVITY = "activity"
+    DEPLOY = "deploy"
 
     def get_sources(self) -> list[NotificationSource]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -75,7 +74,10 @@ class NotificationSource(StrEnum):
     # SENTRY_APP
     SENTRY_APP_WEBHOOK_DISABLED = "sentry-app-webhook-disabled"
 
-    # WORKFLOW_ENGINE
+    # DEPLOY
+    DEPLOY_RELEASE = "deploy-release"
+
+    # ACTIVITY
     ACTIVITY_SEER_RCA_STARTED = "activity-seer-rca-started"
     ACTIVITY_SEER_RCA_COMPLETED = "activity-seer-rca-completed"
     ACTIVITY_SEER_SOLUTION_STARTED = "activity-seer-solution-started"
@@ -89,6 +91,13 @@ class NotificationSource(StrEnum):
     ACTIVITY_SET_RESOLVED_IN_RELEASE = "activity-set-resolved-in-release"
     ACTIVITY_SET_RESOLVED_BY_AGE = "activity-set-resolved-by-age"
     ACTIVITY_SET_RESOLVED_IN_COMMIT = "activity-set-resolved-in-commit"
+    ACTIVITY_SET_REGRESSION = "activity-set-regression"
+    ACTIVITY_SET_ESCALATING = "activity-set-escalating"
+    ACTIVITY_SET_UNRESOLVED = "activity-set-unresolved"
+    ACTIVITY_SET_IGNORED = "activity-set-ignored"
+    ACTIVITY_NOTE = "activity-note"
+    ACTIVITY_ASSIGNED = "activity-assigned"
+    ACTIVITY_UNASSIGNED = "activity-unassigned"
 
 
 NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
@@ -127,7 +136,10 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
     NotificationCategory.SENTRY_APP: [
         NotificationSource.SENTRY_APP_WEBHOOK_DISABLED,
     ],
-    NotificationCategory.ALERTS: [
+    NotificationCategory.DEPLOY: [
+        NotificationSource.DEPLOY_RELEASE,
+    ],
+    NotificationCategory.ACTIVITY: [
         NotificationSource.ACTIVITY_SEER_RCA_STARTED,
         NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
         NotificationSource.ACTIVITY_SEER_SOLUTION_STARTED,
@@ -141,6 +153,13 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.ACTIVITY_SET_RESOLVED_IN_RELEASE,
         NotificationSource.ACTIVITY_SET_RESOLVED_BY_AGE,
         NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT,
+        NotificationSource.ACTIVITY_SET_REGRESSION,
+        NotificationSource.ACTIVITY_SET_ESCALATING,
+        NotificationSource.ACTIVITY_SET_UNRESOLVED,
+        NotificationSource.ACTIVITY_SET_IGNORED,
+        NotificationSource.ACTIVITY_NOTE,
+        NotificationSource.ACTIVITY_ASSIGNED,
+        NotificationSource.ACTIVITY_UNASSIGNED,
     ],
 }
 

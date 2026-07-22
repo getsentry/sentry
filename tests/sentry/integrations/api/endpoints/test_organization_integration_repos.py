@@ -262,7 +262,9 @@ class OrganizationIntegrationReposTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        get_repositories.assert_called_once_with("rad", accessible_only=True, use_cache=True)
+        get_repositories.assert_called_once_with(
+            "rad", accessible_only=True, use_cache=True, parallel=True
+        )
         assert response.data == {
             "repos": [
                 {
@@ -293,7 +295,21 @@ class OrganizationIntegrationReposTest(APITestCase):
         response = self.client.get(self.path, format="json", data={"accessibleOnly": "true"})
 
         assert response.status_code == 200, response.content
-        get_repositories.assert_called_once_with(None, accessible_only=True, use_cache=False)
+        get_repositories.assert_called_once_with(
+            None, accessible_only=True, use_cache=False, parallel=True
+        )
+
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
+    )
+    def test_passes_parallel(self, get_repositories: MagicMock) -> None:
+        """The endpoint opts into parallel pagination for its interactive callers."""
+        response = self.client.get(self.path, format="json")
+
+        assert response.status_code == 200, response.content
+        get_repositories.assert_called_once_with(
+            None, accessible_only=False, use_cache=False, parallel=True
+        )
 
     @patch(
         "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
@@ -329,7 +345,9 @@ class OrganizationIntegrationReposTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        get_repositories.assert_called_once_with("Example", accessible_only=True, use_cache=True)
+        get_repositories.assert_called_once_with(
+            "Example", accessible_only=True, use_cache=True, parallel=True
+        )
         assert response.data == {
             "repos": [
                 {

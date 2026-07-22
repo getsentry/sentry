@@ -142,7 +142,7 @@ export function NewWelcomeUI(props: StepProps) {
     <MotionContainer width="100%" margin="0 auto" maxWidth="900px" position="relative">
       <MotionFlex direction="column" align="center" {...STAGGER_CONTAINER}>
         <WelcomeBackgroundNewUi />
-        <Stack gap="3xl" align={hasScmOnboarding ? 'start' : 'center'} width="100%">
+        <Stack gap="3xl" align="center" width="100%">
           <MotionStack gap="md" {...ONBOARDING_WELCOME_STAGGER_ITEM} width="100%">
             {hasScmOnboarding ? (
               <Stack gap="lg">
@@ -194,8 +194,9 @@ export function NewWelcomeUI(props: StepProps) {
           </MotionStack>
 
           <MotionGrid
-            columns={{'screen:xs': '1fr', 'screen:md': 'repeat(3, 1fr)'}}
+            columns={{'screen:xs': '1fr', 'screen:sm': 'repeat(3, 1fr)'}}
             gap="3xl"
+            width="100%"
             {...ONBOARDING_WELCOME_STAGGER_ITEM}
             border="muted"
             background="secondary"

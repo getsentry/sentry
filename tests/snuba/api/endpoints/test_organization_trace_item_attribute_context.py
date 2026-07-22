@@ -300,3 +300,25 @@ class OrganizationTraceItemAttributeContextEndpointTest(
 
         assert response.status_code == 400, response.data
         assert "dataset" in response.data
+
+    def test_member_role_can_write_context(self) -> None:
+        # Authoring attribute context is scoped to `event:write`, which the
+        # base member role has, rather than `org:write` (Manager/Owner only).
+        self.store_attribute(my_custom_attr="value")
+
+        member = self.create_user(is_superuser=False)
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(member)
+
+        response = self.do_request(
+            "my_custom_attr",
+            {
+                "dataset": "spans",
+                "attributeType": "string",
+                "brief": "My custom attribute",
+            },
+        )
+
+        assert response.status_code == 201, response.data

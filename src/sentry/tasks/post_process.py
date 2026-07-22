@@ -643,6 +643,9 @@ def post_process_group(
 
 
 def run_post_process_job(job: PostProcessJob) -> None:
+    from sentry.issues.action_log.publish import action_context_scope
+    from sentry.issues.action_log.types import ActionSource
+
     group_event = job["event"]
     issue_category = group_event.group.issue_category if group_event.group else None
     issue_category_metric = issue_category.name.lower() if issue_category else None
@@ -676,6 +679,7 @@ def run_post_process_job(job: PostProcessJob) -> None:
                     op=f"tasks.post_process_group.{pipeline_step.__name__}",
                     name=f"tasks.post_process_group.{pipeline_step.__name__}",
                 ),
+                action_context_scope(ActionSource.SYSTEM),
             ):
                 pipeline_step(job)
         except Exception:
@@ -1505,63 +1509,46 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
-    from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
-    from sentry.seer.autofix.trigger import (
-        get_default_seer_automation_skip_reason,
-        get_seat_based_seer_automation_skip_reason,
+    from sentry.seer.autofix.issue_summary import (
+        get_issue_summary_cache_key,
+        get_issue_summary_lock_key,
     )
-    from sentry.seer.autofix.utils import (
-        is_seer_scanner_rate_limited,
-        is_seer_seat_based_tier_enabled,
-    )
+    from sentry.seer.autofix.trigger import get_default_seer_automation_skip_reason
+    from sentry.seer.autofix.utils import is_seer_seat_based_tier_enabled
     from sentry.tasks.seer.autofix import (
         generate_issue_summary_only,
         generate_summary_and_run_automation,
-        run_automation_only_task,
     )
 
     event = job["event"]
     group = event.group
 
-    # Default behaviour
-    if not is_seer_seat_based_tier_enabled(group.organization):
-        skip_reason = get_default_seer_automation_skip_reason(group, locks)
-        if skip_reason is not None:
-            metrics.incr(
-                "seer.automation.filtered", tags={"reason": skip_reason, "tier": "default"}
-            )
+    if is_seer_seat_based_tier_enabled(group.organization):
+        # Guards to prevent thundering herd on issue summary generation.
+        if options.get("seer.post-process-issue-summary-killswitch.enabled"):
             return
-
-        generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
-    else:
-        # Seat-based tier behaviour
-        skip_reason = get_seat_based_seer_automation_skip_reason(group)
-        if skip_reason is not None:
-            metrics.incr(
-                "seer.automation.filtered", tags={"reason": skip_reason, "tier": "seat_based"}
-            )
-            if skip_reason == "below_occurrence_threshold":
-                generate_issue_summary_only.delay(group.id)
+        if group.seer_fixability_score is not None:
             return
-
-        # Check if summary exists in cache
+        # Issues created in last 5 minutes only. This can be removed once this is live past 1 week.
+        # We don't want to backfill old issues since that will overwhelm Seer.
+        if (timezone.now() - group.first_seen).total_seconds() > 300:
+            return
+        # Generate issue summary and fixability score if not cached.
+        # Agentic Triage handles automations for seat-based orgs but still needs these.
         cache_key = get_issue_summary_cache_key(group.id)
-        if cache.get(cache_key) is not None:
-            # Summary exists, run automation directly
-            run_automation_only_task.delay(group.id)
-        else:
-            # Rate limit check before generating summary
-            if is_seer_scanner_rate_limited(group.project, group.organization):
-                metrics.incr(
-                    "seer.automation.filtered",
-                    tags={"reason": "rate_limited", "tier": "seat_based"},
-                )
-                return
+        if cache.get(cache_key) is None:
+            lock_key, lock_name = get_issue_summary_lock_key(group.id)
+            lock = locks.get(lock_key, duration=1, name=lock_name)
+            if not lock.locked():
+                generate_issue_summary_only.delay(group.id)
+        return
 
-            # No summary yet, generate summary + run automation in one go
-            generate_summary_and_run_automation.delay(
-                group.id, trigger_path="seat_based_seer_automation"
-            )
+    skip_reason = get_default_seer_automation_skip_reason(group, locks)
+    if skip_reason is not None:
+        metrics.incr("seer.automation.filtered", tags={"reason": skip_reason, "tier": "default"})
+        return
+
+    generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
 
 
 def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:
