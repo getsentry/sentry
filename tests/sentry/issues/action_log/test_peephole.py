@@ -29,6 +29,7 @@ class FakeEntry:
     """Lightweight stand-in for GroupActionLogEntry in tests."""
 
     def __init__(self, action: GroupAction) -> None:
+        self.type: int = action.get_type()
         self._action = action
 
     @property

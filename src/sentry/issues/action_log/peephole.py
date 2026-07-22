@@ -9,8 +9,8 @@ returns a rewritten version. Rules are applied repeatedly from the front
 until no rule matches, then we advance one entry and try again.
 
 To add a new rule, write a function that matches a prefix pattern and
-append it to ``_RULES``. Rules should be easy to read so product people
-can audit them for correctness.
+register it with ``_register``. Rules should be easy to read so product
+people can audit them for correctness.
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ from typing import NamedTuple, Protocol
 from sentry.issues.action_log.types import (
     AutofixPrCreatedAction,
     GroupAction,
+    GroupActionType,
     PullRequestMergedAction,
     ReferencedInCommitAction,
     ResolvedInPullRequestAction,
@@ -38,6 +39,8 @@ from sentry.issues.action_log.types import (
 
 
 class ActionEntry(Protocol):
+    type: int
+
     @property
     def action(self) -> GroupAction: ...
 
@@ -51,12 +54,45 @@ class Rewrite(NamedTuple):
 
 RewriteRule = Callable[[list[ActionEntry]], Rewrite | None]
 
+# Dispatch table: action type at position 0 → rules that might match.
+# Rules registered with scope=None are tried for every entry.
+_dispatch: dict[GroupActionType | None, list[RewriteRule]] = {}
+
+
+def _register(
+    scope: set[GroupActionType] | None,
+    rule: RewriteRule,
+) -> RewriteRule:
+    """Register a rule under position-0 action types it can match.
+
+    ``scope`` is the set of GroupActionTypes that can appear at entries[0]
+    for this rule to be relevant. ``None`` means the rule may match any
+    head entry and will always be tried.
+    """
+    if scope is None:
+        _dispatch.setdefault(None, []).append(rule)
+    else:
+        for action_type in scope:
+            _dispatch.setdefault(action_type, []).append(rule)
+    return rule
+
+
+def _rules_for(action_type: GroupActionType) -> Sequence[RewriteRule]:
+    """Return the rules that could match a given position-0 type."""
+    specific = _dispatch.get(action_type, ())
+    wildcard = _dispatch.get(None, ())
+    if not specific:
+        return wildcard
+    if not wildcard:
+        return specific
+    return [*specific, *wildcard]
+
 
 # ---------------------------------------------------------------------------
 # Rules
 #
 # Each rule inspects a prefix of the list (newest-first) and returns a
-# (keep, rest) tuple if it wants to rewrite, or None to skip.
+# Rewrite if it wants to rewrite, or None to skip.
 # ---------------------------------------------------------------------------
 
 
@@ -94,6 +130,21 @@ def _drop_started_before_completed(
     return None
 
 
+_register(
+    scope={
+        GroupActionType.SEER_RCA_STARTED,
+        GroupActionType.SEER_RCA_COMPLETED,
+        GroupActionType.SEER_SOLUTION_STARTED,
+        GroupActionType.SEER_SOLUTION_COMPLETED,
+        GroupActionType.SEER_CODING_STARTED,
+        GroupActionType.SEER_CODING_COMPLETED,
+        GroupActionType.SEER_ITERATION_STARTED,
+        GroupActionType.SEER_ITERATION_COMPLETED,
+    },
+    rule=_drop_started_before_completed,
+)
+
+
 def _drop_resolved_in_pr_near_pr_created(
     entries: list[ActionEntry],
 ) -> Rewrite | None:
@@ -112,6 +163,16 @@ def _drop_resolved_in_pr_near_pr_created(
             return Rewrite([entries[1]], entries[2:])
 
     return None
+
+
+_register(
+    scope={
+        GroupActionType.SEER_PR_CREATED,
+        GroupActionType.AUTOFIX_PR_CREATED,
+        GroupActionType.RESOLVED_IN_PULL_REQUEST,
+    },
+    rule=_drop_resolved_in_pr_near_pr_created,
+)
 
 
 def _collapse_pr_merge_cluster(
@@ -161,11 +222,15 @@ def _collapse_pr_merge_cluster(
     return Rewrite(keep, entries[len(window) :])
 
 
-_RULES: list[RewriteRule] = [
-    _collapse_pr_merge_cluster,
-    _drop_resolved_in_pr_near_pr_created,
-    _drop_started_before_completed,
-]
+_register(
+    scope={
+        GroupActionType.PULL_REQUEST_MERGED,
+        GroupActionType.SET_RESOLVED_IN_COMMIT,
+        GroupActionType.REFERENCED_IN_COMMIT,
+        GroupActionType.RESOLVED_IN_PULL_REQUEST,
+    },
+    rule=_collapse_pr_merge_cluster,
+)
 
 
 def peephole_optimize(
@@ -180,8 +245,11 @@ def peephole_optimize(
     result: list[ActionEntry] = []
 
     while remaining:
+        head_type = GroupActionType(remaining[0].type)
+        rules = _rules_for(head_type)
+
         rewritten = False
-        for rule in _RULES:
+        for rule in rules:
             rewrite = rule(remaining)
             if rewrite is not None:
                 keep, remaining = rewrite
