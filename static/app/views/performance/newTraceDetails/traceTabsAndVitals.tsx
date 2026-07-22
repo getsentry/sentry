@@ -1,4 +1,4 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -15,14 +15,24 @@ type TraceTabsAndVitalsProps = {
 
 const CONTAINER_MIN_HEIGHT = 36;
 
-function Placeholder() {
+// Shared responsive shell so the loaded toolbar and its placeholder stack
+// identically: vitals above tabs when narrow, side-by-side when wide.
+function ToolbarLayout(props: FlexProps) {
   return (
     <Flex
+      direction={{zero: 'column-reverse', xl: 'row'}}
       justify="between"
-      align="center"
+      align={{zero: 'start', xl: 'center'}}
       gap="md"
       minHeight={`${CONTAINER_MIN_HEIGHT}px`}
-    >
+      {...props}
+    />
+  );
+}
+
+function Placeholder() {
+  return (
+    <ToolbarLayout>
       <Flex align="center" gap="md">
         <TraceHeaderComponents.StyledPlaceholder
           _width={75}
@@ -42,7 +52,7 @@ function Placeholder() {
         <TraceHeaderComponents.StyledPlaceholder _width={100} _height={24} />
         <TraceHeaderComponents.StyledPlaceholder _width={100} _height={24} />
       </Flex>
-    </Flex>
+    </ToolbarLayout>
   );
 }
 
@@ -62,13 +72,7 @@ export function TraceTabsAndVitals({
   }
 
   return (
-    <Flex
-      direction={{zero: 'column-reverse', xl: 'row'}}
-      justify="between"
-      align={{zero: 'start', xl: 'center'}}
-      gap="md"
-      minHeight={`${CONTAINER_MIN_HEIGHT}px`}
-    >
+    <ToolbarLayout>
       <Tabs value={currentTab} onChange={onTabChange}>
         <TabList variant="floating">
           {tabOptions.map(tab => (
@@ -77,6 +81,6 @@ export function TraceTabsAndVitals({
         </TabList>
       </Tabs>
       <TraceContextVitals rootEventResults={rootEventResults} tree={tree} />
-    </Flex>
+    </ToolbarLayout>
   );
 }
