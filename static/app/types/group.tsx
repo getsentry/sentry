@@ -613,6 +613,7 @@ export enum GroupActivityType {
   PULL_REQUEST_REOPENED = 'pull_request_reopened',
   PULL_REQUEST_MERGED = 'pull_request_merged',
   PULL_REQUEST_UNLINKED = 'pull_request_unlinked',
+  TRIGGER_AUTOFIX = 'trigger_autofix',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -820,6 +821,11 @@ interface GroupActivityPullRequestUnlinked extends GroupActivityBase {
     pullRequest?: PullRequest | null;
   };
   type: GroupActivityType.PULL_REQUEST_UNLINKED;
+}
+
+interface GroupActivityTriggerAutofix extends GroupActivityBase {
+  data: Record<string, unknown>;
+  type: GroupActivityType.TRIGGER_AUTOFIX;
 }
 
 export interface GroupActivitySetIgnored extends GroupActivityBase {
@@ -1066,7 +1072,8 @@ export type GroupActivity =
   | GroupActivityPullRequestClosed
   | GroupActivityPullRequestReopened
   | GroupActivityPullRequestMerged
-  | GroupActivityPullRequestUnlinked;
+  | GroupActivityPullRequestUnlinked
+  | GroupActivityTriggerAutofix;
 
 export type Activity = GroupActivity;
 
