@@ -127,6 +127,32 @@ class GitHubReaction(StrEnum):
     EYES = "eyes"
 
 
+class GitHubCheckRunStatus(StrEnum):
+    """
+    https://docs.github.com/en/rest/checks/runs#list-check-runs-for-a-git-reference
+    """
+
+    QUEUED = "queued"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+
+
+class GitHubCheckRunConclusion(StrEnum):
+    """
+    https://docs.github.com/en/rest/checks/runs#list-check-runs-for-a-git-reference
+    """
+
+    SUCCESS = "success"
+    FAILURE = "failure"
+    NEUTRAL = "neutral"
+    CANCELLED = "cancelled"
+    TIMED_OUT = "timed_out"
+    ACTION_REQUIRED = "action_required"
+    SKIPPED = "skipped"
+    STALE = "stale"
+    STARTUP_FAILURE = "startup_failure"
+
+
 class GitHubApiRequestType(StrEnum):
     CHECK_FILE = "check_file"
     COMPARE_COMMITS = "compare_commits"
@@ -1243,6 +1269,14 @@ class GitHubBaseClient(
         """
         endpoint = f"/repos/{repo}/commits/{sha}/check-runs"
         return self.get(endpoint, api_request_type=GitHubApiRequestType.GET_CHECK_RUNS)
+
+    def get_all_check_runs(self, repo: str, sha: str) -> list[Any]:
+        """Like ``get_check_runs`` but follows pagination, returning the flat check-run list."""
+        return self._get_with_pagination(
+            f"/repos/{repo}/commits/{sha}/check-runs",
+            response_key="check_runs",
+            api_request_type=GitHubApiRequestType.GET_CHECK_RUNS,
+        )
 
 
 class _IntegrationIdParams(TypedDict, total=False):

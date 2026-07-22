@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import patch
 
+from sentry.models.pullrequest import PullRequest
 from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.seer.run_questions import QUESTIONS, question_hash
 from sentry.seer.runs_query import filtered_runs_queryset
@@ -410,6 +411,64 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         assert prs_by_key["124"]["mergedAt"] is None
 
         assert by_id[str(without_prs.uuid)]["pullRequests"] == []
+
+    def _run_with_pr(self) -> PullRequest:
+        run = self.create_seer_run(
+            organization=self.organization,
+            user_id=self.user.id,
+            last_triggered_at=before_now(minutes=1),
+        )
+        project = self.create_project(organization=self.organization)
+        repo = self.create_repo(project, name="getsentry/sentry")
+        pr = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.organization.id, key="123"
+        )
+        SeerRunPullRequest.objects.create(seer_run=run, pull_request=pr)
+        return pr
+
+    @patch("sentry.api.serializers.models.seer_run.get_pr_ci_status", return_value="passed")
+    def test_ci_status_included_when_requested(self, mock_ci_status: Any) -> None:
+        pr = self._run_with_pr()
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"includeCiStatus": "1"}
+        )
+
+        prs = response.data[0]["pullRequests"]
+        assert prs[0]["ciStatus"] == "passed"
+        mock_ci_status.assert_called_once_with(pr)
+
+    @patch("sentry.api.serializers.models.seer_run.get_pr_ci_status", return_value="passed")
+    def test_ci_status_absent_without_param(self, mock_ci_status: Any) -> None:
+        self._run_with_pr()
+
+        response = self.get_success_response(self.organization.slug)
+
+        prs = response.data[0]["pullRequests"]
+        assert "ciStatus" not in prs[0]
+        assert not mock_ci_status.called
+
+    def test_ci_status_clamps_page_size(self) -> None:
+        for i in range(1, 12):
+            self.create_seer_run(
+                organization=self.organization,
+                user_id=self.user.id,
+                last_triggered_at=before_now(minutes=i),
+            )
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"includeCiStatus": "1"}
+        )
+
+        assert len(response.data) == 10
+        assert 'rel="next"; results="true"' in response.headers["Link"]
+
+        # Oversized pages are rejected outright, same as the outputs path.
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"includeCiStatus": "1", "per_page": "100"},
+            status_code=400,
+        )
 
     def test_outputs_absent_without_flag(self) -> None:
         self.create_seer_run(

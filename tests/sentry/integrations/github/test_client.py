@@ -1433,6 +1433,29 @@ class GitHubCommitContextClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_get_all_check_runs_follows_pagination(self, get_jwt) -> None:
+        repo_name = "getsentry/sentry"
+        sha = "abc123"
+        url = f"https://api.github.com/repos/{repo_name}/commits/{sha}/check-runs?per_page={self.github_client.page_size}"
+
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json={"total_count": 3, "check_runs": [{"id": 1}, {"id": 2}]},
+            headers={"link": f'<{url}&page=2>; rel="next"'},
+        )
+        responses.add(
+            method=responses.GET,
+            url=f"{url}&page=2",
+            json={"total_count": 3, "check_runs": [{"id": 3}]},
+        )
+
+        result = self.github_client.get_all_check_runs(repo_name, sha)
+
+        assert [run["id"] for run in result] == [1, 2, 3]
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_create_check_run_error(self, get_jwt) -> None:
         repo_name = "getsentry/sentry"
         check_data = {"name": "sentry/ci", "head_sha": "abc123"}
