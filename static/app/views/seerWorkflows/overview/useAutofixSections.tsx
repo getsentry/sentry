@@ -14,7 +14,7 @@ import {
 
 export const SECTION_LIMIT = 100;
 
-export interface SectionResult {
+interface SectionResult {
   count: number | undefined;
   isError: boolean;
   isPending: boolean;

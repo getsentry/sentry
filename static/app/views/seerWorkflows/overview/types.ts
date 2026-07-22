@@ -72,7 +72,7 @@ export interface RunQuestion {
 // A pull request linked to a run, serialized by PullRequestSerializer
 // src/sentry/api/serializers/models/pullrequest.py
 // `status` is 'open' | 'merged' | 'closed' | 'draft' | 'unknown'.
-export interface RunPullRequest {
+interface RunPullRequest {
   status: string | null;
   mergedAt?: string | null;
 }
