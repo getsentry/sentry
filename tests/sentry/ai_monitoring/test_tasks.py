@@ -18,6 +18,7 @@ from sentry.ai_monitoring.utils import (
     generate_title_with_seer,
     parse_conversation_title_span,
 )
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
@@ -177,7 +178,7 @@ class TitleHelpersTest(TestCase):
     @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
     def test_generate_title_with_seer_success(self, mock_request: MagicMock) -> None:
         mock_request.return_value = _mock_seer_success('  "Help me login"  ')
-        viewer_context = {"organization_id": 42}
+        viewer_context = SeerViewerContext(organization_id=42)
         assert (
             generate_title_with_seer("I cannot log in", viewer_context=viewer_context)
             == "Help me login"
