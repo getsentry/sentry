@@ -60,9 +60,8 @@ DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 
-OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE = 32 * 1024 * 1024  # 32 MiB
-# Use a plain single-request upload below this size; multipart only for larger files.
 OBJECTSTORE_MULTIPART_UPLOAD_THRESHOLD = 128 * 1024 * 1024  # 128 MiB
+OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE = 32 * 1024 * 1024  # 32 MiB
 
 
 def _dif_file_extension(file_format: str, file_type: str | None) -> str:
@@ -439,11 +438,7 @@ def _upload_dif_to_objectstore(
     file_size: int,
     filename: str,
 ) -> str:
-    """Uploads a debug file to Objectstore, returning the key under which the file was uploaded.
-
-    Files up to ``OBJECTSTORE_MULTIPART_UPLOAD_THRESHOLD`` use a single PUT.
-    Larger files use a parallel multipart upload.
-    """
+    """Uploads a debug file to Objectstore, returning the key under which the file was uploaded."""
     if file_size <= OBJECTSTORE_MULTIPART_UPLOAD_THRESHOLD:
         return session.put(fileobj, content_type=content_type, filename=filename)
 
