@@ -494,26 +494,24 @@ def configure_sdk():
                     #     event.setdefault('tags', {})['install-id'] = install_id
                     s4s_args = args
                     # We want to control whether we want to send metrics at the s4s upstream.
-                    if (
-                        not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED
-                        and method_name == "capture_envelope"
-                    ):
+                    if method_name == "capture_envelope":
                         args_list = list(args)
                         envelope = args_list[0]
 
                         relay_envelope = copy.copy(envelope)
                         s4s_args = (relay_envelope, *args_list[1:])
 
-                        # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
-                        # unless we allow them via a separate sample rate.
-                        safe_items = [
-                            x
-                            for x in envelope.items
-                            if x.data_category != "statsd"
-                            or in_random_rollout("store.allow-s4s-ddm-sample-rate")
-                        ]
-                        if len(safe_items) != len(envelope.items):
-                            relay_envelope.items = safe_items
+                        if not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED:
+                            # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
+                            # unless we allow them via a separate sample rate.
+                            safe_items = [
+                                x
+                                for x in envelope.items
+                                if x.data_category != "statsd"
+                                or in_random_rollout("store.allow-s4s-ddm-sample-rate")
+                            ]
+                            if len(safe_items) != len(envelope.items):
+                                relay_envelope.items = safe_items
 
                         # Only transactions are sampled at a lower rate.
                         if envelope.get_transaction_event() is not None:
