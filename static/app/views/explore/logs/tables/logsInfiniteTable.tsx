@@ -229,7 +229,7 @@ export function LogsInfiniteTable({
       );
     }
 
-    if (!injectedErrorRows?.length || isPending || isError) {
+    if (!injectedErrorRows?.length || isPending) {
       return withEvent;
     }
 

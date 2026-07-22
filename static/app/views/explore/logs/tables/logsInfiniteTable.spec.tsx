@@ -837,6 +837,37 @@ describe('LogsInfiniteTable', () => {
     expect(screen.queryByText('No logs found')).not.toBeInTheDocument();
   });
 
+  it('renders injected error rows when the logs query fails', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 500,
+    });
+
+    const traceError: TraceTree.TraceError = {
+      event_id: 'abc123def456',
+      issue: 'JAVASCRIPT-1',
+      issue_id: 42,
+      level: 'error',
+      message: 'Boom happened',
+      project_id: Number(project.id),
+      project_slug: project.slug,
+      span: 'span1',
+      title: 'TypeError: Boom happened',
+      timestamp: new Date('2100-01-01T00:00:00Z').getTime() / 1000,
+    };
+
+    renderWithProviders(
+      <LogsInfiniteTable
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        injectedErrorRows={[createErrorLogRow(traceError)]}
+      />
+    );
+
+    expect(await screen.findByText('TypeError: Boom happened')).toBeInTheDocument();
+  });
+
   it('cycles column sort: unsorted → desc → asc → reset to default timestamp desc', async () => {
     // Start with severity sorted ascending (second click has already happened)
     const {router} = renderWithProviders(

@@ -627,4 +627,17 @@ export const TraceIconStyleWrapper = styled(Flex)`
 // so pull the group left to line up the error row's project badge with them.
 export const ErrorRowIconGroup = styled(Flex)`
   margin-left: -7px;
+
+  .TraceIcon.warning {
+    background-color: ${p => p.theme.tokens.dataviz.semantic.meh};
+  }
+
+  .TraceIcon.info,
+  .TraceIcon.sample {
+    background-color: ${p => p.theme.tokens.dataviz.semantic.accent};
+  }
+
+  .TraceIcon.unknown {
+    background-color: ${p => p.theme.tokens.dataviz.semantic.other};
+  }
 `;
