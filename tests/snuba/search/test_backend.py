@@ -33,6 +33,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import snuba
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
