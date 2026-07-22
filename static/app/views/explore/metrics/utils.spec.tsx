@@ -17,6 +17,7 @@ import {
   getMetricsUrlFromSavedQueryUrl,
   mapMetricUnitToFieldType,
   parseTraceMetricFromQuery,
+  remapEquationLabels,
   spliceEquationQueries,
   stripTraceMetricTokens,
 } from 'sentry/views/explore/metrics/utils';
@@ -444,5 +445,104 @@ describe('encodeEquationMetricQueries', () => {
       encodeMetricQueryParams(agg2),
       encodeMetricQueryParams(eqn),
     ]);
+  });
+});
+
+function makeEquationQueryWithInternal(
+  equation: string,
+  internalExpression: string
+): BaseMetricQuery {
+  return {
+    ...defaultMetricQuery({type: 'equation'}),
+    queryParams: defaultMetricQuery({type: 'equation'}).queryParams.replace({
+      aggregateFields: [
+        new VisualizeEquation(`${EQUATION_PREFIX}${equation}`, {internalExpression}),
+      ],
+    }),
+  };
+}
+
+describe('remapEquationLabels', () => {
+  it('returns input unchanged when offset is 0', () => {
+    const agg = makeAggregateQuery({label: 'A'});
+    const eqn = makeEquationQueryWithInternal('sum(...) + avg(...)', 'A + B');
+    const input = [agg, eqn];
+    const result = remapEquationLabels(input, 0);
+    expect(result).toBe(input);
+  });
+
+  it('returns input unchanged when equationMetricQueries is empty', () => {
+    const result = remapEquationLabels([], 3);
+    expect(result).toEqual([]);
+  });
+
+  it('remaps labels A,B to C,D when offset is 2', () => {
+    const agg1 = makeAggregateQuery({label: 'A'});
+    const agg2 = makeAggregateQuery({
+      label: 'B',
+      metric: {name: 'metric_b', type: 'distribution'},
+    });
+    const eqn = makeEquationQueryWithInternal('sum(...) + avg(...)', 'A + B');
+
+    const result = remapEquationLabels([agg1, agg2, eqn], 2);
+
+    expect(result[0]!.label).toBe('C');
+    expect(result[1]!.label).toBe('D');
+
+    const eqnViz = result[2]!.queryParams.visualizes[0]!;
+    expect(eqnViz).toEqual(expect.objectContaining({internalExpression: 'C + D'}));
+  });
+
+  it('remaps deduped expression A + A to B + B with offset 1', () => {
+    const agg = makeAggregateQuery({label: 'A'});
+    const eqn = makeEquationQueryWithInternal('sum(...) + sum(...)', 'A + A');
+
+    const result = remapEquationLabels([agg, eqn], 1);
+
+    expect(result[0]!.label).toBe('B');
+    const eqnViz = result[1]!.queryParams.visualizes[0]!;
+    expect(eqnViz).toEqual(expect.objectContaining({internalExpression: 'B + B'}));
+  });
+
+  it('preserves numeric literals when remapping', () => {
+    const agg = makeAggregateQuery({label: 'A'});
+    const eqn = makeEquationQueryWithInternal('sum(...) / 2', 'A / 2');
+
+    const result = remapEquationLabels([agg, eqn], 3);
+
+    expect(result[0]!.label).toBe('D');
+    const eqnViz = result[1]!.queryParams.visualizes[0]!;
+    expect(eqnViz).toEqual(expect.objectContaining({internalExpression: 'D / 2'}));
+  });
+
+  it('does not modify the equation yAxis', () => {
+    const equationYAxis =
+      'sum(value,metricA,counter,none) + avg(value,metricB,dist,none)';
+    const agg1 = makeAggregateQuery({label: 'A'});
+    const agg2 = makeAggregateQuery({label: 'B'});
+    const eqn = makeEquationQueryWithInternal(equationYAxis, 'A + B');
+
+    const result = remapEquationLabels([agg1, agg2, eqn], 2);
+
+    const eqnViz = result[2]!.queryParams.visualizes[0]!;
+    expect(eqnViz.yAxis).toBe(`${EQUATION_PREFIX}${equationYAxis}`);
+  });
+
+  it('applies explicit remap when provided', () => {
+    const eqn = makeEquationQueryWithInternal('sum(...) * 10', 'A * 10');
+    const result = remapEquationLabels([eqn], 0, {A: 'B'});
+
+    const eqnViz = result[0]!.queryParams.visualizes[0]!;
+    expect(eqnViz).toEqual(expect.objectContaining({internalExpression: 'B * 10'}));
+  });
+
+  it('explicit remap does not affect non-matching labels', () => {
+    const agg = makeAggregateQuery({label: 'A'});
+    const eqn = makeEquationQueryWithInternal('sum(...) + avg(...)', 'A + B');
+    const result = remapEquationLabels([agg, eqn], 0, {A: 'C'});
+
+    expect(result[0]!.label).toBe('C');
+    const eqnViz = result[1]!.queryParams.visualizes[0]!;
+    expect(eqnViz).toEqual(expect.objectContaining({internalExpression: 'C + B'}));
   });
 });

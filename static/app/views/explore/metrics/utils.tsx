@@ -1,7 +1,11 @@
 import qs from 'query-string';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
+import {
+  isTokenFunction,
+  isTokenReference,
+} from 'sentry/components/arithmeticBuilder/token';
+import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -40,7 +44,12 @@ import {
 } from 'sentry/views/explore/metrics/types';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import {isVisualizeEquation, Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualize,
+  isVisualizeEquation,
+  Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
+import {getFunctionLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 export function makeMetricsPathname({
   organizationSlug,
@@ -452,4 +461,78 @@ export function encodeEquationMetricQueries(
     ...aggregateRows.map(mq => encodeMetricQueryParams(mq)).filter(Boolean),
     ...equationRows.map(mq => encodeMetricQueryParams(mq)).filter(Boolean),
   ];
+}
+
+/**
+ * Remaps labels on equation metric queries.
+ *
+ * Two calling forms:
+ * - `remapEquationLabels(queries, offset)` — shifts 0-based labels by
+ *   `offset` positions (A→C, B→D when offset=2). Used when splicing
+ *   parsed equation components into an existing metrics array.
+ * - `remapEquationLabels(queries, 0, explicitRemap)` — applies a
+ *   caller-supplied label remap (e.g. `{A: "B"}`). Used when replacing
+ *   the interacted row so the equation references the correct label.
+ */
+export function remapEquationLabels(
+  equationMetricQueries: BaseMetricQuery[],
+  insertionOffset: number,
+  explicitRemap?: Record<string, string>
+): BaseMetricQuery[] {
+  if (equationMetricQueries.length === 0) {
+    return equationMetricQueries;
+  }
+
+  let labelRemap: Map<string, string>;
+
+  if (explicitRemap) {
+    labelRemap = new Map(Object.entries(explicitRemap));
+  } else {
+    if (insertionOffset === 0) {
+      return equationMetricQueries;
+    }
+    const aggregateRows = equationMetricQueries.filter(mq => !_isEquationQuery(mq));
+    labelRemap = new Map<string, string>();
+    for (let i = 0; i < aggregateRows.length; i++) {
+      labelRemap.set(getFunctionLabel(i), getFunctionLabel(insertionOffset + i));
+    }
+  }
+
+  if (labelRemap.size === 0) {
+    return equationMetricQueries;
+  }
+
+  return equationMetricQueries.map(mq => {
+    if (!_isEquationQuery(mq)) {
+      return {
+        ...mq,
+        label: labelRemap.get(mq.label ?? '') ?? mq.label,
+      };
+    }
+
+    const visualize = mq.queryParams.visualizes[0];
+    if (!visualize || !isVisualizeEquation(visualize) || !visualize.internalExpression) {
+      return mq;
+    }
+
+    const references = new Set(labelRemap.keys());
+    const remappedInternal = tokenizeExpression(visualize.internalExpression, references)
+      .map(token =>
+        isTokenReference(token) ? (labelRemap.get(token.text) ?? token.text) : token.text
+      )
+      .filter(text => text.length > 0)
+      .join(' ');
+
+    return {
+      ...mq,
+      queryParams: mq.queryParams.replace({
+        aggregateFields: mq.queryParams.aggregateFields.map(field => {
+          if (!isVisualize(field) || !isVisualizeEquation(field)) {
+            return field;
+          }
+          return field.replace({internalExpression: remappedInternal});
+        }),
+      }),
+    };
+  });
 }

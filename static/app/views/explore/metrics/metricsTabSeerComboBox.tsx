@@ -26,13 +26,15 @@ import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/cont
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isEquation} from 'sentry/utils/discover/fields';
+import {EQUATION_PREFIX, isEquation} from 'sentry/utils/discover/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from 'sentry/views/explore/metrics/constants';
+import {syncEquationMetricQueries} from 'sentry/views/explore/metrics/equationBuilder/utils';
+import {getMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import {
   defaultAggregateSortBys,
   encodeMetricQueryParams,
@@ -47,13 +49,18 @@ import {
   encodeEquationMetricQueries,
   makeMetricsAggregate,
   parseTraceMetricFromQuery,
+  remapEquationLabels,
   spliceEquationQueries,
   stripTraceMetricTokens,
 } from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualize,
+  isVisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {getSeerExploreQuery, getSeerSort} from 'sentry/views/explore/seerQuery';
 interface MetricsTabSeerComboBoxProps {
   traceMetric: TraceMetric;
@@ -252,27 +259,72 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // and trace metric (the metric is parsed out of the agent's visualization
       // aggregate or query filters above so the panel matches what was queried).
       const hasEquation = seerEquationMetricQueries.length > 0;
-      const newEncodedMetrics = metricQueries
-        // When Seer returns an equation, drop the interacted-with row since the
-        // equation and its sub-components fully replace it. The interacted row is the
-        // one that matches the queryParams of the currently opened metric query
-        // panel's combobox.
-        .filter((mq: BaseMetricQuery) => !(hasEquation && mq.queryParams === queryParams))
-        .map((mq: BaseMetricQuery) => {
-          if (mq.queryParams === queryParams) {
-            return encodeMetricQueryParams({
-              ...mq,
-              metric: nextMetric,
-              queryParams: newQueryParams,
-            });
+
+      // When Seer returns an equation, replace the interacted-with row with
+      // Seer's first aggregate (preserving its label/position) instead of
+      // dropping it. This keeps existing equations' label references stable.
+      const interactedRow = metricQueries.find(
+        (mq: BaseMetricQuery) => mq.queryParams === queryParams
+      );
+      const seerAggregates = seerEquationMetricQueries.filter(
+        mq => !mq.queryParams.visualizes.some(isVisualizeEquation)
+      );
+      const seerEquations = seerEquationMetricQueries.filter(mq =>
+        mq.queryParams.visualizes.some(isVisualizeEquation)
+      );
+      const [replacementAggregate, ...extraAggregates] = seerAggregates;
+
+      // Remap the new equation's internalExpression so that "A" (the 0-based
+      // label from parseAggregateExpression) maps to the interacted row's
+      // actual label. This ensures the new equation references the correct
+      // position in the metrics array.
+      const interactedLabel = interactedRow?.label;
+      const remappedSeerEquations =
+        hasEquation && interactedLabel
+          ? remapEquationLabels(seerEquations, 0, {A: interactedLabel})
+          : seerEquations;
+
+      const previousRefs = getMetricReferences(metricQueries);
+
+      let updatedMetricQueries = metricQueries.map((mq: BaseMetricQuery) => {
+        if (mq.queryParams === queryParams) {
+          if (hasEquation && replacementAggregate) {
+            return {...replacementAggregate, label: mq.label};
           }
-          return encodeMetricQueryParams(mq);
-        })
+          return {
+            ...mq,
+            metric: nextMetric,
+            queryParams: newQueryParams,
+          };
+        }
+        return mq;
+      });
+
+      // Sync existing equations so their yAxis reflects the new reference map
+      // (the replaced row may have changed the aggregate at a label).
+      const nextRefs = getMetricReferences(updatedMetricQueries);
+      updatedMetricQueries = syncEquationMetricQueries(
+        updatedMetricQueries,
+        previousRefs,
+        nextRefs
+      );
+
+      const newEncodedMetrics = updatedMetricQueries
+        .map((mq: BaseMetricQuery) => encodeMetricQueryParams(mq))
         .filter(Boolean);
+
+      // Splice any extra aggregates and equation rows from Seer.
+      const remainingEquationQueries = [...extraAggregates, ...remappedSeerEquations];
+      const eqStartIdx = newEncodedMetrics.findIndex(e => e.includes(EQUATION_PREFIX));
+      const insertionOffset = eqStartIdx === -1 ? newEncodedMetrics.length : eqStartIdx;
+      const remappedRemainingQueries = remapEquationLabels(
+        remainingEquationQueries,
+        insertionOffset
+      );
 
       const spliceResult = spliceEquationQueries(
         newEncodedMetrics,
-        seerEquationMetricQueries
+        remappedRemainingQueries
       );
 
       const selection = {
@@ -329,7 +381,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           header: t('Clear Queries'),
           message: t(
             "This equation needs an additional %s queries but, there isn't enough room. Clear existing queries to make room?",
-            seerEquationMetricQueries.length - 1
+            remainingEquationQueries.length
           ),
           confirmText: t('Clear and apply'),
           isDangerous: true,
