@@ -307,6 +307,56 @@ describe('Dashboards util', () => {
         })
       ).toBe(false);
     });
+
+    it('ignores the forced project=-1 default for a user with no member projects', () => {
+      const initialDashboard = {
+        projects: [],
+      } as unknown as DashboardDetails;
+      const location = {
+        ...LocationFixture(),
+        query: {
+          project: '-1',
+        },
+      };
+
+      // With no member projects, the page filters force `project=-1` into the
+      // URL, which should not be treated as an unsaved change against a "My
+      // Projects" (empty) dashboard.
+      expect(hasUnsavedFilterChanges(initialDashboard, location, true)).toBe(false);
+      // A member of some project selecting "All Projects" is a real change.
+      expect(hasUnsavedFilterChanges(initialDashboard, location, false)).toBe(true);
+    });
+
+    it('reports a real project selection for a user with no member projects', () => {
+      const initialDashboard = {
+        projects: [],
+      } as unknown as DashboardDetails;
+      const location = {
+        ...LocationFixture(),
+        query: {
+          // An explicit project selection produces real ids, not the sentinel.
+          project: '5',
+        },
+      };
+
+      expect(hasUnsavedFilterChanges(initialDashboard, location, true)).toBe(true);
+    });
+
+    it('still reports other filter changes for a user with no member projects', () => {
+      const initialDashboard = {
+        projects: [],
+        environment: [],
+      } as unknown as DashboardDetails;
+      const location = {
+        ...LocationFixture(),
+        query: {
+          project: '-1',
+          environment: 'production',
+        },
+      };
+
+      expect(hasUnsavedFilterChanges(initialDashboard, location, true)).toBe(true);
+    });
   });
 });
 

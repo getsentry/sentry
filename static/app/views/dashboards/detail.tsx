@@ -42,6 +42,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -1190,9 +1191,15 @@ class DashboardDetail extends Component<Props, State> {
       isCommittingChanges,
     } = this.state;
 
+    // Mirrors the member/non-member split in `PageFiltersContainer`: when a
+    // non-superuser is a member of no projects but the org has accessible ones,
+    // the page filters force `project=-1` into the URL as a default.
+    const userHasNoMemberProjects = isActiveSuperuser()
+      ? projects.length === 0
+      : !projects.some(project => project.isMember);
     const hasUnsavedFilters =
       dashboardState !== DashboardState.CREATE &&
-      hasUnsavedFilterChanges(dashboard, location);
+      hasUnsavedFilterChanges(dashboard, location, userHasNoMemberProjects);
 
     const eventView = generatePerformanceEventView(location, projects, {});
 

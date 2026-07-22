@@ -14,6 +14,7 @@ import {
   SIX_HOURS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -367,7 +368,8 @@ export function hasSavedPageFilters(
 
 export function hasUnsavedFilterChanges(
   initialDashboard: DashboardDetails,
-  location: Location
+  location: Location,
+  userHasNoMemberProjects = false
 ) {
   // Use Sets to compare the filter fields that are arrays
   type Filters = {
@@ -397,6 +399,21 @@ export function hasUnsavedFilterChanges(
     projects: new Set(currentFilters.projects),
     environment: new Set(currentFilters.environment),
   };
+
+  // When the user isn't a member of any project (e.g. they're not on any team)
+  // but the org has projects they can access, the page filters force
+  // `project=-1` (ALL_ACCESS_PROJECTS) into the URL as a default (see
+  // `initializeUrlState`). That forced default is equivalent to a dashboard's
+  // "My Projects" (empty) saved filter, so don't treat it as an unsaved change.
+  // The user can still save an explicit project selection, since that produces
+  // real project ids in the URL rather than the forced sentinel.
+  if (
+    userHasNoMemberProjects &&
+    currentFilters.projects?.size === 1 &&
+    currentFilters.projects.has(ALL_ACCESS_PROJECTS)
+  ) {
+    currentFilters.projects = new Set(savedFilters.projects);
+  }
 
   if (defined(location.query?.release)) {
     // Release is only included in the comparison if it exists in the query
