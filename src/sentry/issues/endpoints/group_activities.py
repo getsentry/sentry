@@ -29,7 +29,9 @@ class GroupActivitiesEndpoint(GroupEndpoint):
         """
         Retrieve all the Activities for a Group
         """
-        if features.has("projects:issue-action-log-write-to-db", group.project, actor=request.user):
+        if features.has(
+            "projects:issue-action-log-read-from-gale", group.project, actor=request.user
+        ):
             action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
             serialized = serialize(action_log, request.user)
             serialized.append(serialize_first_seen_entry(group))

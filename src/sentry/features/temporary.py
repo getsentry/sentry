@@ -484,6 +484,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:issue-action-log-activity", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable writing issue action log entries to the database
     manager.add("projects:issue-action-log-write-to-db", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable reading from group action log entries
+    manager.add("projects:issue-action-log-read-from-gale", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("projects:issue-status-reconciliation", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable similarity embeddings API call
     # This feature is only available on the frontend using project details since the handler gets
