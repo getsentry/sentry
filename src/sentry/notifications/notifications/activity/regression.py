@@ -9,7 +9,6 @@ from sentry_relay.processing import parse_release
 
 from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
-from sentry.types.actor import Actor
 
 from .base import GroupActivityNotification
 
@@ -22,6 +21,7 @@ class RegressionActivityNotification(GroupActivityNotification):
         super().__init__(activity)
         self.version = self.activity.data.get("version", "")
         self.version_parsed = parse_release(self.version, json_loads=orjson.loads)["description"]
+        self.regression_event_id: str | None = self.activity.data.get("event_id")
         self._apply_event_metadata()
 
     def _apply_event_metadata(self) -> None:
@@ -45,20 +45,11 @@ class RegressionActivityNotification(GroupActivityNotification):
 
     def get_group_link(self) -> str:
         referrer = self.get_referrer(ExternalProviders.EMAIL)
-        event_id = self.activity.data.get("event_id")
         return str(
             self.group.get_absolute_url(
                 params={"referrer": referrer, "notification_uuid": self.notification_uuid},
-                event_id=event_id,
+                event_id=self.regression_event_id,
             )
-        )
-
-    def get_title_link(self, recipient: Actor, provider: ExternalProviders) -> str | None:
-        referrer = self.get_referrer(provider)
-        event_id = self.activity.data.get("event_id")
-        return self.group.get_absolute_url(
-            params={"referrer": referrer, "notification_uuid": self.notification_uuid},
-            event_id=event_id,
         )
 
     def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:
