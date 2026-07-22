@@ -9,7 +9,7 @@ _FLAGGED_WIDGET = {
     "name": "autofix",
     "description": "The result of an Autofix step/action.",
     "level": ["block"],
-    "featureFlag": "seer_agent_autofix",
+    "featureFlag": "organizations:seer-agent-autofix",
 }
 
 
@@ -33,7 +33,7 @@ class GetEmbedWidgetsTest(TestCase):
         names = {w["name"] for w in widgets}
         assert names == {"timestamp"}
 
-    @with_feature("organizations:seer_agent_autofix")
+    @with_feature("organizations:seer-agent-autofix")
     def test_flagged_widget_included_with_flag(self):
         with patch(
             "sentry.seer.agent.embed_widgets._WIDGETS",
@@ -44,7 +44,7 @@ class GetEmbedWidgetsTest(TestCase):
         names = {w["name"] for w in widgets}
         assert names == {"timestamp", "autofix"}
 
-    @with_feature("organizations:seer_agent_autofix")
+    @with_feature("organizations:seer-agent-autofix")
     def test_flagged_widget_excluded_without_organization(self):
         # A widget's flag can't be evaluated without an org, so it is dropped even
         # when the flag would otherwise be enabled.
