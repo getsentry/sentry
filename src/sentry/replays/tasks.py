@@ -193,6 +193,10 @@ def _delete_if_exists(filename: str) -> None:
 @instrumented_task(
     name="sentry.replays.tasks.run_bulk_replay_delete_job",
     namespace=replays_long_tasks,
+    # Keep the task registered under the old `replays` namespace as well so
+    # any activations that were enqueued before this deploy (with
+    # namespace="replays") continue to resolve and execute.
+    alias_namespace=replays_tasks,
     retry=Retry(times=5),
     processing_deadline_duration=300,
     silo_mode=SiloMode.CELL,
