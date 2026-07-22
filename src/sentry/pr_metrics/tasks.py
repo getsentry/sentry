@@ -253,11 +253,16 @@ def detect_stale_pull_requests_task() -> None:
     ``find_stale_pull_requests`` only sees legacy ``PullRequestActivity`` rows,
     so a candidate routed onto the reduced ``PullRequestActivityLog`` document
     (see ``sentry.pr_metrics.webhooks._use_activity_document``) may actually be
-    engaged — that store never writes those rows. Each batch bulk-fetches any
-    such documents for its candidates and skips ones showing activity the SQL
-    scan couldn't see. Less efficient than the pure-SQL legacy path (documents
-    are pulled into Python one batch at a time), which is why the batch size is
-    kept modest rather than matching ``find_stale_pull_requests``'s full scan.
+    engaged — that store never writes those rows. Each batch bulk-fetches each
+    candidate's document ``date_updated`` and skips any updated at or after
+    ``cutoff``. Coarser than the legacy check: any document write (including a
+    non-engaging one, e.g. a comment) resets this clock, since ``date_updated``
+    doesn't distinguish event types — a document-track PR with only
+    non-engaging activity is skipped here even though a legacy-track PR in the
+    same situation is correctly still a candidate. Less efficient than the
+    pure-SQL legacy path too (documents are pulled into Python one batch at a
+    time), which is why the batch size is kept modest rather than matching
+    ``find_stale_pull_requests``'s full scan.
 
     Each candidate is guarded by a compare-and-set claim before any action, so
     an overlapping run or redelivery won't double-process.

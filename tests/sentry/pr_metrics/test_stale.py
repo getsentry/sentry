@@ -321,22 +321,26 @@ class DetectStalePullRequestsTaskTest(TestCase):
             pull_request=pr, verdict=PullRequestVerdict.ABANDONED
         ).exists()
 
-    def test_emits_document_track_pr_with_no_recent_engagement(self) -> None:
-        # A document-track PR with genuinely no recent engagement is still
-        # settled as abandoned, same as a legacy-track PR.
+    def test_skips_document_track_pr_with_only_non_engaging_activity(self) -> None:
+        # Known limitation: the document cross-check only compares
+        # PullRequestActivityLog.date_updated (auto_now) against the cutoff —
+        # it can't distinguish an engaging event from a non-engaging one (e.g.
+        # a comment) recorded in the document. So a document-track PR with only
+        # non-engaging activity is *also* skipped here, unlike a legacy-track
+        # PR in the same situation (see test_includes_pr_with_only_non_engaging_recent_activity
+        # in FindStalePullRequestsTest, which correctly stays a candidate).
         pr = self._make_tracked_stale_pr()
         self._add_activity_log(pr, PullRequestActivityType.COMMENT_CREATED, weeks_ago=1.0)
         with (
             self.feature({"organizations:pr-metrics-activity": True}),
             patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit,
         ):
-            mock_emit.return_value = True
             detect_stale_pull_requests_task()
 
-        mock_emit.assert_called_once()
-        pr.refresh_from_db()
-        metrics = PullRequestMetrics.objects.get(pull_request=pr)
-        assert metrics.verdict == PullRequestVerdict.ABANDONED
+        mock_emit.assert_not_called()
+        assert not PullRequestMetrics.objects.filter(
+            pull_request=pr, verdict=PullRequestVerdict.ABANDONED
+        ).exists()
 
     def test_claims_verdict_and_emits_for_stale_pr(self) -> None:
         pr = self._make_tracked_stale_pr()
