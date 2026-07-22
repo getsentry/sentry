@@ -175,7 +175,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Seer runs on an issue and reaches the stage...'),
       dataCondition: SeerActivityTriggerNode,
       details: SeerActivityTriggerDetails,
-      defaultComparison: ['pr_created'],
+      defaultComparison: [],
       validate: validateSeerActivityTriggerCondition,
     },
   ],

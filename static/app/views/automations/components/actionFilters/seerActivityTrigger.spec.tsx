@@ -32,14 +32,14 @@ describe('SeerActivityTriggerDetails', () => {
       <SeerActivityTriggerDetails
         condition={DataConditionFixture({
           type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-          comparison: ['rca_completed', 'coding_completed'],
+          comparison: ['rca_started', 'coding_completed'],
         })}
       />
     );
 
     expect(
       screen.getByText(
-        'Seer reaches any of these stages: Root cause analysis completed, Coding completed'
+        'Seer reaches any of these stages: Root cause analysis started, Coding completed'
       )
     ).toBeInTheDocument();
   });
@@ -62,7 +62,7 @@ describe('SeerActivityTriggerNode', () => {
   const dataCondition = DataConditionFixture({
     id: 'seer-1',
     type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-    comparison: ['rca_completed', 'coding_completed'],
+    comparison: ['rca_started', 'coding_completed'],
   });
   const errorContext = {
     errors: {},
@@ -122,7 +122,7 @@ describe('SeerActivityTriggerNode', () => {
       </AutomationBuilderErrorContext.Provider>
     );
 
-    expect(screen.getByText('Root cause analysis completed')).toBeInTheDocument();
+    expect(screen.getByText('Root cause analysis started')).toBeInTheDocument();
     expect(screen.getByText('Coding completed')).toBeInTheDocument();
   });
 });
@@ -153,7 +153,7 @@ describe('validateSeerActivityTriggerCondition', () => {
       validateSeerActivityTriggerCondition({
         condition: DataConditionFixture({
           type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-          comparison: ['rca_completed'],
+          comparison: ['rca_started'],
         }),
       })
     ).toBeUndefined();

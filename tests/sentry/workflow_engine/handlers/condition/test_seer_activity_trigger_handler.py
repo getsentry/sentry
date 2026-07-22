@@ -30,13 +30,13 @@ class TestSeerActivityTriggerHandler(ConditionTestCase):
         self.assert_passes(self.dc, event_data)
 
     def test_evaluate_value__non_matching_stage(self) -> None:
-        event_data = self._create_event_data(ActivityType.SEER_PR_CREATED)
+        event_data = self._create_event_data(ActivityType.SEER_RCA_STARTED)
         self.assert_does_not_pass(self.dc, event_data)
 
     def test_evaluate_value__matching_multiple_stages(self) -> None:
         self.dc.update(
             comparison=[
-                SeerActivityTriggerStage.RCA_COMPLETED,
+                SeerActivityTriggerStage.RCA_STARTED,
                 SeerActivityTriggerStage.CODING_COMPLETED,
             ]
         )
@@ -48,10 +48,15 @@ class TestSeerActivityTriggerHandler(ConditionTestCase):
         self.dc.update(comparison=[stage.value for stage in SeerActivityTriggerStage])
 
         for stage, activity_type_value in [
+            (SeerActivityTriggerStage.RCA_STARTED, ActivityType.SEER_RCA_STARTED),
             (SeerActivityTriggerStage.RCA_COMPLETED, ActivityType.SEER_RCA_COMPLETED),
+            (SeerActivityTriggerStage.SOLUTION_STARTED, ActivityType.SEER_SOLUTION_STARTED),
             (SeerActivityTriggerStage.SOLUTION_COMPLETED, ActivityType.SEER_SOLUTION_COMPLETED),
+            (SeerActivityTriggerStage.CODING_STARTED, ActivityType.SEER_CODING_STARTED),
             (SeerActivityTriggerStage.CODING_COMPLETED, ActivityType.SEER_CODING_COMPLETED),
             (SeerActivityTriggerStage.PR_CREATED, ActivityType.SEER_PR_CREATED),
+            (SeerActivityTriggerStage.ITERATION_STARTED, ActivityType.SEER_ITERATION_STARTED),
+            (SeerActivityTriggerStage.ITERATION_COMPLETED, ActivityType.SEER_ITERATION_COMPLETED),
         ]:
             event_data = self._create_event_data(activity_type_value)
             self.assert_passes(self.dc, event_data)
@@ -64,22 +69,13 @@ class TestSeerActivityTriggerHandler(ConditionTestCase):
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         self.assert_does_not_pass(self.dc, event_data)
 
-    def test_evaluate_value__stale_removed_stage_in_db(self) -> None:
-        self.dc.update(comparison=["rca_started", SeerActivityTriggerStage.RCA_COMPLETED])
-
-        event_data = self._create_event_data(ActivityType.SEER_RCA_COMPLETED)
-        self.assert_passes(self.dc, event_data)
-
-        event_data = self._create_event_data(ActivityType.SEER_RCA_STARTED)
-        self.assert_does_not_pass(self.dc, event_data)
-
     def test_json_schema__valid_single_stage(self) -> None:
         self.dc.comparison = [SeerActivityTriggerStage.PR_CREATED]
         self.dc.save()
 
     def test_json_schema__valid_multiple_stages(self) -> None:
         self.dc.comparison = [
-            SeerActivityTriggerStage.RCA_COMPLETED,
+            SeerActivityTriggerStage.RCA_STARTED,
             SeerActivityTriggerStage.CODING_COMPLETED,
             SeerActivityTriggerStage.PR_CREATED,
         ]
