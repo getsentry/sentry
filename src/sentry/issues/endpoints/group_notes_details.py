@@ -169,7 +169,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             )
 
             if features.has(
-                "projects:issue-action-log-write-to-db", group.project, actor=request.user
+                "projects:issue-action-log-activity", group.project, actor=request.user
             ):
                 entry = GroupActionLogEntry.objects.filter(
                     group_id=group.id,

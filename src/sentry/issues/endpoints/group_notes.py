@@ -53,7 +53,7 @@ class GroupNotesEndpoint(GroupEndpoint):
         url_names=["sentry-api-0-group-notes"],
     )
     def get(self, request: Request, group: Group) -> Response:
-        if features.has("projects:issue-action-log-write-to-db", group.project, actor=request.user):
+        if features.has("projects:issue-action-log-activity", group.project, actor=request.user):
             entries = GroupActionLogEntry.objects.filter(
                 group_id=group.id, type=GroupActionType.COMMENT.value
             )
@@ -147,7 +147,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             sender="post",
         )
 
-        if features.has("projects:issue-action-log-write-to-db", group.project, actor=request.user):
+        if features.has("projects:issue-action-log-activity", group.project, actor=request.user):
             entry = GroupActionLogEntry.objects.filter(
                 group_id=group.id,
                 idempotency_key=activity_action_idempotency_key(activity),

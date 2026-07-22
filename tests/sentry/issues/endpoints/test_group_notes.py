@@ -105,7 +105,7 @@ class GroupNoteTest(APITestCase):
         assert response.data[3]["id"] == str(note3.id)
         assert response.data[3]["data"]["text"] == note3.data["text"]
 
-    @with_feature("projects:issue-action-log-write-to-db")
+    @with_feature("projects:issue-action-log-activity")
     def test_reads_from_gale(self) -> None:
         group = self.group
 
@@ -152,7 +152,7 @@ class GroupNoteCreateTest(APITestCase):
         response = self.client.post(url, format="json", data={"text": "hello world"})
         assert response.status_code == 400, response.content
 
-    @with_feature("projects:issue-action-log-write-to-db")
+    @with_feature("projects:issue-action-log-activity")
     def test_returns_gale(self) -> None:
         group = self.group
 

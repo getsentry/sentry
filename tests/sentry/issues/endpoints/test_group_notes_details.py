@@ -193,7 +193,7 @@ class GroupNotesDetailsTest(APITestCase):
             "text": f"hi **@{self.user.username}**",
         }
 
-    @with_feature("projects:issue-action-log-write-to-db")
+    @with_feature("projects:issue-action-log-activity")
     def test_put_returns_gale(self) -> None:
         self.login_as(user=self.user)
         group = self.group
