@@ -490,6 +490,46 @@ class TestDeliverNightShiftResult(TestCase):
         assert results[limited_group.id].extras["rate_limited"] is True
         assert "trigger_error" not in results[limited_group.id].extras
 
+    def test_seat_based_orgs_skip_the_rate_limit_check(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        group = self.create_group(project=project)
+        run = self._create_night_shift_run(organization=org)
+
+        result = {
+            "verdicts": [
+                {"group_id": group.id, "action": TriageAction.AUTOFIX.value, "reason": "ok"}
+            ]
+        }
+
+        with (
+            patch(
+                "sentry.seer.night_shift.delivery.is_seer_autotriggered_autofix_rate_limited_and_increment",
+                return_value=True,
+            ) as mock_rate_limited,
+            patch(
+                "sentry.seer.night_shift.delivery.is_seer_seat_based_tier_enabled",
+                return_value=True,
+            ),
+            patch(
+                "sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=1
+            ) as mock_trigger,
+        ):
+            deliver_night_shift_result(
+                organization_id=org.id,
+                run_uuid=self._run_uuid(run),
+                status="completed",
+                result=result,
+                error=None,
+            )
+
+        mock_rate_limited.assert_not_called()
+        mock_trigger.assert_called_once()
+
+        result_row = SeerNightShiftRunResult.objects.get(run=run)
+        assert result_row.seer_run_id == "1"
+        assert "rate_limited" not in result_row.extras
+
     def test_unknown_group_ids_logged(self) -> None:
         """Groups not belonging to the org should be logged and skipped."""
         org = self.create_organization()

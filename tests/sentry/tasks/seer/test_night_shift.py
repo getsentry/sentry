@@ -460,6 +460,24 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         )
         assert at_limit_extra["reasons"] == ["autofix_rate_limited"]
 
+    def test_seat_based_orgs_skip_the_rate_limit_check(self) -> None:
+        org = self.create_organization()
+        at_limit = self._make_eligible(self.create_project(organization=org))
+
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.cron.is_seer_autotriggered_autofix_rate_limited",
+                return_value=True,
+            ),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.is_seer_seat_based_tier_enabled",
+                return_value=True,
+            ),
+        ):
+            result = _get_eligible_projects(org, "manual")
+
+        assert [ep.project for ep in result] == [at_limit]
+
 
 @django_db_all
 class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):

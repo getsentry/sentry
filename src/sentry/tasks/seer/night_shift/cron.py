@@ -29,6 +29,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     bulk_read_preferences_from_sentry_db,
     is_seer_autotriggered_autofix_rate_limited,
+    is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.night_shift import (
@@ -485,6 +486,9 @@ def _get_eligible_projects(
 
     preferences = bulk_read_preferences_from_sentry_db(organization.id, list(project_map))
 
+    # Rate limit only applies to legacy org plans
+    check_rate_limit = not is_seer_seat_based_tier_enabled(organization)
+
     eligible: list[EligibleProject] = []
     for pid, project in project_map.items():
         pref = preferences.get(pid)
@@ -502,7 +506,7 @@ def _get_eligible_projects(
             reasons.append("automation_tuning_off")
         if source == "cron" and not tweaks.enabled:
             reasons.append("tweaks_disabled")
-        if is_seer_autotriggered_autofix_rate_limited(project):
+        if check_rate_limit and is_seer_autotriggered_autofix_rate_limited(project):
             reasons.append("autofix_rate_limited")
         if stopping_point != AutofixStoppingPoint.OPEN_PR:
             # Night shift's only output is a PR, so a project that stops

@@ -19,6 +19,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     bulk_read_preferences_from_sentry_db,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
+    is_seer_seat_based_tier_enabled,
 )
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
@@ -199,8 +200,12 @@ def _process_verdicts(
         }
 
         referrer = referrer_map[SeerAutomationSource.NIGHT_SHIFT]
+
+        # Rate limit only applies to legacy org plans
+        check_rate_limit = not is_seer_seat_based_tier_enabled(organization)
+
         for group in fixable_groups:
-            if is_seer_autotriggered_autofix_rate_limited_and_increment(
+            if check_rate_limit and is_seer_autotriggered_autofix_rate_limited_and_increment(
                 group.project, organization
             ):
                 rate_limited_group_ids.add(group.id)
