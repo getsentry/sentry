@@ -107,7 +107,6 @@ def generate_ai_conversation_title(span: Mapping[str, Any]) -> None:
         # Concurrent create won the insert; only keep our title if we're still earlier.
         if qs.filter(_can_replace_title(data.source_timestamp)).update(
             title=title,
-            conversation_id=conversation_id,
             title_source_timestamp=data.source_timestamp,
         ):
             metrics.incr(
