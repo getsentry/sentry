@@ -27,6 +27,7 @@ candidate without recomputing.
 from __future__ import annotations
 
 import logging
+import re
 from collections import Counter
 from collections.abc import Callable, Collection, Mapping
 from dataclasses import dataclass
@@ -314,6 +315,13 @@ def _code_owner_logins(repository: Repository, changed_files: list[PullRequestFi
     ]
 
 
+# Path patterns GitHub documents as unsupported syntax exceptions and ignores:
+# `[]` character ranges (which is also what a stray GitLab-style "[Section]"
+# header parses to), `!` negation, and unescaped whitespace. Skipped the same
+# way ``convert_codeowners_syntax`` skips them.
+_CODEOWNERS_SYNTAX_EXCEPTIONS = re.compile(r"(\[([^]^\s]*)\])|[\s!#]")
+
+
 def _parse_codeowners_rules(raw: str) -> list[tuple[str, list[str]]]:
     rules = []
     for line in raw.splitlines():
@@ -325,6 +333,8 @@ def _parse_codeowners_rules(raw: str) -> list[tuple[str, list[str]]]:
         except ValueError:
             # CODEOWNERS files in the wild contain malformed lines; GitHub
             # ignores them, so we do too.
+            continue
+        if _CODEOWNERS_SYNTAX_EXCEPTIONS.search(path):
             continue
         rules.append((path, list(owners)))
     return rules

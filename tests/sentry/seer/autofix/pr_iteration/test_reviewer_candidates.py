@@ -236,6 +236,44 @@ class CollectReviewerCandidatesTest(TestCase):
         assert candidates == [ReviewerCandidate(login="second-dev", source=SOURCE_CODE_OWNER)]
 
     @patch(f"{CANDIDATES_PATH}.scm_actions")
+    def test_code_owner_ignores_gitlab_section_syntax(self, mock_actions: MagicMock) -> None:
+        # GitLab-style "[Section]" headers are not GitHub CODEOWNERS syntax;
+        # GitHub ignores such lines and treats owner-less paths as un-owned.
+        # Match that: the section owner is never proposed, and files under the
+        # section resolve to nobody rather than to a stale earlier rule.
+        self.seer_run.update(user_id=None)
+        for login in ("linked-dev", "section-owner"):
+            member = self.create_user(email=f"{login}@example.com")
+            self.create_member(organization=self.organization, user=member, teams=[self.team])
+            self.create_external_user(
+                user=member, organization=self.organization, external_name=f"@{login}"
+            )
+        code_mapping = self.create_code_mapping(project=self.project, repo=self.repo)
+        self.create_codeowners(
+            project=self.project,
+            code_mapping=code_mapping,
+            raw="\n".join(
+                [
+                    "* @section-owner",
+                    "src/widget.py @linked-dev",
+                    "[Frontend] @section-owner",
+                    "src/components/",
+                ]
+            ),
+        )
+        mock_actions.get_pull_request_files.return_value = _files_page(
+            [
+                {"filename": "src/widget.py", "changes": 10},
+                {"filename": "src/components/app.tsx", "changes": 5},
+            ]
+        )
+        mock_actions.get_commits_by_path.return_value = _commits_page([])
+
+        candidates = self._collect(scm=_FakeScm())
+
+        assert candidates == [ReviewerCandidate(login="linked-dev", source=SOURCE_CODE_OWNER)]
+
+    @patch(f"{CANDIDATES_PATH}.scm_actions")
     def test_recent_committers_ranked_by_frequency_and_bots_dropped(
         self, mock_actions: MagicMock
     ) -> None:
