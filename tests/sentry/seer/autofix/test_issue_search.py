@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.models.activity import Activity
 from sentry.models.pullrequest import PullRequestLifecycleState
 from sentry.seer.autofix.issue_search import AUTOFIX_STATE_VALUES, autofix_state_filter
 from sentry.testutils.cases import TestCase
@@ -76,6 +77,14 @@ class AutofixStateFilterTest(TestCase):
         )
 
         assert self._matching_group_ids(["needs_investigation"]) == set()
+
+    def test_null_group_activity_does_not_break_negation(self) -> None:
+        Activity.objects.create(
+            project=self.project, group=None, type=ActivityType.SEER_PR_CREATED.value
+        )
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_CODING_COMPLETED.value)
+
+        assert self._matching_group_ids(["code_changes_ready"]) == {self.group1.id}
 
     def test_multiple_values_union(self) -> None:
         self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)

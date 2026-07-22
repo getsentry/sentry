@@ -25,9 +25,9 @@ AUTOFIX_STATE_VALUES = frozenset(
 
 def _milestone_q(activity_type: ActivityType, projects: Sequence[Project]) -> Q:
     return Q(
-        id__in=Activity.objects.filter(project__in=projects, type=activity_type.value).values_list(
-            "group_id", flat=True
-        )
+        id__in=Activity.objects.filter(
+            project__in=projects, type=activity_type.value, group_id__isnull=False
+        ).values_list("group_id", flat=True)
     )
 
 
