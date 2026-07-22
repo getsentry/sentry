@@ -30,6 +30,7 @@ from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOI
 from sentry.models.release import ReleaseStatus
 from sentry.search.utils import get_teams_for_users
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
+from sentry.seer.autofix.issue_search import AUTOFIX_STATE_VALUES
 from sentry.testutils.cases import TestCase
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 
@@ -368,20 +369,14 @@ class ConvertIssueProgressValueTest(TestCase):
             convert_query_values(filters, [self.project], self.user, None)
 
 
-class ConvertAutofixStateValueTest(TestCase):
-    def test_valid(self) -> None:
-        for state in (
-            "merged",
-            "review_pr",
-            "code_changes_ready",
-            "solution_ready",
-            "needs_investigation",
-        ):
-            assert convert_autofix_state_value([state], [self.project], self.user, None) == [state]
+@pytest.mark.parametrize("state", sorted(AUTOFIX_STATE_VALUES))
+def test_convert_autofix_state_value_valid(state: str) -> None:
+    assert convert_autofix_state_value([state], [], None, None) == [state]
 
-    def test_invalid(self) -> None:
-        with pytest.raises(InvalidSearchQuery):
-            convert_autofix_state_value(["bogus"], [self.project], self.user, None)
+
+def test_convert_autofix_state_value_invalid() -> None:
+    with pytest.raises(InvalidSearchQuery):
+        convert_autofix_state_value(["bogus"], [], None, None)
 
 
 class ConvertDetectorValueTest(TestCase):

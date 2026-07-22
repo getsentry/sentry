@@ -283,7 +283,7 @@ def convert_issue_progress_value(
 def convert_autofix_state_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User,
+    user: User | RpcUser | AnonymousUser | None,
     environments: Sequence[Environment] | None,
 ) -> list[str]:
     results: list[str] = []
