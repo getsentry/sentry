@@ -103,7 +103,8 @@ export function getMaxPickableDays(
 ): MaxPickableDaysOptions {
   switch (dataCategory) {
     case DataCategory.SPANS:
-    case DataCategory.SPANS_INDEXED: {
+    case DataCategory.SPANS_INDEXED:
+    case DataCategory.ERRORS: {
       const maxPickableDays = organization.features.includes(
         'visibility-explore-range-high'
       )
@@ -112,7 +113,8 @@ export function getMaxPickableDays(
       return {
         maxPickableDays,
         maxUpgradableDays: MAX_PICKABLE_DAYS,
-        upsellFooter: SpansUpsellFooter,
+        upsellFooter:
+          dataCategory === DataCategory.ERRORS ? ErrorsUpsellFooter : SpansUpsellFooter,
       };
     }
     case DataCategory.TRACE_METRICS:
@@ -147,4 +149,8 @@ const UpsellFooterHook = OverrideOrDefault({
 
 export const SpansUpsellFooter = (
   <UpsellFooterHook description={DESCRIPTION} source="spans" />
+);
+
+export const ErrorsUpsellFooter = (
+  <UpsellFooterHook description={DESCRIPTION} source="errors" />
 );

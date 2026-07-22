@@ -47,7 +47,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconEllipsis} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct, tctCode} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
+import {DataCategory, type PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -75,6 +75,7 @@ import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -105,6 +106,7 @@ import {
 import Table from 'sentry/views/discover/table';
 import {
   generateTitle,
+  getDiscoverDeprecation,
   getTransactionsDeprecation,
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
@@ -1396,6 +1398,10 @@ function DiscoverPageFilters({
   isHomepage?: boolean;
 }) {
   const {projects} = useProjects();
+  // use the same data category as spans so the time period options across discover and traces are the same
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.ERRORS],
+  });
 
   const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
     location,
@@ -1431,7 +1437,13 @@ function DiscoverPageFilters({
       <PageFilterBar condensed>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
-        <DatePageFilter />
+        <DatePageFilter
+          maxPickableDays={
+            getDiscoverDeprecation(organization)
+              ? maxPickableDays.maxPickableDays
+              : undefined
+          }
+        />
       </PageFilterBar>
       <Flex gap="md" align="center">
         {!shouldHideCreateAlert && (
@@ -1564,6 +1576,9 @@ export default function ResultsContainer() {
   const location = useLocation();
   const navigate = useNavigate();
   const {addAlert} = useGlobalAlerts();
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.ERRORS],
+  });
 
   /**
    * Block `<Results>` from mounting until GSH is ready since there are API
@@ -1580,6 +1595,9 @@ export default function ResultsContainer() {
     <PageFiltersContainer
       disablePersistence={
         organization.features.includes('discover-query') && !!location.query.id
+      }
+      maxPickableDays={
+        getDiscoverDeprecation(organization) ? maxPickableDays.maxPickableDays : undefined
       }
       skipLoadLastUsed={false}
       // The Discover Results component will manage URL params, including page filters state
