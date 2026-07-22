@@ -13,6 +13,9 @@ from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     WorkflowSerializerResponse,
 )
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
+from sentry.workflow_engine.handlers.condition.seer_activity_trigger_handler import (
+    SeerActivityTriggerStage,
+)
 from sentry.workflow_engine.models import (
     Action,
     Condition,
@@ -139,7 +142,7 @@ class TestWorkflowValidatorActivityTrigger(TestCase):
                 "conditions": [
                     {
                         "type": Condition.SEER_ACTIVITY_TRIGGER,
-                        "comparison": ["rca_started"],
+                        "comparison": [SeerActivityTriggerStage.RCA_COMPLETED],
                         "conditionResult": True,
                     }
                 ],
@@ -253,7 +256,7 @@ class TestWorkflowValidatorActivityTrigger(TestCase):
         self.create_data_condition(
             condition_group=when_condition_group,
             type=Condition.SEER_ACTIVITY_TRIGGER,
-            comparison=["rca_started"],
+            comparison=[SeerActivityTriggerStage.RCA_COMPLETED],
             condition_result=True,
         )
         workflow = self.create_workflow(
@@ -301,7 +304,7 @@ class TestWorkflowValidatorActivityTrigger(TestCase):
         self.create_data_condition(
             condition_group=when_condition_group,
             type=Condition.SEER_ACTIVITY_TRIGGER,
-            comparison=["rca_started"],
+            comparison=[SeerActivityTriggerStage.RCA_COMPLETED],
             condition_result=True,
         )
         workflow = self.create_workflow(

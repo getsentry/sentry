@@ -15,6 +15,9 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import cell_silo_test
+from sentry.workflow_engine.handlers.condition.seer_activity_trigger_handler import (
+    SeerActivityTriggerStage,
+)
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -1286,7 +1289,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             "conditions": [
                 {
                     "type": Condition.SEER_ACTIVITY_TRIGGER,
-                    "comparison": ["rca_started"],
+                    "comparison": [SeerActivityTriggerStage.RCA_COMPLETED],
                     "conditionResult": True,
                 }
             ],

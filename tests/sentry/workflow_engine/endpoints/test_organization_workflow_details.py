@@ -17,6 +17,9 @@ from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
+from sentry.workflow_engine.handlers.condition.seer_activity_trigger_handler import (
+    SeerActivityTriggerStage,
+)
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleWorkflow,
@@ -876,7 +879,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         self.create_data_condition(
             condition_group=when_condition_group,
             type=Condition.SEER_ACTIVITY_TRIGGER,
-            comparison=["rca_started"],
+            comparison=[SeerActivityTriggerStage.RCA_COMPLETED],
             condition_result=True,
         )
         workflow = self.create_workflow(
