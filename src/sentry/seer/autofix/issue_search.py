@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
-from django.db.models import Case, Max, Q, When
+from django.db.models import Case, DateTimeField, Max, OuterRef, Q, Subquery, Value, When
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from sentry.models.activity import Activity
@@ -28,29 +29,44 @@ MILESTONE_ACTIVITY_TYPES = (
     ActivityType.SEER_PR_CREATED,
 )
 
+NO_RUN_THRESHOLD = datetime(1970, 1, 1, tzinfo=UTC)
+
+
+def _latest_run_started() -> Coalesce:
+    return Coalesce(
+        Subquery(
+            SeerAgentRun.objects.filter(group_id=OuterRef("group_id"), source="autofix")
+            .order_by("-id")
+            .values("run__date_added")[:1]
+        ),
+        Value(NO_RUN_THRESHOLD),
+        output_field=DateTimeField(),
+    )
+
 
 def _milestone_state_q(
     projects: Sequence[Project],
     reached: ActivityType,
     not_reached: Sequence[ActivityType],
 ) -> Q:
-    activities = Activity.objects.filter(
-        project__in=projects,
-        type__in=[t.value for t in (reached, *not_reached)],
-        group_id__isnull=False,
-    )
-    if not not_reached:
-        return Q(id__in=activities.values_list("group_id", flat=True))
-
+    types = (reached, *not_reached)
     annotations = {
-        f"reached_{t.value}": Max(Case(When(type=t.value, then=1), default=0))
-        for t in (reached, *not_reached)
+        f"latest_{t.value}": Max(Case(When(type=t.value, then="datetime"))) for t in types
     }
-    having = {f"reached_{reached.value}": 1} | {f"reached_{t.value}": 0 for t in not_reached}
+    condition = Q(**{f"latest_{reached.value}__gte": _latest_run_started()})
+    for t in not_reached:
+        condition &= Q(**{f"latest_{t.value}__lt": _latest_run_started()}) | Q(
+            **{f"latest_{t.value}__isnull": True}
+        )
     return Q(
-        id__in=activities.values("group_id")
+        id__in=Activity.objects.filter(
+            project__in=projects,
+            type__in=[t.value for t in types],
+            group_id__isnull=False,
+        )
+        .values("group_id")
         .annotate(**annotations)
-        .filter(**having)
+        .filter(condition)
         .values_list("group_id", flat=True)
     )
 
@@ -61,7 +77,11 @@ def _any_milestone_q(projects: Sequence[Project]) -> Q:
             project__in=projects,
             type__in=[t.value for t in MILESTONE_ACTIVITY_TYPES],
             group_id__isnull=False,
-        ).values_list("group_id", flat=True)
+        )
+        .values("group_id")
+        .annotate(latest_milestone=Max("datetime"))
+        .filter(latest_milestone__gte=_latest_run_started())
+        .values_list("group_id", flat=True)
     )
 
 

@@ -54,7 +54,6 @@ class AutofixStateFilterTest(TestCase):
         assert self._matching_group_ids(["review_pr"]) == {self.group2.id}
 
     def test_merged_scoped_to_latest_run(self) -> None:
-        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
         self._create_merged_pr_run(self.group1)
         run = self.create_seer_run(organization=self.organization)
         self.create_seer_agent_run(run, source="autofix", project=self.project, group=self.group1)
@@ -63,9 +62,25 @@ class AutofixStateFilterTest(TestCase):
             repository_id=repo.id, organization_id=self.organization.id, key="102"
         )
         self.create_seer_run_pull_request(run, pr)
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
 
         assert self._matching_group_ids(["merged"]) == set()
         assert self._matching_group_ids(["review_pr"]) == {self.group1.id}
+
+    def test_stale_milestone_from_older_run_ignored(self) -> None:
+        self.create_group_activity(
+            group=self.group1,
+            type=ActivityType.SEER_PR_CREATED.value,
+            datetime=timezone.now() - timedelta(hours=1),
+        )
+        run = self.create_seer_run(organization=self.organization)
+        self.create_seer_agent_run(run, source="autofix", project=self.project, group=self.group1)
+        self.create_group_activity(
+            group=self.group1, type=ActivityType.SEER_SOLUTION_COMPLETED.value
+        )
+
+        assert self._matching_group_ids(["review_pr"]) == set()
+        assert self._matching_group_ids(["solution_ready"]) == {self.group1.id}
 
     def test_merged_ignores_non_autofix_runs(self) -> None:
         self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
