@@ -1,4 +1,4 @@
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -64,10 +64,7 @@ export function PlaceHolder({
         </Flex>
         <TraceHeaderComponents.HeaderGrid>
           <Container area="title" minWidth={0}>
-            <Stack gap="xs">
-              <TraceHeaderComponents.StyledPlaceholder _width={300} _height={20} />
-              <TraceHeaderComponents.StyledPlaceholder _width={200} _height={18} />
-            </Stack>
+            <TraceHeaderComponents.StyledPlaceholder _width={300} _height={20} />
           </Container>
           <Container area="meta" justifySelf={{zero: 'start', xl: 'end'}}>
             <Flex align="center" gap="xl" wrap="wrap">
