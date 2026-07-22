@@ -1,641 +1,80 @@
-import {useLayoutEffect, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
+import {useState} from 'react';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
-import {mergeRefs} from '@react-aria/utils';
-import {Item} from '@react-stately/collections';
-import {useComboBoxState} from '@react-stately/combobox';
 import {useMutation} from '@tanstack/react-query';
 import type {MutationOptions} from '@tanstack/react-query';
 
-import {Button} from '@sentry/scraps/button';
-import {Input} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
-import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
-import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
 import {AskSeerSearchSkeleton} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchSkeleton';
-import {QueryTokens} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
-import type {
-  AskSeerSearchItems,
-  QueryTokensProps,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {
-  formatQueryToNaturalLanguage,
-  generateQueryTokensString,
-  isNoneOfTheseItem,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
-import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
-import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {IconClose, IconMegaphone, IconSearch, IconSync} from 'sentry/icons';
+import {BaseAskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/baseAskSeerComboBox';
+import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {formatQueryToNaturalLanguage} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useOverlay} from 'sentry/utils/useOverlay';
-import {useProjects} from 'sentry/utils/useProjects';
-// The menu size can change from things like loading states, long options,
-// or custom menus like a date picker. This hook ensures that the overlay
-// is updated in response to these changes.
-function useUpdateOverlayPositionOnContentChange({
-  contentRef,
-  updateOverlayPosition,
-  isOpen,
-}: {
-  contentRef: React.RefObject<HTMLDivElement | null>;
-  isOpen: boolean;
-  updateOverlayPosition: (() => void) | null;
-}) {
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
-  // Keep a ref to the updateOverlayPosition function so that we can
-  // access the latest value in the resize observer callback.
-  const updateOverlayPositionRef = useRef(updateOverlayPosition);
-  if (updateOverlayPositionRef.current !== updateOverlayPosition) {
-    updateOverlayPositionRef.current = updateOverlayPosition;
-  }
-
-  useLayoutEffect(() => {
-    resizeObserverRef.current = new ResizeObserver(() => {
-      if (!updateOverlayPositionRef.current) {
-        return;
-      }
-      updateOverlayPositionRef.current?.();
-    });
-
-    return () => {
-      resizeObserverRef.current?.disconnect();
-      resizeObserverRef.current = null;
-    };
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!contentRef.current || !resizeObserverRef.current || !isOpen) {
-      return () => {};
-    }
-
-    resizeObserverRef.current?.observe(contentRef.current);
-
-    return () => {
-      resizeObserverRef.current?.disconnect();
-    };
-  }, [contentRef, isOpen, updateOverlayPosition]);
+interface AskSeerMutationResult<T extends QueryTokensProps> {
+  queries: T[];
+  status: string;
+  unsupported_reason: string | null;
 }
 
-interface AskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
+export interface AskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
   AriaComboBoxProps<unknown>,
   'children'
 > {
   applySeerSearchQuery: (item: T) => void;
-  askSeerMutationOptions: MutationOptions<
-    {
-      queries: T[];
-      status: string;
-      unsupported_reason: string | null;
-    },
-    Error,
-    string
-  >;
+  askSeerMutationOptions: MutationOptions<AskSeerMutationResult<T>, Error, string>;
   initialQuery: string;
 }
 
 export function AskSeerComboBox<T extends QueryTokensProps>({
   initialQuery,
+  askSeerMutationOptions,
   ...props
 }: AskSeerComboBoxProps<T>) {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const listBoxRef = useRef<HTMLUListElement>(null);
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLInputElement>(null);
-  const isInitialRender = useRef(true);
-  const inputRef = useRef<HTMLInputElement>(null);
   const organization = useOrganization();
-  const hasAskSeerUxRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
-  const {projects} = useProjects();
-
+  const analyticsArea = useAnalyticsArea();
   const [searchQuery, setSearchQuery] = useState(() =>
     formatQueryToNaturalLanguage(initialQuery)
   );
 
-  const openForm = useFeedbackForm();
-
-  const {
-    setDisplayAskSeer,
-    setDisplayAskSeerFeedback,
-    askSeerNLQueryRef,
-    autoSubmitSeer,
-    setAutoSubmitFromCurrentQuery,
-    setAutoSubmitSeer,
-    enableAISearch,
-    skipNextSearchQueryBuilderAutoFocusRef,
-  } = useSearchQueryBuilderAI();
-
-  const analyticsArea = useAnalyticsArea();
-
-  const {
-    mutate: submitQuery,
-    data,
-    isPending,
-    isError,
-  } = useMutation({
-    ...props.askSeerMutationOptions,
+  const {mutate, data, isPending, isError} = useMutation({
+    ...askSeerMutationOptions,
     onError: (error, variables, onMutateResult, context) => {
-      props.askSeerMutationOptions.onError?.(error, variables, onMutateResult, context);
+      askSeerMutationOptions.onError?.(error, variables, onMutateResult, context);
       addErrorMessage(t('Seer failed to process your search. Please try again.'));
       trackAnalytics('ai_query.error', {
         organization,
         area: analyticsArea,
-        natural_language_query: searchQuery,
+        natural_language_query: variables,
         status_code: error instanceof RequestError ? error.status : undefined,
       });
     },
   });
 
-  const handleNoneOfTheseClick = () => {
-    if (openForm) {
-      openForm({
-        messagePlaceholder: t('Why were these queries incorrect?'),
-        tags: {
-          ['feedback.source']: `ai_query.${analyticsArea}`,
-          ['feedback.owner']: 'ml-ai',
-          ['feedback.natural_language_query']: searchQuery,
-          ['feedback.raw_result']: JSON.stringify(data?.queries).replace(/\n/g, ''),
-          ['feedback.num_queries_returned']: data?.queries?.length ?? 0,
-        },
-      });
-    } else {
-      addErrorMessage(t('Unable to open feedback form'));
-    }
-  };
-
-  const items = useMemo(() => {
-    if (data?.queries && data?.queries.length > 0) {
-      const results: Array<AskSeerSearchItems<T>> = data?.queries.map((query, index) => ({
-        ...query,
-        key: `${index}-${query.query}`,
-      }));
-
-      if (hasAskSeerUxRework) {
-        return results;
-      }
-
-      results.push({
-        key: 'none-of-these',
-        label: t('None of these'),
-      });
-
-      return results;
-    }
-
-    return [];
-  }, [data?.queries, hasAskSeerUxRework]);
-
-  const applySelectedQuery = (item: T) => {
-    askSeerNLQueryRef.current = searchQuery.trim();
-    skipNextSearchQueryBuilderAutoFocusRef.current = true;
-    inputRef.current?.blur();
-    props.applySeerSearchQuery(item);
-    setDisplayAskSeerFeedback(true);
-    setDisplayAskSeer(false);
-  };
-
-  const state = useComboBoxState({
-    ...props,
-    items,
-    defaultItems: [],
-    selectedKey: null,
-    allowsCustomValue: true,
-    allowsEmptyCollection: true,
-    shouldCloseOnBlur: false,
-    inputValue: searchQuery,
-    onInputChange: setSearchQuery,
-    defaultFilter: () => true,
-    onSelectionChange(key) {
-      if (typeof key !== 'string') {
-        return;
-      }
-
-      if (key === 'none-of-these') {
-        trackAnalytics('ai_query.rejected', {
-          organization,
-          area: analyticsArea,
-          natural_language_query: searchQuery,
-          num_queries_returned: data?.queries?.length ?? 0,
-        });
-        handleNoneOfTheseClick();
-        return;
-      }
-
-      const item = items.find(i => i.key === key);
-      if (!item || isNoneOfTheseItem(item)) {
-        addErrorMessage(t('Failed to find AI query to apply'));
-        return;
-      }
-
-      applySelectedQuery(item);
-      state.close();
-    },
-    children: item => {
-      if (isNoneOfTheseItem(item)) {
-        return (
-          <Item key={item.key} textValue={item.label} data-is-none-of-these>
-            <Text variant="muted">{item.label}</Text>
-          </Item>
-        );
-      }
-
-      const readableQuery = generateQueryTokensString(item, projects);
-
-      return (
-        <Item
-          key={item.key}
-          textValue={readableQuery}
-          aria-label={`Query parameters: ${readableQuery}`}
-        >
-          <QueryTokens
-            sort={item?.sort}
-            query={item?.query}
-            groupBys={item?.groupBys}
-            statsPeriod={item?.statsPeriod}
-            start={item?.start}
-            end={item?.end}
-            visualizations={item?.visualizations}
-            expandedProjectIds={item?.expandedProjectIds}
-            interval={item?.interval}
-            crossEvents={item?.crossEvents}
-          />
-        </Item>
-      );
-    },
-  });
-
-  const {inputProps, listBoxProps} = useSearchTokenCombobox(
-    {
-      ...props,
-      inputRef,
-      buttonRef,
-      listBoxRef,
-      popoverRef,
-      'aria-label': t('Ask Seer with Natural Language'),
-      onFocus: () => {
-        state.open();
-      },
-      onBlur: () => {
-        state.close();
-      },
-      onKeyDown: e => {
-        switch (e.key) {
-          case 'Escape':
-            if (!state.isOpen) {
-              trackAnalytics('ai_query.interface', {
-                organization,
-                area: analyticsArea,
-                action: 'closed',
-              });
-              setDisplayAskSeerFeedback(false);
-              setDisplayAskSeer(false);
-            }
-
-            state.close();
-            return;
-          case 'Enter':
-            if (state.isOpen && state.selectionManager.focusedKey === 'none-of-these') {
-              trackAnalytics('ai_query.rejected', {
-                organization,
-                area: analyticsArea,
-                natural_language_query: searchQuery,
-                num_queries_returned: data?.queries?.length ?? 0,
-              });
-              handleNoneOfTheseClick();
-              state.open();
-              return;
-            }
-
-            if (state.isOpen && state.selectionManager.focusedKey) {
-              const item = items.find(i => i.key === state.selectionManager.focusedKey);
-              if (!item || isNoneOfTheseItem(item)) {
-                addErrorMessage(t('Failed to find AI query to apply'));
-                return;
-              }
-
-              applySelectedQuery(item);
-              state.close();
-              return;
-            }
-
-            if (
-              state.isOpen &&
-              searchQuery.trim() !== null &&
-              searchQuery.trim() !== ''
-            ) {
-              trackAnalytics('ai_query.submitted', {
-                organization,
-                area: analyticsArea,
-                natural_language_query: searchQuery.trim(),
-              });
-              askSeerNLQueryRef.current = searchQuery.trim();
-              submitQuery(searchQuery.trim());
-              state.open();
-              return;
-            }
-
-            state.open();
-            return;
-          default:
-            return;
-        }
-      },
-    },
-    state
-  );
-
-  const {
-    overlayProps,
-    triggerProps,
-    update: updateOverlayPosition,
-  } = useOverlay({
-    type: 'listbox',
-    isOpen: state.isOpen,
-    position: 'bottom-start',
-    offset: 2,
-    shouldCloseOnBlur: true,
-    shouldApplyMinWidth: false,
-    isKeyboardDismissDisabled: true,
-    preventOverflowOptions: {boundary: document.body},
-    flipOptions: {
-      // We don't want the menu to ever flip to the other side of the input
-      fallbackPlacements: [],
-    },
-    shouldCloseOnInteractOutside: el => {
-      if (popoverRef.current?.contains(el) || containerRef.current?.contains(el)) {
-        return false;
-      }
-      return true;
-    },
-    onInteractOutside: () => {
-      state.close();
-    },
-  });
-
-  useUpdateOverlayPositionOnContentChange({
-    contentRef: popoverRef,
-    updateOverlayPosition,
-    isOpen: state.isOpen,
-  });
-
-  useLayoutEffect(() => {
-    if (!state.isOpen && inputRef.current && isInitialRender.current) {
-      isInitialRender.current = false;
-      inputRef.current?.focus();
-      state.open();
-    }
-  }, [state]);
-
-  useLayoutEffect(() => {
-    if (!autoSubmitSeer) {
-      return;
-    }
-
-    if (!searchQuery.trim()) {
-      setAutoSubmitFromCurrentQuery(false);
-      setAutoSubmitSeer(false);
-      return;
-    }
-
-    trackAnalytics('ai_query.submitted', {
-      organization,
-      area: analyticsArea,
-      natural_language_query: searchQuery.trim(),
-    });
-    submitQuery(searchQuery.trim());
-    setAutoSubmitFromCurrentQuery(false);
-    setAutoSubmitSeer(false);
-  }, [
-    analyticsArea,
-    autoSubmitSeer,
-    organization,
-    searchQuery,
-    setAutoSubmitFromCurrentQuery,
-    setAutoSubmitSeer,
-    submitQuery,
-  ]);
-
-  const onMouseLeave = () => {
-    state.selectionManager.setFocusedKey(null);
-  };
-
-  if (!enableAISearch) {
-    return null;
-  }
-
-  const hasResults = (data?.queries?.length ?? 0) > 0;
-  const isDisplayingResults = !isPending && !isError && hasResults;
-
   return (
-    <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
-      <PositionedSearchIconContainer>
-        <SearchIcon size="sm" />
-      </PositionedSearchIconContainer>
-      <InputWrapper>
-        <InvisibleInput
-          {...inputProps}
-          autoComplete="off"
-          onClick={() => state.open()}
-          placeholder={t('Ask Seer with Natural Language')}
-          ref={mergeRefs(inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
-        />
-      </InputWrapper>
-      <ButtonsWrapper>
-        <Button
-          size="xs"
-          icon={<IconClose />}
-          onFocus={() => !state.isOpen && state.open()}
-          onClick={() => {
-            trackAnalytics('ai_query.interface', {
-              organization,
-              area: analyticsArea,
-              action: 'closed',
-            });
-            setDisplayAskSeerFeedback(false);
-            setDisplayAskSeer(false);
-          }}
-          aria-label={t('Close Seer Search')}
-          variant="transparent"
-        />
-      </ButtonsWrapper>
-      {state.isOpen ? (
-        <AskSeerSearchPopover
-          isNonModal
-          state={state}
-          triggerRef={inputRef}
-          popoverRef={popoverRef}
-          containerRef={containerRef}
-          overlayProps={overlayProps}
-        >
-          {isPending ? (
-            <Stack flex="1">
-              <AskSeerSearchHeader title={t('Let me think about that...')} loading />
-              <AskSeerSearchSkeleton />
-            </Stack>
-          ) : isError ? (
-            <Stack flex="1">
-              <AskSeerSearchHeader
-                title={t('An error occurred while fetching Seer queries')}
-              />
-            </Stack>
-          ) : data?.queries && (data?.queries?.length ?? 0) > 0 ? (
-            <Stack flex="1" onMouseLeave={onMouseLeave}>
-              {hasAskSeerUxRework ? null : (
-                <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
-              )}
-              <AskSeerSearchListBox
-                {...listBoxProps}
-                hasAskSeerUxRework={hasAskSeerUxRework}
-                listBoxRef={listBoxRef}
-                state={state}
-              />
-            </Stack>
-          ) : data?.unsupported_reason ? (
-            <Stack flex="1">
-              <AskSeerSearchHeader
-                title={data?.unsupported_reason || 'This query is not supported'}
-              />
-            </Stack>
-          ) : (
-            <Stack flex="1" onMouseLeave={onMouseLeave}>
-              <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
-            </Stack>
-          )}
-          {(hasAskSeerUxRework ? isDisplayingResults : openForm) ? (
-            <Flex
-              justify={hasAskSeerUxRework ? 'between' : 'end'}
-              borderTop="primary"
-              paddingTop="sm"
-              paddingBottom="sm"
-              paddingLeft="md"
-              paddingRight="md"
-              background={hasAskSeerUxRework ? 'secondary' : 'primary'}
-              onMouseDown={e => e.preventDefault()}
-            >
-              {hasAskSeerUxRework ? (
-                <Button
-                  icon={<IconSync />}
-                  size="zero"
-                  onClick={() => {
-                    const query = searchQuery.trim() || askSeerNLQueryRef.current?.trim();
-                    if (!query) {
-                      return;
-                    }
-
-                    trackAnalytics('ai_query.regenerated', {
-                      organization,
-                      area: analyticsArea,
-                      natural_language_query: query,
-                    });
-                    submitQuery(query);
-                  }}
-                >
-                  {t('Generate again')}
-                </Button>
-              ) : null}
-              {openForm ? (
-                <Button
-                  size={hasAskSeerUxRework ? 'zero' : 'xs'}
-                  icon={<IconMegaphone />}
-                  onClick={() =>
-                    openForm({
-                      messagePlaceholder: t(
-                        'How can we make Seer search better for you?'
-                      ),
-                      tags: {
-                        ['feedback.source']: `ai_query.${analyticsArea}`,
-                        ['feedback.owner']: 'ml-ai',
-                      },
-                    })
-                  }
-                >
-                  {t('Give Feedback')}
-                </Button>
-              ) : null}
-            </Flex>
-          ) : null}
-        </AskSeerSearchPopover>
-      ) : null}
-    </Wrapper>
+    <BaseAskSeerComboBox
+      {...props}
+      searchQuery={searchQuery}
+      onSearchQueryChange={setSearchQuery}
+      queries={data?.queries ?? []}
+      unsupportedReason={data?.unsupported_reason}
+      submitQuery={mutate}
+      isPending={isPending}
+      isError={isError}
+      loadingContent={
+        <Stack flex="1">
+          <AskSeerSearchHeader title={t('Let me think about that...')} loading />
+          <AskSeerSearchSkeleton />
+        </Stack>
+      }
+      errorTitle={t('An error occurred while fetching Seer queries')}
+      emptyTitle={t("Describe what you're looking for.")}
+    />
   );
 }
-
-const Wrapper = styled(Input.withComponent('div'))<{isDropdownOpen: boolean}>`
-  min-height: ${p => p.theme.form.md.minHeight};
-  padding: 0;
-  height: auto;
-  width: 100%;
-  position: relative;
-  font-size: ${p => p.theme.font.size.md};
-  cursor: text;
-
-  border-bottom-left-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.radius.md)};
-  border-bottom-right-radius: ${p => (p.isDropdownOpen ? '0' : p.theme.radius.md)};
-`;
-
-const PositionedSearchIconContainer = styled('div')`
-  position: absolute;
-  left: ${p => p.theme.space.lg};
-  top: ${p => p.theme.space.sm};
-`;
-
-const SearchIcon = styled(IconSearch)`
-  color: ${p => p.theme.tokens.content.secondary};
-  height: 22px;
-`;
-
-const InputWrapper = styled('div')`
-  position: relative;
-  width: 100%;
-  height: 100%;
-`;
-
-const InvisibleInput = styled('input')`
-  position: absolute;
-  inset: 0;
-  resize: none;
-  outline: none;
-  border: 0;
-  width: 100%;
-  height: ${p => p.theme.form.md.height};
-  line-height: 25px;
-  margin-bottom: -1px;
-  background: transparent;
-
-  padding-top: calc(${p => p.theme.space.xs} + 1px);
-  padding-bottom: calc(${p => p.theme.space.xs} + 1px);
-  padding-left: calc(${p => p.theme.space['3xl']} + ${p => p.theme.space.xs});
-  padding-right: calc(${p => p.theme.space['3xl']} + ${p => p.theme.space.xs});
-
-  &::selection {
-    background: rgba(0, 0, 0, 0.2);
-  }
-
-  &:not(:focus) {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  [disabled] {
-    color: ${p => p.theme.tokens.content.disabled};
-  }
-`;
-
-const ButtonsWrapper = styled('div')`
-  position: absolute;
-  right: 9px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;
