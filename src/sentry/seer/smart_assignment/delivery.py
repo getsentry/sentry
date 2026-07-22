@@ -134,9 +134,6 @@ def _validate_resolve_verdict(
                 else None
             )
             resolved.append(users[0].id if member is not None else None)
-            continue
-
-        resolved.append(None)
 
     return resolved
 
