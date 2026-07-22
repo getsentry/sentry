@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import campingImg from 'sentry-images/spot/onboarding-preview.svg';
 
+import {Flex, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -20,9 +21,23 @@ export function NoIssuesMatched() {
   const onErrorsAndOutagesView = location.pathname.endsWith('/issues/errors-outages/');
 
   return (
-    <Wrapper data-test-id="empty-state" className="empty-state">
+    <Flex
+      data-test-id="empty-state"
+      className="empty-state"
+      direction={{zero: 'column', sm: 'row'}}
+      align={{zero: 'center', sm: 'stretch'}}
+      gap={{zero: '0', sm: 'xl'}}
+      justify="center"
+      padding="2xl"
+      minHeight="260px"
+      style={{
+        fontSize: '16px',
+        borderRadius: '0 0 3px 3px',
+        textAlign: 'center',
+      }}
+    >
       <img src={campingImg} alt="Camping spot illustration" height={200} />
-      <MessageContainer>
+      <Container maxWidth="480px" alignSelf="center">
         <h3>{t('No issues match your search')}</h3>
         <div>{t('If this is unexpected, check out these tips:')}</div>
         <Tips>
@@ -84,36 +99,10 @@ export function NoIssuesMatched() {
             </li>
           )}
         </Tips>
-      </MessageContainer>
-    </Wrapper>
+      </Container>
+    </Flex>
   );
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  justify-content: center;
-  font-size: ${p => p.theme.font.size.lg};
-  border-radius: 0 0 3px 3px;
-  padding: 40px ${p => p.theme.space['2xl']};
-  min-height: 260px;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex-direction: column;
-    align-items: center;
-    padding: ${p => p.theme.space['2xl']};
-    text-align: center;
-  }
-`;
-
-const MessageContainer = styled('div')`
-  align-self: center;
-  max-width: 480px;
-  margin-left: 40px;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    margin: 0;
-  }
-`;
 
 const Tips = styled('ul')`
   text-align: left;

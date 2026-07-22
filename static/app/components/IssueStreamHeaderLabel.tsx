@@ -1,50 +1,46 @@
 /* eslint-disable unicorn/filename-case */
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import {css, useTheme} from '@emotion/react';
 
-export const IssueStreamHeaderLabel = styled('div')<{
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
+
+type Props = ContainerProps & {
   align?: 'left' | 'right';
-  breakpoint?: string;
   hideDivider?: boolean;
-}>`
-  position: relative;
-  display: inline-block;
-  margin-right: ${p => p.theme.space.xl};
-  font-size: 13px;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  color: ${p => p.theme.tokens.content.secondary};
-  white-space: nowrap;
+};
 
-  ${p =>
-    p.align === 'right'
-      ? css`
-          padding-right: ${p.theme.space.xl};
-          text-align: right;
+export function IssueStreamHeaderLabel({align, hideDivider, style, ...props}: Props) {
+  const theme = useTheme();
+
+  return (
+    <Container
+      {...props}
+      style={{
+        position: 'relative',
+        display: props.display === undefined ? 'inline-block' : undefined,
+        marginRight: theme.space.xl,
+        fontSize: '13px',
+        fontWeight: theme.font.weight.sans.medium,
+        color: theme.tokens.content.secondary,
+        whiteSpace: 'nowrap',
+        paddingRight: align === 'right' ? theme.space.xl : undefined,
+        textAlign: align === 'right' ? 'right' : 'left',
+        ...style,
+      }}
+      css={
+        !hideDivider &&
+        css`
+          &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -${theme.space.xl};
+            width: 1px;
+            height: 100%;
+
+            background-color: ${theme.colors.gray200};
+          }
         `
-      : css`
-          text-align: left;
-        `}
-
-  ${p =>
-    !p.hideDivider &&
-    css`
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -${p.theme.space.xl};
-        width: 1px;
-        height: 100%;
-
-        background-color: ${p.theme.colors.gray200};
       }
-    `}
-
-  ${p =>
-    p.breakpoint &&
-    css`
-      @container (width < ${p.breakpoint}) {
-        display: none;
-      }
-    `}
-`;
+    />
+  );
+}

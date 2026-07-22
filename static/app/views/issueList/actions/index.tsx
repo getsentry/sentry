@@ -6,7 +6,12 @@ import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-m
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex} from '@sentry/scraps/layout';
+import {
+  Flex,
+  Grid,
+  useHasContainerQuery,
+  useResponsivePropValue,
+} from '@sentry/scraps/layout';
 
 import {bulkDelete, mergeGroups} from 'sentry/actionCreators/group';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -64,7 +69,6 @@ const animationProps: MotionNodeAnimationOptions = {
 
 function ActionsBarPriority({
   anySelected,
-  narrowViewport,
   displayReprocessingActions,
   pageSelected,
   queryCount,
@@ -80,6 +84,7 @@ function ActionsBarPriority({
   onSelectStatsPeriod,
   statsPeriod,
   selection,
+  isSavedSearchesOpen,
   withColumns,
 }: {
   allInQuerySelected: boolean;
@@ -88,8 +93,8 @@ function ActionsBarPriority({
   handleDelete: () => void;
   handleMerge: () => void;
   handleUpdate: (data: IssueUpdateData) => void;
+  isSavedSearchesOpen: boolean;
   multiSelected: boolean;
-  narrowViewport: boolean;
   onSelectStatsPeriod: (period: string) => void;
   pageSelected: boolean;
   query: string;
@@ -101,6 +106,19 @@ function ActionsBarPriority({
   toggleSelectAllVisible: () => void;
   withColumns?: GroupListColumn[];
 }) {
+  const theme = useTheme();
+  const hasContainerQuery = useHasContainerQuery();
+  const disableActionsInContainer = useResponsivePropValue({
+    zero: true,
+    '3xl': isSavedSearchesOpen,
+    '5xl': false,
+  }) as boolean;
+  const disableActionsInViewport = useMedia(
+    `(width < ${isSavedSearchesOpen ? theme.container['5xl'] : theme.container['3xl']})`
+  );
+  const narrowViewport = hasContainerQuery
+    ? disableActionsInContainer
+    : disableActionsInViewport;
   const shouldDisplayActions = anySelected && !narrowViewport;
 
   return (
@@ -116,7 +134,14 @@ function ActionsBarPriority({
       {!displayReprocessingActions && (
         <AnimatePresence initial={false} mode="wait">
           {shouldDisplayActions ? (
-            <HeaderButtonsWrapper key="actions" {...animationProps}>
+            <HeaderButtonsWrapper
+              key="actions"
+              width={{zero: 'auto', '4xl': '50%'}}
+              gap="xs"
+              flow="column"
+              justify="start"
+              {...animationProps}
+            >
               <ActionSet
                 queryCount={queryCount}
                 query={query}
@@ -188,12 +213,6 @@ export function IssueListActions({
     false
   );
   const area = useAnalyticsArea();
-  const theme = useTheme();
-
-  const disableActions = useMedia(
-    `(width < ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
-  );
-
   const numIssues = selectedIdsSet.size;
 
   function actionSelectedGroups(callback: (itemIds: string[] | undefined) => void) {
@@ -295,7 +314,7 @@ export function IssueListActions({
         handleUpdate={handleUpdate}
         toggleSelectAllVisible={toggleSelectAllVisible}
         multiSelected={multiSelected}
-        narrowViewport={disableActions}
+        isSavedSearchesOpen={isSavedSearchesOpen}
         selectedProjectSlug={selectedProjectSlug}
         anySelected={anySelected}
         onSelectStatsPeriod={onSelectStatsPeriod}
@@ -394,15 +413,10 @@ const ActionsBarContainer = styled('div')`
   border-radius: 6px 6px 0 0;
 `;
 
-const HeaderButtonsWrapper = styled(motion.div)`
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    width: 50%;
-  }
+const MotionGrid = motion.create(Grid);
+
+const HeaderButtonsWrapper = styled(MotionGrid)`
   grid-column: 2 / -1;
-  display: grid;
-  gap: ${p => p.theme.space.xs};
-  grid-auto-flow: column;
-  justify-content: flex-start;
   white-space: nowrap;
 `;
 

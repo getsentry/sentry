@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
@@ -72,7 +72,13 @@ export function SupergroupRow({supergroup, aggregatedStats}: SupergroupRowProps)
         </MetaRow>
       </Summary>
 
-      <LastSeenColumn>
+      <Container
+        display={{zero: 'none', [COLUMN_BREAKPOINTS.LAST_SEEN]: 'flex'}}
+        width="86px"
+        paddingRight="xl"
+        marginRight="xl"
+        style={{alignItems: 'center', justifyContent: 'flex-end'}}
+      >
         {aggregatedStats?.lastSeen ? (
           <TimeSince
             date={aggregatedStats.lastSeen}
@@ -82,17 +88,28 @@ export function SupergroupRow({supergroup, aggregatedStats}: SupergroupRowProps)
         ) : (
           <Placeholder height="18px" width="70px" />
         )}
-      </LastSeenColumn>
+      </Container>
 
-      <FirstSeenColumn>
+      <Container
+        display={{zero: 'none', [COLUMN_BREAKPOINTS.FIRST_SEEN]: 'flex'}}
+        width="50px"
+        paddingRight="xl"
+        marginRight="xl"
+        style={{alignItems: 'center', justifyContent: 'flex-end'}}
+      >
         {aggregatedStats?.firstSeen ? (
           <TimeSince date={aggregatedStats.firstSeen} unitStyle="short" suffix="" />
         ) : (
           <Placeholder height="18px" width="30px" />
         )}
-      </FirstSeenColumn>
+      </Container>
 
-      <ChartColumn>
+      <Container
+        display={{zero: 'none', [COLUMN_BREAKPOINTS.TREND]: 'block'}}
+        width="175px"
+        alignSelf="center"
+        marginRight="xl"
+      >
         {aggregatedStats?.mergedStats && aggregatedStats.mergedStats.length > 0 ? (
           <GroupStatusChart
             hideZeros
@@ -108,9 +125,16 @@ export function SupergroupRow({supergroup, aggregatedStats}: SupergroupRowProps)
         ) : (
           <Placeholder height="36px" />
         )}
-      </ChartColumn>
+      </Container>
 
-      <EventsColumn>
+      <Container
+        display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'flex'}}
+        alignSelf="center"
+        paddingRight="xl"
+        marginRight="xl"
+        width="60px"
+        style={{alignItems: 'center', justifyContent: 'flex-end'}}
+      >
         {aggregatedStats ? (
           <Stack position="relative">
             <PrimaryCount
@@ -123,9 +147,16 @@ export function SupergroupRow({supergroup, aggregatedStats}: SupergroupRowProps)
         ) : (
           <Placeholder height="18px" width="40px" />
         )}
-      </EventsColumn>
+      </Container>
 
-      <UsersColumn>
+      <Container
+        display={{zero: 'none', [COLUMN_BREAKPOINTS.USERS]: 'flex'}}
+        alignSelf="center"
+        paddingRight="xl"
+        marginRight="xl"
+        width="60px"
+        style={{alignItems: 'center', justifyContent: 'flex-end'}}
+      >
         {aggregatedStats ? (
           <Stack position="relative">
             <PrimaryCount
@@ -138,10 +169,20 @@ export function SupergroupRow({supergroup, aggregatedStats}: SupergroupRowProps)
         ) : (
           <Placeholder height="18px" width="40px" />
         )}
-      </UsersColumn>
+      </Container>
 
-      <PrioritySpacer />
-      <AssigneeSpacer />
+      <Container
+        display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'block'}}
+        width="64px"
+        paddingRight="xl"
+        marginRight="xl"
+      />
+      <Container
+        display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'block'}}
+        width="66px"
+        paddingRight="xl"
+        marginRight="xl"
+      />
     </Wrapper>
   );
 }
@@ -204,65 +245,6 @@ const Dot = styled('div')`
   flex-shrink: 0;
 `;
 
-const LastSeenColumn = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 86px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-
-  @container (width < ${COLUMN_BREAKPOINTS.LAST_SEEN}) {
-    display: none;
-  }
-`;
-
-const FirstSeenColumn = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 50px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-
-  @container (width < ${COLUMN_BREAKPOINTS.FIRST_SEEN}) {
-    display: none;
-  }
-`;
-
-const ChartColumn = styled('div')`
-  width: 175px;
-  align-self: center;
-  margin-right: ${p => p.theme.space.xl};
-
-  @container (width < ${COLUMN_BREAKPOINTS.TREND}) {
-    display: none;
-  }
-`;
-
-const DataColumn = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  text-align: right;
-  align-items: center;
-  align-self: center;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-  width: 60px;
-`;
-
-const EventsColumn = styled(DataColumn)`
-  @container (width < ${COLUMN_BREAKPOINTS.EVENTS}) {
-    display: none;
-  }
-`;
-
-const UsersColumn = styled(DataColumn)`
-  @container (width < ${COLUMN_BREAKPOINTS.USERS}) {
-    display: none;
-  }
-`;
-
 const PrimaryCount = styled(Count)`
   font-size: ${p => p.theme.font.size.md};
   display: flex;
@@ -277,25 +259,4 @@ const SecondaryCount = styled(Count)`
   justify-content: flex-end;
   color: ${p => p.theme.tokens.content.secondary};
   font-variant-numeric: tabular-nums;
-`;
-
-// Empty spacers to match StreamGroup column widths and keep alignment
-const PrioritySpacer = styled('div')`
-  width: 64px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-
-  @container (width < ${COLUMN_BREAKPOINTS.PRIORITY}) {
-    display: none;
-  }
-`;
-
-const AssigneeSpacer = styled('div')`
-  width: 66px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-
-  @container (width < ${COLUMN_BREAKPOINTS.ASSIGNEE}) {
-    display: none;
-  }
 `;
