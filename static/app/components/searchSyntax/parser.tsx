@@ -153,6 +153,13 @@ export const wildcardOperators = [
 
 export type WildcardOperator = (typeof wildcardOperators)[number];
 
+export const negationOperators = [
+  TermOperator.NOT_EQUAL,
+  TermOperator.DOES_NOT_CONTAIN,
+  TermOperator.DOES_NOT_START_WITH,
+  TermOperator.DOES_NOT_END_WITH,
+] as const;
+
 /**
  * Map of certain filter types to other filter types with applicable operators
  * e.g. SpecificDate can use the operators from Date to become a Date filter.

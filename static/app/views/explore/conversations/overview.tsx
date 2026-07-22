@@ -83,6 +83,9 @@ function ConversationsOverviewPage() {
         unsetCursor();
       },
       searchSource: 'conversations',
+      // The conversations API cannot express negation given how it fetches
+      // conversations, so hide negation operators from the search suggestions.
+      disallowNegation: true,
       replaceRawSearchKeys: ['gen_ai.conversation.id', 'gen_ai.input.messages'],
       matchKeySuggestions: [
         {key: 'gen_ai.conversation.id', valuePattern: /^[0-9a-fA-F]{8,32}$/},
