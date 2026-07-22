@@ -73,14 +73,18 @@ def get_metric_metadata(
         stats_period: Time window, e.g. "7d". Defaults to 7d.
         limit: Maximum number of distinct tuples to return. Defaults to
             DEFAULT_LIMIT; the metrics endpoint enforces its own upper bound.
-        include_context: When True, request per-metric context (brief, notes) from
-            the endpoint via expand=context and attach it to each candidate.
+        include_context: When True, request per-metric context from the endpoint
+            via expand=context and attach it to each candidate. Context is
+            `{"brief": str, "details": list[str]}` — the same shape the attributes
+            tool (get_attribute_names) returns — or None when the metric has none.
         context_only: Forwarded to the metrics endpoint as `context_only` to
             restrict results to metrics that have authored context.
 
     Returns:
         {
-            "candidates": [{"name", "type", "unit", "count", "context"}, ...],
+            "candidates": [
+                {"name", "type", "unit", "count", "context"}, ...
+            ],  # context: {"brief": str, "details": list[str]} | None
             "has_more": bool,
             "error": str,  # present only on handler-side failure (e.g.
                            # "organization_not_found", "metrics_query_failed").
