@@ -81,6 +81,14 @@ type DeleteTokensAction = {
   focusOverride?: FocusOverride;
 };
 
+type DeleteToCursorAction = {
+  cursorPosition: number;
+  direction: 'before' | 'after';
+  inputValue: string;
+  token: ParseResultToken;
+  type: 'DELETE_TO_CURSOR';
+};
+
 type UpdateFreeTextActionOnSelect = {
   shouldCommitQuery: boolean;
   text: string;
@@ -236,6 +244,7 @@ export type QueryBuilderActions =
   | ResetFocusOverrideAction
   | DeleteTokenAction
   | DeleteTokensAction
+  | DeleteToCursorAction
   | UpdateFreeTextActionOnSelect
   | UpdateFreeTextActionOnBlur
   | UpdateFreeTextActionOnCommit
@@ -283,6 +292,39 @@ function deleteQueryTokens(
     ...state,
     query: removeQueryTokensFromQuery(state.query, action.tokens),
     focusOverride: action.focusOverride ?? null,
+  };
+}
+
+function deleteToCursor(
+  state: QueryBuilderState,
+  action: DeleteToCursorAction,
+  parseQuery: (query: string) => ParseResult | null
+): QueryBuilderState {
+  const {token, cursorPosition, inputValue, direction} = action;
+  const deleteBefore = direction === 'before';
+
+  const newQuery = deleteBefore
+    ? removeExcessWhitespaceFromParts(
+        inputValue.slice(cursorPosition),
+        state.query.substring(token.location.end.offset)
+      )
+    : removeExcessWhitespaceFromParts(
+        state.query.substring(0, token.location.start.offset),
+        inputValue.slice(0, cursorPosition)
+      );
+
+  const newParsedQuery = parseQuery(newQuery);
+  const focusedToken = deleteBefore
+    ? newParsedQuery?.find(t => t.type === Token.FREE_TEXT)
+    : newParsedQuery?.findLast(t => t.type === Token.FREE_TEXT);
+
+  return {
+    ...state,
+    query: newQuery,
+    committedQuery: newQuery,
+    focusOverride: focusedToken
+      ? {itemKey: makeTokenKey(focusedToken, newParsedQuery)}
+      : {itemKey: `${Token.FREE_TEXT}:0`},
   };
 }
 
@@ -1146,6 +1188,12 @@ export function useQueryBuilderState({
         case 'DELETE_TOKENS': {
           return {
             ...deleteQueryTokens(state, action),
+            clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
+          };
+        }
+        case 'DELETE_TO_CURSOR': {
+          return {
+            ...deleteToCursor(state, action, parseQuery),
             clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
           };
         }

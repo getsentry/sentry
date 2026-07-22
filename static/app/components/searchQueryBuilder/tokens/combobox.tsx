@@ -42,7 +42,7 @@ import {
   findItemInSections,
   itemIsSection,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
-import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -382,6 +382,7 @@ export function SearchQueryBuilderCombobox<
   children,
   description,
   items,
+  token,
   inputValue,
   filterValue = inputValue,
   placeholder,
@@ -412,7 +413,7 @@ export function SearchQueryBuilderCombobox<
   ['data-test-id']: dataTestId,
   ref,
 }: SearchQueryBuilderComboboxProps<T>) {
-  const {clearSearchQuery} = useSearchQueryBuilderState();
+  const {clearSearchQuery, dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
   const {portalTarget, wrapperRef} = useSearchQueryBuilderLayout();
   const {enableAISearch} = useSearchQueryBuilderAI();
@@ -664,12 +665,28 @@ export function SearchQueryBuilderCombobox<
         disabled={disabled}
         onKeyDownCapture={e => {
           if (isCtrlKeyPressed(e) && (e.key === 'Backspace' || e.key === 'Delete')) {
-            e.preventDefault();
-            e.stopPropagation();
-            onSearchQueryClear?.();
-            state.close();
-            clearSearchQuery({reopenDropdown: true});
-            return;
+            if (token.type === Token.FREE_TEXT) {
+              e.preventDefault();
+              e.stopPropagation();
+              state.close();
+              dispatch({
+                type: 'DELETE_TO_CURSOR',
+                token,
+                cursorPosition: e.currentTarget.selectionStart ?? 0,
+                inputValue,
+                direction: e.key === 'Backspace' ? 'before' : 'after',
+              });
+              return;
+            }
+
+            if (!inputValue) {
+              e.preventDefault();
+              e.stopPropagation();
+              onSearchQueryClear?.();
+              state.close();
+              clearSearchQuery({reopenDropdown: true});
+              return;
+            }
           }
 
           onKeyDownCapture?.(e, {state});

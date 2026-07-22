@@ -583,24 +583,57 @@ describe('SearchQueryBuilder', () => {
       }
     );
 
-    it('clears uncommitted free text repeatedly with Cmd+Delete', async () => {
-      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+    it('deletes everything before the cursor with Ctrl+Backspace, keeping what is after', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
 
-      const input = screen.getByRole('combobox', {name: 'Add a search term'});
+      await userEvent.type(getLastInput(), 'abcdef');
+      await userEvent.keyboard('{ArrowLeft}{ArrowLeft}{ArrowLeft}');
+      await userEvent.keyboard('{Control>}{Backspace}{/Control}');
 
-      await userEvent.type(input, 'first');
+      await waitFor(() => {
+        expect(getLastInput()).toHaveValue('def');
+      });
+      expect(
+        screen.queryByRole('row', {name: 'browser.name:firefox'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('deletes everything after the cursor with Ctrl+Delete, keeping what is before', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      await userEvent.type(getLastInput(), 'abcdef');
+      await userEvent.keyboard('{ArrowLeft}{ArrowLeft}{ArrowLeft}');
       await userEvent.keyboard('{Control>}{Delete}{/Control}');
 
       await waitFor(() => {
-        expect(input).toHaveValue('');
+        expect(getLastInput()).toHaveValue('abc');
       });
+      expect(screen.getByRole('row', {name: 'browser.name:firefox'})).toBeInTheDocument();
+    });
 
-      await userEvent.type(input, 'second');
-      await userEvent.keyboard('{Control>}{Delete}{/Control}');
+    it('clears the query with Ctrl+Backspace from an empty trailing input', async () => {
+      const mockOnSearch = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          onSearch={mockOnSearch}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}{Backspace}{/Control}');
 
       await waitFor(() => {
-        expect(input).toHaveValue('');
+        expect(
+          screen.queryByRole('row', {name: 'browser.name:firefox'})
+        ).not.toBeInTheDocument();
       });
+      expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
     });
 
     it('is hidden at small sizes', async () => {
