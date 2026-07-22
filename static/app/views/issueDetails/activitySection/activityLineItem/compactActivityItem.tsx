@@ -16,6 +16,7 @@ import type {PullRequest} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
+import {getAutofixTriggerActivityCopy} from 'sentry/views/issueDetails/activitySection/autofixTriggerActivity';
 
 import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
@@ -507,7 +508,7 @@ export function getCompactGroupActivityItem({
     }
     case GroupActivityType.TRIGGER_AUTOFIX:
       return {
-        title: t('Autofix triggered'),
+        title: getAutofixTriggerActivityCopy(activity.data.referrer).compactTitle,
       };
   }
 

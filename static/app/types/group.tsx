@@ -825,7 +825,9 @@ interface GroupActivityPullRequestUnlinked extends GroupActivityBase {
 }
 
 interface GroupActivityTriggerAutofix extends GroupActivityBase {
-  data: Record<string, unknown>;
+  data: {
+    referrer?: string;
+  };
   type: GroupActivityType.TRIGGER_AUTOFIX;
 }
 

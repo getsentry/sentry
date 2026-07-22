@@ -30,6 +30,7 @@ import {
   getAssignmentIntegrationName,
   isAutoAssignmentIntegration,
 } from 'sentry/views/issueDetails/activitySection/assignmentIntegration';
+import {getAutofixTriggerActivityCopy} from 'sentry/views/issueDetails/activitySection/autofixTriggerActivity';
 
 function getAuthorName(item: GroupActivity) {
   if (item.sentry_app) {
@@ -882,7 +883,7 @@ export function getGroupActivityItem(
       case GroupActivityType.TRIGGER_AUTOFIX:
         return {
           title: t('Autofix'),
-          message: t('Autofix was triggered'),
+          message: getAutofixTriggerActivityCopy(activity.data.referrer).legacyMessage,
         };
       default:
         Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {
