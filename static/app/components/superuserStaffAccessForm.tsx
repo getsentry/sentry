@@ -16,6 +16,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Authenticator} from 'sentry/types/auth';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
 interface WebAuthnParams {
@@ -34,16 +35,31 @@ type AuthPayload = {
   superuserReason?: string;
 };
 
-type State = {
-  errorType: string;
-  showAccessForms: boolean;
-  superuserAccessCategory: string;
-  superuserReason: string;
-};
-
 type Props = {
   hasStaff: boolean;
 };
+
+function getErrorType(err: RequestError): ErrorCodes {
+  const code =
+    typeof err.responseJSON?.detail === 'object'
+      ? err.responseJSON.detail.code
+      : undefined;
+
+  switch (err.status) {
+    case 403:
+      return code === 'no_u2f'
+        ? ErrorCodes.NO_AUTHENTICATOR
+        : ErrorCodes.INVALID_PASSWORD;
+    case 401:
+      return ErrorCodes.INVALID_SSO_SESSION;
+    case 400:
+      return code === 'missing_password_or_u2f'
+        ? ErrorCodes.MISSING_PASSWORD_OR_U2F
+        : ErrorCodes.INVALID_ACCESS_CATEGORY;
+    default:
+      return ErrorCodes.UNKNOWN_ERROR;
+  }
+}
 
 function SuperuserStaffAccessForm({hasStaff}: Props) {
   const api = useApi();
@@ -53,7 +69,7 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
   // submit immediately (see the auto-submit effect below).
   const skipAuthenticators = hasStaff && disableU2FForSUForm;
 
-  const [state, setState] = useState<State>({
+  const [state, setState] = useState({
     errorType: '',
     showAccessForms: true,
     superuserAccessCategory: '',
@@ -82,35 +98,18 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
     window.location.reload();
   }, []);
 
-  const handleError = useCallback((err: any) => {
-    let newErrorType = '';
-
-    if (err.status === 403) {
-      if (err.responseJSON.detail.code === 'no_u2f') {
-        newErrorType = ErrorCodes.NO_AUTHENTICATOR;
-      } else {
-        newErrorType = ErrorCodes.INVALID_PASSWORD;
-      }
-    } else if (err.status === 401) {
-      newErrorType = ErrorCodes.INVALID_SSO_SESSION;
-    } else if (err.status === 400) {
-      if (err.responseJSON.detail.code === 'missing_password_or_u2f') {
-        newErrorType = ErrorCodes.MISSING_PASSWORD_OR_U2F;
-      } else {
-        newErrorType = ErrorCodes.INVALID_ACCESS_CATEGORY;
-      }
-    } else if (err === ErrorCodes.NO_AUTHENTICATOR) {
-      newErrorType = ErrorCodes.NO_AUTHENTICATOR;
-    } else {
-      newErrorType = ErrorCodes.UNKNOWN_ERROR;
-    }
-
-    setState(prevState => ({
-      ...prevState,
-      errorType: newErrorType,
-      showAccessForms: true,
-    }));
+  const setError = useCallback((code: ErrorCodes) => {
+    setState(prevState => ({...prevState, errorType: code, showAccessForms: true}));
   }, []);
+
+  const handleError = useCallback(
+    (err: unknown) => {
+      setError(
+        err instanceof RequestError ? getErrorType(err) : ErrorCodes.UNKNOWN_ERROR
+      );
+    },
+    [setError]
+  );
 
   const handleLogout = useCallback(() => {
     const {superuserUrl} = window.__initialData.links;
@@ -128,7 +127,7 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
   const submitAuth = useCallback(
     async (superuserAccessCategory: string, superuserReason: string) => {
       if (!authenticators.length && !disableU2FForSUForm) {
-        handleError(ErrorCodes.NO_AUTHENTICATOR);
+        setError(ErrorCodes.NO_AUTHENTICATOR);
         return;
       }
 
@@ -159,6 +158,7 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
       disableU2FForSUForm,
       state.showAccessForms,
       authenticate,
+      setError,
       handleError,
       handleSuccess,
     ]
@@ -203,16 +203,15 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
       // requires migrating both consumers — this form and sudoModal.tsx).
       const formEl = document.getElementById(formApi.formId);
       const formData = formEl instanceof HTMLFormElement ? new FormData(formEl) : null;
-      const domCategory = formData?.get('superuserAccessCategory');
-      const domReason = formData?.get('superuserReason');
+      const readField = (name: string) => {
+        const value = formData?.get(name);
+        return typeof value === 'string' ? value : '';
+      };
 
-      const suAccessCategory =
-        state.superuserAccessCategory ||
-        (typeof domCategory === 'string' ? domCategory : '');
-      const suReason =
-        state.superuserReason || (typeof domReason === 'string' ? domReason : '');
-
-      await submitAuth(suAccessCategory, suReason);
+      await submitAuth(
+        state.superuserAccessCategory || readField('superuserAccessCategory'),
+        state.superuserReason || readField('superuserReason')
+      );
     },
   });
 
@@ -223,9 +222,9 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
       return;
     }
     if (!authenticators.length && !disableU2FForSUForm) {
-      handleError(ErrorCodes.NO_AUTHENTICATOR);
+      setError(ErrorCodes.NO_AUTHENTICATOR);
     }
-    // Only react to the fetch completing; handleError is stable.
+    // Only react to the fetch completing; setError is stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFetched]);
 
