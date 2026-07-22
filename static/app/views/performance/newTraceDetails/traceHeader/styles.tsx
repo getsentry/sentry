@@ -22,7 +22,7 @@ function HeaderLayout(props: ContainerProps) {
 function HeaderGrid(props: GridProps) {
   return (
     <Grid
-      columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 1fr) max-content'}}
+      columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 1fr) minmax(0, max-content)'}}
       gap="md xl"
       align="start"
       areas={{
