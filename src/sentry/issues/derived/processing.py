@@ -451,8 +451,9 @@ def build_and_promote_derived_data(
             return
 
         if result is PromotionResult.SUPERSEDED:
-            # A newer generation already won — retrying is futile.
-            break
+            # A newer generation already won — not an error.
+            _generation_cache.delete(current_gen_id)
+            return
 
         # CURSOR_BEHIND: the live row's cursor is ahead of ours.
         # If new entries exist past our cursor, the next drain will pick

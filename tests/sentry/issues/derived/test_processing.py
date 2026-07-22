@@ -738,6 +738,19 @@ class PromoteToLiveTest(TestCase):
         with pytest.raises(PromotionFailed):
             build_and_promote_derived_data(group.id, time_limit=timedelta(minutes=5))
 
+    def test_build_and_promote_superseded_returns_cleanly(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+
+        # Stamp generated_at far in the future so our generation is older.
+        GroupDerivedData.objects.filter(group_id=group.id).update(
+            generated_at=django_timezone.now() + timedelta(hours=1)
+        )
+
+        # Should return without raising — SUPERSEDED is not a failure.
+        build_and_promote_derived_data(group.id, time_limit=timedelta(minutes=5))
+
     def test_build_and_promote_cursor_behind_new_entries(self) -> None:
         group = self.create_group()
 
