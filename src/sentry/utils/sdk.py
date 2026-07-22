@@ -219,31 +219,6 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
-def span_streaming_traces_sampler(sampling_context):
-    wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
-    if wsgi_path and wsgi_path in SAMPLED_ROUTES:
-        return SAMPLED_ROUTES[wsgi_path]
-
-    # Apply sample_rate from custom_sampling_context
-    custom_sample_rate = sampling_context.get("sample_rate")
-    if custom_sample_rate is not None:
-        return float(custom_sample_rate)
-
-    # If there's already a sampling decision, just use that
-    parent_sampled = sampling_context["span_context"]["parent_sampled"]
-    if parent_sampled is not None:
-        return parent_sampled
-
-    if "taskworker" in sampling_context:
-        task_name = sampling_context["taskworker"].get("task")
-
-        if task_name in SAMPLED_TASKS:
-            return SAMPLED_TASKS[task_name]
-
-    # Default to the sampling rate in settings
-    return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
-
-
 def profiles_sampler(sampling_context):
     PROFILES_SAMPLING_RATE = {
         "consumer.join": options.get("consumer.join.profiling.rate"),
@@ -616,11 +591,7 @@ def configure_sdk():
         disabled_integrations.append(ThreadingIntegration())
 
     if dsns.sentry_mirror:
-        sdk_options.setdefault("_experiments", {}).update(
-            trace_lifecycle="stream",
-        )
-
-        sdk_options["traces_sampler"] = span_streaming_traces_sampler
+        sdk_options["trace_lifecycle"] = "stream"
 
         sentry_sdk.init(
             dsn=dsns.sentry_mirror,
