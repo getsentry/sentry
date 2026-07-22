@@ -25,7 +25,11 @@ from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
 )
-from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    bulk_read_preferences_from_sentry_db,
+    is_seer_autotriggered_autofix_rate_limited,
+)
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
@@ -498,6 +502,8 @@ def _get_eligible_projects(
             reasons.append("automation_tuning_off")
         if source == "cron" and not tweaks.enabled:
             reasons.append("tweaks_disabled")
+        if is_seer_autotriggered_autofix_rate_limited(project):
+            reasons.append("autofix_rate_limited")
         if stopping_point != AutofixStoppingPoint.OPEN_PR:
             # Night shift's only output is a PR, so a project that stops
             # short of open_pr can never produce a usable result.

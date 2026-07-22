@@ -432,6 +432,34 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
 
         assert [ep.project for ep in result] == [present]
 
+    def test_filters_projects_at_autofix_rate_limit(self) -> None:
+        """A project already at its autotriggered-autofix rate limit shouldn't
+        be triaged — the eventual autofix trigger would be rate limited anyway."""
+        org = self.create_organization()
+        under_limit = self._make_eligible(self.create_project(organization=org, slug="under"))
+        at_limit = self._make_eligible(self.create_project(organization=org, slug="at-limit"))
+
+        def fake_rate_limited(project):
+            return project.id == at_limit.id
+
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.cron.is_seer_autotriggered_autofix_rate_limited",
+                side_effect=fake_rate_limited,
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
+        ):
+            result = _get_eligible_projects(org, "manual")
+
+        assert [ep.project for ep in result] == [under_limit]
+
+        at_limit_extra = next(
+            call.kwargs["extra"]
+            for call in mock_logger.info.call_args_list
+            if call.kwargs["extra"]["project_id"] == at_limit.id
+        )
+        assert at_limit_extra["reasons"] == ["autofix_rate_limited"]
+
 
 @django_db_all
 class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
