@@ -863,6 +863,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
     ) -> dict[str, str]:
         return {
             "step": AutofixStep.PR_ITERATION.value,
+            "iteration_index": "0",
             "feedback": serialize_feedback([Feedback(source=s) for s in sources]),
         }
 

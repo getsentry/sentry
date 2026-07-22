@@ -87,6 +87,15 @@ STOPPING_POINT_TO_STEP: dict[AutofixStoppingPoint, AutofixStep] = {
 }
 
 
+def _record_completion_reaction(outcome: str) -> None:
+    """Record where a completion-reaction attempt exited so silent drop-offs of
+    the :tada: ack are visible in aggregate rather than invisible."""
+    metrics.incr(
+        "autofix.on_completion_hook.completion_reaction",
+        tags={"outcome": outcome},
+    )
+
+
 class AutofixOnCompletionHook(AgentOnCompletionHook):
     """
     Hook called when an agent-based autofix run completes.
@@ -204,11 +213,23 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         cls,
         state: SeerRunState,
         source: GithubPrCommentFeedbackSource,
+        run_id: int,
+        organization_id: int,
     ) -> str | None:
         if source.repo_name is not None:
             return source.repo_name
         if len(state.repo_pr_states) == 1:
+            # Backward-compat path for feedback serialized before repo_name was
+            # captured at trigger time; unambiguous only with a single repo.
+            logger.info(
+                "autofix.on_completion_hook.completion_reaction.legacy_repo_inference",
+                extra={"run_id": run_id, "organization_id": organization_id},
+            )
             return next(iter(state.repo_pr_states))
+        logger.warning(
+            "autofix.on_completion_hook.completion_reaction.repo_unresolved",
+            extra={"run_id": run_id, "organization_id": organization_id},
+        )
         return None
 
     @classmethod
@@ -233,17 +254,19 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # Don't react before the commit lands.
         _, is_synced = state.has_code_changes()
         if not is_synced:
+            _record_completion_reaction("not_synced")
             return
 
-        # The consumed feedback is serialized onto the iteration's opening
-        # PR_ITERATION block, so read it off the most recent one.
-        raw = None
-        for block in reversed(state.blocks):
-            metadata = block.message.metadata or {}
-            if metadata.get("step") == AutofixStep.PR_ITERATION.value:
-                raw = metadata.get("feedback")
-                break
+        # The consumed feedback is serialized onto the latest iteration's
+        # opening PR_ITERATION block.
+        iterations = get_iterations(state)
+        raw = (
+            (iterations[-1].blocks[0].message.metadata or {}).get("feedback")
+            if iterations
+            else None
+        )
         if not raw:
+            _record_completion_reaction("no_feedback")
             return
 
         sources: list[GithubPrCommentFeedbackSource] = []
@@ -251,16 +274,19 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             if isinstance(feedback.source, GithubPrCommentFeedbackSource):
                 sources.append(feedback.source)
         if not sources:
+            _record_completion_reaction("no_pr_comment_sources")
             return
 
         scm_by_repo: dict[str, SourceCodeManager] = {}
         for source in sources:
             comment_id = source.comment.id
             if comment_id is None:
+                _record_completion_reaction("no_comment_id")
                 continue
 
-            repo_name = cls._repo_name_for_feedback(state, source)
+            repo_name = cls._repo_name_for_feedback(state, source, run_id, organization.id)
             if repo_name is None:
+                _record_completion_reaction("no_repo_name")
                 continue
 
             scm = scm_by_repo.get(repo_name)
@@ -281,6 +307,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                             "resolution": resolution,
                         },
                     )
+                    _record_completion_reaction("repo_not_found")
                     continue
                 try:
                     scm = make_scm(organization.id, repo.id, referrer="seer")
@@ -290,11 +317,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         extra={"run_id": run_id, "organization_id": organization.id},
                         exc_info=True,
                     )
+                    _record_completion_reaction("scm_init_failed")
                     continue
                 scm_by_repo[repo_name] = scm
 
             pr_state = state.repo_pr_states.get(repo_name)
             if not pr_state or not pr_state.pr_number:
+                _record_completion_reaction("no_pr_number")
                 continue
             pr_number = pr_state.pr_number
             _add_comment_reaction(
@@ -304,6 +333,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 comment_id=comment_id,
                 reaction="hooray",
             )
+            _record_completion_reaction("reacted")
 
     @classmethod
     def find_latest_artifact_for_step(cls, state: SeerRunState, key: str) -> Artifact | None:
