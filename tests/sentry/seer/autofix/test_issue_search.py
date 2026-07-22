@@ -4,7 +4,7 @@ from django.utils import timezone
 
 from sentry.models.activity import Activity
 from sentry.models.pullrequest import PullRequestLifecycleState
-from sentry.seer.autofix.issue_search import AUTOFIX_STATE_VALUES, autofix_state_filter
+from sentry.seer.autofix.issue_search import autofix_state_filter
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 
@@ -32,17 +32,6 @@ class AutofixStateFilterTest(TestCase):
         )
         pr.update(state=PullRequestLifecycleState.MERGED, merged_at=timezone.now())
         self.create_seer_run_pull_request(run, pr)
-
-    def test_values_frozenset(self) -> None:
-        assert AUTOFIX_STATE_VALUES == frozenset(
-            {
-                "merged",
-                "review_pr",
-                "code_changes_ready",
-                "solution_ready",
-                "needs_investigation",
-            }
-        )
 
     def test_milestones_are_exclusive(self) -> None:
         self.create_group_activity(

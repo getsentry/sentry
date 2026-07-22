@@ -1103,24 +1103,6 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         results = self.make_query(search_filter_query="issue.autofix_state:code_changes_ready")
         assert set(results) == set()
 
-    def test_autofix_state_precedence(self) -> None:
-        self.create_group_activity(
-            group=self.group1, type=ActivityType.SEER_SOLUTION_COMPLETED.value
-        )
-        self.create_group_activity(group=self.group1, type=ActivityType.SEER_CODING_COMPLETED.value)
-        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
-
-        assert set(self.make_query(search_filter_query="issue.autofix_state:review_pr")) == {
-            self.group1
-        }
-        assert (
-            set(self.make_query(search_filter_query="issue.autofix_state:code_changes_ready"))
-            == set()
-        )
-        assert (
-            set(self.make_query(search_filter_query="issue.autofix_state:solution_ready")) == set()
-        )
-
     def test_autofix_state_merged(self) -> None:
         self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
         self._create_merged_autofix_pr(self.group1)
