@@ -510,11 +510,11 @@ def configure_sdk():
                                 if x.data_category != "statsd"
                                 or in_random_rollout("store.allow-s4s-ddm-sample-rate")
                             ]
-                            if len(safe_items) != len(envelope.items):
+                            if len(safe_items) != len(relay_envelope.items):
                                 relay_envelope.items = safe_items
 
                         # Only transactions are sampled at a lower rate.
-                        if envelope.get_transaction_event() is not None:
+                        if relay_envelope.get_transaction_event() is not None:
                             trace = relay_envelope.headers.get("trace")
 
                             prior_sample_rate = None
