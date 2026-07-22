@@ -119,7 +119,13 @@ describe('Sentry Application Details', () => {
           'event:admin',
           'org:ci',
         ]),
-        events: ['issue'],
+        events: [
+          'issue.created',
+          'issue.resolved',
+          'issue.assigned',
+          'issue.ignored',
+          'issue.unresolved',
+        ],
         isInternal: false,
         verifyInstall: true,
         isAlertable: true,
@@ -139,12 +145,7 @@ describe('Sentry Application Details', () => {
     });
 
     it('saves webhook headers', async () => {
-      render(<SentryApplicationDetails />, {
-        initialRouterConfig,
-        organization: OrganizationFixture({
-          features: ['sentry-apps-custom-webhook-headers'],
-        }),
-      });
+      render(<SentryApplicationDetails />, {initialRouterConfig});
 
       await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
       await userEvent.type(screen.getByRole('textbox', {name: 'Author'}), 'Sentry');
@@ -199,6 +200,52 @@ describe('Sentry Application Details', () => {
       expect(
         screen.queryByRole('textbox', {name: 'Redirect URL'})
       ).not.toBeInTheDocument();
+    });
+
+    it('requires a webhook URL to save enabled subscriptions', async () => {
+      createAppRequest = MockApiClient.addMockResponse({
+        url: '/sentry-apps/',
+        method: 'POST',
+        body: [],
+      });
+
+      renderComponent();
+
+      await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Issue & Event'}),
+        'Read'
+      );
+      await userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+      expect(
+        await screen.findByText('This field is required when webhook events are enabled')
+      ).toBeInTheDocument();
+      expect(createAppRequest).not.toHaveBeenCalled();
+    });
+
+    it('notes the payload transform when the URL fires a Claude routine', async () => {
+      render(<SentryApplicationDetails />, {
+        initialRouterConfig,
+        organization: OrganizationFixture({
+          features: ['sentry-apps-claude-routine-webhooks'],
+        }),
+      });
+
+      const webhookInput = screen.getByRole('textbox', {name: 'Webhook URL'});
+      await userEvent.type(
+        webhookInput,
+        'https://api.anthropic.com/v1/claude_code/routines/trig_123/fire'
+      );
+
+      await userEvent.hover(screen.getByText('Claude routine'));
+      expect(
+        await screen.findByText(/automatically format your webhook payloads/)
+      ).toBeInTheDocument();
+
+      await userEvent.type(webhookInput, '/extra');
+      expect(screen.queryByText('Claude routine')).not.toBeInTheDocument();
     });
   });
 
@@ -270,12 +317,7 @@ describe('Sentry Application Details', () => {
         body: sentryApp,
       });
 
-      render(<SentryApplicationDetails />, {
-        initialRouterConfig,
-        organization: OrganizationFixture({
-          features: ['sentry-apps-custom-webhook-headers'],
-        }),
-      });
+      render(<SentryApplicationDetails />, {initialRouterConfig});
 
       expect(await screen.findByRole('textbox', {name: 'Webhook Headers'})).toHaveValue(
         'X-Example: value\nAnother-Header: thing'
@@ -505,6 +547,13 @@ describe('Sentry Application Details', () => {
     beforeEach(() => {
       sentryApp = SentryAppFixture();
       sentryApp.events = ['issue'];
+      sentryApp.webhookEvents = [
+        'issue.created',
+        'issue.resolved',
+        'issue.assigned',
+        'issue.ignored',
+        'issue.unresolved',
+      ];
       sentryApp.scopes = ['project:read', 'event:read'];
 
       editAppRequest = MockApiClient.addMockResponse({
@@ -605,9 +654,6 @@ describe('Sentry Application Details', () => {
   });
 
   describe('Editing granular event subscriptions', () => {
-    const organization = OrganizationFixture({
-      features: ['sentry-apps-granular-events'],
-    });
     const initialRouterConfig: RouterConfig = {
       location: {
         pathname: '/sentry-apps/sample-app/',
@@ -615,7 +661,7 @@ describe('Sentry Application Details', () => {
       route: '/sentry-apps/:appSlug/',
     };
     function renderComponent() {
-      return render(<SentryApplicationDetails />, {initialRouterConfig, organization});
+      return render(<SentryApplicationDetails />, {initialRouterConfig});
     }
 
     beforeEach(() => {

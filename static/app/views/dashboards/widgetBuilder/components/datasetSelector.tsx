@@ -15,6 +15,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 
 export function WidgetBuilderDatasetSelector() {
@@ -87,7 +88,9 @@ export function WidgetBuilderDatasetSelector() {
     details: t('Mobile app size metrics'),
   });
 
-  datasetOptions.push(transactionsOption);
+  if (!getDiscoverDeprecation(organization)) {
+    datasetOptions.push(transactionsOption);
+  }
 
   return (
     <Fragment>

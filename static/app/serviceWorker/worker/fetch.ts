@@ -1,6 +1,6 @@
 import {controlsiloUrlPatterns} from 'sentry/data/controlsiloUrlPatterns';
-import {getClientConfigFromCache} from 'sentry/serviceWorker/worker/client-config';
-import {type ClientConfig} from 'sentry/serviceWorker/worker/client-config';
+import {getClientConfigFromCache} from 'sentry/serviceWorker/worker/clientConfig';
+import {type ClientConfig} from 'sentry/serviceWorker/worker/clientConfig';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 type ApiUrl = ReturnType<typeof getApiUrl>;

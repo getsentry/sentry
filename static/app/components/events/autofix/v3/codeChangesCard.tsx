@@ -66,17 +66,26 @@ interface UserUiFeedback extends ParsedBaseFeedback {
 
 interface GithubPrCommentFeedback extends ParsedBaseFeedback {
   commentUrl: string;
-  sourceType: 'github-pr-comment' | 'github-pr-review-comment';
+  sourceType: 'github-pr-comment' | 'github-pr-review-comment' | 'github-pr-review-body';
   githubUsername?: string;
 }
 
+interface CheckSuiteFeedback extends ParsedBaseFeedback {
+  appName: string;
+  checkSuiteUrl: string;
+  sourceType: 'check-suite';
+}
 interface OtherFeedback extends ParsedBaseFeedback {
   source: string;
   sourceType: 'other';
 }
 
 // What `parseFeedback` can produce from the stored JSON alone.
-type ParsedFeedback = UserUiFeedback | GithubPrCommentFeedback | OtherFeedback;
+type ParsedFeedback =
+  | UserUiFeedback
+  | GithubPrCommentFeedback
+  | CheckSuiteFeedback
+  | OtherFeedback;
 
 // A parsed feedback enriched with the iteration context the caller supplies.
 type IterationFeedback = ParsedFeedback & {
@@ -106,6 +115,31 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
         sourceType: source.type,
         githubUsername: source.comment?.user?.login,
         commentUrl,
+      };
+    }
+    case 'github-pr-review-body': {
+      // Unlike a review comment, the review body carries its link directly on
+      // `html_url` and has no comment author login to attribute.
+      const commentUrl = source.html_url;
+      if (!commentUrl) {
+        return null;
+      }
+      return {
+        ...base,
+        sourceType: source.type,
+        commentUrl,
+      };
+    }
+    case 'check-suite': {
+      const appName = source.app_name;
+      const {head_sha: headSha, id: checkSuiteId} = source.event.check_suite;
+      const repoUrl = source.event.repository.html_url;
+      return {
+        ...base,
+        text: t('%s check suite failed', appName),
+        sourceType: 'check-suite',
+        appName,
+        checkSuiteUrl: `${repoUrl}/commit/${headSha}/checks?check_suite_id=${checkSuiteId}`,
       };
     }
     default:
@@ -452,7 +486,10 @@ function feedbackLinkUrl(item: IterationFeedback): string | undefined {
   switch (item.sourceType) {
     case 'github-pr-comment':
     case 'github-pr-review-comment':
+    case 'github-pr-review-body':
       return item.commentUrl;
+    case 'check-suite':
+      return item.checkSuiteUrl;
     default:
       return undefined;
   }
@@ -462,8 +499,13 @@ function FeedbackAttribution({item}: {item: IterationFeedback}) {
   switch (item.sourceType) {
     case 'github-pr-comment':
     case 'github-pr-review-comment':
+    case 'github-pr-review-body': {
+      const fallbackTitle =
+        item.sourceType === 'github-pr-review-body'
+          ? t('GitHub PR review')
+          : t('GitHub PR comment');
       return (
-        <Tooltip title={item.githubUsername ?? t('GitHub PR comment')} skipWrapper>
+        <Tooltip title={item.githubUsername ?? fallbackTitle} skipWrapper>
           <ExternalLink href={item.commentUrl}>
             <Flex align="center">
               <IconGithub size="md" data-test-id="icon-github" />
@@ -471,6 +513,19 @@ function FeedbackAttribution({item}: {item: IterationFeedback}) {
           </ExternalLink>
         </Tooltip>
       );
+    }
+    case 'check-suite': {
+      const icon = (
+        <Flex align="center">
+          <IconGithub size="md" />
+        </Flex>
+      );
+      return (
+        <Tooltip title={t('%s check suite', item.appName)} skipWrapper>
+          <ExternalLink href={item.checkSuiteUrl}>{icon}</ExternalLink>
+        </Tooltip>
+      );
+    }
     case 'user-ui':
       return item.user ? <UserAvatar size={16} user={item.user} hasTooltip /> : null;
     default:

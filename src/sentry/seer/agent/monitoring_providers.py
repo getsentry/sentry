@@ -9,6 +9,7 @@ from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.services.identity import identity_service
+from sentry.integrations.gcp.utils import GCP_MCP_URLS
 from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.organization import Organization
 from sentry.seer.sentry_data_models import MonitoringProviderConnectionData
@@ -26,8 +27,13 @@ class OrgMonitoringProvider(abc.ABC):
     @abc.abstractmethod
     def build_connection(
         self, organization: Organization
-    ) -> MonitoringProviderConnectionData | None:
-        """Build the Seer connection for this org's integration, or None if unconfigured."""
+    ) -> list[MonitoringProviderConnectionData] | None:
+        """
+        Build Seer connection(s) for this org's integration, or None if unconfigured.
+
+        A single integration may map to multiple MCP connections (e.g. GCP has
+        separate logging, monitoring, and trace endpoints).
+        """
 
 
 org_monitoring_provider_registry = Registry[type[OrgMonitoringProvider]]()
@@ -61,7 +67,7 @@ def get_org_monitoring_connections(
     connections: list[MonitoringProviderConnectionData] = []
     for provider in _org_monitoring_providers():
         try:
-            connection = provider.build_connection(organization)
+            result = provider.build_connection(organization)
         except RpcException:
             logger.warning(
                 "seer.monitoring_providers.org_fetch_failed",
@@ -72,8 +78,8 @@ def get_org_monitoring_connections(
                 exc_info=True,
             )
             continue
-        if connection is not None:
-            connections.append(connection)
+        if result is not None:
+            connections.extend(result)
     return connections
 
 
@@ -113,8 +119,8 @@ def _get_personal_monitoring_connections(
             urls = provider.build_mcp_urls(identity.data)
             if not urls:
                 continue
-            encrypted_access_token = encrypt_access_token_for_seer(access_token)
-            if not encrypted_access_token:
+            encrypted_auth_header = encrypt_access_token_for_seer(f"Bearer {access_token}")
+            if not encrypted_auth_header:
                 continue
             auth_method = "oauth" if is_oauth_provider else "pat"
             for url in urls:
@@ -122,7 +128,7 @@ def _get_personal_monitoring_connections(
                     MonitoringProviderConnectionData(
                         provider_key=provider_type,
                         url=url,
-                        encrypted_access_token=encrypted_access_token,
+                        encrypted_auth_headers={"Authorization": encrypted_auth_header},
                         identity_id=identity.id,
                         auth_method=auth_method,
                         refreshable=is_oauth_provider,
@@ -130,6 +136,24 @@ def _get_personal_monitoring_connections(
                 )
 
     return connections
+
+
+# TEMPORARY: hardcoded GCP MCP connections for the Sentry org for internal dogfooding.
+# Remove when the full GcpIntegrationProvider + setup UI is built.
+_SENTRY_ORG_GCP_PROJECT_IDS = ["internal-sentry"]
+
+
+def _get_gcp_connections_for_sentry_org() -> list[MonitoringProviderConnectionData]:
+    return [
+        MonitoringProviderConnectionData(
+            provider_key="gcp",
+            url=url,
+            auth_method="gcp_adc",
+            refreshable=False,
+            gcp_project_ids=_SENTRY_ORG_GCP_PROJECT_IDS,
+        )
+        for url in GCP_MCP_URLS
+    ]
 
 
 def get_monitoring_provider_connections(
@@ -153,4 +177,11 @@ def get_monitoring_provider_connections(
         if provider_family(connection.provider_key) not in connected_families
     ]
 
-    return personal_connections + org_connections
+    all_connections = personal_connections + org_connections
+
+    # TEMPORARY: hardcoded GCP MCP connections for the Sentry org (id=1) for internal dogfooding.
+    # Remove when the full GcpIntegrationProvider + setup UI is built.
+    if organization.id == 1:
+        all_connections.extend(_get_gcp_connections_for_sentry_org())
+
+    return all_connections

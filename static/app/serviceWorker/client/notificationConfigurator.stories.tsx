@@ -544,7 +544,7 @@ function NotificationConfigurator() {
         </Flex>
       </form.AppForm>
 
-      <Grid columns={{xs: '1fr', md: '1fr 1fr'}} gap="lg">
+      <Grid columns={{zero: '1fr', md: '1fr 1fr'}} gap="lg">
         <Stack gap="xs">
           <Text bold>Payload</Text>
           <form.Subscribe selector={state => state.values}>

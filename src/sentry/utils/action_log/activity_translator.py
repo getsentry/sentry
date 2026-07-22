@@ -124,6 +124,26 @@ ACTIVITY_TYPE_TO_ARG_TRANSLATIONS: Mapping[int, Mapping[str, str]] = {
     },
 }
 
+# GroupActionTypes are serialized with the same `type` string as their
+# equivalent Activity so the frontend can consume both identically
+GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE = {
+    action_cls.get_type().value: activity_type
+    for activity_type, action_cls in ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE.items()
+}
+
+# GALE payloads are stored with the snake_case GroupAction field names, but the
+# frontend consumes the Activity `data` shape. Reverse the camelCase -> snake_case
+# renames that activity_translator applies when mirroring Activities into
+# GroupActions, keyed by GroupActionType value.
+GROUP_ACTION_TYPE_TO_ACTIVITY_KEYS = {
+    action_cls.get_type().value: {
+        gale_key: activity_key
+        for activity_key, gale_key in ACTIVITY_TYPE_TO_ARG_TRANSLATIONS[activity_type].items()
+    }
+    for activity_type, action_cls in ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE.items()
+    if activity_type in ACTIVITY_TYPE_TO_ARG_TRANSLATIONS
+}
+
 
 logger = logging.getLogger(__name__)
 

@@ -157,6 +157,7 @@ function startGroupCoolDown(group: DelayGroup) {
 }
 
 type OverlayStatus = 'idle' | 'warming' | 'open' | 'cooling';
+type UnderlineColor = 'warning' | 'danger' | 'success' | 'muted' | 'primary';
 
 interface UseHoverOverlayProps {
   /**
@@ -232,7 +233,7 @@ interface UseHoverOverlayProps {
   /**
    * Color of the dotted underline, if available. See also: showUnderline.
    */
-  underlineColor?: 'warning' | 'danger' | 'success' | 'muted';
+  underlineColor?: UnderlineColor;
 }
 
 export function isOverflown(el: Element): boolean {
@@ -255,10 +256,7 @@ function maybeClearRefTimeout(ref: React.MutableRefObject<number | undefined>) {
   }
 }
 
-const tooltipUnderline = (
-  theme: Theme,
-  underlineColor: 'warning' | 'danger' | 'success' | 'muted' = 'muted'
-) =>
+const tooltipUnderline = (theme: Theme, underlineColor: UnderlineColor = 'muted') =>
   ({
     textDecoration: 'underline',
     textDecorationThickness: '0.75px',
@@ -272,7 +270,9 @@ const tooltipUnderline = (
             ? theme.tokens.content.success
             : underlineColor === 'muted'
               ? theme.tokens.content.secondary
-              : undefined,
+              : underlineColor === 'primary'
+                ? theme.tokens.content.primary
+                : undefined,
     textDecorationStyle: 'dotted',
   }) as const;
 

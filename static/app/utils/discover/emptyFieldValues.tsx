@@ -2,9 +2,11 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 
+export const EMPTY_VALUE_LABEL = t('(no value)');
+
 export const emptyValue = (
   <Text as="span" variant="muted">
-    {t('(no value)')}
+    {EMPTY_VALUE_LABEL}
   </Text>
 );
 export const emptyStringValue = (

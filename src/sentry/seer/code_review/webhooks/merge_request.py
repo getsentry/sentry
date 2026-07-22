@@ -377,8 +377,6 @@ def handle_merge_request_event(
 
     base_log["integration_id"] = integration.id
 
-    debug_log(logger, organization, "handler_started", base_log)
-
     if not features.has("organizations:seer-gitlab-support", organization):
         return
 
@@ -394,14 +392,12 @@ def handle_merge_request_event(
     try:
         action = MergeRequestAction(action_value)
     except ValueError:
-        debug_log(logger, organization, "unsupported_action", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
         return
 
     if action not in WHITELISTED_ACTIONS:
-        debug_log(logger, organization, "action_not_whitelisted", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
@@ -414,7 +410,6 @@ def handle_merge_request_event(
     if action not in CLOSE_ACTIONS:
         review_trigger = _resolve_review_trigger(action, event)
         if review_trigger is None:
-            debug_log(logger, organization, "no_review_trigger", base_log)
             record_webhook_filtered(
                 GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
             )
@@ -435,30 +430,15 @@ def handle_merge_request_event(
     ).check()
 
     if not preflight.allowed:
-        denial = preflight.denial_reason.value if preflight.denial_reason else None
-        debug_log(
-            logger,
-            organization,
-            "preflight_denied",
-            {**base_log, "denial_reason": denial},
-        )
         if preflight.denial_reason:
             record_webhook_filtered(GITLAB_WEBHOOK_EVENT, action_value, preflight.denial_reason)
         return
-
-    debug_log(logger, organization, "preflight_passed", base_log)
 
     org_code_review_settings = preflight.settings
 
     if review_trigger is not None and (
         org_code_review_settings is None or review_trigger not in org_code_review_settings.triggers
     ):
-        debug_log(
-            logger,
-            organization,
-            "trigger_disabled",
-            {**base_log, "review_trigger": review_trigger.value},
-        )
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.TRIGGER_DISABLED
         )
@@ -467,7 +447,6 @@ def handle_merge_request_event(
     if action in CLOSE_ACTIONS and (
         org_code_review_settings is None or not org_code_review_settings.triggers
     ):
-        debug_log(logger, organization, "close_trigger_disabled", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_EVENT, action_value, WebhookFilteredReason.TRIGGER_DISABLED
         )
@@ -528,7 +507,6 @@ def handle_merge_request_event(
                 extra={"organization_id": org.id, "repo_id": repo.id, "action": action_value},
             )
 
-    debug_log(logger, organization, "scheduling_seer_task", base_log)
     _schedule_task(
         action=action,
         action_value=action_value,
@@ -849,7 +827,6 @@ def handle_merge_request_note_event(
         return
 
     base_log["integration_id"] = integration.id
-    debug_log(logger, organization, "note.handler_started", base_log)
 
     if not features.has("organizations:seer-gitlab-support", organization):
         return
@@ -860,7 +837,6 @@ def handle_merge_request_note_event(
 
     # Only process newly created notes; ignore edits and deletions.
     if action_value != "create":
-        debug_log(logger, organization, "note.unsupported_action", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_NOTE_EVENT,
             action_value,
@@ -870,7 +846,6 @@ def handle_merge_request_note_event(
 
     # Only handle notes on merge requests, not issues, commits, or snippets.
     if object_attributes.get("noteable_type") != "MergeRequest":
-        debug_log(logger, organization, "note.not_merge_request", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_NOTE_EVENT,
             action_value,
@@ -881,7 +856,6 @@ def handle_merge_request_note_event(
     # Filter for the @sentry review command phrase.
     note_body = object_attributes.get("note")
     if not isinstance(sentry_command(note_body), SentryReviewCommand):
-        debug_log(logger, organization, "note.not_review_command", base_log)
         record_webhook_filtered(
             GITLAB_WEBHOOK_NOTE_EVENT,
             action_value,
@@ -917,20 +891,11 @@ def handle_merge_request_note_event(
     ).check()
 
     if not preflight.allowed:
-        denial = preflight.denial_reason.value if preflight.denial_reason else None
-        debug_log(
-            logger,
-            organization,
-            "note.preflight_denied",
-            {**base_log, "denial_reason": denial},
-        )
         if preflight.denial_reason:
             record_webhook_filtered(
                 GITLAB_WEBHOOK_NOTE_EVENT, action_value, preflight.denial_reason
             )
         return
-
-    debug_log(logger, organization, "note.preflight_passed", base_log)
 
     last_commit = merge_request.get("last_commit") or {}
     target_commit_sha = last_commit.get("id")
@@ -968,7 +933,6 @@ def handle_merge_request_note_event(
             reaction="eyes",
         )
 
-    debug_log(logger, organization, "note.scheduling_seer_task", base_log)
     _schedule_note_task(
         action_value=action_value,
         event=event,

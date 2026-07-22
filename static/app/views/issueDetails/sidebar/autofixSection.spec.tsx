@@ -481,9 +481,14 @@ describe('AutofixSection', () => {
     );
   });
 
-  it('skips setup UI for non-seat-based orgs without SCM integration', async () => {
+  it('skips setup UI for legacy seer plan orgs without SCM integration', async () => {
+    const legacyOrg = OrganizationFixture({
+      hideAiFeatures: false,
+      features: ['gen-ai-features', 'seer-added'],
+    });
+
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/onboarding-check/`,
+      url: `/organizations/${legacyOrg.slug}/seer/onboarding-check/`,
       body: {
         hasSupportedScmIntegration: false,
         isAutofixEnabled: false,
@@ -498,7 +503,7 @@ describe('AutofixSection', () => {
     });
 
     render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
+      organization: legacyOrg,
     });
 
     expect(await screen.findByText('Have Seer...')).toBeInTheDocument();

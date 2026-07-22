@@ -1,7 +1,10 @@
 import {useCallback} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
+import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {ALL_DATE_TIME_QUERY_KEYS} from 'sentry/components/pageFilters/constants';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
@@ -98,9 +101,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         statsPeriod,
         pageFilters.selection.datetime
       );
-
-      const start = dt.start;
-      const end = dt.end;
+      const timeParams = normalizeDateTimeParams(dt, {allowEmptyPeriod: true});
 
       const yAxis =
         visualizations?.length > 0 ? visualizations[0]?.yAxes?.[0] : undefined;
@@ -120,9 +121,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       askSeerSuggestedQueryRef.current = JSON.stringify({
         query: queryToUse,
         sort,
-        statsPeriod,
-        start,
-        end,
+        ...timeParams,
         yAxis,
         columns,
       });
@@ -136,7 +135,8 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       onSearch(queryToUse);
 
       const newQueryParams: Record<string, string | string[] | null | undefined> = {
-        ...location.query,
+        ...omit(location.query, ALL_DATE_TIME_QUERY_KEYS),
+        ...timeParams,
         query: queryToUse,
       };
 
@@ -158,20 +158,6 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
 
       if (columns.length > 0) {
         newQueryParams.field = columns;
-      }
-
-      if (resultStart && resultEnd) {
-        newQueryParams.start = typeof start === 'string' ? start : start?.toISOString();
-        newQueryParams.end = typeof end === 'string' ? end : end?.toISOString();
-        newQueryParams.statsPeriod = undefined;
-        // Seer absolute ranges are UTC; carry the flag so Discover charts
-        // display them in UTC instead of the page's local timezone.
-        newQueryParams.utc = dt.utc ? 'true' : undefined;
-      } else if (statsPeriod) {
-        newQueryParams.statsPeriod = statsPeriod;
-        newQueryParams.start = undefined;
-        newQueryParams.end = undefined;
-        newQueryParams.utc = dt.utc ? 'true' : undefined;
       }
 
       if (runId !== undefined) {

@@ -14,6 +14,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.issues.grouptype import registry as GROUP_TYPE_REGISTRY
 from sentry.issues.issue_search import (
     convert_actor_or_none_value,
+    convert_autofix_state_value,
     convert_category_value,
     convert_device_class_value,
     convert_first_release_value,
@@ -29,6 +30,7 @@ from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOI
 from sentry.models.release import ReleaseStatus
 from sentry.search.utils import get_teams_for_users
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
+from sentry.seer.autofix.issue_search import AUTOFIX_STATE_VALUES
 from sentry.testutils.cases import TestCase
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 
@@ -365,6 +367,16 @@ class ConvertIssueProgressValueTest(TestCase):
         filters = [SearchFilter(SearchKey("issue.progress"), "=", SearchValue("wrong"))]
         with pytest.raises(InvalidSearchQuery):
             convert_query_values(filters, [self.project], self.user, None)
+
+
+@pytest.mark.parametrize("state", sorted(AUTOFIX_STATE_VALUES))
+def test_convert_autofix_state_value_valid(state: str) -> None:
+    assert convert_autofix_state_value([state], [], None, None) == [state]
+
+
+def test_convert_autofix_state_value_invalid() -> None:
+    with pytest.raises(InvalidSearchQuery):
+        convert_autofix_state_value(["bogus"], [], None, None)
 
 
 class ConvertDetectorValueTest(TestCase):

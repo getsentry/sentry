@@ -181,6 +181,9 @@ class TestScheduleNightShift(TestCase):
             mock_worker.apply_async.assert_called_once()
             assert mock_worker.apply_async.call_args.kwargs["args"] == [org.id]
             assert mock_worker.apply_async.call_args.kwargs["kwargs"] == {}
+            assert mock_worker.apply_async.call_args.kwargs["headers"] == {
+                "sentry-propagate-traces": False
+            }
 
     def test_dispatches_with_run_options(self) -> None:
         org = self.create_org_with_seer()
@@ -209,7 +212,12 @@ class TestScheduleNightShift(TestCase):
         org = self.create_org_with_seer()
 
         with (
-            self.options({"seer.night_shift.enable": True}),
+            self.options(
+                {
+                    "seer.night_shift.enable": True,
+                    "seer.night_shift.enable_for_legacy_orgs": False,
+                }
+            ),
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
@@ -221,6 +229,29 @@ class TestScheduleNightShift(TestCase):
         ):
             schedule_night_shift()
             mock_worker.apply_async.assert_not_called()
+
+    def test_dispatches_legacy_orgs_when_enabled(self) -> None:
+        org = self.create_org_with_seer()
+
+        with (
+            self.options(
+                {
+                    "seer.night_shift.enable": True,
+                    "seer.night_shift.enable_for_legacy_orgs": True,
+                }
+            ),
+            self.feature(
+                {
+                    "organizations:seer-night-shift": [org.slug],
+                    "organizations:gen-ai-features": [org.slug],
+                    # seat-based-seer-enabled intentionally omitted
+                }
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
+        ):
+            schedule_night_shift()
+            mock_worker.apply_async.assert_called_once()
+            assert mock_worker.apply_async.call_args.kwargs["args"] == [org.id]
 
     def test_skips_orgs_with_hidden_ai(self) -> None:
         org = self.create_org_with_seer()
