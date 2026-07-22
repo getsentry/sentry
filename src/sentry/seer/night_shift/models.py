@@ -28,6 +28,9 @@ class TriageCandidate(_Base):
     first_seen: str  # ISO 8601; Seer parses it back to a datetime.
     priority: str | None = None
     connected_repos: list[str] = Field(default_factory=list)
+    # The candidate's project-level `sentry:autofix_automation_tuning` value.
+    # Only ever set for legacy (non-seat-based) orgs.
+    automation_tuning: str | None = None
 
 
 class TriageTweaks(_Base):
