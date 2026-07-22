@@ -377,20 +377,18 @@ function CustomFilterModal({
                           </Grid>
                         ))}
                       </Stack>
-                      <span>
-                        <PurpleTextButton
-                          variant="transparent"
-                          size="xs"
-                          icon={<IconAdd />}
-                          onClick={() =>
-                            conditionsField.pushValue(
-                              emptyCondition(PRIMARY_PROPERTY_BY_DATA_TYPE[dataType])
-                            )
-                          }
-                        >
-                          {t('Add Condition')}
-                        </PurpleTextButton>
-                      </span>
+                      <AddConditionButton
+                        variant="transparent"
+                        size="xs"
+                        icon={<IconAdd />}
+                        onClick={() =>
+                          conditionsField.pushValue(
+                            emptyCondition(PRIMARY_PROPERTY_BY_DATA_TYPE[dataType])
+                          )
+                        }
+                      >
+                        {t('Add Condition')}
+                      </AddConditionButton>
                     </Stack>
                   );
                 }}
@@ -679,6 +677,12 @@ export function CustomFilters({project}: {project: Project}) {
     </Stack>
   );
 }
+
+// PurpleTextButton's negative margin makes the hover background overflow the
+// modal's content edge, so keep the button box flush with the rows instead.
+const AddConditionButton = styled(PurpleTextButton)`
+  margin: 0;
+`;
 
 const CustomFiltersTable = styled(SimpleTable)`
   grid-template-columns:
