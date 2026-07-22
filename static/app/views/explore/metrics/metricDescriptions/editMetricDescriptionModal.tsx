@@ -41,7 +41,7 @@ export function EditMetricDescriptionModal({
 
   const [brief, setBrief] = useState(metric.context?.brief ?? '');
   const [additionalContext, setAdditionalContext] = useState(
-    metric.context?.additionalContext ?? ''
+    metric.context?.details?.[0] ?? ''
   );
 
   const {mutate, isPending} = useMutation({

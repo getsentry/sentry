@@ -14,7 +14,9 @@ export interface TraceMetricListItem {
   // Only present when `expand=context` is requested and the
   // data-browsing-attribute-context feature is enabled.
   context?: {
-    additionalContext?: string;
     brief?: string;
+    // Longer-form notes; the authoring endpoint stores a single string, which
+    // the list endpoint normalizes to a one-element list.
+    details?: string[];
   };
 }

@@ -14,6 +14,7 @@ export const METRIC_DESCRIPTIONS_PER_PAGE = 100;
 
 interface UseMetricDescriptionsProps {
   cursor?: string;
+  hasContext?: boolean;
   search?: string;
   type?: TraceMetricTypeValue;
 }
@@ -40,13 +41,14 @@ function buildQueryString({
 
 /**
  * Returns `apiOptions` for the paginated trace metrics list, scoped to the
- * current page filters and requesting authored context (brief / additional
- * context). Pass the result to `useQuery` with `selectJsonWithHeaders` to read
- * the `Link` pagination header.
+ * current page filters and requesting authored context (brief / details).
+ * Pass the result to `useQuery` with `selectJsonWithHeaders` to read the
+ * `Link` pagination header.
  */
 export function useMetricDescriptionsQueryOptions({
   search,
   type,
+  hasContext,
   cursor,
 }: UseMetricDescriptionsProps) {
   const organization = useOrganization();
@@ -59,6 +61,8 @@ export function useMetricDescriptionsQueryOptions({
     // the underlying attribute alias).
     sort: 'name',
     query: buildQueryString({search, type}),
+    // Restricts results to metrics that already have authored context.
+    contextOnly: hasContext ? '1' : undefined,
     cursor: cursor || undefined,
     project: selection.projects.length ? selection.projects.map(String) : undefined,
     environment: selection.environments.length ? selection.environments : undefined,

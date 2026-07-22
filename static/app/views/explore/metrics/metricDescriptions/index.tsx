@@ -47,6 +47,11 @@ const METRIC_TYPE_OPTIONS: Array<{label: string; value: TraceMetricTypeValue | '
   {label: t('Distribution'), value: 'distribution'},
 ];
 
+const HAS_CONTEXT_OPTIONS: Array<{label: string; value: '' | '1'}> = [
+  {label: t('All metrics'), value: ''},
+  {label: t('Has description'), value: '1'},
+];
+
 const PAGE_TITLE = t('Metric Descriptions');
 
 export default function MetricDescriptionsContent() {
@@ -98,6 +103,8 @@ function MetricDescriptionsBody({datePageFilterProps}: MetricDescriptionsBodyPro
   const search = decodeScalar(location.query.query, '');
   const typeParam = decodeScalar(location.query.type, '');
   const type = isTraceMetricTypeValue(typeParam) ? typeParam : undefined;
+  const hasContextParam = decodeScalar(location.query.contextOnly, '');
+  const hasContext = hasContextParam === '1';
   const cursor = decodeScalar(location.query.cursor);
 
   const {
@@ -106,7 +113,7 @@ function MetricDescriptionsBody({datePageFilterProps}: MetricDescriptionsBodyPro
     isError,
     refetch: refetchQuery,
   } = useQuery({
-    ...useMetricDescriptionsQueryOptions({search, type, cursor}),
+    ...useMetricDescriptionsQueryOptions({search, type, hasContext, cursor}),
     select: selectJsonWithHeaders,
   });
 
@@ -151,6 +158,14 @@ function MetricDescriptionsBody({datePageFilterProps}: MetricDescriptionsBodyPro
           onChange={option => updateQuery({type: option.value || undefined})}
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Type')} />
+          )}
+        />
+        <CompactSelect
+          value={hasContextParam}
+          options={HAS_CONTEXT_OPTIONS}
+          onChange={option => updateQuery({contextOnly: option.value || undefined})}
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Description')} />
           )}
         />
         <SearchWrapper>
@@ -200,8 +215,8 @@ function MetricDescriptionsBody({datePageFilterProps}: MetricDescriptionsBodyPro
                 )}
               </SimpleTable.RowCell>
               <SimpleTable.RowCell>
-                {metric.context?.additionalContext ? (
-                  <Text>{metric.context.additionalContext}</Text>
+                {metric.context?.details?.length ? (
+                  <Text>{metric.context.details.join(' ')}</Text>
                 ) : (
                   <Text variant="muted">{'—'}</Text>
                 )}
