@@ -15,8 +15,6 @@ type TraceTabsAndVitalsProps = {
 
 const CONTAINER_MIN_HEIGHT = 36;
 
-// Shared responsive shell so the loaded toolbar and its placeholder stack
-// identically: vitals above tabs when narrow, side-by-side when wide.
 function ToolbarLayout(props: FlexProps) {
   return (
     <Flex
