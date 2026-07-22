@@ -488,7 +488,6 @@ def _get_eligible_projects(
 
     preferences = bulk_read_preferences_from_sentry_db(organization.id, list(project_map))
 
-    # The rate limit and automation_tuning both only apply to legacy org plans.
     is_legacy_org = not is_seer_seat_based_tier_enabled(organization)
 
     eligible: list[EligibleProject] = []
