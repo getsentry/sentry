@@ -19,6 +19,7 @@ class SdkConfig(TypedDict):
     add_full_stack: NotRequired[bool]
     max_value_length: NotRequired[int]
     send_client_reports: NotRequired[bool]
+    trace_lifecycle: NotRequired[Literal["static", "stream"]]
     traces_sampler: NotRequired[Callable[[dict[str, Any]], float]]
     transport_queue_size: NotRequired[int]
     before_send: NotRequired[Callable[[Event, Hint], Event | None]]
@@ -33,7 +34,6 @@ class SdkConfig(TypedDict):
     enable_db_query_source: NotRequired[bool]
     enable_http_request_source: NotRequired[bool]
     db_query_source_threshold_ms: NotRequired[int]
-    _experiments: NotRequired[Any]  # TODO
 
 
 class ServerSdkConfig(SdkConfig):
