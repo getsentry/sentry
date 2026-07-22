@@ -24,12 +24,15 @@ from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import EventOrdering, Group
+from sentry.models.groupopenperiod import get_open_periods_for_group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
@@ -65,6 +68,10 @@ from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     BaselineTagDistributionEntry,
     BaselineTagDistributionResponse,
+    DetectorCondition,
+    DetectorContext,
+    DetectorOpenPeriod,
+    DetectorSnubaQuery,
     EAPTrace,
     EmptyResponse,
     EventDetailsResponse,
@@ -88,6 +95,7 @@ from sentry.seer.sentry_data_models import (
 )
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
@@ -106,6 +114,8 @@ from sentry.utils.committers import (
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import raw_snql_query
 from sentry.utils.snuba_rpc import get_trace_rpc
+from sentry.workflow_engine.models import Detector, DetectorGroup
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -1381,6 +1391,123 @@ def _get_event_troubleshooting_context(
     }
 
 
+_DETECTOR_OPEN_PERIODS_LIMIT = 20
+
+
+def _get_detector_context(
+    group: Group, start: datetime | None, end: datetime | None
+) -> DetectorContext | None:
+    """
+    Build the detector (monitor) context for a detector-backed group: the detector
+    definition, its trigger conditions, the query it monitors, and the group's open
+    periods (scoped to [start, end] when given).
+
+    Returns None for error groups (their project-wide "Issue Stream" detector isn't
+    meaningful context) and for groups without a valid DetectorGroup association —
+    deliberately no inference by project/type, which could attach the wrong monitor.
+
+    Only allowlisted snuba-query fields are exposed. Raw data-source payloads must
+    never enter this LLM-facing response: e.g. uptime request headers can carry
+    credentials.
+    """
+    issue_type = group.issue_type
+    if issue_type.detector_settings is None or issue_type.type_id == ErrorGroupType.type_id:
+        return None
+
+    try:
+        detector_group = DetectorGroup.objects.get_from_cache(group=group)
+    except DetectorGroup.DoesNotExist:
+        return None
+    if detector_group.detector_id is None:
+        # The associated detector was deleted (FK is SET_NULL).
+        return None
+    detector = Detector.objects.filter(
+        id=detector_group.detector_id, project_id=group.project_id
+    ).first()
+    if detector is None:
+        return None
+
+    # A detector with anything other than exactly one snuba-subscription data source
+    # has no unambiguous query to expose (an unordered .first() could silently pick
+    # the wrong one); the rest of the context is still returned.
+    snuba_query = None
+    snuba_data_sources = list(
+        detector.data_sources.filter(type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)[:2]
+    )
+    if len(snuba_data_sources) == 1:
+        try:
+            subscription_id = int(snuba_data_sources[0].source_id)
+        except ValueError:
+            subscription_id = None
+        subscription = (
+            QuerySubscription.objects.filter(id=subscription_id)
+            .select_related("snuba_query__environment")
+            .first()
+            if subscription_id is not None
+            else None
+        )
+        if subscription is not None:
+            sq = subscription.snuba_query
+            snuba_query = DetectorSnubaQuery(
+                dataset=sq.dataset,
+                query=sq.query,
+                aggregate=sq.aggregate,
+                time_window_seconds=sq.time_window,
+                environment=sq.environment.name if sq.environment is not None else None,
+                # event_types are plain Enums with numeric values; .name.lower()
+                # matches the public serializer convention ("error", "transaction", ...).
+                event_types=[event_type.name.lower() for event_type in sq.event_types],
+            )
+
+    conditions = []
+    for condition in detector.get_conditions():
+        try:
+            triggers_priority = DetectorPriorityLevel(condition.condition_result).name.lower()
+        except (ValueError, TypeError):
+            triggers_priority = None
+        conditions.append(
+            DetectorCondition(
+                type=condition.type,
+                comparison=condition.comparison,
+                condition_result=condition.condition_result,
+                triggers_priority=triggers_priority,
+            )
+        )
+
+    open_period_rows = list(
+        get_open_periods_for_group(group, query_start=start, query_end=end)[
+            : _DETECTOR_OPEN_PERIODS_LIMIT + 1
+        ]
+    )
+    open_periods = [
+        DetectorOpenPeriod(
+            id=str(period.id),
+            start=period.date_started,
+            end=period.date_ended,
+            is_open=period.date_ended is None,
+        )
+        for period in open_period_rows[:_DETECTOR_OPEN_PERIODS_LIMIT]
+    ]
+
+    detector_config: dict[str, Any] = dict(detector.config or {})
+    detection_type = detector_config.get("detection_type")
+    comparison_delta = detector_config.get("comparison_delta")
+    return DetectorContext(
+        id=str(detector.id),
+        name=detector.name,
+        description=detector.description,
+        type=detector.type,
+        enabled=detector.enabled,
+        detection_type=str(detection_type) if detection_type is not None else None,
+        comparison_delta_seconds=(comparison_delta if isinstance(comparison_delta, int) else None),
+        config=detector_config,
+        conditions=conditions,
+        snuba_query=snuba_query,
+        open_periods=open_periods,
+        open_periods_truncated=len(open_period_rows) > _DETECTOR_OPEN_PERIODS_LIMIT,
+    )
+
+
 def get_issue_and_event_response(
     event: Event | GroupEvent,
     group: Group | None,
@@ -1617,6 +1744,21 @@ def get_issue_details(
         )
         serialized_activities = []
 
+    try:
+        detector_context = _get_detector_context(group, start_dt, end_dt)
+    except Exception:
+        logger.exception(
+            "get_issue_details: Failed to get detector context",
+            extra={"organization_id": organization_id, "issue_id": issue_id},
+        )
+        detector_context = None
+
+    # Passed as an extra kwarg so the key stays unset (and absent from the wire via
+    # exclude_unset) for non-detector groups, keeping error responses unchanged.
+    extra_fields: dict[str, Any] = {}
+    if detector_context is not None:
+        extra_fields["detector_context"] = detector_context
+
     return IssueDetailsResponse(
         issue=serialized_group,
         event_timeseries=timeseries,
@@ -1626,6 +1768,7 @@ def get_issue_details(
         user_activity=serialized_activities,
         project_id=group.project_id,
         project_slug=group.project.slug,
+        **extra_fields,
     )
 
 

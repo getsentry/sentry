@@ -5,6 +5,7 @@ These should be kept in sync with the models in Seer.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -447,8 +448,57 @@ class EventDetailsResponse(_DictProxyMixin):
     project_slug: str
 
 
+class DetectorOpenPeriod(BaseModel):
+    id: str
+    start: datetime
+    end: datetime | None
+    is_open: bool
+
+
+class DetectorCondition(BaseModel):
+    # Pydantic v1 gives bare `Any` fields an implicit None default; Field(...) keeps
+    # them required. condition_result stays Any because DataConditionResult spans
+    # bool | int | float | DetectorPriorityLevel.
+    type: str
+    comparison: Any = Field(...)
+    condition_result: Any = Field(...)
+    # DetectorPriorityLevel name lowercased ("high"/"medium"/...); plain str so an
+    # unrecognized level can't fail validation and drop the whole block.
+    triggers_priority: str | None
+
+
+class DetectorSnubaQuery(BaseModel):
+    dataset: str
+    query: str
+    aggregate: str
+    time_window_seconds: int
+    environment: str | None
+    event_types: list[str]
+
+
+class DetectorContext(BaseModel):
+    """The detector (monitor) definition behind a detector-backed issue, plus the
+    issue's open periods. Only allowlisted query fields are exposed — never raw
+    data-source payloads, which can carry credentials (e.g. uptime request headers)."""
+
+    id: str
+    name: str
+    description: str | None
+    type: str
+    enabled: bool
+    detection_type: str | None
+    comparison_delta_seconds: int | None
+    config: dict[str, Any]
+    conditions: list[DetectorCondition]
+    snuba_query: DetectorSnubaQuery | None
+    open_periods: list[DetectorOpenPeriod]
+    open_periods_truncated: bool
+
+
 class IssueDetailsResponse(_DictProxyMixin):
-    """`get_issue_details` returns the serialized issue plus event-context extras."""
+    """`get_issue_details` returns the serialized issue plus event-context extras.
+    `detector_context` is set only for detector-backed (non-error) issues;
+    `exclude_unset` keeps the key absent from the wire otherwise."""
 
     issue: dict[str, Any]
     event_timeseries: dict[str, Any] | None
@@ -458,6 +508,11 @@ class IssueDetailsResponse(_DictProxyMixin):
     user_activity: list[dict[str, Any]]
     project_id: int
     project_slug: str
+    detector_context: DetectorContext | None = None
+
+    def dict(self, **kwargs: Any) -> Any:
+        kwargs.setdefault("exclude_unset", True)
+        return super().dict(**kwargs)
 
 
 class IssueAndEventDetailsResponse(_DictProxyMixin):
