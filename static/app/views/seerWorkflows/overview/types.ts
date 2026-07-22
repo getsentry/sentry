@@ -59,7 +59,6 @@ export interface OverviewRow {
   // Most recent activity on the run (state update, trigger, or issue-level
   // last-trigger timestamp) - drives sorting and the period filter.
   lastActivityAt: string;
-  lastSeen: string;
   level: Level;
   outcomes: AutofixOutcome[];
   prMerged: boolean;

@@ -7,60 +7,33 @@ import {
   IconMerge,
   IconPullRequest,
   IconSearch,
-  IconSeer,
-  IconUser,
-  IconWarning,
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 
-import type {AttentionReason} from './types';
+import type {AutofixStateKey} from './useAutofixSections';
 
 // The list's Linear-style sections: the triage tiers made visible. Attention
 // states reuse their keys; needs_investigation covers settled diagnosis-only
 // runs (manual next steps, no one-click pipeline action), running/merged the
 // rows with nothing left to do.
-export type StatusGroupKey =
-  | AttentionReason
-  | 'needs_investigation'
-  | 'running'
-  | 'merged';
+export type StatusGroupKey = AutofixStateKey;
 
 interface StatusGroupMeta {
   Icon: React.ComponentType<SVGIconProps>;
   label: string;
-  // Description shown in the header icon's tooltip for groups whose members
-  // span pipeline stages; staged groups render the step checklist instead.
-  description?: string;
   // How far through the pipeline every member of this group is (1-4). Unset
   // for variable-stage groups and merged.
   fill?: number;
 }
 
 export const STATUS_GROUP_META: Record<StatusGroupKey, StatusGroupMeta> = {
-  awaiting_input: {
-    Icon: IconUser,
-    label: t('Needs your input'),
-    description: t(
-      'Autofix paused and is asking for more information before it can proceed.'
-    ),
-  },
   review_pr: {Icon: IconPullRequest, label: t('Awaiting your review'), fill: 4},
   code_changes_ready: {Icon: IconCommit, label: t('Code changes ready'), fill: 3},
   solution_ready: {Icon: IconCode, label: t('Ready to generate code'), fill: 2},
-  errored: {
-    Icon: IconWarning,
-    label: t('Errored'),
-    description: t('These runs errored. Open one to investigate or retry.'),
-  },
   // Same magnifier as the cards' Diagnosis block: these runs stopped at a
   // diagnosis, and their Next-steps bullets are manual verify/decide work.
   needs_investigation: {Icon: IconSearch, label: t('Needs investigation'), fill: 1},
-  running: {
-    Icon: IconSeer,
-    label: t('Running'),
-    description: t('Seer is still working on these runs.'),
-  },
   merged: {Icon: IconMerge, label: t('Merged')},
 };
 
@@ -80,15 +53,7 @@ const STEP_LABELS = [
 export function StatusGroupTooltip({groupKey}: {groupKey: StatusGroupKey}) {
   const meta = STATUS_GROUP_META[groupKey];
   const merged = groupKey === 'merged';
-  const fill = merged ? STEP_LABELS.length : meta.fill;
-
-  if (fill === undefined) {
-    return (
-      <Text size="xs" align="left">
-        {meta.description}
-      </Text>
-    );
-  }
+  const fill = meta.fill ?? STEP_LABELS.length;
 
   return (
     <Stack gap="2xs" align="stretch">

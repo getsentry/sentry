@@ -26,13 +26,11 @@ const REQUIRED_ISSUE_FILTER = 'has:issue.seer_last_run';
 
 export interface OverviewIssue {
   count: string;
-  culprit: string;
   id: string;
   lastSeen: string;
   level: Level;
   project: {slug: string; platform?: PlatformKey};
   seerAutofixLastTriggered: string | null;
-  seerFixabilityScore: number | null;
   shortId: string;
   title: string;
   userCount: number;

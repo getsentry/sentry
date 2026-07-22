@@ -255,7 +255,6 @@ export function buildOverviewRow(
     project: issue.project,
     eventCount: Number.isFinite(eventCount) ? eventCount : 0,
     userCount: issue.userCount,
-    lastSeen: issue.lastSeen,
     lastActivityAt:
       state?.updated_at ??
       run?.lastTriggeredAt ??

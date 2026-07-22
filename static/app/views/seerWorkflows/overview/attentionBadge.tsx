@@ -11,14 +11,6 @@ import type {AttentionReason, OverviewRow} from './types';
 
 type LinkButtonVariant = React.ComponentProps<typeof LinkButton>['variant'];
 
-export const ATTENTION_REASONS: AttentionReason[] = [
-  'awaiting_input',
-  'review_pr',
-  'code_changes_ready',
-  'solution_ready',
-  'errored',
-];
-
 export const ATTENTION_META: Record<
   AttentionReason,
   {
