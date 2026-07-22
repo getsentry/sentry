@@ -1195,6 +1195,19 @@ def from_rpc_member(
 def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
     if is_system_auth(auth):
         return SystemAccess()
+    if is_agent_auth(auth):
+        access: Access = DEFAULT
+        if auth.user_id is not None and auth.organization_id == organization.id:
+            try:
+                member = OrganizationMember.objects.get(
+                    user_id=auth.user_id, organization_id=organization.id
+                )
+            except OrganizationMember.DoesNotExist:
+                pass
+            else:
+                member.organization = organization
+                access = from_member(member, scopes=auth.get_scopes())
+        return access
     auth_organization_id = auth.organization_id
     if auth_organization_id is not None and auth_organization_id == organization.id:
         return OrganizationGlobalAccess(
