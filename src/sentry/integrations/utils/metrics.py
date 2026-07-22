@@ -10,7 +10,6 @@ from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self
 
 import sentry_sdk
-from django.http import Http404
 
 from sentry import options
 from sentry.exceptions import RestrictedIPAddress
@@ -364,12 +363,6 @@ class IntegrationEventLifecycle(EventLifecycle):
 
         if exc_value is not None and isinstance(exc_value.__cause__, RestrictedIPAddress):
             # ApiHostError is raised from RestrictedIPAddress
-            self.record_halt(exc_value)
-            return
-
-        if exc_value is not None and isinstance(exc_value, Http404):
-            # Http404 is an expected response (e.g. unrecognized project in webhook),
-            # not an integration failure worth reporting as an error issue.
             self.record_halt(exc_value)
             return
 
