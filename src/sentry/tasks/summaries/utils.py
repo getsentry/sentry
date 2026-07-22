@@ -60,6 +60,8 @@ class OrganizationReportContext:
         for project in organization.project_set.all():
             self.projects_context_map[project.id] = ProjectContext(project)
 
+        self.issue_summaries_failed = False
+
         # Top spans data for the spans chart
         self.top_spans: list[dict[str, Any]] = []  # [{name, p95, sum}, ...]
         self.top_spans_timeseries: dict[str, dict[int, float]] = {}  # {span_name: {timestamp: p95}}

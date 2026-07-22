@@ -258,10 +258,10 @@ def prepare_organization_report(
             try:
                 project_metrics: dict[int, dict[str, int]] = {}
                 for project_id, project_ctx in ctx.projects_context_map.items():
-                    project_metrics[project_id] = {
-                        "e": project_ctx.accepted_error_count,
-                        "i": project_ctx.total_substatus_count,
-                    }
+                    entry: dict[str, int] = {"e": project_ctx.accepted_error_count}
+                    if not ctx.issue_summaries_failed:
+                        entry["i"] = project_ctx.total_substatus_count
+                    project_metrics[project_id] = entry
                 if project_metrics:
                     cache_project_metrics(organization_id, project_metrics)
             except Exception:

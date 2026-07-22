@@ -153,6 +153,7 @@ class OrganizationReportContextFactory:
                 data = organization_project_issue_summaries(start=ctx.start, end=ctx.end, ctx=ctx)
             except Exception:
                 sentry_sdk.capture_exception()
+                ctx.issue_summaries_failed = True
                 return
             for item in data:
                 project_id = item["project_id"]
