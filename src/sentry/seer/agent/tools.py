@@ -244,10 +244,10 @@ def _validate_events_query_params(
             detail = (
                 isinstance(e.body, dict)
                 and e.body.get("detail")
-                or "Query timed out. Try a smaller date range or fewer projects."
+                or "The query validation request timed out or encountered a server error. Please try again with a smaller date range or fewer projects."
             )
             return ExecuteQueryErrorResponse(error=str(detail))
-        logger.exception(
+        logger.warning(
             "execute_table_query: validate request failed",
             extra={"org_id": organization.id},
         )
