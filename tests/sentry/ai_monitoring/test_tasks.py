@@ -142,6 +142,21 @@ class TitleHelpersTest(TestCase):
             is None
         )
 
+    def test_parse_span_skips_privacy_filtered_messages(self) -> None:
+        assert (
+            parse_conversation_title_span(make_gen_ai_span(project_id=1, messages="[Filtered]"))
+            is None
+        )
+        assert (
+            parse_conversation_title_span(
+                make_gen_ai_span(
+                    project_id=1,
+                    messages=json.dumps([{"role": "user", "content": "[Filtered]"}]),
+                )
+            )
+            is None
+        )
+
     def test_fallback_title_truncates_words_and_length(self) -> None:
         assert fallback_title_from_message("hello world") == "hello world"
 

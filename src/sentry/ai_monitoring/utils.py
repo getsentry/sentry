@@ -81,7 +81,7 @@ def clamp_conversation_id_for_storage(conversation_id: str) -> str:
 
 def _extract_first_user_message(messages: Any) -> str | None:
     if isinstance(messages, str) and messages == FILTERED:
-        return FILTERED
+        return None
     parsed = normalize_to_messages(messages, "user")
     if not parsed:
         return None
@@ -89,7 +89,7 @@ def _extract_first_user_message(messages: Any) -> str | None:
         if msg.get("role") != "user":
             continue
         content = stringify_message_content(msg.get("content"))
-        if content:
+        if content and content != FILTERED:
             return content
     return None
 
