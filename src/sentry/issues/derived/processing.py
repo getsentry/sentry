@@ -12,7 +12,7 @@ from django.utils import timezone
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.framework import Pipeline
 from sentry.issues.derived.store import GroupDerivedDataStore
-from sentry.issues.derived.tasks import generate_group_derived_data, process_group_log_task
+from sentry.issues.derived.tasks import process_group_log_task
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.group import Group
@@ -473,45 +473,33 @@ def build_and_promote_derived_data(
 def invalidate_group_derived_data(
     group_id: int,
     cursor: tuple[datetime, int] | None = None,
-    *,
-    hard_delete: bool = False,
 ) -> None:
-    """Invalidate derived state so it is regenerated.
-
-    *hard_delete* controls the strategy:
-
-    - ``False`` (default): enqueue a generation task. The existing row
-      continues serving reads until the generation promotes and stamps
-      a newer ``generated_at``.
-    - ``True``: delete the row immediately, then enqueue a generation
-      task to create a new one. Use when the existing data is known to
-      be wrong and must not be served.
+    """Delete derived state so it is rebuilt from scratch on the next pass,
+    then kicks off an async task to regenerate the derived data.
 
     If *cursor* is ``(date_added, id)`` of the earliest affected entry, the
-    invalidation only fires when the row's cursor is at or past that
-    point; otherwise the mutation is still ahead of processing and no
-    invalidation is needed.
+    row is only deleted when its cursor is at or past that point; otherwise
+    the mutation is still ahead of processing and no invalidation is needed.
+    Without a cursor the invalidation is unconditional.
     """
-    if cursor is not None:
-        cursor_date, cursor_id = cursor
-        row_past_cursor = GroupDerivedData.objects.filter(
-            Q(group_id=group_id)
-            & (
-                Q(cursor_date__gt=cursor_date)
-                | Q(cursor_date=cursor_date, cursor_id__gte=cursor_id)
-            )
-        ).exists()
-        if not row_past_cursor:
-            return
+    if cursor is None:
+        GroupDerivedData.objects.filter(group_id=group_id).delete()
+        process_group_log_task.delay(group_id)
+        return
 
-    if hard_delete:
-        deleted, _ = GroupDerivedData.objects.filter(group_id=group_id).delete()
-        if deleted:
-            logger.info(
-                "issues.derived.invalidated",
-                extra={
-                    "group_id": group_id,
-                    "hard_delete": True,
-                },
-            )
-    generate_group_derived_data.delay(group_id)
+    # Only invalidate if the row has already processed past the affected point.
+    cursor_date, cursor_id = cursor
+    deleted, _ = GroupDerivedData.objects.filter(
+        Q(group_id=group_id)
+        & (Q(cursor_date__gt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__gte=cursor_id)),
+    ).delete()
+    if deleted:
+        logger.info(
+            "issues.derived.invalidated",
+            extra={
+                "group_id": group_id,
+                "cursor_date": str(cursor_date),
+                "cursor_id": cursor_id,
+            },
+        )
+        process_group_log_task.delay(group_id)

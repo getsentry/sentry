@@ -3,7 +3,7 @@ from typing import Any
 from unittest.mock import patch
 
 from sentry import buffer, eventstream
-from sentry.issues.models.groupderiveddata import GroupDerivedData
+from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.groupmeta import GroupMeta
@@ -280,18 +280,18 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         derived = GroupDerivedData.objects.create(
             group=new_group, cursor_date=before_now(minutes=5), cursor_id=100
         )
-        original_generated_at = derived.generated_at
 
         with self.tasks():
             merge_groups([old_group.id], new_group.id)
 
         assert Group.objects.filter(id=old_group.id).exists() is False
 
-        # The live row's cursor points past entries that no longer exist
-        # (orphaned by merge). The generation task detects this and gives
-        # up — the row is unchanged.
-        derived.refresh_from_db()
-        assert derived.generated_at == original_generated_at
+        # The derived data is invalidated: the stale row is deleted and rebuilt
+        # from scratch by the scheduled processing task.
+        rebuilt = GroupDerivedData.objects.get(group_id=new_group.id)
+        assert rebuilt.id != derived.id
+        assert rebuilt.cursor_date == EPOCH
+        assert rebuilt.cursor_id == 0
 
     @mock_redis_buffer()
     def test_merge_original_group_id(self) -> None:

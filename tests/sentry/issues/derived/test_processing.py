@@ -278,32 +278,31 @@ class ProcessGroupLogTest(TestCase):
 
     # --- invalidation ---
 
-    def test_hard_invalidate_deletes_row(self) -> None:
+    def test_invalidate_deletes_row(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         process_group_log(group.id)
         assert GroupDerivedData.objects.filter(group_id=group.id).exists()
 
-        invalidate_group_derived_data(group.id, hard_delete=True)
+        invalidate_group_derived_data(group.id)
         assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
 
-    def test_hard_invalidate_with_cursor_deletes_if_past(self) -> None:
+    def test_invalidate_with_cursor_deletes_if_past(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
 
-        invalidate_group_derived_data(
-            group.id, cursor=(derived.cursor_date, derived.cursor_id), hard_delete=True
-        )
+        # Cursor at the processed entry — row should be deleted.
+        invalidate_group_derived_data(group.id, cursor=(derived.cursor_date, derived.cursor_id))
         assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
 
     def test_invalidate_with_cursor_noop_if_not_reached(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
-
         old_cursor = derived.cursor_id
 
+        # Cursor beyond what we've processed — row should be untouched.
         future = derived.cursor_date.replace(year=derived.cursor_date.year + 1)
         invalidate_group_derived_data(group.id, cursor=(future, old_cursor + 1000))
         derived.refresh_from_db()
@@ -317,24 +316,9 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         assert derived.view_count == 2
 
-        invalidate_group_derived_data(group.id, hard_delete=True)
+        invalidate_group_derived_data(group.id)
         derived = process_group_log(group.id)
         assert derived.view_count == 2  # rebuilt from scratch
-
-    def test_invalidate_soft_enqueues_generation(self) -> None:
-        group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
-        derived = process_group_log(group.id)
-
-        original_id = derived.id
-
-        with patch("sentry.issues.derived.processing.generate_group_derived_data") as mock_task:
-            invalidate_group_derived_data(group.id)
-            mock_task.delay.assert_called_once_with(group.id)
-
-        # Row is still in place — soft invalidation doesn't modify it.
-        derived.refresh_from_db()
-        assert derived.id == original_id
 
     def test_resolved_in_pull_request_proposes_fix(self) -> None:
         group = self.create_group()
@@ -408,7 +392,7 @@ class ProcessGroupLogTest(TestCase):
         first_progress = first.progress
         first_last_progressed_at = first.last_progressed_at
 
-        invalidate_group_derived_data(group.id, hard_delete=True)
+        invalidate_group_derived_data(group.id)
         second = process_group_log(group.id)
         assert second is not None
         assert second.data == first_data
@@ -440,7 +424,7 @@ class ProcessGroupLogTest(TestCase):
         first_data = first.data.copy()
         assert first.data["blocker"] == IssueBlocker.APPROVE_CODE_CHANGES.value
 
-        invalidate_group_derived_data(group.id, hard_delete=True)
+        invalidate_group_derived_data(group.id)
         second = process_group_log(group.id)
         state = GroupDerivedDataStore.load(PIPELINE, second)
 
@@ -517,7 +501,7 @@ class ProcessGroupLogTest(TestCase):
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         process_group_log(group.id)
 
-        invalidate_group_derived_data(group.id, hard_delete=True)
+        invalidate_group_derived_data(group.id)
         derived = process_group_log(group.id)
         assert derived.pipeline_hash == PIPELINE.pipeline_hash
 
@@ -988,7 +972,7 @@ class GroupDerivedDataStoreTest(TestCase):
         first_progress = first.progress
         first_last_progressed_at = first.last_progressed_at
 
-        invalidate_group_derived_data(group.id, hard_delete=True)
+        invalidate_group_derived_data(group.id)
         second = process_group_log(group.id)
         assert second is not None
 
