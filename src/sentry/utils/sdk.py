@@ -492,11 +492,11 @@ def configure_sdk():
                         trace = envelope.headers.get("trace")
                         if (
                             isinstance(trace, dict)
-                            and "sample_rate" in trace
+                            and isinstance(trace.get("sample_rate"), float)
                             and isinstance(s4s_sample_rate, float)
                         ):
                             envelope.headers.setdefault("trace", {})["sample_rate"] = str(
-                                float(trace["sample_rate"]) * s4s_sample_rate
+                                trace["sample_rate"] * s4s_sample_rate
                             )
 
                         # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
