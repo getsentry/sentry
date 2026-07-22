@@ -550,7 +550,7 @@ class ShouldDropS4STest(TestCase):
         assert transport._should_drop_s4s("capture_envelope", 0.0, envelope) is True
 
         event = {"type": "transaction", "contexts": {"trace": {"trace_id": "a" * 32}}}
-        assert transport._should_drop_s4s("capture_event", event) is True
+        assert transport._should_drop_s4s("capture_event", 0.0, event) is True
 
     def test_never_drops_error_envelopes(self) -> None:
         transport = self._get_transport()
