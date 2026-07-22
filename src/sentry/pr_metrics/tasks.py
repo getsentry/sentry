@@ -18,11 +18,15 @@ from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
     PullRequestActivityLog,
+    PullRequestActivityType,
     PullRequestMetrics,
     PullRequestVerdict,
 )
 from sentry.models.repository import Repository
-from sentry.pr_metrics.activity_doc import ENGAGING_ACTIVITY_TYPES, has_reviewer_engagement
+from sentry.pr_metrics.activity_doc import (
+    REVIEWER_ENGAGEMENT_ACTIVITY_TYPES,
+    has_reviewer_engagement,
+)
 from sentry.pr_metrics.emit import NO_REVIEWER_ENGAGEMENT, emit_pr_metrics_row
 from sentry.pr_metrics.judge import forward_pr_to_seer_judge, reap_stuck_judge_verdicts
 from sentry.silo.base import SiloMode
@@ -183,11 +187,23 @@ def reap_stuck_judge_verdicts_task() -> None:
 
 
 # Batch size for the per-candidate settle loop in detect_stale_pull_requests_task.
-# Kept modest (rather than matching find_stale_pull_requests's unbounded scan)
-# because each batch now also bulk-fetches PullRequestActivityLog documents —
-# JSON blobs up to MAX_EVENTS entries each — for cross-checking, not just PR rows.
 _STALE_BATCH_SIZE = 100
+# How old PRs need no activity to be considered stale
 STALENESS_WINDOW = timedelta(weeks=4)
+
+# Event types that reset the stale clock in find_stale_pull_requests: any of
+# these within the detection window keeps a PR out of the candidate set.
+# Chosen for low bot-risk: all four require deliberate human action on the PR.
+# Narrower reviewer-only subset: REVIEWER_ENGAGEMENT_ACTIVITY_TYPES
+# (sentry.pr_metrics.activity_doc), used for the NO_REVIEWER_ENGAGEMENT label.
+ENGAGING_ACTIVITY_TYPES = frozenset(
+    {
+        PullRequestActivityType.SYNCHRONIZED,
+        PullRequestActivityType.REVIEW_SUBMITTED,
+        PullRequestActivityType.READY_FOR_REVIEW,
+        PullRequestActivityType.REVIEW_REQUESTED,
+    }
+)
 
 
 def find_stale_pull_requests(*, cutoff: datetime) -> list[int]:
@@ -243,12 +259,14 @@ def find_stale_pull_requests(*, cutoff: datetime) -> list[int]:
 def detect_stale_pull_requests_task() -> None:
     """Find and settle tracked PRs with no engaging activity since ``cutoff``.
 
-    Each candidate is claimed as ``abandoned`` and emitted directly, tagged with
-    the ``NO_REVIEWER_ENGAGEMENT`` diagnosis label — unconditional here, since
-    every remaining candidate (after the document cross-check below) has zero
-    engaging activity in the detection window by construction. The judge path
-    does not support open PRs (requires ``closed_at``), so all stale PRs are
-    settled here regardless of historical engagement.
+    Each candidate is claimed as ``abandoned`` and emitted directly. Diagnosis
+    labeling checks reviewer engagement across the PR's *whole* history, not
+    just the detection window: a document-track PR checks
+    ``has_reviewer_engagement`` on its document; a legacy-track PR (no
+    document) checks its full ``PullRequestActivity`` history for
+    ``REVIEWER_ENGAGEMENT_ACTIVITY_TYPES``, bulk-fetched per batch. The judge
+    path does not support open PRs (requires ``closed_at``), so all stale PRs
+    are settled here regardless.
 
     ``find_stale_pull_requests`` only sees legacy ``PullRequestActivity`` rows,
     so a candidate routed onto the reduced ``PullRequestActivityLog`` document
@@ -329,6 +347,19 @@ def detect_stale_pull_requests_task() -> None:
             ).values_list("pull_request_id", "data")
         )
 
+        # Bulk-fetch reviewer-engagement PR ids for legacy-track candidates (no
+        # document) in one query, rather than one Exists() per PR — mirrors the
+        # doc fetch above for the legacy track.
+        legacy_candidate_ids = [pr.id for pr in candidate_prs if pr.id not in doc_by_pr_id]
+        engaged_legacy_pr_ids = set(
+            PullRequestActivity.objects.filter(
+                pull_request_id__in=legacy_candidate_ids,
+                event_type__in=REVIEWER_ENGAGEMENT_ACTIVITY_TYPES,
+            )
+            .values_list("pull_request_id", flat=True)
+            .distinct()
+        )
+
         # Second pass: process candidates with document data
         for pr in candidate_prs:
             # Ensure the metrics row exists before any compare-and-set claim.
@@ -340,16 +371,19 @@ def detect_stale_pull_requests_task() -> None:
                 metrics.incr("pr_metrics.stale.skipped", tags={"reason": "already_claimed"})
                 continue
 
-            # Check if NO_REVIEWER_ENGAGEMENT label should be applied by examining
-            # the activity document for any reviewer engagement throughout the PR's lifetime
+            # NO_REVIEWER_ENGAGEMENT means no reviewer ever engaged with this PR,
+            # not just none in the detection window — so this checks each
+            # track's full activity history, not only what's within `cutoff`.
             diagnosis_labels = []
             doc = doc_by_pr_id.get(pr.id)
             if doc is not None:
                 if not has_reviewer_engagement(doc):
                     diagnosis_labels.append(NO_REVIEWER_ENGAGEMENT)
             else:
-                # No activity document exists, so no reviewer engagement occurred
-                diagnosis_labels.append(NO_REVIEWER_ENGAGEMENT)
+                # Legacy-track PR: no document exists, so check the full
+                # PullRequestActivity history instead of assuming no engagement.
+                if pr.id not in engaged_legacy_pr_ids:
+                    diagnosis_labels.append(NO_REVIEWER_ENGAGEMENT)
 
             if emit_pr_metrics_row(pull_request=pr, diagnosis_labels=diagnosis_labels):
                 emitted += 1

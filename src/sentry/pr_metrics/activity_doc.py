@@ -715,15 +715,17 @@ def timeline_events_from_doc(doc: ActivityDoc) -> list[dict[str, Any]]:
     return events
 
 
-# Mirrors tasks.STALENESS_WINDOW's engagement vocabulary: the same event types
-# that reset the stale clock for legacy PullRequestActivity rows, read here off
-# the document instead. Chosen for low bot-risk: all four require deliberate
-# human action on the PR.
-ENGAGING_ACTIVITY_TYPES = frozenset(
+# Event types that count as reviewer engagement for the NO_REVIEWER_ENGAGEMENT
+# diagnosis label — a review submission or a review request, both requiring a
+# human reviewer to act. Narrower than tasks.ENGAGING_ACTIVITY_TYPES (which
+# also resets the staleness clock on SYNCHRONIZED/READY_FOR_REVIEW, PR-author
+# actions with no reviewer involved). Shared by has_reviewer_engagement (reads
+# the document) and detect_stale_pull_requests_task's legacy-track check
+# (reads PullRequestActivity rows directly), so both tracks apply the label
+# under the same definition of "reviewer engagement".
+REVIEWER_ENGAGEMENT_ACTIVITY_TYPES = frozenset(
     {
-        PullRequestActivityType.SYNCHRONIZED,
         PullRequestActivityType.REVIEW_SUBMITTED,
-        PullRequestActivityType.READY_FOR_REVIEW,
         PullRequestActivityType.REVIEW_REQUESTED,
     }
 )
@@ -732,8 +734,9 @@ ENGAGING_ACTIVITY_TYPES = frozenset(
 def has_reviewer_engagement(doc: Mapping[str, Any]) -> bool:
     """Whether ``doc`` records any reviewer engagement throughout the PR's lifetime.
 
-    Reviewer engagement includes review submissions and review requests.
-    Used to determine if NO_REVIEWER_ENGAGEMENT label should be applied.
+    Reviewer engagement includes review submissions and review requests (see
+    ``REVIEWER_ENGAGEMENT_ACTIVITY_TYPES``). Used to determine if
+    NO_REVIEWER_ENGAGEMENT label should be applied.
 
     Conservative on the events cap: once ``events_dropped`` is nonzero, the
     ``events`` list is no longer a complete lifecycle record, so we assume
@@ -743,12 +746,7 @@ def has_reviewer_engagement(doc: Mapping[str, Any]) -> bool:
         # If events were dropped, we can't be sure there was no engagement
         return True
 
-    reviewer_activity_types = {
-        PullRequestActivityType.REVIEW_SUBMITTED,
-        PullRequestActivityType.REVIEW_REQUESTED,
-    }
-
     for entry in doc.get("events") or ():
-        if entry.get("event_type") in reviewer_activity_types:
+        if entry.get("event_type") in REVIEWER_ENGAGEMENT_ACTIVITY_TYPES:
             return True
     return False

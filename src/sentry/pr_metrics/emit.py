@@ -13,7 +13,6 @@ from enum import Enum
 from typing import Any, NamedTuple, cast
 
 from django.db.models import Count, Q
-
 from django.utils import timezone as dj_timezone
 
 from sentry import analytics
@@ -216,11 +215,12 @@ def select_fallback_verdict(pull_request: PullRequest) -> PullRequestVerdict:
 # the PR's own check-suite activity rather than a judge's opinion.
 CI_FAILING_AT_CLOSE = "ci_failing_at_close"
 
-# Diagnosis label for the stale-detection path: unconditional, not read off any
-# activity row. find_stale_pull_requests already filters to PRs with zero
-# engaging activity (no commits, reviews, review requests) in the detection
-# window, so every PR the cron settles as ABANDONED satisfies this by
-# construction — there's nothing left to check at emit time.
+# Diagnosis label for the stale-detection path, applied when a PR shows no
+# reviewer engagement across its whole lifetime, not just the detection
+# window. A document-track PR is checked via has_reviewer_engagement(doc); a
+# legacy-track PR (no PullRequestActivityLog document) is checked directly
+# against its full PullRequestActivity history for
+# REVIEWER_ENGAGEMENT_ACTIVITY_TYPES. See detect_stale_pull_requests_task.
 NO_REVIEWER_ENGAGEMENT = "no_reviewer_engagement"
 
 # Conclusions that unambiguously mean the check errored out, as opposed to
@@ -501,11 +501,6 @@ def build_pr_metrics_row(
     ``CLOSED_UNMERGED`` path can also populate it (see ``ci_failing_at_close``),
     so its presence doesn't by itself mean the row was judged.
     """
-    # Validate that non-abandoned PRs have the required lifecycle data. The
-    # webhook always persists both on a close/merge; a null here means emit ran
-    # on a PR that never reached a terminal state. Fail loud. Abandoned PRs are
-    # the one exception: the PR is still open, so both fields are legitimately
-    # unset on the model.
     if close_action != CLOSE_ACTION_ABANDONED:
         if pull_request.head_commit_sha is None or pull_request.closed_at is None:
             raise ValueError(
