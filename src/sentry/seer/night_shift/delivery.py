@@ -234,15 +234,16 @@ def _process_verdicts(
                     "night_shift.autofix_trigger_failed",
                     extra={**log_extra, "group_id": group.id},
                 )
-            else:
-                state_id_by_group[group.id] = state_id
-                with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
-                    Activity.objects.create_group_activity(
-                        group,
-                        ActivityType.TRIGGER_AUTOFIX,
-                        data={"referrer": referrer.value},
-                        send_notification=False,
-                    )
+                continue
+
+            state_id_by_group[group.id] = state_id
+            with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
+                Activity.objects.create_group_activity(
+                    group,
+                    ActivityType.TRIGGER_AUTOFIX,
+                    data={"referrer": referrer.value},
+                    send_notification=False,
+                )
 
         sentry_sdk.metrics.count("night_shift.autofix_triggered", len(state_id_by_group))
         if rate_limited_group_ids:
