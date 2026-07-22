@@ -262,8 +262,9 @@ describe('mapSeriesToChart func', () => {
     });
 
     expect(mappedSeries.cardStats.clientDiscard).toBe('1.5K');
-    expect(mappedSeries.chartStats.clientDiscard.map(({value}) => value[1])).toEqual([
-      750, 750,
+    expect(mappedSeries.chartStats.clientDiscard).toEqual([
+      {value: [expect.any(String), 750]},
+      {value: [expect.any(String), 750]},
     ]);
     expect(mappedSeries.chartSubLabels).toEqual([
       {
