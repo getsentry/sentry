@@ -13,6 +13,7 @@ import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {METRIC_DETECTOR_FORM_FIELDS} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
+import {DEFAULT_EQUATION_LABEL} from 'sentry/views/explore/metrics/constants';
 import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
 import {
   extractReferenceLabels,
@@ -385,7 +386,9 @@ function MetricToolbar({
         name="metricAggregateRow"
         checked={isSelected}
         onChange={() =>
-          onRowSelection(isVisualizeEquation(visualize) ? getEquationLabel() : queryLabel)
+          onRowSelection(
+            isVisualizeEquation(visualize) ? DEFAULT_EQUATION_LABEL : queryLabel
+          )
         }
         aria-label={t('Use row %s as the alert aggregate', queryLabel)}
         disabled={isVisualizeFunction(visualize) && traceMetric.name === ''}
