@@ -24,7 +24,7 @@ export function ProjectAvatar({
         // `platform` is a user selectable option that is performed during the onboarding process. The reason why this
         // is not the default is because there currently is no way to update it. Fallback to this if project does not
         // have recent events with a platform.
-        platforms={project.platform ? [project.platform] : []}
+        platforms={project?.platform ? [project.platform] : []}
         {...props}
         ref={ref}
         max={1}

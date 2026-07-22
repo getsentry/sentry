@@ -23,7 +23,7 @@ type Props = Omit<Partial<ResultGridProps>, 'endpoint'> &
 const getRow = (row: Subscription) => [
   <td key="customer">
     <CustomerName>
-      <OrganizationAvatar size={36} organization={row} />
+      <OrganizationAvatar size={36} organization={row as any} />
       <div>
         <strong>
           <Link to={`/_admin/customers/${row.slug}/`}>{row.name}</Link>

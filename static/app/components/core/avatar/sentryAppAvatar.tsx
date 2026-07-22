@@ -21,7 +21,7 @@ export function SentryAppAvatar({
   isDefault = false,
   ...props
 }: SentryAppAvatarProps) {
-  const avatarDetails = sentryApp.avatars?.find(({color}) => color === isColor);
+  const avatarDetails = sentryApp?.avatars?.find(({color}) => color === isColor);
 
   // Render the default if the prop is provided, there is no existing avatar, or it has been reverted to 'default'
   if (isDefault || avatarDetails?.avatarType === 'default') {
