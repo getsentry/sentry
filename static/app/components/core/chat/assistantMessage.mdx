@@ -1,0 +1,51 @@
+---
+title: AssistantMessage
+description: The content region for an agent's response in a conversation.
+category: chat
+source: '@sentry/scraps/chat'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/assistantMessage.tsx
+---
+
+import {AssistantMessage, MessageRow, UserBubble} from '@sentry/scraps/chat';
+import {Stack} from '@sentry/scraps/layout';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/chat/assistantMessage');
+
+The `AssistantMessage` renders the content region for an agent's response.
+Unlike the sender's own messages — which are bubbled with `UserBubble` — an
+agent response is not bubbled: it renders as full-width, left-aligned content so
+rich output like markdown, tables, and code reads naturally.
+
+## Usage
+
+Shown here in a conversation for context; on its own it is just the agent's
+content region.
+
+<Storybook.Demo align="stretch">
+  <Stack width="100%">
+    <MessageRow from="user">
+      <UserBubble>How many errors happened in the last 24 hours?</UserBubble>
+    </MessageRow>
+    <MessageRow from="assistant">
+      <AssistantMessage>
+        There were 1,204 errors in the last 24 hours — a 32% jump from the previous day,
+        mostly TypeErrors from the checkout flow. The spike began around 2pm UTC and has
+        been trending down since the latest deploy.
+      </AssistantMessage>
+    </MessageRow>
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<AssistantMessage>
+  There were 1,204 errors in the last 24 hours — a 32% jump from the previous day, mostly
+  TypeErrors from the checkout flow. The spike began around 2pm UTC and has been trending
+  down since the latest deploy.
+</AssistantMessage>
+```
+
+Wide block content (tables, code) is kept from forcing the row wider, so it
+scrolls within the region instead of overflowing the conversation.

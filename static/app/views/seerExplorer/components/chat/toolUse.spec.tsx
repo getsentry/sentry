@@ -109,7 +109,7 @@ describe('ToolUseBlock', () => {
   it('does not render action bar', () => {
     render(<BlockComponent block={createBlock()} blockIndex={0} runId={123} />);
     expect(
-      screen.queryByRole('button', {name: 'Feedback Thumbs Up'})
+      screen.queryByRole('button', {name: 'I like this response'})
     ).not.toBeInTheDocument();
   });
 });
