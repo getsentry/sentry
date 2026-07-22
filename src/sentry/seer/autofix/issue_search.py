@@ -36,6 +36,7 @@ def _merged_pr_q(projects: Sequence[Project]) -> Q:
         SeerAgentRun.objects.filter(
             project_id__in=[p.id for p in projects],
             group_id__isnull=False,
+            source="autofix",
         )
         .order_by("group_id", "-id")
         .distinct("group_id")

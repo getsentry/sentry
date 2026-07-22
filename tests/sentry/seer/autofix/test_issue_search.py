@@ -78,6 +78,15 @@ class AutofixStateFilterTest(TestCase):
         assert self._matching_group_ids(["merged"]) == set()
         assert self._matching_group_ids(["review_pr"]) == {self.group1.id}
 
+    def test_merged_ignores_non_autofix_runs(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
+        self._create_merged_pr_run(self.group1)
+        chat_run = self.create_seer_run(organization=self.organization)
+        self.create_seer_agent_run(chat_run, source="chat", project=self.project, group=self.group1)
+
+        assert self._matching_group_ids(["merged"]) == {self.group1.id}
+        assert self._matching_group_ids(["review_pr"]) == set()
+
     def test_needs_investigation_recency(self) -> None:
         self.group1.update(seer_explorer_autofix_last_triggered=timezone.now() - timedelta(days=1))
         self.group2.update(seer_explorer_autofix_last_triggered=timezone.now() - timedelta(days=45))
