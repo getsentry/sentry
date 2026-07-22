@@ -924,6 +924,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.models.counter",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
+    "sentry.notifications.notifications.organization_request",
     "sentry.notifications.platform.service",
     "sentry.notifications.utils.tasks",
     "sentry.preprod.size_analysis.tasks",
