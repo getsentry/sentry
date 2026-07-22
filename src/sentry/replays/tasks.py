@@ -27,7 +27,7 @@ from sentry.replays.usecases.ingest.types import ProcessorContext
 from sentry.replays.usecases.reader import fetch_segments_metadata
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import replays_raw_tasks, replays_tasks
+from sentry.taskworker.namespaces import replays_long_tasks, replays_raw_tasks, replays_tasks
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
@@ -192,7 +192,7 @@ def _delete_if_exists(filename: str) -> None:
 
 @instrumented_task(
     name="sentry.replays.tasks.run_bulk_replay_delete_job",
-    namespace=replays_tasks,
+    namespace=replays_long_tasks,
     retry=Retry(times=5),
     processing_deadline_duration=300,
     silo_mode=SiloMode.CELL,
