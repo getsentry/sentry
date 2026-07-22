@@ -829,7 +829,7 @@ def deliver_feature_result(
         )
         return
 
-    handler(organization_id, run_uuid, status, result, error)
+    handler(organization_id, uuid.UUID(run_uuid), status, result, error)
 
 
 def get_monitoring_provider_connections(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, Protocol
+from uuid import UUID
 
 from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.night_shift.delivery import deliver_night_shift_result
@@ -15,7 +16,7 @@ class FeatureDeliveryFn(Protocol):
     def __call__(
         self,
         organization_id: int,
-        run_uuid: str,
+        run_uuid: UUID,
         status: FeatureRunStatus,
         result: dict[str, Any] | None,
         error: str | None,

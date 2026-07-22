@@ -1,5 +1,6 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
+from uuid import UUID
 
 from django.utils import timezone
 
@@ -42,7 +43,7 @@ class DeliverSmartAssignmentResultTest(TestCase):
         error: str | None = None,
     ) -> None:
         deliver_smart_assignment_result(
-            self.organization.id, str(self.seer_run.uuid), status, result, error
+            self.organization.id, self.seer_run.uuid, status, result, error
         )
 
     def _assert_outcome(self, mock_metrics: MagicMock, expected: str) -> None:
@@ -137,7 +138,7 @@ class DeliverSmartAssignmentResultTest(TestCase):
         # Unknown run uuid: should not raise.
         deliver_smart_assignment_result(
             self.organization.id,
-            "00000000-0000-0000-0000-000000000000",
+            UUID("00000000-0000-0000-0000-000000000000"),
             "completed",
             {"candidates": []},
             None,

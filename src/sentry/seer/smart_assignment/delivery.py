@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from uuid import UUID
 
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -54,7 +55,7 @@ def _resolve_identifier_to_user_id(
 
 def deliver_smart_assignment_result(
     organization_id: int,
-    run_uuid: str,
+    run_uuid: UUID,
     status: FeatureRunStatus,
     result: dict[str, Any] | None,
     error: str | None,
@@ -151,7 +152,7 @@ def deliver_smart_assignment_result(
         ActivityType.SMART_ASSIGNMENT_COMPLETED,
         data={
             "run_id": agent_run.run_id,
-            "run_uuid": run_uuid,
+            "run_uuid": str(run_uuid),
             "predicted_assignee_user_ids": predicted_assignee_user_ids,
         },
         send_notification=False,
