@@ -656,19 +656,11 @@ function LogRowDetails({
   meta: EventsMetaType | undefined;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
 }) {
-  // Report the details panel's height to the virtualizer whenever it changes.
-  // The panel loads asynchronously and can resize after mount, so a
-  // ResizeObserver (rather than a one-shot measurement) is required to keep the
-  // stored height accurate; otherwise the virtualizer keeps a stale estimate
-  // and the scroll range desyncs.
   const measureRef = useCallback(
     (node: HTMLTableRowElement | null) => {
       if (!node || !onExpandHeight) {
         return;
       }
-      // offsetHeight (not clientHeight) so the panel's top/bottom borders are
-      // included — the virtualizer's item size must match the space the row
-      // actually occupies.
       const report = () => onExpandHeight(expansionKey, node.offsetHeight);
       report();
       const observer = new ResizeObserver(report);
