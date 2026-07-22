@@ -633,9 +633,12 @@ export function generateQueryTokensString(
   }
 
   if (args?.sort && args.sort.length > 0) {
-    const sortText =
-      args?.sort[0] === '-' ? `${args?.sort.slice(1)} Desc` : `${args?.sort} Asc`;
-    parts.push(`sort is '${sortText}'`);
+    const descending = args?.sort[0] === '-';
+    let rawSort = descending ? args?.sort.slice(1) : args?.sort;
+    rawSort = isEquation(rawSort) ? stripEquationPrefix(rawSort) : rawSort;
+    const formattedSort = descending ? `${rawSort} Desc` : `${rawSort} Asc`;
+
+    parts.push(`sort is '${formattedSort}'`);
   }
 
   if (projectIds && projectIds.length > 0) {
