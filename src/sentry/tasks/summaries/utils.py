@@ -474,7 +474,7 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
     return data
 
 
-_ISSUE_SUMMARY_BATCH_SIZE = 50
+ISSUE_SUMMARY_BATCH_SIZE = 50
 
 
 def organization_project_issue_summaries(
@@ -486,8 +486,8 @@ def organization_project_issue_summaries(
     """
     project_ids = list(ctx.projects_context_map.keys())
     results: list[dict[str, Any]] = []
-    for i in range(0, len(project_ids), _ISSUE_SUMMARY_BATCH_SIZE):
-        batch = project_ids[i : i + _ISSUE_SUMMARY_BATCH_SIZE]
+    for i in range(0, len(project_ids), ISSUE_SUMMARY_BATCH_SIZE):
+        batch = project_ids[i : i + ISSUE_SUMMARY_BATCH_SIZE]
         results.extend(
             Group.objects.filter(
                 project_id__in=batch,
