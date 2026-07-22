@@ -117,7 +117,10 @@ export function syncEquationMetricQueries(
 
           return field.replace({
             yAxis: `${EQUATION_PREFIX}${resolvedExpression.text}`,
-            internalExpression: visualize.internalExpression,
+            internalExpression: unresolveExpression(
+              resolvedExpression.text,
+              nextReferenceMap
+            ),
           });
         }),
       }),

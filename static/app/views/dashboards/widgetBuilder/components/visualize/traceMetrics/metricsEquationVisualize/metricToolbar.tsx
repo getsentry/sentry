@@ -21,7 +21,7 @@ import {DeleteMetricButton} from 'sentry/views/explore/metrics/metricToolbar/del
 import {Filter} from 'sentry/views/explore/metrics/metricToolbar/filter';
 import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
 import {VisualizeLabel} from 'sentry/views/explore/metrics/metricToolbar/visualizeLabel';
-import {EQUATION_LABEL} from 'sentry/views/explore/metrics/parseAggregateExpression';
+import {getEquationLabel} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
@@ -84,7 +84,7 @@ export function MetricToolbar({
         <Radio
           name="metricAggregateRow"
           checked={isSelected}
-          onChange={() => onRowSelection(isEquation ? EQUATION_LABEL : label)}
+          onChange={() => onRowSelection(isEquation ? getEquationLabel() : label)}
           aria-label={t('Use row %s as the widget aggregate', label)}
           disabled={isFunction && traceMetric.name === ''}
         />
