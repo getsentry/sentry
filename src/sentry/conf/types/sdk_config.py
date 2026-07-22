@@ -34,6 +34,7 @@ class SdkConfig(TypedDict):
     enable_db_query_source: NotRequired[bool]
     enable_http_request_source: NotRequired[bool]
     db_query_source_threshold_ms: NotRequired[int]
+    _experiments: NotRequired[Any]  # TODO
 
 
 class ServerSdkConfig(SdkConfig):

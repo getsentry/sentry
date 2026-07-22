@@ -218,6 +218,7 @@ def traces_sampler(sampling_context):
     # Default to the sampling rate in settings
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
+
 def profiles_sampler(sampling_context):
     PROFILES_SAMPLING_RATE = {
         "consumer.join": options.get("consumer.join.profiling.rate"),
@@ -336,6 +337,9 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options["before_send_log"] = before_send_log
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
+    )
+    sdk_options.setdefault("_experiments", {}).update(
+        transport_http2=options.get("sdk_http2_experiment.enabled"),
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
