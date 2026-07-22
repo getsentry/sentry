@@ -403,16 +403,20 @@ export function hasUnsavedFilterChanges(
   // When the user isn't a member of any project (e.g. they're not on any team)
   // but the org has projects they can access, the page filters force
   // `project=-1` (ALL_ACCESS_PROJECTS) into the URL as a default (see
-  // `initializeUrlState`). That forced default is equivalent to a dashboard's
-  // "My Projects" (empty) saved filter, so don't treat it as an unsaved change.
-  // The user can still save an explicit project selection, since that produces
-  // real project ids in the URL rather than the forced sentinel.
+  // `initializeUrlState`). That default is only injected when there's no
+  // explicit selection, so it only collides with a dashboard whose saved
+  // project filter is empty ("My Projects"). In that case, treat the forced
+  // `-1` as equivalent to the empty saved filter so it isn't seen as an
+  // unsaved change. This is scoped to an empty saved filter on purpose: a
+  // dashboard with a real saved selection switched to All Projects is a
+  // genuine change and should still enable saving.
   if (
     userHasNoMemberProjects &&
+    savedFilters.projects?.size === 0 &&
     currentFilters.projects?.size === 1 &&
     currentFilters.projects.has(ALL_ACCESS_PROJECTS)
   ) {
-    currentFilters.projects = new Set(savedFilters.projects);
+    currentFilters.projects = new Set();
   }
 
   if (defined(location.query?.release)) {

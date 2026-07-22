@@ -342,6 +342,23 @@ describe('Dashboards util', () => {
       expect(hasUnsavedFilterChanges(initialDashboard, location, true)).toBe(true);
     });
 
+    it('reports switching a saved project selection to All Projects as a change', () => {
+      const initialDashboard = {
+        projects: [5],
+      } as unknown as DashboardDetails;
+      const location = {
+        ...LocationFixture(),
+        query: {
+          project: '-1',
+        },
+      };
+
+      // A dashboard with a real saved project filter switched to All Projects is
+      // a genuine change, even for a user with no member projects. The forced
+      // `-1` default only collides with an empty ("My Projects") saved filter.
+      expect(hasUnsavedFilterChanges(initialDashboard, location, true)).toBe(true);
+    });
+
     it('still reports other filter changes for a user with no member projects', () => {
       const initialDashboard = {
         projects: [],
