@@ -227,6 +227,7 @@ class SeerAutofixOperator[CachePayloadT]:
                             group,
                             ActivityType.TRIGGER_AUTOFIX,
                             user_id=user.id,
+                            data={"referrer": AutofixReferrer.SLACK.value},
                             send_notification=False,
                         )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:

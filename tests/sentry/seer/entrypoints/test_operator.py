@@ -164,11 +164,13 @@ class SeerOperatorTest(TestCase):
 
         activity = Activity.objects.get(group=self.group, type=ActivityType.TRIGGER_AUTOFIX.value)
         assert activity.user_id == self.user.id
+        assert activity.data == {"referrer": AutofixReferrer.SLACK.value}
         action_log.assert_logged(
             TriggerAutofixAction,
             group_id=self.group.id,
             source=ActionSource.SLACK,
             actor=GroupActionActor.user(self.user.id),
+            referrer=AutofixReferrer.SLACK.value,
         )
 
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
