@@ -17,11 +17,13 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             type=GroupActionType.TRIGGER_AUTOFIX,
             actor_type=GroupActorType.USER,
             actor_id=user.id,
+            data={"referrer": "slack"},
         )
 
         result = serialize(entry, user)
 
         assert result["type"] == "trigger_autofix"
+        assert result["data"] == {"referrer": "slack"}
 
     def test_pull_request_entry(self) -> None:
         self.org = self.create_organization(name="Rowdy Tiger")
