@@ -216,6 +216,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             private=True,
         ),
         ResolvedAttribute(
+            public_alias="trace_lifecycle",
+            internal_name="sentry.trace_lifecycle",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="ai.total_tokens.used",
             internal_name="ai_total_tokens_used",
             search_type="integer",
