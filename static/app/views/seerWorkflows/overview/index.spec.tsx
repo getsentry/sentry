@@ -744,6 +744,27 @@ describe('AutofixOverview', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('surfaces a per-section error while other sections still load', async () => {
+    // Only the code-changes bucket fails; the others resolve as seeded.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      match: [MockApiClient.matchQuery({query: SECTION_QUERIES.code_changes_ready})],
+      statusCode: 500,
+      body: {detail: 'boom'},
+    });
+
+    renderPage();
+
+    // The review bucket still renders its card…
+    expect(
+      await screen.findByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).toBeInTheDocument();
+    // …while the failed section shows a retryable error inline.
+    expect(await screen.findByText('There was an error loading data.')).toBeInTheDocument();
+  });
+
   it('renders an error state only when every section fails', async () => {
     // An unmatched mock is newest, so it answers all five section requests.
     MockApiClient.addMockResponse({

@@ -32,6 +32,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {DEFAULT_STATS_PERIOD, PERIOD_FILTER_OPTIONS} from './periods';
 import {SectionIssueCard} from './sectionIssueCard';
 import {STATUS_GROUP_META, StatusGroupTooltip, type StatusGroupKey} from './statusGroups';
 import {
@@ -48,13 +49,6 @@ const SORT_OPTIONS: Array<{label: string; value: SortValue}> = [
   {value: 'events', label: t('Most events')},
 ];
 
-const PERIOD_FILTER_OPTIONS: Array<{label: string; value: string}> = [
-  {value: '', label: t('All time')},
-  {value: '24h', label: t('Last 24 hours')},
-  {value: '7d', label: t('Last 7 days')},
-  {value: '30d', label: t('Last 30 days')},
-];
-
 export default function AutofixOverview() {
   const organization = useOrganization();
   const location = useLocation();
@@ -64,7 +58,7 @@ export default function AutofixOverview() {
   // fully expanded, fetched by group id so it resolves even outside the
   // list's filters.
   const selectedId = decodeScalar(location.query.id);
-  const period = decodeScalar(location.query.period);
+  const period = decodeScalar(location.query.period) ?? DEFAULT_STATS_PERIOD;
   // Legacy ?sort=triage (and anything unknown) decodes to the default.
   const sort = decodeScalar(location.query.sort) === 'events' ? 'events' : 'activity';
 
@@ -77,13 +71,13 @@ export default function AutofixOverview() {
     enabled: pageFiltersReady && !selectedId,
     projects: selection.projects,
     sort: sort === 'events' ? 'freq' : 'date',
-    statsPeriod: period || '90d',
+    statsPeriod: period,
   });
 
   const pinnedIssueQuery = useQuery({
     ...apiOptions.as<OverviewIssue[]>()('/organizations/$organizationIdOrSlug/issues/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {group: [selectedId ?? ''], project: -1},
+      query: {group: [selectedId ?? ''], project: -1, statsPeriod: period},
       staleTime: 30_000,
     }),
     enabled: Boolean(selectedId),
@@ -166,12 +160,14 @@ export default function AutofixOverview() {
                     <ProjectPageFilter />
                   </PageFilterBar>
                   <CompactSelect
-                    value={period ?? ''}
+                    value={period}
                     options={PERIOD_FILTER_OPTIONS}
                     onChange={selected =>
                       updateQuery({
                         period:
-                          selected.value === '' ? undefined : String(selected.value),
+                          selected.value === DEFAULT_STATS_PERIOD
+                            ? undefined
+                            : String(selected.value),
                       })
                     }
                     trigger={triggerProps => (
@@ -264,6 +260,7 @@ export default function AutofixOverview() {
                       issue={issue}
                       orgSlug={organization.slug}
                       view="cards"
+                      statsPeriod={period}
                       defaultExpanded
                       lazy={false}
                     />
@@ -309,7 +306,9 @@ export default function AutofixOverview() {
                         </Disclosure.Title>
                       </GroupHeader>
                       <Disclosure.Content>
-                        {section.isPending ? (
+                        {section.isError ? (
+                          <LoadingError onRetry={section.refetch} />
+                        ) : section.isPending ? (
                           <LoadingIndicator />
                         ) : section.issues.length === 0 ? (
                           <Container padding="md">
@@ -325,6 +324,7 @@ export default function AutofixOverview() {
                                 issue={issue}
                                 orgSlug={organization.slug}
                                 view={view}
+                                statsPeriod={period}
                                 isLast={index === section.issues.length - 1}
                               />
                             ))}

@@ -66,6 +66,9 @@ export interface OverviewRow {
   shortId: string;
   // Whether the per-issue autofix state request is still in flight.
   statePending: boolean;
+  // The stats period the event/user counts were fetched over; labels the
+  // count tooltip so it matches the active period filter.
+  statsPeriod: string;
   title: string;
   userCount: number;
   // Plain-language title from the run's root-cause answer (see runQuestions).

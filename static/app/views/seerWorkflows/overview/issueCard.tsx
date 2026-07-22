@@ -26,6 +26,7 @@ import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
 import {ATTENTION_META, AttentionBadge, getAttentionReason} from './attentionBadge';
+import {periodWindowLabel} from './periods';
 import {TriggerBadge} from './triggerBadge';
 import type {OverviewRow, PatchStats} from './types';
 
@@ -184,11 +185,16 @@ export function IssueCard({
                 title={
                   row.userCount > 0
                     ? t(
-                        '%s events and %s affected users in the last 90 days',
+                        '%s events and %s affected users %s',
                         row.eventCount.toLocaleString(),
-                        row.userCount.toLocaleString()
+                        row.userCount.toLocaleString(),
+                        periodWindowLabel(row.statsPeriod)
                       )
-                    : t('%s events in the last 90 days', row.eventCount.toLocaleString())
+                    : t(
+                        '%s events %s',
+                        row.eventCount.toLocaleString(),
+                        periodWindowLabel(row.statsPeriod)
+                      )
                 }
                 size="sm"
                 variant="muted"
@@ -223,6 +229,12 @@ export function IssueCard({
                 {/* Contained like its Tag/button neighbors so the diff size
                       doesn't read as floating text */}
                 <Container
+                  tabIndex={0}
+                  aria-label={tn(
+                    '%s file changed',
+                    '%s files changed',
+                    row.patchStats.files
+                  )}
                   border="muted"
                   radius="sm"
                   background="secondary"

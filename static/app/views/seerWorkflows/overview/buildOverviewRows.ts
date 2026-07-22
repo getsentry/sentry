@@ -237,11 +237,22 @@ export interface OverviewRunData {
   source?: string | null;
 }
 
+function mostRecentTimestamp(...candidates: Array<string | null | undefined>): string {
+  let latest = '';
+  for (const candidate of candidates) {
+    if (candidate && candidate > latest) {
+      latest = candidate;
+    }
+  }
+  return latest;
+}
+
 export function buildOverviewRow(
   issue: OverviewIssue,
   run: OverviewRunData | null,
   state: ExplorerAutofixState | null,
-  statePending: boolean
+  statePending: boolean,
+  statsPeriod: string
 ): OverviewRow {
   const eventCount = Number(issue.count);
   const {entries: analysis, headline} = buildAnalysis(run?.outputs);
@@ -255,11 +266,13 @@ export function buildOverviewRow(
     project: issue.project,
     eventCount: Number.isFinite(eventCount) ? eventCount : 0,
     userCount: issue.userCount,
-    lastActivityAt:
-      state?.updated_at ??
-      run?.lastTriggeredAt ??
-      issue.seerAutofixLastTriggered ??
-      issue.lastSeen,
+    statsPeriod,
+    lastActivityAt: mostRecentTimestamp(
+      state?.updated_at,
+      run?.lastTriggeredAt,
+      issue.seerAutofixLastTriggered,
+      issue.lastSeen
+    ),
     autofixRunStatus: deriveRunStatus(state),
     prMerged: (run?.pullRequests ?? []).some(pr => pr.status === 'merged'),
     isProcessing: state?.status === 'processing',

@@ -63,16 +63,18 @@ function HydratedCard({
   issue,
   orgSlug,
   view,
+  statsPeriod,
   isLast,
 }: {
   issue: OverviewIssue;
   orgSlug: string;
+  statsPeriod: string;
   view: 'cards' | 'table';
   defaultExpanded?: boolean;
   isLast?: boolean;
 }) {
   const {run, state, statePending} = useIssueCardContent(issue.id);
-  const row = buildOverviewRow(issue, run, state, statePending);
+  const row = buildOverviewRow(issue, run, state, statePending, statsPeriod);
 
   return view === 'cards' ? (
     <IssueCard row={row} orgSlug={orgSlug} defaultExpanded={defaultExpanded} />
@@ -87,6 +89,7 @@ export function SectionIssueCard({
 }: {
   issue: OverviewIssue;
   orgSlug: string;
+  statsPeriod: string;
   view: 'cards' | 'table';
   defaultExpanded?: boolean;
   isLast?: boolean;
