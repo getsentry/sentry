@@ -22,9 +22,12 @@ from sentry.pr_metrics.emit import (
     _activity_derived_metrics,
     active_attributions,
     build_pr_metrics_row,
+    calculate_deterministic_diagnosis_labels,
+    ci_failed_at_open,
     ci_failing_at_close,
     emit_pr_metrics_row,
     is_pr_tracked,
+    no_ci_events,
     resolve_autofix_referrers,
     review_activity,
     select_fallback_verdict,
@@ -172,6 +175,16 @@ class PrMetricsEmissionTest(TestCase):
             webhook_id=webhook_id,
             event_type=PullRequestActivityType.REVIEW_SUBMITTED,
             payload={"review_state": review_state},
+        )
+
+    def _add_check_run(
+        self, *, app_slug: str = "github-actions", conclusion: str = "success", webhook_id: str
+    ) -> None:
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id=webhook_id,
+            event_type=PullRequestActivityType.CHECK_RUN_COMPLETED,
+            payload={"conclusion": conclusion, "app_slug": app_slug, "check_name": "test"},
         )
 
     def test_select_verdict_merged_without_later_commits_is_unchanged(self) -> None:
@@ -345,6 +358,98 @@ class PrMetricsEmissionTest(TestCase):
             "changes_requested": 0,
             "commented": 0,
         }
+
+    # --- ci_failed_at_open --------------------------------------------------
+
+    def test_ci_failed_at_open_no_check_activity_is_false(self) -> None:
+        assert ci_failed_at_open(self.pull_request) is False
+
+    def test_ci_failed_at_open_all_success_is_false(self) -> None:
+        self._add_check_suite(conclusion="success", webhook_id="check-1")
+        assert ci_failed_at_open(self.pull_request) is False
+
+    def test_ci_failed_at_open_failure_before_any_push_is_true(self) -> None:
+        # No SYNCHRONIZED row at all, so every recorded check belongs to the
+        # opening head — legacy-store approximation.
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        assert ci_failed_at_open(self.pull_request) is True
+
+    def test_ci_failed_at_open_failure_after_a_push_is_false(self) -> None:
+        # The failing check arrived after the first push, so it can't belong to
+        # the opening head under the legacy-store "before first sync" rule.
+        self._add_synchronize()
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        assert ci_failed_at_open(self.pull_request) is False
+
+    def test_ci_failed_at_open_failure_before_a_later_push_is_true(self) -> None:
+        # The failing check landed before the push — it's the opening head's,
+        # even though the PR went on to iterate afterward.
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        self._add_synchronize()
+        assert ci_failed_at_open(self.pull_request) is True
+
+    def test_ci_failed_at_open_check_run_alone_does_not_count(self) -> None:
+        # Suite-only read, same narrow signal as ci_failing_at_close: a
+        # check_run-only app with no suite event doesn't count.
+        self._add_check_run(conclusion="failure", webhook_id="run-1")
+        assert ci_failed_at_open(self.pull_request) is False
+
+    def test_ci_failed_at_open_rerun_success_after_failure_is_false(self) -> None:
+        self._add_check_suite(app_slug="github-actions", conclusion="failure", webhook_id="check-1")
+        self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-2")
+        assert ci_failed_at_open(self.pull_request) is False
+
+    # --- no_ci_events --------------------------------------------------------
+
+    def test_no_ci_events_true_when_no_checks_recorded(self) -> None:
+        assert no_ci_events(self.pull_request) is True
+
+    def test_no_ci_events_false_with_check_suite(self) -> None:
+        self._add_check_suite(conclusion="success", webhook_id="check-1")
+        assert no_ci_events(self.pull_request) is False
+
+    def test_no_ci_events_false_with_check_run(self) -> None:
+        self._add_check_run(conclusion="success", webhook_id="run-1")
+        assert no_ci_events(self.pull_request) is False
+
+    def test_no_ci_events_false_even_when_checks_only_follow_a_later_push(self) -> None:
+        # Scoped to the whole PR, unlike ci_failed_at_open: CI activity recorded
+        # only against a later push still counts as "CI reported in".
+        self._add_synchronize()
+        self._add_check_suite(conclusion="success", webhook_id="check-1")
+        assert no_ci_events(self.pull_request) is False
+
+    # --- calculate_deterministic_diagnosis_labels ----------------------------
+
+    def test_calculate_deterministic_diagnosis_labels_no_ci_events(self) -> None:
+        assert calculate_deterministic_diagnosis_labels(
+            self.pull_request, PullRequestVerdict.CLOSED_UNMERGED
+        ) == ["no_ci_events"]
+
+    def test_calculate_deterministic_diagnosis_labels_closed_unmerged_with_ci_failure(self) -> None:
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        assert calculate_deterministic_diagnosis_labels(
+            self.pull_request, PullRequestVerdict.CLOSED_UNMERGED
+        ) == ["ci_failing_at_close", "ci_failed_at_open"]
+
+    def test_calculate_deterministic_diagnosis_labels_merged_with_ci_failure_at_open_only(
+        self,
+    ) -> None:
+        # ci_failing_at_close is scoped to CLOSED_UNMERGED, but ci_failed_at_open
+        # applies to a merge too.
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        assert calculate_deterministic_diagnosis_labels(
+            self.pull_request, PullRequestVerdict.MERGED_UNCHANGED
+        ) == ["ci_failed_at_open"]
+
+    def test_calculate_deterministic_diagnosis_labels_all_green_is_none(self) -> None:
+        self._add_check_suite(conclusion="success", webhook_id="check-1")
+        assert (
+            calculate_deterministic_diagnosis_labels(
+                self.pull_request, PullRequestVerdict.CLOSED_UNMERGED
+            )
+            is None
+        )
 
     def test_select_fallback_verdict_merged_without_later_commits_is_unchanged(self) -> None:
         assert select_fallback_verdict(self.pull_request) == PullRequestVerdict.MERGED_UNCHANGED

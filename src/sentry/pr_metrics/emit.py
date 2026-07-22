@@ -8,7 +8,7 @@ production). A PR is "tracked" once it has at least one valid
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from enum import Enum
 from typing import Any, NamedTuple, cast
 
@@ -217,20 +217,55 @@ CI_FAILING_AT_CLOSE = "ci_failing_at_close"
 # Diagnosis label for the stale-detection path. See detect_stale_pull_requests_task.
 NO_REVIEWER_ENGAGEMENT = "no_reviewer_engagement"
 
+# Whether any CI provider's check suite was already failing at the PR's opening
+# head, computed for every emitted verdict (not just CLOSED_UNMERGED) — unlike
+# CI_FAILING_AT_CLOSE, this doesn't require "no commits after open" to be
+# meaningful, since it only ever looks at the opening head's own checks.
+CI_FAILED_AT_OPEN = "ci_failed_at_open"
+
+# No CI check activity of any kind (check_suite or check_run) was ever recorded
+# for this PR — a distinct signal from "CI failed": there's nothing to diagnose
+# because CI never reported in, e.g. no CI configured on the repo, or the org
+# doesn't have check-event webhooks wired up.
+NO_CI_EVENTS = "no_ci_events"
+
 # Conclusions that unambiguously mean the check errored out, as opposed to
 # cancelled/skipped/stale (never ran to completion, not a failure verdict),
 # neutral (a soft pass), or action_required (blocked on approval, not broken).
 _FAILING_CHECK_CONCLUSIONS = frozenset({"failure", "timed_out", "startup_failure"})
 
 
+def _any_group_failing(groups: Iterable[activity_doc.CheckGroup]) -> bool:
+    """Whether any check-suite group's latest conclusion is a failure.
+
+    Shared by every doc-store reader over the checks rollup: each group already
+    keeps the latest suite conclusion (a rerun with no new push overwrites the
+    earlier one), so this is just the narrow-vocabulary failing check.
+    """
+    return any(group.get("suite_conclusion") in _FAILING_CHECK_CONCLUSIONS for group in groups)
+
+
+def _any_app_failing(rows: Iterable[tuple[str, str]]) -> bool:
+    """Whether any app's latest conclusion, from ``(app_slug, conclusion)`` rows
+    in arrival order, is a failure.
+
+    Shared by every legacy-store reader over ``CHECK_SUITE_COMPLETED`` rows:
+    ``dict()`` keeps the last entry per key, i.e. each app's latest conclusion,
+    so a rerun with no new push (superseding an earlier failure) is handled the
+    same way as the doc-store rollup.
+    """
+    latest_conclusion_by_app: dict[str, str] = dict(rows)
+    return any(
+        conclusion in _FAILING_CHECK_CONCLUSIONS for conclusion in latest_conclusion_by_app.values()
+    )
+
+
 def ci_failing_at_close(pull_request: PullRequest) -> bool:
     """Whether any CI provider's check suite was failing when the PR closed.
 
-    Reads ``CHECK_SUITE_COMPLETED`` activity rows — the aggregate "was CI green
-    or red" signal per provider app (``app_slug``), per ``CheckSuiteCompletedPayload``
-    — keeping only the latest completion per app: a check suite can be rerun with
-    no new push (no ``SYNCHRONIZED`` row), so an earlier failure superseded by a
-    passing rerun shouldn't count.
+    Reads ``CHECK_SUITE_COMPLETED`` activity — the aggregate "was CI green or
+    red" signal per provider app (``app_slug``) — keeping only the latest
+    completion per app.
 
     Only meaningful for ``select_verdict``'s deterministic ``CLOSED_UNMERGED``
     outcome: that path is reached only when there were no commits after open, so
@@ -239,15 +274,9 @@ def ci_failing_at_close(pull_request: PullRequest) -> bool:
     """
     doc = load_activity_document(pull_request)
     if doc is not None:
-        # The rollup already keeps the latest suite conclusion per (head_sha,
-        # app_slug); on the CLOSED_UNMERGED path there's a single head, so this is
-        # each app's latest suite. Same narrow failing vocabulary and suite-only
-        # read as the legacy path (a check_run-only app has no suite conclusion and
-        # doesn't count, matching the legacy CHECK_SUITE-row read).
-        return any(
-            group.get("suite_conclusion") in _FAILING_CHECK_CONCLUSIONS
-            for group in doc.get("checks", {}).values()
-        )
+        # Same narrow failing vocabulary and suite-only read as the legacy path
+        # (a check_run-only app has no suite conclusion and doesn't count).
+        return _any_group_failing(doc.get("checks", {}).values())
 
     rows = (
         PullRequestActivity.objects.filter(
@@ -256,11 +285,95 @@ def ci_failing_at_close(pull_request: PullRequest) -> bool:
         .order_by("date_added", "id")
         .values_list("payload__app_slug", "payload__conclusion")
     )
-    # dict() keeps the last entry per key, i.e. each app's latest conclusion.
-    latest_conclusion_by_app: dict[str, str] = dict(rows)
-    return any(
-        conclusion in _FAILING_CHECK_CONCLUSIONS for conclusion in latest_conclusion_by_app.values()
+    return _any_app_failing(rows)
+
+
+def _opened_head_sha_from_doc(doc: activity_doc.ActivityDoc) -> str | None:
+    """The head SHA the PR opened with, read off its ``OPENED`` lifecycle entry.
+
+    ``OpenedPayload.head_sha`` round-trips into the entry's stored payload
+    unchanged (it isn't a check/comment family event, so ``apply_activity``
+    appends it as-is). Returns ``None`` when there's no ``OPENED`` entry to read
+    it from — e.g. activity tracking was enabled after the PR had already
+    opened — since there's then no reliable "opening head" to key checks off.
+    """
+    for entry in doc.get("events", []):
+        if entry.get("event_type") == PullRequestActivityType.OPENED:
+            head_sha = (entry.get("payload") or {}).get("head_sha")
+            return head_sha or None
+    return None
+
+
+def ci_failed_at_open(pull_request: PullRequest) -> bool:
+    """Whether any CI provider's check suite was already failing at the PR's
+    *opening* head — unlike ``ci_failing_at_close``, meaningful for every
+    verdict (merged or closed, iterated or not), since it only ever looks at
+    checks scoped to the one head the PR opened with.
+
+    Doc store: keyed precisely off the opening head SHA (see
+    ``_opened_head_sha_from_doc``), via the checks rollup's ``(head_sha,
+    app_slug)`` grouping — a later push's checks, recorded under a different
+    head, are correctly excluded.
+
+    Legacy store: the row payload carries no ``head_sha`` at all (see
+    ``CheckSuiteCompletedPayload``), so the opening head's checks are
+    approximated as every ``CHECK_SUITE_COMPLETED`` row that arrived before the
+    PR's first ``SYNCHRONIZED`` row (or all of them, if the PR never had a
+    later push) — everything recorded before the first push can only belong to
+    the one head the PR opened with.
+    """
+    doc = load_activity_document(pull_request)
+    if doc is not None:
+        open_head_sha = _opened_head_sha_from_doc(doc)
+        if open_head_sha is None:
+            return False
+        return _any_group_failing(
+            group
+            for group in doc.get("checks", {}).values()
+            if group.get("head_sha") == open_head_sha
+        )
+
+    first_sync_id = (
+        PullRequestActivity.objects.filter(
+            pull_request=pull_request, event_type=PullRequestActivityType.SYNCHRONIZED
+        )
+        .order_by("id")
+        .values_list("id", flat=True)
+        .first()
     )
+    check_rows = PullRequestActivity.objects.filter(
+        pull_request=pull_request, event_type=PullRequestActivityType.CHECK_SUITE_COMPLETED
+    )
+    if first_sync_id is not None:
+        check_rows = check_rows.filter(id__lt=first_sync_id)
+
+    rows = check_rows.order_by("date_added", "id").values_list(
+        "payload__app_slug", "payload__conclusion"
+    )
+    return _any_app_failing(rows)
+
+
+def no_ci_events(pull_request: PullRequest) -> bool:
+    """Whether the PR has no recorded CI check activity at all, of any kind.
+
+    A distinct signal from a CI failure: there's nothing to diagnose because CI
+    never reported in for this PR (no CI configured on the repo, or the
+    integration doesn't forward check-run/check-suite webhooks) — as opposed to
+    ``ci_failed_at_open``/``ci_failing_at_close``, which need at least one
+    recorded check to say anything. Scoped to the whole PR (any head), not just
+    the opening head, so a PR whose CI only ever reported against a later push
+    still counts as having CI activity.
+    """
+    doc = load_activity_document(pull_request)
+    if doc is not None:
+        return not doc.get("checks")
+    return not PullRequestActivity.objects.filter(
+        pull_request=pull_request,
+        event_type__in=(
+            PullRequestActivityType.CHECK_SUITE_COMPLETED,
+            PullRequestActivityType.CHECK_RUN_COMPLETED,
+        ),
+    ).exists()
 
 
 def review_activity(pull_request: PullRequest) -> ReviewActivity:
@@ -307,12 +420,23 @@ def calculate_deterministic_diagnosis_labels(
     Shared by every caller that settles a verdict without a judge (the cooldown
     task's deterministic path, and the judge-reap reconciliation), so a label
     added here reaches all of them rather than being re-derived ad hoc per
-    caller. Currently just ``CI_FAILING_AT_CLOSE``, but the shape (verdict in,
-    labels out) is meant to grow more deterministic labels over time.
+    caller. The shape (verdict in, labels out) is meant to grow more
+    deterministic labels over time:
+
+    - ``CI_FAILING_AT_CLOSE``: only the deterministic ``CLOSED_UNMERGED`` path
+      (no commits after open, so the close head is the open head).
+    - ``CI_FAILED_AT_OPEN``: every verdict, since it only ever reads checks
+      scoped to the PR's opening head regardless of what happened after.
+    - ``NO_CI_EVENTS``: every verdict, independent of the other two — a PR can
+      lack CI activity entirely no matter how it was settled.
     """
     labels = []
     if verdict == PullRequestVerdict.CLOSED_UNMERGED and ci_failing_at_close(pull_request):
         labels.append(CI_FAILING_AT_CLOSE)
+    if ci_failed_at_open(pull_request):
+        labels.append(CI_FAILED_AT_OPEN)
+    if no_ci_events(pull_request):
+        labels.append(NO_CI_EVENTS)
     return labels or None
 
 
