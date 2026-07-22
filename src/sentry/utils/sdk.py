@@ -518,7 +518,6 @@ def configure_sdk():
                             and isinstance(s4s_sample_rate, float)
                         ):
                             # Maintain accurate extrapolation by incorporating sampling factor.
-
                             relay_envelope.headers = {
                                 **envelope.headers,
                                 "trace": {
