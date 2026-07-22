@@ -252,6 +252,12 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
 )
+register(
+    "auth.email-verification-at-signup.force-in-experiment",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Settings
 register(
@@ -330,13 +336,6 @@ register(
     "merge.killswitch-projects",
     default=[],
     type=Any,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.merge-unmerge.max-group-times-seen",
-    default=0,
-    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -601,6 +600,13 @@ register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Log unfurl payloads for debugging
 register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Frequency of slack nudge blocks on issue alerts (0.0 to 1.0, where 0.3 = 30%)
+register(
+    "slack.nudge-frequency",
+    type=Float,
+    default=0.3,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Slack Staging App
 register("slack-staging.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -658,11 +664,6 @@ register(
     "github-app.fetch-commits.max-compare-commits",
     type=Int,
     default=500,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "github.webhook.mailbox-bucketing.enabled",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -892,6 +893,36 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Agentic triage sort: purpose-built for night shift candidate ranking.
+# Each factor weight defaults to 0.25 (equal weighting across 4 factors).
+# Set a weight to 0 to skip that factor's aggregation entirely.
+register(
+    "snuba.search.agentic-triage.recency-weight",
+    default=0.25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.agentic-triage.severity-weight",
+    default=0.25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.agentic-triage.user-impact-weight",
+    default=0.25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.agentic-triage.event-volume-weight",
+    default=0.25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Lookback window in seconds for Snuba aggregation (default: 2 days).
+register(
+    "snuba.search.agentic-triage.lookback-seconds",
+    default=172800,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
     "snuba.tagstore.cache-tagkeys-rate",
@@ -1026,6 +1057,12 @@ register(
 # TODO: Most of these are not yet being used. The one current exception is the similarity service
 # killswitch, which is checked before calling Seer when potentially creating a  new group as part of
 # ingestion.
+register(
+    "seer.post-process-issue-summary-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "seer.similarity-killswitch.enabled",
     default=False,
@@ -1191,6 +1228,12 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "seer.night_shift.enable_for_legacy_orgs",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "seer.night_shift.issues_per_org",
     default=10,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1210,6 +1253,22 @@ register(
     "seer.night_shift.org_tweaks",
     type=Dict,
     default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Safety ceilings on how many smart-assignment Seer runs we dispatch, on top of
+# the feature flag and per-issue dedup. Rolling 24h windows; set to 0 to pause
+# dispatching entirely. See sentry.seer.smart_assignment.trigger.
+register(
+    "seer.smart_assignment.max_dispatches_per_org_per_day",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.smart_assignment.max_dispatches_per_day",
+    type=Int,
+    default=1500,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2129,6 +2188,18 @@ register(
     "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Lower bound on the per-transaction sample rate produced by transaction rebalancing. When a project
+# has many low-volume transaction classes, the per-class ideal collapses to a near-zero rate and the
+# highest-volume transactions are pushed to a huge extrapolation factor (1 / rate), making their
+# extrapolated volume spiky and the sampling distribution non-ergodic. Flooring the explicit rates at
+# this value caps that factor at 1 / min_sample_rate and reclaims the cost from the implicit (tail)
+# rate. The floor is clamped to the project's overall rate, so it never raises a class above it.
+# 0.0 disables the floor (default), preserving the previous behaviour until rolled out via automator.
+register(
+    "dynamic-sampling.prioritise_transactions.min_sample_rate",
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Stops dynamic sampling rules from being emitted in relay config.
@@ -3772,6 +3843,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Cap on consecutive automated PR iterations (check suites + bot re-reviews);
+# human feedback resets the streak. See ``automated_iteration_cap_reached``.
+register(
+    "autofix.pr-iteration.max-iterations",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics
 register(
     "integrations.slo.integration-id-tag-enabled",
@@ -3846,6 +3926,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rolls out FutureTrackingProducer as the replays eap_items producer
+register(
+    "tasks.producer.replays-eap-items.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rolls out the new TaskProducer to processing_errors tasks
 register(
     "tasks.producer.processing-errors.rollout",
@@ -3863,6 +3951,24 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# List of producer names to roll out poll metrics to. Enables everywhere if
+# list contains "all".
+register(
+    "arroyo.producer.record_poll_metrics",
+    type=Sequence,
+    default=None,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+# Arroyo producer poll metrics should be logged every X poll iterations.
+register(
+    "arroyo.producer.poll_metric_frequency",
+    type=Int,
+    default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "github-enterprise.disallow-domain-mismatch",
     type=Bool,
@@ -3874,5 +3980,21 @@ register(
     "error-embeds.control-silo-address",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Issues derived data — process_project_derived_data task
+# Number of groups per batch task when fanning out project-wide processing.
+register(
+    "issues.derived.project-batch-size",
+    default=500,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of batch tasks to schedule; aborts if exceeded.
+register(
+    "issues.derived.project-max-tasks",
+    default=1000,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

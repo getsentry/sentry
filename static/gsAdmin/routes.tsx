@@ -16,6 +16,7 @@ import {DebuggingTools} from 'admin/views/debuggingTools';
 import {DocIntegrationDetails} from 'admin/views/docIntegrationDetails';
 import {DocIntegrations} from 'admin/views/docIntegrations';
 import {GenerateSpikeProjectionsForBatch} from 'admin/views/generateSpikeProjectionsForBatch';
+import {GiftRecurringCredits} from 'admin/views/giftRecurringCredits';
 import {HomePage as Home} from 'admin/views/home';
 import {InstanceLevelOAuth} from 'admin/views/instanceLevelOAuth/instanceLevelOAuth';
 import {InstanceLevelOAuthDetails} from 'admin/views/instanceLevelOAuth/instanceLevelOAuthDetails';
@@ -282,6 +283,15 @@ function buildRoutes() {
           {
             index: true,
             component: GenerateSpikeProjectionsForBatch,
+          },
+        ],
+      },
+      {
+        path: 'gift-recurring-credits/',
+        children: [
+          {
+            index: true,
+            component: GiftRecurringCredits,
           },
         ],
       },

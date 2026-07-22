@@ -44,6 +44,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Organization scoped features that are in development or in customer trials. #
     ###############################################################################
 
+    # Enable agentic triage sort for night shift candidate selection
+    manager.add("organizations:agentic-triage-sort", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI-based issue detection for an organization
@@ -54,6 +56,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:trace-item-details-array-fields", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Auto-link repos to projects by matching repo name suffix to project slug
     manager.add("organizations:auto-link-repos-by-name", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Expose the per-project toggle for auto-creating releases from ingested telemetry
+    manager.add("organizations:auto-release-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enabled for orgs that participated in the code review beta
     manager.add("organizations:code-review-beta", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable continuous profiling
@@ -95,6 +99,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:migrate-transaction-alerts-to-spans", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable migration of AM1 metrics alerts to transactions
     manager.add("organizations:migrate-am1-metrics-alerts-to-transactions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable deprecation of Discover as a product
+    manager.add("organizations:deprecate-discover", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable custom dynamic sampling rates
     manager.add("organizations:dynamic-sampling-custom", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable dynamic sampling minimum sample rate
@@ -111,6 +117,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:gen-ai-explore-metrics-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable defaulting to ask seer from free text search
     manager.add("organizations:gen-ai-default-to-ask-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable ask seer ux rework
+    manager.add("organizations:gen-ai-ask-seer-ux-rework", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI search bar on the issues page
     manager.add("organizations:gen-ai-issues-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GenAI consent
@@ -124,8 +132,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:indexed-spans-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     manager.add("organizations:integrations-github-platform-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-github-multi-platform-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:integrations-gcp", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-slack-staging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-vercel-upsert-env-var", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:integrations-datadog", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:slack-reinstall-nudge-on-issue-alert", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable GitHub Enterprise to accept github.com as a valid Installation URL
     manager.add("organizations:github-enterprise-github-com-source", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -133,7 +143,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # ...
     # Project Management Integrations Feature Parity Flags
     manager.add("organizations:integrations-github-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    manager.add("organizations:integrations-github_enterprise-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-gitlab-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Temporary: log full Jira Cloud `issue.updated` webhook payloads so we can design project-change link rewriting.
     manager.add("organizations:jira-issue-updated-payload-logging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -176,8 +185,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:onboarding-scm-project-details-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Experiment: SCM-first project creation wizard A/B test (project creation flow, not new-org onboarding)
     manager.add("organizations:onboarding-scm-project-creation-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Write newly created debug files to Objectstore.
+    # Double-write newly created debug files to Objectstore.
     manager.add("organizations:objectstore-debugfiles-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
+    # Read debug files from Objectstore when an Objectstore copy is available.
+    manager.add("organizations:objectstore-debugfiles-read", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Redirect debug file download requests to read directly from Objectstore, instead of proxying file contents through Sentry.
     manager.add("organizations:objectstore-debugfiles-direct-read", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Enable large ownership rule file size limit
@@ -198,6 +209,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:pr-lifecycle-activity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Write PullRequestActivity rows from GitHub PR lifecycle webhooks
     manager.add("organizations:pr-metrics-activity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Fold PR activity into a single PullRequestActivityLog document instead of one row per event
+    manager.add("organizations:pr-metrics-activity-document", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Record PullRequestAttribution from webhook and seer.pr_created events
     manager.add("organizations:pr-metrics-attribution", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Emit the BigQuery row on a tracked PR's close/merge (PR Merge Live Metrics rollout)
@@ -245,12 +258,22 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer-index", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Night Shift nightly autofix cron
     manager.add("organizations:seer-night-shift", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Run the Seer smart assignment feature (predictions + ground truth) on issues
+    manager.add("organizations:seer-smart-assignment-run", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Send notifications for Seer smart assignment predictions
+    manager.add("organizations:seer-smart-assignment-notifications", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display nightshift settings
     manager.add("organizations:seer-night-shift-settings", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Display the Seer Night Shift UI
+    manager.add("organizations:seer-night-shift-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Route autofix RCA through the Seer autofix_rca feature
+    manager.add("organizations:autofix-rca-in-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Roll out structured LLM page context on STRUCTURED_CONTEXT_ROUTES to all orgs
     manager.add("organizations:seer-explorer-structured-context-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable context engine experimental contexts
     manager.add("organizations:context-engine-experiments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable frontend override for bash mode
+    manager.add("organizations:seer-explorer-allow-bash-mode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable frontend override for context engine (only for AI/ML/Reasoning platform team)
     manager.add("organizations:seer-explorer-context-engine-allow-fe-override", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable frontend override UI component for context engine (only for AI/ML/Reasoning platform team)
@@ -274,12 +297,16 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer-stream", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable structured LLM context (JSON snapshot) instead of ASCII DOM snapshot
     manager.add("organizations:context-engine-structured-page-context", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable browser notifications for autofix runs
+    manager.add("organizations:autofix-browser-notifications", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show the "Open in Seer Agent (debug)" button in the autofix drawer
     manager.add("organizations:autofix-seer-agent-debug", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable autofix introspection for early stopping of autofix runs
     manager.add("organizations:seer-autofix-introspection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the PR iteration feedback flow in the explorer autofix drawer
     manager.add("organizations:autofix-pr-iteration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Request review from the triggering user once a Seer PR's checks are green
+    manager.add("organizations:autofix-pr-iteration-review-request", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Expose one-shot question answers on the Seer runs list (?expand=questions)
     manager.add("organizations:seer-run-questions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable showing seer in a persistent sidebar
@@ -298,11 +325,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Run Seer agents inside the sandbox execution environment
     manager.add("organizations:seer-use-agent-sandbox", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Append a "text" summary to SentryApp webhooks sent to Claude Code routine fire URLs
-    manager.add("organizations:sentry-apps-claude-routine-webhooks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable delivery of custom webhook headers configured on a SentryApp
-    manager.add("organizations:sentry-apps-custom-webhook-headers", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Allow SentryApps to subscribe to individual webhook events instead of whole resources
-    manager.add("organizations:sentry-apps-granular-events", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:sentry-apps-claude-routine-webhooks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable prefill templates on the internal integration creation page
+    manager.add("organizations:sentry-apps-creation-templates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Disable select orgs from ingesting mobile replay events.
     # Enable double-read from EAP for session health data validation
     manager.add("organizations:session-health-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -344,8 +369,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:insights-query-date-range-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Make Insights overview pages use EAP instead of transactions (because eap is not on AM1)
     manager.add("organizations:insights-modules-use-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable data browsing heat map widget
-    manager.add("organizations:data-browsing-heat-map-widget", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable attribute context in data browsing
     manager.add("organizations:data-browsing-attribute-context", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable public RPC endpoint for local seer development
@@ -378,19 +401,15 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable auto spam classification at User Feedback ingest time
     manager.add("organizations:user-feedback-spam-ingest", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
-    # Enable an async queue for dashboard widget queries
-    manager.add("organizations:visibility-dashboards-async-queue", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the new explore page
     manager.add("organizations:visibility-explore-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable high date range options on new explore page
     manager.add("organizations:visibility-explore-range-high", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
-    # Use batched Snuba queries for weekly report key errors instead of per-project queries
-    manager.add("organizations:weekly-report-batched-key-errors", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Show combined resolved "past issues" section instead of separate key errors / performance issues
     manager.add("organizations:weekly-report-past-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Allow users to exclude specific projects from their weekly email reports
-    manager.add("organizations:weekly-report-project-exclusions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Show top spans chart in weekly email reports
+    manager.add("organizations:weekly-report-spans-chart", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable week-over-week percentage change metric in weekly email reports
     manager.add("organizations:weekly-report-week-over-week-metric", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable logging to debug workflow engine process workflows
@@ -415,17 +434,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:ourlogs-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable our logs product to be ingested via Relay.
     manager.add("organizations:ourlogs-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable pinning logs to the top of the table in the logs UI and query parameters
-    manager.add("organizations:ourlogs-pinning", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable alerting on trace metrics
     # Enable trace metrics product (known internally as tracemetrics) in UI and backend
     manager.add("organizations:tracemetrics-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable equations for trace metrics in alerts
-    manager.add("organizations:tracemetrics-equations-in-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable equations in trace metrics explore
-    manager.add("organizations:tracemetrics-equations-in-explore", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable equations for trace metrics in dashboards
-    manager.add("organizations:tracemetrics-equations-in-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product to be ingested via Relay
     manager.add("organizations:tracemetrics-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics multi-metric selection in dashboards
@@ -467,6 +478,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:first-event-severity-calculation", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable writing issue action log entries to the database
     manager.add("projects:issue-action-log-write-to-db", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("projects:issue-status-reconciliation", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable similarity embeddings API call
     # This feature is only available on the frontend using project details since the handler gets
     # project options and this is slow in the project index endpoint feature flag serialization
@@ -488,14 +500,13 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:span-v2-attachment-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables experimental trace attachment processing in Relay.
     manager.add("projects:trace-attachment-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enables the uploading of minidump attachments to the objectstore.
-    manager.add("projects:relay-minidump-attachment-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the uploading of minidumps to the objectstore.
     manager.add("projects:relay-minidump-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the uploading of playstation attachments to the objectstore.
     manager.add("projects:relay-playstation-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Allows sending additional stack traces with minidumps.
-    manager.add("projects:minidump-multi-exception", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enables uploading streams to objectstore via multipart uploads.
+    # See <https://getsentry.github.io/objectstore/rust/objectstore_service/multipart/>.
+    manager.add("projects:relay-upload-multipart", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     # Enable lightweight RCA clustering write path (generate embeddings on new issues)
     manager.add("organizations:supergroups-lightweight-rca-clustering-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -509,5 +520,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # seer feature flags for assisted query agent org scoped
     manager.add("organizations:assisted-query-cross-event-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:assisted-query-project-expansion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+
+    # Enable humanized string to ESQ conversion
+    manager.add("organizations:search-query-builder-humanized-esq", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     # fmt: on

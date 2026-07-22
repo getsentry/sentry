@@ -10,7 +10,6 @@ import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {METRIC_DETECTOR_FORM_FIELDS} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
@@ -21,7 +20,6 @@ import {
 } from 'sentry/views/explore/metrics/equationBuilder/utils';
 import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import type {MetricQuery, TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsEquationsInAlerts} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   MetricsQueryParamsProvider,
   useMetricVisualize,
@@ -88,8 +86,6 @@ export function MetricsEquationVisualize({
   environments,
   onQueryChange,
 }: MetricsEquationVisualizeProps) {
-  const organization = useOrganization();
-  const hasEquations = canUseMetricsEquationsInAlerts(organization);
   const aggregateFunction = useFormField<string>(aggregateFieldName);
   const query = useFormField<string>(METRIC_DETECTOR_FORM_FIELDS.query);
 
@@ -105,10 +101,7 @@ export function MetricsEquationVisualize({
   }, []);
 
   return (
-    <LocalMultiMetricsQueryParamsProvider
-      initialQueries={initialQueries}
-      hasEquations={hasEquations}
-    >
+    <LocalMultiMetricsQueryParamsProvider initialQueries={initialQueries}>
       <MetricsEquationVisualizeContent
         aggregateFieldName={aggregateFieldName}
         projectIds={projectIds}

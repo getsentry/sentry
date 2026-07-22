@@ -36,8 +36,8 @@ function GroupLayoutBody({children}: {children: React.ReactNode}) {
     <Container
       data-test-id="group-event-details"
       background="primary"
-      display={{'2xs': 'flex', lg: 'grid'}}
-      flexGrow={{'2xs': 1, lg: 0}}
+      display={{zero: 'flex', '4xl': 'grid'}}
+      flexGrow={{zero: 1, '4xl': 0}}
       style={{
         flexDirection: 'column',
         gridTemplateColumns: isSidebarOpen ? 'minmax(100px, 100%) 325px' : '100%',
@@ -111,8 +111,8 @@ export function GroupDetailsLayout({
                   <Stack
                     as="section"
                     background="secondary"
-                    borderRight={{'2xs': 'none', lg: 'primary'}}
-                    borderBottom={{'2xs': 'primary', lg: 'none'}}
+                    borderRight={{zero: 'none', '4xl': 'primary'}}
+                    borderBottom={{zero: 'primary', '4xl': 'none'}}
                   >
                     {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
                       issueTypeConfig.header.eventNavigation.enabled && (

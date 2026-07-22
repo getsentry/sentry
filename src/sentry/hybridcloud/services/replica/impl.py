@@ -27,13 +27,8 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organization import Organization
 from sentry.models.organizationavatarreplica import OrganizationAvatarReplica
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.projectkeymapping import ProjectKeyMapping
-from sentry.models.team import Team
-from sentry.models.teamreplica import TeamReplica
-from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -277,36 +272,6 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
 
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
-    def remove_replicated_organization_member_team(
-        self, *, organization_id: int, organization_member_team_id: int
-    ) -> None:
-        OrganizationMemberTeamReplica.objects.filter(
-            organization_id=organization_id, organizationmemberteam_id=organization_member_team_id
-        ).delete()
-
-    def upsert_replicated_organization_member_team(self, *, omt: RpcOrganizationMemberTeam) -> None:
-        destination = OrganizationMemberTeamReplica(
-            team_id=omt.team_id,
-            role=omt.role,
-            organization_id=omt.organization_id,
-            organizationmember_id=omt.organizationmember_id,
-            organizationmemberteam_id=omt.id,
-            is_active=omt.is_active,
-        )
-
-        handle_replication(OrganizationMemberTeam, destination, fk="organizationmemberteam_id")
-
-    def upsert_replicated_team(self, *, team: RpcTeam) -> None:
-        destination = TeamReplica(
-            team_id=team.id,
-            organization_id=team.organization_id,
-            slug=team.slug,
-            name=team.name,
-            status=team.status,
-        )
-
-        handle_replication(Team, destination)
-
     def upsert_project_key_mapping(self, *, project_key: RpcProjectKeyMapping) -> bool:
         try:
             with transaction.atomic(router.db_for_write(ProjectKeyMapping)):

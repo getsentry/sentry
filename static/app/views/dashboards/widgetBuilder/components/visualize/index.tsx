@@ -61,7 +61,6 @@ import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
-import {canUseMetricsEquationsInDashboards} from 'sentry/views/explore/metrics/metricsFlags';
 import {MAX_METRICS_ALLOWED} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 
 export const NONE = 'none';
@@ -304,9 +303,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
   // Heat maps don't support equations, so the equation mode toggle and the
   // "Add Equation" affordances are hidden for them.
   const canShowTraceMetricEquations =
-    state.dataset === WidgetType.TRACEMETRICS &&
-    !isHeatmapWidget &&
-    canUseMetricsEquationsInDashboards(organization);
+    state.dataset === WidgetType.TRACEMETRICS && !isHeatmapWidget;
 
   const {isEquationMode, handleModeToggle, equationSnapshot} =
     traceMetricsVisualizeMode ?? {

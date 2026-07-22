@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
@@ -136,11 +136,9 @@ export function ConversationSpanDetail({
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
           <AiSpanStatusIcon node={node} />
-          <Tooltip title={title} showOnlyOnOverflow skipWrapper>
-            <Text size="lg" bold ellipsis>
-              {title}
-            </Text>
-          </Tooltip>
+          <InfoText title={title} mode="overflowOnly" size="lg" bold>
+            {title}
+          </InfoText>
         </Flex>
         {onClose ? (
           <Button
@@ -169,15 +167,12 @@ export function ConversationSpanDetail({
         )}
       </Stack>
 
-      {/* IssueList renders nothing when the span has no linked issues. */}
-      <IssueListWrapper>
-        <IssueList
-          node={node}
-          issues={node.uniqueIssues}
-          organization={organization}
-          traceSlug={traceId}
-        />
-      </IssueListWrapper>
+      <StyledIssueList
+        node={node}
+        issues={node.uniqueIssues}
+        organization={organization}
+        traceSlug={traceId}
+      />
 
       {/*
        * The per-span fetch backs both the metadata and the tab content, and it
@@ -455,7 +450,7 @@ function AttributesTab({
 // IssueList colors its severity icons from the trace grid CSS variables, which
 // the trace waterfall normally provides via an ancestor. This panel isn't nested
 // under the waterfall, so scope those variables here.
-const IssueListWrapper = styled('div')`
+const StyledIssueList = styled(IssueList)`
   ${traceGridCssVariables}
   flex-shrink: 0;
 `;
