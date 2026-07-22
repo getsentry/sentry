@@ -87,6 +87,7 @@ class GroupDerivedData(DefaultFieldsModel):
         indexes = [
             models.Index(fields=["progress", "group"]),
             models.Index(fields=["last_progressed_at", "group"]),
+            models.Index(fields=["pipeline_hash", "group"]),
         ]
 
     __repr__ = sane_repr("group_id", "generated_at", "cursor_date", "cursor_id")
