@@ -12,7 +12,7 @@ import {
   SECTION_ORDER,
 } from './types';
 
-const SECTION_LIMIT = 100;
+export const SECTION_LIMIT = 100;
 
 export interface SectionResult {
   count: number | undefined;

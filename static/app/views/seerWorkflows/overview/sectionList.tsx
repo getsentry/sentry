@@ -15,18 +15,22 @@ import {t, tn} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SectionIssueCard} from './sectionIssueCard';
-import {
-  STATUS_GROUP_META,
-  StatusGroupTooltip,
-  type StatusGroupKey,
-} from './statusGroups';
+import {STATUS_GROUP_META, StatusGroupTooltip, type StatusGroupKey} from './statusGroups';
 import type {OverviewView, SortValue} from './types';
-import {useAutofixSections} from './useAutofixSections';
+import {SECTION_LIMIT, useAutofixSections} from './useAutofixSections';
 
 // Each rendered card mounts two live enrichment queries, so cap how many hydrate
-// per section and reveal the rest on demand — the header badge keeps the true
-// total. Unrevealed cards stay unmounted (Collapsible slices before rendering).
+// per section and reveal the rest on demand — the header badge keeps the total,
+// shown as "100+" beyond the fetch limit since only SECTION_LIMIT issues are
+// fetched. Unrevealed cards stay unmounted (Collapsible slices before rendering).
 const SECTION_RENDER_CAP = 25;
+
+function formatSectionCount(count: number | undefined) {
+  if (count === undefined) {
+    return '…';
+  }
+  return count > SECTION_LIMIT ? `${SECTION_LIMIT}+` : count;
+}
 
 export function SectionList({
   collapsedGroups,
@@ -95,7 +99,7 @@ export function SectionList({
                     <meta.Icon size="sm" aria-hidden />
                   </Tooltip>
                   <Text bold>{meta.label}</Text>
-                  <Badge variant="muted">{section.count ?? '…'}</Badge>
+                  <Badge variant="muted">{formatSectionCount(section.count)}</Badge>
                 </Flex>
               </Disclosure.Title>
             </GroupHeader>

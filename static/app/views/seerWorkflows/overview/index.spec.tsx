@@ -495,6 +495,18 @@ describe('AutofixOverview', () => {
     expect(screen.getAllByRole('link', {name: /Capped issue/})).toHaveLength(30);
   });
 
+  it('caps the section count badge at 100+ when hits exceed the fetch limit', async () => {
+    // Only 100 issues are ever fetched per section, so an exact total above
+    // that would overstate what scrolling can reveal.
+    mockSection(SECTION_QUERIES.review_pr, {body: [issue], hits: '150'});
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Awaiting your review 100+'})
+    ).toBeInTheDocument();
+  });
+
   it('surfaces the blocking question when a run awaits user input', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/2/autofix/`,
