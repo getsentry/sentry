@@ -65,6 +65,7 @@ def get_archive_explanation(data: ActivityNotificationData) -> str:
     return "has been archived forever."
 
 
+# TODO
 @template_registry.register(NotificationSource.ACTIVITY_SET_IGNORED)
 class SetIgnoredActivityTemplate(NotificationTemplate[ActivityNotificationData]):
     category = NotificationCategory.ACTIVITY
