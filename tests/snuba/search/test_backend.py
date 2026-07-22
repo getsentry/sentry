@@ -1152,6 +1152,13 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         with pytest.raises(InvalidSearchQuery):
             self.make_query(search_filter_query="issue.autofix_state:bogus")
 
+    def test_autofix_state_negation(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
+
+        results = self.make_query(search_filter_query="!issue.autofix_state:review_pr")
+        assert self.group1 not in set(results)
+        assert self.group2 in set(results)
+
     def test_issue_progress(self) -> None:
         self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
         self.create_group_activity(group=self.group2, type=ActivityType.SEER_PR_CREATED.value)
