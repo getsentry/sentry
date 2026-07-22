@@ -5,6 +5,7 @@ import {
   isCodeChangesArtifact,
   isCodeChangesSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+
 import {RUN_QUESTIONS} from './runQuestions';
 import {mapRunSourceToTrigger} from './triggerBadge';
 import {
@@ -166,9 +167,11 @@ export function normalizeBulletList(answer: string): string {
     return answer;
   }
   const [head = '', ...items] = answer.split(/\s*•\s*/);
-  return [head.trim(), ...items.map(item => `- ${item.trim()}`)]
+  const bullets = items
+    .map(item => item.trim())
     .filter(Boolean)
-    .join('\n');
+    .map(item => `- ${item}`);
+  return [head.trim(), ...bullets].filter(Boolean).join('\n');
 }
 
 /**
@@ -215,9 +218,15 @@ function buildAnalysis(outputs: RunQuestion[] | undefined): {
 
 function mostRecentTimestamp(...candidates: Array<string | null | undefined>): string {
   let latest = '';
+  let latestTime = -Infinity;
   for (const candidate of candidates) {
-    if (candidate && candidate > latest) {
+    if (!candidate) {
+      continue;
+    }
+    const time = new Date(candidate).getTime();
+    if (time > latestTime) {
       latest = candidate;
+      latestTime = time;
     }
   }
   return latest;

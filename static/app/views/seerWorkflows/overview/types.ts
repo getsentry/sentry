@@ -144,7 +144,7 @@ export interface OverviewRow {
   eventCount: number;
   id: string;
   // Most recent activity on the run (state update, trigger, or issue-level
-  // last-trigger timestamp) - drives sorting and the period filter.
+  // last-trigger timestamp); labels the card's "updated" TimeSince.
   lastActivityAt: string;
   level: Level;
   project: {slug: string; platform?: PlatformKey};
