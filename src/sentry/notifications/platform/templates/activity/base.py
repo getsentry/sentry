@@ -1,10 +1,6 @@
 from typing import Any
 from urllib.parse import urlencode
 
-from sentry.integrations.messaging.message_builder import (
-    build_attachment_text,
-    build_attachment_title,
-)
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group
@@ -164,6 +160,10 @@ def extract_notification_models_by_activity(
 def build_activity_notification_data(
     activity: Activity, *, workflow_id: int | None = None
 ) -> ActivityNotificationData:
+    from sentry.integrations.messaging.message_builder import (
+        build_attachment_text,
+        build_attachment_title,
+    )
     from sentry.notifications.notifications.activity.assigned import get_assignee_str
 
     source = ACTIVITY_TYPE_TO_SOURCE.get(activity.type)
