@@ -9,6 +9,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAlertRule} from 'sentry/types/alerts';
+import type {Actor} from 'sentry/types/core';
 import type {Member, Team} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -113,7 +114,7 @@ function Conditions({rule, teams, projectSlug}: Props) {
 
 export function Sidebar({rule, teams, projectSlug}: Props) {
   const ownerId = rule.owner?.split(':')[1];
-  const teamActor = ownerId && {type: 'team' as const, id: ownerId, name: ''};
+  const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
 
   return (
     <Fragment>

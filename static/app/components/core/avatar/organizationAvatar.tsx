@@ -1,4 +1,4 @@
-import type {Avatar as AvatarType} from 'sentry/types/core';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {explodeSlug} from 'sentry/utils';
 
 import {
@@ -10,7 +10,7 @@ import {
 } from './avatar';
 
 interface OrganizationAvatarProps extends AvatarProps {
-  organization: {slug: string; avatar?: AvatarType; name?: string};
+  organization: OrganizationSummary;
 }
 
 export function OrganizationAvatar({organization, ...props}: OrganizationAvatarProps) {
@@ -18,17 +18,26 @@ export function OrganizationAvatar({organization, ...props}: OrganizationAvatarP
     <Avatar
       {...props}
       {...getOrganizationAvatarProps(organization)}
-      tooltip={organization.slug}
-      title={explodeSlug(organization.slug)}
+      tooltip={organization.slug ?? ''}
+      title={explodeSlug(organization.slug ?? '')}
     />
   );
 }
 
 function getOrganizationAvatarProps(
-  organization: OrganizationAvatarProps['organization']
+  organization: OrganizationSummary
 ): LetterBaseAvatarProps | UploadBaseAvatarProps | GravatarBaseAvatarProps {
   const identifier = organization.slug;
-  const name = organization.name || organization.slug || '';
+  const name = organization.name || organization.slug;
+
+  if (!organization.avatar?.avatarType) {
+    return {
+      type: 'letter_avatar',
+      identifier,
+      name,
+      title: name,
+    };
+  }
 
   switch (organization.avatar?.avatarType) {
     case 'letter_avatar':
