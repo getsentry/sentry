@@ -504,7 +504,7 @@ def configure_sdk():
                         relay_envelope = copy.copy(envelope)
                         s4s_args = (relay_envelope, *args_list[1:])
 
-                        trace = envelope.headers.get("trace")
+                        trace = relay_envelope.headers.get("trace")
 
                         prior_sample_rate = None
                         try:
@@ -519,7 +519,7 @@ def configure_sdk():
                         ):
                             # Maintain accurate extrapolation by incorporating sampling factor.
                             relay_envelope.headers = {
-                                **envelope.headers,
+                                **relay_envelope.headers,
                                 "trace": {
                                     **trace,
                                     "sample_rate": str(prior_sample_rate * s4s_sample_rate),
