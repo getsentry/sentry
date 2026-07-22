@@ -20,11 +20,29 @@ import {
   type StatusCheckRule,
 } from './types';
 
-const ENABLED_KEY = 'sentry:preprod_size_status_checks_enabled';
-const RULES_KEY = 'sentry:preprod_size_status_checks_rules';
+type EnabledField = 'preprodSizeStatusChecksEnabled' | 'preprodSizePrCommentsEnabled';
 
-const DEFAULT_METRIC = DEFAULT_METRIC_TYPE;
-const DEFAULT_MEASUREMENT = DEFAULT_MEASUREMENT_TYPE;
+type RulesField = 'preprodSizeStatusChecksRules' | 'preprodSizePrCommentsRules';
+
+export interface SizeRulesConfig {
+  /** Whether the feature is enabled when neither field nor option is set. */
+  defaultEnabled: boolean;
+  /** Top-level project field that mirrors the enabled flag (optimistic update). */
+  enabledField: EnabledField;
+  /** Project option key that stores the enabled flag (server response). */
+  enabledOptionKey: string;
+  /** Top-level project field that mirrors the rules array (optimistic update). */
+  rulesField: RulesField;
+  /** Project option key that stores the rules array (server response). */
+  rulesOptionKey: string;
+  toasts: {
+    created: string;
+    deleted: string;
+    disabled: string;
+    enabled: string;
+    saved: string;
+  };
+}
 
 function parseRules(raw: unknown): StatusCheckRule[] {
   if (!Array.isArray(raw)) {
@@ -33,8 +51,8 @@ function parseRules(raw: unknown): StatusCheckRule[] {
   return raw
     .filter((r): r is Record<string, unknown> => !!r && typeof r.id === 'string')
     .map(r => {
-      const metric = toMetricType(r.metric, DEFAULT_METRIC);
-      const measurement = toMeasurementType(r.measurement, DEFAULT_MEASUREMENT);
+      const metric = toMetricType(r.metric, DEFAULT_METRIC_TYPE);
+      const measurement = toMeasurementType(r.measurement, DEFAULT_MEASUREMENT_TYPE);
       const artifactType = toArtifactType(r.artifactType);
       return {
         id: r.id as string,
@@ -47,14 +65,18 @@ function parseRules(raw: unknown): StatusCheckRule[] {
     });
 }
 
-export function useStatusCheckRules(project: DetailedProject) {
+export function useSizeRules(project: DetailedProject, config: SizeRulesConfig) {
   const updateProject = useUpdateProject(project);
 
-  // Check top-level field first (optimistic update), fallback to options (server response)
+  // Check top-level field first (optimistic update), fallback to options (server
+  // response), then to the configured default.
+  const enabledOption = project.options?.[config.enabledOptionKey];
   const enabled =
-    project.preprodSizeStatusChecksEnabled ?? project.options?.[ENABLED_KEY] !== false;
+    project[config.enabledField] ??
+    (enabledOption === undefined ? config.defaultEnabled : enabledOption === true);
 
-  const rulesRaw = project.preprodSizeStatusChecksRules ?? project.options?.[RULES_KEY];
+  const rulesRaw =
+    (project[config.rulesField] as unknown) ?? project.options?.[config.rulesOptionKey];
   const rules = useMemo(() => {
     if (Array.isArray(rulesRaw)) {
       return parseRules(rulesRaw);
@@ -69,33 +91,28 @@ export function useStatusCheckRules(project: DetailedProject) {
     }
   }, [rulesRaw]);
 
-  const config = {enabled, rules};
+  const settingConfig = {enabled, rules};
 
   const setEnabled = useCallback(
     (value: boolean) => {
       addLoadingMessage(t('Saving...'));
-      updateProject.mutate(
-        {preprodSizeStatusChecksEnabled: value},
-        {
-          onSuccess: () => {
-            addSuccessMessage(
-              value ? t('Status checks enabled.') : t('Status checks disabled.')
-            );
-          },
-          onError: () => {
-            addErrorMessage(t('Failed to save changes. Please try again.'));
-          },
-        }
-      );
+      updateProject.mutate({[config.enabledField]: value} as Partial<DetailedProject>, {
+        onSuccess: () => {
+          addSuccessMessage(value ? config.toasts.enabled : config.toasts.disabled);
+        },
+        onError: () => {
+          addErrorMessage(t('Failed to save changes. Please try again.'));
+        },
+      });
     },
-    [updateProject]
+    [updateProject, config.enabledField, config.toasts]
   );
 
   const saveRules = useCallback(
     (newRules: StatusCheckRule[], successMessage?: string) => {
       addLoadingMessage(t('Saving...'));
       updateProject.mutate(
-        {preprodSizeStatusChecksRules: newRules as unknown[]},
+        {[config.rulesField]: newRules as unknown[]} as Partial<DetailedProject>,
         {
           onSuccess: () => {
             if (successMessage) {
@@ -108,37 +125,37 @@ export function useStatusCheckRules(project: DetailedProject) {
         }
       );
     },
-    [updateProject]
+    [updateProject, config.rulesField]
   );
 
   const addRule = useCallback(
     (rule: StatusCheckRule) => {
-      saveRules([...rules, rule], t('Status check rule created.'));
+      saveRules([...rules, rule], config.toasts.created);
     },
-    [rules, saveRules]
+    [rules, saveRules, config.toasts.created]
   );
 
   const updateRule = useCallback(
     (id: string, updates: Partial<StatusCheckRule>) => {
       const newRules = rules.map(r => (r.id === id ? {...r, ...updates} : r));
-      saveRules(newRules, t('Status check rule saved.'));
+      saveRules(newRules, config.toasts.saved);
     },
-    [rules, saveRules]
+    [rules, saveRules, config.toasts.saved]
   );
 
   const deleteRule = useCallback(
     (id: string) => {
       const newRules = rules.filter(r => r.id !== id);
-      saveRules(newRules, t('Status check rule deleted.'));
+      saveRules(newRules, config.toasts.deleted);
     },
-    [rules, saveRules]
+    [rules, saveRules, config.toasts.deleted]
   );
 
   const createEmptyRule = useCallback((): StatusCheckRule => {
     return {
       id: uniqueId(),
-      metric: DEFAULT_METRIC,
-      measurement: DEFAULT_MEASUREMENT,
+      metric: DEFAULT_METRIC_TYPE,
+      measurement: DEFAULT_MEASUREMENT_TYPE,
       value: 0,
       filterQuery: '',
       artifactType: DEFAULT_ARTIFACT_TYPE,
@@ -146,7 +163,7 @@ export function useStatusCheckRules(project: DetailedProject) {
   }, []);
 
   return {
-    config,
+    config: settingConfig,
     setEnabled,
     addRule,
     updateRule,
