@@ -156,7 +156,7 @@ class ProcessProjectDerivedDataBatchTest(DerivedDataTaskTestBase):
             patch.object(
                 processing,
                 "process_group_log",
-                side_effect=GroupLogTimeout("timed out"),
+                side_effect=GroupLogTimeout(0),
             ),
             patch.object(process_project_derived_data_batch, "delay") as mock_delay,
         ):
