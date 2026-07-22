@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,6 +14,8 @@ from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+
+logger = logging.getLogger(__name__)
 
 
 @cell_silo_endpoint
@@ -33,12 +37,16 @@ class GroupActivitiesEndpoint(GroupEndpoint):
             "projects:issue-action-log-read-from-gale", group.project, actor=request.user
         ):
             action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
-            serialized = serialize(action_log, request.user)
-            serialized.append(serialize_first_seen_entry(group))
-            return Response(
-                {
-                    "activity": serialized,
-                }
+            if action_log:
+                serialized = serialize(action_log, request.user)
+                serialized.append(serialize_first_seen_entry(group))
+                return Response(
+                    {
+                        "activity": serialized,
+                    }
+                )
+            logger.info(
+                "group_activities.groupactionlogentry.not_found", extra={"group_id": group.id}
             )
 
         activity = Activity.objects.get_activities_for_group(group, num=100)
