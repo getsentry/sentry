@@ -13,6 +13,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
@@ -7019,6 +7020,7 @@ describe('SearchQueryBuilder', () => {
           );
         }
 
+        const successMessageSpy = jest.spyOn(indicators, 'addSuccessMessage');
         const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
         render(
           <AskSeerWrapper>
@@ -7062,7 +7064,8 @@ describe('SearchQueryBuilder', () => {
         const yep = await screen.findByRole('button', {name: 'Yep, correct results'});
         await userEvent.click(yep);
 
-        expect(screen.getByText('Thanks for the feedback!')).toBeInTheDocument();
+        expect(successMessageSpy).toHaveBeenCalledWith('Thanks for the feedback!');
+        expect(screen.queryByText('How did we do?')).not.toBeInTheDocument();
         expect(filter).toBeInTheDocument();
       });
     });
