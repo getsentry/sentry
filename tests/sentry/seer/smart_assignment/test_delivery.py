@@ -48,7 +48,7 @@ class DeliverSmartAssignmentResultTest(TestCase):
 
     def _assert_outcome(self, mock_metrics: MagicMock, expected: str) -> None:
         mock_metrics.incr.assert_called_once_with(
-            "smart_assignment.delivery", tags={"outcome": expected}
+            "smart_assignment.delivery", tags={"outcome": expected}, sample_rate=1.0
         )
 
     def _completion_activity(self) -> Activity:
@@ -94,7 +94,7 @@ class DeliverSmartAssignmentResultTest(TestCase):
             == 1
         )
         mock_metrics.incr.assert_any_call(
-            "smart_assignment.delivery", tags={"outcome": "duplicate"}
+            "smart_assignment.delivery", tags={"outcome": "duplicate"}, sample_rate=1.0
         )
 
     @patch(METRICS_PATH)
