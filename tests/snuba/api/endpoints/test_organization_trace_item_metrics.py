@@ -128,7 +128,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         self.store_metric("no.context", "counter")
         self.create_context("has.context", project=None, brief="Described")
 
-        response = self.do_request(query={"project": self.project.id, "context_only": "1"})
+        response = self.do_request(query={"project": self.project.id, "contextOnly": "1"})
 
         assert response.status_code == 200, response.data
         assert [row["name"] for row in response.data] == ["has.context"]
@@ -137,7 +137,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
     def test_context_only_empty_when_no_context(self) -> None:
         self.store_metric("no.context", "counter")
 
-        response = self.do_request(query={"project": self.project.id, "context_only": "1"})
+        response = self.do_request(query={"project": self.project.id, "contextOnly": "1"})
 
         assert response.status_code == 200, response.data
         assert response.data == []
@@ -148,7 +148,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         self.store_metric("café.requests", "counter")
         self.create_context("café.requests", project=None, brief="Café")
 
-        response = self.do_request(query={"project": self.project.id, "context_only": "1"})
+        response = self.do_request(query={"project": self.project.id, "contextOnly": "1"})
 
         assert response.status_code == 200, response.data
         assert [row["name"] for row in response.data] == ["café.requests"]
@@ -162,7 +162,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
             "checkout.requests", metric_type=TraceMetricTypes.COUNTER, project=None, brief="Counter"
         )
 
-        response = self.do_request(query={"project": self.project.id, "context_only": "1"})
+        response = self.do_request(query={"project": self.project.id, "contextOnly": "1"})
 
         assert response.status_code == 200, response.data
         assert [(row["type"], "context" in row) for row in response.data] == [("counter", True)]
@@ -173,7 +173,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         self.create_context("has.context", project=None, brief="Described")
 
         response = self.do_request(
-            query={"project": self.project.id, "context_only": "1"},
+            query={"project": self.project.id, "contextOnly": "1"},
             features={
                 "organizations:visibility-explore-view": True,
                 "organizations:tracemetrics-enabled": True,
@@ -200,7 +200,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         metric = response.data[0]
         assert metric["context"] == {
             "brief": "Checkout requests",
-            "additionalContext": "Longer notes.",
+            "details": ["Longer notes."],
         }
 
     def test_context_only_matches_metric_type(self) -> None:

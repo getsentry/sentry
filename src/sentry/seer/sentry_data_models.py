@@ -221,9 +221,9 @@ class MetricMetadataRow(BaseModel):
     type: str
     unit: str
     count: int
-    # Authored context (brief, additionalContext) for the metric, populated only
-    # when the caller passes include_context=True (and the metric has context);
-    # otherwise None.
+    # Authored context (brief, details) for the metric, populated only when the
+    # caller passes include_context=True (and the metric has context); otherwise
+    # None. Mirrors the attributes context shape (see BuiltInField.context).
     context: dict[str, Any] | None = None
 
 
