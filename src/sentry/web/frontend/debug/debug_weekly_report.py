@@ -189,6 +189,12 @@ class DebugWeeklyReportView(MailPreviewView):
                 for group_index, performance_issue_type in enumerate(performance_issue_types)
             ]
 
+            debug_resolution_labels = [
+                "Resolved",
+                "Resolved in PR",
+                "Resolved in release",
+                "Resolved in next release",
+            ]
             project_context.past_resolved_issues = [
                 (
                     make_debug_group(
@@ -205,14 +211,7 @@ class DebugWeeklyReportView(MailPreviewView):
                         substatus=GroupSubStatus.NEW,
                     ),
                     random.randint(100, 5000),
-                    random.choice(
-                        [
-                            "Resolved",
-                            "Resolved in PR",
-                            "Resolved in release",
-                            "Resolved in next release",
-                        ]
-                    ),
+                    random.choice(debug_resolution_labels),
                 )
                 for group_index in range(3)
             ]
