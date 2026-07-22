@@ -62,6 +62,7 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {getSeerExploreQuery, getSeerSort} from 'sentry/views/explore/seerQuery';
+import {getFunctionLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 interface MetricsTabSeerComboBoxProps {
   traceMetric: TraceMetric;
 }
@@ -274,16 +275,6 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       );
       const [replacementAggregate, ...extraAggregates] = seerAggregates;
 
-      // Remap the new equation's internalExpression so that "A" (the 0-based
-      // label from parseAggregateExpression) maps to the interacted row's
-      // actual label. This ensures the new equation references the correct
-      // position in the metrics array.
-      const interactedLabel = interactedRow?.label;
-      const remappedSeerEquations =
-        hasEquation && interactedLabel
-          ? remapEquationLabels(seerEquations, 0, {A: interactedLabel})
-          : seerEquations;
-
       const previousRefs = getMetricReferences(metricQueries);
 
       let updatedMetricQueries = metricQueries.map((mq: BaseMetricQuery) => {
@@ -300,32 +291,63 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         return mq;
       });
 
-      // Sync existing equations so their yAxis reflects the new reference map
-      // (the replaced row may have changed the aggregate at a label).
+      // Re-resolve existing equations' yAxis against the updated reference
+      // map so charts query the new aggregate. Preserve the original
+      // internalExpression exactly — syncEquationMetricQueries round-trips
+      // it through unresolveExpression which can alter whitespace/ordering.
       const nextRefs = getMetricReferences(updatedMetricQueries);
-      updatedMetricQueries = syncEquationMetricQueries(
+      const synced = syncEquationMetricQueries(
         updatedMetricQueries,
         previousRefs,
         nextRefs
       );
+      updatedMetricQueries = synced.map((mq, i) => {
+        const original = updatedMetricQueries[i];
+        if (mq === original) {
+          return mq;
+        }
+        const origViz = original?.queryParams.visualizes[0];
+        const syncedViz = mq.queryParams.visualizes[0];
+        if (!origViz || !syncedViz || !isVisualizeEquation(origViz)) {
+          return mq;
+        }
+        return {
+          ...mq,
+          queryParams: mq.queryParams.replace({
+            aggregateFields: mq.queryParams.aggregateFields.map(field =>
+              isVisualize(field) && isVisualizeEquation(field)
+                ? field.replace({internalExpression: origViz.internalExpression})
+                : field
+            ),
+          }),
+        };
+      });
 
       const newEncodedMetrics = updatedMetricQueries
         .map((mq: BaseMetricQuery) => encodeMetricQueryParams(mq))
         .filter(Boolean);
 
-      // Splice any extra aggregates and equation rows from Seer.
-      const remainingEquationQueries = [...extraAggregates, ...remappedSeerEquations];
+      // Build a single remap table for ALL of Seer's aggregates so the
+      // equation's internalExpression references the correct final labels.
+      // The first aggregate (A) replaces the interacted row, so it maps to
+      // the interacted label. The remaining aggregates are spliced at the
+      // insertion offset, so they get sequential labels from there.
       const eqStartIdx = newEncodedMetrics.findIndex(e => e.includes(EQUATION_PREFIX));
       const insertionOffset = eqStartIdx === -1 ? newEncodedMetrics.length : eqStartIdx;
-      const remappedRemainingQueries = remapEquationLabels(
-        remainingEquationQueries,
-        insertionOffset
-      );
+      const interactedLabel = interactedRow?.label;
 
-      const spliceResult = spliceEquationQueries(
-        newEncodedMetrics,
-        remappedRemainingQueries
-      );
+      const fullRemap: Record<string, string> = {};
+      if (hasEquation && interactedLabel) {
+        fullRemap[getFunctionLabel(0)] = interactedLabel;
+      }
+      for (let i = 0; i < extraAggregates.length; i++) {
+        fullRemap[getFunctionLabel(i + 1)] = getFunctionLabel(insertionOffset + i);
+      }
+
+      const allSeerQueries = [...extraAggregates, ...seerEquations];
+      const remappedSeerQueries = remapEquationLabels(allSeerQueries, 0, fullRemap);
+
+      const spliceResult = spliceEquationQueries(newEncodedMetrics, remappedSeerQueries);
 
       const selection = {
         ...pageFilters.selection,
@@ -381,7 +403,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           header: t('Clear Queries'),
           message: t(
             "This equation needs an additional %s queries but, there isn't enough room. Clear existing queries to make room?",
-            remainingEquationQueries.length
+            remappedSeerQueries.length
           ),
           confirmText: t('Clear and apply'),
           isDangerous: true,
