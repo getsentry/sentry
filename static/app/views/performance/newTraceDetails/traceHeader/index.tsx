@@ -1,4 +1,4 @@
-import {Container, Grid} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -111,15 +111,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
           </FeedbackButton>
         </TopBar.Slot>
 
-        <Grid
-          columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 1fr) max-content'}}
-          gap="md xl"
-          align="start"
-          areas={{
-            zero: `"title" "meta" "highlights" "projects"`,
-            xl: `"title meta" "highlights projects"`,
-          }}
-        >
+        <TraceHeaderComponents.HeaderGrid>
           <Container area="title" minWidth={0}>
             <Title representativeEvent={rep} rootEventResults={props.rootEventResults} />
           </Container>
@@ -144,7 +136,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
           <Container area="projects" justifySelf={{zero: 'start', xl: 'end'}}>
             <Projects projects={projects} logs={props.logs} tree={props.tree} />
           </Container>
-        </Grid>
+        </TraceHeaderComponents.HeaderGrid>
       </TraceHeaderComponents.HeaderContent>
     </TraceHeaderComponents.HeaderLayout>
   );

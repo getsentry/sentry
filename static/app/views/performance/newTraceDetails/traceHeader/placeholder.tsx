@@ -1,4 +1,4 @@
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -62,24 +62,31 @@ export function PlaceHolder({
             </TopBar.Slot>
           </Grid>
         </Flex>
-        <Flex justify="between" gap="md">
-          <Stack gap="xs">
-            <TraceHeaderComponents.StyledPlaceholder _width={300} _height={20} />
-            <TraceHeaderComponents.StyledPlaceholder _width={200} _height={18} />
-          </Stack>
-          <Stack gap="xs">
-            <TraceHeaderComponents.StyledPlaceholder _width={300} _height={18} />
-            <TraceHeaderComponents.StyledPlaceholder _width={300} _height={24} />
-          </Stack>
-        </Flex>
-        <Flex justify="between" align="center" gap="md">
-          <Flex align="center" gap="md">
-            <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
-            <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
-            <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
-          </Flex>
-          <TraceHeaderComponents.StyledPlaceholder _width={50} _height={28} />
-        </Flex>
+        <TraceHeaderComponents.HeaderGrid>
+          <Container area="title" minWidth={0}>
+            <Stack gap="xs">
+              <TraceHeaderComponents.StyledPlaceholder _width={300} _height={20} />
+              <TraceHeaderComponents.StyledPlaceholder _width={200} _height={18} />
+            </Stack>
+          </Container>
+          <Container area="meta" justifySelf={{zero: 'start', xl: 'end'}}>
+            <Flex align="center" gap="xl" wrap="wrap">
+              <TraceHeaderComponents.StyledPlaceholder _width={80} _height={42} />
+              <TraceHeaderComponents.StyledPlaceholder _width={80} _height={42} />
+              <TraceHeaderComponents.StyledPlaceholder _width={80} _height={42} />
+            </Flex>
+          </Container>
+          <Container area="highlights" minWidth={0} overflow="hidden">
+            <Flex align="center" gap="md">
+              <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
+              <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
+              <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
+            </Flex>
+          </Container>
+          <Container area="projects" justifySelf={{zero: 'start', xl: 'end'}}>
+            <TraceHeaderComponents.StyledPlaceholder _width={50} _height={28} />
+          </Container>
+        </TraceHeaderComponents.HeaderGrid>
       </TraceHeaderComponents.HeaderContent>
     </TraceHeaderComponents.HeaderLayout>
   );
