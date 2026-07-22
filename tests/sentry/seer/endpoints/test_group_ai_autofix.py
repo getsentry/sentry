@@ -344,6 +344,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             TriggerAutofixAction,
             group_id=group.id,
             actor=GroupActionActor.user(self.user.id),
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
@@ -354,13 +355,14 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         response = self.client.post(
             self._get_url(group.id),
-            data={"step": "root_cause"},
+            data={"step": "root_cause", "referrer": AutofixReferrer.WEB.value},
             format="json",
         )
 
         assert response.status_code == 202, response.data
         activity = Activity.objects.get(group=group, type=ActivityType.TRIGGER_AUTOFIX.value)
         assert activity.user_id == self.user.id
+        assert activity.data == {"referrer": AutofixReferrer.WEB.value}
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_advancing_existing_run_skips_action(self, mock_trigger):

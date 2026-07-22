@@ -444,6 +444,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                             user_id=(
                                 actor.actor_id if actor.actor_type == GroupActorType.USER else None
                             ),
+                            data={"referrer": referrer.value},
                             send_notification=False,
                         )
                     run = get_seer_run(run_id, group.organization)
