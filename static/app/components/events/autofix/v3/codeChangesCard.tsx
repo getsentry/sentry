@@ -1,15 +1,10 @@
-import {Fragment, useMemo} from 'react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import { Fragment, useMemo } from "react";
 
-import {UserAvatar} from '@sentry/scraps/avatar';
-import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
-import {Markdown} from '@sentry/scraps/markdown';
-import {Prose, Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import { Tag } from "@sentry/scraps/badge";
+import { Button } from "@sentry/scraps/button";
+import { Flex, Stack } from "@sentry/scraps/layout";
+import { Markdown } from "@sentry/scraps/markdown";
+import { Text } from "@sentry/scraps/text";
 
 import {
   collectPatches,
@@ -17,144 +12,31 @@ import {
   isCodeChangesArtifact,
   isPrIterationBlock,
   type AutofixSection,
-  type RawFeedback,
   type useExplorerAutofix,
-} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
-import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
-import {ArtifactLoadingDetails} from 'sentry/components/events/autofix/v3/artifactLoadingDetails';
-import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
-import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
-import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
-import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {TimeSince} from 'sentry/components/timeSince';
-import {IconCheckmark} from 'sentry/icons/iconCheckmark';
-import {IconClock} from 'sentry/icons/iconClock';
-import {IconCode} from 'sentry/icons/iconCode';
-import {IconGithub} from 'sentry/icons/iconGithub';
-import {IconRefresh} from 'sentry/icons/iconRefresh';
-import {t, tn} from 'sentry/locale';
-import type {User} from 'sentry/types/user';
-import {defined} from 'sentry/utils/defined';
-import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
+} from "sentry/components/events/autofix/useExplorerAutofix";
+import { ArtifactCard } from "sentry/components/events/autofix/v3/artifactCard";
+import { ArtifactDetails } from "sentry/components/events/autofix/v3/artifactDetails";
+import { ArtifactLoadingDetails } from "sentry/components/events/autofix/v3/artifactLoadingDetails";
+import { AutofixResetPrompt } from "sentry/components/events/autofix/v3/autofixResetPrompt";
+import {
+  FeedbackList,
+  usePrIterationFeedback,
+} from "sentry/components/events/autofix/v3/feedbackList";
+import { PrIterationFeedbackForm } from "sentry/components/events/autofix/v3/prIterationFeedbackForm";
+import { useResetAutofixStep } from "sentry/components/events/autofix/v3/useResetAutofixStep";
+import { artifactToMarkdown } from "sentry/components/events/autofix/v3/utils";
+import { IconCode } from "sentry/icons/iconCode";
+import { IconRefresh } from "sentry/icons/iconRefresh";
+import { t, tn } from "sentry/locale";
+import { defined } from "sentry/utils/defined";
+import { useCopyToClipboard } from "sentry/utils/useCopyToClipboard";
+import { useOrganization } from "sentry/utils/useOrganization";
+import { FileDiffViewer } from "sentry/views/seerExplorer/components/fileDiffViewer";
 
 interface CodeChangesCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   groupId: string;
   section: AutofixSection;
-}
-
-/**
- * - `processed`: the iteration it drove has finished and its changes are pushed.
- * - `in_progress`: it's driving the iteration currently being processed.
- * - `queued`: submitted while a run was processing, not yet picked up.
- */
-type FeedbackStatus = 'processed' | 'in_progress' | 'queued';
-
-interface ParsedBaseFeedback {
-  text: string;
-  timestamp?: string;
-}
-
-interface UserUiFeedback extends ParsedBaseFeedback {
-  sourceType: 'user-ui';
-  user?: User | null;
-}
-
-interface GithubPrCommentFeedback extends ParsedBaseFeedback {
-  commentUrl: string;
-  sourceType: 'github-pr-comment' | 'github-pr-review-comment' | 'github-pr-review-body';
-  githubUsername?: string;
-}
-
-interface CheckSuiteFeedback extends ParsedBaseFeedback {
-  appName: string;
-  checkSuiteUrl: string;
-  sourceType: 'check-suite';
-}
-interface OtherFeedback extends ParsedBaseFeedback {
-  source: string;
-  sourceType: 'other';
-}
-
-// What `parseFeedback` can produce from the stored JSON alone.
-type ParsedFeedback =
-  | UserUiFeedback
-  | GithubPrCommentFeedback
-  | CheckSuiteFeedback
-  | OtherFeedback;
-
-// A parsed feedback enriched with the iteration context the caller supplies.
-type IterationFeedback = ParsedFeedback & {
-  iterationIndex: number;
-  status: FeedbackStatus;
-};
-
-function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
-  // `ui_text` is the short display label the backend derives per source; fall
-  // back to the raw prompt `text` for feedback serialized before it existed.
-  const base = {
-    text: parsed.ui_text ?? parsed.text,
-    timestamp: parsed.timestamp,
-  };
-  const source = parsed.source;
-  switch (source?.type) {
-    case 'user-ui':
-      return {...base, sourceType: 'user-ui', user: source.user};
-    case 'github-pr-comment':
-    case 'github-pr-review-comment': {
-      const commentUrl = source.comment?.html_url;
-      if (!commentUrl) {
-        return null;
-      }
-      return {
-        ...base,
-        sourceType: source.type,
-        githubUsername: source.comment?.user?.login,
-        commentUrl,
-      };
-    }
-    case 'github-pr-review-body': {
-      // Unlike a review comment, the review body carries its link directly on
-      // `html_url` and has no comment author login to attribute.
-      const commentUrl = source.html_url;
-      if (!commentUrl) {
-        return null;
-      }
-      return {
-        ...base,
-        sourceType: source.type,
-        commentUrl,
-      };
-    }
-    case 'check-suite': {
-      const appName = source.app_name;
-      const {head_sha: headSha, id: checkSuiteId} = source.event.check_suite;
-      const repoUrl = source.event.repository.html_url;
-      return {
-        ...base,
-        text: t('%s check suite failed', appName),
-        sourceType: 'check-suite',
-        appName,
-        checkSuiteUrl: `${repoUrl}/commit/${headSha}/checks?check_suite_id=${checkSuiteId}`,
-      };
-    }
-    default:
-      return {
-        ...base,
-        sourceType: 'other',
-        source: parsed.source?.type ?? 'unknown',
-      };
-  }
-}
-
-function parseFeedback(raw: string): ParsedFeedback[] {
-  const parsed: RawFeedback | RawFeedback[] = JSON.parse(raw);
-  const items = Array.isArray(parsed) ? parsed : [parsed];
-  return items.map(parseFeedbackItem).filter(defined);
 }
 
 function getFinalExplanation(section: AutofixSection): string | null {
@@ -164,103 +46,44 @@ function getFinalExplanation(section: AutofixSection): string | null {
       continue;
     }
     const message = block.message;
-    if (message.role === 'assistant' && message.content?.trim()) {
+    if (message.role === "assistant" && message.content?.trim()) {
       return message.content.trim();
     }
   }
   return null;
 }
 
-export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProps) {
+export function CodeChangesCard({
+  autofix,
+  groupId,
+  section,
+}: CodeChangesCardProps) {
   const organization = useOrganization();
-  const hasPrIterationFeature = organization.features.includes('autofix-pr-iteration');
+  const hasPrIterationFeature = organization.features.includes(
+    "autofix-pr-iteration",
+  );
 
   const isIterating =
     hasPrIterationFeature &&
-    section.status === 'processing' &&
+    section.status === "processing" &&
     section.blocks.some(isPrIterationBlock);
 
   const currentStepStart = useMemo(
-    () => section.blocks.findLastIndex(block => defined(block.message.metadata?.step)),
-    [section.blocks]
-  );
-
-  // PR iterations are folded into this section's blocks. Surface the feedback
-  // that drove each one — the cumulative diff is already merged into the
-  // section's code-change artifact by getOrderedAutofixSections. Feedback on a
-  // block at/after the current step marker drives the iteration still running
-  // (when the section is processing); everything earlier is already pushed.
-  const blockFeedback = useMemo<IterationFeedback[]>(() => {
-    if (!hasPrIterationFeature) {
-      return [];
-    }
-
-    return section.blocks.flatMap((block, blockIndex) => {
-      if (!isPrIterationBlock(block)) {
-        return [];
-      }
-
-      const metadata = block.message.metadata;
-      const value = metadata?.feedback;
-      const iterationIndex = metadata?.iteration_index;
-
-      if (!value || iterationIndex === undefined) {
-        return [];
-      }
-
-      const status: FeedbackStatus =
-        section.status === 'processing' && blockIndex >= currentStepStart
-          ? 'in_progress'
-          : 'processed';
-
-      return parseFeedback(value).map(parsed => ({
-        ...parsed,
-        iterationIndex: Number(iterationIndex),
-        status,
-      }));
-    });
-  }, [section.blocks, section.status, currentStepStart, hasPrIterationFeature]);
-
-  const latestIterationIndex = useMemo(
     () =>
-      blockFeedback.reduce<number | null>(
-        (max, item) =>
-          max === null ? item.iterationIndex : Math.max(max, item.iterationIndex),
-        null
+      section.blocks.findLastIndex((block) =>
+        defined(block.message.metadata?.step),
       ),
-    [blockFeedback]
+    [section.blocks],
   );
 
-  // Feedback submitted while this run is processing that hasn't been picked up
-  // and folded into a block yet. It will become the next iteration.
-  const queuedFeedback = useMemo<IterationFeedback[]>(() => {
-    if (!hasPrIterationFeature) {
-      return [];
-    }
-
-    return (autofix.runState?.queued_feedback ?? []).flatMap(raw => {
-      const parsed = parseFeedbackItem(raw);
-      if (!parsed) {
-        return [];
-      }
-
-      return [
-        {
-          ...parsed,
-          iterationIndex: (latestIterationIndex ?? -1) + 1,
-          status: 'queued' as const,
-        },
-      ];
-    });
-  }, [autofix.runState?.queued_feedback, latestIterationIndex, hasPrIterationFeature]);
-
-  const feedback = useMemo(
-    () => [...blockFeedback, ...queuedFeedback].reverse(),
-    [blockFeedback, queuedFeedback]
+  const { feedback, latestIterationIndex } = usePrIterationFeedback(
+    section,
+    autofix,
+    hasPrIterationFeature,
   );
 
   const loadingBlocks = useMemo(() => {
-    if (section.status !== 'processing') {
+    if (section.status !== "processing") {
       return [];
     }
     if (currentStepStart === -1) {
@@ -274,10 +97,10 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     return isCodeChangesArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
-  const {copy} = useCopyToClipboard();
+  const { copy } = useCopyToClipboard();
   const markdown = useMemo(
     () => (artifact ? artifactToMarkdown(artifact) : null),
-    [artifact]
+    [artifact],
   );
 
   const prIterationEnabled = hasPrIterationFeature;
@@ -286,17 +109,20 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
 
   const isResetEligible = prIterationEnabled
-    ? noCodingAgents && (hasPRs || autofix.runState?.status !== 'processing')
-    : noCodingAgents && !hasPRs && autofix.runState?.status !== 'processing';
+    ? noCodingAgents && (hasPRs || autofix.runState?.status !== "processing")
+    : noCodingAgents && !hasPRs && autofix.runState?.status !== "processing";
 
-  const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
+  const { canReset, shouldShowReset, setShouldShowReset, handleReset } =
     useResetAutofixStep({
       autofix,
       canReset: isResetEligible,
       section,
-      step: 'code_changes',
+      step: "code_changes",
     });
-  const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
+  const patchesByRepo = useMemo(
+    () => collectPatches(artifact ?? []),
+    [artifact],
+  );
 
   const explanation = useMemo(() => getFinalExplanation(section), [section]);
 
@@ -313,13 +139,13 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
     if (reposChanged === 1) {
       return tn(
-        '%s file changed in 1 repo',
-        '%s files changed in 1 repo',
-        filesChanged.size
+        "%s file changed in 1 repo",
+        "%s files changed in 1 repo",
+        filesChanged.size,
       );
     }
 
-    return t('%s files changed in %s repos', filesChanged.size, reposChanged);
+    return t("%s files changed in %s repos", filesChanged.size, reposChanged);
   }, [patchesByRepo]);
 
   const showPrIterationForm = hasPRs && prIterationEnabled;
@@ -333,19 +159,39 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     />
   );
 
-  let title: React.ReactNode = t('Code Changes');
+  // The reset affordance shown inside a content branch when the user has opened
+  // it: the PR-iteration feedback form when PRs exist, otherwise a free-text
+  // reset prompt whose copy the branch supplies.
+  function resetPrompt(prompt: string, placeholder: string): React.ReactNode {
+    if (!shouldShowReset) {
+      return null;
+    }
+    if (showPrIterationForm) {
+      return prIterationForm;
+    }
+    return (
+      <AutofixResetPrompt
+        onClosePrompt={() => setShouldShowReset(false)}
+        onReset={handleReset}
+        placeholder={placeholder}
+        prompt={prompt}
+      />
+    );
+  }
+
+  let title: React.ReactNode = t("Code Changes");
   if (latestIterationIndex !== null) {
     title = (
       <Flex gap="md" align="center">
-        {t('Code Changes')}
+        {t("Code Changes")}
         {/* `iteration_index` is zero-based; display a one-based version number. */}
-        <Tag variant="muted">{t('v%s - Latest', latestIterationIndex + 1)}</Tag>
+        <Tag variant="muted">{t("v%s - Latest", latestIterationIndex + 1)}</Tag>
       </Flex>
     );
   }
 
   let content: React.ReactNode;
-  if (section.status === 'processing') {
+  if (section.status === "processing") {
     content = (
       <Fragment>
         {/* PR iteration feedback is queued while a run is in progress, so keep
@@ -354,38 +200,25 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
         <ArtifactLoadingDetails
           blocks={loadingBlocks}
           loadingMessage={
-            isIterating ? t('Iterating on PR…') : t('Implementing changes…')
+            isIterating ? t("Iterating on PR…") : t("Implementing changes…")
           }
         />
       </Fragment>
     );
-  } else if (section.status === 'completed' && artifact && patchesByRepo.size) {
-    let resetSection: React.ReactNode = null;
-    if (shouldShowReset) {
-      if (showPrIterationForm) {
-        resetSection = prIterationForm;
-      } else {
-        resetSection = (
-          <AutofixResetPrompt
-            onClosePrompt={() => setShouldShowReset(false)}
-            onReset={handleReset}
-            placeholder={t('Give seer additional context to improve this code change.')}
-            prompt={t('How can this code change be improved?')}
-          />
-        );
-      }
-    }
-
+  } else if (section.status === "completed" && artifact && patchesByRepo.size) {
     content = (
       <Fragment>
-        {resetSection}
+        {resetPrompt(
+          t("How can this code change be improved?"),
+          t("Give seer additional context to improve this code change."),
+        )}
         <ArtifactDetails>
           <Text>{summary}</Text>
         </ArtifactDetails>
         {[...patchesByRepo.entries()].map(([repo, patches]) => (
           <ArtifactDetails key={repo}>
             <Flex gap="lg">
-              <Text bold>{t('Repository:')}</Text>
+              <Text bold>{t("Repository:")}</Text>
               <Text>{repo}</Text>
             </Flex>
             {patches.map((patch, index) => (
@@ -402,42 +235,33 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       </Fragment>
     );
   } else if (explanation) {
-    let resetSection: React.ReactNode;
-    if (!shouldShowReset) {
-      resetSection = (
-        <Flex>
-          <Button
-            variant="primary"
-            icon={<IconRefresh />}
-            disabled={!canReset}
-            onClick={() => setShouldShowReset(true)}
-          >
-            {t('Add context & retry')}
-          </Button>
-        </Flex>
-      );
-    } else if (showPrIterationForm) {
-      resetSection = prIterationForm;
-    } else {
-      resetSection = (
-        <AutofixResetPrompt
-          onClosePrompt={() => setShouldShowReset(false)}
-          onReset={handleReset}
-          placeholder={t(
-            'Add context that could unblock the change, e.g. the repo or files to edit.'
-          )}
-          prompt={t('What additional context should Seer use?')}
-        />
-      );
-    }
-
     content = (
       <ArtifactDetails gap="lg">
         <Stack gap="md">
-          <Text bold>{t("Seer proposed a fix but couldn't apply it automatically")}</Text>
+          <Text bold>
+            {t("Seer proposed a fix but couldn't apply it automatically")}
+          </Text>
           <Markdown raw={explanation} />
         </Stack>
-        {resetSection}
+        {shouldShowReset ? (
+          resetPrompt(
+            t("What additional context should Seer use?"),
+            t(
+              "Add context that could unblock the change, e.g. the repo or files to edit.",
+            ),
+          )
+        ) : (
+          <Flex>
+            <Button
+              variant="primary"
+              icon={<IconRefresh />}
+              disabled={!canReset}
+              onClick={() => setShouldShowReset(true)}
+            >
+              {t("Add context & retry")}
+            </Button>
+          </Flex>
+        )}
       </ArtifactDetails>
     );
   } else {
@@ -445,12 +269,16 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       <ArtifactDetails>
         <Text>
           {t(
-            'Seer failed to generate a code change. This one is on us. Try running it again.'
+            "Seer failed to generate a code change. This one is on us. Try running it again.",
           )}
         </Text>
         <Flex>
-          <Button variant="primary" icon={<IconRefresh />} onClick={() => handleReset()}>
-            {t('Re-run')}
+          <Button
+            variant="primary"
+            icon={<IconRefresh />}
+            onClick={() => handleReset()}
+          >
+            {t("Re-run")}
           </Button>
         </Flex>
       </ArtifactDetails>
@@ -463,147 +291,14 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       title={title}
       onCopy={
         markdown
-          ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
+          ? () => copy(markdown, { successMessage: t("Copied to clipboard.") })
           : undefined
       }
       allowReset
       onReset={canReset ? () => setShouldShowReset(true) : undefined}
     >
-      {feedback.length > 0 && (
-        <ArtifactDetails>
-          <Text bold>{t('Feedback')}</Text>
-          {feedback.map((item, index) => (
-            <FeedbackItem key={`${item.iterationIndex}-${index}`} item={item} />
-          ))}
-        </ArtifactDetails>
-      )}
+      <FeedbackList items={feedback} />
       {content}
     </ArtifactCard>
-  );
-}
-
-function feedbackLinkUrl(item: IterationFeedback): string | undefined {
-  switch (item.sourceType) {
-    case 'github-pr-comment':
-    case 'github-pr-review-comment':
-    case 'github-pr-review-body':
-      return item.commentUrl;
-    case 'check-suite':
-      return item.checkSuiteUrl;
-    default:
-      return undefined;
-  }
-}
-
-function FeedbackAttribution({item}: {item: IterationFeedback}) {
-  switch (item.sourceType) {
-    case 'github-pr-comment':
-    case 'github-pr-review-comment':
-    case 'github-pr-review-body': {
-      const fallbackTitle =
-        item.sourceType === 'github-pr-review-body'
-          ? t('GitHub PR review')
-          : t('GitHub PR comment');
-      return (
-        <Tooltip title={item.githubUsername ?? fallbackTitle} skipWrapper>
-          <ExternalLink href={item.commentUrl}>
-            <Flex align="center">
-              <IconGithub size="md" data-test-id="icon-github" />
-            </Flex>
-          </ExternalLink>
-        </Tooltip>
-      );
-    }
-    case 'check-suite': {
-      const icon = (
-        <Flex align="center">
-          <IconGithub size="md" />
-        </Flex>
-      );
-      return (
-        <Tooltip title={t('%s check suite', item.appName)} skipWrapper>
-          <ExternalLink href={item.checkSuiteUrl}>{icon}</ExternalLink>
-        </Tooltip>
-      );
-    }
-    case 'user-ui':
-      return item.user ? <UserAvatar size={16} user={item.user} hasTooltip /> : null;
-    default:
-      return null;
-  }
-}
-
-function FeedbackStatusIcon({status}: {status: FeedbackStatus}) {
-  switch (status) {
-    case 'processed':
-      return (
-        <Tooltip title={t('Changes from this feedback have been pushed')}>
-          <Tag variant="success" icon={<IconCheckmark />} />
-        </Tooltip>
-      );
-    case 'in_progress':
-      return (
-        <Tooltip title={t('This feedback is being processed')}>
-          <LoadingIndicator size={14} style={{margin: 0}} />
-        </Tooltip>
-      );
-    case 'queued':
-      return <Tag variant="muted" icon={<IconClock />} />;
-    default:
-      return null;
-  }
-}
-
-const FeedbackProse = styled(Prose)<{muted?: boolean}>`
-  ${p =>
-    p.muted
-      ? css`
-          color: ${p.theme.tokens.content.secondary};
-        `
-      : ''}
-`;
-
-function FeedbackItem({item}: {item: IterationFeedback}) {
-  const isQueued = item.status === 'queued';
-  const linkUrl = feedbackLinkUrl(item);
-  return (
-    <Flex gap="md" align="start" justify="between">
-      <Flex gap="md" align="start" flex="1" minWidth={0}>
-        <Flex align="center" gap="md" height="1lh">
-          <Flex align="center" justify="center" width="28px">
-            <FeedbackStatusIcon status={item.status} />
-          </Flex>
-          <FeedbackAttribution item={item} />
-        </Flex>
-        <Flex align="center" minWidth={0} minHeight="1lh">
-          {linkUrl ? (
-            <ExternalLink href={linkUrl}>{item.text}</ExternalLink>
-          ) : (
-            <FeedbackProse muted={isQueued}>
-              <p>
-                {item.sourceType === 'other'
-                  ? `(${item.source}): ${item.text}`
-                  : item.text}
-              </p>
-            </FeedbackProse>
-          )}
-        </Flex>
-      </Flex>
-      {isQueued ? (
-        <Flex flex="0 0 auto" align="center" height="1lh">
-          <Text variant="muted" size="sm" wrap="nowrap">
-            {t('Queued')}
-          </Text>
-        </Flex>
-      ) : (
-        item.timestamp && (
-          <Flex flex="0 0 auto" align="center" height="1lh">
-            <Text variant="muted" size="sm" wrap="nowrap">
-              <TimeSince date={item.timestamp} />
-            </Text>
-          </Flex>
-        )
-      )}
-    </Flex>
   );
 }
