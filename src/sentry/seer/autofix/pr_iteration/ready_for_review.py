@@ -16,13 +16,10 @@ from typing import Any
 
 from django.utils import timezone
 from scm import actions as scm_actions
-from scm.types import GetPullRequestProtocol, MarkPullRequestDraftStateProtocol
+from scm.types import MarkPullRequestDraftStateProtocol
 
 from sentry.locks import locks
-from sentry.seer.autofix.pr_iteration.check_suites import (
-    GreenCheckSuiteContext,
-    check_suite_matches_pr_head,
-)
+from sentry.seer.autofix.pr_iteration.check_suites import GreenCheckSuiteContext
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
@@ -74,6 +71,7 @@ def mark_ready_for_review(ctx: GreenCheckSuiteContext) -> None:
     """Undraft the PR for ``ctx.head_sha``.
 
     Lock + marker only avoid racing / repeating the GitHub undraft call.
+    Stale-head filtering is done once in bootstrap (same as review-request).
     """
     if not isinstance(ctx.scm, MarkPullRequestDraftStateProtocol):
         # GitHub-only for now; review-request can still proceed without undraft.
@@ -98,23 +96,6 @@ def mark_ready_for_review(ctx: GreenCheckSuiteContext) -> None:
             ctx.seer_run.refresh_from_db()
             if is_ready_for_review_for_head(ctx.seer_run, ctx.repo_name, ctx.head_sha):
                 _skip("already_marked", ctx.log_extra)
-                return
-
-            # Tip may have moved while we swept / waited for the lock.
-            # Bootstrap already required GetPullRequestProtocol; narrow for mypy.
-            if not isinstance(ctx.scm, GetPullRequestProtocol):
-                _skip("unsupported_provider", ctx.log_extra)
-                return
-            try:
-                pull_request = scm_actions.get_pull_request(ctx.scm, str(ctx.pr_number))
-            except Exception:
-                _failed("get_pull_request_failed", {**ctx.log_extra, "pr_number": ctx.pr_number})
-                return
-            head_match = check_suite_matches_pr_head(
-                ctx.event, pr_head_sha=pull_request["data"]["head"].get("sha")
-            )
-            if not head_match.matched or head_match.head_sha != ctx.head_sha:
-                _skip("stale_head", {**ctx.log_extra, "head_sha": ctx.head_sha})
                 return
 
             try:

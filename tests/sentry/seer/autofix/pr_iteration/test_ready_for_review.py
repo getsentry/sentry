@@ -120,10 +120,6 @@ class MarkReadyForReviewTest(TestCase):
         self.seer_run.refresh_from_db()
         return (self.seer_run.extras or {}).get(READY_FOR_REVIEW_EXTRA, {}).get(REPO_NAME)
 
-    def _wire_scm_actions(self, mock_actions: MagicMock, *, head_sha: str = HEAD_SHA) -> None:
-        mock_actions.get_pull_request.return_value = _pull_request_result(head_sha=head_sha)
-
-    @patch(f"{READY_FOR_REVIEW_PATH}.GetPullRequestProtocol", object)
     @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
     @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
@@ -136,7 +132,6 @@ class MarkReadyForReviewTest(TestCase):
     ) -> None:
         # Live PR head matches the suite even if run_state.commit_sha is stale.
         mock_resolve.return_value = self._resolved(commit_sha="stale-run-state")
-        self._wire_scm_actions(mock_actions)
 
         with self.feature(REVIEW_REQUEST_FLAG):
             _mark_ready(_green_event())
@@ -194,7 +189,6 @@ class MarkReadyForReviewTest(TestCase):
         assert self._marker() is None
         mock_actions.mark_pull_request_ready_for_review.assert_not_called()
 
-    @patch(f"{READY_FOR_REVIEW_PATH}.GetPullRequestProtocol", object)
     @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
     @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
@@ -206,32 +200,9 @@ class MarkReadyForReviewTest(TestCase):
         mock_actions: MagicMock,
     ) -> None:
         mock_resolve.return_value = self._resolved()
-        self._wire_scm_actions(mock_actions)
         mock_actions.mark_pull_request_ready_for_review.side_effect = RuntimeError("boom")
 
         with self.feature(REVIEW_REQUEST_FLAG):
             _mark_ready(_green_event())
 
         assert self._marker() is None
-
-    @patch(f"{READY_FOR_REVIEW_PATH}.GetPullRequestProtocol", object)
-    @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
-    @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
-    @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
-    def test_stale_head_under_lock_skips_undraft(
-        self,
-        mock_resolve: MagicMock,
-        _mock_scm: MagicMock,
-        mock_actions: MagicMock,
-    ) -> None:
-        """Bootstrap saw a matching tip; tip moved before the undraft lock write."""
-        mock_resolve.return_value = self._resolved()
-        # Bootstrap get_pr matches; under-lock re-fetch does not.
-        self._wire_scm_actions(mock_actions, head_sha="moved")
-
-        with self.feature(REVIEW_REQUEST_FLAG):
-            _mark_ready(_green_event())
-
-        assert self._marker() is None
-        mock_actions.mark_pull_request_ready_for_review.assert_not_called()
