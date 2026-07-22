@@ -100,7 +100,7 @@ export function ConversationDetailPageNew() {
               <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
             </TabList>
           </Tabs>
-          {queryState.tab === 'transcript' && messages.length > 0 && (
+          {queryState.tab === 'transcript' && !isLoading && messages.length > 0 && (
             <Button
               size="xs"
               icon={<IconCopy />}
