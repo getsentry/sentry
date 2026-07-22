@@ -3,37 +3,22 @@ import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  KeyValueData,
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
+import {KeyValueData} from 'sentry/components/keyValueData';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {EMPTY_OPTION_VALUE, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
+import {LowValueSpanEstimatedCost} from './lowValueSpanEstimatedCost';
 import type {LowValueSpanEvidenceData} from './types';
-import {
-  formatDurationMs,
-  formatEstimatedCostUsd,
-  getLowValueSpanEvidenceData,
-  getSpanLabel,
-} from './utils';
+import {formatDurationMs, getLowValueSpanEvidenceData, getSpanLabel} from './utils';
 
 interface LowValueSpanProblemSectionProps {
   event: Event;
-}
-
-interface LowValueSpanCostsResponse {
-  estimatedCostUsd: number | null;
-  extrapolatedCount: number | null;
 }
 
 const LOW_VALUE_SPAN_EXPLORE_REFERRER = 'low-value-span-configuration-issue';
@@ -55,24 +40,8 @@ export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionPr
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const evidenceData = getLowValueSpanEvidenceData(event.occurrence?.evidenceData);
-  const canViewEstimatedCost = ['billing', 'manager', 'owner'].includes(
-    organization.orgRole ?? ''
-  );
-  const {data: costData} = useApiQuery<LowValueSpanCostsResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/low-value-spans-costs/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {spanCount: evidenceData.count}},
-    ],
-    {
-      enabled: canViewEstimatedCost && evidenceData.count !== null,
-      staleTime: 30000,
-    }
-  );
-  const estimatedCostUsd = costData?.estimatedCostUsd ?? null;
-  const hasEstimatedCost = estimatedCostUsd !== null && estimatedCostUsd > 0;
-  const extrapolatedCount = costData?.extrapolatedCount ?? evidenceData.extrapolatedCount;
+  const canViewEstimatedCost = organization.access.includes('org:billing');
+  const extrapolatedCount = evidenceData.extrapolatedCount;
   const spanCount = extrapolatedCount ?? evidenceData.count;
   const affectedSpanQuery = getAffectedSpanQuery(evidenceData);
   const affectedSpanExploreUrl = affectedSpanQuery
@@ -84,67 +53,6 @@ export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionPr
         referrer: LOW_VALUE_SPAN_EXPLORE_REFERRER,
       })
     : undefined;
-  const contentItems: Array<KeyValueDataContentProps | null> = [
-    {
-      disableFormattedData: true,
-      item: {
-        action: affectedSpanExploreUrl ? {link: affectedSpanExploreUrl} : undefined,
-        key: 'affected-span',
-        subject: t('Affected span'),
-        value: getSpanLabel(evidenceData),
-      },
-    },
-    {
-      disableFormattedData: true,
-      item: {
-        key: 'span-count',
-        subject: t('Span count'),
-        value: (
-          <Flex align="center" gap="xs">
-            <Text monospace>
-              {spanCount === null ? t('Unknown') : formatAbbreviatedNumber(spanCount)}
-            </Text>
-            {extrapolatedCount !== null && (
-              <InfoTip
-                size="xs"
-                title={t(
-                  'Projected 30-day volume based on a recent sample. Actual volume may differ.'
-                )}
-              />
-            )}
-          </Flex>
-        ),
-      },
-    },
-    hasEstimatedCost
-      ? {
-          disableFormattedData: true,
-          item: {
-            key: 'estimated-cost',
-            subject: t('Estimated cost'),
-            value: (
-              <Flex align="center" gap="xs">
-                <Text monospace>{formatEstimatedCostUsd(estimatedCostUsd)}</Text>
-                <InfoTip
-                  size="xs"
-                  title={t(
-                    'Projected 30-day cost based on a recent sample. Actual cost may differ.'
-                  )}
-                />
-              </Flex>
-            ),
-          },
-        }
-      : null,
-    {
-      disableFormattedData: true,
-      item: {
-        key: 'average-duration',
-        subject: t('Average duration'),
-        value: formatDurationMs(evidenceData.avgDurationMs),
-      },
-    },
-  ];
 
   return (
     <Stack gap="lg">
@@ -154,9 +62,48 @@ export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionPr
         )}
       </Alert>
       <Grid columns="fit-content(50%) 1fr" border="primary" radius="md" padding="sm">
-        {contentItems.filter(defined).map(contentItem => (
-          <KeyValueData.Content key={contentItem.item.key} {...contentItem} />
-        ))}
+        <KeyValueData.Content
+          disableFormattedData
+          item={{
+            action: affectedSpanExploreUrl ? {link: affectedSpanExploreUrl} : undefined,
+            key: 'affected-span',
+            subject: t('Affected span'),
+            value: getSpanLabel(evidenceData),
+          }}
+        />
+        <KeyValueData.Content
+          disableFormattedData
+          item={{
+            key: 'span-count',
+            subject: t('Span count'),
+            value: (
+              <Flex align="center" gap="xs">
+                <Text monospace>
+                  {spanCount === null ? t('Unknown') : formatAbbreviatedNumber(spanCount)}
+                </Text>
+                {extrapolatedCount !== null && (
+                  <InfoTip
+                    size="xs"
+                    title={t(
+                      'Projected 30-day volume based on a recent sample. Actual volume may differ.'
+                    )}
+                  />
+                )}
+              </Flex>
+            ),
+          }}
+        />
+        {canViewEstimatedCost && extrapolatedCount !== null && (
+          <LowValueSpanEstimatedCost extrapolatedSpanCount={extrapolatedCount} />
+        )}
+        <KeyValueData.Content
+          disableFormattedData
+          item={{
+            key: 'average-duration',
+            subject: t('Average duration'),
+            value: formatDurationMs(evidenceData.avgDurationMs),
+          }}
+        />
       </Grid>
     </Stack>
   );
