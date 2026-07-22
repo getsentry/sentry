@@ -1081,6 +1081,16 @@ describe('ActivitySection', () => {
       } satisfies GroupActivity,
       expectedCopy: [/Pull request.*updated/, '#42', 'on GitHub'],
     },
+    {
+      name: 'Autofix trigger',
+      activity: {
+        type: GroupActivityType.TRIGGER_AUTOFIX,
+        id: 'autofix-trigger-1',
+        dateCreated: '2020-01-01T00:00:00',
+        data: {},
+      } satisfies GroupActivity,
+      expectedCopy: ['Autofix triggered'],
+    },
   ])('renders $name v2 activity copy', async ({activity, expectedCopy}) => {
     const activityGroup = GroupFixture({
       id: '1339',
@@ -1584,6 +1594,13 @@ describe('ActivitySection', () => {
           data: {run_id: 123},
           user: null,
         },
+        {
+          type: GroupActivityType.TRIGGER_AUTOFIX,
+          id: 'autofix-trigger-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {},
+          user: null,
+        },
       ],
       project,
     });
@@ -1600,6 +1617,8 @@ describe('ActivitySection', () => {
     );
     expect(await screen.findByText('Root Cause Analysis')).toBeInTheDocument();
     expect(screen.getByText('Seer completed root cause analysis')).toBeInTheDocument();
+    expect(screen.getByText('Autofix')).toBeInTheDocument();
+    expect(screen.getByText('Autofix was triggered')).toBeInTheDocument();
   });
 
   it('hides Seer activity when feature flag is disabled', () => {
@@ -1611,6 +1630,13 @@ describe('ActivitySection', () => {
           id: 'seer-rca-2',
           dateCreated: '2020-01-01T00:00:00',
           data: {run_id: 123},
+          user: null,
+        },
+        {
+          type: GroupActivityType.TRIGGER_AUTOFIX,
+          id: 'autofix-trigger-2',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {},
           user: null,
         },
       ],
@@ -1626,6 +1652,8 @@ describe('ActivitySection', () => {
     expect(
       screen.queryByText('Seer completed root cause analysis')
     ).not.toBeInTheDocument();
+    expect(screen.queryByText('Autofix')).not.toBeInTheDocument();
+    expect(screen.queryByText('Autofix was triggered')).not.toBeInTheDocument();
   });
 
   it('does not render Seer PR created activity in timeline', () => {
