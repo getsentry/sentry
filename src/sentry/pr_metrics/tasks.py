@@ -288,6 +288,9 @@ def detect_stale_pull_requests_task() -> None:
                 "pull_request_id", "date_updated"
             )
         )
+
+        # First pass: collect PRs that pass initial filters and timestamp checks
+        candidate_prs = []
         for pr in pull_requests:
             org = orgs_by_id.get(pr.organization_id)
             if org is None:
@@ -312,6 +315,17 @@ def detect_stale_pull_requests_task() -> None:
                 metrics.incr("pr_metrics.stale.skipped", tags={"reason": "doc_engaged"})
                 continue
 
+            candidate_prs.append(pr)
+
+        # Bulk-fetch activity documents for all candidates
+        doc_by_pr_id = dict(
+            PullRequestActivityLog.objects.filter(
+                pull_request_id__in=[pr.id for pr in candidate_prs]
+            ).values_list("pull_request_id", "data")
+        )
+
+        # Second pass: process candidates with document data
+        for pr in candidate_prs:
             # Ensure the metrics row exists before any compare-and-set claim.
             # A stale PR may never have reached a close/merge webhook so the
             # row may not exist yet.
@@ -324,11 +338,11 @@ def detect_stale_pull_requests_task() -> None:
             # Check if NO_REVIEWER_ENGAGEMENT label should be applied by examining
             # the activity document for any reviewer engagement throughout the PR's lifetime
             diagnosis_labels = []
-            try:
-                activity_log = PullRequestActivityLog.objects.get(pull_request_id=pr.id)
-                if not has_reviewer_engagement(activity_log.data):
+            doc = doc_by_pr_id.get(pr.id)
+            if doc is not None:
+                if not has_reviewer_engagement(doc):
                     diagnosis_labels.append(NO_REVIEWER_ENGAGEMENT)
-            except PullRequestActivityLog.DoesNotExist:
+            else:
                 # No activity document exists, so no reviewer engagement occurred
                 diagnosis_labels.append(NO_REVIEWER_ENGAGEMENT)
 
