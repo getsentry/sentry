@@ -61,6 +61,7 @@ export interface ActionHandler {
   configSchema: Record<string, any>;
   dataSchema: Record<string, any>;
   handlerGroup: ActionGroup;
+  incompatibleConditions: string[];
   type: ActionType;
   integrations?: Integration[];
   sentryApp?: SentryAppContext;

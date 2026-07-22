@@ -1,56 +1,42 @@
 import {t} from 'sentry/locale';
-import {ActionType, type Action} from 'sentry/types/workflowEngine/actions';
+import type {ActionHandler} from 'sentry/types/workflowEngine/actions';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
-import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
 
-// Ticketing actions deliver via the issue-alert (create-a-ticket) path, which is
-// not wired up for metric issues. Every other action type fires for metric issues.
-const METRIC_DETECTOR_UNSUPPORTED_ACTIONS = new Set<ActionType>([
-  ActionType.GITHUB,
-  ActionType.GITHUB_ENTERPRISE,
-  ActionType.JIRA,
-  ActionType.JIRA_SERVER,
-  ActionType.AZURE_DEVOPS,
-]);
-
-const SEER_ACTIVITY_SUPPORTED_ACTIONS = new Set<ActionType>([
-  ActionType.EMAIL,
-  ActionType.SLACK,
-  ActionType.SLACK_STAGING,
-  ActionType.MSTEAMS,
-  ActionType.DISCORD,
-  ActionType.SENTRY_APP,
-  ActionType.WEBHOOK,
-]);
+const INCOMPATIBILITY_MESSAGES: Record<string, string> = {
+  seer_activity_trigger: t('This action is not supported for Seer activity triggers.'),
+};
 
 interface IncompatibleActionWarningContext {
-  connectedDetectors: Detector[];
+  handler: ActionHandler;
   triggerConditions: DataCondition[];
 }
 
 /**
  * Returns all applicable warning messages for an action that is
  * incompatible with the current trigger or detector configuration.
+ *
+ * Incompatibilities are driven by the backend via the `incompatibleConditions`
+ * field on each ActionHandler returned from the available-actions endpoint.
  */
-export function getIncompatibleActionWarnings(
-  action: Action,
-  {connectedDetectors, triggerConditions}: IncompatibleActionWarningContext
-): string[] {
-  const warnings: string[] = [];
-
-  if (
-    !SEER_ACTIVITY_SUPPORTED_ACTIONS.has(action.type) &&
-    triggerConditions.some(c => c.type === DataConditionType.SEER_ACTIVITY_TRIGGER)
-  ) {
-    warnings.push(t('This action is not supported for Seer activity triggers.'));
+export function getIncompatibleActionWarnings({
+  handler,
+  triggerConditions,
+}: IncompatibleActionWarningContext): string[] {
+  const incompatible = handler.incompatibleConditions;
+  if (!incompatible?.length) {
+    return [];
   }
 
-  if (
-    METRIC_DETECTOR_UNSUPPORTED_ACTIONS.has(action.type) &&
-    connectedDetectors.some(detector => detector.type === 'metric_issue')
-  ) {
-    warnings.push(t('This action will not fire for metric issues.'));
+  const activeConditionTypes = new Set(triggerConditions.map(c => c.type));
+  const warnings: string[] = [];
+
+  for (const conditionType of incompatible) {
+    if (activeConditionTypes.has(conditionType as any)) {
+      const message = INCOMPATIBILITY_MESSAGES[conditionType];
+      if (message) {
+        warnings.push(message);
+      }
+    }
   }
 
   return warnings;

@@ -25,7 +25,6 @@ import {useAutomationBuilderContext} from 'sentry/views/automations/components/a
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {AutomationBuilderRow} from 'sentry/views/automations/components/automationBuilderRow';
 import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
-import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 import {getIncompatibleActionWarnings} from 'sentry/views/automations/utils/getIncompatibleActionWarning';
 
 interface ActionNodeListProps {
@@ -72,7 +71,6 @@ export function ActionNodeList({
   const {data: availableActions = [], isLoading: isLoadingActions} =
     useAvailableActionsQuery();
   const {errors, removeError} = useAutomationBuilderErrorContext();
-  const {connectedDetectors} = useConnectedDetectors();
   const {state} = useAutomationBuilderContext();
   const triggerConditions = state.triggers.conditions ?? [];
 
@@ -152,8 +150,8 @@ export function ActionNodeList({
           );
         }
         const error = errors?.[action.id];
-        const warningMessages = getIncompatibleActionWarnings(action, {
-          connectedDetectors,
+        const warningMessages = getIncompatibleActionWarnings({
+          handler,
           triggerConditions,
         });
         return (

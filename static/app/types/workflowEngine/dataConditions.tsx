@@ -113,6 +113,7 @@ export enum DataConditionHandlerSubgroupType {
 export interface DataConditionHandler {
   comparisonJsonSchema: Record<string, any>;
   handlerGroup: DataConditionHandlerGroupType;
+  incompatibleConditions: string[];
   type: DataConditionType;
   handlerSubgroup?: DataConditionHandlerSubgroupType;
 }

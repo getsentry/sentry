@@ -1,13 +1,10 @@
 import {ActionFixture} from 'sentry-fixture/automations';
-import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ActionHandlerFixture} from 'sentry-fixture/workflowEngine';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {Form} from 'sentry/components/forms/form';
-import {FormModel} from 'sentry/components/forms/model';
 import {
   ActionGroup,
   ActionType,
@@ -49,6 +46,7 @@ const actionHandlers: ActionHandler[] = [
   ActionHandlerFixture({
     type: ActionType.JIRA,
     handlerGroup: ActionGroup.TICKET_CREATION,
+    incompatibleConditions: [DataConditionType.SEER_ACTIVITY_TRIGGER],
   }),
 ];
 
@@ -191,14 +189,6 @@ describe('ActionNodeList', () => {
   });
 
   it('shows warnings for incompatible actions', async () => {
-    const model = new FormModel();
-    model.setInitialData({
-      detectorIds: ['123'],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/detectors/`,
-      body: [MetricDetectorFixture({id: '123'})],
-    });
     const jiraAction = ActionFixture({type: ActionType.JIRA});
     render(
       <AutomationBuilderTestProvider
@@ -218,9 +208,7 @@ describe('ActionNodeList', () => {
         }}
       >
         <AutomationFormProvider>
-          <Form model={model}>
-            <ActionNodeList {...defaultProps} actions={[jiraAction]} />
-          </Form>
+          <ActionNodeList {...defaultProps} actions={[jiraAction]} />
         </AutomationFormProvider>
       </AutomationBuilderTestProvider>,
       {organization}
@@ -234,9 +222,6 @@ describe('ActionNodeList', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
     expect(
       screen.getByText('This action is not supported for Seer activity triggers.')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('This action will not fire for metric issues.')
     ).toBeInTheDocument();
   });
 });

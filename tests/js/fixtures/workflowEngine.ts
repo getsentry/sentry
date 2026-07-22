@@ -15,6 +15,7 @@ export function DataConditionHandlerFixture(
     handlerGroup: DataConditionHandlerGroupType.ACTION_FILTER,
     handlerSubgroup: DataConditionHandlerSubgroupType.ISSUE_ATTRIBUTES,
     comparisonJsonSchema: {},
+    incompatibleConditions: [],
     ...params,
   };
 }
@@ -24,6 +25,7 @@ export function ActionHandlerFixture(params: Partial<ActionHandler> = {}): Actio
     configSchema: {},
     dataSchema: {},
     handlerGroup: ActionGroup.NOTIFICATION,
+    incompatibleConditions: [],
     type: ActionType.SLACK,
     integrations: [{id: '1', name: 'My Slack Workspace'}],
     ...params,

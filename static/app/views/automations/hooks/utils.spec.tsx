@@ -1,8 +1,10 @@
 import {DataConditionFixture} from 'sentry-fixture/automations';
+import {DataConditionHandlerFixture} from 'sentry-fixture/workflowEngine';
 
 import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataConditions';
 import {
   DataConditionGroupLogicType,
+  DataConditionHandlerGroupType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {AgeComparison} from 'sentry/views/automations/components/actionFilters/constants';
@@ -413,7 +415,34 @@ describe('findConflictingConditions', () => {
     });
   });
 
-  describe('Seer activity trigger incompatibilities', () => {
+  describe('Trigger condition incompatibilities (backend-driven)', () => {
+    const seerIncompatible = [
+      DataConditionType.EVENT_ATTRIBUTE,
+      DataConditionType.TAGGED_EVENT,
+      DataConditionType.LEVEL,
+      DataConditionType.LATEST_RELEASE,
+      DataConditionType.LATEST_ADOPTED_RELEASE,
+      DataConditionType.EVENT_FREQUENCY_COUNT,
+      DataConditionType.EVENT_FREQUENCY_PERCENT,
+      DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
+      DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
+      DataConditionType.PERCENT_SESSIONS_COUNT,
+      DataConditionType.PERCENT_SESSIONS_PERCENT,
+    ];
+
+    const triggerHandlers = [
+      DataConditionHandlerFixture({
+        type: DataConditionType.SEER_ACTIVITY_TRIGGER,
+        handlerGroup: DataConditionHandlerGroupType.WORKFLOW_TRIGGER,
+        incompatibleConditions: seerIncompatible,
+      }),
+      DataConditionHandlerFixture({
+        type: DataConditionType.FIRST_SEEN_EVENT,
+        handlerGroup: DataConditionHandlerGroupType.WORKFLOW_TRIGGER,
+        incompatibleConditions: [],
+      }),
+    ];
+
     const seerTriggers: DataConditionGroup = {
       id: 'triggers',
       logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
@@ -426,6 +455,9 @@ describe('findConflictingConditions', () => {
       ],
     };
 
+    const conflictReason =
+      'The conditions highlighted in red are not compatible with the selected triggers.';
+
     it('flags event attribute filters as incompatible with Seer activity triggers', () => {
       const actionFilters = [
         {
@@ -437,13 +469,16 @@ describe('findConflictingConditions', () => {
         },
       ];
 
-      const result = findConflictingConditions(seerTriggers, actionFilters);
+      const result = findConflictingConditions(
+        seerTriggers,
+        actionFilters,
+        triggerHandlers
+      );
       expect(result).toEqual({
         conflictingConditionGroups: {
           actionFilter1: new Set(['2']),
         },
-        conflictReason:
-          'The conditions highlighted in red are not compatible with Seer activity triggers.',
+        conflictReason,
       });
     });
 
@@ -465,13 +500,16 @@ describe('findConflictingConditions', () => {
         },
       ];
 
-      const result = findConflictingConditions(seerTriggers, actionFilters);
+      const result = findConflictingConditions(
+        seerTriggers,
+        actionFilters,
+        triggerHandlers
+      );
       expect(result).toEqual({
         conflictingConditionGroups: {
           actionFilter1: new Set(['2', '3', '4', '5']),
         },
-        conflictReason:
-          'The conditions highlighted in red are not compatible with Seer activity triggers.',
+        conflictReason,
       });
     });
 
@@ -495,13 +533,16 @@ describe('findConflictingConditions', () => {
         },
       ];
 
-      const result = findConflictingConditions(seerTriggers, actionFilters);
+      const result = findConflictingConditions(
+        seerTriggers,
+        actionFilters,
+        triggerHandlers
+      );
       expect(result).toEqual({
         conflictingConditionGroups: {
           actionFilter1: new Set(['2', '3']),
         },
-        conflictReason:
-          'The conditions highlighted in red are not compatible with Seer activity triggers.',
+        conflictReason,
       });
     });
 
@@ -525,7 +566,11 @@ describe('findConflictingConditions', () => {
         },
       ];
 
-      const result = findConflictingConditions(seerTriggers, actionFilters);
+      const result = findConflictingConditions(
+        seerTriggers,
+        actionFilters,
+        triggerHandlers
+      );
       expect(result).toEqual({
         conflictingConditionGroups: {},
         conflictReason: null,
@@ -548,7 +593,11 @@ describe('findConflictingConditions', () => {
         },
       ];
 
-      const result = findConflictingConditions(seerTriggers, actionFilters);
+      const result = findConflictingConditions(
+        seerTriggers,
+        actionFilters,
+        triggerHandlers
+      );
       expect(result).toEqual({
         conflictingConditionGroups: {},
         conflictReason: null,
@@ -567,13 +616,16 @@ describe('findConflictingConditions', () => {
         },
       ];
 
-      const result = findConflictingConditions(seerTriggers, actionFilters);
+      const result = findConflictingConditions(
+        seerTriggers,
+        actionFilters,
+        triggerHandlers
+      );
       expect(result).toEqual({
         conflictingConditionGroups: {
           actionFilter1: new Set(['2', '3']),
         },
-        conflictReason:
-          'The conditions highlighted in red are not compatible with Seer activity triggers.',
+        conflictReason,
       });
     });
 
@@ -593,7 +645,11 @@ describe('findConflictingConditions', () => {
         },
       ];
 
-      const result = findConflictingConditions(seerTriggers, actionFilters);
+      const result = findConflictingConditions(
+        seerTriggers,
+        actionFilters,
+        triggerHandlers
+      );
       expect(result).toEqual({
         conflictingConditionGroups: {},
         conflictReason: null,
@@ -612,24 +668,26 @@ describe('findConflictingConditions', () => {
         },
       ];
 
-      const result = findConflictingConditions(seerTriggers, actionFilters);
+      const result = findConflictingConditions(
+        seerTriggers,
+        actionFilters,
+        triggerHandlers
+      );
       expect(result).toEqual({
         conflictingConditionGroups: {
           actionFilter1: new Set(['2', '3']),
         },
-        conflictReason:
-          'The conditions highlighted in red are not compatible with Seer activity triggers.',
+        conflictReason,
       });
     });
 
-    it('does not flag event-required conditions with NONE logic since they evaluate to false', () => {
+    it('does not flag incompatibilities when triggerHandlers is not provided', () => {
       const actionFilters = [
         {
           id: 'actionFilter1',
-          logicType: DataConditionGroupLogicType.NONE,
+          logicType: DataConditionGroupLogicType.ALL,
           conditions: [
             {id: '2', type: DataConditionType.EVENT_ATTRIBUTE, comparison: {}},
-            {id: '3', type: DataConditionType.TAGGED_EVENT, comparison: {}},
           ],
         },
       ];
@@ -641,32 +699,7 @@ describe('findConflictingConditions', () => {
       });
     });
 
-    it('still flags slow conditions with NONE logic since they are silently skipped', () => {
-      const actionFilters = [
-        {
-          id: 'actionFilter1',
-          logicType: DataConditionGroupLogicType.NONE,
-          conditions: [
-            {
-              id: '2',
-              type: DataConditionType.EVENT_FREQUENCY_COUNT,
-              comparison: {value: 10},
-            },
-          ],
-        },
-      ];
-
-      const result = findConflictingConditions(seerTriggers, actionFilters);
-      expect(result).toEqual({
-        conflictingConditionGroups: {
-          actionFilter1: new Set(['2']),
-        },
-        conflictReason:
-          'The conditions highlighted in red are not compatible with Seer activity triggers.',
-      });
-    });
-
-    it('does not flag Seer incompatibilities when there is no Seer activity trigger', () => {
+    it('does not flag incompatibilities when trigger has no incompatible conditions', () => {
       const triggers: DataConditionGroup = {
         id: 'triggers',
         logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
@@ -688,7 +721,7 @@ describe('findConflictingConditions', () => {
         },
       ];
 
-      const result = findConflictingConditions(triggers, actionFilters);
+      const result = findConflictingConditions(triggers, actionFilters, triggerHandlers);
       expect(result).toEqual({
         conflictingConditionGroups: {},
         conflictReason: null,
