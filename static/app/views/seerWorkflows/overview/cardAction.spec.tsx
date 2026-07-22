@@ -29,7 +29,10 @@ function makeRow(overrides: Partial<OverviewRow> = {}): OverviewRow {
   };
 }
 
-const runUrl = {pathname: '/organizations/org-slug/issues/2/', query: {seerDrawer: 'true'}};
+const runUrl = {
+  pathname: '/organizations/org-slug/issues/2/',
+  query: {seerDrawer: 'true'},
+};
 
 describe('deriveCardAction', () => {
   it.each([
@@ -100,6 +103,32 @@ describe('IssuePrimaryAction', () => {
     expect(screen.getByRole('button', {name: 'Review PR'})).toHaveAttribute(
       'href',
       'https://github.com/o/r/pull/9'
+    );
+  });
+
+  it.each([
+    {type: 'merged', label: 'Merged'},
+    {type: 'code_changes_ready', label: 'Open PR'},
+    {type: 'solution_ready', label: 'Generate code'},
+    {type: 'needs_investigation', label: 'Investigate'},
+  ] as Array<{label: string; type: Exclude<CardAction['type'], 'review_pr'>}>)(
+    'renders the $label action for a completed $type card',
+    ({type, label}) => {
+      renderAction({type}, makeRow({runStatus: 'completed'}));
+
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+  );
+
+  it('falls back to the internal review link when a review_pr card has no PR url', () => {
+    renderAction(
+      {type: 'review_pr', prUrl: undefined, prNumber: undefined},
+      makeRow({runStatus: 'completed'})
+    );
+
+    expect(screen.getByRole('button', {name: 'Review PR'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/2/?seerDrawer=true'
     );
   });
 });

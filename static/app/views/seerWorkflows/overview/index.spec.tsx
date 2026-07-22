@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -220,6 +220,22 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Merged 0'})).toBeInTheDocument();
 
+    // The headers render in pipeline (SECTION_ORDER) order; reordering the
+    // PIPELINE table reorders these and fails here.
+    const orderedHeaders = [
+      /Awaiting your review/,
+      /Code changes ready/,
+      /Ready to generate code/,
+      /Needs investigation/,
+      /Merged/,
+    ].map(name => screen.getByRole('button', {name}));
+    for (let index = 0; index < orderedHeaders.length - 1; index++) {
+      expect(
+        orderedHeaders[index]!.compareDocumentPosition(orderedHeaders[index + 1]!) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    }
+
     // The review bucket's issue renders as a card between its own header and
     // the next section — server-bucketed, not classified client-side.
     const titleLink = await screen.findByRole('link', {
@@ -240,13 +256,8 @@ describe('AutofixOverview', () => {
 
     // The four empty buckets each show their own empty text.
     expect(screen.getAllByText('No issues')).toHaveLength(4);
-  });
 
-  it('drops the outcome / needs-attention filters and pagination', async () => {
-    renderPage();
-
-    await screen.findByRole('button', {name: 'Awaiting your review 3'});
-
+    // The legacy outcome / needs-attention filters and pagination are gone.
     expect(screen.queryByRole('button', {name: /Outcome/})).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: /Needs attention/})
@@ -254,7 +265,7 @@ describe('AutofixOverview', () => {
     expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
   });
 
-  it('renders a card with real run metadata', async () => {
+  it('renders a card with real run metadata and analysis in thought order', async () => {
     renderPage();
 
     // The Seer headline replaces the raw issue title and links to the issue.
@@ -291,6 +302,28 @@ describe('AutofixOverview', () => {
 
     // Issue impact numbers, abbreviated.
     expect(screen.getByText(/100 events/)).toBeInTheDocument();
+
+    // Both analysis sections render on the card face with no expansion needed…
+    const rootCause = screen.getByText('Root cause');
+    const proposedFix = screen.getByText('Proposed fix');
+    expect(
+      screen.getByText('Commit c5bb895 stopped sending the Authorization header.')
+    ).toBeVisible();
+    expect(
+      screen.getByText('Restores the Authorization header as a fallback.')
+    ).toBeVisible();
+
+    // …in thought order: what broke, then what changed.
+    expect(
+      rootCause.compareDocumentPosition(proposedFix) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+
+    // The timestamp is labeled as run activity.
+    expect(screen.getByText(/^updated/)).toBeInTheDocument();
+
+    // Identity sits in the tail: short id + exactly one level marker.
+    expect(screen.getByText('PROJ-1')).toBeVisible();
+    expect(screen.getAllByText('Level: Warning')).toHaveLength(1);
   });
 
   it('switches between card and table views', async () => {
@@ -315,32 +348,6 @@ describe('AutofixOverview', () => {
       'href',
       'https://github.com/getsentry/sentry/pull/123'
     );
-  });
-
-  it('renders the analysis on the card face in thought order', async () => {
-    renderPage();
-
-    // Both sections render with no expansion needed…
-    const rootCause = await screen.findByText('Root cause');
-    const proposedFix = screen.getByText('Proposed fix');
-    expect(
-      screen.getByText('Commit c5bb895 stopped sending the Authorization header.')
-    ).toBeVisible();
-    expect(
-      screen.getByText('Restores the Authorization header as a fallback.')
-    ).toBeVisible();
-
-    // …in thought order: what broke, then what changed.
-    expect(
-      rootCause.compareDocumentPosition(proposedFix) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
-
-    // The timestamp is labeled as run activity.
-    expect(screen.getByText(/^updated/)).toBeInTheDocument();
-
-    // Identity sits in the tail: short id + exactly one level marker.
-    expect(screen.getByText('PROJ-1')).toBeVisible();
-    expect(screen.getAllByText('Level: Warning')).toHaveLength(1);
   });
 
   it('leads with the root cause and a single next step when no code was drafted', async () => {
@@ -368,21 +375,6 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('Proposed fix')).not.toBeInTheDocument();
   });
 
-  it('shows an Investigate action for cards in the needs-investigation section', async () => {
-    // Section is authoritative: a needs_investigation card offers Investigate
-    // (a Seer-drawer deep link), no matter what the enrichment reached.
-    mockSection(SECTION_QUERIES.review_pr, {body: []});
-    mockSection(SECTION_QUERIES.needs_investigation, {body: [issue], hits: '1'});
-
-    renderPage();
-
-    const investigate = await screen.findByRole('button', {name: 'Investigate'});
-    expect(investigate).toHaveAttribute(
-      'href',
-      `/organizations/${organization.slug}/issues/2/?seerDrawer=true`
-    );
-  });
-
   it('keeps the section review action even when the run enrichment looks merged', async () => {
     // A review_pr-section card whose enrichment carries a merged PR: the
     // section is the anchor, so the card still shows Review PR rather than a
@@ -408,20 +400,6 @@ describe('AutofixOverview', () => {
     // Only the always-present (empty) Merged section header — no leaked card tag.
     expect(screen.getByRole('button', {name: 'Merged 0'})).toBeInTheDocument();
     expect(screen.getAllByText('Merged')).toHaveLength(1);
-  });
-
-  it('shows a merged tag for cards in the merged section', async () => {
-    // The merged bucket's card renders the Merged status tag and no action.
-    mockSection(SECTION_QUERIES.review_pr, {body: []});
-    mockSection(SECTION_QUERIES.merged, {body: [issue], hits: '1'});
-
-    renderPage();
-
-    // Two "Merged" once the card hydrates: the section header and the card tag.
-    await waitFor(() => {
-      expect(screen.getAllByText('Merged')).toHaveLength(2);
-    });
-    expect(screen.queryByRole('button', {name: 'Review PR'})).not.toBeInTheDocument();
   });
 
   it('collapses sections individually and in bulk', async () => {
@@ -786,45 +764,6 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('button', {name: 'Awaiting your review 1'})
     ).toBeInTheDocument();
-  });
-
-  it('renders the section headers in pipeline (SECTION_ORDER) order', async () => {
-    renderPage();
-
-    await screen.findByRole('button', {name: /Awaiting your review/});
-
-    // Reordering the PIPELINE table reorders these headers and fails here.
-    const headers = [
-      /Awaiting your review/,
-      /Code changes ready/,
-      /Ready to generate code/,
-      /Needs investigation/,
-      /Merged/,
-    ].map(name => screen.getByRole('button', {name}));
-
-    for (let index = 0; index < headers.length - 1; index++) {
-      expect(
-        headers[index]!.compareDocumentPosition(headers[index + 1]!) &
-          Node.DOCUMENT_POSITION_FOLLOWING
-      ).toBeTruthy();
-    }
-  });
-
-  it('falls back to the internal review link when a review_pr run has no PR url', async () => {
-    // Section is authoritative (review_pr), but the enrichment carries no PR
-    // url, so the primary action links back into the run, not out to GitHub.
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/2/autofix/`,
-      body: {autofix: makeAutofixState({repo_pr_states: {}})},
-    });
-
-    renderPage();
-
-    const reviewButton = await screen.findByRole('button', {name: 'Review PR'});
-    expect(reviewButton).toHaveAttribute(
-      'href',
-      `/organizations/${organization.slug}/issues/2/?seerDrawer=true`
-    );
   });
 
   it('shows a not-found message when the focused issue resolves empty', async () => {
