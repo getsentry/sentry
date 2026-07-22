@@ -425,10 +425,12 @@ def build_and_promote_derived_data(
         )
 
     current_gen_id = GenerationId(group_id, generated_at, pipeline_hash)
+    deadline = time.monotonic() + time_limit.total_seconds()
 
     result = PromotionResult.CURSOR_BEHIND
     for attempt in range(MAX_PROMOTION_ATTEMPTS):
-        drained = _drain_log(derived, PIPELINE, batch_size, time_limit=time_limit, persist=False)
+        remaining = timedelta(seconds=max(0, deadline - time.monotonic()))
+        drained = _drain_log(derived, PIPELINE, batch_size, time_limit=remaining, persist=False)
         if not drained:
             _generation_cache.set(current_gen_id, derived)
             raise GroupLogTimeout(group_id, generation_id=current_gen_id)
