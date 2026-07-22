@@ -164,9 +164,6 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
     ]
   );
 
-  // COPS/CSM shortcut: skip the access-category/reason step with canned values.
-  const handleCops = () => submitAuth('cops_csm', 'COPS and CSM use');
-
   const handleWebAuthn = useCallback(
     async (data: WebAuthnParams) => {
       const payload: AuthPayload = {...data};
@@ -284,7 +281,10 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
       )}
       <Flex justify="between" align="center" gap="md" margin="xl 0 0">
         <Flex align="center" margin="0 3xl">
-          <Button onClick={handleCops}>{t('COPS/CSM')}</Button>
+          {/* COPS/CSM shortcut: skip the access-category/reason step with canned values. */}
+          <Button onClick={() => submitAuth('cops_csm', 'COPS and CSM use')}>
+            {t('COPS/CSM')}
+          </Button>
         </Flex>
         <form.SubmitButton>{t('Continue')}</form.SubmitButton>
       </Flex>
