@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {css, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
+import {UserMessage} from '@sentry/scraps/chat';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 /**
@@ -49,25 +49,15 @@ export function UserMessageBlock({children, className, expand}: UserMessageBlock
     <MessageBlock justify="end" className={className}>
       {/* Placeholder for spacing as we want to keep the right aligned look even on smaller screens */}
       <Container paddingLeft="3xl" flexShrink={0} />
-      <UserBubble
+      <UserMessage
         maxWidth={AI_MESSAGE_MAX_WIDTH}
         width={expand ? '100%' : 'fit-content'}
-        minWidth={0}
-        padding="md"
-        background="secondary"
-        border="secondary"
-        radius="xs"
-        whiteSpace="pre-wrap"
       >
         {children}
-      </UserBubble>
+      </UserMessage>
     </MessageBlock>
   );
 }
-
-const UserBubble = styled(Container)`
-  overflow-wrap: anywhere;
-`;
 
 interface AssistantMessageBlockProps {
   children: ReactNode;
