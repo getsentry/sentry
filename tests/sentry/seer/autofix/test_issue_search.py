@@ -98,6 +98,11 @@ class AutofixStateFilterTest(TestCase):
 
         assert self._matching_group_ids(["code_changes_ready"]) == {self.group1.id}
 
+    def test_empty_values_matches_nothing(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
+
+        assert self._matching_group_ids([]) == set()
+
     def test_multiple_values_union(self) -> None:
         self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
         self.create_group_activity(

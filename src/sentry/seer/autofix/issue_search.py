@@ -87,6 +87,9 @@ def _merged_pr_q(projects: Sequence[Project]) -> Q:
 def autofix_state_filter(
     values: list[str], projects: Sequence[Project], recency_window: timedelta
 ) -> Q:
+    if not values:
+        return Q(id__in=[])
+
     merged = _merged_pr_q(projects)
 
     conditions: dict[str, Q] = {
