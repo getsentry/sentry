@@ -286,6 +286,7 @@ def get_autofix_agent_client(
     reasoning_effort: Literal["low", "medium", "high"] | None = None,
     enable_coding: bool = False,
     code_review_enabled: bool = False,
+    enable_bash_tools: bool = False,
     enable_pr_context_tools: bool = False,
     user: User | RpcUser | AnonymousUser | None = None,
 ) -> SeerAgentClient:
@@ -305,6 +306,7 @@ def get_autofix_agent_client(
         on_completion_hook=AutofixOnCompletionHook,
         enable_coding=enable_coding,
         code_review_enabled=code_review_enabled,
+        enable_bash_tools=enable_bash_tools,
         enable_pr_context_tools=enable_pr_context_tools,
     )
 
@@ -381,6 +383,7 @@ def trigger_autofix_agent(
     insert_index: int | None = None,
     feedback: Sequence[Feedback] | None = None,
     user: User | RpcUser | AnonymousUser | None = None,
+    enable_bash_tools: bool = False,
 ) -> int:
     """
     Start or continue an agent-based autofix run.
@@ -410,6 +413,7 @@ def trigger_autofix_agent(
 
     client = get_autofix_agent_client(
         group,
+        enable_bash_tools=enable_bash_tools,
         enable_coding=config.enable_coding,
         enable_pr_context_tools=is_iteration_step,
         user=user,

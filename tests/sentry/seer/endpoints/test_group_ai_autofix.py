@@ -293,6 +293,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             user_context=None,
             insert_index=None,
             user=ANY,
+            enable_bash_tools=False,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
@@ -318,6 +319,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             user_context=None,
             insert_index=3,
             user=ANY,
+            enable_bash_tools=False,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.publish_action", autospec=True)

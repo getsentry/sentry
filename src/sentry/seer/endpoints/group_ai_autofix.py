@@ -166,6 +166,11 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         help_text="Referrer identifying where the issue fix was triggered from.",
     )
+    enable_bash_tools = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Override bash mode tools.",
+    )
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         stopping_point = data.get("stopping_point", None)
@@ -401,6 +406,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         user_context=user_context,
                         insert_index=data.get("insert_index"),
                         user=request.user,
+                        enable_bash_tools=data.get("enable_bash_tools", False),
                     )
                 except NoSeerQuotaException:
                     return Response(
