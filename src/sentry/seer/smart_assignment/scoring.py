@@ -140,6 +140,12 @@ def _score(
     actual_user_id: int | None,
     actual_team_id: int | None,
 ) -> tuple[SmartAssignmentScore | None, int | None]:
+    """Score the prediction against the ground truth if we have both.
+    The top-predicted user is scored with EXACT if it's a match, TEAM if the prediction shares
+    a team with the ground truth, or MISS otherwise (including when we couldn't resolve the prediction to an org user).
+    hit_rank records the rank of the top-predicted user that matched the ground truth,
+    so we can track how often #2 or #3 was correct too.
+    """
     if not predicted_user_ids:
         # No prediction; do nothing.
         return None, None
