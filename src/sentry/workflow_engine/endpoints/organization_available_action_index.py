@@ -39,6 +39,28 @@ from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler
 
 
+def _get_incompatible_conditions() -> dict[str, list[str]]:
+    """
+    Build a mapping of action_type -> list of condition types
+    the action is incompatible with. Currently derived from
+    the activity handler registry (seer activity triggers).
+    """
+    from sentry.notifications.notification_action.activity_registry.base import (
+        get_supported_action_types,
+    )
+    from sentry.workflow_engine.models.data_condition import Condition
+
+    supported = get_supported_action_types()
+    result: dict[str, list[str]] = {}
+    for action_type in Action.Type:
+        incompatible: list[str] = []
+        if action_type not in supported:
+            incompatible.append(Condition.SEER_ACTIVITY_TRIGGER.value)
+        if incompatible:
+            result[action_type.value] = incompatible
+    return result
+
+
 class AvailableIntegration(TypedDict):
     integration: RpcIntegration
     services: list[tuple[int, str]]
@@ -107,6 +129,8 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
             else:
                 alertable_apps_without_components.append(context)
 
+        incompatible_conditions_map = _get_incompatible_conditions()
+
         actions = []
         for action_type, handler in action_handler_registry.registrations.items():
             # skip ticket creation actions if organization doesn't have the feature
@@ -116,6 +140,8 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
             # skip deprecated action types
             if action_type in DEPRECATED_ACTION_TYPES:
                 continue
+
+            incompatible_conditions = incompatible_conditions_map.get(action_type, [])
 
             # add integration actions
             if hasattr(handler, "provider_slug"):
@@ -128,6 +154,7 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                             ActionHandlerSerializer(),
                             action_type=action_type,
                             integrations=integrations,
+                            incompatible_conditions=incompatible_conditions,
                         )
                     )
 
@@ -142,6 +169,7 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                             ActionHandlerSerializer(),
                             action_type=action_type,
                             sentry_app_context=context,
+                            incompatible_conditions=incompatible_conditions,
                         )
                     )
 
@@ -162,6 +190,7 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                             ActionHandlerSerializer(),
                             action_type=action_type,
                             services=available_services,
+                            incompatible_conditions=incompatible_conditions,
                         )
                     )
 
@@ -169,7 +198,11 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
             else:
                 actions.append(
                     serialize(
-                        handler, request.user, ActionHandlerSerializer(), action_type=action_type
+                        handler,
+                        request.user,
+                        ActionHandlerSerializer(),
+                        action_type=action_type,
+                        incompatible_conditions=incompatible_conditions,
                     )
                 )
 

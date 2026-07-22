@@ -258,6 +258,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "handlerGroup": ActionHandler.Group.NOTIFICATION.value,
                 "configSchema": {},
                 "dataSchema": {},
+                "incompatibleConditions": [],
             }
         ]
 
@@ -276,6 +277,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "handlerGroup": ActionHandler.Group.NOTIFICATION.value,
                 "configSchema": {},
                 "dataSchema": {},
+                "incompatibleConditions": [],
                 "integrations": [
                     {"id": str(self.slack_integration.id), "name": self.slack_integration.name}
                 ],
@@ -286,6 +288,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "handlerGroup": ActionHandler.Group.TICKET_CREATION.value,
                 "configSchema": {},
                 "dataSchema": {},
+                "incompatibleConditions": ["seer_activity_trigger"],
                 "integrations": [
                     {"id": str(self.github_integration.id), "name": self.github_integration.name}
                 ],
@@ -301,18 +304,9 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             status_code=200,
         )
         assert len(response.data) == 1
-        assert response.data == [
-            # only notification actions are returned
-            {
-                "type": Action.Type.SLACK,
-                "handlerGroup": ActionHandler.Group.NOTIFICATION.value,
-                "configSchema": {},
-                "dataSchema": {},
-                "integrations": [
-                    {"id": str(self.slack_integration.id), "name": self.slack_integration.name}
-                ],
-            }
-        ]
+        # only notification actions are returned
+        assert response.data[0]["type"] == Action.Type.SLACK
+        assert response.data[0]["incompatibleConditions"] == []
 
     def test_integrations_with_services(self) -> None:
         self.setup_integrations_with_services()
@@ -327,6 +321,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "handlerGroup": ActionHandler.Group.TICKET_CREATION.value,
                 "configSchema": {},
                 "dataSchema": {},
+                "incompatibleConditions": ["seer_activity_trigger"],
                 "integrations": [
                     {
                         "id": str(self.opsgenie_integration.id),
@@ -345,6 +340,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "handlerGroup": ActionHandler.Group.TICKET_CREATION.value,
                 "configSchema": {},
                 "dataSchema": {},
+                "incompatibleConditions": ["seer_activity_trigger"],
                 "integrations": [
                     {
                         "id": str(self.pagerduty_integration.id),
@@ -381,6 +377,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "handlerGroup": ActionHandler.Group.OTHER.value,
                 "configSchema": {},
                 "dataSchema": {},
+                "incompatibleConditions": [],
                 "sentryApp": {
                     "id": str(self.sentry_app.id),
                     "name": self.sentry_app.name,
@@ -429,6 +426,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "handlerGroup": ActionHandler.Group.OTHER.value,
                 "configSchema": {},
                 "dataSchema": {},
+                "incompatibleConditions": [],
                 "services": [
                     {"slug": self.webhook_sentry_app.slug, "name": self.webhook_sentry_app.name},
                 ],
@@ -455,12 +453,14 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "handlerGroup": ActionHandler.Group.NOTIFICATION.value,
                 "configSchema": {},
                 "dataSchema": {},
+                "incompatibleConditions": [],
             },
             {
                 "type": Action.Type.SLACK,
                 "handlerGroup": ActionHandler.Group.NOTIFICATION.value,
                 "configSchema": {},
                 "dataSchema": {},
+                "incompatibleConditions": [],
                 "integrations": [
                     {"id": str(self.slack_integration.id), "name": self.slack_integration.name}
                 ],
@@ -472,6 +472,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "handlerGroup": ActionHandler.Group.OTHER.value,
                 "configSchema": {},
                 "dataSchema": {},
+                "incompatibleConditions": [],
                 "services": [
                     {
                         "slug": self.no_component_sentry_app.slug,
@@ -488,6 +489,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "handlerGroup": ActionHandler.Group.OTHER.value,
                 "configSchema": {},
                 "dataSchema": {},
+                "incompatibleConditions": [],
                 "sentryApp": {
                     "id": str(self.sentry_app.id),
                     "name": self.sentry_app.name,
@@ -504,6 +506,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "handlerGroup": ActionHandler.Group.TICKET_CREATION.value,
                 "configSchema": {},
                 "dataSchema": {},
+                "incompatibleConditions": ["seer_activity_trigger"],
                 "integrations": [
                     {"id": str(self.github_integration.id), "name": self.github_integration.name}
                 ],
@@ -513,6 +516,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "handlerGroup": ActionHandler.Group.TICKET_CREATION.value,
                 "configSchema": {},
                 "dataSchema": {},
+                "incompatibleConditions": ["seer_activity_trigger"],
                 "integrations": [
                     {
                         "id": str(self.opsgenie_integration.id),
@@ -531,6 +535,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "handlerGroup": ActionHandler.Group.TICKET_CREATION.value,
                 "configSchema": {},
                 "dataSchema": {},
+                "incompatibleConditions": ["seer_activity_trigger"],
                 "integrations": [
                     {
                         "id": str(self.pagerduty_integration.id),

@@ -21,6 +21,7 @@ class ActionHandlerSerializerResponse(TypedDict):
     handlerGroup: str
     configSchema: dict[str, Any]
     dataSchema: dict[str, Any]
+    incompatibleConditionss: list[str]
     sentryApp: NotRequired[SentryAppContext]
     integrations: NotRequired[list[Any]]
     services: NotRequired[list[Any]]
@@ -50,6 +51,8 @@ class ActionHandlerSerializer(Serializer[ActionHandlerSerializerResponse]):
             "configSchema": obj.config_schema,
             "dataSchema": obj.data_schema,
         }
+
+        result["incompatibleConditionss"] = kwargs.get("incompatible_conditions") or []
 
         integrations = kwargs.get("integrations")
         if integrations:

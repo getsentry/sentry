@@ -22,9 +22,29 @@ from sentry.workflow_engine.endpoints.serializers.data_condition_handler_seriali
     DataConditionHandlerResponse,
     DataConditionHandlerSerializer,
 )
-from sentry.workflow_engine.models.data_condition import LEGACY_CONDITIONS
+from sentry.workflow_engine.models.data_condition import LEGACY_CONDITIONS, Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler
+
+SEER_ACTIVITY_INCOMPATIBLE_CONDITIONS: list[str] = [
+    Condition.EVENT_ATTRIBUTE.value,
+    Condition.TAGGED_EVENT.value,
+    Condition.LEVEL.value,
+    Condition.LATEST_RELEASE.value,
+    Condition.LATEST_ADOPTED_RELEASE.value,
+    Condition.EVENT_FREQUENCY_COUNT.value,
+    Condition.EVENT_FREQUENCY_PERCENT.value,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT.value,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT.value,
+    Condition.PERCENT_SESSIONS_COUNT.value,
+    Condition.PERCENT_SESSIONS_PERCENT.value,
+]
+
+
+def _get_incompatible_conditions() -> dict[str, list[str]]:
+    return {
+        Condition.SEER_ACTIVITY_TRIGGER.value: SEER_ACTIVITY_INCOMPATIBLE_CONDITIONS,
+    }
 
 
 @cell_silo_endpoint
@@ -63,15 +83,18 @@ class OrganizationDataConditionIndexEndpoint(OrganizationEndpoint):
                 f"Please provide a valid group. Accepted values are: {', '.join([group.value for group in DataConditionHandler.Group])}"
             )
 
+        incompatible_conditions_map = _get_incompatible_conditions()
         data_conditions = []
 
         for condition_type, handler in condition_handler_registry.registrations.items():
             if condition_type not in LEGACY_CONDITIONS and handler.group == group:
+                incompatible_conditions = incompatible_conditions_map.get(condition_type, [])
                 serialized = serialize(
                     handler,
                     request.user,
                     DataConditionHandlerSerializer(),
                     condition_type=condition_type,
+                    incompatible_conditions=incompatible_conditions,
                 )
                 data_conditions.append(serialized)
 
