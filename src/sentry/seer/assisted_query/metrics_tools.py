@@ -77,7 +77,7 @@ def get_metric_metadata(
             via expand=context and attach it to each candidate. Context is
             `{"brief": str, "details": list[str]}` — the same shape the attributes
             tool (get_attribute_names) returns — or None when the metric has none.
-        context_only: Forwarded to the metrics endpoint as `context_only` to
+        context_only: Forwarded to the metrics endpoint as `contextOnly` to
             restrict results to metrics that have authored context.
 
     Returns:
@@ -113,7 +113,7 @@ def get_metric_metadata(
         # Highest-count metrics first; over-fetch by 1 to detect has_more.
         "sort": "-count",
         "per_page": limit + 1,
-        "context_only": context_only,
+        "contextOnly": context_only,
         "referrer": Referrer.SEER_EXPLORER_TOOLS,
     }
     # Omit an empty query so the endpoint returns all metrics rather than

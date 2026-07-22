@@ -82,7 +82,7 @@ class OrganizationTraceItemMetricsSerializer(serializers.Serializer[Never]):
     referrer = serializers.CharField(required=False)
     # Restrict results to metrics that have authored context. Gated behind the
     # data-browsing-attribute-context feature (a no-op without it).
-    context_only = serializers.BooleanField(required=False, default=False)
+    contextOnly = serializers.BooleanField(required=False, default=False, source="context_only")
 
     def validate_sort(self, value: str) -> str:
         field = value[1:] if value.startswith("-") else value

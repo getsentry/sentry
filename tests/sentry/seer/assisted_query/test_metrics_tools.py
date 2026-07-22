@@ -137,7 +137,7 @@ class TestGetMetricMetadata(TestCase):
         )
 
         _args, kwargs = mock_client.get.call_args
-        assert kwargs["params"]["context_only"] is True
+        assert kwargs["params"]["contextOnly"] is True
 
     @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
     def test_no_substrings_returns_all_metrics(self, mock_client_cls: MagicMock) -> None:
