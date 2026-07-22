@@ -97,6 +97,45 @@ function issueCountLabels(row: OverviewRow) {
   };
 }
 
+function IssueTitleLink({
+  row,
+  to,
+  size,
+}: {
+  row: OverviewRow;
+  to: string;
+  size?: 'lg';
+}) {
+  // The ellipsis Text is the shrinking flex item (overflow:hidden resolves its
+  // min-width to 0); the Link must nest inside it or the anchor refuses to
+  // shrink and the title overflows the card. When Seer produced a
+  // plain-language headline it replaces the raw issue title, which stays
+  // reachable via the tooltip and the expanded details.
+  return (
+    <Text bold ellipsis size={size}>
+      {row.headline ? (
+        <Tooltip
+          maxWidth={480}
+          title={
+            <Stack gap="2xs">
+              <Text size="xs" bold uppercase variant="muted" align="left">
+                {t('Raw issue title')}
+              </Text>
+              <Text size="xs" align="left">
+                {ellipsize(row.title, 200)}
+              </Text>
+            </Stack>
+          }
+        >
+          <TitleLink to={to}>{row.headline}</TitleLink>
+        </Tooltip>
+      ) : (
+        <TitleLink to={to}>{row.title}</TitleLink>
+      )}
+    </Text>
+  );
+}
+
 export function IssueCard({
   orgSlug,
   row,
@@ -151,34 +190,8 @@ export function IssueCard({
         {/* Header: title over metadata subline, diff size pinned right */}
         <Flex justify="between" align="start" gap="md">
           <Stack gap="2xs" minWidth="0" flex="1">
-            {/* The ellipsis Text is the shrinking flex item (overflow:hidden
-                  resolves its min-width to 0); the Link must nest inside it or
-                  the anchor refuses to shrink and the title overflows the card.
-                  When Seer produced a plain-language headline it replaces the
-                  raw issue title, which stays reachable via the tooltip and
-                  the expanded details. */}
             {/* lg matches the issues feed's row titles */}
-            <Text bold ellipsis size="lg">
-              {row.headline ? (
-                <Tooltip
-                  maxWidth={480}
-                  title={
-                    <Stack gap="2xs">
-                      <Text size="xs" bold uppercase variant="muted" align="left">
-                        {t('Raw issue title')}
-                      </Text>
-                      <Text size="xs" align="left">
-                        {ellipsize(row.title, 200)}
-                      </Text>
-                    </Stack>
-                  }
-                >
-                  <TitleLink to={issueUrl}>{row.headline}</TitleLink>
-                </Tooltip>
-              ) : (
-                <TitleLink to={issueUrl}>{row.title}</TitleLink>
-              )}
-            </Text>
+            <IssueTitleLink row={row} to={issueUrl} size="lg" />
             {/* Only non-default triggers get a badge; "manual" is the default. */}
             <Flex gap="sm" align="center" wrap="wrap">
               <InfoText
@@ -352,27 +365,7 @@ export function IssueTableRow({
       borderBottom={isLast ? undefined : 'primary'}
     >
       <Stack gap="2xs" minWidth="0" flex="1">
-        <Text bold ellipsis>
-          {row.headline ? (
-            <Tooltip
-              maxWidth={480}
-              title={
-                <Stack gap="2xs">
-                  <Text size="xs" bold uppercase variant="muted" align="left">
-                    {t('Raw issue title')}
-                  </Text>
-                  <Text size="xs" align="left">
-                    {ellipsize(row.title, 200)}
-                  </Text>
-                </Stack>
-              }
-            >
-              <TitleLink to={issueUrl}>{row.headline}</TitleLink>
-            </Tooltip>
-          ) : (
-            <TitleLink to={issueUrl}>{row.title}</TitleLink>
-          )}
-        </Text>
+        <IssueTitleLink row={row} to={issueUrl} />
         <Flex gap="xs" align="center" wrap="wrap">
           <ProjectBadge project={row.project} avatarSize={14} hideName />
           <Text size="sm" variant="muted" monospace wrap="nowrap">
