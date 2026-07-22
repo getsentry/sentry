@@ -264,7 +264,11 @@ class Table extends PureComponent<TableProps, TableState> {
           },
         });
 
-        const message = err?.responseJSON?.detail || t('An unknown error occurred.');
+        const detail = err?.responseJSON?.detail;
+        const message =
+          typeof detail === 'string'
+            ? detail
+            : detail?.message || t('An unknown error occurred.');
         this.setState({
           isLoading: false,
           tableFetchID: undefined,
