@@ -16,7 +16,7 @@ from typing import Any
 
 from django.utils import timezone
 from scm import actions as scm_actions
-from scm.types import MarkPullRequestDraftStateProtocol
+from scm.types import GetPullRequestProtocol, MarkPullRequestDraftStateProtocol
 
 from sentry.locks import locks
 from sentry.seer.autofix.pr_iteration.check_suites import (
@@ -101,6 +101,10 @@ def mark_ready_for_review(ctx: GreenCheckSuiteContext) -> None:
                 return
 
             # Tip may have moved while we swept / waited for the lock.
+            # Bootstrap already required GetPullRequestProtocol; narrow for mypy.
+            if not isinstance(ctx.scm, GetPullRequestProtocol):
+                _skip("unsupported_provider", ctx.log_extra)
+                return
             try:
                 pull_request = scm_actions.get_pull_request(ctx.scm, str(ctx.pr_number))
             except Exception:
