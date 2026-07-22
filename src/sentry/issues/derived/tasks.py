@@ -59,6 +59,7 @@ def generate_group_derived_data(
         PromotionFailed,
         build_and_promote_derived_data,
     )
+    from sentry.models.group import Group
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 
     task_state = current_task()
@@ -81,8 +82,6 @@ def generate_group_derived_data(
             datetime.fromisoformat(resume_generated_at).replace(tzinfo=timezone.utc),
             resume_pipeline_hash,
         )
-
-    from sentry.models.group import Group
 
     try:
         build_and_promote_derived_data(
