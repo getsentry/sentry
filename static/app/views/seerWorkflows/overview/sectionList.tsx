@@ -11,6 +11,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Sticky} from 'sentry/components/sticky';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import {DEFAULT_STATS_PERIOD} from './periods';
 import {SectionIssueCard} from './sectionIssueCard';
@@ -43,6 +44,7 @@ export function SectionList({
   view: OverviewView;
 }) {
   const organization = useOrganization();
+  const {projects: orgProjects} = useProjects();
   const {sections, isPending, isError, refetch} = useAutofixSections({
     enabled,
     projects,
@@ -54,7 +56,8 @@ export function SectionList({
   const allSectionsEmpty = sections.every(
     section => !section.isPending && !section.isError && section.issues.length === 0
   );
-  const hasNonDefaultFilters = projects.length > 0 || period !== DEFAULT_STATS_PERIOD;
+  const hasProjectFilter = projects.length > 0 && orgProjects.length > 1;
+  const hasNonDefaultFilters = hasProjectFilter || period !== DEFAULT_STATS_PERIOD;
 
   if (isError) {
     return <LoadingError onRetry={refetch} />;
