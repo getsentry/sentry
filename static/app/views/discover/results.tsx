@@ -107,7 +107,6 @@ import Table from 'sentry/views/discover/table';
 import {
   generateTitle,
   getDiscoverDeprecation,
-  getTransactionsDeprecation,
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
 } from 'sentry/views/discover/utils';
@@ -696,7 +695,7 @@ export class Results extends Component<Props, State> {
                   selection={selection}
                 />
                 {savedQueryDataset === SavedQueryDatasets.ERRORS &&
-                  getTransactionsDeprecation(organization) && (
+                  !getDiscoverDeprecation(organization) && (
                     <Alert.Container>
                       <Alert variant="info">
                         {t(

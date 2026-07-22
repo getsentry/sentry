@@ -186,13 +186,18 @@ function DiscoverLanding() {
       features="discover-query"
       renderDisabled={() => <NoAccess />}
     >
-      <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
+      <SentryDocumentTitle
+        title={getDiscoverDeprecation(organization) ? t('Errors') : t('Discover')}
+        orgSlug={organization.slug}
+      >
         <Stack flex={1}>
           <TopBar.Slot name="title">
             <Breadcrumbs
               crumbs={[
                 {
-                  label: t('Discover'),
+                  label: getDiscoverDeprecation(organization)
+                    ? t('Errors')
+                    : t('Discover'),
                   to: getDiscoverLandingUrl(organization),
                 },
                 {label: t('Saved Queries')},
