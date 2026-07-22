@@ -1,8 +1,12 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutofixOverview from 'sentry/views/seerWorkflows/overview';
 import {RUN_QUESTIONS} from 'sentry/views/seerWorkflows/overview/runQuestions';
 
@@ -12,128 +16,172 @@ describe('AutofixOverview', () => {
   });
   const basePath = `/organizations/${organization.slug}/issues/autofix/overview/`;
 
+  // The five status buckets the page always renders, in fixed order. Each is
+  // one GET /issues/ differentiated only by its `query` filter, so section
+  // mocks are matched on that string.
+  const SECTION_QUERIES = {
+    review_pr: 'has:issue.seer_last_run issue.autofix_state:review_pr',
+    code_changes_ready: 'has:issue.seer_last_run issue.autofix_state:code_changes_ready',
+    solution_ready: 'has:issue.seer_last_run issue.autofix_state:solution_ready',
+    needs_investigation:
+      'has:issue.seer_last_run issue.autofix_state:needs_investigation',
+    merged: 'has:issue.seer_last_run issue.autofix_state:merged',
+  };
+
   const issue = GroupFixture({
     id: '2',
     shortId: 'PROJ-1',
     title: 'TypeError in checkout cart',
     count: '100',
     userCount: 5,
-    seerFixabilityScore: 0.75,
   });
 
-  // A run that reached every stage and opened a PR.
-  const autofixState = {
-    run_id: 1,
-    status: 'completed',
-    updated_at: '2026-07-14T10:00:00Z',
-    blocks: [
-      {
-        id: 'b1',
-        timestamp: '2026-07-14T09:00:00Z',
-        message: {
-          role: 'assistant',
-          content: 'rca',
-          metadata: {step: 'root_cause'},
-        },
-      },
-      {
-        id: 'b2',
-        timestamp: '2026-07-14T09:10:00Z',
-        message: {
-          role: 'assistant',
-          content: 'plan',
-          metadata: {step: 'solution'},
-        },
-      },
-      {
-        id: 'b3',
-        timestamp: '2026-07-14T09:20:00Z',
-        message: {
-          role: 'assistant',
-          content: 'code',
-          metadata: {step: 'code_changes'},
-        },
-        merged_file_patches: [
-          {
-            repo_name: 'getsentry/sentry',
-            diff: '--- a/src/cart.py\n+++ b/src/cart.py',
-            patch: {
-              path: 'src/cart.py',
-              source_file: 'src/cart.py',
-              target_file: 'src/cart.py',
-              type: 'M',
-              added: 42,
-              removed: 7,
-              hunks: [],
+  // One answered run question keyed to its prompt (the endpoint echoes the
+  // prompt back), so buildAnalysis joins it to its question config by text.
+  function makeOutput(questionIndex: number, answer: string) {
+    return {question: RUN_QUESTIONS[questionIndex]!.prompt, answer};
+  }
+
+  // A pipeline block. Only `message.metadata.step` (section bucketing),
+  // `message.role`/`content` (section completion), and `merged_file_patches`
+  // (the diff artifact) are read, so the builder carries just those.
+  function makeBlock(step: string, overrides: Record<string, unknown> = {}) {
+    return {message: {role: 'assistant', content: step, metadata: {step}}, ...overrides};
+  }
+
+  // The per-card runs payload: a night_shift-triggered run whose one-shot
+  // answers become the card's Root cause / Proposed fix prose. Tests spread
+  // overrides to vary source, outputs, or linked PRs.
+  function makeRun(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 'run-1',
+      groupId: '2',
+      source: 'night_shift',
+      lastTriggeredAt: '2026-07-14T09:00:00Z',
+      outputs: [
+        makeOutput(
+          0,
+          'Proxy requests fail without Authorization header|Commit c5bb895 stopped sending the Authorization header.'
+        ),
+        makeOutput(1, 'Restores the Authorization header as a fallback.'),
+      ],
+      ...overrides,
+    };
+  }
+
+  // A run that reached every stage and opened a PR. Tests spread overrides to
+  // vary status, blocks, the pending-input payload, or the PR states.
+  function makeAutofixState(overrides: Record<string, unknown> = {}) {
+    return {
+      run_id: 1,
+      status: 'completed',
+      updated_at: '2026-07-14T10:00:00Z',
+      blocks: [
+        makeBlock('root_cause'),
+        makeBlock('solution'),
+        makeBlock('code_changes', {
+          merged_file_patches: [
+            {
+              repo_name: 'getsentry/sentry',
+              diff: '--- a/src/cart.py\n+++ b/src/cart.py',
+              patch: {
+                path: 'src/cart.py',
+                source_file: 'src/cart.py',
+                target_file: 'src/cart.py',
+                type: 'M',
+                added: 42,
+                removed: 7,
+                hunks: [],
+              },
             },
-          },
-        ],
+          ],
+        }),
+      ],
+      repo_pr_states: {
+        'getsentry/sentry': {
+          repo_name: 'getsentry/sentry',
+          pr_creation_status: 'completed',
+          pr_number: 123,
+          pr_url: 'https://github.com/getsentry/sentry/pull/123',
+        },
       },
-    ],
-    repo_pr_states: {
-      'getsentry/sentry': {
-        repo_name: 'getsentry/sentry',
-        branch_name: 'fix/cart',
-        commit_sha: null,
-        pr_creation_error: null,
-        pr_creation_status: 'completed',
-        pr_id: null,
-        pr_number: 123,
-        pr_url: 'https://github.com/getsentry/sentry/pull/123',
-        title: 'Fix nil cart',
-      },
-    },
-  };
+      ...overrides,
+    };
+  }
+
+  // The repo-wide IntersectionObserver mock (tests/js/setup.ts) is a no-op
+  // whose observe() never fires its callback, so LazyRender content would
+  // stay hidden forever. Report every observed node as immediately
+  // intersecting so cards hydrate the way they would once scrolled into view.
+  const OriginalIntersectionObserver = window.IntersectionObserver;
+  beforeAll(() => {
+    window.IntersectionObserver = class MockIntersectionObserver {
+      root = null;
+      rootMargin = '';
+      scrollMargin = '';
+      thresholds = [];
+      takeRecords = jest.fn();
+      private readonly callback: IntersectionObserverCallback;
+      constructor(callback: IntersectionObserverCallback) {
+        this.callback = callback;
+      }
+      observe(target: Element) {
+        this.callback(
+          [{target, isIntersecting: true} as IntersectionObserverEntry],
+          this as unknown as IntersectionObserver
+        );
+      }
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof IntersectionObserver;
+  });
+  afterAll(() => {
+    window.IntersectionObserver = OriginalIntersectionObserver;
+  });
+
+  // Register one section's issue mock, matched on its query bucket. `hits`
+  // seeds the X-Hits header that drives the section count badge.
+  function mockSection(query: string, options: {body?: unknown[]; hits?: string} = {}) {
+    return MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      match: [MockApiClient.matchQuery({query})],
+      body: options.body ?? [],
+      ...(options.hits === undefined ? {} : {headers: {'X-Hits': options.hits}}),
+    });
+  }
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    // Collapsed status groups persist to localStorage; keep tests isolated.
+    localStorage.clear();
 
+    // The project page filter needs seeded page-filter + project stores, or
+    // PageFiltersContainer never reports ready and the section queries stay
+    // gated off.
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+    ProjectsStore.loadInitialData([ProjectFixture()]);
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/`,
-      body: [issue],
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [ProjectFixture()],
     });
+
+    // One issue lives in the review bucket (X-Hits 3 exceeds the returned
+    // body, proving the count comes from the header); the other four are empty.
+    mockSection(SECTION_QUERIES.review_pr, {body: [issue], hits: '3'});
+    mockSection(SECTION_QUERIES.code_changes_ready);
+    mockSection(SECTION_QUERIES.solution_ready);
+    mockSection(SECTION_QUERIES.needs_investigation);
+    mockSection(SECTION_QUERIES.merged);
+
+    // Per-card content: the IntersectionObserver override above reports every
+    // card as in view, so these fire once per rendered card.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/runs/`,
-      body: [
-        {
-          id: 'run-1',
-          type: 'explorer',
-          groupId: '2',
-          source: 'night_shift',
-          lastTriggeredAt: '2026-07-14T09:00:00Z',
-          dateCreated: '2026-07-14T09:00:00Z',
-          outputs: [
-            {
-              key: 'user_0',
-              question: RUN_QUESTIONS[0]!.prompt,
-              answer:
-                'Proxy requests fail without Authorization header|Commit c5bb895 stopped sending the Authorization header.',
-            },
-            {
-              key: 'user_1',
-              question: RUN_QUESTIONS[1]!.prompt,
-              answer:
-                'JWT viewer auth landed before the proxy supported it, so requests fail; the run opened a PR restoring the header.',
-            },
-            {
-              key: 'user_2',
-              question: RUN_QUESTIONS[2]!.prompt,
-              answer: 'Restores the Authorization header as a fallback.',
-            },
-            {
-              key: 'user_3',
-              question: RUN_QUESTIONS[3]!.prompt,
-              // Inline "•" bullets — the normalizer must split them into a list.
-              answer:
-                '• Confirm the fallback header does not leak the key. • Verify the proxy accepts both headers.',
-            },
-          ],
-        },
-      ],
+      body: [makeRun()],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/2/autofix/`,
-      body: {autofix: autofixState},
+      body: {autofix: makeAutofixState()},
     });
   });
 
@@ -154,7 +202,70 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('Autofix Overview')).not.toBeInTheDocument();
   });
 
-  it('renders a card with real run metadata', async () => {
+  it('renders the five status sections with server-provided counts', async () => {
+    renderPage();
+
+    // Every section renders, in order, with its X-Hits count in the badge.
+    const reviewHeader = await screen.findByRole('button', {
+      name: 'Awaiting your review 3',
+    });
+    expect(
+      screen.getByRole('button', {name: 'Code changes ready 0'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Ready to generate code 0'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Needs investigation 0'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Merged 0'})).toBeInTheDocument();
+
+    // The headers render in pipeline (SECTION_ORDER) order; reordering the
+    // PIPELINE table reorders these and fails here.
+    const orderedHeaders = [
+      /Awaiting your review/,
+      /Code changes ready/,
+      /Ready to generate code/,
+      /Needs investigation/,
+      /Merged/,
+    ].map(name => screen.getByRole('button', {name}));
+    for (let index = 0; index < orderedHeaders.length - 1; index++) {
+      expect(
+        orderedHeaders[index]!.compareDocumentPosition(orderedHeaders[index + 1]!) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    }
+
+    // The review bucket's issue renders as a card between its own header and
+    // the next section — server-bucketed, not classified client-side.
+    const titleLink = await screen.findByRole('link', {
+      name: 'Proxy requests fail without Authorization header',
+    });
+    const codeHeader = screen.getByRole('button', {name: 'Code changes ready 0'});
+    expect(
+      reviewHeader.compareDocumentPosition(titleLink) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      titleLink.compareDocumentPosition(codeHeader) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+
+    // Card prose is hydrated from the per-card runs fetch.
+    expect(
+      screen.getByText('Commit c5bb895 stopped sending the Authorization header.')
+    ).toBeInTheDocument();
+
+    // The four empty buckets each show their own empty text.
+    expect(screen.getAllByText('No issues')).toHaveLength(4);
+
+    // The legacy outcome / needs-attention filters and pagination are gone.
+    expect(screen.queryByRole('button', {name: /Outcome/})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: /Needs attention/})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
+  });
+
+  it('renders a card with real run metadata and analysis in thought order', async () => {
     renderPage();
 
     // The Seer headline replaces the raw issue title and links to the issue.
@@ -180,83 +291,73 @@ describe('AutofixOverview', () => {
     expect(screen.getByText('+42')).toBeInTheDocument();
     expect(screen.getByText('−7')).toBeInTheDocument();
 
+    // This diff fails the inline-differ gates twice over (49 changed lines
+    // is past the cap, and its hunks are empty), so the file path lives only
+    // in the pill's hover tooltip — no diff header on the card.
+    expect(screen.queryByText('src/cart.py')).not.toBeInTheDocument();
+
     // Hovering the diff pill lists the changed files.
     await userEvent.hover(screen.getByText('1 file'));
     expect(await screen.findByText('src/cart.py')).toBeInTheDocument();
 
     // Issue impact numbers, abbreviated.
     expect(screen.getByText(/100 events/)).toBeInTheDocument();
-  });
 
-  it('shows a single body block and collapses the full analysis', async () => {
-    renderPage();
-
-    // The body is either/or: code was drafted, so the proposed-fix block
-    // renders and the summary does not (it would describe the same change).
-    expect(await screen.findByText('Proposed fix')).toBeVisible();
+    // Both analysis sections render on the card face with no expansion needed…
+    const rootCause = screen.getByText('Root cause');
+    const proposedFix = screen.getByText('Proposed fix');
+    expect(
+      screen.getByText('Commit c5bb895 stopped sending the Authorization header.')
+    ).toBeVisible();
     expect(
       screen.getByText('Restores the Authorization header as a fallback.')
     ).toBeVisible();
+
+    // …in thought order: what broke, then what changed.
     expect(
-      screen.queryByText(
-        'JWT viewer auth landed before the proxy supported it, so requests fail; the run opened a PR restoring the header.'
-      )
-    ).not.toBeInTheDocument();
+      rootCause.compareDocumentPosition(proposedFix) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
 
     // The timestamp is labeled as run activity.
     expect(screen.getByText(/^updated/)).toBeInTheDocument();
 
-    // Root cause, notes, and the short id stay behind the disclosure.
-    const disclosure = screen.getByRole('button', {name: 'Full analysis'});
-    expect(
-      screen.getByText('Commit c5bb895 stopped sending the Authorization header.')
-    ).not.toBeVisible();
-    expect(screen.getByText('PROJ-1')).not.toBeVisible();
-
-    await userEvent.click(disclosure);
-
+    // Identity sits in the tail: short id + exactly one level marker.
     expect(screen.getByText('PROJ-1')).toBeVisible();
-    // Section headings are the clean labels, never the raw prompt text.
-    expect(screen.getByText('Root cause')).toBeVisible();
-    expect(
-      screen.getByText('Commit c5bb895 stopped sending the Authorization header.')
-    ).toBeVisible();
-    // Code was drafted, so the notes section is a review checklist, with the
-    // inline-bullet answer normalized into separate list items.
-    expect(screen.getByText('Review checklist')).toBeVisible();
-    expect(
-      screen.getByText('Confirm the fallback header does not leak the key.')
-    ).toBeVisible();
-    expect(screen.getByText('Verify the proxy accepts both headers.')).toBeVisible();
-    expect(screen.queryByText(/•/)).not.toBeInTheDocument();
-    // Fixability lives in the expanded state as a bucketed tag (0.75 > 0.7).
-    expect(screen.getByText('High fixability')).toBeVisible();
+    expect(screen.getAllByText('Level: Warning')).toHaveLength(1);
   });
 
-  it('shows Diagnosis and Next steps when no code was drafted', async () => {
+  it('switches between card and table views', async () => {
+    renderPage();
+
+    expect(
+      await screen.findByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Root cause')).toBeVisible();
+    expect(screen.getByRole('radio', {name: 'Card view'})).toBeChecked();
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Table view'}));
+
+    expect(screen.getByRole('radio', {name: 'Table view'})).toBeChecked();
+    // The full analysis is card-only; the table row is the scannable summary.
+    expect(screen.queryByText('Root cause')).not.toBeInTheDocument();
+    expect(screen.getByText('PROJ-1')).toBeVisible();
+    expect(screen.getByText(/100 events · 5 users/)).toBeVisible();
+    expect(screen.getByRole('button', {name: 'Review PR'})).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry/pull/123'
+    );
+  });
+
+  it('leads with the root cause and a single next step when no code was drafted', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/runs/`,
       body: [
-        {
-          id: 'run-1',
-          type: 'explorer',
-          groupId: '2',
+        makeRun({
           source: 'autofix',
-          lastTriggeredAt: '2026-07-14T09:00:00Z',
-          dateCreated: '2026-07-14T09:00:00Z',
-          outputs: [
-            {
-              key: 'user_1',
-              question: RUN_QUESTIONS[1]!.prompt,
-              answer: 'A mechanism sentence without any drafted fix.',
-            },
-            {
-              key: 'user_3',
-              question: RUN_QUESTIONS[3]!.prompt,
-              answer: '- Decide whether Seer should generate a fix.',
-            },
-          ],
-        },
+          outputs: [makeOutput(2, 'Decide whether to relax the constraint.')],
+        }),
       ],
     });
 
@@ -267,232 +368,135 @@ describe('AutofixOverview', () => {
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
 
-    // No drafted fix → the body block is the Diagnosis variant.
-    expect(screen.getByText('Diagnosis')).toBeVisible();
-    expect(
-      screen.getByText('A mechanism sentence without any drafted fix.')
-    ).toBeVisible();
+    // The notes read as the next step (waits for the per-card runs fetch).
+    expect(await screen.findByText('Next steps')).toBeVisible();
+    expect(screen.getByText('Decide whether to relax the constraint.')).toBeVisible();
+    // No drafted fix → no fix section.
     expect(screen.queryByText('Proposed fix')).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Full analysis'}));
-
-    // …and the notes section is Next steps rather than a review checklist.
-    expect(screen.getByText('Next steps')).toBeVisible();
-    expect(screen.getByText('Decide whether Seer should generate a fix.')).toBeVisible();
-    expect(screen.queryByText('Review checklist')).not.toBeInTheDocument();
   });
 
-  it('toggles quick filters from the stat cards via the URL', async () => {
-    const {router} = renderPage();
-
-    // Wait for the card to load so the stat counts reflect the row.
-    expect(await screen.findByRole('button', {name: 'Review PR'})).toBeInTheDocument();
-
-    // The PR-opened row counts toward "Awaiting your review".
-    const statCard = screen.getByRole('button', {
-      name: /Awaiting your review/,
-    });
-    expect(statCard).toHaveTextContent('1');
-
-    await userEvent.click(statCard);
-    expect(router.location.query.quick).toBe('review_pr');
-
-    await userEvent.click(statCard);
-    expect(router.location.query.quick).toBeUndefined();
-  });
-
-  it('applies the outcome filter with AND semantics', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/2/autofix/`,
-      body: {
-        autofix: {
-          run_id: 1,
-          status: 'completed',
-          updated_at: '2026-07-14T10:00:00Z',
-          blocks: [
-            {
-              id: 'b1',
-              timestamp: '2026-07-14T09:00:00Z',
-              message: {
-                role: 'assistant',
-                content: 'rca',
-                metadata: {step: 'root_cause'},
-              },
-            },
-          ],
-        },
-      },
-    });
-
-    renderPage();
-
-    const title = 'Proxy requests fail without Authorization header';
-    expect(await screen.findByRole('link', {name: title})).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: /Outcome/}));
-
-    await userEvent.click(screen.getByRole('option', {name: 'Root cause'}));
-    expect(await screen.findByRole('link', {name: title})).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('option', {name: 'Code changes'}));
-    expect(await screen.findByText('No issues match your filters.')).toBeInTheDocument();
-  });
-
-  it('falls back to a View run action when nothing needs attention', async () => {
-    // A run that only found a root cause: no attention reason, but the card
-    // should still offer a way into the run (Seer drawer deep link).
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/2/autofix/`,
-      body: {
-        autofix: {
-          run_id: 1,
-          status: 'completed',
-          updated_at: '2026-07-14T10:00:00Z',
-          blocks: [
-            {
-              id: 'b1',
-              timestamp: '2026-07-14T09:00:00Z',
-              message: {
-                role: 'assistant',
-                content: 'rca',
-                metadata: {step: 'root_cause'},
-              },
-            },
-          ],
-        },
-      },
-    });
-
-    renderPage();
-
-    const viewRun = await screen.findByRole('button', {name: 'View run'});
-    expect(viewRun).toHaveAttribute(
-      'href',
-      `/organizations/${organization.slug}/issues/2/?seerDrawer=true`
-    );
-  });
-
-  it('shows merged state and enables the Merged PRs card when the API returns PR state', async () => {
+  it('keeps the section review action even when the run enrichment looks merged', async () => {
+    // A review_pr-section card whose enrichment carries a merged PR: the
+    // section is the anchor, so the card still shows Review PR rather than a
+    // stale Merged tag. Merged rendering is asserted in the merged-section test.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/runs/`,
       body: [
-        {
-          id: 'run-1',
-          type: 'explorer',
-          groupId: '2',
+        makeRun({
           source: 'autofix',
-          lastTriggeredAt: '2026-07-14T09:00:00Z',
-          dateCreated: '2026-07-14T09:00:00Z',
-          pullRequests: [{status: 'merged', mergedAt: '2026-07-15T09:00:00Z'}],
+          pullRequests: [{status: 'merged'}],
           outputs: [],
-        },
+        }),
       ],
     });
 
-    const {router} = renderPage();
+    renderPage();
 
-    // The merged run wears a Merged tag instead of a Review PR action.
-    expect(await screen.findByText('Merged')).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Review PR'})).not.toBeInTheDocument();
-
-    // The Merged PRs stat card is live and counts the row.
-    const mergedCard = screen.getByRole('button', {name: /Merged PRs/});
-    expect(mergedCard).toBeEnabled();
-    expect(mergedCard).toHaveTextContent('1');
-
-    await userEvent.click(mergedCard);
-    expect(router.location.query.quick).toBe('merged');
+    // The review action wins, linking to the open PR from the run state.
+    expect(await screen.findByRole('button', {name: 'Review PR'})).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry/pull/123'
+    );
+    // Only the always-present (empty) Merged section header — no leaked card tag.
+    expect(screen.getByRole('button', {name: 'Merged 0'})).toBeInTheDocument();
+    expect(screen.getAllByText('Merged')).toHaveLength(1);
   });
 
-  it('orders cards as a triage queue: actionable, then working, then merged', async () => {
-    // A merged, B awaiting PR review, C still processing → B, C, A.
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/`,
-      body: [
-        GroupFixture({id: '2', title: 'Issue A'}),
-        GroupFixture({id: '3', title: 'Issue B'}),
-        GroupFixture({id: '4', title: 'Issue C'}),
-      ],
+  it('collapses sections individually and in bulk', async () => {
+    renderPage();
+
+    const reviewHeader = await screen.findByRole('button', {
+      name: 'Awaiting your review 3',
     });
-    const runFor = (groupId: string, pullRequests: unknown[]) => ({
-      id: `run-${groupId}`,
-      type: 'explorer',
-      groupId,
-      source: 'autofix',
-      lastTriggeredAt: '2026-07-14T09:00:00Z',
-      dateCreated: '2026-07-14T09:00:00Z',
-      pullRequests,
-      outputs: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/runs/`,
-      body: [
-        runFor('2', [{status: 'merged', mergedAt: '2026-07-15T09:00:00Z'}]),
-        runFor('3', []),
-        runFor('4', []),
-      ],
-    });
-    // A and B both reached an opened PR; A's merged flag comes from its run.
-    for (const issueId of ['2', '3']) {
+    expect(
+      await screen.findByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).toBeInTheDocument();
+
+    // Collapsing a section hides only its cards.
+    await userEvent.click(reviewHeader);
+    expect(
+      screen.queryByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(reviewHeader);
+    expect(
+      await screen.findByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).toBeInTheDocument();
+
+    // The bulk toggle folds everything, then flips to Expand all.
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse all'}));
+    expect(
+      screen.queryByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Expand all'}));
+    expect(
+      await screen.findByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('renders every fetched issue in a section', async () => {
+    const many = Array.from({length: 30}, (_, index) =>
+      GroupFixture({
+        id: `${100 + index}`,
+        shortId: `PROJ-${100 + index}`,
+        title: `Bulk issue ${index}`,
+      })
+    );
+    many.forEach(group => {
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues/${issueId}/autofix/`,
-        body: {autofix: autofixState},
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+        body: {autofix: null},
       });
-    }
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/4/autofix/`,
-      body: {
-        autofix: {...autofixState, status: 'processing', repo_pr_states: {}},
-      },
     });
+    mockSection(SECTION_QUERIES.review_pr, {body: many, hits: '30'});
 
     renderPage();
 
-    expect(await screen.findByText('Merged')).toBeInTheDocument();
-    const titles = screen
-      .getAllByRole('link')
-      .map(link => link.textContent)
-      .filter(text => text === 'Issue A' || text === 'Issue B' || text === 'Issue C');
-    expect(titles).toEqual(['Issue B', 'Issue C', 'Issue A']);
+    await screen.findByRole('button', {name: 'Awaiting your review 30'});
+    expect(screen.getAllByRole('link', {name: /Bulk issue/})).toHaveLength(30);
+    expect(
+      screen.queryByRole('button', {name: /Show \d+ more issue/})
+    ).not.toBeInTheDocument();
   });
 
-  it('always enables the Merged PRs card, showing 0 when nothing is merged', async () => {
+  it('caps the section count badge at 100+ when hits exceed the fetch limit', async () => {
+    // Only 100 issues are ever fetched per section, so an exact total above
+    // that would overstate what scrolling can reveal.
+    mockSection(SECTION_QUERIES.review_pr, {body: [issue], hits: '150'});
+
     renderPage();
 
-    const mergedCard = await screen.findByRole('button', {name: /Merged PRs/});
-    expect(mergedCard).toBeEnabled();
-    expect(mergedCard).toHaveTextContent('0');
+    expect(
+      await screen.findByRole('button', {name: 'Awaiting your review 100+'})
+    ).toBeInTheDocument();
   });
 
   it('surfaces the blocking question when a run awaits user input', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/2/autofix/`,
       body: {
-        autofix: {
-          run_id: 1,
+        autofix: makeAutofixState({
           status: 'awaiting_user_input',
-          updated_at: '2026-07-14T10:00:00Z',
-          blocks: [
-            {
-              id: 'b1',
-              timestamp: '2026-07-14T09:00:00Z',
-              message: {
-                role: 'assistant',
-                content: 'rca',
-                metadata: {step: 'root_cause'},
-              },
-            },
-          ],
+          blocks: [makeBlock('root_cause')],
           // Canonical ask_user_question shape: the text is nested under
           // questions[0].question, not a flat key.
           pending_user_input: {
-            id: 'input-1',
             input_type: 'ask_user_question',
             data: {
               questions: [{question: 'Which environment should I target?', options: []}],
             },
           },
-        },
+        }),
       },
     });
 
@@ -503,39 +507,280 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
   });
 
-  it('normalizes space-less • bullets into a markdown list', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/runs/`,
-      body: [
-        {
-          id: 'run-1',
-          type: 'explorer',
-          groupId: '2',
-          source: 'autofix',
-          lastTriggeredAt: '2026-07-14T09:00:00Z',
-          dateCreated: '2026-07-14T09:00:00Z',
-          outputs: [
-            {
-              key: 'user_3',
-              question: RUN_QUESTIONS[3]!.prompt,
-              // No space after the • — the normalizer must still split these.
-              answer: '•Confirm the header is not leaked. •Verify both headers work.',
-            },
-          ],
-        },
-      ],
+  it('scopes the section requests to the selected projects', async () => {
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [2]}));
+    const reviewRequest = mockSection(SECTION_QUERIES.review_pr, {
+      body: [issue],
+      hits: '3',
     });
 
     renderPage();
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Full analysis'}));
-
-    expect(screen.getByText('Confirm the header is not leaked.')).toBeVisible();
-    expect(screen.getByText('Verify both headers work.')).toBeVisible();
-    expect(screen.queryByText(/•/)).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).toBeInTheDocument();
+    // The selector's trigger reflects the selection (the card's project badge
+    // is a link, so the button role isolates the filter)…
+    expect(screen.getByRole('button', {name: 'project-slug'})).toBeInTheDocument();
+    // …and the section request carries it.
+    expect(reviewRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/issues/`,
+      expect.objectContaining({
+        query: expect.objectContaining({project: [2]}),
+      })
+    );
   });
 
-  it('renders an error state and can retry', async () => {
+  it('renders an inline differ for small diffs, collapsed to a file header', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/2/autofix/`,
+      body: {
+        autofix: makeAutofixState({
+          blocks: [
+            makeBlock('code_changes', {
+              merged_file_patches: [
+                {
+                  repo_name: 'getsentry/sentry',
+                  diff: '--- a/src/cart.py\n+++ b/src/cart.py',
+                  patch: {
+                    path: 'src/cart.py',
+                    source_file: 'src/cart.py',
+                    target_file: 'src/cart.py',
+                    type: 'M',
+                    added: 2,
+                    removed: 1,
+                    hunks: [
+                      {
+                        section_header: 'def add_to_cart',
+                        source_start: 10,
+                        source_length: 3,
+                        target_start: 10,
+                        target_length: 4,
+                        lines: [
+                          {
+                            value: 'def add_to_cart(item):',
+                            line_type: ' ',
+                            source_line_no: 10,
+                            target_line_no: 10,
+                            diff_line_no: 1,
+                          },
+                          {
+                            value: '    total = None',
+                            line_type: '-',
+                            source_line_no: 11,
+                            target_line_no: null,
+                            diff_line_no: 2,
+                          },
+                          {
+                            value: '    total = 0',
+                            line_type: '+',
+                            source_line_no: null,
+                            target_line_no: 11,
+                            diff_line_no: 3,
+                          },
+                          {
+                            value: '    return total',
+                            line_type: '+',
+                            source_line_no: null,
+                            target_line_no: 12,
+                            diff_line_no: 4,
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              ],
+            }),
+          ],
+          repo_pr_states: {},
+        }),
+      },
+    });
+
+    renderPage();
+
+    // The differ's file header shows on the card without any interaction…
+    const fileHeader = await screen.findByText('src/cart.py');
+    // …but the diff body starts collapsed.
+    expect(screen.queryByText(/@@ -10,3 \+10,4 @@/)).not.toBeInTheDocument();
+
+    await userEvent.click(fileHeader);
+
+    expect(screen.getByText(/@@ -10,3 \+10,4 @@/)).toBeInTheDocument();
+  });
+
+  it('focuses a single fully-expanded card when id is present', async () => {
+    // The focus fetch pins the exact group id (and the endpoint ignores the
+    // section filters in that mode).
+    const groupRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      body: [issue],
+      match: [MockApiClient.matchQuery({group: ['2']})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/2/autofix/`,
+      body: {
+        autofix: makeAutofixState({
+          blocks: [
+            makeBlock('code_changes', {
+              merged_file_patches: [
+                {
+                  repo_name: 'getsentry/sentry',
+                  diff: '--- a/src/cart.py\n+++ b/src/cart.py',
+                  patch: {
+                    path: 'src/cart.py',
+                    source_file: 'src/cart.py',
+                    target_file: 'src/cart.py',
+                    type: 'M',
+                    added: 1,
+                    removed: 0,
+                    hunks: [
+                      {
+                        section_header: '',
+                        source_start: 5,
+                        source_length: 1,
+                        target_start: 5,
+                        target_length: 2,
+                        lines: [
+                          {
+                            value: '    return total',
+                            line_type: '+',
+                            source_line_no: null,
+                            target_line_no: 5,
+                            diff_line_no: 1,
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              ],
+            }),
+          ],
+        }),
+      },
+    });
+
+    renderPage({id: '2'});
+
+    // The full analysis renders expanded without any interaction…
+    expect(await screen.findByText('Root cause')).toBeVisible();
+    expect(screen.getByText('PROJ-1')).toBeVisible();
+    // …and so does the inline diff.
+    expect(screen.getByText(/@@ -5,1 \+5,2 @@/)).toBeInTheDocument();
+    expect(groupRequest).toHaveBeenCalled();
+
+    // Focus mode hides the section list and offers the way back, keeping the
+    // other params.
+    expect(
+      screen.queryByRole('button', {name: /Awaiting your review/})
+    ).not.toBeInTheDocument();
+    const backLink = screen.getByRole('button', {name: 'All issues'});
+    expect(backLink).toHaveAttribute('href', expect.not.stringContaining('id=2'));
+  });
+
+  it('shows the empty state when every section resolves empty', async () => {
+    // Two projects so page filters default to "My Projects" (empty selection)
+    // rather than force-selecting the only project; the default period then
+    // makes this the no-filter case.
+    ProjectsStore.loadInitialData([
+      ProjectFixture(),
+      ProjectFixture({id: '11', slug: 'project-two'}),
+    ]);
+    mockSection(SECTION_QUERIES.review_pr, {body: []});
+
+    renderPage();
+
+    expect(await screen.findByText('No completed autofix runs yet.')).toBeInTheDocument();
+    // The section list is replaced entirely by the empty state.
+    expect(
+      screen.queryByRole('button', {name: /Awaiting your review/})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows a filter-aware empty message when a non-default period is active', async () => {
+    // Two projects keep the selection empty, so the non-default period is the
+    // only active filter.
+    ProjectsStore.loadInitialData([
+      ProjectFixture(),
+      ProjectFixture({id: '11', slug: 'project-two'}),
+    ]);
+    mockSection(SECTION_QUERIES.review_pr, {body: []});
+
+    renderPage({period: '24h'});
+
+    expect(
+      await screen.findByText('No autofix runs match your filters.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No completed autofix runs yet.')).not.toBeInTheDocument();
+  });
+
+  it('surfaces per-section errors instead of the global empty state', async () => {
+    mockSection(SECTION_QUERIES.review_pr, {body: []});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      match: [MockApiClient.matchQuery({query: SECTION_QUERIES.code_changes_ready})],
+      statusCode: 500,
+      body: {detail: 'boom'},
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No completed autofix runs yet.')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: /Awaiting your review/})
+    ).toBeInTheDocument();
+  });
+
+  it('surfaces a per-section error while other sections still load', async () => {
+    // Only the code-changes bucket fails; the others resolve as seeded.
+    const codeIssue = GroupFixture({
+      id: '3',
+      shortId: 'PROJ-3',
+      title: 'Retry succeeded issue',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/3/autofix/`,
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      match: [MockApiClient.matchQuery({query: SECTION_QUERIES.code_changes_ready})],
+      statusCode: 500,
+      body: {detail: 'boom'},
+    });
+
+    renderPage();
+
+    // The review bucket still renders its card…
+    expect(
+      await screen.findByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).toBeInTheDocument();
+    // …while the failed section shows a retryable error inline.
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
+
+    // Re-arm the section with a success response, then retry: its card
+    // appears, proving the LoadingError's onRetry refetches the section.
+    mockSection(SECTION_QUERIES.code_changes_ready, {body: [codeIssue], hits: '1'});
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    expect(
+      await screen.findByRole('link', {name: 'Retry succeeded issue'})
+    ).toBeInTheDocument();
+  });
+
+  it('renders an error state only when every section fails', async () => {
+    // An unmatched mock is newest, so it answers all five section requests.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/`,
       statusCode: 500,
@@ -543,6 +788,44 @@ describe('AutofixOverview', () => {
     });
 
     renderPage();
+
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
+  });
+
+  it('falls back to the body length for the count when X-Hits is absent', async () => {
+    // No X-Hits header, so the badge reports the returned body length.
+    mockSection(SECTION_QUERIES.review_pr, {body: [issue]});
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Awaiting your review 1'})
+    ).toBeInTheDocument();
+  });
+
+  it('shows a not-found message when the focused issue resolves empty', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      match: [MockApiClient.matchQuery({group: ['2']})],
+      body: [],
+    });
+
+    renderPage({id: '2'});
+
+    expect(await screen.findByText('Issue not found.')).toBeInTheDocument();
+  });
+
+  it('shows an error state when the focused issue request fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      match: [MockApiClient.matchQuery({group: ['2']})],
+      statusCode: 500,
+      body: {detail: 'boom'},
+    });
+
+    renderPage({id: '2'});
 
     expect(
       await screen.findByText('There was an error loading data.')
