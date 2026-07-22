@@ -106,8 +106,7 @@ export function getOperatorInfo({
   operator: TermOperator;
   options: Array<SelectOption<TermOperator>>;
 } {
-  const isNegationOperator = (op: TermOperator) =>
-    (negationOperators as readonly TermOperator[]).includes(op);
+  const isNegationOperator = (op: TermOperator) => negationOperators.includes(op);
   if (isDateToken(filterToken)) {
     const operator = getOperatorFromDateToken(filterToken);
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
