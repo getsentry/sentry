@@ -330,24 +330,11 @@ function CustomFilterModal({
                   const conditions = conditionsField.state.value;
                   return (
                     <Stack gap="sm">
-                      <Flex justify="between" align="center" gap="md">
-                        <Text variant="muted" size="sm">
-                          {t(
-                            'Events must match all conditions (combined with AND) to be filtered. Each condition is a glob pattern matched against the selected field.'
-                          )}
-                        </Text>
-                        <Button
-                          size="sm"
-                          icon={<IconAdd />}
-                          onClick={() =>
-                            conditionsField.pushValue(
-                              emptyCondition(PRIMARY_PROPERTY_BY_DATA_TYPE[dataType])
-                            )
-                          }
-                        >
-                          {t('Add Condition')}
-                        </Button>
-                      </Flex>
+                      <Text variant="muted" size="sm">
+                        {t(
+                          'Events must match all conditions (combined with AND) to be filtered. Each condition is a glob pattern matched against the selected field.'
+                        )}
+                      </Text>
                       {conditions.map((condition, index) => (
                         <Grid
                           key={index}
@@ -387,6 +374,19 @@ function CustomFilterModal({
                           />
                         </Grid>
                       ))}
+                      <Flex justify="start">
+                        <Button
+                          size="sm"
+                          icon={<IconAdd />}
+                          onClick={() =>
+                            conditionsField.pushValue(
+                              emptyCondition(PRIMARY_PROPERTY_BY_DATA_TYPE[dataType])
+                            )
+                          }
+                        >
+                          {t('Add Condition')}
+                        </Button>
+                      </Flex>
                     </Stack>
                   );
                 }}
