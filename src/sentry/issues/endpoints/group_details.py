@@ -379,7 +379,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             )
 
             if features.has(
-                "projects:issue-action-log-write-to-db", group.project, actor=request.user
+                "projects:issue-action-log-activity", group.project, actor=request.user
             ):
                 action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
                 if action_log:
