@@ -79,7 +79,11 @@ def _ground_truth_updates(
     if activity_type in RESOLUTION_ACTIVITIES:
         if activity is None or activity.user_id is None:
             return None
-        if (run.extras or {}).get("actual_assignee_user_id") is not None:
+        extras = run.extras or {}
+        if (
+            extras.get("actual_assignee_user_id") is not None
+            or extras.get("actual_assignee_team_id") is not None
+        ):
             # An assignment is better ground truth than the resolver.
             return None
         # The assignment may never have been mirrored onto the run, so fall back to
