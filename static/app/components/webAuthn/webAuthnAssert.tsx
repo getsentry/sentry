@@ -8,6 +8,7 @@ import deviceAnimation from 'sentry-images/spot/u2f-small.gif';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
@@ -190,23 +191,23 @@ function AuthenticatorError({error, triggerWebAuthn}: AuthenticatorErrorProps) {
   );
 
   return (
-    <Container>
+    <Stack padding="2xl 0" margin="0 0 xl 0">
       <Alert variant="danger" trailingItems={retry}>
         {errorMessages[error]}
       </Alert>
-    </Container>
+    </Stack>
   );
 }
 
 function UnsupportedError() {
   return (
-    <Container>
+    <Stack padding="2xl 0" margin="0 0 xl 0">
       <Alert variant="warning">
         {t(
           'Your browser does not support WebAuthn (passkey). You need to use a different two-factor method or switch to a browser that supports it (Google Chrome or Microsoft Edge).'
         )}
       </Alert>
-    </Container>
+    </Stack>
   );
 }
 

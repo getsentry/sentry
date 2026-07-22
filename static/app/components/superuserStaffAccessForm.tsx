@@ -1,10 +1,10 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {logout} from 'sentry/actionCreators/account';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -254,29 +254,31 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
       return <LoadingIndicator />;
     }
     return (
-      <Fragment>
+      <Stack gap="xl">
         {errorAlert}
         <WebAuthn
           mode="sudo"
           authenticators={authenticators}
           onWebAuthn={handleWebAuthn}
         />
-      </Fragment>
+      </Stack>
     );
   }
 
   return (
     <form.AppForm form={form}>
-      {errorAlert}
-      {showAccessForms ? (
-        <Override name="component:superuser-access-category" />
-      ) : (
-        <WebAuthn
-          mode="sudo"
-          authenticators={authenticators}
-          onWebAuthn={handleWebAuthn}
-        />
-      )}
+      <Stack gap="xl">
+        {errorAlert}
+        {showAccessForms ? (
+          <Override name="component:superuser-access-category" />
+        ) : (
+          <WebAuthn
+            mode="sudo"
+            authenticators={authenticators}
+            onWebAuthn={handleWebAuthn}
+          />
+        )}
+      </Stack>
       <Flex justify="between" align="center" gap="md" margin="xl 0 0">
         <Flex align="center" margin="0 3xl">
           {/* COPS/CSM shortcut: skip the access-category/reason step with canned values. */}
