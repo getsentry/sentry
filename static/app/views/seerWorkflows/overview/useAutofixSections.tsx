@@ -6,6 +6,8 @@ import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {QUERY_STALE_TIME} from './types';
+
 export type AutofixStateKey =
   | 'review_pr'
   | 'code_changes_ready'
@@ -71,7 +73,7 @@ export function useAutofixSections({
             sort,
             limit: SECTION_LIMIT,
           },
-          staleTime: 30_000,
+          staleTime: QUERY_STALE_TIME,
         }
       ),
       enabled,

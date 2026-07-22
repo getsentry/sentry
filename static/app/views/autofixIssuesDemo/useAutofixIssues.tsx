@@ -5,10 +5,12 @@ import {
   type ExplorerAutofixState,
   getOrderedAutofixSections,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {QUERY_STALE_TIME} from 'sentry/views/seerWorkflows/overview/types';
 
 // Visible default query for the search bar. The required autofix filter below
 // is always applied on top, so it isn't part of the editable query.
@@ -45,11 +47,11 @@ const PER_PAGE = 10;
 export type AutofixPhase = 'rca' | 'planning' | 'coding' | 'pr_open' | 'pr_merged';
 
 export const AUTOFIX_PHASE_LABELS: Record<AutofixPhase, string> = {
-  rca: 'Root cause',
-  planning: 'Planning',
-  coding: 'Coding',
-  pr_open: 'PR open',
-  pr_merged: 'PR merged',
+  rca: t('Root cause'),
+  planning: t('Planning'),
+  coding: t('Coding'),
+  pr_open: t('PR open'),
+  pr_merged: t('PR merged'),
 };
 
 /**
@@ -197,7 +199,7 @@ export function useAutofixIssues({
         sort: 'date',
         limit: PER_PAGE,
       },
-      staleTime: 30_000,
+      staleTime: QUERY_STALE_TIME,
     }),
     enabled,
     select: selectJsonWithHeaders,
@@ -219,7 +221,7 @@ export function useAutofixIssues({
           question: questions,
           per_page: 1,
         },
-        staleTime: 30_000,
+        staleTime: QUERY_STALE_TIME,
       })
     ),
   });
@@ -235,7 +237,7 @@ export function useAutofixIssues({
         {
           path: {organizationIdOrSlug: organization.slug, issueId: groupId},
           query: {mode: 'explorer'},
-          staleTime: 30_000,
+          staleTime: QUERY_STALE_TIME,
         }
       )
     ),

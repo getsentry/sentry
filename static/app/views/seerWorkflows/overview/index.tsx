@@ -35,6 +35,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {DEFAULT_STATS_PERIOD, PERIOD_FILTER_OPTIONS} from './periods';
 import {SectionIssueCard} from './sectionIssueCard';
 import {STATUS_GROUP_META, StatusGroupTooltip, type StatusGroupKey} from './statusGroups';
+import {QUERY_STALE_TIME} from './types';
 import {
   SECTION_ORDER,
   useAutofixSections,
@@ -78,7 +79,7 @@ export default function AutofixOverview() {
     ...apiOptions.as<OverviewIssue[]>()('/organizations/$organizationIdOrSlug/issues/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {group: [selectedId ?? ''], project: -1, statsPeriod: period},
-      staleTime: 30_000,
+      staleTime: QUERY_STALE_TIME,
     }),
     enabled: Boolean(selectedId),
   });

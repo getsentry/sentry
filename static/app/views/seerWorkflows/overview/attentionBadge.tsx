@@ -5,6 +5,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconCode, IconCommit, IconPullRequest, IconRefresh, IconUser} from 'sentry/icons';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 
 import type {AttentionReason, OverviewRow} from './types';
@@ -14,7 +15,7 @@ type LinkButtonVariant = React.ComponentProps<typeof LinkButton>['variant'];
 export const ATTENTION_META: Record<
   AttentionReason,
   {
-    Icon: React.ComponentType<{size?: 'xs' | 'sm' | 'md'}>;
+    Icon: React.ComponentType<SVGIconProps>;
     description: string;
     label: string;
     variant: LinkButtonVariant;

@@ -9,6 +9,7 @@ import type {RunQuestion} from 'sentry/views/autofixIssuesDemo/useAutofixIssues'
 import {buildOverviewRow} from './buildOverviewRows';
 import {IssueCard, IssueTableRow} from './issueCard';
 import {RUN_QUESTION_PROMPTS} from './runQuestions';
+import {QUERY_STALE_TIME} from './types';
 import type {OverviewIssue} from './useAutofixSections';
 
 const RUNS_QUERY = 'type:explorer source:autofix';
@@ -36,7 +37,7 @@ function useIssueCardContent(issueId: string) {
         question: RUN_QUESTION_PROMPTS,
         per_page: 1,
       },
-      staleTime: 30_000,
+      staleTime: QUERY_STALE_TIME,
     }),
   });
 
@@ -46,7 +47,7 @@ function useIssueCardContent(issueId: string) {
       {
         path: {organizationIdOrSlug: organization.slug, issueId},
         query: {mode: 'explorer'},
-        staleTime: 30_000,
+        staleTime: QUERY_STALE_TIME,
       }
     ),
   });

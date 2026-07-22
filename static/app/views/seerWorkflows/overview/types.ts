@@ -2,6 +2,9 @@ import type {FilePatch} from 'sentry/components/events/autofix/types';
 import type {Level} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 
+// Shared staleTime for the overview's issue/run/state queries.
+export const QUERY_STALE_TIME = 30_000;
+
 export type AutofixOutcome = 'root_cause' | 'solution' | 'code_changes' | 'pr_opened';
 
 // Run status buckets mapped from ExplorerAutofixState.status; 'processing' maps

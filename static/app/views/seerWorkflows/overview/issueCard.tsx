@@ -84,6 +84,19 @@ function PatchFilesTooltip({stats}: {stats: PatchStats}) {
   );
 }
 
+function issueCountLabels(row: OverviewRow) {
+  return {
+    eventCountLabel:
+      row.eventCount === 1
+        ? t('1 event')
+        : t('%s events', formatAbbreviatedNumber(row.eventCount)),
+    userCountLabel:
+      row.userCount === 1
+        ? t('1 user')
+        : t('%s users', formatAbbreviatedNumber(row.userCount)),
+  };
+}
+
 export function IssueCard({
   orgSlug,
   row,
@@ -130,14 +143,7 @@ export function IssueCard({
       answer: nextSteps.answer,
     },
   ].filter(section => !!section);
-  const eventCountLabel =
-    row.eventCount === 1
-      ? t('1 event')
-      : t('%s events', formatAbbreviatedNumber(row.eventCount));
-  const userCountLabel =
-    row.userCount === 1
-      ? t('1 user')
-      : t('%s users', formatAbbreviatedNumber(row.userCount));
+  const {eventCountLabel, userCountLabel} = issueCountLabels(row);
 
   return (
     <Container background="primary" border="primary" radius="md" padding="lg">
@@ -335,14 +341,7 @@ export function IssueTableRow({
 }) {
   const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
   const runUrl = {pathname: issueUrl, query: {seerDrawer: 'true'}};
-  const eventCountLabel =
-    row.eventCount === 1
-      ? t('1 event')
-      : t('%s events', formatAbbreviatedNumber(row.eventCount));
-  const userCountLabel =
-    row.userCount === 1
-      ? t('1 user')
-      : t('%s users', formatAbbreviatedNumber(row.userCount));
+  const {eventCountLabel, userCountLabel} = issueCountLabels(row);
 
   return (
     <Flex
