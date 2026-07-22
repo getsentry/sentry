@@ -61,7 +61,7 @@ export function AssistantActions({
       />
       {copyText ? (
         <CopyToClipboardButton
-          aria-label={t('Copy block content')}
+          aria-label={t('Copy to clipboard')}
           text={copyText}
           tooltipProps={{title: t('Copy to clipboard')}}
           onCopy={onCopy}
@@ -84,18 +84,17 @@ function FeedbackButton({
   onClick?: (feedback: AssistantFeedback) => void;
 }) {
   const isPositive = feedback === 'positive';
+  const label = disabled
+    ? t('Feedback submitted')
+    : isPositive
+      ? t('I like this response')
+      : t("I don't like this response");
   return (
     <Button
-      aria-label={isPositive ? t('Feedback Thumbs Up') : t('Feedback Thumbs Down')}
+      aria-label={label}
       icon={<IconThumb direction={isPositive ? 'up' : 'down'} />}
       disabled={disabled}
-      tooltipProps={{
-        title: disabled
-          ? t('Feedback submitted')
-          : isPositive
-            ? t('I like this response')
-            : t("I don't like this response"),
-      }}
+      tooltipProps={{title: label}}
       onClick={e => {
         e.stopPropagation();
         onClick?.(feedback);
