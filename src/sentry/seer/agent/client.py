@@ -316,6 +316,7 @@ class SeerAgentClient:
         intelligence_level: Literal["low", "medium", "high"] = "medium",
         reasoning_effort: Literal["low", "medium", "high"] | None = None,
         is_interactive: bool = False,
+        enable_bash_tools: bool = False,
         enable_coding: bool = False,
         enable_pr_context_tools: bool = False,
         enable_code_mode_tools: str = "off",
@@ -334,6 +335,9 @@ class SeerAgentClient:
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
+        self.enable_bash_tools = enable_bash_tools and features.has(
+            "organizations:seer-explorer-allow-bash-mode", organization, actor=user
+        )
         self.enable_code_mode_tools = enable_code_mode_tools
         self.code_review_enabled = code_review_enabled
         self.max_iterations = max_iterations
@@ -413,6 +417,7 @@ class SeerAgentClient:
             "enable_code_mode_tools": self.enable_code_mode_tools,
             "code_review_enabled": self.code_review_enabled,
             "enable_pr_context_tools": self.enable_pr_context_tools,
+            "enable_bash_mode": self.enable_bash_tools,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -472,7 +477,9 @@ class SeerAgentClient:
             chat_body["ui_tools"] = ui_tools
 
         agent_run_options.update(
-            self._build_agent_run_options(override_ce_enable=override_ce_enable)
+            self._build_agent_run_options(
+                override_ce_enable=override_ce_enable,
+            )
         )
 
         user_id = (
@@ -570,7 +577,7 @@ class SeerAgentClient:
             flush=flush,
         )
 
-    def _build_agent_run_options(self, override_ce_enable: bool = True) -> dict[str, Any]:
+    def _build_agent_run_options(self, *, override_ce_enable: bool = True) -> dict[str, Any]:
         """Resolve org-flag-driven agent run options, shared by start_run and start_feature_run."""
         opts: dict[str, Any] = {}
 

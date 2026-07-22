@@ -9,14 +9,10 @@ import type {GroupActivity} from 'sentry/types/group';
 import {SEER_ACTIVITY_TYPES} from 'sentry/types/group';
 
 export function ActivityLineActor({item}: {item: GroupActivity}) {
-  return (
-    <ActorSlot>
-      <ActivityLineActorAvatar item={item} />
-    </ActorSlot>
-  );
+  return <ActorSlot>{renderActivityLineActor(item)}</ActorSlot>;
 }
 
-function ActivityLineActorAvatar({item}: {item: GroupActivity}) {
+export function renderActivityLineActor(item: GroupActivity): React.ReactElement | null {
   if (item.sentry_app) {
     return (
       <Tooltip title={item.sentry_app.name}>
@@ -50,8 +46,6 @@ function ActivityLineActorAvatar({item}: {item: GroupActivity}) {
 }
 
 const ActorSlot = styled('div')`
-  grid-column: 2;
-  grid-row: 1;
   display: grid;
   place-items: center;
   min-width: 22px;

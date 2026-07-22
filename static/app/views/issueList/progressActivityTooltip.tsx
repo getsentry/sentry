@@ -17,7 +17,6 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {getActivityColorConfig} from 'sentry/views/issueDetails/activitySection/activityColorConfig';
-import {ActivityMarker} from 'sentry/views/issueDetails/activitySection/activityMarker';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
 import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
 
@@ -91,7 +90,6 @@ function ProgressActivityItem({group, item}: {group: Group; item: GroupActivity}
     <Timeline.Item
       title={title}
       timestamp={<Timestamp date={item.dateCreated} unitStyle="extraShort" />}
-      marker={<ActivityMarker item={item} color={colorConfig.icon} />}
       colorConfig={colorConfig}
       icon={
         Icon && (

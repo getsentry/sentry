@@ -339,13 +339,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "issues.merge-unmerge.max-group-times-seen",
-    default=0,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Idempotency guard for self-chaining tasks (merge_groups / unmerge): dedupe the chain-step
 # spawn keyed on the broker activation id so a broker re-pend cannot fork the chain.
 register(
@@ -762,6 +755,9 @@ register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIF
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
+# Tenant-specific OAuth authority, required for single-tenant Azure Bots.
+# Empty (default) keeps the historical multi-tenant botframework.com authority.
+register("msteams.tenant-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 
 # Discord Integration
 register("discord.application-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1065,6 +1061,12 @@ register(
 # killswitch, which is checked before calling Seer when potentially creating a  new group as part of
 # ingestion.
 register(
+    "seer.post-process-issue-summary-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "seer.similarity-killswitch.enabled",
     default=False,
     type=Bool,
@@ -1224,6 +1226,12 @@ register(
 )
 register(
     "seer.night_shift.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.night_shift.enable_for_legacy_orgs",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -3205,14 +3213,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout rate for resolution activity notifications via the notification platform
-register(
-    "notifications.platform.resolution-notifications.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Killswitch list of NotificationSource values that should be blocked from being
 # dispatched by the notification platform's NotificationService. Values must match
 # the string values of `sentry.notifications.platform.types.NotificationSource`.
@@ -3836,6 +3836,15 @@ register(
     type=Float,
     default=0.0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Cap on consecutive automated PR iterations (check suites + bot re-reviews);
+# human feedback resets the streak. See ``automated_iteration_cap_reached``.
+register(
+    "autofix.pr-iteration.max-iterations",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics
