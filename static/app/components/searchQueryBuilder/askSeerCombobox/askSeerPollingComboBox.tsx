@@ -15,6 +15,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {AskSeerFeedback} from 'sentry/components/searchQueryBuilder/askSeer/askSeerFeedback';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerLoadingStatus} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerLoadingStatus';
 import {AskSeerProgressBlocks} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerProgressBlocks';
@@ -231,6 +232,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   const openForm = useFeedbackForm();
 
   const {
+    displayAskSeerFeedback,
     setDisplayAskSeer,
     setDisplayAskSeerFeedback,
     askSeerNLQueryRef,
@@ -356,7 +358,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
 
       askSeerNLQueryRef.current = searchQuery.trim();
       props.applySeerSearchQuery(item, runId ?? undefined);
-      setDisplayAskSeerFeedback(true);
+      setDisplayAskSeerFeedback(!hasAskSeerUxRework);
       setDisplayAskSeer(false);
       reset();
       state.close();
@@ -447,7 +449,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
 
               askSeerNLQueryRef.current = searchQuery.trim();
               props.applySeerSearchQuery(item, runId ?? undefined);
-              setDisplayAskSeerFeedback(true);
+              setDisplayAskSeerFeedback(!hasAskSeerUxRework);
               setDisplayAskSeer(false);
               reset();
               state.close();
@@ -571,6 +573,22 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     state.selectionManager.setFocusedKey(null);
   };
 
+  const showLoading = isSessionPending || isPolling;
+  const hasResults = queries.length > 0;
+  const isDisplayingResults = !showLoading && !isSessionError && hasResults;
+
+  useEffect(() => {
+    if (enableAISearch && !startFailed && hasAskSeerUxRework && isDisplayingResults) {
+      setDisplayAskSeerFeedback(true);
+    }
+  }, [
+    enableAISearch,
+    hasAskSeerUxRework,
+    isDisplayingResults,
+    setDisplayAskSeerFeedback,
+    startFailed,
+  ]);
+
   if (!enableAISearch) {
     return null;
   }
@@ -585,10 +603,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       />
     );
   }
-
-  const showLoading = isSessionPending || isPolling;
-  const hasResults = queries.length > 0;
-  const isDisplayingResults = !showLoading && !isSessionError && hasResults;
 
   return (
     <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
@@ -655,28 +669,35 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
               background={hasAskSeerUxRework ? 'secondary' : 'primary'}
               onMouseDown={e => e.preventDefault()}
             >
-              {hasAskSeerUxRework ? (
-                <Button
-                  icon={<IconSync />}
-                  size="zero"
-                  onClick={() => {
-                    const query = searchQuery.trim() || askSeerNLQueryRef.current?.trim();
-                    if (!query) {
-                      return;
-                    }
+              <Flex gap="sm">
+                {hasAskSeerUxRework ? (
+                  <Button
+                    icon={<IconSync />}
+                    size="zero"
+                    onClick={() => {
+                      const query =
+                        searchQuery.trim() || askSeerNLQueryRef.current?.trim();
+                      if (!query) {
+                        return;
+                      }
 
-                    trackAnalytics('ai_query.regenerated', {
-                      organization,
-                      area: analyticsArea,
-                      natural_language_query: query,
-                    });
-                    reset();
-                    submitQuery(query);
-                  }}
-                >
-                  {t('Generate again')}
-                </Button>
-              ) : null}
+                      trackAnalytics('ai_query.regenerated', {
+                        organization,
+                        area: analyticsArea,
+                        natural_language_query: query,
+                      });
+                      setDisplayAskSeerFeedback(false);
+                      reset();
+                      submitQuery(query);
+                    }}
+                  >
+                    {t('Generate again')}
+                  </Button>
+                ) : null}
+                {hasAskSeerUxRework && displayAskSeerFeedback ? (
+                  <AskSeerFeedback />
+                ) : null}
+              </Flex>
               {openForm ? (
                 <Button
                   size={hasAskSeerUxRework ? 'zero' : 'xs'}
