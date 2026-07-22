@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from django.db import router, transaction
+from django.utils import timezone as django_timezone
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -35,12 +36,8 @@ from sentry.issues.derived.features import (
 )
 from sentry.issues.derived.framework import (
     AggregatorResult,
-    DateTimeCodec,
-    EnumCodec,
     Feature,
-    OptionalCodec,
     Pipeline,
-    State,
     StateUpdate,
     StateView,
     aggregator,
@@ -48,13 +45,15 @@ from sentry.issues.derived.framework import (
 from sentry.issues.derived.processing import (
     PIPELINE,
     GroupLogTimeout,
+    PromotionResult,
     _entries_after_cursor,
     invalidate_group_derived_data,
     process_group_log,
+    promote_to_live,
 )
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
-from sentry.issues.models.groupderiveddata import GroupDerivedData
+from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
@@ -460,7 +459,7 @@ class ProcessGroupLogTest(TestCase):
         # between our load and the UPDATE in _process_batch.
         GroupDerivedData.objects.filter(group_id=group.id).update(pipeline_hash="reset")
 
-        processing._process_batch(processing.PIPELINE, derived, group.id, 1)
+        processing._process_batch(processing.PIPELINE, derived, 1)
 
         # The UPDATE should not have matched because the DB hash changed
         derived.refresh_from_db()
@@ -476,39 +475,192 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         assert derived.pipeline_hash == PIPELINE.pipeline_hash
 
+    def test_generated_at_change_skips_incremental_write(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        derived = process_group_log(group.id)
+        first_cursor = derived.cursor_id
+
+        GroupActionLogEntry.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.SYSTEM,
+            actor_id=0,
+            source=SOURCE,
+            data={},
+        )
+
+        # Simulate a generation promoting between our read and the UPDATE
+        # in _process_batch — generated_at changed.
+        GroupDerivedData.objects.filter(id=derived.id).update(
+            generated_at=datetime.now(timezone.utc)
+        )
+
+        processing._process_batch(processing.PIPELINE, derived, 1)
+
+        derived.refresh_from_db()
+        assert derived.cursor_id == first_cursor
+
+
+# --- promote_to_live ---
+
+
+@with_feature("projects:issue-action-log-write-to-db")
+class PromoteToLiveTest(TestCase):
+    def test_promote_inserts_when_no_row(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        GroupDerivedData.objects.filter(group_id=group.id).delete()
+
+        gen_time = django_timezone.now()
+        candidate = GroupDerivedData(
+            group_id=group.id,
+            generated_at=gen_time,
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+        processing._drain_log(candidate, PIPELINE, time_limit=timedelta(minutes=5), persist=False)
+        assert promote_to_live(candidate) is PromotionResult.PROMOTED
+
+        live = GroupDerivedData.objects.get(group_id=group.id)
+        assert live.view_count == 1
+        assert live.generated_at == gen_time
+
+    def test_promote_updates_existing_row(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        old = process_group_log(group.id)
+        old_id = old.id
+
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        gen_time = django_timezone.now()
+        candidate = GroupDerivedData(
+            group_id=group.id,
+            generated_at=gen_time,
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+        processing._drain_log(candidate, PIPELINE, time_limit=timedelta(minutes=5), persist=False)
+        assert promote_to_live(candidate) is PromotionResult.PROMOTED
+
+        live = GroupDerivedData.objects.get(group_id=group.id)
+        assert live.id == old_id
+        assert live.view_count == 2
+        assert live.generated_at == gen_time
+
+    def test_promote_rejected_if_cursor_behind_despite_newer_generation(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        # Incremental processing advances the cursor past the first entry.
+        process_group_log(group.id)
+
+        # A newer generation only processed the first entry (cursor behind).
+        gen_time = django_timezone.now()
+        candidate = GroupDerivedData(
+            group_id=group.id,
+            generated_at=gen_time,
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+        processing._process_batch(PIPELINE, candidate, batch_size=1, persist=False)
+
+        # Despite having a newer generated_at, the cursor is behind —
+        # promote must not regress the cursor.
+        assert promote_to_live(candidate) is PromotionResult.CURSOR_BEHIND
+
+    def test_promote_superseded_by_newer_generation(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+
+        newer_time = django_timezone.now()
+        GroupDerivedData.objects.filter(group_id=group.id).update(generated_at=newer_time)
+
+        old_time = newer_time - timedelta(seconds=10)
+        candidate = GroupDerivedData(
+            group_id=group.id,
+            generated_at=old_time,
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+        processing._drain_log(candidate, PIPELINE, time_limit=timedelta(minutes=5), persist=False)
+        assert promote_to_live(candidate) is PromotionResult.SUPERSEDED
+
+    def test_generation_prevents_stale_incremental_write(self) -> None:
+        """End-to-end ABA test: incremental write computed from pre-generation
+        state must not overwrite a generation's result."""
+
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        # Incremental processing reads the row.
+        derived = process_group_log(group.id)
+        pre_gen_generated_at = derived.generated_at
+
+        # Simulate a generation promoting (stamps a newer generated_at).
+        new_gen_time = django_timezone.now()
+        candidate = GroupDerivedData(
+            group_id=group.id,
+            generated_at=new_gen_time,
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+        processing._drain_log(candidate, PIPELINE, time_limit=timedelta(minutes=5), persist=False)
+        assert promote_to_live(candidate) is PromotionResult.PROMOTED
+
+        derived.refresh_from_db()
+        assert derived.generated_at == new_gen_time
+
+        # Insert a log entry directly (not via _publish) to avoid inline
+        # processing, which would advance the cursor and mask the test.
+        GroupActionLogEntry.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.SYSTEM,
+            actor_id=0,
+            source=SOURCE,
+            data={},
+        )
+
+        # Simulate an incremental writer that read the row before the
+        # generation promoted. We construct the GDD manually so we can
+        # control the observed generated_at (pre-generation).
+        stale = GroupDerivedData(
+            id=derived.id,
+            group_id=group.id,
+            generated_at=pre_gen_generated_at,
+            cursor_date=derived.cursor_date,
+            cursor_id=derived.cursor_id,
+            data=derived.data.copy(),
+            pipeline_hash=derived.pipeline_hash,
+        )
+        # _process_batch with persist=True attempts the guarded UPDATE.
+        processing._process_batch(PIPELINE, stale, batch_size=1)
+
+        # The write should have been rejected because generated_at changed.
+        derived.refresh_from_db()
+        entries = list(GroupActionLogEntry.objects.filter(group_id=group.id).order_by("id"))
+        assert derived.cursor_id == entries[-2].id  # still at the pre-new-entry position
+
 
 # --- Pure Python tests (no DB) ---
-
-
-def test_mutation_checking_catches_in_place_mutation() -> None:
-    ITEMS = Feature[list[str]]("items", default_factory=list)
-
-    @aggregator((ITEMS,))
-    def bad_mutator(state: StateView, entry: object) -> AggregatorResult:
-        state[ITEMS].append("oops")
-        return None
-
-    p = Pipeline([bad_mutator], check_mutations=True)
-    state = p.initial_state()
-
-    class FakeEntry:
-        type = 0
-
-    with pytest.raises(RuntimeError, match="mutated feature 'items' in place"):
-        p.step(state, FakeEntry())
-
-
-def test_state_updated_tracks_merged_features() -> None:
-    A = Feature[int]("a", default=0)
-    B = Feature[int]("b", default=0)
-    state = State({A: 0, B: 0})
-
-    assert state.updated == frozenset()
-
-    state.merge(StateUpdate({A: 1}))
-    assert state.updated == frozenset({A})
-    assert state[A] == 1
-    assert state[B] == 0
 
 
 def test_build_update_json_blob_includes_all_json_features() -> None:
@@ -544,90 +696,6 @@ def test_all_feature_defaults_round_trip_through_json() -> None:
     serialized = json.loads(json.dumps(blob))
     for f in PIPELINE.features:
         assert f.from_json(serialized[f.name]) == state[f], f"round-trip failed for {f.name}"
-
-
-# --- Codec tests ---
-
-
-class TestDateTimeCodec:
-    def test_json_round_trip(self) -> None:
-        codec = DateTimeCodec()
-        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
-        assert codec.from_json(codec.to_json(dt)) == dt
-
-    def test_to_json_produces_iso_string(self) -> None:
-        codec = DateTimeCodec()
-        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
-        dumped = codec.to_json(dt)
-        assert isinstance(dumped, str)
-        assert dumped == dt.isoformat()
-
-    def test_column_round_trip_is_identity(self) -> None:
-        codec = DateTimeCodec()
-        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
-        assert codec.from_column(codec.to_column(dt)) == dt
-        assert codec.to_column(dt) is dt
-
-    def test_optional_none(self) -> None:
-        codec = OptionalCodec(DateTimeCodec())
-        assert codec.to_json(None) is None
-        assert codec.from_json(None) is None
-
-    def test_optional_json_round_trip(self) -> None:
-        codec = OptionalCodec(DateTimeCodec())
-        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
-        assert codec.from_json(codec.to_json(dt)) == dt
-
-
-class TestEnumCodecCoverage:
-    @pytest.mark.parametrize("raw", ["open", "closed"])
-    def test_issue_status_json_round_trip(self, raw: str) -> None:
-        codec = EnumCodec(IssueStatus)
-        loaded = codec.from_json(raw)
-        assert codec.to_json(loaded) == raw
-
-    @pytest.mark.parametrize("raw", ["open", "closed"])
-    def test_issue_status_column_round_trip(self, raw: str) -> None:
-        codec = EnumCodec(IssueStatus)
-        loaded = codec.from_column(raw)
-        assert isinstance(loaded, IssueStatus)
-        assert codec.to_column(loaded) == raw
-
-    @pytest.mark.parametrize(
-        "raw", ["identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"]
-    )
-    def test_issue_progress_state_json_round_trip(self, raw: str) -> None:
-        codec = EnumCodec(IssueProgressState)
-        loaded = codec.from_json(raw)
-        assert codec.to_json(loaded) == raw
-
-    @pytest.mark.parametrize(
-        "raw", ["identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"]
-    )
-    def test_issue_progress_state_column_produces_enum(self, raw: str) -> None:
-        codec = EnumCodec(IssueProgressState)
-        loaded = codec.from_column(raw)
-        assert isinstance(loaded, IssueProgressState)
-
-    @pytest.mark.parametrize(
-        "raw",
-        [None, "identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"],
-    )
-    def test_optional_progress_json_round_trip(self, raw: str | None) -> None:
-        codec = OptionalCodec(EnumCodec(IssueProgressState))
-        loaded = codec.from_json(raw)
-        assert codec.to_json(loaded) == raw
-
-    @pytest.mark.parametrize(
-        "raw",
-        [None, "identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"],
-    )
-    def test_optional_progress_column_round_trip(self, raw: str | None) -> None:
-        codec = OptionalCodec(EnumCodec(IssueProgressState))
-        loaded = codec.from_column(raw)
-        if raw is not None:
-            assert isinstance(loaded, IssueProgressState)
-        assert codec.to_column(loaded) == raw
 
 
 # --- Store tests (need DB) ---

@@ -1726,7 +1726,7 @@ def _handle_regression(
             id=group.id,
             # ensure we can't update things if the status has been set to
             # ignored
-            status__in=[GroupStatus.RESOLVED, GroupStatus.UNRESOLVED],
+            status=GroupStatus.RESOLVED,
         )
         .exclude(
             # add to the regression window to account for races here
@@ -1734,8 +1734,6 @@ def _handle_regression(
         )
         .update(
             active_at=date,
-            # explicitly set last_seen here as ``is_resolved()`` looks
-            # at the value
             last_seen=date,
             status=GroupStatus.UNRESOLVED,
             substatus=GroupSubStatus.REGRESSED,

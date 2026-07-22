@@ -339,13 +339,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "issues.merge-unmerge.max-group-times-seen",
-    default=0,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Idempotency guard for self-chaining tasks (merge_groups / unmerge): dedupe the chain-step
 # spawn keyed on the broker activation id so a broker re-pend cannot fork the chain.
 register(
@@ -1065,6 +1058,12 @@ register(
 # killswitch, which is checked before calling Seer when potentially creating a  new group as part of
 # ingestion.
 register(
+    "seer.post-process-issue-summary-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "seer.similarity-killswitch.enabled",
     default=False,
     type=Bool,
@@ -1224,6 +1223,12 @@ register(
 )
 register(
     "seer.night_shift.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.night_shift.enable_for_legacy_orgs",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,

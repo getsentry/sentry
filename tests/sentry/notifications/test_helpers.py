@@ -1,11 +1,9 @@
 from urllib.parse import parse_qs, urlparse
 
-from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.models.rule import Rule
 from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_subscription_from_attributes,
-    get_team_members,
     validate,
 )
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
@@ -17,8 +15,7 @@ from sentry.notifications.utils.links import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
-from sentry.types.actor import Actor
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class NotificationHelpersTest(TestCase):
@@ -129,17 +126,3 @@ class NotificationHelpersTest(TestCase):
             }
             for rule_detail in rule_details
         }
-
-    def test_get_team_members(self) -> None:
-        user1 = self.create_user()
-        user2 = self.create_user()
-        team1 = self.create_team()
-        team2 = self.create_team()
-        team3 = self.create_team()
-        self.create_member(organization=self.organization, teams=[team1], user=user1)
-        self.create_member(organization=self.organization, teams=[team2], user=user2)
-
-        with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
-            assert get_team_members(team1) == [Actor.from_object(user1)]
-            assert get_team_members(team2) == [Actor.from_object(user2)]
-            assert get_team_members(team3) == []

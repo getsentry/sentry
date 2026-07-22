@@ -7,17 +7,19 @@ from pydantic import ValidationError
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.check_suites import FAILURE_CONCLUSIONS
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
     MissingCheckSuiteAutofixRun,
 )
 from sentry.seer.autofix.pr_iteration.queue import try_enqueue_autofix_feedback
+from sentry.seer.autofix.pr_iteration.review_request import (
+    GREEN_CONCLUSIONS,
+    request_review_for_green_check_suite,
+)
 
 logger = logging.getLogger(__name__)
-
-# Values match scm BuildConclusion after GitHub normalization (startup_failure → failure).
-CONCLUSIONS = ["failure", "timed_out", "action_required"]
 
 
 @scm_event_stream.listen_for(event_type="check_suite")
@@ -25,7 +27,12 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
     if check_suite_event.action != "completed":
         return None
 
-    if check_suite_event.check_suite["conclusion"] not in CONCLUSIONS:
+    conclusion = check_suite_event.check_suite["conclusion"]
+    if conclusion in GREEN_CONCLUSIONS:
+        request_review_for_green_check_suite(check_suite_event)
+        return None
+
+    if conclusion not in FAILURE_CONCLUSIONS:
         return None
 
     try:

@@ -689,7 +689,11 @@ class TestTaintTracking(BaseWorkflowTest):
     @patch("sentry.workflow_engine.processors.data_condition_group.process_data_condition_group")
     def test_trigger_stats_tainted_not_triggered(self, mock_process: MagicMock) -> None:
         mock_process.return_value = (
-            DataConditionGroupEvaluation(result=[], error=ERR),
+            DataConditionGroupEvaluation(
+                result=False,
+                data={"condition_evaluations": [], "logic_type": DataConditionGroup.Type.ANY},
+                error=ERR,
+            ),
             [],
         )
 
@@ -713,7 +717,11 @@ class TestTaintTracking(BaseWorkflowTest):
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
     def test_action_filter_stats_tainted_from_action_filter(self, mock_process: MagicMock) -> None:
         mock_process.return_value = (
-            DataConditionGroupEvaluation(result=[], error=ERR),
+            DataConditionGroupEvaluation(
+                result=False,
+                data={"condition_evaluations": [], "logic_type": DataConditionGroup.Type.ANY},
+                error=ERR,
+            ),
             [],
         )
 
