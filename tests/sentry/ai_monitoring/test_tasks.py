@@ -159,7 +159,7 @@ class TitleHelpersTest(TestCase):
         assert clamp_user_message("short") == "short"
         assert len(clamp_user_message("a" * 9000)) == 8 * 1024
 
-    @patch("sentry.seer.signed_seer_api.make_llm_generate_request")
+    @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
     def test_generate_title_with_seer_success(self, mock_request: MagicMock) -> None:
         mock_request.return_value = _mock_seer_success('  "Help me login"  ')
         assert generate_title_with_seer("I cannot log in") == "Help me login"
@@ -174,14 +174,14 @@ class TitleHelpersTest(TestCase):
             "required": ["title"],
         }
 
-    @patch("sentry.seer.signed_seer_api.make_llm_generate_request")
+    @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
     def test_generate_title_with_seer_plain_string_content(self, mock_request: MagicMock) -> None:
         mock_response = MagicMock(status=200)
         mock_response.json.return_value = {"content": "Plain text title"}
         mock_request.return_value = mock_response
         assert generate_title_with_seer("msg") == "Plain text title"
 
-    @patch("sentry.seer.signed_seer_api.make_llm_generate_request")
+    @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
     def test_generate_title_with_seer_invalid_structured_content(
         self, mock_request: MagicMock
     ) -> None:
@@ -190,12 +190,12 @@ class TitleHelpersTest(TestCase):
         mock_request.return_value = mock_response
         assert generate_title_with_seer("msg") is None
 
-    @patch("sentry.seer.signed_seer_api.make_llm_generate_request")
+    @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
     def test_generate_title_with_seer_http_error(self, mock_request: MagicMock) -> None:
         mock_request.return_value = MagicMock(status=500)
         assert generate_title_with_seer("msg") is None
 
-    @patch("sentry.seer.signed_seer_api.make_llm_generate_request")
+    @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
     def test_generate_conversation_title_falls_back(self, mock_request: MagicMock) -> None:
         mock_request.side_effect = Exception("boom")
         assert (
@@ -365,7 +365,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
         assert AIConversationMetadata.objects.count() == 0
         mock_generate.assert_not_called()
 
-    @patch("sentry.seer.signed_seer_api.make_llm_generate_request")
+    @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
     def test_end_to_end_with_mocked_seer(self, mock_request: MagicMock) -> None:
         mock_request.return_value = _mock_seer_success("Password Reset Guidance")
         generate_ai_conversation_title(
@@ -381,7 +381,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
         assert row.title == "Password Reset Guidance"
         mock_request.assert_called_once()
 
-    @patch("sentry.seer.signed_seer_api.make_llm_generate_request")
+    @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
     def test_end_to_end_seer_failure_uses_fallback(self, mock_request: MagicMock) -> None:
         mock_request.side_effect = Exception("network down")
         generate_ai_conversation_title(
