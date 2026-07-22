@@ -26,8 +26,11 @@ function HydratedCard({
   // endpoint omits issue.autofix_state, so we reconstruct it from enrichment.
   sectionKey?: AutofixStateKey;
 }) {
-  const {run, state, enrichmentPending} = useIssueAutofixEnrichment(issue.id);
-  const row = buildOverviewRow(issue, run, state, enrichmentPending, statsPeriod);
+  const {run, state, statePending, enrichmentPending} = useIssueAutofixEnrichment(
+    issue.id
+  );
+  const classificationPending = sectionKey ? statePending : enrichmentPending;
+  const row = buildOverviewRow(issue, run, state, classificationPending, statsPeriod);
   const resolvedSectionKey = sectionKey ?? deriveSectionKey(run, state);
   const minHeight = enrichmentPending
     ? `${view === 'cards' ? CARD_PLACEHOLDER_HEIGHT : TABLE_ROW_PLACEHOLDER_HEIGHT}px`
