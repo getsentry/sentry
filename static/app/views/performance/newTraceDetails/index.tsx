@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -9,8 +9,10 @@ import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useHasProjectAccess} from 'sentry/utils/useHasProjectAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
@@ -222,6 +224,73 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     })),
   });
 
+  const content = (
+    <ViewportConstrainedPage>
+      <TraceMetaDataHeader
+        rootEventResults={rootEventResults}
+        tree={tree}
+        metaResults={meta}
+        organization={organization}
+        traceSlug={traceSlug}
+        logs={logsData}
+        metrics={traceMetricsData}
+      />
+      <TraceInnerLayout>
+        <TraceWaterfallVersionBanner />
+        <ErrorsOnlyWarnings
+          tree={tree}
+          traceSlug={traceSlug}
+          organization={organization}
+        />
+        <PartialTraceDataWarning
+          timestamp={queryParams.timestamp}
+          logs={logsData}
+          tree={tree}
+        />
+        <TraceTabsAndVitals
+          tabsConfig={{
+            tabOptions,
+            currentTab,
+            onTabChange,
+          }}
+          rootEventResults={rootEventResults}
+          tree={tree}
+        />
+        {currentTab === TraceLayoutTabKeys.WATERFALL ? (
+          <TraceWaterfall
+            tree={tree}
+            trace={trace}
+            meta={meta}
+            replay={null}
+            source="performance"
+            rootEventResults={rootEventResults}
+            traceSlug={traceSlug}
+            traceEventView={traceEventView}
+            organization={organization}
+            hideIfNoData={hideTraceWaterfallIfEmpty}
+          />
+        ) : null}
+        {currentTab === TraceLayoutTabKeys.PROFILES ? (
+          <TraceProfiles tree={tree} />
+        ) : null}
+        {currentTab === TraceLayoutTabKeys.LOGS ? (
+          <TraceViewLogsSection
+            errors={traceErrors}
+            fallbackTimestampSeconds={traceStartSeconds}
+          />
+        ) : null}
+        {currentTab === TraceLayoutTabKeys.METRICS ? (
+          <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
+            <TraceViewMetricsSection />
+          </TraceViewMetricsProviderWrapper>
+        ) : null}
+        {currentTab === TraceLayoutTabKeys.AI_SPANS ? (
+          <TraceAiTab traceSlug={traceSlug} />
+        ) : null}
+      </TraceInnerLayout>
+    </ViewportConstrainedPage>
+  );
+
   const isInitialTraceLoading =
     Boolean(traceSlug) && (meta.status === 'pending' || tree.type === 'loading');
 
@@ -230,77 +299,35 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
       title={`${t('Trace Details')} - ${traceSlug}`}
       orgSlug={organization.slug}
     >
-      <NoProjectMessage organization={organization} isLoading={isInitialTraceLoading}>
-        <ViewportConstrainedPage>
-          <TraceMetaDataHeader
-            rootEventResults={rootEventResults}
-            tree={tree}
-            metaResults={meta}
-            organization={organization}
-            traceSlug={traceSlug}
-            logs={logsData}
-            metrics={traceMetricsData}
-          />
-          <TraceInnerLayout>
-            <TraceWaterfallVersionBanner />
-            <ErrorsOnlyWarnings
-              tree={tree}
-              traceSlug={traceSlug}
-              organization={organization}
-            />
-            <PartialTraceDataWarning
-              timestamp={queryParams.timestamp}
-              logs={logsData}
-              tree={tree}
-            />
-            <TraceTabsAndVitals
-              tabsConfig={{
-                tabOptions,
-                currentTab,
-                onTabChange,
-              }}
-              rootEventResults={rootEventResults}
-              tree={tree}
-            />
-            {currentTab === TraceLayoutTabKeys.WATERFALL ? (
-              <TraceWaterfall
-                tree={tree}
-                trace={trace}
-                meta={meta}
-                replay={null}
-                source="performance"
-                rootEventResults={rootEventResults}
-                traceSlug={traceSlug}
-                traceEventView={traceEventView}
-                organization={organization}
-                hideIfNoData={hideTraceWaterfallIfEmpty}
-              />
-            ) : null}
-            {currentTab === TraceLayoutTabKeys.PROFILES ? (
-              <TraceProfiles tree={tree} />
-            ) : null}
-            {currentTab === TraceLayoutTabKeys.LOGS ? (
-              <TraceViewLogsSection
-                errors={traceErrors}
-                fallbackTimestampSeconds={traceStartSeconds}
-              />
-            ) : null}
-            {currentTab === TraceLayoutTabKeys.METRICS ? (
-              <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
-                <TraceViewMetricsSection />
-              </TraceViewMetricsProviderWrapper>
-            ) : null}
-            {currentTab === TraceLayoutTabKeys.AI_SPANS ? (
-              <TraceAiTab traceSlug={traceSlug} />
-            ) : null}
-          </TraceInnerLayout>
-        </ViewportConstrainedPage>
-      </NoProjectMessage>
+      <TraceProjectGuard
+        organization={organization}
+        suppressMessage={isInitialTraceLoading}
+      >
+        {content}
+      </TraceProjectGuard>
     </SentryDocumentTitle>
   );
 }
 
 const TraceViewImpl = registerLLMContext('trace', TraceViewImplInner);
+
+function TraceProjectGuard({
+  children,
+  organization,
+  suppressMessage,
+}: {
+  children: React.ReactNode;
+  organization: Organization;
+  suppressMessage: boolean;
+}) {
+  const {hasProjectAccess, projectsLoaded} = useHasProjectAccess();
+
+  if (suppressMessage || hasProjectAccess || !projectsLoaded) {
+    return <Fragment>{children}</Fragment>;
+  }
+
+  return <NoProjectMessage organization={organization}>{children}</NoProjectMessage>;
+}
 
 function TraceWaterfallVersionBanner() {
   const organization = useOrganization();
