@@ -1260,6 +1260,13 @@ class Fixtures:
             organization = self.organization
         return Factories.create_seer_run(organization=organization, **kwargs)
 
+    def create_seer_agent_write_grant(self, organization=None, user=None, **kwargs):
+        return Factories.create_seer_agent_write_grant(
+            organization=organization or self.organization,
+            user=user or self.user,
+            **kwargs,
+        )
+
     def create_seer_agent_run(self, run, **kwargs):
         return Factories.create_seer_agent_run(run=run, **kwargs)
 

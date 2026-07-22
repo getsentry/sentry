@@ -153,6 +153,7 @@ from sentry.preprod.models import (
     PreprodSnapshotMetrics,
 )
 from sentry.seer.autofix.constants import CodingAgentStatus
+from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import (
     SeerAgentRun,
@@ -3032,6 +3033,16 @@ class Factories:
             type="github", external_id="github-app", defaults=kwargs
         )
         return identity_provider
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_agent_write_grant(organization, user, session_id: str = "s1", **kwargs):
+        return SeerAgentWriteGrant.objects.create(
+            organization=organization,
+            user_id=user.id,
+            agent_session_id=session_id,
+            **kwargs,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

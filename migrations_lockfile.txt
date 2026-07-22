@@ -31,7 +31,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0028_seer_run_pull_request_coding_agent_handoff
+seer: 0029_add_agent_write_grant
 
 sentry: 1142_remove_organizationmemberteamreplica_pending
 
