@@ -26,19 +26,16 @@ import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/cont
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {EQUATION_PREFIX, isEquation} from 'sentry/utils/discover/fields';
+import {isEquation} from 'sentry/utils/discover/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {applySeerEquation} from 'sentry/views/explore/metrics/applySeerEquation';
 import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from 'sentry/views/explore/metrics/constants';
-import {syncEquationMetricQueries} from 'sentry/views/explore/metrics/equationBuilder/utils';
-import {getMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import {
   defaultAggregateSortBys,
-  encodeMetricQueryParams,
-  type BaseMetricQuery,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
@@ -49,8 +46,6 @@ import {
   encodeEquationMetricQueries,
   makeMetricsAggregate,
   parseTraceMetricFromQuery,
-  remapEquationLabels,
-  spliceEquationQueries,
   stripTraceMetricTokens,
 } from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
@@ -62,7 +57,6 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {getSeerExploreQuery, getSeerSort} from 'sentry/views/explore/seerQuery';
-import {getFunctionLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 interface MetricsTabSeerComboBoxProps {
   traceMetric: TraceMetric;
 }
@@ -259,116 +253,27 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // Build encoded metric queries, updating the current metric's query params
       // and trace metric (the metric is parsed out of the agent's visualization
       // aggregate or query filters above so the panel matches what was queried).
-      const hasEquation = seerEquationMetricQueries.length > 0;
-
-      // When Seer returns an equation, replace the interacted-with row with
-      // Seer's first aggregate (preserving its label/position) instead of
-      // dropping it. This keeps existing equations' label references stable.
-      const interactedRow = metricQueries.find(
-        (mq: BaseMetricQuery) => mq.queryParams === queryParams
-      );
       const seerAggregates = seerEquationMetricQueries.filter(
         mq => !mq.queryParams.visualizes.some(isVisualizeEquation)
       );
       const seerEquations = seerEquationMetricQueries.filter(mq =>
         mq.queryParams.visualizes.some(isVisualizeEquation)
       );
-      const [replacementAggregate, ...extraAggregates] = seerAggregates;
 
-      // When the interacted row is an equation, the replacement aggregate
-      // needs a letter label (A, B, C…) rather than inheriting the
-      // equation's ƒn label, because ƒn labels are reserved for equations
-      // and will break the equation's internalExpression after labels are
-      // reassigned sequentially on the next render.
-      const interactedIndex = metricQueries.findIndex(
-        (mq: BaseMetricQuery) => mq.queryParams === queryParams
-      );
-      const isInteractedEquation =
-        interactedRow && isVisualizeEquation(interactedRow.queryParams.visualizes[0]!);
-      let replacementAggregateLabel: string | undefined;
-      if (hasEquation && isInteractedEquation && interactedIndex >= 0) {
-        const aggregatesBefore = metricQueries
-          .slice(0, interactedIndex)
-          .filter(mq => !isVisualizeEquation(mq.queryParams.visualizes[0]!)).length;
-        replacementAggregateLabel = getFunctionLabel(aggregatesBefore);
-      }
-
-      const previousRefs = getMetricReferences(metricQueries);
-
-      let updatedMetricQueries = metricQueries.map((mq: BaseMetricQuery) => {
-        if (mq.queryParams === queryParams) {
-          if (hasEquation && replacementAggregate) {
-            return {
-              ...replacementAggregate,
-              label: replacementAggregateLabel ?? mq.label,
-            };
-          }
-          return {
-            ...mq,
-            metric: nextMetric,
-            queryParams: newQueryParams,
-          };
-        }
-        return mq;
+      const {
+        encodedMetrics: newEncodedMetrics,
+        remappedSeerQueries,
+        spliceResult,
+      } = applySeerEquation({
+        metricQueries,
+        interactedQueryParams: queryParams,
+        seerAggregates,
+        seerEquations,
+        nonEquationReplacement: {
+          metric: nextMetric,
+          queryParams: newQueryParams,
+        },
       });
-
-      // Re-resolve existing equations' yAxis against the updated reference
-      // map so charts query the new aggregate. Preserve the original
-      // internalExpression exactly — syncEquationMetricQueries round-trips
-      // it through unresolveExpression which can alter whitespace/ordering.
-      const nextRefs = getMetricReferences(updatedMetricQueries);
-      const synced = syncEquationMetricQueries(
-        updatedMetricQueries,
-        previousRefs,
-        nextRefs
-      );
-      updatedMetricQueries = synced.map((mq, i) => {
-        const original = updatedMetricQueries[i];
-        if (mq === original) {
-          return mq;
-        }
-        const origViz = original?.queryParams.visualizes[0];
-        const syncedViz = mq.queryParams.visualizes[0];
-        if (!origViz || !syncedViz || !isVisualizeEquation(origViz)) {
-          return mq;
-        }
-        return {
-          ...mq,
-          queryParams: mq.queryParams.replace({
-            aggregateFields: mq.queryParams.aggregateFields.map(field =>
-              isVisualize(field) && isVisualizeEquation(field)
-                ? field.replace({internalExpression: origViz.internalExpression})
-                : field
-            ),
-          }),
-        };
-      });
-
-      const newEncodedMetrics = updatedMetricQueries
-        .map((mq: BaseMetricQuery) => encodeMetricQueryParams(mq))
-        .filter(Boolean);
-
-      // Build a single remap table for ALL of Seer's aggregates so the
-      // equation's internalExpression references the correct final labels.
-      // The first aggregate (A) replaces the interacted row, so it maps to
-      // the interacted label. The remaining aggregates are spliced at the
-      // insertion offset, so they get sequential labels from there.
-      const eqStartIdx = newEncodedMetrics.findIndex(e => e.includes(EQUATION_PREFIX));
-      const insertionOffset = eqStartIdx === -1 ? newEncodedMetrics.length : eqStartIdx;
-
-      const fullRemap: Record<string, string> = {};
-      const remapLabel = replacementAggregateLabel ?? interactedRow?.label;
-      if (hasEquation && remapLabel) {
-        fullRemap[getFunctionLabel(0)] = remapLabel;
-      }
-      for (let i = 0; i < extraAggregates.length; i++) {
-        fullRemap[getFunctionLabel(i + 1)] = getFunctionLabel(insertionOffset + i);
-      }
-
-      const allSeerQueries = [...extraAggregates, ...seerEquations];
-      const remappedSeerQueries = remapEquationLabels(allSeerQueries, 0, fullRemap);
-
-      const spliceResult = spliceEquationQueries(newEncodedMetrics, remappedSeerQueries);
 
       const selection = {
         ...pageFilters.selection,
