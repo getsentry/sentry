@@ -955,14 +955,19 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
 
 
 class _ReactionScmProtocols:
-    """Method surface matching the three reaction protocols so ``spec`` MagicMocks
-    satisfy the ``@runtime_checkable`` ``isinstance`` guards."""
+    """Method surface matching the reaction protocols so ``spec`` MagicMocks
+    satisfy the ``@runtime_checkable`` ``isinstance`` guards. Covers both the
+    top-level PR-comment and inline review-comment reaction namespaces."""
 
     def get_authenticated_actor(self) -> Any: ...
 
     def get_pull_request_comment_reactions(self, *args: Any, **kwargs: Any) -> Any: ...
 
     def delete_pull_request_comment_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def get_review_comment_reactions(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def delete_review_comment_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
 
 
 class DeleteOwnCommentEyesReactionTest(TestCase):
@@ -996,25 +1001,72 @@ class DeleteOwnCommentEyesReactionTest(TestCase):
         )
 
     @patch(f"{TASK_PATH}.scm_actions")
+    def test_deletes_only_own_eyes_on_review_comment(self, mock_scm_actions: MagicMock) -> None:
+        # Inline review comments use the review-comment reaction namespace, not
+        # the top-level PR-comment one.
+        scm = self._scm()
+        mock_scm_actions.get_authenticated_actor.return_value = {"data": {"id": self.ACTOR_ID}}
+        mock_scm_actions.get_review_comment_reactions.return_value = self._reactions_result(
+            [
+                {"id": "r1", "content": "eyes", "author": {"id": self.ACTOR_ID}},
+                {"id": "r2", "content": "eyes", "author": {"id": "someone-else"}},
+            ]
+        )
+
+        _delete_own_comment_eyes_reaction(
+            scm, source_type="github-pr-review-comment", pr_number=7, comment_id=222
+        )
+
+        mock_scm_actions.get_review_comment_reactions.assert_called_once_with(scm, "7", "222")
+        mock_scm_actions.delete_review_comment_reaction.assert_called_once_with(
+            scm, "7", "222", "r1"
+        )
+        mock_scm_actions.delete_pull_request_comment_reaction.assert_not_called()
+
+    @patch(f"{TASK_PATH}.scm_actions")
     def test_noop_for_unsupported_provider(self, mock_scm_actions: MagicMock) -> None:
         # A mock missing one protocol method fails the isinstance guard.
         scm = MagicMock(
-            spec=["get_pull_request_comment_reactions", "delete_pull_request_comment_reaction"]
+            spec=[
+                "get_authenticated_actor",
+                "get_pull_request_comment_reactions",
+            ]
         )
 
         _delete_own_comment_eyes_reaction(
             scm, source_type="github-pr-comment", pr_number=7, comment_id=111
         )
 
-        mock_scm_actions.get_authenticated_actor.assert_not_called()
         mock_scm_actions.delete_pull_request_comment_reaction.assert_not_called()
 
     @patch(f"{TASK_PATH}.scm_actions")
-    def test_noop_for_non_top_level_source(self, mock_scm_actions: MagicMock) -> None:
-        scm = self._scm()
+    def test_noop_for_unsupported_provider_review_comment(
+        self, mock_scm_actions: MagicMock
+    ) -> None:
+        # Supports the top-level namespace but not the review-comment one.
+        scm = MagicMock(
+            spec=[
+                "get_authenticated_actor",
+                "get_pull_request_comment_reactions",
+                "delete_pull_request_comment_reaction",
+            ]
+        )
 
         _delete_own_comment_eyes_reaction(
-            scm, source_type="github-pr-review-comment", pr_number=7, comment_id=111
+            scm, source_type="github-pr-review-comment", pr_number=7, comment_id=222
+        )
+
+        mock_scm_actions.delete_review_comment_reaction.assert_not_called()
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_noop_when_actor_unavailable(self, mock_scm_actions: MagicMock) -> None:
+        # A mock missing get_authenticated_actor fails the isinstance guard.
+        scm = MagicMock(
+            spec=["get_pull_request_comment_reactions", "delete_pull_request_comment_reaction"]
+        )
+
+        _delete_own_comment_eyes_reaction(
+            scm, source_type="github-pr-comment", pr_number=7, comment_id=111
         )
 
         mock_scm_actions.get_authenticated_actor.assert_not_called()

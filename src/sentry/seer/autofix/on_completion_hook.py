@@ -48,6 +48,7 @@ from sentry.seer.autofix.introspection import (
 from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
+    GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -205,10 +206,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     def _repo_name_for_feedback(
         cls,
         state: SeerRunState,
-        source: GithubPrCommentFeedbackSource,
+        source: GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource,
     ) -> str | None:
-        if source.repo_name is not None:
-            return source.repo_name
+        # Only top-level PR comments capture ``repo_name`` at trigger time; review
+        # comments fall back to the sole repo when the run touches exactly one.
+        repo_name = getattr(source, "repo_name", None)
+        if repo_name is not None:
+            return repo_name
         if len(state.repo_pr_states) == 1:
             return next(iter(state.repo_pr_states))
         return None
@@ -220,10 +224,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         run_id: int,
         state: SeerRunState,
     ) -> None:
-        """React :tada: on the top-level PR comment(s) that triggered a completed iteration.
+        """React :tada: on the comment(s) that triggered a completed iteration and
+        remove the trigger-time :eyes:.
 
-        Only top-level ``@sentry`` PR comments are acked. Inline review comments are
-        resolvable threads handled separately (CW-1688), so they are left untouched.
+        Only top-level ``@sentry`` PR comments are acked with :tada: — inline review
+        comments are resolvable threads acked separately (CW-1688). The trigger-time
+        :eyes: is removed from both, since both received it, completing the
+        :eyes:->:tada: swap on top-level comments and clearing the lingering :eyes:
+        on inline ones.
         """
         if not features.has("organizations:autofix-pr-iteration", organization=organization):
             return
@@ -248,9 +256,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if not raw:
             return
 
-        sources: list[GithubPrCommentFeedbackSource] = []
+        sources: list[GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource] = []
         for feedback in parse_feedback(raw):
-            if isinstance(feedback.source, GithubPrCommentFeedbackSource):
+            if isinstance(
+                feedback.source,
+                (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource),
+            ):
                 sources.append(feedback.source)
         if not sources:
             return
@@ -302,17 +313,22 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             if not pr_state or not pr_state.pr_number:
                 continue
             pr_number = pr_state.pr_number
-            _add_comment_reaction(
-                scm,
-                source_type="github-pr-comment",
-                pr_number=pr_number,
-                comment_id=comment_id,
-                reaction="hooray",
-            )
+
+            source_type = source.type
+            # Inline review comments are acked by resolving the thread (CW-1688),
+            # not with :tada:; only top-level PR comments get the :tada:.
+            if source_type == "github-pr-comment":
+                _add_comment_reaction(
+                    scm,
+                    source_type=source_type,
+                    pr_number=pr_number,
+                    comment_id=comment_id,
+                    reaction="hooray",
+                )
             if delete_eyes:
                 _delete_own_comment_eyes_reaction(
                     scm,
-                    source_type="github-pr-comment",
+                    source_type=source_type,
                     pr_number=pr_number,
                     comment_id=comment_id,
                 )
