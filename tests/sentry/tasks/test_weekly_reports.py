@@ -2387,6 +2387,7 @@ class WeeklyReportsTest(
             "/api/users": {ts1: 100.0, ts1 + SIX_HOURS: 150.0},
             "/api/events": {ts1: 80.0, ts1 + SIX_HOURS: 90.0},
         }
+        ctx.spans_count_by_project = {self.project.id: 10}
 
         with mock.patch("sentry.tasks.summaries.weekly_reports.charts") as mock_charts:
             mock_charts.is_enabled.return_value = True
@@ -2425,6 +2426,7 @@ class WeeklyReportsTest(
         ctx.top_spans = [{"name": "/api/users", "p95": 120.0, "sum": 50000.0}]
         ctx.top_spans_projects = {"/api/users": self.project.id}
         ctx.top_spans_timeseries = {"/api/users": {ts1: 100.0}}
+        ctx.spans_count_by_project = {self.project.id: 10}
 
         with mock.patch("sentry.tasks.summaries.weekly_reports.charts") as mock_charts:
             mock_charts.is_enabled.return_value = True
