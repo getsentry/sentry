@@ -32,10 +32,18 @@ def _milestone_q(activity_type: ActivityType, projects: Sequence[Project]) -> Q:
 
 
 def _merged_pr_q(projects: Sequence[Project]) -> Q:
-    return Q(
-        id__in=SeerAgentRun.objects.filter(
+    latest_runs = (
+        SeerAgentRun.objects.filter(
             project_id__in=[p.id for p in projects],
             group_id__isnull=False,
+        )
+        .order_by("group_id", "-id")
+        .distinct("group_id")
+        .values("id")
+    )
+    return Q(
+        id__in=SeerAgentRun.objects.filter(
+            id__in=latest_runs,
             run__pull_request_links__pull_request__state=PullRequestLifecycleState.MERGED,
         ).values_list("group_id", flat=True)
     )
