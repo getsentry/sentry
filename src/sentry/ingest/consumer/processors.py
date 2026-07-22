@@ -10,7 +10,7 @@ from django.conf import settings
 from django.core.cache import cache
 from usageaccountant import UsageUnit
 
-from sentry import features
+from sentry import features, nodestore
 from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
 from sentry.constants import DataCategory
 from sentry.event_manager import save_attachment
@@ -21,6 +21,7 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import (
     event_processing_store,
     transaction_processing_store,
@@ -80,6 +81,7 @@ def process_event(
     message: IngestMessage,
     project: Project,
     reprocess_only_stuck_events: bool = False,
+    reprocess_only_events_not_in_nodestore: bool = False,
     inline_save_event: bool = False,
     inline_save_event_transaction: bool = False,
 ) -> None:
@@ -183,6 +185,14 @@ def process_event(
                 op="event_processing_store.exists", name="event_processing_store.exists"
             ):
                 if not processing_store.exists(data):
+                    return
+
+        # If we only want to reprocess events that never made it into `nodestore`, we check whether the event body has
+        # already been persisted. We only continue here if the event is *not* present.
+        if reprocess_only_events_not_in_nodestore:
+            with start_span(op="nodestore.exists", name="nodestore.exists"):
+                node_id = Event.generate_node_id(project_id, event_id)
+                if nodestore.backend.get(node_id) is not None:
                     return
 
         attachment_objects = [

@@ -1,9 +1,12 @@
+from .assigned import AssignedActivityTemplate
 from .base import (
     ACTIVITY_TYPE_TO_SOURCE,
     ActivityNotificationData,
+    AssignedNotificationData,
     SetResolvedInCommitNotificationData,
     SetResolvedInReleaseNotificationData,
 )
+from .note import NoteActivityTemplate
 from .seer.coding_completed import SeerCodingCompletedActivityTemplate
 from .seer.coding_started import SeerCodingStartedActivityTemplate
 from .seer.iteration_completed import SeerIterationCompletedActivityTemplate
@@ -21,12 +24,14 @@ from .status_change.set_resolved_by_age import SetResolvedByAgeActivityTemplate
 from .status_change.set_resolved_in_commit import SetResolvedInCommitActivityTemplate
 from .status_change.set_resolved_in_release import SetResolvedInReleaseActivityTemplate
 from .status_change.set_unresolved import SetUnresolvedActivityTemplate
+from .unassigned import UnassignedActivityTemplate
 
 __all__ = (
     "ACTIVITY_TYPE_TO_SOURCE",
     "ActivityNotificationData",
     "SetResolvedInCommitNotificationData",
     "SetResolvedInReleaseNotificationData",
+    "AssignedNotificationData",
     "SeerRcaStartedActivityTemplate",
     "SeerRcaCompletedActivityTemplate",
     "SeerSolutionStartedActivityTemplate",
@@ -44,4 +49,7 @@ __all__ = (
     "SetIgnoredActivityTemplate",
     "SetRegressionActivityTemplate",
     "SetUnresolvedActivityTemplate",
+    "AssignedActivityTemplate",
+    "UnassignedActivityTemplate",
+    "NoteActivityTemplate",
 )

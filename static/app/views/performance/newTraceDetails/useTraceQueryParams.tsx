@@ -22,7 +22,8 @@ export function useTraceQueryParams(
     const timestamp = decodeScalar(normalizedParams.timestamp);
     const end = decodeScalar(normalizedParams.end);
     const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
-    const numberTimestamp = timestamp ? Number(timestamp) : undefined;
+    const numberTimestamp =
+      timestamp && !isNaN(Number(timestamp)) ? Number(timestamp) : undefined;
 
     return {
       start: start ?? params?.start,

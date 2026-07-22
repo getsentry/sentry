@@ -9,9 +9,8 @@ import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import {PartnerPlanEndingBanner} from 'getsentry/components/partnerPlanEndingBanner';
 import type {Subscription} from 'getsentry/types';
-import {getPlanIcon, hasPartnerMigrationFeature} from 'getsentry/utils/billing';
+import {getPlanIcon} from 'getsentry/utils/billing';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
 import {PartnershipNote} from 'getsentry/views/subscriptionPage/partnershipNote';
 
@@ -104,12 +103,6 @@ function BodyWithBillingPerms({
         <DecidePendingChanges subscription={subscription} organization={organization} />
       ) : null}
       <TrialAlert subscription={subscription} organization={organization} />
-      {hasPartnerMigrationFeature(organization) && (
-        <PartnerPlanEndingBanner
-          subscription={subscription}
-          organization={organization}
-        />
-      )}
       <HeaderCards organization={organization} subscription={subscription} />
       <ManagedNote subscription={subscription} />
     </Stack>

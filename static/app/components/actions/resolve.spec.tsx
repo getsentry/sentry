@@ -60,51 +60,6 @@ describe('ResolveActions', () => {
     });
   });
 
-  describe('resolved', () => {
-    it('calls onUpdate with unresolved status when clicked', async () => {
-      render(
-        <ResolveActions
-          hasSemverReleaseFeature={false}
-          onUpdate={spy}
-          disabled
-          hasRelease={false}
-          project={project}
-          isResolved
-        />
-      );
-
-      const button = screen.getByRole('button', {name: 'Unresolve'});
-      expect(button).toBeInTheDocument();
-      expect(button).toHaveTextContent('');
-
-      await userEvent.click(button);
-      expect(spy).toHaveBeenCalledWith({
-        status: 'unresolved',
-        statusDetails: {},
-        substatus: 'ongoing',
-      });
-    });
-  });
-
-  describe('auto resolved', () => {
-    it('cannot be unresolved manually', async () => {
-      render(
-        <ResolveActions
-          hasSemverReleaseFeature={false}
-          onUpdate={spy}
-          disabled
-          hasRelease={false}
-          project={project}
-          isResolved
-          isAutoResolved
-        />
-      );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Unresolve'}));
-      expect(spy).not.toHaveBeenCalled();
-    });
-  });
-
   describe('without confirmation', () => {
     it('calls spy with resolved status when clicked', async () => {
       render(

@@ -339,13 +339,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "issues.merge-unmerge.max-group-times-seen",
-    default=0,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Idempotency guard for self-chaining tasks (merge_groups / unmerge): dedupe the chain-step
 # spawn keyed on the broker activation id so a broker re-pend cannot fork the chain.
 register(
@@ -1065,6 +1058,12 @@ register(
 # killswitch, which is checked before calling Seer when potentially creating a  new group as part of
 # ingestion.
 register(
+    "seer.post-process-issue-summary-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "seer.similarity-killswitch.enabled",
     default=False,
     type=Bool,
@@ -1224,6 +1223,12 @@ register(
 )
 register(
     "seer.night_shift.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.night_shift.enable_for_legacy_orgs",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2183,6 +2188,18 @@ register(
     "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Lower bound on the per-transaction sample rate produced by transaction rebalancing. When a project
+# has many low-volume transaction classes, the per-class ideal collapses to a near-zero rate and the
+# highest-volume transactions are pushed to a huge extrapolation factor (1 / rate), making their
+# extrapolated volume spiky and the sampling distribution non-ergodic. Flooring the explicit rates at
+# this value caps that factor at 1 / min_sample_rate and reclaims the cost from the implicit (tail)
+# rate. The floor is clamped to the project's overall rate, so it never raises a class above it.
+# 0.0 disables the floor (default), preserving the previous behaviour until rolled out via automator.
+register(
+    "dynamic-sampling.prioritise_transactions.min_sample_rate",
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Stops dynamic sampling rules from being emitted in relay config.
@@ -3824,6 +3841,15 @@ register(
     type=Float,
     default=0.0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Cap on consecutive automated PR iterations (check suites + bot re-reviews);
+# human feedback resets the streak. See ``automated_iteration_cap_reached``.
+register(
+    "autofix.pr-iteration.max-iterations",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics

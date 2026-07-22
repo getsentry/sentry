@@ -212,6 +212,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/issues/$issueId/comments/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/comments/$noteId/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/current-release/'
+  | '/organizations/$organizationIdOrSlug/issues/$issueId/derived-data/debug/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/events/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/external-issues/'

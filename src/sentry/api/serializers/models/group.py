@@ -92,7 +92,6 @@ class GroupAnnotation(TypedDict):
 
 
 class GroupStatusDetailsResponseOptional(TypedDict, total=False):
-    autoResolved: bool
     ignoreCount: int
     ignoreUntil: datetime
     ignoreUserCount: int
@@ -523,16 +522,6 @@ class GroupSerializerBase(Serializer, ABC):
                 )
             else:
                 status = GroupStatus.UNRESOLVED
-        # If the issue is UNRESOLVED but has resolved_at set, it means the user manually
-        # unresolved it after it was resolved. We should respect that and not override
-        # the status back to RESOLVED.
-        if status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age() and not obj.resolved_at:
-            # When an issue is over the auto-resolve age but the task has not yet run
-            # Only show as auto-resolved if this group type has auto-resolve enabled
-            if obj.issue_type.enable_auto_resolve:
-                status = GroupStatus.RESOLVED
-                status_details["autoResolved"] = True
-
         status_label: GroupStatusStr
         if status == GroupStatus.RESOLVED:
             status_label = "resolved"

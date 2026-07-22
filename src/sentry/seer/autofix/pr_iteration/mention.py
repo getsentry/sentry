@@ -1,11 +1,17 @@
 """
-Trigger an Autofix PR iteration from a GitHub PR comment mention.
+Trigger an Autofix PR iteration from a top-level GitHub PR comment mention.
 
 When a user comments ``@sentry iterate <feedback>`` on a pull request that
 Autofix created, we kick off a ``PR_ITERATION`` run that revises the existing
 PR using the comment as feedback. The commenter must have write access to the
 repository so that random GitHub users can't drive Autofix runs (which cost
 quota and rewrite the PR).
+
+This covers only top-level PR comments (``issue_comment``). Inline review
+comments arrive via the ``pull_request_review`` SCM listener (see
+``listeners/review.py``),
+which acts on the whole submitted review without requiring an ``@sentry`` command
+but still gates on the review author's repo write access.
 """
 
 from __future__ import annotations
@@ -23,8 +29,6 @@ from sentry.models.repository import Repository
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
-    GithubPrCommentFeedbackType,
-    GithubPrReviewCommentFeedbackSource,
 )
 from sentry.tasks.seer.pr_iteration import trigger_pr_iteration_from_comment
 
@@ -67,15 +71,9 @@ def _dispatch_autofix_iteration_from_comment(
     repo: Repository,
     integration: RpcIntegration | None,
     log_extra: Mapping[str, Any],
-    source_type: GithubPrCommentFeedbackType,
 ) -> None:
     try:
-        source: GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource
-        if source_type == "github-pr-review-comment":
-            source = GithubPrReviewCommentFeedbackSource(comment=comment)
-        else:
-            source = GithubPrCommentFeedbackSource(comment=comment)
-        feedback = Feedback(source=source)
+        feedback = Feedback(source=GithubPrCommentFeedbackSource(comment=comment))
     except ValidationError:
         logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_command", extra=log_extra)
         return None
@@ -111,36 +109,6 @@ def _dispatch_autofix_iteration_from_comment(
     return None
 
 
-def handle_pull_request_review_comment_for_autofix_iteration(
-    *,
-    event: Mapping[str, Any],
-    organization: Organization,
-    repo: Repository,
-    integration: RpcIntegration | None = None,
-    **kwargs: Any,
-) -> None:
-    """
-    Webhook processor for ``pull_request_review_comment`` events that triggers
-    an Autofix PR iteration when a user leaves an inline ``@sentry`` comment.
-    """
-    context = _created_comment_context(event=event, organization=organization)
-    # No need to check whether this is a pr vs. issue as this webhook only fires in a pr
-    if context is None:
-        return None
-
-    pull_request = event.get("pull_request", {})
-    _dispatch_autofix_iteration_from_comment(
-        comment=context.comment,
-        pr_number=pull_request.get("number"),
-        organization=organization,
-        repo=repo,
-        integration=integration,
-        log_extra=context.log_extra,
-        source_type="github-pr-review-comment",
-    )
-    return None
-
-
 def handle_issue_comment_for_autofix_iteration(
     *,
     event: Mapping[str, Any],
@@ -171,6 +139,5 @@ def handle_issue_comment_for_autofix_iteration(
         repo=repo,
         integration=integration,
         log_extra=context.log_extra,
-        source_type="github-pr-comment",
     )
     return None

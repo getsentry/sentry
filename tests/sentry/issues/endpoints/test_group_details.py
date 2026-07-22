@@ -9,7 +9,12 @@ from sentry import audit_log, buffer, tsdb
 from sentry.analytics.events.issue_viewed import IssueViewedEvent
 from sentry.buffer.redis import RedisBuffer
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.issues.action_log.types import ReconcileStatusAction
+from sentry.issues.action_log import action_context_scope
+from sentry.issues.action_log.types import (
+    ActionSource,
+    GroupActionActor,
+    ReconcileStatusAction,
+)
 from sentry.issues.constants import cache_key_for_issue_view
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -94,6 +99,44 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["firstRelease"] is None
         assert response.data["lastRelease"] is None
+
+    @with_feature("projects:issue-action-log-write-to-db")
+    def test_group_action_log_entry(self) -> None:
+        group = self.create_group()
+
+        # activity dual writes to GALE. use action context scope to attribute it to the user rather than system
+        data = {"assignee": str(self.user.id)}
+        with action_context_scope(
+            source=ActionSource.WEB, actor=GroupActionActor.user(self.user.id)
+        ):
+            Activity.objects.create(
+                group=group,
+                project=group.project,
+                type=ActivityType.ASSIGNED.value,
+                user_id=self.user.id,
+                data=data,
+            )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+        response = self.client.get(url, format="json")
+
+        activity = response.data["activity"]
+        assert len(activity) == 2  # first seen + assigned
+        entry = activity[0]
+        assert entry["type"] == "assigned"
+        assert entry["user"]["id"] == str(self.user.id)
+        assert entry["sentry_app"] is None
+        assert entry["data"] == {
+            "assignee": str(self.user.id),
+            "assigneeEmail": None,
+            "assigneeName": None,
+            "assigneeType": None,
+            "integration": None,
+            "rule": None,
+        }
+        assert entry["dateCreated"] is not None
 
     def test_pending_delete_pending_merge_excluded(self) -> None:
         group1 = self.create_group(status=GroupStatus.PENDING_DELETION)
@@ -347,24 +390,44 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
 
     @with_feature("projects:issue-status-reconciliation")
-    def test_diverged_closed_emits_reconcile_action(self) -> None:
+    @mock.patch("sentry.issues.endpoints.group_details.logger")
+    def test_diverged_closed_logs_and_skips_action(self, mock_logger: mock.MagicMock) -> None:
         group = self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
         GroupDerivedData.objects.create(group=group, data={"status": "open"})
 
         with capture_action_log() as log:
             self._get(group)
 
-        log.assert_logged(ReconcileStatusAction, group_id=group.id, status="closed")
+        log.assert_not_logged(ReconcileStatusAction)
+        mock_logger.info.assert_called_once_with(
+            "issues.status_reconciliation.diverged",
+            extra={
+                "group_id": group.id,
+                "project_id": group.project_id,
+                "derived_status": "open",
+                "expected_status": "closed",
+            },
+        )
 
     @with_feature("projects:issue-status-reconciliation")
-    def test_diverged_open_emits_reconcile_action(self) -> None:
+    @mock.patch("sentry.issues.endpoints.group_details.logger")
+    def test_diverged_open_logs_and_skips_action(self, mock_logger: mock.MagicMock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         GroupDerivedData.objects.create(group=group, data={"status": "closed"})
 
         with capture_action_log() as log:
             self._get(group)
 
-        log.assert_logged(ReconcileStatusAction, group_id=group.id, status="open")
+        log.assert_not_logged(ReconcileStatusAction)
+        mock_logger.info.assert_called_once_with(
+            "issues.status_reconciliation.diverged",
+            extra={
+                "group_id": group.id,
+                "project_id": group.project_id,
+                "derived_status": "closed",
+                "expected_status": "open",
+            },
+        )
 
     @with_feature("projects:issue-status-reconciliation")
     def test_aligned_status_skips(self) -> None:

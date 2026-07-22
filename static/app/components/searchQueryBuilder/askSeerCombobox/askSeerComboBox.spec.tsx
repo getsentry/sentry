@@ -280,6 +280,7 @@ describe('AskSeerComboBox', () => {
 
     const filter = await screen.findByText('Filter');
     expect(filter).toBeInTheDocument();
+    expect(screen.getByText('Do any of these look right to you?')).toBeInTheDocument();
     expect(screen.queryByText('Time Range')).not.toBeInTheDocument();
   });
 
@@ -308,6 +309,9 @@ describe('AskSeerComboBox', () => {
     await userEvent.type(input, 'test{Enter}');
 
     expect(await screen.findByText('Filter')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Do any of these look right to you?')
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'None of these'})).not.toBeInTheDocument();
   });
 

@@ -818,12 +818,6 @@ class Group(Model):
         if self.short_id is not None:
             return f"{self.project.slug.upper()}-{base32_encode(self.short_id)}"
 
-    def is_over_resolve_age(self):
-        resolve_age = self.project.get_option("sentry:resolve_age", None)
-        if not resolve_age:
-            return False
-        return self.last_seen < timezone.now() - timedelta(hours=int(resolve_age))
-
     def is_ignored(self):
         return self.get_status() == GroupStatus.IGNORED
 
@@ -909,14 +903,6 @@ class Group(Model):
             else:
                 if not snooze.is_valid(group=self):
                     status = GroupStatus.UNRESOLVED
-
-        # If the issue is UNRESOLVED but has resolved_at set, it means the user manually
-        # unresolved it after it was resolved. We should respect that and not override
-        # the status back to RESOLVED.
-        if status == GroupStatus.UNRESOLVED and self.is_over_resolve_age() and not self.resolved_at:
-            # Only auto-resolve if this group type has auto-resolve enabled
-            if self.issue_type.enable_auto_resolve:
-                return GroupStatus.RESOLVED
 
         return status
 

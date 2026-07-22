@@ -654,31 +654,34 @@ class TestProgressSort(PostgresSortTestBase):
 
     @with_feature("projects:issue-stream-derived-progress")
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
-    def test_environment_scoping_bypasses_native_path(self):
-        # Environment scoping lives in Snuba; the Postgres-only native path can't honor it, so
-        # an environment-filtered query must fall through to Snuba. All fixture groups are in
-        # `production`, so membership is unchanged — this isolates the path choice: if native
-        # ran, the over-cap result would be progress-ranked; via Snuba it degrades to recency.
+    def test_environment_scoping_over_cap_uses_inverted_progress_ranking(self):
+        # Environment scoping lives in Snuba, so it can't use the Postgres-only native path.
+        # Over the cap it instead uses the inverted chunk loop: Postgres walks progress order
+        # and Snuba filters each chunk (honoring the environment), so the result is still
+        # progress-ranked rather than degrading to recency. All fixture groups are in
+        # `production`, so env membership is unchanged and this isolates the ranking.
         self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
-        # groups[1]/[2] default to identified; native would rank groups[0] first.
+        # groups[1]/[2] default to identified; recency breaks their tie (groups[2] newer).
         production = Environment.get_or_create(self.project, "production")
         results = list(self.make_query(sort_by="progress", environments=[production]))
-        # Recency order (native bypassed): newest first is groups[2], [1], [0].
-        assert results == [self.groups[2], self.groups[1], self.groups[0]]
+        assert results == [self.groups[0], self.groups[2], self.groups[1]]
 
     @with_feature("projects:issue-stream-derived-progress")
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
-    def test_explicit_date_to_bypasses_native_path(self):
+    def test_explicit_date_to_over_cap_uses_inverted_path(self):
         # Group.last_seen is the issue's global max event time, not its max within the window,
-        # so the native (Postgres-only) path can't honor an upper time bound correctly. An
-        # explicit date_to must fall through to Snuba, which scopes to in-window events.
+        # so the native (Postgres-only) path can't honor an upper time bound. Over the cap the
+        # inverted chunk loop handles it: Snuba filters each chunk and scopes to in-window
+        # events, so a restrictive date_to correctly excludes an out-of-window group while the
+        # remaining results are still progress-ranked (not degraded to recency).
         # groups[2] is the newest (last_seen == base_datetime); a date_to before it excludes it.
-        self.create_group_derived_data(group=self.groups[2], progress="fix_applied")
-        results = self.make_query(
-            sort_by="progress", date_to=self.base_datetime - timedelta(days=1)
+        self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
+        self.create_group_derived_data(group=self.groups[2], progress="diagnosed")
+        results = list(
+            self.make_query(sort_by="progress", date_to=self.base_datetime - timedelta(days=1))
         )
-        assert self.groups[2] not in set(results)
-        assert set(results) == {self.groups[0], self.groups[1]}
+        # groups[2] is out of window; groups[0] (fix_applied) outranks groups[1] (identified).
+        assert results == [self.groups[0], self.groups[1]]
 
     @with_feature("projects:issue-stream-derived-progress")
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
@@ -691,14 +694,162 @@ class TestProgressSort(PostgresSortTestBase):
         # Progress order: groups[0] (fix_applied) first, then identified by recency.
         assert results == [self.groups[0], self.groups[2], self.groups[1]]
 
+    @with_feature("projects:issue-stream-derived-progress")
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
-    def test_snuba_filter_over_cap_does_not_use_native_ordering(self):
-        # A Snuba-side filter disqualifies the native path, so over the cap the sort still
-        # falls through to the chunked recency path rather than ranking by progress.
-        with self.feature("projects:issue-stream-derived-progress"):
-            self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
-            results = self.make_query(sort_by="progress", query="issue 1")
-        assert list(results) == [self.groups[1]]
+    def test_snuba_filter_over_cap_uses_inverted_progress_ranking(self):
+        # Over the candidate cap WITH a Snuba-side filter, the sort no longer degrades to
+        # recency: the inverted chunk loop walks GroupDerivedData in progress order (Postgres
+        # is the sort authority) and uses Snuba only as a membership filter. The free-text
+        # "issue" filter matches all three fixture messages ("issue 0/1/2").
+        #
+        # Progress order is the reverse of recency here, so a recency fallback would fail the
+        # assertion: the oldest group is furthest along (fix_applied), the newest has no
+        # progress (identified).
+        self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
+        self.create_group_derived_data(group=self.groups[1], progress="diagnosed")
+        # groups[2] has no derived row -> identified (lowest rank).
+        assert list(self.make_query(sort_by="progress", query="issue")) == [
+            self.groups[0],
+            self.groups[1],
+            self.groups[2],
+        ]
+
+        # Paginating the inverted path must not overlap or drop rows across pages.
+        page1 = self.make_query(sort_by="progress", query="issue", limit=2)
+        assert list(page1) == [self.groups[0], self.groups[1]]
+        page2 = self.make_query(sort_by="progress", query="issue", limit=2, cursor=page1.next)
+        assert list(page2) == [self.groups[2]]
+
+        # Paging backward (is_prev cursor: ASC walk + ">=" bound) must recover page 1.
+        prev_page = self.make_query(sort_by="progress", query="issue", limit=2, cursor=page2.prev)
+        assert list(prev_page) == [self.groups[0], self.groups[1]]
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_snuba_filter_over_cap_paginates_across_score_tie(self):
+        # Two groups share a rank and a last_progressed_at that differ only by sub-millisecond
+        # microseconds, so their scaled-int scores are identical and ordering falls to the -id
+        # tiebreak. The emitted cursor value is the floored integer score, so the inverted path
+        # must bound its Postgres walk with FLOOR(score): a raw "score <= cursor_value"
+        # comparison would drop the tie member whose sub-ms fraction pushes its raw score above
+        # the floored cursor value. Paging one-at-a-time across the tie (under a Snuba filter
+        # matching all groups) must not drop or duplicate a row.
+        base = before_now(days=2).replace(microsecond=0)
+        self.create_group_derived_data(
+            group=self.groups[0],
+            progress="diagnosed",
+            last_progressed_at=base.replace(microsecond=700),
+        )
+        self.create_group_derived_data(
+            group=self.groups[1],
+            progress="diagnosed",
+            last_progressed_at=base.replace(microsecond=200),
+        )
+        # groups[2] has no derived row -> identified (lowest rank), sorts last.
+        tied = sorted([self.groups[0], self.groups[1]], key=lambda g: g.id, reverse=True)
+        expected = tied + [self.groups[2]]
+
+        seen = []
+        cursor = None
+        for _ in self.groups:
+            page = self.make_query(sort_by="progress", query="issue", limit=1, cursor=cursor)
+            seen.extend(page)
+            cursor = page.next
+        assert seen == expected
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options(
+        {
+            "snuba.search.max-pre-snuba-candidates": 0,
+            # Force the chunk time budget to expire before the first chunk runs, so no passers
+            # are collected while the Postgres walk is not exhausted.
+            "snuba.search.max-total-chunk-time-seconds": 0,
+        }
+    )
+    def test_budget_exhausted_empty_page_terminates(self):
+        # When the time budget expires before any Snuba match is found, the page must be a
+        # terminating empty result. The cursor value is a progress score and can't encode a
+        # mid-tie "resume at raw row N" checkpoint, so advertising next.has_results with a
+        # non-advancing 0:0:0 cursor would make the client rescan the same prefix forever.
+        # Following the next cursor must therefore not loop -- it terminates (has_results False).
+        self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
+        page = self.make_query(sort_by="progress", query="issue", limit=2)
+        assert list(page) == []
+        assert not page.next.has_results
+        # Following it (defensively) returns empty again and still terminates -- no infinite walk.
+        page2 = self.make_query(sort_by="progress", query="issue", limit=2, cursor=page.next)
+        assert list(page2) == []
+        assert not page2.next.has_results
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options(
+        {
+            "snuba.search.max-pre-snuba-candidates": 0,
+            # One row per chunk so the early-break boundary-drain runs mid-tie on every page,
+            # rather than the whole tied block arriving in a single chunk (which would exhaust
+            # the walk before the drain logic is ever exercised).
+            "snuba.search.max-chunk-size": 1,
+        }
+    )
+    def test_score_tie_spanning_pages_forward_and_back_with_tiny_chunks(self):
+        # Regression guard for the inverted path's cursor across a score tie that spans several
+        # pages while the chunk loop breaks early (max-chunk-size=1). Five groups share an
+        # identical score (same rank + same last_progressed_at), so ordering falls entirely to
+        # the -id tiebreak. Forward paging (limit=2) must yield the exact id-DESC order with no
+        # drops/dupes, and paging backward from the last page must retrace the preceding page
+        # measured against the true global ordering (not just self-consistency) -- i.e. prev
+        # returns the page adjacent to the cursor, not a window pulled from the wrong end.
+        ts = before_now(days=2).replace(microsecond=0)
+        extra = []
+        for i in range(3, 5):
+            event = self.store_event(
+                data={
+                    "fingerprint": [f"group-{i}"],
+                    "event_id": f"{chr(97 + i)}" * 32,
+                    "message": f"issue {i}",
+                    "timestamp": (self.base_datetime - timedelta(days=i)).isoformat(),
+                    "stacktrace": {"frames": [{"module": f"mod{i}"}]},
+                    "environment": "production",
+                },
+                project_id=self.project.id,
+            )
+            g = Group.objects.get(id=event.group.id)
+            g.status = GroupStatus.UNRESOLVED
+            g.substatus = GroupSubStatus.ONGOING
+            g.priority = PriorityLevel.HIGH
+            g.update(type=ErrorGroupType.type_id)
+            g.save()
+            self.store_group(g)
+            extra.append(g)
+        all_groups = self.groups + extra
+        for g in all_groups:
+            self.create_group_derived_data(group=g, progress="diagnosed", last_progressed_at=ts)
+
+        expected = sorted(all_groups, key=lambda g: g.id, reverse=True)
+
+        # Page fully forward one page (limit=2) at a time; the concatenation must be the exact
+        # id-DESC order with no drops or duplicates.
+        forward: list[Group] = []
+        pages: list[Any] = []
+        cursor = None
+        while True:
+            page = self.make_query(sort_by="progress", query="issue", limit=2, cursor=cursor)
+            results = list(page)
+            pages.append(page)
+            forward.extend(results)
+            if not page.next.has_results:
+                break
+            cursor = page.next
+        assert forward == expected
+        assert len(pages) >= 3  # the tie genuinely spanned multiple pages
+
+        # Paging backward from the last page must retrace the immediately preceding page.
+        last_page_size = len(list(pages[-1]))
+        expected_prev = expected[-last_page_size - 2 : -last_page_size]
+        back = list(
+            self.make_query(sort_by="progress", query="issue", limit=2, cursor=pages[-1].prev)
+        )
+        assert back == expected_prev
 
 
 class TestDefaultPostgresSortStrategies(TestCase):
