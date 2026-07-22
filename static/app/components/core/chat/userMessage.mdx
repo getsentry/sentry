@@ -7,8 +7,12 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/userMessage.tsx
 ---
 
-import {Flex} from '@sentry/scraps/layout';
+import {useState} from 'react';
+
 import {UserMessage} from '@sentry/scraps/chat';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
@@ -56,3 +60,32 @@ wider surfaces.
 
 Whitespace and long unbroken tokens are preserved and wrapped, so pasted URLs
 or stack frames won't overflow the bubble.
+
+By default the bubble hugs its content. Pass `width="100%"` to fill up to
+`maxWidth` instead — useful for multiline or rich content that reads better in a
+wider bubble. Toggle the switch to compare:
+
+export function WidthDemo() {
+  const [fill, setFill] = useState(false);
+  return (
+    <Stack gap="md" width="100%">
+      <Flex gap="sm" align="center">
+        <Switch checked={fill} onChange={() => setFill(v => !v)} />
+        <Text>{fill ? 'width="100%"' : 'width unset (fit-content)'}</Text>
+      </Flex>
+      <Flex justify="end" width="100%">
+        <UserMessage width={fill ? '100%' : undefined}>
+          {'Which of my issues are getting worse?\nAnd which ones are new this week?'}
+        </UserMessage>
+      </Flex>
+    </Stack>
+  );
+}
+
+<Storybook.Demo>
+  <WidthDemo />
+</Storybook.Demo>
+
+```jsx
+<UserMessage width="100%">…</UserMessage>
+```

@@ -9,6 +9,12 @@ interface UserMessageProps extends React.HTMLAttributes<HTMLDivElement> {
    * `80%` so a bubble never spans the full conversation width.
    */
   maxWidth?: React.CSSProperties['maxWidth'];
+  /**
+   * How wide the bubble sizes itself. Left unset by default so it hugs its
+   * content; pass `100%` to fill up to `maxWidth`, useful for multiline or rich
+   * content that reads better in a wider bubble.
+   */
+  width?: React.CSSProperties['width'];
 }
 
 /**
@@ -18,10 +24,11 @@ interface UserMessageProps extends React.HTMLAttributes<HTMLDivElement> {
  * Presentation only — alignment within the conversation is the caller's
  * responsibility (wrap it in a right-aligned row for user messages).
  */
-export function UserMessage({children, maxWidth = '80%', ...props}: UserMessageProps) {
+export function UserMessage({children, maxWidth = '80%', width, ...props}: UserMessageProps) {
   return (
     <Container
       maxWidth={maxWidth}
+      width={width}
       minWidth={0}
       padding="xs md"
       background="secondary"
