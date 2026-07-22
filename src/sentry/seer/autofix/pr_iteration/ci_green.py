@@ -26,7 +26,7 @@ from django.utils import timezone
 from pydantic import ValidationError
 from scm import actions as scm_actions
 from scm.manager import SourceCodeManager
-from scm.types import MarkPullRequestDraftStateProtocol
+from scm.types import GetPullRequestProtocol, MarkPullRequestDraftStateProtocol
 
 from sentry import features
 from sentry.locks import locks
@@ -143,6 +143,10 @@ def mark_ci_green_for_check_suite(check_suite_event: CheckSuiteEvent) -> None:
         scm = make_scm(organization.id, autofix_run.repository.id, referrer="seer")
     except Exception:
         _failed("scm_init_failed", log_extra)
+        return
+
+    if not isinstance(scm, GetPullRequestProtocol):
+        _skip("unsupported_provider", log_extra)
         return
 
     # Match against the live PR head — run_state.commit_sha can lag pushes.
