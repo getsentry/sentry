@@ -25,7 +25,7 @@ export function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
     <Grid
       columns={{
         zero: '100%',
-        md: '1fr auto',
+        xl: '1fr auto',
         '4xl': 'auto 1fr auto',
       }}
       areas={{
@@ -34,7 +34,7 @@ export function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
           "search"
           "sort-save"
         `,
-        md: `
+        xl: `
           "page-filters sort-save"
           "search search"
         `,
