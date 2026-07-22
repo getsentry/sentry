@@ -107,5 +107,5 @@ function getUserAvatarProps(
 }
 
 function isActor(maybe: AvatarUser | Actor): maybe is Actor {
-  return (maybe as AvatarUser).email === undefined;
+  return maybe.email === undefined;
 }

@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import {Placeholder} from 'sentry/components/placeholder';
 import type {Actor} from 'sentry/types/core';
 import {useMembers} from 'sentry/utils/members/useMembers';
+import {unreachable} from 'sentry/utils/unreachable';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
 import {Avatar, type AvatarProps} from './avatar';
@@ -30,20 +31,19 @@ export function ActorAvatar({
     ...props,
   };
 
-  if (actor.type === 'user') {
-    return <AsyncMemberAvatar actor={actor} {...otherProps} />;
+  switch (actor.type) {
+    case 'user':
+      return <AsyncMemberAvatar actor={actor} {...otherProps} />;
+    case 'team':
+      return <AsyncTeamAvatar teamId={actor.id} {...otherProps} />;
+    default:
+      unreachable(actor.type);
+      Sentry.withScope(scope => {
+        scope.setExtra('actor', actor);
+        Sentry.captureException(new Error('Unknown avatar type'));
+      });
+      return null;
   }
-
-  if (actor.type === 'team') {
-    return <AsyncTeamAvatar teamId={actor.id} {...otherProps} />;
-  }
-
-  Sentry.withScope(scope => {
-    scope.setExtra('actor', actor);
-    Sentry.captureException(new Error('Unknown avatar type'));
-  });
-
-  return null;
 }
 
 /**
