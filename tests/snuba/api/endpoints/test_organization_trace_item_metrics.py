@@ -200,7 +200,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         metric = response.data[0]
         assert metric["context"] == {
             "brief": "Checkout requests",
-            "additionalContext": "Longer notes.",
+            "details": ["Longer notes."],
         }
 
     def test_context_only_matches_metric_type(self) -> None:

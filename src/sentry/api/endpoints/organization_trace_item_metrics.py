@@ -54,7 +54,9 @@ MAX_METRICS_PER_PAGE = 1000
 
 class TraceMetricContext(TypedDict):
     brief: NotRequired[str]
-    additionalContext: NotRequired[str]
+    # Longer-form notes, normalized to a list to match the attributes context
+    # shape (see TraceItemAttributeContext.details).
+    details: NotRequired[list[str]]
 
 
 class TraceMetricItem(TypedDict):
@@ -240,6 +242,6 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
             context: TraceMetricContext = {}
             if context_row.brief is not None:
                 context["brief"] = context_row.brief
-            if context_row.additional_context is not None:
-                context["additionalContext"] = context_row.additional_context
+            if context_row.additional_context:
+                context["details"] = [context_row.additional_context]
             metric["context"] = context
