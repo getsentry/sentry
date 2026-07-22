@@ -1452,6 +1452,159 @@ describe('ActivitySection', () => {
     );
   });
 
+  it('hides a referenced commit next to a merged activity', async () => {
+    const repository = RepositoryFixture({id: 'repository-1'});
+    const pullRequest = PullRequestFixture({id: '1234', repository});
+
+    const activityGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.PULL_REQUEST_MERGED,
+          id: 'pull-request-merged',
+          dateCreated: '2020-01-01T00:01:00',
+          data: {pullRequest},
+          user: null,
+        },
+        {
+          type: GroupActivityType.REFERENCED_IN_COMMIT,
+          id: 'referenced-in-commit',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {commit: CommitFixture({pullRequest, repository})},
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByTestId('activity-timeline')).toHaveTextContent('#1234');
+    expect(screen.queryByText('f7f395d')).not.toBeInTheDocument();
+  });
+
+  it('hides the duplicate when the referenced commit comes before the merged activity', async () => {
+    const repository = RepositoryFixture({id: 'repository-1'});
+    const pullRequest = PullRequestFixture({id: '1234', repository});
+
+    const activityGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.REFERENCED_IN_COMMIT,
+          id: 'referenced-in-commit',
+          dateCreated: '2020-01-01T00:01:00',
+          data: {commit: CommitFixture({pullRequest, repository})},
+          user,
+        },
+        {
+          type: GroupActivityType.PULL_REQUEST_MERGED,
+          id: 'pull-request-merged',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {pullRequest},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByTestId('activity-timeline')).toHaveTextContent('#1234');
+    expect(screen.queryByText('f7f395d')).not.toBeInTheDocument();
+  });
+
+  it('keeps a referenced commit next to a merged activity for a different pull request', async () => {
+    const mergedPullRequest = PullRequestFixture({
+      id: '1234',
+      repository: RepositoryFixture({id: 'repository-1'}),
+    });
+    const referencedRepository = RepositoryFixture({id: 'repository-2'});
+    const referencedPullRequest = PullRequestFixture({
+      id: '1234',
+      repository: referencedRepository,
+    });
+
+    const activityGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.PULL_REQUEST_MERGED,
+          id: 'pull-request-merged',
+          dateCreated: '2020-01-01T00:01:00',
+          data: {pullRequest: mergedPullRequest},
+          user: null,
+        },
+        {
+          type: GroupActivityType.REFERENCED_IN_COMMIT,
+          id: 'referenced-in-commit',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            commit: CommitFixture({
+              pullRequest: referencedPullRequest,
+              repository: referencedRepository,
+            }),
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByText('f7f395d')).toBeInTheDocument();
+  });
+
+  it('keeps a referenced commit when the merged activity is not adjacent', async () => {
+    const repository = RepositoryFixture({id: 'repository-1'});
+    const pullRequest = PullRequestFixture({repository});
+
+    const activityGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.PULL_REQUEST_MERGED,
+          id: 'pull-request-merged',
+          dateCreated: '2020-01-01T00:02:00',
+          data: {pullRequest},
+          user: null,
+        },
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-between-pull-request-activities',
+          dateCreated: '2020-01-01T00:01:00',
+          data: {text: 'An activity between the pull request activities'},
+          user,
+        },
+        {
+          type: GroupActivityType.REFERENCED_IN_COMMIT,
+          id: 'referenced-in-commit',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {commit: CommitFixture({pullRequest, repository})},
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByText('f7f395d')).toBeInTheDocument();
+  });
+
   it('prefers commit repository details for resolved commit activity line items', async () => {
     const commitRepository = RepositoryFixture({
       name: 'getsentry/sentry',

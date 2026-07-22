@@ -216,6 +216,43 @@ interface ActivitySectionProps {
   variant?: 'sidebar' | 'standalone';
 }
 
+function isDuplicatePullRequestActivity(
+  activity: GroupActivity,
+  adjacentActivity: GroupActivity | undefined
+): boolean {
+  switch (activity.type) {
+    // REFERENCED_IN_COMMIT should be hidden if there is an adjacent PULL_REQUEST_MERGED activity with the same pull request
+    case GroupActivityType.REFERENCED_IN_COMMIT: {
+      if (adjacentActivity?.type !== GroupActivityType.PULL_REQUEST_MERGED) {
+        return false;
+      }
+
+      const pullRequest = activity.data.commit?.pullRequest;
+      const adjacentPullRequest = adjacentActivity.data.pullRequest;
+      if (!pullRequest || !adjacentPullRequest) {
+        return false;
+      }
+
+      return (
+        pullRequest.id === adjacentPullRequest.id &&
+        pullRequest.repository.id === adjacentPullRequest.repository.id
+      );
+    }
+    default:
+      return false;
+  }
+}
+
+function removeAdjacentDuplicatePullRequestActivities(
+  activities: GroupActivity[]
+): GroupActivity[] {
+  return activities.filter(
+    (activity, index) =>
+      !isDuplicatePullRequestActivity(activity, activities[index - 1]) &&
+      !isDuplicatePullRequestActivity(activity, activities[index + 1])
+  );
+}
+
 export function ActivitySection({
   group,
   filterComments,
@@ -277,9 +314,9 @@ export function ActivitySection({
       )
     : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
 
-  const filteredActivities = visibleActivities.filter(
-    item => !filterComments || item.type === GroupActivityType.NOTE
-  );
+  const filteredActivities = removeAdjacentDuplicatePullRequestActivities(
+    visibleActivities
+  ).filter(item => !filterComments || item.type === GroupActivityType.NOTE);
   const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
   const timestampUnitStyle = variant === 'sidebar' ? 'short' : undefined;
 
