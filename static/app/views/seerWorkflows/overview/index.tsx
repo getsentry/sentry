@@ -35,12 +35,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {DEFAULT_STATS_PERIOD, PERIOD_FILTER_OPTIONS} from './periods';
 import {SectionIssueCard} from './sectionIssueCard';
 import {STATUS_GROUP_META, StatusGroupTooltip, type StatusGroupKey} from './statusGroups';
-import {QUERY_STALE_TIME} from './types';
-import {
-  SECTION_ORDER,
-  useAutofixSections,
-  type OverviewIssue,
-} from './useAutofixSections';
+import {type OverviewIssue, QUERY_STALE_TIME} from './types';
+import {SECTION_ORDER, useAutofixSections} from './useAutofixSections';
 
 type SortValue = 'activity' | 'events';
 type OverviewView = 'cards' | 'table';

@@ -5,18 +5,18 @@ import {
   isCodeChangesArtifact,
   isCodeChangesSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import type {RunQuestion} from 'sentry/views/autofixIssuesDemo/useAutofixIssues';
-
 import {RUN_QUESTIONS} from './runQuestions';
 import {mapRunSourceToTrigger} from './triggerBadge';
 import type {
   AutofixOutcome,
   AutofixRunStatus,
+  OverviewIssue,
   OverviewRow,
   PatchStats,
   RunAnalysisEntry,
+  RunQuestion,
+  SeerRun,
 } from './types';
-import type {OverviewIssue} from './useAutofixSections';
 
 const OUTCOME_ORDER: AutofixOutcome[] = [
   'root_cause',
@@ -230,13 +230,6 @@ function buildAnalysis(outputs: RunQuestion[] | undefined): {
   return {entries, headline};
 }
 
-export interface OverviewRunData {
-  lastTriggeredAt?: string;
-  outputs?: RunQuestion[];
-  pullRequests?: Array<{status: string | null}>;
-  source?: string | null;
-}
-
 function mostRecentTimestamp(...candidates: Array<string | null | undefined>): string {
   let latest = '';
   for (const candidate of candidates) {
@@ -249,7 +242,7 @@ function mostRecentTimestamp(...candidates: Array<string | null | undefined>): s
 
 export function buildOverviewRow(
   issue: OverviewIssue,
-  run: OverviewRunData | null,
+  run: SeerRun | null,
   state: ExplorerAutofixState | null,
   statePending: boolean,
   statsPeriod: string

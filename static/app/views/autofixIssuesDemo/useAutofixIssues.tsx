@@ -6,18 +6,21 @@ import {
   getOrderedAutofixSections,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {t} from 'sentry/locale';
-import type {Level} from 'sentry/types/event';
-import type {PlatformKey} from 'sentry/types/platform';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {QUERY_STALE_TIME} from 'sentry/views/seerWorkflows/overview/types';
+import {
+  type OverviewIssue,
+  QUERY_STALE_TIME,
+  REQUIRED_ISSUE_FILTER,
+  RUNS_QUERY,
+  type SeerRun,
+} from 'sentry/views/seerWorkflows/overview/types';
+
+export {REQUIRED_ISSUE_FILTER};
 
 // Visible default query for the search bar. The required autofix filter below
 // is always applied on top, so it isn't part of the editable query.
 export const DEFAULT_ISSUE_QUERY = 'is:unresolved';
-
-// Always applied to the issue query: only issues Seer has run autofix on.
-export const REQUIRED_ISSUE_FILTER = 'has:issue.seer_last_run';
 
 function withRequiredFilter(query: string): string {
   const trimmed = query.trim();
@@ -28,10 +31,6 @@ function withRequiredFilter(query: string): string {
     ? trimmed
     : `${trimmed} ${REQUIRED_ISSUE_FILTER}`;
 }
-
-// Runs filter: the explorer runs autofix creates. Combined with a
-// ``group:[...]`` filter so we only fetch runs for the issues on the page.
-const RUNS_QUERY = 'type:explorer source:autofix';
 
 // Custom one-shot questions asked about each run, sent to the endpoint as a
 // repeatable `question` param (see organization_seer_runs.py). Capped at 5 by
@@ -83,50 +82,10 @@ function deriveAutofixPhase(runState: ExplorerAutofixState | null): AutofixPhase
   }
 }
 
-// One answered question, mirrors the run output in
-// src/sentry/api/serializers/models/seer_run.py
-export interface RunQuestion {
-  answer: string;
-  key: string;
-  // The question text, echoed back only for user-supplied questions.
-  question?: string;
-}
-
-// A pull request linked to a run, serialized by PullRequestSerializer
-// src/sentry/api/serializers/models/pullrequest.py
-// `status` is 'open' | 'merged' | 'closed' | 'draft' | 'unknown'.
-interface RunPullRequest {
-  status: string | null;
-  mergedAt?: string | null;
-}
-
-// Subset of the runs list response we consume
-// src/sentry/api/serializers/models/seer_run.py
-interface SeerRun {
-  groupId: string | null;
-  id: string;
-  lastTriggeredAt: string;
-  source: string | null;
-  // Present only when ?outputs is requested.
-  outputs?: RunQuestion[];
-  // Linked PRs with merge status.
-  pullRequests?: RunPullRequest[];
-}
-
-// Subset of the issue-stream group we render.
-interface Issue {
-  // Event count over the stats period; the endpoint returns it as a string.
-  count: string;
+// The overview's issue shape plus the two extra fields this demo renders.
+interface Issue extends OverviewIssue {
   culprit: string;
-  id: string;
-  lastSeen: string;
-  level: Level;
-  project: {slug: string; platform?: PlatformKey};
-  seerAutofixLastTriggered: string | null;
   seerFixabilityScore: number | null;
-  shortId: string;
-  title: string;
-  userCount: number;
 }
 
 export interface AutofixIssue extends Issue {

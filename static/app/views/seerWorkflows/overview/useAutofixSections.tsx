@@ -1,12 +1,14 @@
 import {useQueries} from '@tanstack/react-query';
 
-import type {Level} from 'sentry/types/event';
-import type {PlatformKey} from 'sentry/types/platform';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {QUERY_STALE_TIME} from './types';
+import {
+  type OverviewIssue,
+  QUERY_STALE_TIME,
+  REQUIRED_ISSUE_FILTER,
+} from './types';
 
 export type AutofixStateKey =
   | 'review_pr'
@@ -24,19 +26,6 @@ export const SECTION_ORDER: AutofixStateKey[] = [
 ];
 
 const SECTION_LIMIT = 100;
-const REQUIRED_ISSUE_FILTER = 'has:issue.seer_last_run';
-
-export interface OverviewIssue {
-  count: string;
-  id: string;
-  lastSeen: string;
-  level: Level;
-  project: {slug: string; platform?: PlatformKey};
-  seerAutofixLastTriggered: string | null;
-  shortId: string;
-  title: string;
-  userCount: number;
-}
 
 export interface SectionResult {
   count: number | undefined;

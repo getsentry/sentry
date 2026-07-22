@@ -5,6 +5,57 @@ import type {PlatformKey} from 'sentry/types/platform';
 // Shared staleTime for the overview's issue/run/state queries.
 export const QUERY_STALE_TIME = 30_000;
 
+// Runs filter: the explorer runs autofix creates. Combined with a
+// ``group:[...]`` filter so we only fetch runs for the issues on the page.
+export const RUNS_QUERY = 'type:explorer source:autofix';
+
+// Always applied to the issue query: only issues Seer has run autofix on.
+export const REQUIRED_ISSUE_FILTER = 'has:issue.seer_last_run';
+
+// One answered question, mirrors the run output in
+// src/sentry/api/serializers/models/seer_run.py
+export interface RunQuestion {
+  answer: string;
+  key: string;
+  // The question text, echoed back only for user-supplied questions.
+  question?: string;
+}
+
+// A pull request linked to a run, serialized by PullRequestSerializer
+// src/sentry/api/serializers/models/pullrequest.py
+// `status` is 'open' | 'merged' | 'closed' | 'draft' | 'unknown'.
+export interface RunPullRequest {
+  status: string | null;
+  mergedAt?: string | null;
+}
+
+// Subset of the runs list response we consume
+// src/sentry/api/serializers/models/seer_run.py
+export interface SeerRun {
+  groupId: string | null;
+  id: string;
+  lastTriggeredAt: string;
+  source: string | null;
+  // Present only when ?outputs is requested.
+  outputs?: RunQuestion[];
+  // Linked PRs with merge status.
+  pullRequests?: RunPullRequest[];
+}
+
+// One issue from the issue stream, as the overview cards consume it.
+export interface OverviewIssue {
+  // Event count over the stats period; the endpoint returns it as a string.
+  count: string;
+  id: string;
+  lastSeen: string;
+  level: Level;
+  project: {slug: string; platform?: PlatformKey};
+  seerAutofixLastTriggered: string | null;
+  shortId: string;
+  title: string;
+  userCount: number;
+}
+
 export type AutofixOutcome = 'root_cause' | 'solution' | 'code_changes' | 'pr_opened';
 
 // Run status buckets mapped from ExplorerAutofixState.status; 'processing' maps
