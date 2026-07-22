@@ -19,9 +19,8 @@ import {
   TraceViewMetricsProviderWrapper,
   TraceViewMetricsSection,
 } from 'sentry/views/performance/newTraceDetails/traceMetrics';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {ErrorNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/errorNode';
 import {
+  type InjectedTraceError,
   TraceViewLogsDataProvider,
   TraceViewLogsSection,
 } from 'sentry/views/performance/newTraceDetails/traceOurlogs';
@@ -177,16 +176,18 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     metricsEnabled,
   });
 
-  const traceErrors = useMemo(
-    () =>
-      tree.list.reduce<TraceTree.TraceErrorIssue[]>((acc, node) => {
-        if (node instanceof ErrorNode) {
-          acc.push(node.value);
-        }
-        return acc;
-      }, []),
-    [tree.list]
-  );
+  const traceErrors = useMemo(() => {
+    const errorsByEventId = new Map<string, InjectedTraceError>();
+    for (const node of tree.list) {
+      const nodeStartMs = node.space[0];
+      const fallbackTimestampSeconds =
+        Number.isFinite(nodeStartMs) && nodeStartMs > 0 ? nodeStartMs / 1000 : 0;
+      for (const error of node.errors) {
+        errorsByEventId.set(error.event_id, {error, fallbackTimestampSeconds});
+      }
+    }
+    return Array.from(errorsByEventId.values());
+  }, [tree.list]);
 
   // Push trace metadata into the LLM context tree for Seer Explorer.
   useLLMContext({

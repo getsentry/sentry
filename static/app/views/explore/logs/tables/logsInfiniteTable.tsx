@@ -248,6 +248,8 @@ export function LogsInfiniteTable({
     injectedErrorRows,
   ]);
 
+  const isEmptyWithoutInjectedErrors = isEmpty && !injectedErrorRows?.length;
+
   // Calculate quantized start and end times for replay links
   const {logStart, logEnd} = useMemo(() => {
     if (!baseData || baseData.length === 0) {
@@ -580,13 +582,13 @@ export function LogsInfiniteTable({
   );
 
   // For replay context, render empty states outside the table for proper centering
-  if (hasReplay && (isPending || isError || isEmpty)) {
+  if (hasReplay && (isPending || isError || isEmptyWithoutInjectedErrors)) {
     return (
       <Fragment>
         <Flex justify="center" align="center" height="100%" minHeight="200px">
           {isPending && <LoadingRenderer />}
           {isError && <ErrorRenderer error={error} onRetry={refetch} />}
-          {isEmpty &&
+          {isEmptyWithoutInjectedErrors &&
             (emptyRenderer ? (
               emptyRenderer()
             ) : (
@@ -662,7 +664,7 @@ export function LogsInfiniteTable({
           )}
           {!hasReplay && isError && <ErrorRenderer error={error} onRetry={refetch} />}
           {!hasReplay &&
-            isEmpty &&
+            isEmptyWithoutInjectedErrors &&
             (emptyRenderer ? (
               emptyRenderer()
             ) : (

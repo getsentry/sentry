@@ -45,11 +45,12 @@ export function TraceViewLogsDataProvider({
   );
 }
 
-export function TraceViewLogsSection({
-  errors = [],
-}: {
-  errors?: TraceTree.TraceErrorIssue[];
-}) {
+export interface InjectedTraceError {
+  error: TraceTree.TraceErrorIssue;
+  fallbackTimestampSeconds: number;
+}
+
+export function TraceViewLogsSection({errors = []}: {errors?: InjectedTraceError[]}) {
   return (
     <StyledPanel>
       <LogsSectionContent errors={errors} />
@@ -57,12 +58,18 @@ export function TraceViewLogsSection({
   );
 }
 
-function LogsSectionContent({errors}: {errors: TraceTree.TraceErrorIssue[]}) {
+function LogsSectionContent({errors}: {errors: InjectedTraceError[]}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const traceIds = useLogsFrozenTraceIds();
 
-  const injectedErrorRows = useMemo(() => errors.map(createErrorLogRow), [errors]);
+  const injectedErrorRows = useMemo(
+    () =>
+      errors.map(({error, fallbackTimestampSeconds}) =>
+        createErrorLogRow(error, fallbackTimestampSeconds)
+      ),
+    [errors]
+  );
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useLogItemAttributes({}, 'string', HiddenLogSearchFields);

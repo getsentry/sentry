@@ -648,9 +648,14 @@ const ERROR_LEVEL_SEVERITY_NUMBER: Record<string, number> = {
   info: 9,
 };
 
-export function createErrorLogRow(error: TraceTree.TraceErrorIssue): ErrorLogRowItem {
+export function createErrorLogRow(
+  error: TraceTree.TraceErrorIssue,
+  fallbackTimestampSeconds = 0
+): ErrorLogRowItem {
   const timestampSeconds =
-    'start_timestamp' in error ? error.start_timestamp : (error.timestamp ?? 0);
+    'start_timestamp' in error
+      ? error.start_timestamp
+      : (error.timestamp ?? fallbackTimestampSeconds);
   const timestampPrecise = timestampSeconds * 1e9;
   const description =
     'start_timestamp' in error
