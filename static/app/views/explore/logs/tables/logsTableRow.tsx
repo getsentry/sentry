@@ -663,10 +663,13 @@ function LogRowDetails({
   // and the scroll range desyncs.
   const measureRef = useCallback(
     (node: HTMLTableRowElement | null) => {
-      if (!node) {
+      if (!node || !onExpandHeight) {
         return;
       }
-      const report = () => onExpandHeight?.(expansionKey, node.clientHeight);
+      // offsetHeight (not clientHeight) so the panel's top/bottom borders are
+      // included — the virtualizer's item size must match the space the row
+      // actually occupies.
+      const report = () => onExpandHeight(expansionKey, node.offsetHeight);
       report();
       const observer = new ResizeObserver(report);
       observer.observe(node);
