@@ -127,13 +127,47 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
     logout(api, nextUrl.toString());
   }, [api]);
 
-  const handleSubmitCOPS = () => {
-    setState(prevState => ({
-      ...prevState,
-      superuserAccessCategory: 'cops_csm',
-      superuserReason: 'COPS and CSM use',
-    }));
-  };
+  const submitAuth = useCallback(
+    async (superuserAccessCategory: string, superuserReason: string) => {
+      if (!authenticators.length && !disableU2FForSUForm) {
+        handleError(ErrorCodes.NO_AUTHENTICATOR);
+        return;
+      }
+
+      // First submit reveals the WebAuthn prompt (U2F tap).
+      if (state.showAccessForms && !disableU2FForSUForm) {
+        setState(prevState => ({
+          ...prevState,
+          showAccessForms: false,
+          superuserAccessCategory,
+          superuserReason,
+        }));
+        return;
+      }
+
+      try {
+        await authenticate({
+          isSuperuserModal: true,
+          superuserAccessCategory,
+          superuserReason,
+        });
+        handleSuccess();
+      } catch (err) {
+        handleError(err);
+      }
+    },
+    [
+      authenticators.length,
+      disableU2FForSUForm,
+      state.showAccessForms,
+      authenticate,
+      handleError,
+      handleSuccess,
+    ]
+  );
+
+  // COPS/CSM shortcut: skip the access-category/reason step with canned values.
+  const handleCops = () => submitAuth('cops_csm', 'COPS and CSM use');
 
   const handleWebAuthn = useCallback(
     async (data: WebAuthnParams) => {
@@ -183,33 +217,7 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
       const suReason =
         state.superuserReason || (typeof domReason === 'string' ? domReason : '');
 
-      if (!authenticators.length && !disableU2FForSUForm) {
-        handleError(ErrorCodes.NO_AUTHENTICATOR);
-        return;
-      }
-
-      // First submit reveals the WebAuthn prompt (U2F tap).
-      if (state.showAccessForms && !disableU2FForSUForm) {
-        setState(prevState => ({
-          ...prevState,
-          showAccessForms: false,
-          superuserAccessCategory: suAccessCategory,
-          superuserReason: suReason,
-        }));
-        return;
-      }
-
-      try {
-        await authenticate({
-          isSuperuserModal: true,
-          superuserAccessCategory: suAccessCategory,
-          superuserReason: suReason,
-        });
-        handleSuccess();
-      } catch (err) {
-        formApi.reset();
-        handleError(err);
-      }
+      await submitAuth(suAccessCategory, suReason);
     },
   });
 
@@ -244,46 +252,45 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
     return null;
   }
 
-  // On the auto-submit path show the spinner until it fails (success reloads).
-  const isLoading = skipAuthenticators ? !error : !isFetched;
+  const errorAlert = error ? <Alert variant="danger">{errorType}</Alert> : null;
+
+  if (hasStaff) {
+    // On the auto-submit path show the spinner until it fails (success reloads).
+    const isLoading = skipAuthenticators ? !error : !isFetched;
+    if (isLoading) {
+      return <LoadingIndicator />;
+    }
+    return (
+      <Fragment>
+        {errorAlert}
+        <WebAuthn
+          mode="sudo"
+          authenticators={authenticators}
+          onWebAuthn={handleWebAuthn}
+        />
+      </Fragment>
+    );
+  }
 
   return (
-    <Fragment>
-      {hasStaff ? (
-        isLoading ? (
-          <LoadingIndicator />
-        ) : (
-          <Fragment>
-            {error && <Alert variant="danger">{errorType}</Alert>}
-            <WebAuthn
-              mode="sudo"
-              authenticators={authenticators}
-              onWebAuthn={handleWebAuthn}
-            />
-          </Fragment>
-        )
+    <form.AppForm form={form}>
+      {errorAlert}
+      {showAccessForms ? (
+        <Override name="component:superuser-access-category" />
       ) : (
-        <form.AppForm form={form}>
-          {error && <Alert variant="danger">{errorType}</Alert>}
-          {showAccessForms && <Override name="component:superuser-access-category" />}
-          {!showAccessForms && (
-            <WebAuthn
-              mode="sudo"
-              authenticators={authenticators}
-              onWebAuthn={handleWebAuthn}
-            />
-          )}
-          <Flex justify="between" align="center" gap="md" margin="xl 0 0">
-            <Flex align="center" margin="0 3xl">
-              <Button type="submit" onClick={handleSubmitCOPS}>
-                {t('COPS/CSM')}
-              </Button>
-            </Flex>
-            <form.SubmitButton>{t('Continue')}</form.SubmitButton>
-          </Flex>
-        </form.AppForm>
+        <WebAuthn
+          mode="sudo"
+          authenticators={authenticators}
+          onWebAuthn={handleWebAuthn}
+        />
       )}
-    </Fragment>
+      <Flex justify="between" align="center" gap="md" margin="xl 0 0">
+        <Flex align="center" margin="0 3xl">
+          <Button onClick={handleCops}>{t('COPS/CSM')}</Button>
+        </Flex>
+        <form.SubmitButton>{t('Continue')}</form.SubmitButton>
+      </Flex>
+    </form.AppForm>
   );
 }
 
