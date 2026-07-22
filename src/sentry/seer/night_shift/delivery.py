@@ -222,7 +222,7 @@ def _process_verdicts(
                 else None
             )
             try:
-                state_id = trigger_autofix_agent(
+                triggered_state_id = trigger_autofix_agent(
                     group=group,
                     step=AutofixStep.ROOT_CAUSE,
                     referrer=referrer,
@@ -236,7 +236,7 @@ def _process_verdicts(
                 )
                 continue
 
-            state_id_by_group[group.id] = state_id
+            state_id_by_group[group.id] = triggered_state_id
             with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
                 Activity.objects.create_group_activity(
                     group,
