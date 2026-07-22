@@ -305,6 +305,16 @@ class PromotionResult(enum.Enum):
     CURSOR_BEHIND = "cursor_behind"  # same generation, but cursor is more advanced
 
 
+class PromotionFailed(Exception):
+    """Raised when build_and_promote_derived_data exhausts its retry budget."""
+
+    def __init__(self, group_id: int, result: PromotionResult, attempts: int) -> None:
+        self.group_id = group_id
+        self.result = result
+        self.attempts = attempts
+        super().__init__(f"group {group_id}: {result.value} after {attempts} attempts")
+
+
 def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
     """Upsert the candidate's state into the row for its group.
 
@@ -452,24 +462,7 @@ def build_and_promote_derived_data(
         derived.pipeline_hash = pipeline_hash
 
     _generation_cache.delete(current_gen_id)
-
-    if result is PromotionResult.CURSOR_BEHIND:
-        metrics.incr("issues.derived.promotion_exhausted", sample_rate=1.0)
-        logger.warning(
-            "issues.derived.promotion_exhausted",
-            extra={
-                "group_id": group_id,
-                "attempts": attempt + 1,
-            },
-        )
-    else:
-        logger.info(
-            "issues.derived.promotion_failed",
-            extra={
-                "group_id": group_id,
-                "result": result.value,
-            },
-        )
+    raise PromotionFailed(group_id, result, attempt + 1)
 
 
 # ---------------------------------------------------------------------------

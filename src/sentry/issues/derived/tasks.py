@@ -56,6 +56,7 @@ def generate_group_derived_data(
     from sentry.issues.derived.processing import (
         GenerationId,
         GroupLogTimeout,
+        PromotionFailed,
         build_and_promote_derived_data,
     )
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
@@ -89,6 +90,9 @@ def generate_group_derived_data(
         )
     except Group.DoesNotExist:
         logger.info("generate_group_derived_data.group_not_found", extra={"group_id": group_id})
+        return
+    except PromotionFailed:
+        logger.exception("generate_group_derived_data.promotion_failed")
         return
     except GroupLogTimeout as e:
         if prior_runs + 1 >= _MAX_GENERATION_RUNS:
@@ -398,6 +402,7 @@ def generate_project_derived_data_batch(
     from sentry.issues.derived.processing import (
         GenerationId,
         GroupLogTimeout,
+        PromotionFailed,
         build_and_promote_derived_data,
     )
     from sentry.models.group import Group
@@ -438,7 +443,7 @@ def generate_project_derived_data_batch(
         .values_list("id", flat=True)
     )
 
-    processed = 0
+    processed: dict[str, int] = {}
     rescheduled = False
 
     for group_id in group_ids:
@@ -449,12 +454,15 @@ def generate_project_derived_data_batch(
                 generation_id=generation_id if group_id == group_id_start else None,
                 time_limit=remaining,
             )
-            processed += 1
+            processed["promoted"] = processed.get("promoted", 0) + 1
         except Group.DoesNotExist:
             logger.info(
                 "generate_project_derived_data_batch.group_not_found",
                 extra={"group_id": group_id, "project_id": project_id},
             )
+        except PromotionFailed as e:
+            processed[e.result.value] = processed.get(e.result.value, 0) + 1
+            logger.exception("generate_project_derived_data_batch.promotion_failed")
         except GroupLogTimeout as e:
             rescheduled = True
             gen_id = e.generation_id
@@ -490,11 +498,13 @@ def generate_project_derived_data_batch(
                 mark_spawned(_GENERATE_BATCH_TASK_KEY, activation_id)
             break
 
-    metrics.incr(
-        "issues.derived.generate_project_groups_processed",
-        amount=processed,
-        sample_rate=1.0,
-    )
+    for result, count in processed.items():
+        metrics.incr(
+            "issues.derived.generate_project_groups_processed",
+            amount=count,
+            sample_rate=1.0,
+            tags={"result": result},
+        )
     logger.info(
         "generate_project_derived_data_batch.complete",
         extra={
