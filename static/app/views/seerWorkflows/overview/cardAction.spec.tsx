@@ -8,6 +8,7 @@ import type {
   AutofixStateKey,
   CardAction,
   OverviewRow,
+  PrCiStatus,
   RunStatus,
 } from 'sentry/views/seerWorkflows/overview/types';
 
@@ -44,15 +45,20 @@ describe('deriveCardAction', () => {
     expect(deriveCardAction(sectionKey, makeRow())).toEqual({type: sectionKey});
   });
 
-  it('carries the linked PR on the review_pr action', () => {
+  it('carries the linked PR and CI status on the review_pr action', () => {
     const action = deriveCardAction(
       'review_pr',
-      makeRow({prUrl: 'https://github.com/o/r/pull/9', prNumber: 9})
+      makeRow({
+        prUrl: 'https://github.com/o/r/pull/9',
+        prNumber: 9,
+        prCiStatus: 'passed',
+      })
     );
     expect(action).toEqual({
       type: 'review_pr',
       prUrl: 'https://github.com/o/r/pull/9',
       prNumber: 9,
+      prCiStatus: 'passed',
     });
   });
 });
@@ -130,5 +136,42 @@ describe('IssuePrimaryAction', () => {
       'href',
       '/organizations/org-slug/issues/2/?seerDrawer=true'
     );
+  });
+
+  it.each([
+    {prCiStatus: 'passed', label: 'CI passed'},
+    {prCiStatus: 'running', label: 'CI running'},
+    {prCiStatus: 'failed', label: 'CI failed'},
+  ] as Array<{label: string; prCiStatus: PrCiStatus}>)(
+    'renders the $label tag beside Review PR when the linked PR CI is $prCiStatus',
+    ({prCiStatus, label}) => {
+      renderAction(
+        {
+          type: 'review_pr',
+          prUrl: 'https://github.com/o/r/pull/9',
+          prNumber: 9,
+          prCiStatus,
+        },
+        makeRow({runStatus: 'completed'})
+      );
+
+      expect(screen.getByRole('button', {name: 'Review PR'})).toBeInTheDocument();
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+  );
+
+  it('renders no CI tag when the linked PR has no CI status', () => {
+    renderAction(
+      {
+        type: 'review_pr',
+        prUrl: 'https://github.com/o/r/pull/9',
+        prNumber: 9,
+        prCiStatus: undefined,
+      },
+      makeRow({runStatus: 'completed'})
+    );
+
+    expect(screen.getByRole('button', {name: 'Review PR'})).toBeInTheDocument();
+    expect(screen.queryByText(/^CI /)).not.toBeInTheDocument();
   });
 });

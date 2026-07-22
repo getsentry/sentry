@@ -24,6 +24,7 @@ export function useIssueAutofixEnrichment(issueId: string): IssueAutofixEnrichme
         query: `${RUNS_QUERY} group:${issueId}`,
         question: RUN_QUESTION_PROMPTS,
         per_page: 1,
+        includeCiStatus: 1,
       },
       staleTime: QUERY_STALE_TIME,
     }),

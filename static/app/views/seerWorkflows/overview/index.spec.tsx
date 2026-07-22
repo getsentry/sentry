@@ -350,6 +350,22 @@ describe('AutofixOverview', () => {
     );
   });
 
+  it('requests CI status with the per-card runs fetch', async () => {
+    const runsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/runs/`,
+      match: [MockApiClient.matchQuery({includeCiStatus: 1})],
+      body: [makeRun()],
+    });
+
+    renderPage();
+
+    await screen.findByRole('link', {
+      name: 'Proxy requests fail without Authorization header',
+    });
+
+    expect(runsRequest).toHaveBeenCalled();
+  });
+
   it('leads with the root cause and a single next step when no code was drafted', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/runs/`,

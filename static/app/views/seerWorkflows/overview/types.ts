@@ -51,10 +51,19 @@ export type OverviewView = 'cards' | 'table';
 // section-driven primary action.
 export type RunStatus = 'processing' | 'completed' | 'error' | 'awaiting_user_input';
 
+// CI status of a linked PR, from the includeCiStatus runs param. null/absent
+// means unknown or not yet computable — no badge.
+export type PrCiStatus = 'passed' | 'running' | 'failed';
+
 // The primary action a card offers, derived from its section. review_pr carries
-// the linked PR so it can offer the external review button.
+// the linked PR so it can offer the external review button and CI status.
 export type CardAction =
-  | {prNumber: number | undefined; prUrl: string | undefined; type: 'review_pr'}
+  | {
+      prNumber: number | undefined;
+      prUrl: string | undefined;
+      type: 'review_pr';
+      prCiStatus?: PrCiStatus;
+    }
   | {type: 'code_changes_ready'}
   | {type: 'solution_ready'}
   | {type: 'needs_investigation'}
@@ -74,6 +83,10 @@ export interface RunQuestion {
 // `status` is 'open' | 'merged' | 'closed' | 'draft' | 'unknown'.
 interface RunPullRequest {
   status: string | null;
+  // Present only when the runs fetch requested includeCiStatus.
+  ciStatus?: PrCiStatus | null;
+  // The PR number, as a string.
+  id?: string;
   mergedAt?: string | null;
 }
 
@@ -170,6 +183,9 @@ export interface OverviewRow {
   // The question autofix paused on, when status is NEED_MORE_INFORMATION and
   // the pending input payload carries readable text.
   pendingQuestion?: string;
+  // CI status of the linked PR; present only when the runs fetch requested it
+  // and the server could compute it.
+  prCiStatus?: PrCiStatus;
   prNumber?: number;
   prUrl?: string;
   rawSource?: string | null;

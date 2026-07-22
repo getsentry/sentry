@@ -3,6 +3,7 @@ import type {LocationDescriptor} from 'history';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -18,9 +19,10 @@ import {
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 
-import type {AutofixStateKey, CardAction, OverviewRow} from './types';
+import type {AutofixStateKey, CardAction, OverviewRow, PrCiStatus} from './types';
 
 type LinkButtonVariant = React.ComponentProps<typeof LinkButton>['variant'];
+type TagVariant = React.ComponentProps<typeof Tag>['variant'];
 
 // Stage actions are keyed by section; the two extras (awaiting_input, errored)
 // are the transient live-status overlays. Strings are translated product copy.
@@ -90,9 +92,28 @@ export function deriveCardAction(
   row: OverviewRow
 ): CardAction {
   if (sectionKey === 'review_pr') {
-    return {type: 'review_pr', prUrl: row.prUrl, prNumber: row.prNumber};
+    return {
+      type: 'review_pr',
+      prUrl: row.prUrl,
+      prNumber: row.prNumber,
+      prCiStatus: row.prCiStatus,
+    };
   }
   return {type: sectionKey};
+}
+
+const CI_STATUS_TAG: Record<PrCiStatus, {label: string; variant: TagVariant}> = {
+  passed: {variant: 'success', label: t('CI passed')},
+  running: {variant: 'info', label: t('CI running')},
+  failed: {variant: 'danger', label: t('CI failed')},
+};
+
+function PrCiStatusTag({status}: {status: PrCiStatus | undefined}) {
+  if (!status) {
+    return null;
+  }
+  const {variant, label} = CI_STATUS_TAG[status];
+  return <Tag variant={variant}>{label}</Tag>;
 }
 
 const AccentLinkButton = styled(LinkButton)`
@@ -225,10 +246,15 @@ export function IssuePrimaryAction({
         </Tooltip>
       );
     case 'review_pr':
-      return action.prUrl ? (
-        <ReviewPrButton prUrl={action.prUrl} prNumber={action.prNumber} />
-      ) : (
-        <ActionButton actionKey="review_pr" to={runUrl} />
+      return (
+        <Flex gap="sm" align="center">
+          {action.prUrl ? (
+            <ReviewPrButton prUrl={action.prUrl} prNumber={action.prNumber} />
+          ) : (
+            <ActionButton actionKey="review_pr" to={runUrl} />
+          )}
+          <PrCiStatusTag status={action.prCiStatus} />
+        </Flex>
       );
     default:
       return <ActionButton actionKey={action.type} to={runUrl} />;
