@@ -9,7 +9,11 @@ from typing import Any
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_sdk import trace
 
-from sentry.seer.signed_seer_api import LlmGenerateRequest, make_llm_generate_request
+from sentry.seer.signed_seer_api import (
+    LlmGenerateRequest,
+    SeerViewerContext,
+    make_llm_generate_request,
+)
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.utils import json, metrics
 from sentry.utils.ai_message_normalizer import (
@@ -215,7 +219,9 @@ def _title_from_seer_content(content: object) -> str | None:
 
 
 @trace
-def generate_title_with_seer(first_user_message: str) -> str | None:
+def generate_title_with_seer(
+    first_user_message: str, viewer_context: SeerViewerContext | None = None
+) -> str | None:
     """Call Seer LLM proxy; return cleaned title or None on any failure."""
     body = LlmGenerateRequest(
         provider="gemini",
@@ -229,7 +235,7 @@ def generate_title_with_seer(first_user_message: str) -> str | None:
         reasoning="off",  # force thinking_budget=0 on Gemini 2.x flash-lite
     )
     try:
-        response = make_llm_generate_request(body, timeout=20)
+        response = make_llm_generate_request(body, timeout=20, viewer_context=viewer_context)
     except Exception:
         logger.exception("ai_monitoring.conversation_title.seer_request_failed")
         metrics.incr("ai_monitoring.conversation_title.seer", tags={"result": "request_error"})
@@ -258,8 +264,10 @@ def generate_title_with_seer(first_user_message: str) -> str | None:
     return _finalize_title(title)
 
 
-def generate_conversation_title(first_user_message: str) -> str:
+def generate_conversation_title(
+    first_user_message: str, viewer_context: SeerViewerContext | None = None
+) -> str:
     """Generate a title via Seer, falling back to truncated message text."""
-    return generate_title_with_seer(first_user_message) or fallback_title_from_message(
-        first_user_message
-    )
+    return generate_title_with_seer(
+        first_user_message, viewer_context=viewer_context
+    ) or fallback_title_from_message(first_user_message)

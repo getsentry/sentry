@@ -16,6 +16,7 @@ from sentry.ai_monitoring.utils import (
     parse_conversation_title_span,
 )
 from sentry.models.project import Project
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ai_agent_monitoring_tasks
@@ -78,7 +79,8 @@ def generate_ai_conversation_title(span: Mapping[str, Any]) -> None:
         metrics.incr("ai_monitoring.conversation_title.skip", tags={"reason": "later_or_equal_ts"})
         return
 
-    title = generate_conversation_title(data.first_user_message)
+    viewer_context = SeerViewerContext(organization_id=organization.id)
+    title = generate_conversation_title(data.first_user_message, viewer_context=viewer_context)
 
     qs = AIConversationMetadata.objects.filter(
         project_id=data.project_id,

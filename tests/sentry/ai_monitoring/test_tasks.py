@@ -177,7 +177,11 @@ class TitleHelpersTest(TestCase):
     @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
     def test_generate_title_with_seer_success(self, mock_request: MagicMock) -> None:
         mock_request.return_value = _mock_seer_success('  "Help me login"  ')
-        assert generate_title_with_seer("I cannot log in") == "Help me login"
+        viewer_context = {"organization_id": 42}
+        assert (
+            generate_title_with_seer("I cannot log in", viewer_context=viewer_context)
+            == "Help me login"
+        )
         body = mock_request.call_args.args[0]
         assert body["provider"] == "gemini"
         assert body["model"] == "flash-lite"
@@ -188,6 +192,7 @@ class TitleHelpersTest(TestCase):
             "properties": {"title": {"type": "string"}},
             "required": ["title"],
         }
+        assert mock_request.call_args.kwargs["viewer_context"] == viewer_context
 
     @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
     def test_generate_title_with_seer_plain_string_content(self, mock_request: MagicMock) -> None:
@@ -259,7 +264,10 @@ class GenerateAIConversationTitleTaskTest(TestCase):
         assert row.conversation_id_hash == conversation_id_hash("conv-1")
         assert row.title == "AI Title"
         assert row.title_source_timestamp == _ts()
-        mock_generate.assert_called_once()
+        mock_generate.assert_called_once_with(
+            "How do I reset my password?",
+            viewer_context={"organization_id": self.project.organization_id},
+        )
 
     @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="AI Title")
     def test_stores_clamped_conversation_id_and_hashes_full(self, mock_generate: MagicMock) -> None:
@@ -310,7 +318,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
         """
         earlier_ts = _ts(-10)
 
-        def seer_side_effect(message: str) -> str:
+        def seer_side_effect(message: str, **kwargs: Any) -> str:
             self._create_metadata(title="Concurrent Earlier", source_timestamp=earlier_ts)
             return "My Title"
 
