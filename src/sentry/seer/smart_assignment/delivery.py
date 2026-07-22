@@ -22,7 +22,7 @@ class _DeliveryAborted(Exception):
 
 
 def _incr(outcome: str) -> None:
-    metrics.incr("smart_assignment.delivery", tags={"outcome": outcome})
+    metrics.incr("smart_assignment.delivery", tags={"outcome": outcome}, sample_rate=1.0)
 
 
 def _validate_run(
