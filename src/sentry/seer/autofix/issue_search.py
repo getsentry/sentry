@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import timedelta
 
-from django.db.models import Q
+from django.db.models import Case, Max, Q, When
 from django.utils import timezone
 
 from sentry.models.activity import Activity
@@ -22,11 +22,45 @@ AUTOFIX_STATE_VALUES = frozenset(
     }
 )
 
+MILESTONE_ACTIVITY_TYPES = (
+    ActivityType.SEER_SOLUTION_COMPLETED,
+    ActivityType.SEER_CODING_COMPLETED,
+    ActivityType.SEER_PR_CREATED,
+)
 
-def _milestone_q(activity_type: ActivityType, projects: Sequence[Project]) -> Q:
+
+def _milestone_state_q(
+    projects: Sequence[Project],
+    reached: ActivityType,
+    not_reached: Sequence[ActivityType],
+) -> Q:
+    activities = Activity.objects.filter(
+        project__in=projects,
+        type__in=[t.value for t in (reached, *not_reached)],
+        group_id__isnull=False,
+    )
+    if not not_reached:
+        return Q(id__in=activities.values_list("group_id", flat=True))
+
+    annotations = {
+        f"reached_{t.value}": Max(Case(When(type=t.value, then=1), default=0))
+        for t in (reached, *not_reached)
+    }
+    having = {f"reached_{reached.value}": 1} | {f"reached_{t.value}": 0 for t in not_reached}
+    return Q(
+        id__in=activities.values("group_id")
+        .annotate(**annotations)
+        .filter(**having)
+        .values_list("group_id", flat=True)
+    )
+
+
+def _any_milestone_q(projects: Sequence[Project]) -> Q:
     return Q(
         id__in=Activity.objects.filter(
-            project__in=projects, type=activity_type.value, group_id__isnull=False
+            project__in=projects,
+            type__in=[t.value for t in MILESTONE_ACTIVITY_TYPES],
+            group_id__isnull=False,
         ).values_list("group_id", flat=True)
     )
 
@@ -54,20 +88,29 @@ def autofix_state_filter(
     values: list[str], projects: Sequence[Project], recency_window: timedelta
 ) -> Q:
     merged = _merged_pr_q(projects)
-    pr_created = _milestone_q(ActivityType.SEER_PR_CREATED, projects)
-    coding = _milestone_q(ActivityType.SEER_CODING_COMPLETED, projects)
-    solution = _milestone_q(ActivityType.SEER_SOLUTION_COMPLETED, projects)
 
     conditions: dict[str, Q] = {
         "merged": merged,
-        "review_pr": pr_created & ~merged,
-        "code_changes_ready": coding & ~pr_created & ~merged,
-        "solution_ready": solution & ~coding & ~pr_created & ~merged,
+        "review_pr": _milestone_state_q(projects, ActivityType.SEER_PR_CREATED, []) & ~merged,
+        "code_changes_ready": (
+            _milestone_state_q(
+                projects,
+                ActivityType.SEER_CODING_COMPLETED,
+                [ActivityType.SEER_PR_CREATED],
+            )
+            & ~merged
+        ),
+        "solution_ready": (
+            _milestone_state_q(
+                projects,
+                ActivityType.SEER_SOLUTION_COMPLETED,
+                [ActivityType.SEER_CODING_COMPLETED, ActivityType.SEER_PR_CREATED],
+            )
+            & ~merged
+        ),
         "needs_investigation": (
             Q(seer_explorer_autofix_last_triggered__gte=timezone.now() - recency_window)
-            & ~solution
-            & ~coding
-            & ~pr_created
+            & ~_any_milestone_q(projects)
             & ~merged
         ),
     }
