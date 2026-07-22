@@ -44,7 +44,7 @@ class GroupActivitiesEndpointTest(APITestCase):
         assert "activity" in response.data
         assert len(response.data["activity"]) == 5
 
-    @with_feature("projects:issue-action-log-read-from-gale")
+    @with_feature("projects:issue-action-log-activity")
     def test_endpoint_with_group_action_log_entries(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
