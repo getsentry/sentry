@@ -66,7 +66,7 @@ interface UserUiFeedback extends ParsedBaseFeedback {
 
 interface GithubPrCommentFeedback extends ParsedBaseFeedback {
   commentUrl: string;
-  sourceType: 'github-pr-comment' | 'github-pr-review-comment';
+  sourceType: 'github-pr-comment' | 'github-pr-review-comment' | 'github-pr-review-body';
   githubUsername?: string;
 }
 
@@ -114,6 +114,19 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
         ...base,
         sourceType: source.type,
         githubUsername: source.comment?.user?.login,
+        commentUrl,
+      };
+    }
+    case 'github-pr-review-body': {
+      // Unlike a review comment, the review body carries its link directly on
+      // `html_url` and has no comment author login to attribute.
+      const commentUrl = source.html_url;
+      if (!commentUrl) {
+        return null;
+      }
+      return {
+        ...base,
+        sourceType: source.type,
         commentUrl,
       };
     }
@@ -473,6 +486,7 @@ function feedbackLinkUrl(item: IterationFeedback): string | undefined {
   switch (item.sourceType) {
     case 'github-pr-comment':
     case 'github-pr-review-comment':
+    case 'github-pr-review-body':
       return item.commentUrl;
     case 'check-suite':
       return item.checkSuiteUrl;
@@ -485,8 +499,13 @@ function FeedbackAttribution({item}: {item: IterationFeedback}) {
   switch (item.sourceType) {
     case 'github-pr-comment':
     case 'github-pr-review-comment':
+    case 'github-pr-review-body': {
+      const fallbackTitle =
+        item.sourceType === 'github-pr-review-body'
+          ? t('GitHub PR review')
+          : t('GitHub PR comment');
       return (
-        <Tooltip title={item.githubUsername ?? t('GitHub PR comment')} skipWrapper>
+        <Tooltip title={item.githubUsername ?? fallbackTitle} skipWrapper>
           <ExternalLink href={item.commentUrl}>
             <Flex align="center">
               <IconGithub size="md" data-test-id="icon-github" />
@@ -494,6 +513,7 @@ function FeedbackAttribution({item}: {item: IterationFeedback}) {
           </ExternalLink>
         </Tooltip>
       );
+    }
     case 'check-suite': {
       const icon = (
         <Flex align="center">

@@ -108,11 +108,10 @@ class TestSelectRequester(TestCase):
             status=500,
         )
 
-        with self.feature("organizations:sentry-apps-custom-webhook-headers"):
-            with pytest.raises(SentryAppIntegratorError):
-                SelectRequester(
-                    install=self.install, project_slug=self.project.slug, uri="/get-issues"
-                ).run()
+        with pytest.raises(SentryAppIntegratorError):
+            SelectRequester(
+                install=self.install, project_slug=self.project.slug, uri="/get-issues"
+            ).run()
 
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer secret-token"
@@ -127,26 +126,6 @@ class TestSelectRequester(TestCase):
         assert logged_headers["Content-Type"] == "application/json"
         assert logged_headers["Sentry-App-Signature"] == self.sentry_app.build_signature("")
         assert "secret-token" not in logged_headers.values()
-
-    @responses.activate
-    def test_no_custom_headers_without_feature(self) -> None:
-        with assume_test_silo_mode_of(SentryApp):
-            self.sentry_app.update(webhook_headers=["Authorization: Bearer secret-token"])
-        self.install = app_service.get_many(filter=dict(installation_ids=[self.orm_install.id]))[0]
-
-        responses.add(
-            method=responses.GET,
-            url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
-            json=[{"label": "An Issue", "value": "123"}],
-            status=200,
-            content_type="application/json",
-        )
-
-        SelectRequester(
-            install=self.install, project_slug=self.project.slug, uri="/get-issues"
-        ).run()
-
-        assert "Authorization" not in responses.calls[0].request.headers
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

@@ -700,8 +700,7 @@ class PostSentryAppsTest(SentryAppsTest):
                 ]
             }
 
-    @with_feature("organizations:sentry-apps-granular-events")
-    def test_can_create_with_granular_events_with_flag(self) -> None:
+    def test_can_create_with_granular_events(self) -> None:
         response = self.get_success_response(
             **self.get_data(events=("issue.resolved",)), status_code=201
         )
@@ -709,7 +708,6 @@ class PostSentryAppsTest(SentryAppsTest):
         # Stored verbatim, not expanded to the whole issue resource.
         assert sentry_app.events == ["issue.resolved"]
 
-    @with_feature("organizations:sentry-apps-granular-events")
     def test_granular_event_requires_resource_scope(self) -> None:
         data = self.get_data(events=("issue.resolved",), scopes=("project:read",))
         response = self.get_error_response(**data, status_code=400)

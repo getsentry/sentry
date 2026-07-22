@@ -37,6 +37,7 @@ from sentry.search.snuba.executors import (
     TrendsSortWeights,
 )
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
+from sentry.seer.autofix.issue_search import autofix_state_filter
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.users.models.user import User
 from sentry.utils import metrics
@@ -724,6 +725,13 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "issue.seer_actionability": QCallbackCondition(seer_actionability_filter),
             "issue.progress": QCallbackCondition(
                 functools.partial(issue_progress_filter, projects=projects)
+            ),
+            "issue.autofix_state": QCallbackCondition(
+                functools.partial(
+                    autofix_state_filter,
+                    projects=projects,
+                    recency_window=SEER_LAST_RUN_RECENCY_WINDOW,
+                )
             ),
             # TODO: the recency window approximates an "active" run while
             # we figure out how to handle deletion of seer runs better. Once runs

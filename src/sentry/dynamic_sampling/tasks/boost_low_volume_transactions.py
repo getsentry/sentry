@@ -93,9 +93,6 @@ def boost_low_volume_transactions() -> None:
     num_big_trans = int(
         options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
     )
-    num_small_trans = int(
-        options.get("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions")
-    )
 
     for orgs in GetActiveOrgs(
         max_projects=MAX_PROJECTS_PER_QUERY,
@@ -108,14 +105,13 @@ def boost_low_volume_transactions() -> None:
             amount=len(orgs),
         )
         _process_orgs_for_boost_low_volume_transactions(
-            orgs, num_big_trans, num_small_trans, measure=SamplingMeasure.SEGMENTS
+            orgs, num_big_trans, measure=SamplingMeasure.SEGMENTS
         )
 
 
 def _process_orgs_for_boost_low_volume_transactions(
     orgs: list[int],
     num_big_trans: int,
-    num_small_trans: int,
     measure: SamplingMeasure,
 ) -> None:
     """
@@ -125,22 +121,13 @@ def _process_orgs_for_boost_low_volume_transactions(
         return
 
     totals_it = FetchProjectTransactionTotals(orgs, measure=measure)
-    small_transactions_it = FetchProjectTransactionVolumes(
-        orgs,
-        large_transactions=False,
-        max_transactions=num_small_trans,
-        measure=measure,
-    )
     big_transactions_it = FetchProjectTransactionVolumes(
         orgs,
-        large_transactions=True,
         max_transactions=num_big_trans,
         measure=measure,
     )
 
-    for project_transactions in transactions_zip(
-        totals_it, big_transactions_it, small_transactions_it
-    ):
+    for project_transactions in transactions_zip(totals_it, big_transactions_it):
         boost_low_volume_transactions_of_project.apply_async(
             kwargs={"project_transactions": project_transactions},
             headers={"sentry-propagate-traces": False},
@@ -429,12 +416,10 @@ class FetchProjectTransactionTotals:
 
 class FetchProjectTransactionVolumes:
     """
-    Fetch transactions for all orgs and all projects with pagination orgs and projects with count per root project
+    Fetch the highest-volume transactions for all orgs and all projects with pagination
+    orgs and projects with count per root project
 
     org_ids: the orgs for which the projects & transactions should be returned
-
-    large_transactions: if True it returns transactions with the largest count
-                        if False it returns transactions with the smallest count
 
     max_transactions: maximum number of transactions to return
 
@@ -444,11 +429,9 @@ class FetchProjectTransactionVolumes:
     def __init__(
         self,
         orgs: list[int],
-        large_transactions: bool,
         max_transactions: int,
         measure: SamplingMeasure = SamplingMeasure.SEGMENTS,
     ):
-        self.large_transactions = large_transactions
         self.max_transactions = max_transactions
         self.org_ids = orgs
         self.offset = 0
@@ -464,17 +447,12 @@ class FetchProjectTransactionVolumes:
         self.has_more_results = True
         self.cache: list[ProjectTransactions] = []
 
-        if self.large_transactions:
-            self.transaction_ordering = Direction.DESC
-        else:
-            self.transaction_ordering = Direction.ASC
-
     def __iter__(self) -> FetchProjectTransactionVolumes:
         return self
 
     def __next__(self) -> ProjectTransactions:
         if self.max_transactions == 0:
-            # the user is not interested in transactions of this type, return nothing.
+            # the user is not interested in explicit transactions, return nothing.
             raise StopIteration()
 
         if not self._cache_empty():
@@ -520,7 +498,7 @@ class FetchProjectTransactionVolumes:
                     orderby=[
                         OrderBy(Column("org_id"), Direction.ASC),
                         OrderBy(Column("project_id"), Direction.ASC),
-                        OrderBy(Column("num_transactions"), self.transaction_ordering),
+                        OrderBy(Column("num_transactions"), Direction.DESC),
                     ],
                 )
                 .set_limitby(
@@ -544,14 +522,9 @@ class FetchProjectTransactionVolumes:
             )["data"]
 
             metric_type = self.measure.value
-            volume_type = "large" if self.large_transactions else "small"
             metrics.incr(
                 "dynamic_sampling.boost_low_volume_transactions.query",
-                tags={
-                    "query_type": "volumes",
-                    "metric_type": metric_type,
-                    "volume_type": volume_type,
-                },
+                tags={"query_type": "volumes", "metric_type": metric_type},
                 sample_rate=1,
             )
 
@@ -624,53 +597,22 @@ class FetchProjectTransactionVolumes:
 
 
 def merge_transactions(
-    left: ProjectTransactions | None,
-    right: ProjectTransactions | None,
+    transactions: ProjectTransactions,
     totals: ProjectTransactionsTotals | None,
 ) -> ProjectTransactions:
-    if right is None and left is None:
-        raise ValueError(
-            "no transactions passed to merge",
-        )
-
-    if left is not None and right is not None and not is_same_project(left, right):
-        raise ValueError(
-            "mismatched project transactions",
-            (left["org_id"], left["project_id"]),
-            (right["org_id"], right["project_id"]),
-        )
-
-    if totals is not None and not is_same_project(left, totals):
-        left_tuple = (left["org_id"], left["project_id"]) if left is not None else None
-        totals_tuple = (totals["org_id"], totals["project_id"]) if totals is not None else None
+    if totals is not None and not is_same_project(transactions, totals):
         raise ValueError(
             "mismatched projectTransaction and projectTransactionTotals",
-            left_tuple,
-            totals_tuple,
+            (transactions["org_id"], transactions["project_id"]),
+            (totals["org_id"], totals["project_id"]),
         )
-
-    assert left is not None
-
-    if right is None:
-        merged_transactions = left["transaction_counts"]
-    else:
-        # we have both left and right we need to merge
-        names = set()
-        merged_transactions = [*left["transaction_counts"]]
-        for transaction_name, _ in merged_transactions:
-            names.add(transaction_name)
-
-        for transaction_name, count in right["transaction_counts"]:
-            if transaction_name not in names:
-                # not already in left, add it
-                merged_transactions.append((transaction_name, count))
 
     total_num_classes = totals.get("total_num_classes") if totals is not None else None
 
     return {
-        "org_id": left["org_id"],
-        "project_id": left["project_id"],
-        "transaction_counts": merged_transactions,
+        "org_id": transactions["org_id"],
+        "project_id": transactions["project_id"],
+        "transaction_counts": transactions["transaction_counts"],
         "total_num_transactions": (
             totals.get("total_num_transactions") if totals is not None else None
         ),
@@ -719,58 +661,13 @@ def next_totals(
 
 def transactions_zip(
     totals: Iterator[ProjectTransactionsTotals],
-    left: Iterator[ProjectTransactions],
-    right: Iterator[ProjectTransactions],
+    transactions: Iterator[ProjectTransactions],
 ) -> Iterator[ProjectTransactions]:
     """
-    returns a generator that zips left and right (when they match) and when not it re-aligns the sequence
-
-    if it finds a totals to match it consolidates the result with totals information as well
+    Consolidates each project's transaction volumes with its totals information,
+    when a matching totals entry exists.
     """
-
-    more_right = True
-    more_left = True
-    left_elm = None
-    right_elm = None
-
     get_next_total = next_totals(totals)
 
-    while more_left or more_right:
-        if more_right and right_elm is None:
-            try:
-                right_elm = next(right)
-            except StopIteration:
-                more_right = False
-                right_elm = None
-        if more_left and left_elm is None:
-            try:
-                left_elm = next(left)
-            except StopIteration:
-                more_left = False
-                left_elm = None
-
-        if left_elm is None and right_elm is None:
-            return
-
-        if right_elm is not None and left_elm is not None:
-            # we have both right and left try to merge them if they point to the same entity
-            if is_same_project(left_elm, right_elm):
-                yield merge_transactions(left_elm, right_elm, get_next_total(left_elm))
-                left_elm = None
-                right_elm = None
-            elif is_project_identity_before(left_elm, right_elm):
-                # left is before right (return left keep right for next iteration)
-                yield merge_transactions(left_elm, None, get_next_total(left_elm))
-                left_elm = None
-            else:  # project_before(right_elm, left_elm):
-                # right before left ( return right keep left for next iteration)
-                yield merge_transactions(right_elm, None, get_next_total(right_elm))
-                right_elm = None
-        else:
-            # only one is not None
-            if left_elm is not None:
-                yield merge_transactions(left_elm, None, get_next_total(left_elm))
-                left_elm = None
-            elif right_elm is not None:
-                yield merge_transactions(right_elm, None, get_next_total(right_elm))
-                right_elm = None
+    for project_transactions in transactions:
+        yield merge_transactions(project_transactions, get_next_total(project_transactions))
