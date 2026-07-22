@@ -182,7 +182,7 @@ class GroupedWorkflowEvaluationResult:
         log_str = "workflow_engine.process_workflows.evaluation"
 
         if self.tainted:
-            if self.triggered_workflows is None:
+            if not self.triggered_workflows:
                 log_str = f"{log_str}.workflows.not_triggered"
             else:
                 log_str = f"{log_str}.workflows.triggered"
