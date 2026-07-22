@@ -1,8 +1,12 @@
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
-
 import {
+  buildAnalysis,
   deriveSectionKey,
+  extractPatchInfo,
   extractPendingQuestion,
+  INLINE_DIFF_MAX_CHANGED_LINES,
+  INLINE_DIFF_MAX_FILES,
+  mostRecentTimestamp,
   normalizeBulletList,
   parseRootCause,
 } from 'sentry/views/seerWorkflows/overview/buildOverviewRows';
@@ -10,6 +14,67 @@ import type {SeerRun} from 'sentry/views/seerWorkflows/overview/types';
 
 function makeBlock(step: string) {
   return {message: {role: 'assistant', content: step, metadata: {step}}};
+}
+
+function makePatch({
+  repo = 'getsentry/sentry',
+  path = 'src/cart.py',
+  added = 1,
+  removed = 0,
+  lines = 1,
+}: {
+  added?: number;
+  lines?: number;
+  path?: string;
+  removed?: number;
+  repo?: string;
+} = {}) {
+  return {
+    repo_name: repo,
+    diff: '--- a\n+++ b',
+    patch: {
+      path,
+      source_file: path,
+      target_file: path,
+      type: 'M',
+      added,
+      removed,
+      hunks: [
+        {
+          section_header: '',
+          source_start: 1,
+          source_length: lines,
+          target_start: 1,
+          target_length: lines,
+          lines: Array.from({length: lines}, (_, index) => ({
+            value: `line ${index}`,
+            line_type: '+',
+            source_line_no: null,
+            target_line_no: index + 1,
+            diff_line_no: index + 1,
+          })),
+        },
+      ],
+    },
+  };
+}
+
+function makeCodeChangesState(
+  patches: Array<ReturnType<typeof makePatch>>
+): ExplorerAutofixState {
+  return makeState({
+    status: 'completed',
+    blocks: [
+      {
+        message: {
+          role: 'assistant',
+          content: 'code_changes',
+          metadata: {step: 'code_changes'},
+        },
+        merged_file_patches: patches,
+      },
+    ],
+  });
 }
 
 function makeState(overrides: Record<string, unknown> = {}): ExplorerAutofixState {
@@ -32,12 +97,12 @@ function makeRun(overrides: Partial<SeerRun> = {}): SeerRun {
 
 describe('parseRootCause', () => {
   it('splits a headline from the root cause on the first pipe', () => {
-    expect(parseRootCause('Cart total is null|Commit c5bb895 removed the guard.')).toEqual(
-      {
-        headline: 'Cart total is null',
-        answer: 'Commit c5bb895 removed the guard.',
-      }
-    );
+    expect(
+      parseRootCause('Cart total is null|Commit c5bb895 removed the guard.')
+    ).toEqual({
+      headline: 'Cart total is null',
+      answer: 'Commit c5bb895 removed the guard.',
+    });
   });
 
   it('splits only on the first pipe, keeping later pipes in the body', () => {
@@ -82,6 +147,115 @@ describe('normalizeBulletList', () => {
 
   it('leaves input without a bullet untouched', () => {
     expect(normalizeBulletList('A single next step.')).toBe('A single next step.');
+  });
+
+  it('drops empty items from consecutive bullets', () => {
+    expect(normalizeBulletList('A ••B')).toBe('A\n- B');
+  });
+
+  it('drops a trailing empty bullet', () => {
+    expect(normalizeBulletList('Intro •First •')).toBe('Intro\n- First');
+  });
+});
+
+describe('mostRecentTimestamp', () => {
+  it('returns the numerically latest of mixed defined candidates', () => {
+    // The .500Z timestamp is later in time but sorts *before* the whole-second
+    // one lexicographically ('.' < 'Z'), so this pins the numeric comparison.
+    expect(
+      mostRecentTimestamp(
+        '2026-07-01T10:00:00Z',
+        undefined,
+        '2026-07-01T10:00:00.500Z',
+        null
+      )
+    ).toBe('2026-07-01T10:00:00.500Z');
+  });
+
+  it('returns an empty string when every candidate is nullish', () => {
+    expect(mostRecentTimestamp(null, undefined)).toBe('');
+  });
+});
+
+describe('buildAnalysis', () => {
+  it('maps an output with no question field to its positional config', () => {
+    const {entries, headline} = buildAnalysis([
+      {key: '', answer: 'Cart total is null|The guard was removed.'},
+    ]);
+    expect(headline).toBe('Cart total is null');
+    expect(entries).toEqual([
+      {key: 'root_cause', label: 'Root cause', answer: 'The guard was removed.'},
+    ]);
+  });
+
+  it('falls back positionally when the question string matches nothing', () => {
+    const {entries} = buildAnalysis([
+      {key: '', question: 'not a real prompt', answer: 'A headline|a cause'},
+      {key: '', question: 'still not real', answer: 'Adds a guard.'},
+    ]);
+    expect(entries.map(entry => entry.key)).toEqual(['root_cause', 'fix_summary']);
+  });
+
+  it('drops empty-string answers', () => {
+    const {entries} = buildAnalysis([
+      {key: '', answer: 'A headline|a cause'},
+      {key: '', answer: ''},
+      {key: '', answer: 'Confirm the config value.'},
+    ]);
+    expect(entries.map(entry => entry.key)).toEqual(['root_cause', 'next_steps']);
+  });
+});
+
+describe('extractPatchInfo', () => {
+  it('renders inline at exactly the changed-line limit', () => {
+    const {inlinePatches, patchStats} = extractPatchInfo(
+      makeCodeChangesState([
+        makePatch({added: INLINE_DIFF_MAX_CHANGED_LINES, removed: 0, lines: 3}),
+      ])
+    );
+    expect(patchStats?.added).toBe(INLINE_DIFF_MAX_CHANGED_LINES);
+    expect(inlinePatches).toHaveLength(1);
+  });
+
+  it('falls back to a pill one line over the changed-line limit', () => {
+    const {inlinePatches, patchStats} = extractPatchInfo(
+      makeCodeChangesState([
+        makePatch({added: INLINE_DIFF_MAX_CHANGED_LINES + 1, removed: 0, lines: 3}),
+      ])
+    );
+    expect(patchStats?.added).toBe(INLINE_DIFF_MAX_CHANGED_LINES + 1);
+    expect(inlinePatches).toBeUndefined();
+  });
+
+  it('renders inline at exactly the file limit', () => {
+    const patches = Array.from({length: INLINE_DIFF_MAX_FILES}, (_, index) =>
+      makePatch({path: `src/file${index}.py`, added: 1, removed: 0, lines: 1})
+    );
+    const {inlinePatches} = extractPatchInfo(makeCodeChangesState(patches));
+    expect(inlinePatches).toHaveLength(INLINE_DIFF_MAX_FILES);
+  });
+
+  it('falls back to a pill one file over the file limit', () => {
+    const patches = Array.from({length: INLINE_DIFF_MAX_FILES + 1}, (_, index) =>
+      makePatch({path: `src/file${index}.py`, added: 1, removed: 0, lines: 1})
+    );
+    const {inlinePatches, patchStats} = extractPatchInfo(makeCodeChangesState(patches));
+    expect(inlinePatches).toBeUndefined();
+    expect(patchStats?.files).toBe(INLINE_DIFF_MAX_FILES + 1);
+  });
+
+  it('prefixes file paths with the repo when the diff spans repos', () => {
+    const {inlinePatches, patchStats} = extractPatchInfo(
+      makeCodeChangesState([
+        makePatch({repo: 'getsentry/sentry', path: 'src/a.py', added: 1, lines: 1}),
+        makePatch({repo: 'getsentry/getsentry', path: 'src/b.py', added: 1, lines: 1}),
+      ])
+    );
+    expect(patchStats?.fileList.map(file => file.path).sort()).toEqual([
+      'getsentry/getsentry:src/b.py',
+      'getsentry/sentry:src/a.py',
+    ]);
+    expect(inlinePatches?.every(patch => patch.repoName !== undefined)).toBe(true);
   });
 });
 
@@ -156,6 +330,12 @@ describe('deriveSectionKey', () => {
       name: 'code changes beat a solution',
       run: makeRun(),
       state: makeState({blocks: [makeBlock('solution'), makeBlock('code_changes')]}),
+      expected: 'code_changes_ready',
+    },
+    {
+      name: 'a coding-agents-only run reads as code changes ready',
+      run: makeRun(),
+      state: makeState({blocks: [makeBlock('coding_agents')]}),
       expected: 'code_changes_ready',
     },
     {

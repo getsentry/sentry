@@ -52,11 +52,11 @@ export function deriveSectionKey(
 // A diff qualifies for the on-card differ only when it is genuinely small:
 // few files, few changed lines, and bounded hunk context so a fix with huge
 // surrounding context can't blow the card up.
-const INLINE_DIFF_MAX_FILES = 2;
-const INLINE_DIFF_MAX_CHANGED_LINES = 25;
+export const INLINE_DIFF_MAX_FILES = 2;
+export const INLINE_DIFF_MAX_CHANGED_LINES = 25;
 const INLINE_DIFF_MAX_RENDERED_LINES = 60;
 
-function extractPatchInfo(state: ExplorerAutofixState | null): {
+export function extractPatchInfo(state: ExplorerAutofixState | null): {
   inlinePatches?: OverviewRow['inlinePatches'];
   patchStats?: PatchStats;
 } {
@@ -182,7 +182,7 @@ export function normalizeBulletList(answer: string): string {
  * returned in question order. Empty answers mean "not applicable" (the prompts
  * ask for an empty string) and are dropped.
  */
-function buildAnalysis(outputs: RunQuestion[] | undefined): {
+export function buildAnalysis(outputs: RunQuestion[] | undefined): {
   entries: RunAnalysisEntry[];
   headline?: string;
 } {
@@ -216,7 +216,9 @@ function buildAnalysis(outputs: RunQuestion[] | undefined): {
   return {entries, headline};
 }
 
-function mostRecentTimestamp(...candidates: Array<string | null | undefined>): string {
+export function mostRecentTimestamp(
+  ...candidates: Array<string | null | undefined>
+): string {
   let latest = '';
   let latestTime = -Infinity;
   for (const candidate of candidates) {

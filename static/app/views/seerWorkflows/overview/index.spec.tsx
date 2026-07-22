@@ -711,6 +711,15 @@ describe('AutofixOverview', () => {
 
   it('surfaces a per-section error while other sections still load', async () => {
     // Only the code-changes bucket fails; the others resolve as seeded.
+    const codeIssue = GroupFixture({
+      id: '3',
+      shortId: 'PROJ-3',
+      title: 'Retry succeeded issue',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/3/autofix/`,
+      body: {autofix: null},
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/`,
       match: [MockApiClient.matchQuery({query: SECTION_QUERIES.code_changes_ready})],
@@ -727,7 +736,18 @@ describe('AutofixOverview', () => {
       })
     ).toBeInTheDocument();
     // …while the failed section shows a retryable error inline.
-    expect(await screen.findByText('There was an error loading data.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
+
+    // Re-arm the section with a success response, then retry: its card
+    // appears, proving the LoadingError's onRetry refetches the section.
+    mockSection(SECTION_QUERIES.code_changes_ready, {body: [codeIssue], hits: '1'});
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    expect(
+      await screen.findByRole('link', {name: 'Retry succeeded issue'})
+    ).toBeInTheDocument();
   });
 
   it('renders an error state only when every section fails', async () => {
@@ -739,6 +759,83 @@ describe('AutofixOverview', () => {
     });
 
     renderPage();
+
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
+  });
+
+  it('falls back to the body length for the count when X-Hits is absent', async () => {
+    // No X-Hits header, so the badge reports the returned body length.
+    mockSection(SECTION_QUERIES.review_pr, {body: [issue]});
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Awaiting your review 1'})
+    ).toBeInTheDocument();
+  });
+
+  it('renders the section headers in pipeline (SECTION_ORDER) order', async () => {
+    renderPage();
+
+    await screen.findByRole('button', {name: /Awaiting your review/});
+
+    // Reordering the PIPELINE table reorders these headers and fails here.
+    const headers = [
+      /Awaiting your review/,
+      /Code changes ready/,
+      /Ready to generate code/,
+      /Needs investigation/,
+      /Merged/,
+    ].map(name => screen.getByRole('button', {name}));
+
+    for (let index = 0; index < headers.length - 1; index++) {
+      expect(
+        headers[index]!.compareDocumentPosition(headers[index + 1]!) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    }
+  });
+
+  it('falls back to the internal review link when a review_pr run has no PR url', async () => {
+    // Section is authoritative (review_pr), but the enrichment carries no PR
+    // url, so the primary action links back into the run, not out to GitHub.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/2/autofix/`,
+      body: {autofix: makeAutofixState({repo_pr_states: {}})},
+    });
+
+    renderPage();
+
+    const reviewButton = await screen.findByRole('button', {name: 'Review PR'});
+    expect(reviewButton).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/2/?seerDrawer=true`
+    );
+  });
+
+  it('shows a not-found message when the focused issue resolves empty', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      match: [MockApiClient.matchQuery({group: ['2']})],
+      body: [],
+    });
+
+    renderPage({id: '2'});
+
+    expect(await screen.findByText('Issue not found.')).toBeInTheDocument();
+  });
+
+  it('shows an error state when the focused issue request fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      match: [MockApiClient.matchQuery({group: ['2']})],
+      statusCode: 500,
+      body: {detail: 'boom'},
+    });
+
+    renderPage({id: '2'});
 
     expect(
       await screen.findByText('There was an error loading data.')
