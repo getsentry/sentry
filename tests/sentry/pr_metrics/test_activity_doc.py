@@ -28,6 +28,7 @@ from sentry.pr_metrics.activity_doc import (
     human_participant_count,
     is_failing_conclusion,
     new_document,
+    reviews_requested_count_from_doc,
     timeline_events_from_doc,
 )
 
@@ -878,6 +879,24 @@ def test_derived_metrics_empty_doc() -> None:
         "closed_by_bot": None,
         "opened_and_closed_by_same_actor": None,
     }
+
+
+def test_reviews_requested_count_from_doc_nets_removals() -> None:
+    doc = new_document()
+    doc["counts"] = {"review_requested": 3, "review_request_removed": 1}
+    assert reviews_requested_count_from_doc(doc) == 2
+
+
+def test_reviews_requested_count_from_doc_floors_at_zero() -> None:
+    # More removals than requests can't be matched 1:1 (e.g. a second
+    # reviewer's outstanding request), so the net never goes negative.
+    doc = new_document()
+    doc["counts"] = {"review_requested": 1, "review_request_removed": 3}
+    assert reviews_requested_count_from_doc(doc) == 0
+
+
+def test_reviews_requested_count_from_doc_empty() -> None:
+    assert reviews_requested_count_from_doc(new_document()) == 0
 
 
 def test_commit_shas_from_doc_normal_chain() -> None:

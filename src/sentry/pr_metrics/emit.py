@@ -227,6 +227,46 @@ def ci_failing_at_close(pull_request: PullRequest) -> bool:
     )
 
 
+def reviews_requested_count(pull_request: PullRequest) -> int:
+    """Net outstanding review requests at the PR's terminal event:
+    ``REVIEW_REQUESTED`` minus ``REVIEW_REQUEST_REMOVED``, floored at 0.
+
+    Distinct from ``PullRequestMetrics.reviews_count``: that only says whether a
+    review was ever *submitted*, so a PR with reviewers requested but never
+    actioned looks identical to one nobody was ever asked to review. Floored at
+    0 because a removal can't be matched to which earlier request it revoked —
+    e.g. a second reviewer's request outliving the first's removal — so the net
+    can't go negative.
+
+    Read directly off the activity store at emit time rather than written
+    through to ``PullRequestMetrics`` like ``reviews_count`` and its siblings:
+    every current caller of ``build_pr_metrics_row`` runs before that PR's
+    activity is swept (``cleanup_pr_activity_task`` is only ever enqueued from
+    inside a successful ``emit_pr_metrics_row``, and each PR is only emitted
+    once), so there's no "later re-derivation" that would need a persisted copy.
+    """
+    doc = load_activity_document(pull_request)
+    if doc is not None:
+        return activity_doc.reviews_requested_count_from_doc(doc)
+
+    rows = list(
+        PullRequestActivity.objects.filter(
+            pull_request=pull_request,
+            event_type__in=(
+                PullRequestActivityType.REVIEW_REQUESTED,
+                PullRequestActivityType.REVIEW_REQUEST_REMOVED,
+            ),
+        ).values_list("event_type", flat=True)
+    )
+    requested = sum(
+        1 for event_type in rows if event_type == PullRequestActivityType.REVIEW_REQUESTED
+    )
+    removed = sum(
+        1 for event_type in rows if event_type == PullRequestActivityType.REVIEW_REQUEST_REMOVED
+    )
+    return max(requested - removed, 0)
+
+
 def calculate_deterministic_diagnosis_labels(
     pull_request: PullRequest, verdict: PullRequestVerdict | None
 ) -> list[str] | None:
@@ -459,6 +499,7 @@ def build_pr_metrics_row(
         reviews_count=metrics.reviews_count,
         reviews_bot_count=metrics.reviews_bot_count,
         reviews_human_count=metrics.reviews_human_count,
+        reviews_requested_count=reviews_requested_count(pull_request),
         pushes_bot_count=metrics.pushes_bot_count,
         pushes_human_count=metrics.pushes_human_count,
         opened_by_bot=metrics.opened_by_bot,

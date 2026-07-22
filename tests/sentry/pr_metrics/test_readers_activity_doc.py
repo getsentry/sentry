@@ -27,6 +27,7 @@ from sentry.pr_metrics.emit import (
     VerdictDeferral,
     _activity_derived_metrics,
     ci_failing_at_close,
+    reviews_requested_count,
     select_fallback_verdict,
     select_verdict,
 )
@@ -174,6 +175,35 @@ class ActivityDocumentReadersTest(TestCase):
     def test_ci_not_failing_at_close_from_doc(self) -> None:
         self._write_doc(_doc(checks={"sha1|github-actions": _group(suite_conclusion="success")}))
         assert ci_failing_at_close(self.pr) is False
+
+    # --- reviews_requested_count -------------------------------------------
+
+    def test_reviews_requested_count_from_doc(self) -> None:
+        self._write_doc(_doc(counts={"review_requested": 3, "review_request_removed": 1}))
+        assert reviews_requested_count(self.pr) == 2
+
+    def test_reviews_requested_count_from_legacy_rows(self) -> None:
+        # No PullRequestActivityLog row → routes to the legacy PullRequestActivity
+        # rows instead of the doc.
+        PullRequestActivity.objects.create(
+            pull_request=self.pr,
+            webhook_id="rr1",
+            event_type=PullRequestActivityType.REVIEW_REQUESTED,
+            payload={},
+        )
+        PullRequestActivity.objects.create(
+            pull_request=self.pr,
+            webhook_id="rr2",
+            event_type=PullRequestActivityType.REVIEW_REQUESTED,
+            payload={},
+        )
+        PullRequestActivity.objects.create(
+            pull_request=self.pr,
+            webhook_id="rr3",
+            event_type=PullRequestActivityType.REVIEW_REQUEST_REMOVED,
+            payload={},
+        )
+        assert reviews_requested_count(self.pr) == 1
 
     # --- resolved_group_ids -----------------------------------------------
 

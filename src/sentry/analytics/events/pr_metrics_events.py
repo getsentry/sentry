@@ -69,6 +69,12 @@ class PrCloseMetricsEvent(analytics.Event):
     # Reviews split by the reviewer's account class; the two sum to reviews_count.
     reviews_bot_count: int = 0
     reviews_human_count: int = 0
+    # Net outstanding review requests at the terminal event (REVIEW_REQUESTED
+    # minus REVIEW_REQUEST_REMOVED, floored at 0). Distinct from reviews_count:
+    # this answers "was a review ever asked for", not "was one ever submitted",
+    # so a requested-but-unreviewed PR doesn't look identical to one nobody was
+    # ever asked to review.
+    reviews_requested_count: int = 0
     # Pushes (opened + synchronize events) split by the pusher's account class. A
     # push, not a commit: GitHub's synchronize payload carries no commit count, so
     # this counts push events, with a bot-app push attributed to the bot.

@@ -26,6 +26,7 @@ from sentry.pr_metrics.emit import (
     emit_pr_metrics_row,
     is_pr_tracked,
     resolve_autofix_referrers,
+    reviews_requested_count,
     select_fallback_verdict,
     select_verdict,
 )
@@ -151,6 +152,18 @@ class PrMetricsEmissionTest(TestCase):
             webhook_id=webhook_id,
             event_type=PullRequestActivityType.CHECK_SUITE_COMPLETED,
             payload={"conclusion": conclusion, "app_slug": app_slug, "check_runs_count": 1},
+        )
+
+    def _add_review_request(self, *, webhook_id: str, removed: bool = False) -> None:
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id=webhook_id,
+            event_type=(
+                PullRequestActivityType.REVIEW_REQUEST_REMOVED
+                if removed
+                else PullRequestActivityType.REVIEW_REQUESTED
+            ),
+            payload={},
         )
 
     def test_select_verdict_merged_without_later_commits_is_unchanged(self) -> None:
@@ -282,6 +295,21 @@ class PrMetricsEmissionTest(TestCase):
         self._add_check_suite(app_slug="github-actions", conclusion="failure", webhook_id="check-2")
         assert ci_failing_at_close(self.pull_request) is True
 
+    def test_reviews_requested_count_no_activity_is_zero(self) -> None:
+        assert reviews_requested_count(self.pull_request) == 0
+
+    def test_reviews_requested_count_nets_removals(self) -> None:
+        self._add_review_request(webhook_id="rr1")
+        self._add_review_request(webhook_id="rr2")
+        self._add_review_request(webhook_id="rr3", removed=True)
+        assert reviews_requested_count(self.pull_request) == 1  # 2 requested - 1 removed
+
+    def test_reviews_requested_count_floors_at_zero(self) -> None:
+        # More removals than requests can't be matched 1:1 (e.g. a second
+        # reviewer's outstanding request), so the net never goes negative.
+        self._add_review_request(webhook_id="rr1", removed=True)
+        assert reviews_requested_count(self.pull_request) == 0
+
     def test_select_fallback_verdict_merged_without_later_commits_is_unchanged(self) -> None:
         assert select_fallback_verdict(self.pull_request) == PullRequestVerdict.MERGED_UNCHANGED
 
@@ -328,6 +356,20 @@ class PrMetricsEmissionTest(TestCase):
         assert row.comments_count == 5
         assert row.review_comments_count == 6
         assert row.is_assigned is True
+
+    def test_build_row_carries_reviews_requested_count(self) -> None:
+        # Unlike the other counters (persisted onto PullRequestMetrics),
+        # reviews_requested_count is read live from activity at build time.
+        self._add_review_request(webhook_id="rr1")
+        self._add_review_request(webhook_id="rr2")
+        self._add_review_request(webhook_id="rr3", removed=True)
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.reviews_requested_count == 1
 
     def test_build_row_carries_repository_provider(self) -> None:
         # setUp's repo is created with the prefixed "integrations:github" form —
@@ -982,11 +1024,16 @@ class PrMetricsEmissionTest(TestCase):
         )
         self._activity(
             webhook_id="c2",
+            event_type=PullRequestActivityType.REVIEW_REQUESTED,
+            sender_login="octocat",
+        )
+        self._activity(
+            webhook_id="c3",
             event_type=PullRequestActivityType.REVIEW_SUBMITTED,
             sender_login="reviewer",
         )
         self._activity(
-            webhook_id="c3", event_type=PullRequestActivityType.MERGED, sender_login="octocat"
+            webhook_id="c4", event_type=PullRequestActivityType.MERGED, sender_login="octocat"
         )
         emit_pr_metrics_row(pull_request=self.pull_request)
 
@@ -999,11 +1046,13 @@ class PrMetricsEmissionTest(TestCase):
         assert row.opened_by_bot is False
         assert row.closed_by_bot is False
         assert row.opened_and_closed_by_same_actor is True
-        # ...and carried on the emitted analytics row.
+        # ...and carried on the emitted analytics row. reviews_requested_count is
+        # read live from activity rather than persisted, so it only shows up here.
         emitted = mock_record.call_args[0][0]
         assert emitted.participants_count == 2
         assert emitted.reviews_count == 1
         assert emitted.reviews_human_count == 1
+        assert emitted.reviews_requested_count == 1
         assert emitted.opened_and_closed_by_same_actor is True
 
     # --- _commit_shas_from_activity ---
