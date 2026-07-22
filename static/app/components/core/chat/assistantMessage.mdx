@@ -7,7 +7,7 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/assistantMessage.tsx
 ---
 
-import {AssistantMessage, MessageRow, UserBubble} from '@sentry/scraps/chat';
+import {AssistantMessage, MessageRow, UserMessage} from '@sentry/scraps/chat';
 import {Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
@@ -15,7 +15,7 @@ import * as Storybook from 'sentry/stories';
 export const documentation = import('!!type-loader!@sentry/scraps/chat/assistantMessage');
 
 The `AssistantMessage` renders the content region for an agent's response.
-Unlike the sender's own messages — which are bubbled with `UserBubble` — an
+Unlike the sender's own messages — which are bubbled with `UserMessage` — an
 agent response is not bubbled: it renders as full-width, left-aligned content so
 rich output like markdown, tables, and code reads naturally.
 
@@ -27,7 +27,7 @@ content region.
 <Storybook.Demo align="stretch">
   <Stack width="100%">
     <MessageRow from="user">
-      <UserBubble>How many errors happened in the last 24 hours?</UserBubble>
+      <UserMessage>How many errors happened in the last 24 hours?</UserMessage>
     </MessageRow>
     <MessageRow from="assistant">
       <AssistantMessage>
