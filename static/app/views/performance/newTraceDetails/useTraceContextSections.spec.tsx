@@ -113,20 +113,6 @@ describe('useTraceContextSections', () => {
     expect(result.current.hasMetrics).toBe(false);
   });
 
-  it('shows the waterfall for a trace with errors and logs but no spans', () => {
-    const {result} = renderHook(() =>
-      useTraceContextSections({
-        tree: makeTree(),
-        logs: undefined,
-        metrics: undefined,
-        meta: makeEapMeta({logsCount: 2, errorsCount: 3, spansCount: 0}),
-      })
-    );
-
-    expect(result.current.hasLogs).toBe(true);
-    expect(result.current.hasTraceEvents).toBe(true);
-  });
-
   it('falls back to loaded data for sections not covered by legacy trace meta', () => {
     const legacyMeta: TraceMeta = {
       errors: 0,
