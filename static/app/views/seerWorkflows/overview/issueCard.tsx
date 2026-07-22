@@ -330,12 +330,10 @@ export function IssueCard({
  * mode, while this row is optimized for scanning and taking the next action.
  */
 export function IssueTableRow({
-  isLast,
   orgSlug,
   row,
   sectionKey,
 }: {
-  isLast: boolean;
   orgSlug: string;
   row: OverviewRow;
   sectionKey: AutofixStateKey;
@@ -351,7 +349,7 @@ export function IssueTableRow({
       align="center"
       gap="lg"
       padding="md lg"
-      borderBottom={isLast ? undefined : 'primary'}
+      borderBottom="primary"
     >
       <Stack gap="2xs" minWidth="0" flex="1">
         <IssueTitleLink row={row} to={issueUrl} />

@@ -14,6 +14,7 @@ import {Sticky} from 'sentry/components/sticky';
 import {t, tn} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {DEFAULT_STATS_PERIOD} from './periods';
 import {SectionIssueCard} from './sectionIssueCard';
 import {STATUS_GROUP_META, StatusGroupTooltip, type StatusGroupKey} from './statusGroups';
 import type {OverviewView, SortValue} from './types';
@@ -59,8 +60,9 @@ export function SectionList({
 
   const firstLoad = isPending && sections.every(section => section.isPending);
   const allSectionsEmpty = sections.every(
-    section => !section.isPending && section.issues.length === 0
+    section => !section.isPending && !section.isError && section.issues.length === 0
   );
+  const hasNonDefaultFilters = projects.length > 0 || period !== DEFAULT_STATS_PERIOD;
 
   if (isError) {
     return <LoadingError onRetry={refetch} />;
@@ -72,7 +74,9 @@ export function SectionList({
     return (
       <Container border="primary" radius="md" padding="xl">
         <Text as="p" variant="muted" align="center">
-          {t('No completed autofix runs yet.')}
+          {hasNonDefaultFilters
+            ? t('No autofix runs match your filters.')
+            : t('No completed autofix runs yet.')}
         </Text>
       </Container>
     );
@@ -115,7 +119,11 @@ export function SectionList({
                   </Text>
                 </Container>
               ) : (
-                <Stack gap={view === 'cards' ? 'md' : '0'} paddingTop="sm">
+                <SectionRows
+                  gap={view === 'cards' ? 'md' : '0'}
+                  paddingTop="sm"
+                  data-view={view}
+                >
                   <Collapsible
                     maxVisibleItems={SECTION_RENDER_CAP}
                     expandButton={({onExpand, numberOfHiddenItems}) => (
@@ -133,7 +141,7 @@ export function SectionList({
                       </Button>
                     )}
                   >
-                    {section.issues.map((issue, index) => (
+                    {section.issues.map(issue => (
                       <SectionIssueCard
                         key={issue.id}
                         issue={issue}
@@ -141,11 +149,10 @@ export function SectionList({
                         sectionKey={section.key}
                         view={view}
                         statsPeriod={period}
-                        isLast={index === section.issues.length - 1}
                       />
                     ))}
                   </Collapsible>
-                </Stack>
+                </SectionRows>
               )}
             </Disclosure.Content>
           </StatusGroup>
@@ -154,6 +161,12 @@ export function SectionList({
     </Stack>
   );
 }
+
+const SectionRows = styled(Stack)`
+  &[data-view='table'] > *:last-child {
+    border-bottom: none;
+  }
+`;
 
 // Disclosure.Content hardcodes a padding-left to indent its panel under the
 // title; the `> * + *` sibling selector drops it so the full-width cards line

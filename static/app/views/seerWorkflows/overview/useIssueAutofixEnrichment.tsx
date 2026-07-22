@@ -8,6 +8,7 @@ import {RUN_QUESTION_PROMPTS} from './runQuestions';
 import {QUERY_STALE_TIME, RUNS_QUERY, type SeerRun} from './types';
 
 interface IssueAutofixEnrichment {
+  enrichmentPending: boolean;
   run: SeerRun | null;
   state: ExplorerAutofixState | null;
   statePending: boolean;
@@ -43,5 +44,6 @@ export function useIssueAutofixEnrichment(issueId: string): IssueAutofixEnrichme
     run: runsQuery.data?.find(run => run.groupId === issueId) ?? null,
     state: stateQuery.data?.autofix ?? null,
     statePending: stateQuery.isPending,
+    enrichmentPending: stateQuery.isPending || runsQuery.isPending,
   };
 }

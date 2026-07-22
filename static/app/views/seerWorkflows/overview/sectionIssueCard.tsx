@@ -16,20 +16,18 @@ function HydratedCard({
   sectionKey,
   view,
   statsPeriod,
-  isLast,
 }: {
   issue: OverviewIssue;
   orgSlug: string;
   statsPeriod: string;
   view: 'cards' | 'table';
   defaultExpanded?: boolean;
-  isLast?: boolean;
   // The server-bucketed section. Absent in focus mode, where the issues
   // endpoint omits issue.autofix_state, so we reconstruct it from enrichment.
   sectionKey?: AutofixStateKey;
 }) {
-  const {run, state, statePending} = useIssueAutofixEnrichment(issue.id);
-  const row = buildOverviewRow(issue, run, state, statePending, statsPeriod);
+  const {run, state, enrichmentPending} = useIssueAutofixEnrichment(issue.id);
+  const row = buildOverviewRow(issue, run, state, enrichmentPending, statsPeriod);
   const resolvedSectionKey = sectionKey ?? deriveSectionKey(run, state);
 
   return view === 'cards' ? (
@@ -40,12 +38,7 @@ function HydratedCard({
       defaultExpanded={defaultExpanded}
     />
   ) : (
-    <IssueTableRow
-      row={row}
-      orgSlug={orgSlug}
-      sectionKey={resolvedSectionKey}
-      isLast={isLast ?? false}
-    />
+    <IssueTableRow row={row} orgSlug={orgSlug} sectionKey={resolvedSectionKey} />
   );
 }
 
@@ -58,7 +51,6 @@ export function SectionIssueCard({
   statsPeriod: string;
   view: 'cards' | 'table';
   defaultExpanded?: boolean;
-  isLast?: boolean;
   lazy?: boolean;
   sectionKey?: AutofixStateKey;
 }) {
