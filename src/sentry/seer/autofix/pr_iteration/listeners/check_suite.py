@@ -33,6 +33,8 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
     conclusion = check_suite_event.check_suite["conclusion"]
     if conclusion in GREEN_CONCLUSIONS:
         # Bootstrap (live tip + sweep) once, then independent side effects.
+        # Undraft before review-request: GitHub may CODEOWNERS-request after
+        # undraft; see TODO race note on ``request_review_from_context``.
         ctx = bootstrap_green_check_suite(check_suite_event)
         if ctx is not None:
             mark_ready_for_review(ctx)

@@ -109,6 +109,16 @@ def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
         return
 
     raw_pr = ctx.pull_request["raw"]["data"] or {}
+    # Bootstrap snapshot: taken before ``mark_ready_for_review`` undrafts.
+    # TODO(race): Undraft can make GitHub CODEOWNERS-request reviewers after
+    # this snapshot. There is no public API for the draft "will be requested"
+    # preview; refetching PR files + parsing CODEOWNERS on every green suite
+    # is expensive. Alternatives to explore: (1) reuse ownership grammar /
+    # ``codeowners_match`` to resolve owners from base CODEOWNERS + PR files
+    # and treat that as preexisting, (2) wait/poll to attenuate the race, or
+    # (3) handle ``pull_request.review_requested`` retrospectively and skip /
+    # undo a duplicate Seer ping. Until then we only see reviewers already on
+    # the pre-undraft PR (often empty for drafts).
     requested_logins = {
         reviewer["login"].lower()
         for reviewer in (raw_pr.get("requested_reviewers") or [])
@@ -161,9 +171,10 @@ def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
 
             if any(c.login.lower() in requested_logins for c in candidates):
                 # Someone we would pick is already on the hook — e.g. a
-                # CODEOWNERS auto-request. Record it so later green events
-                # short-circuit on the marker pre-check, and don't rebuild the
-                # bystander effect by adding a second person.
+                # CODEOWNERS auto-request that landed before bootstrap. Record
+                # it so later green events short-circuit on the marker
+                # pre-check, and don't rebuild the bystander effect by adding
+                # a second person. (Post-undraft CODEOWNERS: see TODO above.)
                 _record_review_request_marker(
                     ctx.seer_run,
                     ctx.repo_name,
