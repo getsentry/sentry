@@ -46,7 +46,7 @@ def ViewerContextMiddleware(
         jwt_ctx = _viewer_context_from_jwt_header(request)
 
         if jwt_ctx is not None and request_ctx.user_id is not None:
-            # Authenticated user takes precedence.
+            # Direct user or agent authentication is authoritative when both are present.
             if (
                 jwt_ctx.organization_id is not None
                 and request_ctx.organization_id is not None
