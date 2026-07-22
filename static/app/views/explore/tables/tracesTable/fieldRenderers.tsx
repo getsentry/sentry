@@ -152,8 +152,7 @@ const ProjectList = styled('div')`
   padding-right: 8px;
 `;
 
-const AvatarStyle = (p: any) => css`
-  border: 2px solid ${p.theme.tokens.border.primary};
+const AvatarStyle = css`
   margin-right: -8px;
   cursor: default;
 

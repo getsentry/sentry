@@ -1076,6 +1076,71 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == {linked_group2}
 
+    def _create_merged_autofix_pr(self, group):
+        run = self.create_seer_run(organization=group.project.organization)
+        self.create_seer_agent_run(run, source="autofix", project=group.project, group=group)
+        repo = self.create_repo(group.project, name="getsentry/example")
+        pr = self.create_pull_request(
+            repository_id=repo.id,
+            organization_id=group.project.organization_id,
+            key="9001",
+        )
+        pr.update(state="merged", merged_at=timezone.now())
+        self.create_seer_run_pull_request(run, pr)
+
+    def test_autofix_state_milestones(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
+        self.create_group_activity(
+            group=self.group2, type=ActivityType.SEER_SOLUTION_COMPLETED.value
+        )
+
+        results = self.make_query(search_filter_query="issue.autofix_state:review_pr")
+        assert set(results) == {self.group1}
+
+        results = self.make_query(search_filter_query="issue.autofix_state:solution_ready")
+        assert set(results) == {self.group2}
+
+        results = self.make_query(search_filter_query="issue.autofix_state:code_changes_ready")
+        assert set(results) == set()
+
+    def test_autofix_state_merged(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
+        self._create_merged_autofix_pr(self.group1)
+
+        assert set(self.make_query(search_filter_query="issue.autofix_state:merged")) == {
+            self.group1
+        }
+        assert set(self.make_query(search_filter_query="issue.autofix_state:review_pr")) == set()
+
+    def test_autofix_state_needs_investigation(self) -> None:
+        self.group1.update(seer_explorer_autofix_last_triggered=timezone.now() - timedelta(days=1))
+        self.group2.update(seer_explorer_autofix_last_triggered=timezone.now() - timedelta(days=45))
+
+        results = self.make_query(search_filter_query="issue.autofix_state:needs_investigation")
+        assert set(results) == {self.group1}
+
+    def test_autofix_state_multiple_values(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
+        self.create_group_activity(
+            group=self.group2, type=ActivityType.SEER_SOLUTION_COMPLETED.value
+        )
+
+        results = self.make_query(
+            search_filter_query="issue.autofix_state:[review_pr, solution_ready]"
+        )
+        assert set(results) == {self.group1, self.group2}
+
+    def test_autofix_state_invalid_value(self) -> None:
+        with pytest.raises(InvalidSearchQuery):
+            self.make_query(search_filter_query="issue.autofix_state:bogus")
+
+    def test_autofix_state_negation(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
+
+        results = self.make_query(search_filter_query="!issue.autofix_state:review_pr")
+        assert self.group1 not in set(results)
+        assert self.group2 in set(results)
+
     def test_issue_progress(self) -> None:
         self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
         self.create_group_activity(group=self.group2, type=ActivityType.SEER_PR_CREATED.value)

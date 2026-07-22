@@ -12,7 +12,7 @@ const project = ProjectFixture();
 const actor = UserFixture({name: 'David Cramer'});
 
 describe('StatusBanner', () => {
-  it('renders the activity resolved presentation behind the flag', () => {
+  it('renders the resolved progress indicator behind the progress flag', () => {
     render(
       <StatusBanner
         group={GroupFixture({
@@ -22,7 +22,9 @@ describe('StatusBanner', () => {
         project={project}
       />,
       {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+        organization: OrganizationFixture({
+          features: ['issue-activity-feed-v2', 'issue-activity-progress'],
+        }),
       }
     );
 
@@ -42,7 +44,9 @@ describe('StatusBanner', () => {
         project={project}
       />,
       {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+        organization: OrganizationFixture({
+          features: ['issue-activity-feed-v2', 'issue-activity-progress'],
+        }),
       }
     );
 
@@ -51,6 +55,26 @@ describe('StatusBanner', () => {
       screen.getByText('David Cramer archived until 50 more events occur')
     ).toBeInTheDocument();
     expect(screen.getByRole('img', {name: 'Archived'})).toBeInTheDocument();
+    expect(screen.queryByTestId('icon-check-mark')).not.toBeInTheDocument();
+  });
+
+  it('hides other activity progress indicators without the progress flag', () => {
+    render(
+      <StatusBanner
+        group={GroupFixture({
+          status: GroupStatus.IGNORED,
+          substatus: GroupSubstatus.ARCHIVED_FOREVER,
+          statusDetails: {},
+        })}
+        project={project}
+      />,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    expect(screen.getByText('Archived')).toBeInTheDocument();
+    expect(screen.queryByRole('img', {name: 'Archived'})).not.toBeInTheDocument();
     expect(screen.queryByTestId('icon-check-mark')).not.toBeInTheDocument();
   });
 

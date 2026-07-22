@@ -32,23 +32,36 @@ describe('SubscriptionBox', () => {
     );
   }
 
-  it('renders resource checkbox', () => {
-    renderComponent();
+  it('renders a checkbox per event alongside the resource checkbox', () => {
+    renderComponent({selectedEvents: ['issue.created']});
+
+    expect(screen.getAllByRole('checkbox')).toHaveLength(6);
+    expect(screen.getByRole('checkbox', {name: 'issue.created'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'issue.resolved'})).not.toBeChecked();
   });
 
-  it('calls onChange prop when checking checkbox', async () => {
+  it('calls onChange prop when checking the resource checkbox', async () => {
     renderComponent();
 
-    await userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
     expect(onChange).toHaveBeenCalledWith('issue', true);
   });
 
-  it('disables the checkbox from permissions', async () => {
+  it('calls onEventChange when toggling an event', async () => {
+    renderComponent();
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'issue.resolved'}));
+    expect(onEventChange).toHaveBeenCalledWith('issue.resolved', true);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('disables the checkboxes from permissions', async () => {
     renderComponent({disabledFromPermissions: true});
 
-    expect(screen.getByRole('checkbox')).toBeDisabled();
+    expect(screen.getByRole('checkbox', {name: 'issue'})).toBeDisabled();
+    expect(screen.getByRole('checkbox', {name: 'issue.created'})).toBeDisabled();
 
-    await userEvent.hover(screen.getByRole('checkbox'));
+    await userEvent.hover(screen.getByRole('checkbox', {name: 'issue'}));
     expect(
       await screen.findByText("Must have at least 'Read' permissions enabled for Event")
     ).toBeInTheDocument();
@@ -58,9 +71,9 @@ describe('SubscriptionBox', () => {
     it('checkbox disabled without integrations-event-hooks flag', async () => {
       renderComponent({resource: 'error'});
 
-      expect(screen.getByRole('checkbox')).toBeDisabled();
+      expect(screen.getByRole('checkbox', {name: 'error'})).toBeDisabled();
 
-      await userEvent.hover(screen.getByRole('checkbox'));
+      await userEvent.hover(screen.getByRole('checkbox', {name: 'error'}));
       expect(
         await screen.findByText(
           'Your organization does not have access to the error subscription resource.'
@@ -74,35 +87,7 @@ describe('SubscriptionBox', () => {
         {organization: OrganizationFixture({features: ['integrations-event-hooks']})}
       );
 
-      expect(screen.getByRole('checkbox')).toBeEnabled();
-    });
-  });
-
-  describe('granular event subscriptions', () => {
-    const organization = OrganizationFixture({
-      features: ['sentry-apps-granular-events'],
-    });
-
-    it('renders a checkbox per event', () => {
-      renderComponent({selectedEvents: ['issue.created']}, {organization});
-
-      expect(screen.getAllByRole('checkbox')).toHaveLength(6);
-      expect(screen.getByRole('checkbox', {name: 'issue.created'})).toBeChecked();
-      expect(screen.getByRole('checkbox', {name: 'issue.resolved'})).not.toBeChecked();
-    });
-
-    it('calls onEventChange when toggling an event', async () => {
-      renderComponent({}, {organization});
-
-      await userEvent.click(screen.getByRole('checkbox', {name: 'issue.resolved'}));
-      expect(onEventChange).toHaveBeenCalledWith('issue.resolved', true);
-      expect(onChange).not.toHaveBeenCalled();
-    });
-
-    it('does not render event checkboxes without the flag', () => {
-      renderComponent({selectedEvents: ['issue.created']});
-
-      expect(screen.getAllByRole('checkbox')).toHaveLength(1);
+      expect(screen.getByRole('checkbox', {name: 'error'})).toBeEnabled();
     });
   });
 
@@ -119,7 +104,7 @@ describe('SubscriptionBox', () => {
         {organization: OrganizationFixture({features: ['preprod-artifact-webhooks']})}
       );
 
-      expect(screen.getByRole('checkbox')).toBeEnabled();
+      expect(screen.getByRole('checkbox', {name: 'preprod_artifact'})).toBeEnabled();
     });
   });
 });
