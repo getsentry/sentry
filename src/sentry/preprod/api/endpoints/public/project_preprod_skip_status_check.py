@@ -66,7 +66,8 @@ class BaseProjectPreprodSkipStatusCheckEndpoint(ProjectEndpoint):
                 check_type=self.check_type,
             )
         except SkipStatusCheckError as e:
-            return self._failure(reason=e.reason, detail=e.detail, status=e.status_code)
+            self._record_failure(e.reason)
+            return Response({"detail": e.detail}, status=e.status_code)
 
         metrics.incr(
             "preprod.status_checks.skip",
@@ -79,10 +80,6 @@ class BaseProjectPreprodSkipStatusCheckEndpoint(ProjectEndpoint):
             "preprod.status_checks.skip",
             tags={"check_type": self.check_type, "success": False, "reason": reason},
         )
-
-    def _failure(self, *, reason: str, detail: str, status: int) -> Response:
-        self._record_failure(reason)
-        return Response({"detail": detail}, status=status)
 
 
 @cell_silo_endpoint
