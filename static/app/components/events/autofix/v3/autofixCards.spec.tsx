@@ -924,6 +924,47 @@ describe('ArtifactCard', () => {
       expect(screen.getByTestId('icon-github')).toBeInTheDocument();
     });
 
+    it('renders GitHub PR review body feedback with a GitHub icon and link', () => {
+      const reviewUrl = 'https://github.com/org/repo/pull/42#pullrequestreview-999';
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [
+            {
+              text: 'Overall this looks good, please add a test.',
+              source: {
+                type: 'github-pr-review-body',
+                review_id: 999,
+                body: 'Overall this looks good, please add a test.',
+                html_url: reviewUrl,
+              },
+            },
+          ],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      const feedbackLink = screen.getByRole('link', {
+        name: 'Overall this looks good, please add a test.',
+      });
+      expect(feedbackLink).toHaveAttribute('href', reviewUrl);
+      expect(screen.getByTestId('icon-github')).toBeInTheDocument();
+    });
+
     it('shows a formatted check-suite label instead of the raw feedback text', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
