@@ -37,6 +37,11 @@ SEER_GITHUB_PROVIDER = "integrations:github"
 # after GitHub normalization (startup_failure -> failure).
 FAILURE_CONCLUSIONS = ("failure", "timed_out", "action_required")
 
+# Suite conclusions that can complete a fully green head. The suite event is only
+# the trigger — the check-runs sweep across all of the head's suites is what
+# actually confirms the PR is green.
+GREEN_CONCLUSIONS = ("success", "neutral", "skipped")
+
 
 class GithubCheckSuiteApp(BaseModel):
     name: str
@@ -244,18 +249,31 @@ class CheckSuiteHeadMatch(NamedTuple):
 def check_suite_head_match(
     event: GithubCheckSuiteEvent, run_state: SeerRunState
 ) -> CheckSuiteHeadMatch:
-    """Whether the check suite ran on the PR's *current* head commit.
+    """Whether the check suite ran on the run's last-known PR head commit.
 
-    A ``check_suite`` webhook fires for any commit on the PR (including
-    commits a human pushed or commits Seer made earlier in the run). We only
-    act on results for the commit that is currently the PR head for this
-    run: if Seer has since pushed a newer commit, the CI result is out of
-    date and reacting to it would act on stale code.
+    Used by the CI-failure iteration path, which keys off Seer's recorded
+    ``repo_pr_states.commit_sha``. Prefer ``check_suite_matches_pr_head`` with
+    the live PR head from SCM when the decision needs the PR's actual current
+    head — run state can lag pushes.
     """
     head_sha = event.check_suite.head_sha
     repo_name = event.repository.full_name
     pr_state = run_state.repo_pr_states.get(repo_name) if repo_name else None
     matched = bool(head_sha and pr_state and pr_state.commit_sha == head_sha)
+    return CheckSuiteHeadMatch(head_sha=head_sha, repo_name=repo_name, matched=matched)
+
+
+def check_suite_matches_pr_head(
+    event: GithubCheckSuiteEvent, *, pr_head_sha: str | None
+) -> CheckSuiteHeadMatch:
+    """Whether the check suite ran on ``pr_head_sha``.
+
+    Pass the PR's live head from SCM — ``repo_pr_states.commit_sha`` can lag
+    pushes and is the wrong source for "is this suite current?".
+    """
+    head_sha = event.check_suite.head_sha
+    repo_name = event.repository.full_name
+    matched = bool(head_sha and pr_head_sha and head_sha == pr_head_sha)
     return CheckSuiteHeadMatch(head_sha=head_sha, repo_name=repo_name, matched=matched)
 
 

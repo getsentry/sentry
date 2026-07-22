@@ -8,17 +8,18 @@ from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.cap_exhausted import assign_user_for_exhausted_cap
-from sentry.seer.autofix.pr_iteration.check_suites import FAILURE_CONCLUSIONS
+from sentry.seer.autofix.pr_iteration.check_suites import (
+    FAILURE_CONCLUSIONS,
+    GREEN_CONCLUSIONS,
+)
+from sentry.seer.autofix.pr_iteration.ci_green import mark_ci_green_for_check_suite
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
     MissingCheckSuiteAutofixRun,
 )
 from sentry.seer.autofix.pr_iteration.queue import try_enqueue_autofix_feedback
-from sentry.seer.autofix.pr_iteration.review_request import (
-    GREEN_CONCLUSIONS,
-    request_review_for_green_check_suite,
-)
+from sentry.seer.autofix.pr_iteration.review_request import request_review_for_green_check_suite
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,9 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
 
     conclusion = check_suite_event.check_suite["conclusion"]
     if conclusion in GREEN_CONCLUSIONS:
+        # Confirm CI green (and undraft) before requesting review so the review
+        # path can trust the ci_green marker instead of re-sweeping checks.
+        mark_ci_green_for_check_suite(check_suite_event)
         request_review_for_green_check_suite(check_suite_event)
         return None
 

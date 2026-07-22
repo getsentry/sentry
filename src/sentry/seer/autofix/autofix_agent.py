@@ -808,7 +808,6 @@ def trigger_push_changes(
     referrer: AutofixReferrer,
     state: SeerRunState | None = None,
     repo_name: str | None = None,
-    ready_for_review: bool = True,
 ):
     if not group.organization.get_option(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
@@ -832,11 +831,15 @@ def trigger_push_changes(
         )
     )
 
+    # Lazy: avoid importing the check-suite path at module load.
+    from sentry.seer.autofix.pr_iteration.ci_green import should_open_autofix_pr_as_draft
+
+    # Draft when review-request/CI-green is enabled; mark ready once green fires.
     client.push_changes(
         run_id,
         repo_name=repo_name,
         pr_description_suffix=build_pr_description_suffix(group),
-        ready_for_review=ready_for_review,
+        ready_for_review=not should_open_autofix_pr_as_draft(group.organization),
         blocking=False,
     )
 

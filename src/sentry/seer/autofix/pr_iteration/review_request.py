@@ -1,8 +1,10 @@
 """Request a human review on a Seer-authored PR once its CI is green.
 
 A review request from Seer must always mean "CI is green, ready to judge" so
-that its requests stay trustworthy. We therefore only request a review after
-every check run on the PR's current head has completed without failures.
+that its requests stay trustworthy. CI green confirmation is owned by
+``ci_green.mark_ci_green_for_check_suite`` (runs first in the check-suite
+listener); this module only requests a review when that marker is present for
+the PR's current head.
 
 We ask the best reviewer candidate (see ``reviewer_candidates``) — today
 the user who triggered the run, the person most invested in the fix
@@ -26,12 +28,14 @@ from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.autofix.pr_iteration.check_suites import (
+    GREEN_CONCLUSIONS,
     GithubCheckSuiteEvent,
-    check_suite_head_match,
+    check_suite_matches_pr_head,
     resolve_check_suite_autofix_run,
     resolve_check_suite_repositories,
-    sweep_check_runs,
 )
+from sentry.seer.autofix.pr_iteration.ci_green import is_ci_green_for_head
+from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.reviewer_candidates import (
     ReviewerCandidate,
     collect_reviewer_candidates,
@@ -44,10 +48,13 @@ from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
-# Check-suite conclusions that can complete a fully green head. The suite event
-# is only the trigger — the check-runs sweep across all of the head's suites is
-# what actually confirms the PR is green.
-GREEN_CONCLUSIONS = ("success", "neutral", "skipped")
+# Re-export for listeners/tests that historically imported this from here.
+__all__ = (
+    "GREEN_CONCLUSIONS",
+    "REVIEW_REQUEST_FLAG",
+    "REVIEW_REQUESTS_EXTRA",
+    "request_review_for_green_check_suite",
+)
 
 # SeerRun.extras key holding review-request markers, keyed by repo full name
 # (a run can open PRs in several repos). Each marker records requested_at,
@@ -126,7 +133,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
             except Organization.DoesNotExist:
                 continue
             organizations[repo.organization_id] = organization
-        if features.has("organizations:autofix-pr-iteration-review-request", organization):
+        if features.has(REVIEW_REQUEST_FLAG, organization):
             flagged_repos.append(repo)
     if not flagged_repos:
         return
@@ -150,10 +157,11 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
         "pr_id": autofix_run.pr_id,
     }
 
-    head_match = check_suite_head_match(event, autofix_run.run_state)
-    if not head_match.matched or not head_match.head_sha or not head_match.repo_name:
-        # A green result for an older commit says nothing about the current head.
-        _skip("stale_head", {**log_extra, "head_sha": head_match.head_sha})
+    repo_name = event.repository.full_name
+    pr_state = autofix_run.run_state.repo_pr_states.get(repo_name) if repo_name else None
+    pr_number = pr_state.pr_number if pr_state else None
+    if not repo_name or pr_number is None:
+        _skip("no_pr_number", log_extra)
         return
 
     seer_run = SeerRun.objects.filter(
@@ -163,14 +171,8 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
         # Legacy runs predating SeerRun mirroring have no row to hold the marker.
         _skip("no_seer_run", log_extra)
         return
-    if _review_request_marker(seer_run, head_match.repo_name):
+    if _review_request_marker(seer_run, repo_name):
         _skip("already_requested", log_extra)
-        return
-
-    pr_state = autofix_run.run_state.repo_pr_states.get(head_match.repo_name)
-    pr_number = pr_state.pr_number if pr_state else None
-    if pr_number is None:
-        _skip("no_pr_number", log_extra)
         return
 
     # Importing the SCM factory while the check-suite listener module is
@@ -183,18 +185,6 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
         _failed("scm_init_failed", log_extra)
         return
 
-    sweep = sweep_check_runs(scm, head_match.head_sha, log_extra=log_extra)
-    if sweep is None:
-        # Couldn't confirm the head is green — never request a review on uncertainty.
-        _skip("sweep_failed", log_extra)
-        return
-    if not sweep.is_green:
-        _skip(
-            "not_green",
-            {**log_extra, "incomplete_count": sweep.incomplete, "failed_count": sweep.failed},
-        )
-        return
-
     if not isinstance(scm, GetPullRequestProtocol) or not isinstance(scm, RequestReviewProtocol):
         _skip("unsupported_provider", log_extra)
         return
@@ -203,6 +193,22 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
         pull_request = scm_actions.get_pull_request(scm, str(pr_number))
     except Exception:
         _failed("get_pull_request_failed", {**log_extra, "pr_number": pr_number})
+        return
+
+    # Match against the live PR head — run_state.commit_sha can lag pushes.
+    head_match = check_suite_matches_pr_head(
+        event, pr_head_sha=pull_request["data"]["head"].get("sha")
+    )
+    if not head_match.matched or not head_match.head_sha:
+        # A green result for an older commit says nothing about the current head.
+        _skip("stale_head", {**log_extra, "head_sha": head_match.head_sha})
+        return
+
+    # CI green confirmation lives in ``mark_ci_green_for_check_suite`` (runs
+    # first in the listener). Never request a review without that marker for
+    # the current head — that keeps "Seer asked for review" == "CI is green".
+    if not is_ci_green_for_head(seer_run, repo_name, head_match.head_sha):
+        _skip("ci_not_green", log_extra)
         return
 
     if pull_request["data"]["state"] != "open" or pull_request["data"]["merged"]:
@@ -246,7 +252,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
     try:
         with lock.blocking_acquire(initial_delay=0.5, timeout=10):
             seer_run.refresh_from_db()
-            if _review_request_marker(seer_run, head_match.repo_name):
+            if _review_request_marker(seer_run, repo_name):
                 _skip("already_requested", log_extra)
                 return
 
@@ -255,7 +261,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
             # actually respond.
             record_reviewer_candidates_marker(
                 seer_run,
-                head_match.repo_name,
+                repo_name,
                 head_sha=head_match.head_sha,
                 candidates=candidates,
             )
@@ -267,7 +273,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
                 # bystander effect by adding a second person.
                 _record_review_request_marker(
                     seer_run,
-                    head_match.repo_name,
+                    repo_name,
                     head_sha=head_match.head_sha,
                     reviewers=sorted(requested_logins),
                     preexisting=True,
@@ -293,7 +299,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
 
             _record_review_request_marker(
                 seer_run,
-                head_match.repo_name,
+                repo_name,
                 head_sha=head_match.head_sha,
                 reviewers=[requested_candidate.login],
             )

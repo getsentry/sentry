@@ -5,7 +5,9 @@ import orjson
 
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
-from sentry.seer.autofix.pr_iteration.check_suites import CheckRunsSweep, CheckSuiteAutofixRun
+from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
+from sentry.seer.autofix.pr_iteration.ci_green import CI_GREEN_EXTRA
+from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.review_request import (
     REVIEW_REQUESTS_EXTRA,
     request_review_for_green_check_suite,
@@ -20,14 +22,12 @@ from sentry.testutils.cases import TestCase
 
 REVIEW_REQUEST_PATH = "sentry.seer.autofix.pr_iteration.review_request"
 CANDIDATES_PATH = "sentry.seer.autofix.pr_iteration.reviewer_candidates"
-FLAG = "organizations:autofix-pr-iteration-review-request"
+FLAG = REVIEW_REQUEST_FLAG
 
 RUN_ID = 67890
 REPO_NAME = "owner/repo"
 HEAD_SHA = "abc"
 PR_NUMBER = 42
-
-GREEN_SWEEP = CheckRunsSweep(total=3, incomplete=0, failed=0)
 
 
 def _green_event(raw: dict | None = None) -> CheckSuiteEvent:
@@ -67,12 +67,13 @@ def _pull_request_result(
     merged: bool = False,
     requested_reviewers: list[dict] | None = None,
     author: str | None = None,
+    head_sha: str = HEAD_SHA,
 ) -> dict:
     raw: dict[str, Any] = {"requested_reviewers": requested_reviewers or []}
     if author is not None:
         raw["user"] = {"login": author}
     return {
-        "data": {"state": state, "merged": merged},
+        "data": {"state": state, "merged": merged, "head": {"sha": head_sha}},
         "raw": {"headers": None, "data": raw},
         "type": "github",
         "meta": {},
@@ -90,11 +91,22 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         self.seer_run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=RUN_ID, user_id=self.user.id
         )
+        self._mark_ci_green()
         repos_patcher = patch(
             f"{REVIEW_REQUEST_PATH}.resolve_check_suite_repositories", return_value=[self.repo]
         )
         repos_patcher.start()
         self.addCleanup(repos_patcher.stop)
+
+    def _mark_ci_green(self, *, head_sha: str = HEAD_SHA) -> None:
+        self.seer_run.update(
+            extras={
+                **(self.seer_run.extras or {}),
+                CI_GREEN_EXTRA: {
+                    REPO_NAME: {"marked_at": "2024-01-01T00:00:00+00:00", "head_sha": head_sha}
+                },
+            }
+        )
 
     def _resolved(self, *, commit_sha: str = HEAD_SHA) -> CheckSuiteAutofixRun:
         run_state = SeerRunState(
@@ -118,7 +130,6 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{REVIEW_REQUEST_PATH}.sweep_check_runs", return_value=GREEN_SWEEP)
     @patch(f"{CANDIDATES_PATH}.get_github_username_for_user", return_value="octocat")
     @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
     @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
@@ -127,7 +138,6 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         self,
         mock_resolve: MagicMock,
         _mock_username: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
     ) -> None:
@@ -153,12 +163,10 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{REVIEW_REQUEST_PATH}.sweep_check_runs", return_value=GREEN_SWEEP)
     @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
     def test_noop_when_flag_disabled(
         self,
         mock_resolve: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
     ) -> None:
@@ -197,9 +205,19 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         mock_resolve.assert_not_called()
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
     @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
-    def test_skips_stale_head(self, mock_resolve: MagicMock, mock_actions: MagicMock) -> None:
-        mock_resolve.return_value = self._resolved(commit_sha="newer-sha")
+    @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
+    def test_skips_stale_head(
+        self,
+        mock_resolve: MagicMock,
+        _mock_scm: MagicMock,
+        mock_actions: MagicMock,
+    ) -> None:
+        # Live PR head is ahead of the check-suite commit — ignore this event.
+        mock_resolve.return_value = self._resolved(commit_sha=HEAD_SHA)
+        mock_actions.get_pull_request.return_value = _pull_request_result(head_sha="newer-sha")
 
         with self.feature(FLAG):
             request_review_for_green_check_suite(_green_event())
@@ -209,14 +227,12 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{REVIEW_REQUEST_PATH}.sweep_check_runs", return_value=GREEN_SWEEP)
     @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
     @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
     @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
     def test_skips_night_shift_run_without_candidates(
         self,
         mock_resolve: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
     ) -> None:
@@ -271,7 +287,6 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{REVIEW_REQUEST_PATH}.sweep_check_runs", return_value=GREEN_SWEEP)
     @patch(f"{CANDIDATES_PATH}.get_github_username_for_user", return_value=None)
     @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
     @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
@@ -280,7 +295,6 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         self,
         mock_resolve: MagicMock,
         _mock_username: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
     ) -> None:
@@ -295,16 +309,18 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{REVIEW_REQUEST_PATH}.sweep_check_runs", return_value=None)
     @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
-    def test_skips_when_sweep_fails(
+    @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
+    def test_skips_when_ci_not_green(
         self,
         mock_resolve: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
     ) -> None:
+        self.seer_run.update(extras={})
         mock_resolve.return_value = self._resolved()
+        mock_actions.get_pull_request.return_value = _pull_request_result()
 
         with self.feature(FLAG):
             request_review_for_green_check_suite(_green_event())
@@ -313,56 +329,12 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(
-        f"{REVIEW_REQUEST_PATH}.sweep_check_runs",
-        return_value=CheckRunsSweep(total=3, incomplete=1, failed=0),
-    )
-    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
-    def test_skips_when_checks_incomplete(
-        self,
-        mock_resolve: MagicMock,
-        _mock_sweep: MagicMock,
-        _mock_scm: MagicMock,
-        mock_actions: MagicMock,
-    ) -> None:
-        mock_resolve.return_value = self._resolved()
-
-        with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
-
-        mock_actions.request_review.assert_not_called()
-
-    @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
-    @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(
-        f"{REVIEW_REQUEST_PATH}.sweep_check_runs",
-        return_value=CheckRunsSweep(total=3, incomplete=0, failed=1),
-    )
-    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
-    def test_skips_when_checks_failed(
-        self,
-        mock_resolve: MagicMock,
-        _mock_sweep: MagicMock,
-        _mock_scm: MagicMock,
-        mock_actions: MagicMock,
-    ) -> None:
-        mock_resolve.return_value = self._resolved()
-
-        with self.feature(FLAG):
-            request_review_for_green_check_suite(_green_event())
-
-        mock_actions.request_review.assert_not_called()
-
-    @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
-    @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{REVIEW_REQUEST_PATH}.sweep_check_runs", return_value=GREEN_SWEEP)
     @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
     @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
     @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
     def test_skips_when_pr_not_open(
         self,
         mock_resolve: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
     ) -> None:
@@ -379,7 +351,6 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{REVIEW_REQUEST_PATH}.sweep_check_runs", return_value=GREEN_SWEEP)
     @patch(f"{CANDIDATES_PATH}.get_github_username_for_user", return_value="octocat")
     @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
     @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
@@ -388,7 +359,6 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         self,
         mock_resolve: MagicMock,
         _mock_username: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
     ) -> None:
@@ -410,7 +380,6 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{REVIEW_REQUEST_PATH}.sweep_check_runs", return_value=GREEN_SWEEP)
     @patch(f"{CANDIDATES_PATH}.get_github_username_for_user", return_value="octocat")
     @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
     @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
@@ -419,7 +388,6 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         self,
         mock_resolve: MagicMock,
         _mock_username: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
     ) -> None:
@@ -437,7 +405,6 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
-    @patch(f"{REVIEW_REQUEST_PATH}.sweep_check_runs", return_value=GREEN_SWEEP)
     @patch(f"{CANDIDATES_PATH}.get_github_username_for_user", return_value="octocat")
     @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
     @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
@@ -446,7 +413,6 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         self,
         mock_resolve: MagicMock,
         _mock_username: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
     ) -> None:
@@ -473,7 +439,6 @@ CANDIDATES = [
 @patch(f"{REVIEW_REQUEST_PATH}.collect_reviewer_candidates", return_value=CANDIDATES)
 @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
 @patch("sentry.scm.factory.new", return_value=MagicMock())
-@patch(f"{REVIEW_REQUEST_PATH}.sweep_check_runs", return_value=GREEN_SWEEP)
 @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
 @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
 @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
@@ -489,6 +454,13 @@ class RequestReviewFromCandidatesTest(TestCase):
         # A system run: candidate selection must work without a triggering user.
         self.seer_run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=RUN_ID, user_id=None
+        )
+        self.seer_run.update(
+            extras={
+                CI_GREEN_EXTRA: {
+                    REPO_NAME: {"marked_at": "2024-01-01T00:00:00+00:00", "head_sha": HEAD_SHA}
+                }
+            }
         )
         repos_patcher = patch(
             f"{REVIEW_REQUEST_PATH}.resolve_check_suite_repositories", return_value=[self.repo]
@@ -519,7 +491,6 @@ class RequestReviewFromCandidatesTest(TestCase):
     def test_requests_top_candidate_and_records_provenance(
         self,
         mock_resolve: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
         mock_collect: MagicMock,
@@ -548,7 +519,6 @@ class RequestReviewFromCandidatesTest(TestCase):
     def test_skips_when_no_candidates(
         self,
         mock_resolve: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
         mock_collect: MagicMock,
@@ -567,7 +537,6 @@ class RequestReviewFromCandidatesTest(TestCase):
     def test_records_preexisting_when_any_candidate_already_requested(
         self,
         mock_resolve: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
         _mock_collect: MagicMock,
@@ -592,7 +561,6 @@ class RequestReviewFromCandidatesTest(TestCase):
     def test_falls_back_to_next_candidate_when_request_fails(
         self,
         mock_resolve: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
         _mock_collect: MagicMock,
@@ -613,7 +581,6 @@ class RequestReviewFromCandidatesTest(TestCase):
     def test_no_request_marker_when_all_attempts_fail(
         self,
         mock_resolve: MagicMock,
-        _mock_sweep: MagicMock,
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
         _mock_collect: MagicMock,

@@ -91,16 +91,25 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_get_state.assert_not_called()
 
     @patch(f"{CHECK_PATH}.request_review_for_green_check_suite")
+    @patch(f"{CHECK_PATH}.mark_ci_green_for_check_suite")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
-    def test_green_conclusion_routes_to_review_request(
-        self, mock_get_state: MagicMock, mock_request_review: MagicMock
+    def test_green_conclusion_routes_to_ci_green_then_review_request(
+        self,
+        mock_get_state: MagicMock,
+        mock_mark_ci_green: MagicMock,
+        mock_request_review: MagicMock,
     ) -> None:
         event = self._event(self._raw(), conclusion="success")
+        call_order: list[str] = []
+        mock_mark_ci_green.side_effect = lambda *_a, **_k: call_order.append("ci_green")
+        mock_request_review.side_effect = lambda *_a, **_k: call_order.append("review_request")
 
         pr_iteration_from_check_suite_listener(event)
 
+        mock_mark_ci_green.assert_called_once_with(event)
         mock_request_review.assert_called_once_with(event)
         mock_get_state.assert_not_called()
+        assert call_order == ["ci_green", "review_request"]
 
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories", return_value=[])
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
