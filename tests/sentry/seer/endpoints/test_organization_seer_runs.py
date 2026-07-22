@@ -1,8 +1,14 @@
 from collections.abc import Mapping
+from datetime import timedelta
 from typing import Any
+from unittest import mock
 from unittest.mock import patch
 
+import responses
+from django.utils import timezone
+
 from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.seer.run_questions import QUESTIONS, question_hash
 from sentry.seer.runs_query import filtered_runs_queryset
@@ -418,17 +424,62 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
             user_id=self.user.id,
             last_triggered_at=before_now(minutes=1),
         )
-        project = self.create_project(organization=self.organization)
-        repo = self.create_repo(project, name="getsentry/sentry")
+        ten_days = timezone.now() + timedelta(days=10)
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="Github Test Org",
+            external_id="1",
+            metadata={
+                "access_token": "12345token",
+                "expires_at": ten_days.strftime("%Y-%m-%dT%H:%M:%S"),
+            },
+        )
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/sentry",
+            url="https://github.com/getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+            integration_id=integration.id,
+        )
         pr = self.create_pull_request(
             repository_id=repo.id, organization_id=self.organization.id, key="123"
         )
         SeerRunPullRequest.objects.create(seer_run=run, pull_request=pr)
         return pr
 
-    @patch("sentry.api.serializers.models.seer_run.get_pr_ci_status", return_value="passed")
-    def test_ci_status_included_when_requested(self, mock_ci_status: Any) -> None:
-        pr = self._run_with_pr()
+    def _mock_ci_graphql(self, state: str) -> None:
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            json={
+                "resources": {
+                    "graphql": {"limit": 5000, "used": 1, "remaining": 4999, "reset": 1613064000}
+                }
+            },
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "data": {
+                    "repo0": {
+                        "pr0": {
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": state}}}]
+                            }
+                        }
+                    }
+                }
+            },
+        )
+
+    @responses.activate
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def test_ci_status_included_when_requested(self, get_jwt: Any) -> None:
+        self._run_with_pr()
+        self._mock_ci_graphql("SUCCESS")
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"includeCiStatus": "1"}
@@ -436,17 +487,19 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
 
         prs = response.data[0]["pullRequests"]
         assert prs[0]["ciStatus"] == "passed"
-        mock_ci_status.assert_called_once_with(pr)
+        # The whole page resolves through exactly one graphql POST.
+        assert len([c for c in responses.calls if c.request.url.endswith("/graphql")]) == 1
 
-    @patch("sentry.api.serializers.models.seer_run.get_pr_ci_status", return_value="passed")
-    def test_ci_status_absent_without_param(self, mock_ci_status: Any) -> None:
+    @responses.activate
+    def test_ci_status_absent_without_param(self) -> None:
         self._run_with_pr()
 
         response = self.get_success_response(self.organization.slug)
 
         prs = response.data[0]["pullRequests"]
         assert "ciStatus" not in prs[0]
-        assert not mock_ci_status.called
+        # No CI request is made when the param is absent.
+        assert len(responses.calls) == 0
 
     def test_ci_status_clamps_page_size(self) -> None:
         for i in range(1, 12):

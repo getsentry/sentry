@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
-from typing import Any, NotRequired, TypedDict, cast
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.pullrequest import (
@@ -10,7 +10,7 @@ from sentry.api.serializers.models.pullrequest import (
     PullRequestSerializerResponse,
 )
 from sentry.models.pullrequest import PullRequest
-from sentry.seer.autofix.pr_ci_status import PullRequestCiStatus, get_pr_ci_status
+from sentry.seer.autofix.pr_ci_status import PullRequestCiStatus, get_pr_ci_statuses
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPullRequest
 
 
@@ -33,16 +33,32 @@ class SeerRunPullRequestResponse(PullRequestSerializerResponse):
     ciStatus: NotRequired[PullRequestCiStatus | None]
 
 
-class SeerRunPullRequestSerializer(PullRequestSerializer):
+# Wraps rather than subclasses PullRequestSerializer so ``Serializer[T]`` binds to the
+# seer-local response type and ``serialize(...)`` call sites typecheck without casts.
+class SeerRunPullRequestSerializer(Serializer[SeerRunPullRequestResponse]):
     def __init__(self, include_ci_status: bool = False) -> None:
+        self._pr_serializer = PullRequestSerializer()
         self.include_ci_status = include_ci_status
+
+    def get_attrs(
+        self, item_list: Sequence[Any], user: Any, **kwargs: Any
+    ) -> MutableMapping[Any, Any]:
+        # Batch every PR's CI status into one GraphQL round trip per integration here, once per page.
+        attrs = self._pr_serializer.get_attrs(item_list, user, **kwargs)
+        if self.include_ci_status:
+            statuses = get_pr_ci_statuses(item_list)
+            for pull_request in item_list:
+                attrs.setdefault(pull_request, {})["ci_status"] = statuses.get(pull_request.id)
+        return attrs
 
     def serialize(
         self, obj: PullRequest, attrs: Any, user: Any, **kwargs: Any
     ) -> SeerRunPullRequestResponse:
-        result: SeerRunPullRequestResponse = {**super().serialize(obj, attrs, user, **kwargs)}
+        result: SeerRunPullRequestResponse = {
+            **self._pr_serializer.serialize(obj, attrs, user, **kwargs)
+        }
         if self.include_ci_status:
-            result["ciStatus"] = get_pr_ci_status(obj)
+            result["ciStatus"] = attrs.get("ci_status")
         return result
 
 
@@ -87,9 +103,9 @@ class SeerRunSerializer(Serializer):
         )
         prs = [link.pull_request for link in pr_links]
         pr_serializer = SeerRunPullRequestSerializer(include_ci_status=self.include_ci_status)
-        # serialize()'s generic is bound by the base class, so re-narrow to the subclass response.
-        serialized_prs = cast(list[SeerRunPullRequestResponse], serialize(prs, user, pr_serializer))
-        serialized_pr_by_id = {pr.id: serialized for pr, serialized in zip(prs, serialized_prs)}
+        serialized_pr_by_id = {
+            pr.id: serialized for pr, serialized in zip(prs, serialize(prs, user, pr_serializer))
+        }
 
         pull_requests_by_run_id: dict[int, list[SeerRunPullRequestResponse]] = defaultdict(list)
         for link in pr_links:
