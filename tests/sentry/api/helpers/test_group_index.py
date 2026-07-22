@@ -136,7 +136,7 @@ class GetSearchReferrerTest(TestCase):
         request = _wrap_request(http_request)
         # DRF exposes `successful_authenticator` as a read-only property backed by
         # `_authenticator`, which it sets during authentication; set it directly here.
-        request._authenticator = authenticator
+        setattr(request, "_authenticator", authenticator)
         return request
 
     def test_feature_disabled_always_uses_ui_referrer(self) -> None:
