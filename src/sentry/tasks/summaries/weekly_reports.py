@@ -42,7 +42,6 @@ from sentry.tasks.summaries.organization_report_context_factory import (
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
     PAST_ISSUES_LINK_BOOST,
-    TOP_SPANS_LIMIT,
     OrganizationReportContext,
     ProjectContext,
 )
@@ -609,6 +608,9 @@ def get_local_dates(ctx: OrganizationReportContext, user_id: int) -> tuple[datet
     return (local_start, local_end)
 
 
+CHART_PALETTE = ["#7553FF", "#3A1873", "#F0369A", "#FF9838", "#FFD00E"]
+
+
 def _top_spans_chart_url(
     table: list[dict[str, Any]],
     ctx: OrganizationReportContext,
@@ -617,13 +619,12 @@ def _top_spans_chart_url(
     if not table or not charts.is_enabled():
         return None
 
-    visible_spans = table[:TOP_SPANS_LIMIT]
-    cache_key = frozenset(span["name"] for span in visible_spans)
+    cache_key = frozenset(span["name"] for span in table)
     if spans_chart_cache is not None and cache_key in spans_chart_cache:
         return spans_chart_cache[cache_key]
 
     chart_data: dict[str, Any] = {"stats": {}}
-    for i, span in enumerate(visible_spans):
+    for i, span in enumerate(table):
         ts_data = ctx.top_spans_timeseries.get(span["name"], {})
         data_points = [[ts, [{"count": p95}]] for ts, p95 in sorted(ts_data.items())]
         chart_data["stats"][span["name"]] = {"data": data_points, "order": i}
@@ -951,6 +952,7 @@ def render_template_context(
                 f"/organizations/{ctx.organization.slug}/explore/traces/",
                 query=span_query,
             )
+            color = CHART_PALETTE[len(table)] if len(table) < len(CHART_PALETTE) else ""
             table.append(
                 {
                     "name": span["name"],
@@ -958,6 +960,7 @@ def render_template_context(
                     "sum": span["sum"],
                     "project_slugs": project.slug if project else "",
                     "url": span_url,
+                    "color": color,
                 }
             )
         chart_url = _top_spans_chart_url(table, ctx, spans_chart_cache)

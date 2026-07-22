@@ -25,6 +25,7 @@ from sentry.tasks.summaries.utils import (
     ProjectContext,
 )
 from sentry.tasks.summaries.weekly_reports import (
+    CHART_PALETTE,
     _pct_change,
     get_group_display,
     render_template_context,
@@ -267,8 +268,9 @@ class DebugWeeklyReportView(MailPreviewView):
                     if ctx.top_spans_projects.get(span["name"]) in project_by_id
                     else "",
                     "url": "#",
+                    "color": CHART_PALETTE[i] if i < len(CHART_PALETTE) else "",
                 }
-                for span in ctx.top_spans
+                for i, span in enumerate(ctx.top_spans)
             ]
             if charts.is_enabled() and ctx.top_spans:
                 chart_data: dict[str, Any] = {"stats": {}}
