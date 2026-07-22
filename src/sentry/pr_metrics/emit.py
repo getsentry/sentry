@@ -209,24 +209,18 @@ def select_fallback_verdict(pull_request: PullRequest) -> PullRequestVerdict:
     return PullRequestVerdict.CLOSED_UNMERGED
 
 
-# Diagnosis label Sentry can derive on its own (unlike the judge's free-string
-# vocabulary): the deterministic closed-unmerged path's "why", read straight off
-# the PR's own check-suite activity rather than a judge's opinion.
+# Whether the CI was failing at close for the "MERGED_UNCHANGED" verdict.
+# This is a deterministic check because we know there were no other commits
 CI_FAILING_AT_CLOSE = "ci_failing_at_close"
 
 # Diagnosis label for the stale-detection path. See detect_stale_pull_requests_task.
 NO_REVIEWER_ENGAGEMENT = "no_reviewer_engagement"
 
-# Whether any CI provider's check suite was already failing at the PR's opening
-# head, computed for every emitted verdict (not just CLOSED_UNMERGED) — unlike
-# CI_FAILING_AT_CLOSE, this doesn't require "no commits after open" to be
-# meaningful, since it only ever looks at the opening head's own checks.
+# Whether any CI provider's check suite was already failing at the PR's opening commit
 CI_FAILED_AT_OPEN = "ci_failed_at_open"
 
 # No CI check activity of any kind (check_suite or check_run) was ever recorded
-# for this PR — a distinct signal from "CI failed": there's nothing to diagnose
-# because CI never reported in, e.g. no CI configured on the repo, or the org
-# doesn't have check-event webhooks wired up.
+# for this PR
 NO_CI_EVENTS = "no_ci_events"
 
 # Conclusions that unambiguously mean the check errored out, as opposed to
