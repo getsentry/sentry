@@ -22,7 +22,7 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.models.repository import Repository
-from sentry.pr_metrics.activity_doc import ENGAGING_ACTIVITY_TYPES, has_engaging_activity_since
+from sentry.pr_metrics.activity_doc import ENGAGING_ACTIVITY_TYPES, has_reviewer_engagement
 from sentry.pr_metrics.emit import NO_REVIEWER_ENGAGEMENT, emit_pr_metrics_row
 from sentry.pr_metrics.judge import forward_pr_to_seer_judge, reap_stuck_judge_verdicts
 from sentry.silo.base import SiloMode
@@ -197,9 +197,7 @@ def find_stale_pull_requests(*, cutoff: datetime) -> list[int]:
     - It has ≥1 valid ``PullRequestAttribution`` row (tracked).
     - Its ``PullRequestMetrics.verdict`` is ``NULL`` — not yet judged or closed.
       ``JUDGE_IN_PROGRESS`` is non-NULL so those PRs are excluded naturally.
-    - It was opened in the window (cutoff - STALENESS_WINDOW, cutoff) — between
-      one and two staleness windows ago. PRs older than 2× the window are ignored:
-      they've had long enough to be caught by a previous run.
+    - It was opened before the cutoff time.
     - It has no engaging activity (see ``ENGAGING_ACTIVITY_TYPES``) with
       ``date_added >= cutoff``, read off legacy ``PullRequestActivity`` rows.
 
@@ -227,7 +225,6 @@ def find_stale_pull_requests(*, cutoff: datetime) -> list[int]:
         PullRequest.objects.filter(
             state="open",
             date_added__lt=cutoff,
-            date_added__gte=cutoff - STALENESS_WINDOW,
             pullrequestattribution__is_valid=True,
             metrics__verdict__isnull=True,
         )
@@ -283,12 +280,12 @@ def detect_stale_pull_requests_task() -> None:
         pull_requests = list(PullRequest.objects.filter(id__in=batch))
         org_ids = {pr.organization_id for pr in pull_requests}
         orgs_by_id = {o.id: o for o in Organization.objects.filter(id__in=org_ids)}
-        # Bulk-fetch this batch's documents once, rather than a query per PR —
+        # Bulk-fetch this batch's last updated timestamps once, rather than a query per PR —
         # most candidates will have none (legacy-track PRs), so this is a
         # small lookup scoped to the batch, not the full candidate list.
-        doc_by_pr_id = dict(
+        updated_at_by_pr_id = dict(
             PullRequestActivityLog.objects.filter(pull_request_id__in=batch).values_list(
-                "pull_request_id", "data"
+                "pull_request_id", "date_updated"
             )
         )
         for pr in pull_requests:
@@ -308,8 +305,8 @@ def detect_stale_pull_requests_task() -> None:
             if not features.has("organizations:pr-metrics-activity", org):
                 continue
 
-            doc = doc_by_pr_id.get(pr.id)
-            if doc is not None and has_engaging_activity_since(doc, cutoff):
+            last_updated = updated_at_by_pr_id.get(pr.id)
+            if last_updated is not None and last_updated >= cutoff:
                 # The legacy-only SQL scan couldn't see this PR's document, so
                 # it fell through as a false candidate — it's actually engaged.
                 metrics.incr("pr_metrics.stale.skipped", tags={"reason": "doc_engaged"})
@@ -323,7 +320,19 @@ def detect_stale_pull_requests_task() -> None:
             if not _claim_terminal_event(pr, PullRequestVerdict.ABANDONED):
                 metrics.incr("pr_metrics.stale.skipped", tags={"reason": "already_claimed"})
                 continue
-            if emit_pr_metrics_row(pull_request=pr, diagnosis_labels=[NO_REVIEWER_ENGAGEMENT]):
+
+            # Check if NO_REVIEWER_ENGAGEMENT label should be applied by examining
+            # the activity document for any reviewer engagement throughout the PR's lifetime
+            diagnosis_labels = []
+            try:
+                activity_log = PullRequestActivityLog.objects.get(pull_request_id=pr.id)
+                if not has_reviewer_engagement(activity_log.data):
+                    diagnosis_labels.append(NO_REVIEWER_ENGAGEMENT)
+            except PullRequestActivityLog.DoesNotExist:
+                # No activity document exists, so no reviewer engagement occurred
+                diagnosis_labels.append(NO_REVIEWER_ENGAGEMENT)
+
+            if emit_pr_metrics_row(pull_request=pr, diagnosis_labels=diagnosis_labels):
                 emitted += 1
 
     metrics.incr("pr_metrics.stale.emitted", amount=emitted)

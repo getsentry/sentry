@@ -501,6 +501,13 @@ def build_pr_metrics_row(
     ``CLOSED_UNMERGED`` path can also populate it (see ``ci_failing_at_close``),
     so its presence doesn't by itself mean the row was judged.
     """
+    # Validate that non-abandoned PRs have the required lifecycle data
+    if close_action != CLOSE_ACTION_ABANDONED and pull_request.closed_at is None:
+        raise ValueError(
+            f"PR {pull_request.id} has close_action='{close_action}' but closed_at is None. "
+            "Only abandoned PRs are allowed to have null closed_at."
+        )
+
     head_commit_sha = pull_request.head_commit_sha or "unknown"
     # For abandoned PRs there's no `closed_at` value populated; fall back to now().
     effective_closed_at = pull_request.closed_at or dj_timezone.now()

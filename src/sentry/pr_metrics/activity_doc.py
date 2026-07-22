@@ -758,3 +758,28 @@ def has_engaging_activity_since(doc: Mapping[str, Any], cutoff: datetime) -> boo
         if ts is not None and ts >= cutoff:
             return True
     return False
+
+
+def has_reviewer_engagement(doc: Mapping[str, Any]) -> bool:
+    """Whether ``doc`` records any reviewer engagement throughout the PR's lifetime.
+
+    Reviewer engagement includes review submissions and review requests.
+    Used to determine if NO_REVIEWER_ENGAGEMENT label should be applied.
+
+    Conservative on the events cap: once ``events_dropped`` is nonzero, the
+    ``events`` list is no longer a complete lifecycle record, so we assume
+    there was engagement rather than risk incorrectly labeling a PR.
+    """
+    if doc.get("events_dropped"):
+        # If events were dropped, we can't be sure there was no engagement
+        return True
+
+    reviewer_activity_types = {
+        PullRequestActivityType.REVIEW_SUBMITTED,
+        PullRequestActivityType.REVIEW_REQUESTED,
+    }
+
+    for entry in doc.get("events") or ():
+        if entry.get("event_type") in reviewer_activity_types:
+            return True
+    return False
