@@ -917,14 +917,14 @@ def render_template_context(
         }
 
     def top_spans():
-        show_spans_chart = (
-            features.has("organizations:weekly-report-spans-chart", ctx.organization)
-            and not ctx.organization.flags.enhanced_privacy
-        )
         user_total_spans_count = sum(
             count for pid, count in ctx.spans_count_by_project.items() if pid in user_project_ids
         )
-        if not show_spans_chart or user_total_spans_count == 0:
+        if (
+            not features.has("organizations:weekly-report-spans-chart", ctx.organization)
+            or ctx.organization.flags.enhanced_privacy
+            or user_total_spans_count == 0
+        ):
             return {"total_spans_count": 0, "top_spans_table": [], "spans_chart_url": None}
 
         project_by_id = {p.project.id: p.project for p in user_projects}
