@@ -434,13 +434,12 @@ def configure_sdk():
 
             self._capture_anything("capture_event", event)
 
-        def _should_drop_s4s(self, method_name, *args) -> bool:
+        def _should_drop_s4s(self, method_name, sample_rate, *args) -> bool:
             """
             Deterministically drop transaction/span data sent to S4S
             based on trace_id. Rate is controlled by the
             store.s4s-transaction-sample-rate option. Errors are never dropped.
             """
-            sample_rate = options.get("store.s4s-transaction-sample-rate")
             if sample_rate >= 1.0:
                 return False
 
@@ -472,7 +471,8 @@ def configure_sdk():
             # Sentry4Sentry (upstream) should get the event first because
             # it is most isolated from the sentry installation.
             if sentry4sentry_transport:
-                if self._should_drop_s4s(method_name, *args):
+                s4s_sample_rate = options.get("store.s4s-transaction-sample-rate")
+                if self._should_drop_s4s(method_name, s4s_sample_rate, *args):
                     metrics.incr("internal.captured.events.upstream.s4s_dropped", sample_rate=0.01)
                 else:
                     metrics.incr("internal.captured.events.upstream", sample_rate=0.01)
@@ -489,6 +489,16 @@ def configure_sdk():
                     ):
                         args_list = list(args)
                         envelope = args_list[0]
+                        trace = envelope.headers.get("trace")
+                        if (
+                            isinstance(trace, dict)
+                            and "sample_rate" in trace
+                            and isinstance(s4s_sample_rate, float)
+                        ):
+                            envelope.headers.setdefault("trace", {})["sample_rate"] = str(
+                                float(trace["sample_rate"]) * s4s_sample_rate
+                            )
+
                         # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
                         # unless we allow them via a separate sample rate.
                         safe_items = [
