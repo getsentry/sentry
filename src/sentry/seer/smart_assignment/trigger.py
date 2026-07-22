@@ -9,13 +9,14 @@ from sentry.models.organization import Organization
 from sentry.ratelimits import backend as ratelimiter
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models import SeerApiError, SeerPermissionError
-from sentry.seer.models.run import SeerAgentRun, SeerRun
+from sentry.seer.models.run import SeerRun
 from sentry.seer.smart_assignment.models import (
     RESOLUTION_ACTIVITIES,
     SEER_FEATURE_ID,
     SmartAssignmentPayload,
 )
 from sentry.seer.smart_assignment.scoring import record_ground_truth
+from sentry.seer.utils import runs_for_group
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
@@ -77,7 +78,7 @@ def _already_predicted(group: Group) -> bool:
     cross-service call. Best-effort: a rare concurrent trigger could slip a second
     run past this before the first mirror commits, which the daily caps still bound.
     """
-    return SeerAgentRun.objects.filter(group_id=group.id, source=SEER_FEATURE_ID).exists()
+    return runs_for_group(group.id, SEER_FEATURE_ID).exists()
 
 
 def _dispatch_rate_limited(organization: Organization) -> bool:

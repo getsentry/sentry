@@ -15,6 +15,7 @@ from sentry.seer.smart_assignment.models import (
     SEER_FEATURE_ID,
     SmartAssignmentScore,
 )
+from sentry.seer.utils import latest_run_for_group
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
@@ -33,21 +34,6 @@ class RunUpdates(TypedDict, total=False):
     ground_truth_source: str
 
 
-def _get_run(group: Group) -> SeerAgentRun | None:
-    """The canonical smart-assignment run for a group (latest wins).
-
-    For now there's only one run per issue, but we may enable subsequent runs
-    when the initial prediction is rejected by the user.
-    We pick the latest run so that the prediction and ground-truth writers agree on the same row.
-    """
-    return (
-        SeerAgentRun.objects.filter(group_id=group.id, source=SEER_FEATURE_ID)
-        .select_related("run")
-        .order_by("-date_added")
-        .first()
-    )
-
-
 def record_prediction(run: SeerAgentRun, predicted_assignee_user_ids: list[int | None]) -> None:
     """Record the predicted assignee user IDs on the run."""
     _apply(run.id, {"predicted_assignee_user_ids": predicted_assignee_user_ids})
@@ -63,7 +49,7 @@ def record_ground_truth(
     No-op if no run was dispatched for the group, or the outcome carries no useful
     signal (see ``_ground_truth_updates``).
     """
-    run = _get_run(group)
+    run = latest_run_for_group(group.id, SEER_FEATURE_ID)
     if run is None:
         return
 
