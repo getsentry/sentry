@@ -19,6 +19,7 @@ import {
   WildcardOperators,
 } from 'sentry/components/searchSyntax/parser';
 import type {Project} from 'sentry/types/project';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
@@ -605,7 +606,9 @@ export function generateQueryTokensString(
 
   if (args?.visualizations && args.visualizations.length > 0) {
     const vizParts = args.visualizations.flatMap(visualization =>
-      visualization.yAxes.map(yAxis => yAxis)
+      visualization.yAxes.map(yAxis =>
+        isEquation(yAxis) ? stripEquationPrefix(yAxis) : yAxis
+      )
     );
     if (vizParts.length > 0) {
       const vizText = vizParts.length === 1 ? vizParts[0] : vizParts.join(', ');
