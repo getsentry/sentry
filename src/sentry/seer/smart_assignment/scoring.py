@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 HIT_RANK_LIMIT = 3
 
 
-def _get_run(group_id: int) -> SeerAgentRun | None:
+def _get_run(group: Group) -> SeerAgentRun | None:
     """The canonical smart-assignment run for a group (latest wins).
 
     For now there's only one run per issue, but we may enable subsequent runs
@@ -32,7 +32,7 @@ def _get_run(group_id: int) -> SeerAgentRun | None:
     We pick the latest run so that the prediction and ground-truth writers agree on the same row.
     """
     return (
-        SeerAgentRun.objects.filter(group_id=group_id, source=SEER_FEATURE_ID)
+        SeerAgentRun.objects.filter(group_id=group.id, source=SEER_FEATURE_ID)
         .select_related("run")
         .order_by("-date_added")
         .first()
@@ -57,7 +57,7 @@ def record_ground_truth(
     user-driven resolution we record the resolver as the assumed assignee only when no
     explicit assignee has been recorded -- an assignment is better truth.
     """
-    run = _get_run(group.id)
+    run = _get_run(group)
     if run is None:
         return
 
