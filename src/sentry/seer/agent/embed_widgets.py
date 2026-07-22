@@ -25,9 +25,16 @@ def get_embed_widgets(organization: Any = None, actor: Any = None) -> list[dict[
 
     from sentry import features
 
-    return [
-        w
-        for w in _WIDGETS
-        if "featureFlag" not in w
-        or (organization is not None and features.has(w["featureFlag"], organization, actor=actor))
-    ]
+    def _has_widget_flag(widget: dict[str, Any]) -> bool:
+        if "featureFlag" not in widget:
+            return True
+        if organization is None:
+            return False
+        flag = widget["featureFlag"]
+        # The frontend schema stores the bare flag name (e.g. "seer_agent_autofix");
+        # organization features are registered under the "organizations:" scope.
+        if ":" not in flag:
+            flag = f"organizations:{flag}"
+        return features.has(flag, organization, actor=actor)
+
+    return [w for w in _WIDGETS if _has_widget_flag(w)]
