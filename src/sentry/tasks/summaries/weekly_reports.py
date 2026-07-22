@@ -609,6 +609,40 @@ def get_local_dates(ctx: OrganizationReportContext, user_id: int) -> tuple[datet
     return (local_start, local_end)
 
 
+def _top_spans_chart_url(
+    table: list[dict[str, Any]],
+    ctx: OrganizationReportContext,
+    spans_chart_cache: dict[frozenset[str], str | None] | None,
+) -> str | None:
+    if not table or not charts.is_enabled():
+        return None
+
+    visible_spans = table[:TOP_SPANS_LIMIT]
+    cache_key = frozenset(span["name"] for span in visible_spans)
+    if spans_chart_cache is not None and cache_key in spans_chart_cache:
+        return spans_chart_cache[cache_key]
+
+    chart_data: dict[str, Any] = {"stats": {}}
+    for i, span in enumerate(visible_spans):
+        ts_data = ctx.top_spans_timeseries.get(span["name"], {})
+        data_points = [[ts, [{"count": p95}]] for ts, p95 in sorted(ts_data.items())]
+        chart_data["stats"][span["name"]] = {"data": data_points, "order": i}
+
+    chart_url = None
+    try:
+        chart_url = charts.generate_chart(
+            ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE,
+            chart_data,
+            size={"width": 600, "height": 200},
+        )
+    except Exception:
+        logger.exception("weekly_report.spans_chart.generation_failed")
+
+    if spans_chart_cache is not None:
+        spans_chart_cache[cache_key] = chart_url
+    return chart_url
+
+
 def render_template_context(
     ctx,
     user_id: int | None,
@@ -926,30 +960,7 @@ def render_template_context(
                     "url": span_url,
                 }
             )
-        chart_url = None
-        if table and charts.is_enabled():
-            visible_spans = table[:TOP_SPANS_LIMIT]
-            cache_key = frozenset(span["name"] for span in visible_spans)
-            if spans_chart_cache is not None and cache_key in spans_chart_cache:
-                chart_url = spans_chart_cache[cache_key]
-            else:
-                chart_data: dict[str, Any] = {"stats": {}}
-                for i, span in enumerate(visible_spans):
-                    ts_data = ctx.top_spans_timeseries.get(span["name"], {})
-                    data_points = [
-                        [ts, [{"count": p95}]] for ts, p95 in sorted(ts_data.items())
-                    ]
-                    chart_data["stats"][span["name"]] = {"data": data_points, "order": i}
-                try:
-                    chart_url = charts.generate_chart(
-                        ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE,
-                        chart_data,
-                        size={"width": 600, "height": 200},
-                    )
-                except Exception:
-                    logger.exception("weekly_report.spans_chart.generation_failed")
-                if spans_chart_cache is not None:
-                    spans_chart_cache[cache_key] = chart_url
+        chart_url = _top_spans_chart_url(table, ctx, spans_chart_cache)
 
         prev_week_total_spans_count = sum(
             count
