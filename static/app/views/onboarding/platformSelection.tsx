@@ -2,7 +2,10 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import omit from 'lodash/omit';
 
-import {PlatformPicker} from 'sentry/components/platformPicker';
+import {
+  getSdkPlatformKey,
+  PlatformPicker,
+} from 'sentry/components/platformPicker';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
@@ -42,7 +45,7 @@ export function PlatformSelection(props: StepProps) {
           source="targeted-onboarding"
           setPlatform={platform => {
             const selectedPlatform = platform
-              ? {...omit(platform, 'id'), key: platform.id}
+              ? {...omit(platform, 'id', 'sdkKey'), key: getSdkPlatformKey(platform)}
               : undefined;
 
             configureSdk(selectedPlatform);

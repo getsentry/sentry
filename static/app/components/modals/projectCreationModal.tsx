@@ -22,6 +22,7 @@ import {
 import {
   type Category,
   type Platform,
+  getSdkPlatformKey,
   PlatformPicker,
 } from 'sentry/components/platformPicker';
 import type {TeamOption} from 'sentry/components/teamSelector';
@@ -89,8 +90,8 @@ export default function ProjectCreationModal({
     }
 
     setPlatform({
-      ...omit(selectedPlatform, 'id'),
-      key: selectedPlatform.id,
+      ...omit(selectedPlatform, 'id', 'sdkKey'),
+      key: getSdkPlatformKey(selectedPlatform),
     });
   }
 

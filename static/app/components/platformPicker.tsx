@@ -42,6 +42,10 @@ const selectablePlatforms = platforms.filter(platform =>
   createablePlatforms.has(platform.id)
 );
 
+export function getSdkPlatformKey(platform: PlatformIntegration) {
+  return platform.sdkKey ?? platform.id;
+}
+
 function startsWithPunctuation(name: string) {
   return /^\p{P}/u.test(name);
 }

@@ -18,7 +18,29 @@ describe('PlatformPicker', () => {
 
     expect(screen.queryByTestId('platform-java')).not.toBeInTheDocument();
     expect(screen.getByTestId('platform-apple-ios')).toBeInTheDocument();
+    expect(screen.getByTestId('platform-expo')).toBeInTheDocument();
     expect(screen.getByTestId('platform-react-native')).toBeInTheDocument();
+  });
+
+  it('returns Expo as an alias for the React Native SDK', async () => {
+    const setPlatform = jest.fn();
+    render(
+      <PlatformPicker
+        {...baseProps}
+        defaultCategory="mobile"
+        setPlatform={setPlatform}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('platform-expo'));
+
+    expect(setPlatform).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'expo',
+        sdkKey: 'react-native',
+        link: 'https://docs.sentry.io/platforms/react-native/guides/expo/',
+      })
+    );
   });
 
   it('should render renderPlatformList with Python when filtered with py', () => {

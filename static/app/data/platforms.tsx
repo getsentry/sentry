@@ -719,6 +719,14 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/python/guides/wsgi/',
   },
   {
+    id: 'expo',
+    name: 'Expo',
+    type: 'framework',
+    language: 'react-native',
+    link: 'https://docs.sentry.io/platforms/react-native/guides/expo/',
+    sdkKey: 'react-native',
+  },
+  {
     id: 'react-native',
     name: 'React Native',
     type: 'language',

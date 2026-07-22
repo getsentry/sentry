@@ -255,6 +255,38 @@ describe('CreateProject', () => {
     expect(screen.getByText('#team-three')).toBeInTheDocument();
   });
 
+  it('creates Expo projects with the React Native SDK platform', async () => {
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+        features: ['team-roles'],
+        allowMemberProjectCreation: true,
+      },
+    });
+    const {projectCreationMockRequest} = renderFrameworkModalMockRequests({
+      organization,
+      teamSlug: teamWithAccess.slug,
+    });
+    TeamStore.loadUserTeams([teamWithAccess]);
+
+    render(<CreateProject />, {organization});
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Mobile'}));
+    await userEvent.click(screen.getByTestId('platform-expo'));
+    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('expo');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+
+    await waitFor(() => {
+      expect(projectCreationMockRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({platform: 'react-native'}),
+        })
+      );
+    });
+  });
+
   it('should fill in project name if its empty when platform is chosen', async () => {
     const {organization} = initializeOrg({
       organization: {

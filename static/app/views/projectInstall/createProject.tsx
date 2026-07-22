@@ -20,7 +20,11 @@ import {ListItem} from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
-import {PlatformPicker, type Platform} from 'sentry/components/platformPicker';
+import {
+  getSdkPlatformKey,
+  PlatformPicker,
+  type Platform,
+} from 'sentry/components/platformPicker';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {categoryList} from 'sentry/data/platformPickerCategories';
 import {t, tct} from 'sentry/locale';
@@ -466,9 +470,11 @@ export function CreateProject() {
         return;
       }
 
+      const sdkPlatformKey = getSdkPlatformKey(value);
+
       setFormData(prev => ({
         ...prev,
-        platform: {...omit(value, 'id'), key: value.id},
+        platform: {...omit(value, 'id', 'sdkKey'), key: sdkPlatformKey},
         projectName: hasUserModifiedProjectName.current ? prev.projectName : value.id,
       }));
     },
