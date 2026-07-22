@@ -10,7 +10,6 @@ from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.notifications.notifications.activity.assigned import get_assignee_str
 from sentry.notifications.platform.types import (
     CodeSection,
     CodeTextBlock,
@@ -165,6 +164,8 @@ def extract_notification_models_by_activity(
 def build_activity_notification_data(
     activity: Activity, *, workflow_id: int | None = None
 ) -> ActivityNotificationData:
+    from sentry.notifications.notifications.activity.assigned import get_assignee_str
+
     source = ACTIVITY_TYPE_TO_SOURCE.get(activity.type)
     if source is None:
         raise ValueError(f"No notification source for activity type: {activity.type}")
