@@ -19,14 +19,6 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
-interface WebAuthnParams {
-  challenge: string;
-  response: string;
-  isSuperuserModal?: boolean;
-  superuserAccessCategory?: string;
-  superuserReason?: string;
-}
-
 type AuthPayload = {
   challenge?: string;
   isSuperuserModal?: boolean;
@@ -165,7 +157,7 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
   );
 
   const handleWebAuthn = useCallback(
-    async (data: WebAuthnParams) => {
+    async (data: {challenge: string; response: string}) => {
       const payload: AuthPayload = {...data};
       if (!hasStaff) {
         payload.isSuperuserModal = true;
@@ -241,8 +233,15 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (errorType === ErrorCodes.INVALID_SSO_SESSION) {
-    handleLogout();
+  // An expired SSO session is terminal: redirect to re-auth.
+  const ssoExpired = errorType === ErrorCodes.INVALID_SSO_SESSION;
+  useEffect(() => {
+    if (ssoExpired) {
+      handleLogout();
+    }
+  }, [ssoExpired, handleLogout]);
+
+  if (ssoExpired) {
     return null;
   }
 
