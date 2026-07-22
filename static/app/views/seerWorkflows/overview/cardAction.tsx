@@ -157,7 +157,13 @@ function ActionButton({actionKey, to}: {actionKey: ActionKey; to: LocationDescri
   );
 }
 
-function ReviewPrButton({prUrl, prNumber}: {prNumber: number | undefined; prUrl: string}) {
+function ReviewPrButton({
+  prUrl,
+  prNumber,
+}: {
+  prNumber: number | undefined;
+  prUrl: string;
+}) {
   const meta = ACTION_META.review_pr;
   return (
     <Tooltip

@@ -1,13 +1,7 @@
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  IconCode,
-  IconCommit,
-  IconMerge,
-  IconPullRequest,
-  IconSearch,
-} from 'sentry/icons';
+import {IconCode, IconCommit, IconMerge, IconPullRequest, IconSearch} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 

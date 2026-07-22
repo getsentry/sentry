@@ -89,15 +89,7 @@ function issueCountLabels(row: OverviewRow) {
   };
 }
 
-function IssueTitleLink({
-  row,
-  to,
-  size,
-}: {
-  row: OverviewRow;
-  to: string;
-  size?: 'lg';
-}) {
+function IssueTitleLink({row, to, size}: {row: OverviewRow; to: string; size?: 'lg'}) {
   // The ellipsis Text is the shrinking flex item (overflow:hidden resolves its
   // min-width to 0); the Link must nest inside it or the anchor refuses to
   // shrink and the title overflows the card. When Seer produced a

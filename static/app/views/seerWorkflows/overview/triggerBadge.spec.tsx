@@ -6,9 +6,12 @@ import {
 } from 'sentry/views/seerWorkflows/overview/triggerBadge';
 
 describe('mapRunSourceToTrigger', () => {
-  it.each(['autofix', 'slack_thread', 'chat'])('maps %s to the manual trigger', source => {
-    expect(mapRunSourceToTrigger(source)).toBe('manual');
-  });
+  it.each(['autofix', 'slack_thread', 'chat'])(
+    'maps %s to the manual trigger',
+    source => {
+      expect(mapRunSourceToTrigger(source)).toBe('manual');
+    }
+  );
 
   it('maps night_shift to the workflow trigger', () => {
     expect(mapRunSourceToTrigger('night_shift')).toBe('night_shift');
