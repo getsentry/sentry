@@ -44,7 +44,6 @@ import type {
   PermissionResource,
   SentryApp,
   SentryAppAvatar,
-  WebhookEvent,
 } from 'sentry/types/integrations';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
@@ -364,22 +363,9 @@ function SentryApplicationForm({
       }),
   });
 
-  // Events may come from the API as "issue.created" when we just want "issue" here.
-  const normalize = (events: WebhookEvent[]) => {
-    if (events.length === 0) {
-      return events;
-    }
-
-    return events.map(event => event.split('.').shift() as WebhookEvent);
-  };
-
-  const granular = organization.features.includes('sentry-apps-granular-events');
-
   // Older API responses only send the consolidated resource list
   const initialEvents: WebhookSubscription[] = app
-    ? granular
-      ? granularWebhookEvents(app.webhookEvents ?? app.events)
-      : normalize(app.events)
+    ? granularWebhookEvents(app.webhookEvents ?? app.events)
     : [];
 
   const hasTokenAccess = () => {
@@ -738,25 +724,23 @@ function SentryApplicationForm({
           )}
         </form.AppField>
 
-        {organization.features.includes('sentry-apps-custom-webhook-headers') && (
-          <form.AppField name="webhookHeaders">
-            {field => (
-              <field.Layout.Row
-                label={t('Webhook Headers')}
-                hintText={t(
-                  'Custom headers to include with every webhook request. Only certain headers are allowed, such as Authorization or X-* custom headers. Enter one header per line in the format: Header-Name: value. Saved header values are masked.'
-                )}
-              >
-                <field.TextArea
-                  autosize
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  placeholder={'Authorization: Bearer <token>\nX-Custom-Header: value'}
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-        )}
+        <form.AppField name="webhookHeaders">
+          {field => (
+            <field.Layout.Row
+              label={t('Webhook Headers')}
+              hintText={t(
+                'Custom headers to include with every webhook request. Only certain headers are allowed, such as Authorization or X-* custom headers. Enter one header per line in the format: Header-Name: value. Saved header values are masked.'
+              )}
+            >
+              <field.TextArea
+                autosize
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder={'Authorization: Bearer <token>\nX-Custom-Header: value'}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
 
         {!isInternal && (
           <form.AppField name="redirectUrl">

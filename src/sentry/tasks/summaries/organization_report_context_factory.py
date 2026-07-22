@@ -263,6 +263,7 @@ class OrganizationReportContextFactory:
                 sentry_sdk.capture_exception()
                 ctx.top_spans = []
                 ctx.top_spans_projects = {}
+                ctx.spans_count_by_project = {}
                 return
             try:
                 organization_top_spans_timeseries(ctx, referrer=referrer)

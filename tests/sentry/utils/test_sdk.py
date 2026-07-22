@@ -542,48 +542,43 @@ class ShouldDropS4STest(TestCase):
     def test_default_rate_sends_everything(self) -> None:
         transport = self._get_transport()
         envelope = self._make_envelope()
-        assert transport._should_drop_s4s("capture_envelope", envelope) is False
+        assert transport._should_drop_s4s("capture_envelope", 1.0, envelope) is False
 
     def test_zero_rate_drops_all_transactions(self) -> None:
         transport = self._get_transport()
-        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
-            envelope = self._make_envelope()
-            assert transport._should_drop_s4s("capture_envelope", envelope) is True
+        envelope = self._make_envelope()
+        assert transport._should_drop_s4s("capture_envelope", 0.0, envelope) is True
 
-            event = {"type": "transaction", "contexts": {"trace": {"trace_id": "a" * 32}}}
-            assert transport._should_drop_s4s("capture_event", event) is True
+        event = {"type": "transaction", "contexts": {"trace": {"trace_id": "a" * 32}}}
+        assert transport._should_drop_s4s("capture_event", 0.0, event) is True
 
     def test_never_drops_error_envelopes(self) -> None:
         transport = self._get_transport()
-        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
-            envelope = self._make_envelope(is_transaction=False)
-            assert transport._should_drop_s4s("capture_envelope", envelope) is False
+        envelope = self._make_envelope(is_transaction=False)
+        assert transport._should_drop_s4s("capture_envelope", 0.0, envelope) is False
 
     def test_never_drops_error_events(self) -> None:
         transport = self._get_transport()
-        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
-            event = {"type": "error", "contexts": {"trace": {"trace_id": "a" * 32}}}
-            assert transport._should_drop_s4s("capture_event", event) is False
+        event = {"type": "error", "contexts": {"trace": {"trace_id": "a" * 32}}}
+        assert transport._should_drop_s4s("capture_event", 0.0, event) is False
 
     def test_deterministic_by_trace_id(self) -> None:
         transport = self._get_transport()
         trace_id = "abcdef1234567890abcdef1234567890"
-        with self.options({"store.s4s-transaction-sample-rate": 0.5}):
-            envelope = self._make_envelope(trace_id=trace_id)
-            first = transport._should_drop_s4s("capture_envelope", envelope)
-            for _ in range(10):
-                assert transport._should_drop_s4s("capture_envelope", envelope) == first
+        envelope = self._make_envelope(trace_id=trace_id)
+        first = transport._should_drop_s4s("capture_envelope", 0.5, envelope)
+        for _ in range(10):
+            assert transport._should_drop_s4s("capture_envelope", 0.5, envelope) == first
 
     def test_no_trace_id_not_dropped(self) -> None:
         transport = self._get_transport()
-        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
-            envelope = MagicMock()
-            envelope.get_transaction_event.return_value = {"type": "transaction"}
-            envelope.headers = {}
-            assert transport._should_drop_s4s("capture_envelope", envelope) is False
+        envelope = MagicMock()
+        envelope.get_transaction_event.return_value = {"type": "transaction"}
+        envelope.headers = {}
+        assert transport._should_drop_s4s("capture_envelope", 0.0, envelope) is False
 
-            event = {"type": "transaction", "contexts": {}}
-            assert transport._should_drop_s4s("capture_event", event) is False
+        event = {"type": "transaction", "contexts": {}}
+        assert transport._should_drop_s4s("capture_event", 0.0, event) is False
 
     def _make_span_envelope(self, trace_id="a" * 32):
         envelope = MagicMock()
@@ -596,20 +591,18 @@ class ShouldDropS4STest(TestCase):
 
     def test_zero_rate_drops_span_envelopes(self) -> None:
         transport = self._get_transport()
-        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
-            envelope = self._make_span_envelope()
-            assert transport._should_drop_s4s("capture_envelope", envelope) is True
+        envelope = self._make_span_envelope()
+        assert transport._should_drop_s4s("capture_envelope", 0.0, envelope) is True
 
     def test_never_drops_non_span_non_transaction_envelopes(self) -> None:
         transport = self._get_transport()
-        with self.options({"store.s4s-transaction-sample-rate": 0.0}):
-            envelope = MagicMock()
-            envelope.get_transaction_event.return_value = None
-            envelope.headers = {"trace": {"trace_id": "a" * 32}}
-            error_item = MagicMock()
-            error_item.type = "event"
-            envelope.items = [error_item]
-            assert transport._should_drop_s4s("capture_envelope", envelope) is False
+        envelope = MagicMock()
+        envelope.get_transaction_event.return_value = None
+        envelope.headers = {"trace": {"trace_id": "a" * 32}}
+        error_item = MagicMock()
+        error_item.type = "event"
+        envelope.items = [error_item]
+        assert transport._should_drop_s4s("capture_envelope", 0.0, envelope) is False
 
 
 class SDKLoggerTest(TestCase):
