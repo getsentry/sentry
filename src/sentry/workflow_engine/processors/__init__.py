@@ -1,6 +1,7 @@
 __all__ = [
     "DataConditionEvaluation",
     "DataConditionGroupEvaluation",
+    "DetectorEvaluation",
 ]
 
-from .evaluations import DataConditionEvaluation, DataConditionGroupEvaluation
+from .evaluations import DataConditionEvaluation, DataConditionGroupEvaluation, DetectorEvaluation

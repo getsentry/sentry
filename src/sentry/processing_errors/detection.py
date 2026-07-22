@@ -193,7 +193,7 @@ def _detect_for_config(
 
     for _detector, detector_results in results:
         for _group_key, result in detector_results.items():
-            if result.is_triggered:
+            if result.outcome.triggered:
                 _set_detector_triggered(config, project_id)
                 metrics.incr(f"processing_errors.{config.slug}.triggered")
                 error_types = sorted(

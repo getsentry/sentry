@@ -292,6 +292,7 @@ const seerPullRequest = {
 };
 
 const seerActivities = [
+  seerActivity(GroupActivityType.TRIGGER_AUTOFIX),
   seerActivity(GroupActivityType.SEER_RCA_STARTED),
   seerActivity(GroupActivityType.SEER_RCA_COMPLETED),
   seerActivity(GroupActivityType.SEER_SOLUTION_STARTED),

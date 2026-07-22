@@ -505,6 +505,10 @@ export function getCompactGroupActivityItem({
           : null,
       };
     }
+    case GroupActivityType.TRIGGER_AUTOFIX:
+      return {
+        title: t('Autofix triggered'),
+      };
   }
 
   Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {
