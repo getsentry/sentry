@@ -21,6 +21,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
+import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd, IconDelete, IconEdit, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -329,54 +330,57 @@ function CustomFilterModal({
                 {conditionsField => {
                   const conditions = conditionsField.state.value;
                   return (
-                    <Stack gap="sm">
+                    <Stack gap="md">
                       <Text variant="muted" size="sm">
                         {t(
                           'Events must match all conditions (combined with AND) to be filtered. Each condition is a glob pattern matched against the selected field.'
                         )}
                       </Text>
-                      {conditions.map((condition, index) => (
-                        <Grid
-                          key={index}
-                          columns="160px max-content 1fr max-content"
-                          gap="md"
-                          align="center"
-                        >
-                          <form.AppField name={`conditions[${index}].property`}>
-                            {propertyField => (
-                              <propertyField.Select
-                                aria-label={t('Condition property')}
-                                clearable={false}
-                                options={getPropertyOptions(dataType)}
-                                value={propertyField.state.value}
-                                onChange={value => propertyField.handleChange(value)}
-                              />
-                            )}
-                          </form.AppField>
-                          <Text variant="muted">{t('matches')}</Text>
-                          <form.AppField name={`conditions[${index}].value`}>
-                            {valueField => (
-                              <valueField.Input
-                                aria-label={t('Condition value')}
-                                placeholder={getValuePlaceholder(condition.property)}
-                                value={valueField.state.value}
-                                onChange={valueField.handleChange}
-                              />
-                            )}
-                          </form.AppField>
-                          <Button
-                            size="sm"
-                            variant="transparent"
-                            icon={<IconDelete />}
-                            aria-label={t('Remove condition')}
-                            disabled={conditions.length === 1}
-                            onClick={() => conditionsField.removeValue(index)}
-                          />
-                        </Grid>
-                      ))}
-                      <Flex justify="start">
-                        <Button
-                          size="sm"
+                      <Stack gap="sm">
+                        {conditions.map((condition, index) => (
+                          <Grid
+                            key={index}
+                            columns="160px max-content 1fr max-content"
+                            gap="md"
+                            align="center"
+                          >
+                            <form.AppField name={`conditions[${index}].property`}>
+                              {propertyField => (
+                                <propertyField.Select
+                                  aria-label={t('Condition property')}
+                                  clearable={false}
+                                  options={getPropertyOptions(dataType)}
+                                  value={propertyField.state.value}
+                                  onChange={value => propertyField.handleChange(value)}
+                                />
+                              )}
+                            </form.AppField>
+                            <Text variant="muted">{t('matches')}</Text>
+                            <form.AppField name={`conditions[${index}].value`}>
+                              {valueField => (
+                                <valueField.Input
+                                  aria-label={t('Condition value')}
+                                  placeholder={getValuePlaceholder(condition.property)}
+                                  value={valueField.state.value}
+                                  onChange={valueField.handleChange}
+                                />
+                              )}
+                            </form.AppField>
+                            <Button
+                              size="sm"
+                              variant="transparent"
+                              icon={<IconDelete />}
+                              aria-label={t('Remove condition')}
+                              disabled={conditions.length === 1}
+                              onClick={() => conditionsField.removeValue(index)}
+                            />
+                          </Grid>
+                        ))}
+                      </Stack>
+                      <span>
+                        <PurpleTextButton
+                          variant="transparent"
+                          size="xs"
                           icon={<IconAdd />}
                           onClick={() =>
                             conditionsField.pushValue(
@@ -385,8 +389,8 @@ function CustomFilterModal({
                           }
                         >
                           {t('Add Condition')}
-                        </Button>
-                      </Flex>
+                        </PurpleTextButton>
+                      </span>
                     </Stack>
                   );
                 }}
