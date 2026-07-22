@@ -198,7 +198,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/issue-view-title/generate/'
   | '/organizations/$organizationIdOrSlug/issues-count/'
   | '/organizations/$organizationIdOrSlug/issues-metrics/'
-  | '/organizations/$organizationIdOrSlug/issues-progress/'
   | '/organizations/$organizationIdOrSlug/issues-stats/'
   | '/organizations/$organizationIdOrSlug/issues-timeseries/'
   | '/organizations/$organizationIdOrSlug/issues-with-supergroups/'
