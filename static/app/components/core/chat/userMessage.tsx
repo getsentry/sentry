@@ -24,7 +24,12 @@ interface UserMessageProps extends React.HTMLAttributes<HTMLDivElement> {
  * Presentation only — alignment within the conversation is the caller's
  * responsibility (wrap it in a right-aligned row for user messages).
  */
-export function UserMessage({children, maxWidth = '80%', width, ...props}: UserMessageProps) {
+export function UserMessage({
+  children,
+  maxWidth = '80%',
+  width,
+  ...props
+}: UserMessageProps) {
   return (
     <Container
       maxWidth={maxWidth}
