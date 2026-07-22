@@ -1,8 +1,8 @@
 /**
  * Replaces slug special chars with a space
  */
-export function explodeSlug(slug: string | undefined): string {
-  return slug ? slug.replace(/[-_]+/g, ' ').trim() : '';
+export function explodeSlug(slug: string): string {
+  return slug.replace(/[-_]+/g, ' ').trim();
 }
 
 export function escape(str: string): string {
