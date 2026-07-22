@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, TypedDict
 
 from django.db import router, transaction
 
@@ -22,6 +22,15 @@ logger = logging.getLogger(__name__)
 
 # Right now the agent only returns 3 ranked candidates; this is the limit we score against.
 HIT_RANK_LIMIT = 3
+
+
+class RunUpdates(TypedDict, total=False):
+    """The mirrored fields we write onto a run's ``extras`` before scoring."""
+
+    predicted_assignee_user_ids: list[int | None]
+    actual_assignee_user_id: int | None
+    actual_assignee_team_id: int | None
+    ground_truth_source: str
 
 
 def _get_run(group: Group) -> SeerAgentRun | None:
@@ -52,38 +61,56 @@ def record_ground_truth(
     """Record who the issue actually belonged to, then score the prediction.
 
     No-op if no run was dispatched for the group, or the outcome carries no useful
-    signal: a Seer AI-step start or an automatic resolution with no acting user.
-    For an assignment we mirror the current assignee (user and/or team). For a
-    user-driven resolution we record the resolver as the assumed assignee only when no
-    explicit assignee has been recorded -- an assignment is better truth.
+    signal (see ``_ground_truth_updates``).
     """
     run = _get_run(group)
     if run is None:
         return
 
-    updates: dict[str, Any] = {}
-    if activity_type == ActivityType.ASSIGNED:
-        assignee = GroupAssignee.objects.filter(group=group).first()
-        if assignee is None:
-            return
-        updates["actual_assignee_user_id"] = assignee.user_id
-        updates["actual_assignee_team_id"] = assignee.team_id
-    elif activity_type in RESOLUTION_ACTIVITIES:
-        if activity is None or activity.user_id is None:
-            return
-        if (run.extras or {}).get("actual_assignee_user_id") is not None:
-            # An explicit assignee is better ground truth than the resolver.
-            return
-        updates["actual_assignee_user_id"] = activity.user_id
-    else:
+    updates = _ground_truth_updates(run, group, activity_type, activity)
+    if updates is None:
         return
 
-    updates["ground_truth_source"] = activity_type.name
     if _apply(run.id, updates):
         metrics.incr("smart_assignment.ground_truth.recorded", tags={"trigger": activity_type.name})
 
 
-def _apply(run_id: int, updates: dict[str, Any]) -> bool:
+def _ground_truth_updates(
+    run: SeerAgentRun,
+    group: Group,
+    activity_type: ActivityType,
+    activity: Activity | None,
+) -> RunUpdates | None:
+    """Build the ground-truth mirror updates for an activity, or ``None`` when it
+    carries no useful signal.
+
+    For an assignment we mirror the current assignee (user and/or team). For a
+    user-driven resolution we record the resolver as the assumed assignee only when no
+    explicit assignee has been recorded -- an assignment is better truth.
+    """
+    if activity_type == ActivityType.ASSIGNED:
+        assignee = GroupAssignee.objects.filter(group=group).first()
+        if assignee is None:
+            return None
+        return {
+            "actual_assignee_user_id": assignee.user_id,
+            "actual_assignee_team_id": assignee.team_id,
+            "ground_truth_source": activity_type.name,
+        }
+    if activity_type in RESOLUTION_ACTIVITIES:
+        if activity is None or activity.user_id is None:
+            return None
+        if (run.extras or {}).get("actual_assignee_user_id") is not None:
+            # An explicit assignee is better ground truth than the resolver.
+            return None
+        return {
+            "actual_assignee_user_id": activity.user_id,
+            "ground_truth_source": activity_type.name,
+        }
+    return None
+
+
+def _apply(run_id: int, updates: RunUpdates) -> bool:
     """Record the delivered ranked picks (best-first, each resolved to a user) on the
     run mirror, then score if the ground truth already landed. Returns whether the updates were
     persisted -- ``False`` when the row is already a terminal snapshot."""
