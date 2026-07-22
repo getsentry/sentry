@@ -279,6 +279,7 @@ describe('getTraceItemTagCollection', () => {
         name: key,
         kind: FieldKind.MEASUREMENT,
         secondaryAliases: [],
+        attributeSource: 'custom',
       },
     });
   });
@@ -292,6 +293,21 @@ describe('getTraceItemTagCollection', () => {
         name: key,
         kind: FieldKind.MEASUREMENT,
         secondaryAliases: [],
+        attributeSource: 'custom',
+      },
+    });
+  });
+
+  it('preserves explicitly-typed string tags', () => {
+    const key = 'tags[organization.id,string]';
+
+    expect(getTraceItemTagCollection([makeAttribute(key, 'string')], 'string')).toEqual({
+      [key]: {
+        key,
+        name: key,
+        kind: FieldKind.TAG,
+        secondaryAliases: [],
+        attributeSource: 'custom',
       },
     });
   });

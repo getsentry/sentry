@@ -460,6 +460,32 @@ describe('removeHiddenKeys', () => {
 
     expect(removeHiddenKeys(tags, ['project_id'])).toEqual(tags);
   });
+
+  it('keeps user-sent attributes whose name collides with a hidden key', () => {
+    const tags: TagCollection = {
+      'organization.id': {
+        key: 'organization.id',
+        name: 'organization.id',
+        kind: FieldKind.TAG,
+        attributeSource: 'user',
+      },
+    };
+
+    expect(removeHiddenKeys(tags, ['organization.id'])).toEqual(tags);
+  });
+
+  it('still hides Sentry-sourced attributes that match a hidden key', () => {
+    const tags: TagCollection = {
+      'organization.id': {
+        key: 'organization.id',
+        name: 'organization.id',
+        kind: FieldKind.TAG,
+        attributeSource: 'sentry',
+      },
+    };
+
+    expect(removeHiddenKeys(tags, ['organization.id'])).toEqual({});
+  });
 });
 
 function seriesWithSampleRates(sampleRates: Array<number | null>): TimeSeries[] {

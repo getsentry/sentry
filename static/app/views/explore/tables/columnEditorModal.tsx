@@ -28,6 +28,7 @@ import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {removeHiddenKeys} from 'sentry/views/explore/utils';
 import {
   sortKnownAttributes,
   sortSearchedAttributes,
@@ -399,26 +400,16 @@ function buildColumnOptions({
   traceItemType,
   validatedFieldTypes,
 }: BuildColumnOptionsParams) {
+  const hidden = hiddenKeys ?? [];
   return buildAttributeOptions({
-    numberTags,
-    stringTags,
-    booleanTags,
+    numberTags: removeHiddenKeys(numberTags, hidden),
+    stringTags: removeHiddenKeys(stringTags, hidden),
+    booleanTags: removeHiddenKeys(booleanTags, hidden),
     traceItemType,
     extraColumns: columns,
     extraColumnKind: column =>
       fieldKindFromFieldType(validatedFieldTypes?.[column]) ?? classifyTagKey(column),
-  })
-    .filter(option => {
-      const hidden = hiddenKeys ?? [];
-      if (hidden.includes(option.value)) {
-        return false;
-      }
-      if (typeof option.label === 'string' && hidden.includes(option.label)) {
-        return false;
-      }
-      return true;
-    })
-    .toSorted((a, b) => sortKnownAttributes(a, b, traceItemType));
+  }).toSorted((a, b) => sortKnownAttributes(a, b, traceItemType));
 }
 
 function fieldKindFromFieldType(fieldType?: FieldValueType) {
