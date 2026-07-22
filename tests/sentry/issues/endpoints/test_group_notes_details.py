@@ -193,7 +193,7 @@ class GroupNotesDetailsTest(APITestCase):
             "text": f"hi **@{self.user.username}**",
         }
 
-    @with_feature("projects:issue-action-log-activity")
+    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
     def test_put_returns_gale(self) -> None:
         self.login_as(user=self.user)
         group = self.group
@@ -219,6 +219,54 @@ class GroupNotesDetailsTest(APITestCase):
         # the fresh text is re-derived from the edited activity, not the stale GALE entry
         assert response.data["data"]["text"] == "updated text"
         assert response.data["data"]["comment_id"] == activity_id
+
+    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
+    def test_put_writes_comment_edit_entry(self) -> None:
+        self.login_as(user=self.user)
+        group = self.group
+
+        post_url = f"/api/0/issues/{group.id}/comments/"
+        response = self.client.post(post_url, format="json", data={"text": "original"})
+        assert response.status_code == 201, response.content
+        activity_id = response.data["data"]["comment_id"]
+
+        original_entry = GroupActionLogEntry.objects.get(
+            group_id=group.id,
+            type=GroupActionType.COMMENT.value,
+            data__comment_id=activity_id,
+        )
+
+        put_url = f"/api/0/issues/{group.id}/comments/{activity_id}/"
+        response = self.client.put(put_url, format="json", data={"text": "updated text"})
+        assert response.status_code == 200, response.content
+
+        edit_entry = GroupActionLogEntry.objects.get(
+            group_id=group.id, type=GroupActionType.COMMENT_EDIT.value
+        )
+        # the edit references the original COMMENT entry by its GALE id and carries the new text
+        assert edit_entry.data["comment_id"] == original_entry.id
+        assert edit_entry.data["text"] == "updated text"
+
+        # the original COMMENT entry is left untouched
+        original_entry.refresh_from_db()
+        assert original_entry.data["text"] == "original"
+
+    @with_feature("projects:issue-action-log-activity")
+    def test_put_falls_back_to_activity_without_gale_entry(self) -> None:
+        # read flag on but write flag off: no COMMENT entry was ever written, so
+        # the edit can't reference one and the endpoint returns the activity.
+        del self.activity.data["external_id"]
+        self.activity.save()
+        self.login_as(user=self.user)
+
+        response = self.client.put(self.url, format="json", data={"text": "updated"})
+        assert response.status_code == 200, response.content
+
+        assert response.data["id"] == str(self.activity.id)
+        assert response.data["data"]["text"] == "updated"
+        assert not GroupActionLogEntry.objects.filter(
+            group_id=self.group.id, type=GroupActionType.COMMENT_EDIT.value
+        ).exists()
 
     @patch("sentry.integrations.mixins.issues.IssueBasicIntegration.update_comment")
     def test_put_no_external_id(self, mock_update_comment: MagicMock) -> None:

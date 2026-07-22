@@ -136,19 +136,33 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             payload = serializer.validated_data
             # TODO: adding mentions to a note doesn't send notifications. Should it?
             # Remove mentions as they shouldn't go into the database
-            payload.pop("mentions", [])
+            mentions = [mention.dict() for mention in payload.pop("mentions", [])]
 
             # Would be nice to have a last_modified timestamp we could bump here
             note.data.update(dict(payload))
             note.save()
 
-            publish_action(
-                CommentEditAction(comment_id=note.id),
-                source=resolve_action_source(request),
+            original_comment_log_action = GroupActionLogEntry.objects.filter(
                 group_id=group.id,
-                project=group.project,
-                actor=GroupActionActor.user(request.user.id),
-            )
+                idempotency_key=activity_action_idempotency_key(note),
+            ).first()
+
+            if original_comment_log_action is not None:
+                publish_action(
+                    CommentEditAction(
+                        comment_id=original_comment_log_action.id,
+                        text=note.data.get("text"),
+                        mentions=mentions,
+                    ),
+                    source=resolve_action_source(request),
+                    group_id=group.id,
+                    project=group.project,
+                    actor=GroupActionActor.user(request.user.id),
+                )
+            else:
+                logger.info(
+                    "group_notes.groupactionlogentry.not_found", extra={"group_id": group.id}
+                )
 
             if note.data.get("external_id"):
                 self.update_external_comment(request, group, note)
@@ -171,19 +185,17 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             if features.has(
                 "projects:issue-action-log-activity", group.project, actor=request.user
             ):
-                entry = GroupActionLogEntry.objects.filter(
-                    group_id=group.id,
-                    idempotency_key=activity_action_idempotency_key(note),
-                ).first()
-                if entry:
-                    # Editing a note doesn't update its COMMENT entry (an edit only
+                if original_comment_log_action is not None:
+                    # editing a note doesn't update its COMMENT entry (instead it
                     # appends a separate COMMENT_EDIT entry), so re-derive the fresh
-                    # text from the activity we just saved.
-                    entry.data = {**entry.data, "text": note.data.get("text")}
-                    return Response(serialize(entry, request.user), status=200)
-                logger.info(
-                    "group_notes.groupactionlogentry.not_found", extra={"group_id": group.id}
-                )
+                    # text from the activity we just saved
+                    original_comment_log_action.data = {
+                        **original_comment_log_action.data,
+                        "text": note.data.get("text"),
+                    }
+                    return Response(
+                        serialize(original_comment_log_action, request.user), status=200
+                    )
 
             return Response(serialize(note, request.user), status=200)
 

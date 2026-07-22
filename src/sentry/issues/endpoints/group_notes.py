@@ -54,15 +54,42 @@ class GroupNotesEndpoint(GroupEndpoint):
     )
     def get(self, request: Request, group: Group) -> Response:
         if features.has("projects:issue-action-log-activity", group.project, actor=request.user):
+            edit_entries = GroupActionLogEntry.objects.filter(
+                group_id=group.id, type=GroupActionType.COMMENT_EDIT.value
+            ).order_by("-date_added")
+
+            # A COMMENT_EDIT points at the GALE id of the original COMMENT it
+            # supersedes; entries are newest-first, so keep the latest edit's
+            # text per comment.
+            latest_edit_text_by_comment: dict[int, str | None] = {}
+            for edit in edit_entries:
+                original_comment_id = edit.data.get("comment_id")
+                if original_comment_id is not None:
+                    latest_edit_text_by_comment.setdefault(
+                        original_comment_id, edit.data.get("text")
+                    )
+
             entries = GroupActionLogEntry.objects.filter(
                 group_id=group.id, type=GroupActionType.COMMENT.value
             )
+
+            def serialize_with_edits(comment_entries: list[GroupActionLogEntry]) -> list[object]:
+                # An edit doesn't mutate the original COMMENT entry, so re-derive
+                # the current text from the latest COMMENT_EDIT before serializing.
+                for entry in comment_entries:
+                    if entry.id in latest_edit_text_by_comment:
+                        entry.data = {
+                            **entry.data,
+                            "text": latest_edit_text_by_comment[entry.id],
+                        }
+                return serialize(comment_entries, request.user)
+
             return self.paginate(
                 request=request,
                 queryset=entries,
                 paginator_cls=DateTimePaginator,
                 order_by="-date_added",
-                on_results=lambda x: serialize(x, request.user),
+                on_results=serialize_with_edits,
             )
 
         notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)

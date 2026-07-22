@@ -129,6 +129,57 @@ class GroupNoteTest(APITestCase):
         assert response.data[0]["data"]["text"] == "hello world"
         assert response.data[0]["data"]["comment_id"] == 123
 
+    @with_feature("projects:issue-action-log-activity")
+    def test_reads_from_gale_with_edits(self) -> None:
+        group = self.group
+
+        unedited = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            data={"comment_id": 1, "text": "unedited comment"},
+        )
+        edited = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            data={"comment_id": 2, "text": "stale text"},
+        )
+        # two edits of the same comment; only the latest text should win
+        self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT_EDIT,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            data={"comment_id": edited.id, "text": "first edit"},
+        )
+        self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT_EDIT,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            data={"comment_id": edited.id, "text": "latest edit"},
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{group.id}/comments/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+
+        # edits collapse into the original comment, so there is one row per comment
+        assert len(response.data) == 2
+        rows_by_id = {row["id"]: row for row in response.data}
+        assert set(rows_by_id) == {str(unedited.id), str(edited.id)}
+
+        # the edited comment keeps type "note" and shows the latest edit text
+        assert rows_by_id[str(edited.id)]["type"] == "note"
+        assert rows_by_id[str(edited.id)]["data"]["text"] == "latest edit"
+        # the unedited comment is unaffected
+        assert rows_by_id[str(unedited.id)]["data"]["text"] == "unedited comment"
+
 
 class GroupNoteCreateTest(APITestCase):
     def test_simple(self) -> None:
@@ -152,7 +203,7 @@ class GroupNoteCreateTest(APITestCase):
         response = self.client.post(url, format="json", data={"text": "hello world"})
         assert response.status_code == 400, response.content
 
-    @with_feature("projects:issue-action-log-activity")
+    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
     def test_returns_gale(self) -> None:
         group = self.group
 
