@@ -152,7 +152,7 @@ def process_project_derived_data(
                 pipeline_hash=PIPELINE.pipeline_hash,
             )
         )
-        condition = Q(no_derived | stale_hash)
+        condition = Q(no_derived) | Q(stale_hash)
     else:
         condition = Q(no_derived)
 
@@ -262,15 +262,15 @@ def process_project_derived_data_batch(
         .values_list("id", flat=True)
     )
 
+    if use_pipeline_hash:
+        GroupDerivedData.objects.filter(group_id__in=group_ids).exclude(
+            pipeline_hash=PIPELINE.pipeline_hash
+        ).delete()
+
     processed = 0
     rescheduled = False
 
     for group_id in group_ids:
-        if use_pipeline_hash:
-            GroupDerivedData.objects.filter(group_id=group_id).exclude(
-                pipeline_hash=PIPELINE.pipeline_hash
-            ).delete()
-
         remaining = timedelta(seconds=max(0, timeout_seconds - (time.monotonic() - start)))
         try:
             process_group_log(group_id, timeout=remaining)
