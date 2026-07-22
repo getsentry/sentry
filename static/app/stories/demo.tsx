@@ -1,27 +1,38 @@
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 
-export function Demo(props: FlexProps) {
+interface DemoProps extends FlexProps {
+  resizable?: boolean;
+}
+
+export function Demo({resizable, ...props}: DemoProps) {
   return (
-    <Flex
-      data-test-id="storybook-demo"
-      width="100%"
-      align="center"
-      justify="center"
-      gap="md"
-      padding="3xl xl"
-      background="secondary"
-      borderTop="primary"
-      borderLeft="primary"
-      borderRight="primary"
-      radius="md md 0 0"
-      minHeight="160px"
-      overflow="auto"
-      maxHeight="512px"
+    <Container
+      containerType="inline-size"
+      style={{
+        marginBottom: '-1lh',
+        // ponytail: native CSS resize, no JS needed
+        resize: resizable ? 'inline' : undefined,
+        overflow: resizable ? 'hidden' : undefined,
+      }}
       marginTop="md"
-      // Markdown injects a line break after the component, which we need to compensate for
-      // in order for the two to appear as one.
-      style={{marginBottom: '-1lh'}}
-      {...props}
-    />
+    >
+      <Flex
+        data-test-id="storybook-demo"
+        width="100%"
+        align="center"
+        justify="center"
+        gap="md"
+        padding="3xl xl"
+        background="secondary"
+        borderTop="primary"
+        borderLeft="primary"
+        borderRight="primary"
+        radius="md md 0 0"
+        minHeight="160px"
+        overflow="auto"
+        maxHeight="512px"
+        {...props}
+      />
+    </Container>
   );
 }
