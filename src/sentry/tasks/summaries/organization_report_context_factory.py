@@ -149,7 +149,11 @@ class OrganizationReportContextFactory:
             op="weekly_reports.organization_project_issue_summaries",
             name="weekly_reports.organization_project_issue_summaries",
         ):
-            data = organization_project_issue_summaries(start=ctx.start, end=ctx.end, ctx=ctx)
+            try:
+                data = organization_project_issue_summaries(start=ctx.start, end=ctx.end, ctx=ctx)
+            except Exception:
+                sentry_sdk.capture_exception()
+                return
             for item in data:
                 project_id = item["project_id"]
                 if project_id not in ctx.projects_context_map:
