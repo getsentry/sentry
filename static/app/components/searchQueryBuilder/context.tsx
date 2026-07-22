@@ -96,6 +96,7 @@ interface SearchQueryBuilderAIContextData {
   setAutoSubmitSeer: (enabled: boolean) => void;
   setDisplayAskSeer: (enabled: boolean) => void;
   setDisplayAskSeerFeedback: (enabled: boolean) => void;
+  skipNextSearchQueryBuilderAutoFocusRef: React.RefObject<boolean>;
 }
 
 interface SearchQueryBuilderInteractionContextData {
@@ -204,6 +205,7 @@ export function SearchQueryBuilderProvider({
   const currentInputValueRef = useRef('');
   const askSeerNLQueryRef = useRef<string | null>(null);
   const askSeerSuggestedQueryRef = useRef<string | null>(null);
+  const skipNextSearchQueryBuilderAutoFocusRef = useRef(false);
 
   const organization = useOrganization();
   const enableAISearch =
@@ -469,6 +471,7 @@ export function SearchQueryBuilderProvider({
       setAutoSubmitSeer,
       setDisplayAskSeer: setDisplayAskSeerState,
       setDisplayAskSeerFeedback,
+      skipNextSearchQueryBuilderAutoFocusRef,
     };
   }, [
     aiSearchBadgeType,
@@ -481,6 +484,7 @@ export function SearchQueryBuilderProvider({
     displayAskSeerFeedback,
     enableAISearch,
     setDisplayAskSeerFeedback,
+    skipNextSearchQueryBuilderAutoFocusRef,
   ]);
 
   const interactionValue = useMemo((): SearchQueryBuilderInteractionContextData => {

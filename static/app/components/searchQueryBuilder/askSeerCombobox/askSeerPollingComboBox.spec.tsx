@@ -1,12 +1,16 @@
-import {useEffect} from 'react';
+import {useEffect, useState} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
-import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilderAI,
+} from 'sentry/components/searchQueryBuilder/context';
 import * as analytics from 'sentry/utils/analytics';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {
@@ -181,5 +185,71 @@ describe('AskSeerPollingComboBox results', () => {
       area: '',
       natural_language_query: 'find slow spans',
     });
+  });
+
+  it('does not autofocus the query builder after applying a selected query', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 123},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/123/',
+      body: {
+        session: {
+          status: 'completed',
+          current_step: null,
+          completed_steps: [],
+          final_response: {query: 'span.duration:>30s'},
+        },
+      },
+    });
+    const {organization} = initializeOrg({
+      organization: {
+        features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+        hideAiFeatures: false,
+      },
+    });
+
+    function TestComponent() {
+      const [query, setQuery] = useState('');
+      const {displayAskSeer, setDisplayAskSeer} = useSearchQueryBuilderAI();
+
+      useEffect(() => {
+        setDisplayAskSeer(true);
+      }, [setDisplayAskSeer]);
+
+      if (displayAskSeer) {
+        return (
+          <AskSeerPollingComboBox
+            initialQuery=""
+            projectIds={[]}
+            strategy="Traces"
+            applySeerSearchQuery={item => setQuery(item.query ?? '')}
+          />
+        );
+      }
+
+      return (
+        <SearchQueryBuilder {...defaultProviderProps} autoFocus initialQuery={query} />
+      );
+    }
+
+    render(
+      <SearchQueryBuilderProvider {...defaultProviderProps}>
+        <TestComponent />
+      </SearchQueryBuilderProvider>,
+      {organization}
+    );
+
+    await submitQuery();
+    await screen.findByRole('option', {name: /^Query parameters:/});
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+
+    const queryBuilderInputs = await screen.findAllByRole('combobox', {
+      name: 'Add a search term',
+    });
+    expect(queryBuilderInputs).not.toContain(document.activeElement);
+    expect(screen.getByRole('grid')).not.toHaveFocus();
   });
 });
