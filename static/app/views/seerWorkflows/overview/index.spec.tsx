@@ -444,15 +444,12 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
   });
 
-  it('caps a section at the render limit and reveals the rest on demand', async () => {
-    // More issues than the per-section render cap: only the cap hydrates, the
-    // rest stay unmounted behind a Show-more affordance while the header badge
-    // still reports the full X-Hits total.
+  it('renders every fetched issue in a section', async () => {
     const many = Array.from({length: 30}, (_, index) =>
       GroupFixture({
         id: `${100 + index}`,
         shortId: `PROJ-${100 + index}`,
-        title: `Capped issue ${index}`,
+        title: `Bulk issue ${index}`,
       })
     );
     many.forEach(group => {
@@ -466,11 +463,10 @@ describe('AutofixOverview', () => {
     renderPage();
 
     await screen.findByRole('button', {name: 'Awaiting your review 30'});
-    expect(screen.getAllByRole('link', {name: /Capped issue/})).toHaveLength(25);
-
-    await userEvent.click(screen.getByRole('button', {name: 'Show 5 more issues'}));
-
-    expect(screen.getAllByRole('link', {name: /Capped issue/})).toHaveLength(30);
+    expect(screen.getAllByRole('link', {name: /Bulk issue/})).toHaveLength(30);
+    expect(
+      screen.queryByRole('button', {name: /Show \d+ more issue/})
+    ).not.toBeInTheDocument();
   });
 
   it('caps the section count badge at 100+ when hits exceed the fetch limit', async () => {
@@ -687,7 +683,13 @@ describe('AutofixOverview', () => {
   });
 
   it('shows the empty state when every section resolves empty', async () => {
-    // Override the seeded review bucket so all five sections are empty.
+    // Two projects so page filters default to "My Projects" (empty selection)
+    // rather than force-selecting the only project; the default period then
+    // makes this the no-filter case.
+    ProjectsStore.loadInitialData([
+      ProjectFixture(),
+      ProjectFixture({id: '11', slug: 'project-two'}),
+    ]);
     mockSection(SECTION_QUERIES.review_pr, {body: []});
 
     renderPage();
@@ -697,6 +699,43 @@ describe('AutofixOverview', () => {
     expect(
       screen.queryByRole('button', {name: /Awaiting your review/})
     ).not.toBeInTheDocument();
+  });
+
+  it('shows a filter-aware empty message when a non-default period is active', async () => {
+    // Two projects keep the selection empty, so the non-default period is the
+    // only active filter.
+    ProjectsStore.loadInitialData([
+      ProjectFixture(),
+      ProjectFixture({id: '11', slug: 'project-two'}),
+    ]);
+    mockSection(SECTION_QUERIES.review_pr, {body: []});
+
+    renderPage({period: '24h'});
+
+    expect(
+      await screen.findByText('No autofix runs match your filters.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No completed autofix runs yet.')).not.toBeInTheDocument();
+  });
+
+  it('surfaces per-section errors instead of the global empty state', async () => {
+    mockSection(SECTION_QUERIES.review_pr, {body: []});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      match: [MockApiClient.matchQuery({query: SECTION_QUERIES.code_changes_ready})],
+      statusCode: 500,
+      body: {detail: 'boom'},
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No completed autofix runs yet.')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: /Awaiting your review/})
+    ).toBeInTheDocument();
   });
 
   it('surfaces a per-section error while other sections still load', async () => {

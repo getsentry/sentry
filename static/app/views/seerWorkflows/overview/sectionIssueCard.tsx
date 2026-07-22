@@ -29,6 +29,9 @@ function HydratedCard({
   const {run, state, enrichmentPending} = useIssueAutofixEnrichment(issue.id);
   const row = buildOverviewRow(issue, run, state, enrichmentPending, statsPeriod);
   const resolvedSectionKey = sectionKey ?? deriveSectionKey(run, state);
+  const minHeight = enrichmentPending
+    ? `${view === 'cards' ? CARD_PLACEHOLDER_HEIGHT : TABLE_ROW_PLACEHOLDER_HEIGHT}px`
+    : undefined;
 
   return view === 'cards' ? (
     <IssueCard
@@ -36,9 +39,15 @@ function HydratedCard({
       orgSlug={orgSlug}
       sectionKey={resolvedSectionKey}
       defaultExpanded={defaultExpanded}
+      minHeight={minHeight}
     />
   ) : (
-    <IssueTableRow row={row} orgSlug={orgSlug} sectionKey={resolvedSectionKey} />
+    <IssueTableRow
+      row={row}
+      orgSlug={orgSlug}
+      sectionKey={resolvedSectionKey}
+      minHeight={minHeight}
+    />
   );
 }
 

@@ -125,6 +125,7 @@ export function IssueCard({
   row,
   sectionKey,
   defaultExpanded = false,
+  minHeight,
 }: {
   orgSlug: string;
   row: OverviewRow;
@@ -132,6 +133,7 @@ export function IssueCard({
   // Open the inline diffs on mount — the overview's ?id= focus mode wants
   // the whole card readable at once.
   defaultExpanded?: boolean;
+  minHeight?: string;
 }) {
   const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
   // Deep-link into the issue page with the Seer drawer already open, so the
@@ -171,7 +173,13 @@ export function IssueCard({
   const {eventCountLabel, userCountLabel} = issueCountLabels(row);
 
   return (
-    <Container background="primary" border="primary" radius="md" padding="lg">
+    <Container
+      background="primary"
+      border="primary"
+      radius="md"
+      padding="lg"
+      minHeight={minHeight}
+    >
       <Stack gap="lg">
         {/* Header: title over metadata subline, diff size pinned right */}
         <Flex justify="between" align="start" gap="md">
@@ -333,10 +341,12 @@ export function IssueTableRow({
   orgSlug,
   row,
   sectionKey,
+  minHeight,
 }: {
   orgSlug: string;
   row: OverviewRow;
   sectionKey: AutofixStateKey;
+  minHeight?: string;
 }) {
   const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
   const runUrl = {pathname: issueUrl, query: {seerDrawer: 'true'}};
@@ -350,6 +360,7 @@ export function IssueTableRow({
       gap="lg"
       padding="md lg"
       borderBottom="primary"
+      minHeight={minHeight}
     >
       <Stack gap="2xs" minWidth="0" flex="1">
         <IssueTitleLink row={row} to={issueUrl} />

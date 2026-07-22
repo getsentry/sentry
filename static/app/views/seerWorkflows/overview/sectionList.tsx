@@ -1,17 +1,15 @@
 import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Collapsible} from 'sentry/components/collapsible';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Sticky} from 'sentry/components/sticky';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {DEFAULT_STATS_PERIOD} from './periods';
@@ -19,12 +17,6 @@ import {SectionIssueCard} from './sectionIssueCard';
 import {STATUS_GROUP_META, StatusGroupTooltip, type StatusGroupKey} from './statusGroups';
 import type {OverviewView, SortValue} from './types';
 import {SECTION_LIMIT, useAutofixSections} from './useAutofixSections';
-
-// Each rendered card mounts two live enrichment queries, so cap how many hydrate
-// per section and reveal the rest on demand — the header badge keeps the total,
-// shown as "100+" beyond the fetch limit since only SECTION_LIMIT issues are
-// fetched. Unrevealed cards stay unmounted (Collapsible slices before rendering).
-const SECTION_RENDER_CAP = 25;
 
 function formatSectionCount(count: number | undefined) {
   if (count === undefined) {
@@ -124,34 +116,16 @@ export function SectionList({
                   paddingTop="sm"
                   data-view={view}
                 >
-                  <Collapsible
-                    maxVisibleItems={SECTION_RENDER_CAP}
-                    expandButton={({onExpand, numberOfHiddenItems}) => (
-                      <Button size="sm" variant="link" onClick={onExpand}>
-                        {tn(
-                          'Show %s more issue',
-                          'Show %s more issues',
-                          numberOfHiddenItems
-                        )}
-                      </Button>
-                    )}
-                    collapseButton={({onCollapse}) => (
-                      <Button size="sm" variant="link" onClick={onCollapse}>
-                        {t('Show less')}
-                      </Button>
-                    )}
-                  >
-                    {section.issues.map(issue => (
-                      <SectionIssueCard
-                        key={issue.id}
-                        issue={issue}
-                        orgSlug={organization.slug}
-                        sectionKey={section.key}
-                        view={view}
-                        statsPeriod={period}
-                      />
-                    ))}
-                  </Collapsible>
+                  {section.issues.map(issue => (
+                    <SectionIssueCard
+                      key={issue.id}
+                      issue={issue}
+                      orgSlug={organization.slug}
+                      sectionKey={section.key}
+                      view={view}
+                      statsPeriod={period}
+                    />
+                  ))}
                 </SectionRows>
               )}
             </Disclosure.Content>
