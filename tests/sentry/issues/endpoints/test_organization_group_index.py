@@ -64,6 +64,7 @@ from sentry.search.events.constants import (
 from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.silo.base import SiloMode
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -1003,6 +1004,43 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
         assert response.status_code == 200, response.content
+
+    @patch(
+        "sentry.search.snuba.executors.PostgresSnubaQueryExecutor.query",
+        side_effect=PostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    def test_referrer_differs_for_ui_vs_api(self, mock_query: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:read"])
+
+        def api_request() -> Response:
+            return self.client.get(
+                reverse(
+                    "sentry-api-0-organization-group-index",
+                    args=[self.project.organization.slug],
+                ),
+                format="json",
+                data={"query": "is:unresolved"},
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        # With the flag on, API (bearer token) requests get the api-specific referrer...
+        with self.feature("organizations:search-group-index-api-referrer"):
+            response = api_request()
+            assert response.status_code == 200, response.content
+            assert mock_query.call_args.kwargs["referrer"] == Referrer.SEARCH_GROUP_INDEX_API
+
+            # ...while UI (browser session) requests keep the historical referrer.
+            self.login_as(user=self.user)
+            self.get_success_response(query="is:unresolved")
+            assert mock_query.call_args.kwargs["referrer"] == Referrer.SEARCH_GROUP_INDEX
+
+        # With the flag off, API requests also keep the historical referrer.
+        with self.feature({"organizations:search-group-index-api-referrer": False}):
+            response = api_request()
+            assert response.status_code == 200, response.content
+            assert mock_query.call_args.kwargs["referrer"] == Referrer.SEARCH_GROUP_INDEX
 
     def test_date_range(self) -> None:
         with self.options({"system.event-retention-days": 2}):
