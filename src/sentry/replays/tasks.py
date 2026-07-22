@@ -198,7 +198,7 @@ def _delete_if_exists(filename: str) -> None:
     # namespace="replays") continue to resolve and execute.
     alias_namespace=replays_tasks,
     retry=Retry(times=5),
-    processing_deadline_duration=300,
+    processing_deadline_duration=600,
     silo_mode=SiloMode.CELL,
 )
 def run_bulk_replay_delete_job(
