@@ -1016,3 +1016,27 @@ class TestMaybeReactToCompletedIteration(TestCase):
         assert mock_react.call_count == 1
         assert mock_react.call_args.kwargs["comment_id"] == 333
         assert mock_react.call_args.kwargs["source_type"] == "github-pr-comment"
+
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_skips_reaction_when_pr_number_missing(self, mock_react, mock_make_scm):
+        # A repo can be synced without a pr_number (e.g. after a repo rename).
+        # Reacting with an invalid ``0`` would just fail and capture noise, so
+        # the source is skipped instead.
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        state = self._state_with(
+            [self._top_level_source()],
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo", pr_number=None, commit_sha="synced-sha"
+                )
+            },
+        )
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+
+        mock_react.assert_not_called()

@@ -288,7 +288,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 scm_by_repo[repo_name] = scm
 
             pr_state = state.repo_pr_states.get(repo_name)
-            pr_number = pr_state.pr_number if pr_state and pr_state.pr_number else 0
+            if not pr_state or not pr_state.pr_number:
+                continue
+            pr_number = pr_state.pr_number
             _add_comment_reaction(
                 scm,
                 source_type="github-pr-comment",
