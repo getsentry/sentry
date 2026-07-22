@@ -41,6 +41,89 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
+    {
+      title: t('Configurable Features'),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'In addition to [errorMonitoringLink:error monitoring], here are some of the features you can configure when installing Sentry:',
+            {
+              errorMonitoringLink: (
+                <ExternalLink href="https://docs.sentry.io/product/issues/" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'list',
+          items: [
+            tct(
+              '[logsLink:Logs]: Send, view, and query logs from your app alongside your errors to get richer context when debugging.',
+              {
+                logsLink: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/react-native/logs/" />
+                ),
+              }
+            ),
+            tct(
+              '[tracingLink:Tracing]: Monitor the timing and flow of requests and operations as they happen across different systems in your application to improve performance.',
+              {
+                tracingLink: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/" />
+                ),
+              }
+            ),
+            tct(
+              '[sessionReplayLink:Session Replay]: Get reproductions of user sessions to improve your app experience.',
+              {
+                sessionReplayLink: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/react-native/session-replay/" />
+                ),
+              }
+            ),
+            tct(
+              '[profilingLink:Profiling]: Collect and analyze function-level information about your code to fine-tune performance.',
+              {
+                profilingLink: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/react-native/profiling/" />
+                ),
+              }
+            ),
+            tct(
+              '[metricsLink:Application Metrics]: Send, view, and query counters, gauges, and measurements from your app to track health and drill down into related traces, logs, and errors.',
+              {
+                metricsLink: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/react-native/metrics/" />
+                ),
+              }
+            ),
+            tct(
+              '[userFeedbackLink:User Feedback]: Collect user feedback from anywhere inside your application at any time, without needing an error event to occur first.',
+              {
+                userFeedbackLink: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/react-native/user-feedback/" />
+                ),
+              }
+            ),
+            tct(
+              "[sizeAnalysisLink:Size Analysis]: Monitor your mobile app's size in pre-production to prevent unexpected size increases (regressions) from reaching users.",
+              {
+                sizeAnalysisLink: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/react-native/size-analysis/" />
+                ),
+              }
+            ),
+          ],
+        },
+        {
+          type: 'text',
+          text: t(
+            'Logs, session replay, and user feedback can be added via the wizard. For other features, such as tracing, refer to each documentation page for instructions on getting started.'
+          ),
+        },
+      ],
+    },
   ],
   configure: params => [
     {

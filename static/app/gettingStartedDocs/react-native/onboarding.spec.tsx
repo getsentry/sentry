@@ -21,6 +21,18 @@ describe('getting started with react-native', () => {
     ).toBeInTheDocument();
 
     expect(
+      screen.getByRole('heading', {name: /configurable features/i})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Logs'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/react-native/logs/'
+    );
+    expect(screen.getByRole('link', {name: 'Size Analysis'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/react-native/size-analysis/'
+    );
+
+    expect(
       screen.getByRole('heading', {name: /manual configuration/i})
     ).toBeInTheDocument();
   });
