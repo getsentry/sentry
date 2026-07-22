@@ -2,6 +2,7 @@ from typing import Any
 from unittest.mock import patch
 
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
@@ -459,7 +460,7 @@ class TestDeliverNightShiftResult(TestCase):
             ]
         }
 
-        def rate_limited_side_effect(project, organization):
+        def rate_limited_side_effect(project: Project, organization: Organization) -> bool:
             return project.id == limited_group.project_id
 
         with (
