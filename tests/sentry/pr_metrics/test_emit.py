@@ -473,7 +473,7 @@ class PrMetricsEmissionTest(TestCase):
     def test_build_row_raises_when_stored_lifecycle_missing(self) -> None:
         # A close/merge row needs a persisted head_commit_sha and closed_at; a
         # null means emit ran on a PR that never reached a terminal state.
-        # Exception: abandoned verdicts are allowed to have None closed_at.
+        # Exception: abandoned verdicts are allowed to have None for both.
         self.pull_request.closed_at = None
 
         # Should raise for normal close actions
@@ -502,6 +502,35 @@ class PrMetricsEmissionTest(TestCase):
         )
         # Should use current timestamp when closed_at is None for abandoned
         assert row.closed_at is not None
+
+    def test_build_row_raises_when_head_commit_sha_missing(self) -> None:
+        # Same fail-loud guard as closed_at, for the other terminal-state field.
+        self.pull_request.head_commit_sha = None
+
+        with pytest.raises(ValueError):
+            build_pr_metrics_row(
+                pull_request=self.pull_request,
+                close_action="merged",
+                attributions=[],
+                group_ids=[],
+            )
+
+        with pytest.raises(ValueError):
+            build_pr_metrics_row(
+                pull_request=self.pull_request,
+                close_action="closed",
+                attributions=[],
+                group_ids=[],
+            )
+
+        # Abandoned PRs are allowed a null head_commit_sha too.
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="abandoned",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.head_commit_sha == "unknown"
 
     def test_build_row_repository_is_public_false_for_private_repo(self) -> None:
         PullRequestActivity.objects.create(

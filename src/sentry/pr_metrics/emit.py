@@ -501,12 +501,18 @@ def build_pr_metrics_row(
     ``CLOSED_UNMERGED`` path can also populate it (see ``ci_failing_at_close``),
     so its presence doesn't by itself mean the row was judged.
     """
-    # Validate that non-abandoned PRs have the required lifecycle data
-    if close_action != CLOSE_ACTION_ABANDONED and pull_request.closed_at is None:
-        raise ValueError(
-            f"PR {pull_request.id} has close_action='{close_action}' but closed_at is None. "
-            "Only abandoned PRs are allowed to have null closed_at."
-        )
+    # Validate that non-abandoned PRs have the required lifecycle data. The
+    # webhook always persists both on a close/merge; a null here means emit ran
+    # on a PR that never reached a terminal state. Fail loud. Abandoned PRs are
+    # the one exception: the PR is still open, so both fields are legitimately
+    # unset on the model.
+    if close_action != CLOSE_ACTION_ABANDONED:
+        if pull_request.head_commit_sha is None or pull_request.closed_at is None:
+            raise ValueError(
+                f"PR {pull_request.id} has close_action='{close_action}' but is missing "
+                "head_commit_sha and/or closed_at. Only abandoned PRs are allowed to have "
+                "null lifecycle fields."
+            )
 
     head_commit_sha = pull_request.head_commit_sha or "unknown"
     # For abandoned PRs there's no `closed_at` value populated; fall back to now().
