@@ -13,10 +13,9 @@ import {t, tn} from 'sentry/locale';
 
 import type {AutofixStateKey} from './useAutofixSections';
 
-// The list's Linear-style sections: the triage tiers made visible. Attention
-// states reuse their keys; needs_investigation covers settled diagnosis-only
-// runs (manual next steps, no one-click pipeline action), running/merged the
-// rows with nothing left to do.
+// The list's status sections. needs_investigation covers settled
+// diagnosis-only runs (manual next steps, no one-click pipeline action);
+// merged covers rows with nothing left to do.
 export type StatusGroupKey = AutofixStateKey;
 
 interface StatusGroupMeta {
@@ -31,8 +30,8 @@ export const STATUS_GROUP_META: Record<StatusGroupKey, StatusGroupMeta> = {
   review_pr: {Icon: IconPullRequest, label: t('Awaiting your review'), fill: 4},
   code_changes_ready: {Icon: IconCommit, label: t('Code changes ready'), fill: 3},
   solution_ready: {Icon: IconCode, label: t('Ready to generate code'), fill: 2},
-  // Same magnifier as the cards' Diagnosis block: these runs stopped at a
-  // diagnosis, and their Next-steps bullets are manual verify/decide work.
+  // Same magnifier as the card's Investigate action: these runs stopped at a
+  // root cause, and their next steps are manual verify/decide work.
   needs_investigation: {Icon: IconSearch, label: t('Needs investigation'), fill: 1},
   merged: {Icon: IconMerge, label: t('Merged')},
 };

@@ -102,7 +102,7 @@ export function IssueCard({
   const attention = getAttentionReason(row);
   const rootCause = row.analysis.find(entry => entry.key === 'root_cause');
   const proposedFix = row.analysis.find(entry => entry.key === 'fix_summary');
-  const reviewerNotes = row.analysis.find(entry => entry.key === 'reviewer_notes');
+  const nextSteps = row.analysis.find(entry => entry.key === 'next_steps');
 
   // Thought order: what broke → what Seer changed → what the human does
   // next. The fix and next-step prompts return empty answers when they don't
@@ -122,12 +122,12 @@ export function IssueCard({
       variant: 'success' as const,
       answer: proposedFix.answer,
     },
-    reviewerNotes && {
-      key: 'reviewer_notes',
+    nextSteps && {
+      key: 'next_steps',
       label: t('Next steps'),
       icon: <IconArrow direction="right" size="xs" variant="muted" aria-hidden />,
       variant: 'muted' as const,
-      answer: reviewerNotes.answer,
+      answer: nextSteps.answer,
     },
   ].filter(section => !!section);
   const eventCountLabel =
@@ -141,11 +141,8 @@ export function IssueCard({
 
   return (
     <Container background="primary" border="primary" radius="md" padding="lg">
-      {/* lg between blocks gives the sections air; each section binds its
-          eyebrow to its prose with a tight xs gap */}
       <Stack gap="lg">
-        {/* Header: title over its metadata subline on the left, diff size +
-            progress ring pinned right */}
+        {/* Header: title over metadata subline, diff size pinned right */}
         <Flex justify="between" align="start" gap="md">
           <Stack gap="2xs" minWidth="0" flex="1">
             {/* The ellipsis Text is the shrinking flex item (overflow:hidden
@@ -176,10 +173,7 @@ export function IssueCard({
                 <TitleLink to={issueUrl}>{row.title}</TitleLink>
               )}
             </Text>
-            {/* Metadata subline: the run's vitals as a quiet dot-separated
-                  run tucked under the title. "Manual" is the default trigger
-                  and reads as noise on every card, so only non-default
-                  triggers earn their badge. */}
+            {/* Only non-default triggers get a badge; "manual" is the default. */}
             <Flex gap="sm" align="center" wrap="wrap">
               <InfoText
                 title={
@@ -226,8 +220,6 @@ export function IssueCard({
                 maxWidth={480}
                 skipWrapper
               >
-                {/* Contained like its Tag/button neighbors so the diff size
-                      doesn't read as floating text */}
                 <Container
                   tabIndex={0}
                   aria-label={tn(
@@ -296,9 +288,7 @@ export function IssueCard({
           </Stack>
         )}
 
-        {/* Tail row: the run's action anchors the bottom left; identity
-            (level, short id, project) reads as quiet provenance on the
-            right, the project linking to its page */}
+        {/* Tail: primary action left, issue identity right */}
         <Flex justify="between" align="center" gap="md">
           <Flex gap="sm" align="center">
             <IssuePrimaryAction row={row} runUrl={runUrl} />

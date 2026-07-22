@@ -59,7 +59,7 @@ export default function AutofixOverview() {
   // list's filters.
   const selectedId = decodeScalar(location.query.id);
   const period = decodeScalar(location.query.period) ?? DEFAULT_STATS_PERIOD;
-  // Legacy ?sort=triage (and anything unknown) decodes to the default.
+  // Unknown or legacy sort values fall back to the default.
   const sort = decodeScalar(location.query.sort) === 'events' ? 'events' : 'activity';
 
   // Project scoping comes from the canonical page-filters selection; the
@@ -124,8 +124,6 @@ export default function AutofixOverview() {
     >
       <PageFiltersContainer>
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
-          {/* The title lives in the app's slim top bar (Layout.Title fills the
-              TopBar slot); the description rides along as its info tip. */}
           <Layout.Title>
             {t('Autofix Overview')}
             <InfoTip
@@ -199,8 +197,6 @@ export default function AutofixOverview() {
                     )}
                   />
                 </Flex>
-                {/* xl because the link-variant button has no visual container —
-                    a smaller gap reads as touching the segmented control */}
                 <Flex gap="xl" align="center">
                   <Button
                     size="xs"
@@ -291,9 +287,6 @@ export default function AutofixOverview() {
                       <GroupHeader>
                         <Disclosure.Title>
                           <Flex gap="sm" align="center">
-                            {/* The pipeline tooltip lives on the section
-                                icon — every card in a group shares its
-                                stage, so the checklist is group-level info */}
                             <Tooltip
                               title={<StatusGroupTooltip groupKey={section.key} />}
                               skipWrapper
@@ -343,21 +336,17 @@ export default function AutofixOverview() {
   );
 }
 
-// Disclosure.Content indents its panel to sit under the title text (a
-// hardcoded padding-left in the core component). The panel here is full-width
-// cards, so that indent shoves them right of the sticky header box — drop it
-// (it's the content sibling after the header) so the cards line up flush with
-// their group.
+// Disclosure.Content hardcodes a padding-left to indent its panel under the
+// title; the `> * + *` sibling selector drops it so the full-width cards line
+// up flush with their group header.
 const StatusGroup = styled(Disclosure)`
   && > * + * {
     padding-left: 0;
   }
 `;
 
-// Linear-style section header: parks below the top bar while its group
-// scrolls, then gets pushed away by the next header (sticky is bounded by
-// its group's box). Opaque so cards slide underneath cleanly; z-index isn't
-// a layout-primitive prop, hence the styled override.
+// Sticky group header; z-index isn't a layout-primitive prop so it lives here.
+// Opaque background so cards scroll under it.
 const GroupHeader = styled(Sticky)`
   z-index: ${p => p.theme.zIndex.initial};
   width: 100%;

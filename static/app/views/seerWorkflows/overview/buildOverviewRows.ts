@@ -63,7 +63,7 @@ function deriveRunStatus(state: ExplorerAutofixState | null): AutofixRunStatus {
     case 'error':
       return 'ERROR';
     default:
-      return 'COMPLETED';
+      return 'SETTLED';
   }
 }
 
@@ -153,14 +153,6 @@ function extractPendingQuestion(state: ExplorerAutofixState | null): string | un
   return undefined;
 }
 
-/**
- * Join the run's answered questions back to their question configs.
- *
- * Matches primarily on the echoed question text (the endpoint echoes prompts
- * back for user-supplied questions), falling back to position — answers are
- * returned in question order. Empty answers mean "not applicable" (the prompts
- * ask for an empty string) and are dropped.
- */
 // A headline longer than this means the model ignored the 14-word instruction
 // (or the pipe landed somewhere unintended) — treat it as a parse failure.
 const MAX_HEADLINE_LENGTH = 140;
@@ -196,6 +188,14 @@ function normalizeBulletList(answer: string): string {
     .join('\n');
 }
 
+/**
+ * Join the run's answered questions back to their question configs.
+ *
+ * Matches primarily on the echoed question text (the endpoint echoes prompts
+ * back for user-supplied questions), falling back to position — answers are
+ * returned in question order. Empty answers mean "not applicable" (the prompts
+ * ask for an empty string) and are dropped.
+ */
 function buildAnalysis(outputs: RunQuestion[] | undefined): {
   entries: RunAnalysisEntry[];
   headline?: string;
@@ -218,7 +218,7 @@ function buildAnalysis(outputs: RunQuestion[] | undefined): {
       const rootCause = parseRootCause(output.answer);
       headline = rootCause.headline;
       answer = rootCause.answer;
-    } else if (config.key === 'reviewer_notes') {
+    } else if (config.key === 'next_steps') {
       answer = normalizeBulletList(output.answer);
     }
     entries.push({

@@ -4,10 +4,9 @@ import type {PlatformKey} from 'sentry/types/platform';
 
 export type AutofixOutcome = 'root_cause' | 'solution' | 'code_changes' | 'pr_opened';
 
-// Terminal-ish run status buckets the overview cares about, mapped from
-// ExplorerAutofixState.status. A run that is still 'processing' is reported
-// as COMPLETED here with `isProcessing` set on the row instead.
-export type AutofixRunStatus = 'COMPLETED' | 'ERROR' | 'NEED_MORE_INFORMATION';
+// Run status buckets mapped from ExplorerAutofixState.status; 'processing' maps
+// to SETTLED with isProcessing set on the row.
+export type AutofixRunStatus = 'SETTLED' | 'ERROR' | 'NEED_MORE_INFORMATION';
 
 // How the run was started. Sources without a mapping render a fallback
 // badge with the raw source text.

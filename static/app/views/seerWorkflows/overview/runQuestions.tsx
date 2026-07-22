@@ -46,7 +46,7 @@ export const RUN_QUESTIONS: RunQuestionConfig[] = [
       'file or function names; no markdown headers, bullets, or code blocks.',
   },
   {
-    key: 'reviewer_notes',
+    key: 'next_steps',
     label: t('Next steps'),
     prompt:
       'If this run drafted code changes or opened a pull request, return an ' +

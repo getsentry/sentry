@@ -68,8 +68,7 @@ export function getAttentionReason(row: OverviewRow): AttentionReason | null {
     return 'errored';
   }
   const set = new Set(row.outcomes);
-  // A merged PR needs nothing further; when merge state is unknown (the
-  // deployed API doesn't return it yet) an opened PR reads as needing review.
+  // A merged PR needs nothing further; an opened PR reads as needing review.
   if (row.prMerged) {
     return null;
   }
