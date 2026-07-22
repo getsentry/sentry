@@ -504,6 +504,22 @@ def configure_sdk():
                         relay_envelope = copy.copy(envelope)
                         s4s_args = (relay_envelope, *args_list[1:])
 
+                        # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
+                        # unless we allow them via a separate sample rate.
+                        safe_items = [
+                            x
+                            for x in envelope.items
+                            if x.data_category != "statsd"
+                            or in_random_rollout("store.allow-s4s-ddm-sample-rate")
+                        ]
+                        if len(safe_items) != len(envelope.items):
+                            relay_envelope.items = safe_items
+
+                        # Only transactions are sampled at a lower rate.
+                        if envelope.get_transaction_event() is None:
+                            getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
+                            return
+
                         trace = relay_envelope.headers.get("trace")
 
                         prior_sample_rate = None
@@ -525,17 +541,6 @@ def configure_sdk():
                                     "sample_rate": str(prior_sample_rate * s4s_sample_rate),
                                 },
                             }
-
-                        # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
-                        # unless we allow them via a separate sample rate.
-                        safe_items = [
-                            x
-                            for x in envelope.items
-                            if x.data_category != "statsd"
-                            or in_random_rollout("store.allow-s4s-ddm-sample-rate")
-                        ]
-                        if len(safe_items) != len(envelope.items):
-                            relay_envelope.items = safe_items
 
                     getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
