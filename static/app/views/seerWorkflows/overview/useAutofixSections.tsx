@@ -5,25 +5,12 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
+  type AutofixStateKey,
   type OverviewIssue,
   QUERY_STALE_TIME,
   REQUIRED_ISSUE_FILTER,
+  SECTION_ORDER,
 } from './types';
-
-export type AutofixStateKey =
-  | 'review_pr'
-  | 'code_changes_ready'
-  | 'solution_ready'
-  | 'needs_investigation'
-  | 'merged';
-
-export const SECTION_ORDER: AutofixStateKey[] = [
-  'review_pr',
-  'code_changes_ready',
-  'solution_ready',
-  'needs_investigation',
-  'merged',
-];
 
 const SECTION_LIMIT = 100;
 

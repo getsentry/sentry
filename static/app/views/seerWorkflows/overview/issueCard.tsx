@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -12,23 +11,16 @@ import {ErrorLevel} from 'sentry/components/events/errorLevel';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {TimeSince} from 'sentry/components/timeSince';
-import {
-  IconArrow,
-  IconCommit,
-  IconFocus,
-  IconMerge,
-  IconPullRequest,
-  IconSearch,
-} from 'sentry/icons';
+import {IconArrow, IconCommit, IconFocus, IconPullRequest} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
-import {ATTENTION_META, AttentionBadge, getAttentionReason} from './attentionBadge';
+import {deriveCardAction, IssuePrimaryAction} from './cardAction';
 import {periodWindowLabel} from './periods';
 import {TriggerBadge} from './triggerBadge';
-import type {OverviewRow, PatchStats} from './types';
+import type {AutofixStateKey, OverviewRow, PatchStats} from './types';
 
 const TitleLink = styled(Link)`
   color: inherit;
@@ -139,10 +131,12 @@ function IssueTitleLink({
 export function IssueCard({
   orgSlug,
   row,
+  sectionKey,
   defaultExpanded = false,
 }: {
   orgSlug: string;
   row: OverviewRow;
+  sectionKey: AutofixStateKey;
   // Open the inline diffs on mount — the overview's ?id= focus mode wants
   // the whole card readable at once.
   defaultExpanded?: boolean;
@@ -151,7 +145,7 @@ export function IssueCard({
   // Deep-link into the issue page with the Seer drawer already open, so the
   // run itself is one click away (matches the issue details ?seerDrawer param).
   const runUrl = {pathname: issueUrl, query: {seerDrawer: 'true'}};
-  const attention = getAttentionReason(row);
+  const cardAction = deriveCardAction(sectionKey, row);
   const rootCause = row.analysis.find(entry => entry.key === 'root_cause');
   const proposedFix = row.analysis.find(entry => entry.key === 'fix_summary');
   const nextSteps = row.analysis.find(entry => entry.key === 'next_steps');
@@ -310,8 +304,8 @@ export function IssueCard({
         {/* Tail: primary action left, issue identity right */}
         <Flex justify="between" align="center" gap="md">
           <Flex gap="sm" align="center">
-            <IssuePrimaryAction row={row} runUrl={runUrl} />
-            {row.prUrl && attention !== 'review_pr' && (
+            <IssuePrimaryAction action={cardAction} row={row} runUrl={runUrl} />
+            {row.prUrl && cardAction.type !== 'review_pr' && (
               <LinkButton
                 size="sm"
                 variant="link"
@@ -347,13 +341,16 @@ export function IssueTableRow({
   isLast,
   orgSlug,
   row,
+  sectionKey,
 }: {
   isLast: boolean;
   orgSlug: string;
   row: OverviewRow;
+  sectionKey: AutofixStateKey;
 }) {
   const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
   const runUrl = {pathname: issueUrl, query: {seerDrawer: 'true'}};
+  const cardAction = deriveCardAction(sectionKey, row);
   const {eventCountLabel, userCountLabel} = issueCountLabels(row);
 
   return (
@@ -391,74 +388,8 @@ export function IssueTableRow({
         </Flex>
       </Stack>
       <Flex align="center" flexShrink={0}>
-        <IssuePrimaryAction row={row} runUrl={runUrl} />
+        <IssuePrimaryAction action={cardAction} row={row} runUrl={runUrl} />
       </Flex>
     </Flex>
-  );
-}
-
-function IssuePrimaryAction({
-  row,
-  runUrl,
-}: {
-  row: OverviewRow;
-  runUrl: {pathname: string; query: {seerDrawer: string}};
-}) {
-  const attention = getAttentionReason(row);
-
-  if (row.statePending) {
-    return <Text variant="muted">{'…'}</Text>;
-  }
-  if (row.isProcessing) {
-    return <Tag variant="info">{t('Running')}</Tag>;
-  }
-  if (row.prMerged) {
-    return (
-      <Tooltip title={t('The pull request for this fix was merged.')}>
-        <Tag variant="success" icon={<IconMerge />}>
-          {t('Merged')}
-        </Tag>
-      </Tooltip>
-    );
-  }
-  if (attention === 'review_pr' && row.prUrl) {
-    return (
-      <Tooltip
-        title={
-          row.prNumber
-            ? t('Autofix opened pull request #%s. Review and merge it.', row.prNumber)
-            : ATTENTION_META.review_pr.description
-        }
-        skipWrapper
-      >
-        <LinkButton
-          size="sm"
-          variant="warning"
-          icon={<IconPullRequest />}
-          href={row.prUrl}
-          external
-        >
-          {ATTENTION_META.review_pr.label}
-        </LinkButton>
-      </Tooltip>
-    );
-  }
-  if (attention) {
-    return <AttentionBadge reason={attention} to={runUrl} />;
-  }
-  // Diagnosis-only runs: Seer found a root cause but produced nothing to
-  // ship, so the human's move is to dig in — same verb (and icon) as the
-  // Needs-investigation group these rows live in.
-  return (
-    <Tooltip
-      title={t(
-        'Seer stopped at a diagnosis. Open the run to investigate the root cause.'
-      )}
-      skipWrapper
-    >
-      <LinkButton size="sm" variant="secondary" icon={<IconSearch />} to={runUrl}>
-        {t('Investigate')}
-      </LinkButton>
-    </Tooltip>
   );
 }

@@ -7,64 +7,45 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {RUN_QUESTIONS} from './runQuestions';
 import {mapRunSourceToTrigger} from './triggerBadge';
-import type {
-  AutofixOutcome,
-  AutofixRunStatus,
-  OverviewIssue,
-  OverviewRow,
-  PatchStats,
-  RunAnalysisEntry,
-  RunQuestion,
-  SeerRun,
+import {
+  type AutofixStateKey,
+  type OverviewIssue,
+  type OverviewRow,
+  type PatchStats,
+  PIPELINE,
+  type RunAnalysisEntry,
+  type RunQuestion,
+  type SeerRun,
 } from './types';
 
-const OUTCOME_ORDER: AutofixOutcome[] = [
-  'root_cause',
-  'solution',
-  'code_changes',
-  'pr_opened',
-];
-
-/**
- * Every pipeline stage the run has produced so far, in stage order.
- *
- * Cumulative (unlike deriveAutofixPhase's single furthest phase) because the
- * attention logic tests stage membership: "code changes but no PR" is a
- * different action than "PR opened".
- */
-function deriveAutofixOutcomes(runState: ExplorerAutofixState | null): AutofixOutcome[] {
-  const reached = new Set<AutofixOutcome>();
-  for (const section of getOrderedAutofixSections(runState)) {
-    switch (section.step) {
-      case 'root_cause':
-        reached.add('root_cause');
-        break;
-      case 'solution':
-        reached.add('solution');
-        break;
-      case 'code_changes':
-      case 'coding_agents':
-        reached.add('code_changes');
-        break;
-      case 'pull_request':
-        reached.add('pr_opened');
-        break;
-      default:
-        break;
-    }
-  }
-  return OUTCOME_ORDER.filter(outcome => reached.has(outcome));
+// The pipeline steps the run has reached, from getOrderedAutofixSections'
+// section steps (which fold repo_pr_states into a synthetic pull_request
+// section and coding_agents into their own).
+function reachedSteps(state: ExplorerAutofixState | null): Set<string> {
+  return new Set(getOrderedAutofixSections(state).map(section => section.step));
 }
 
-function deriveRunStatus(state: ExplorerAutofixState | null): AutofixRunStatus {
-  switch (state?.status) {
-    case 'awaiting_user_input':
-      return 'NEED_MORE_INFORMATION';
-    case 'error':
-      return 'ERROR';
-    default:
-      return 'SETTLED';
-  }
+/**
+ * The focus-mode fallback for a card with no server section: walk the pipeline
+ * furthest-first (by fill) and return the furthest stage the run reached. The
+ * issues endpoint doesn't return issue.autofix_state for a single pinned id, so
+ * this reconstructs it from the enrichment the same way the section query would
+ * have bucketed it. One precedence encoding, shared with the section list.
+ */
+export function deriveSectionKey(
+  run: SeerRun | null,
+  state: ExplorerAutofixState | null
+): AutofixStateKey {
+  const steps = reachedSteps(state);
+  const reached: Record<AutofixStateKey, boolean> = {
+    merged: (run?.pullRequests ?? []).some(pr => pr.status === 'merged'),
+    review_pr: steps.has('pull_request'),
+    code_changes_ready: steps.has('code_changes') || steps.has('coding_agents'),
+    solution_ready: steps.has('solution'),
+    needs_investigation: true,
+  };
+  return [...PIPELINE].sort((a, b) => b.fill - a.fill).find(stage => reached[stage.key])!
+    .key;
 }
 
 // A diff qualifies for the on-card differ only when it is genuinely small:
@@ -266,11 +247,8 @@ export function buildOverviewRow(
       issue.seerAutofixLastTriggered,
       issue.lastSeen
     ),
-    autofixRunStatus: deriveRunStatus(state),
-    prMerged: (run?.pullRequests ?? []).some(pr => pr.status === 'merged'),
-    isProcessing: state?.status === 'processing',
+    runStatus: state?.status ?? null,
     statePending,
-    outcomes: deriveAutofixOutcomes(state),
     trigger: mapRunSourceToTrigger(run?.source ?? null),
     rawSource: run?.source ?? null,
     analysis,

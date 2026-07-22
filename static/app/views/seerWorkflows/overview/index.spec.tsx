@@ -394,30 +394,11 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('Proposed fix')).not.toBeInTheDocument();
   });
 
-  it('falls back to an Investigate action when nothing needs attention', async () => {
-    // A run that only found a root cause: no attention reason, but the card
-    // should still offer a way into the run (Seer drawer deep link).
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/2/autofix/`,
-      body: {
-        autofix: {
-          run_id: 1,
-          status: 'completed',
-          updated_at: '2026-07-14T10:00:00Z',
-          blocks: [
-            {
-              id: 'b1',
-              timestamp: '2026-07-14T09:00:00Z',
-              message: {
-                role: 'assistant',
-                content: 'rca',
-                metadata: {step: 'root_cause'},
-              },
-            },
-          ],
-        },
-      },
-    });
+  it('shows an Investigate action for cards in the needs-investigation section', async () => {
+    // Section is authoritative: a needs_investigation card offers Investigate
+    // (a Seer-drawer deep link), no matter what the enrichment reached.
+    mockSection(SECTION_QUERIES.review_pr, {body: []});
+    mockSection(SECTION_QUERIES.needs_investigation, {body: [issue], hits: '1'});
 
     renderPage();
 
@@ -428,7 +409,10 @@ describe('AutofixOverview', () => {
     );
   });
 
-  it('shows a merged tag instead of a review action for merged runs', async () => {
+  it('keeps the section review action even when the run enrichment looks merged', async () => {
+    // A review_pr-section card whose enrichment carries a merged PR: the
+    // section is the anchor, so the card still shows Review PR rather than a
+    // stale Merged tag. Merged rendering is asserted in the merged-section test.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/runs/`,
       body: [
@@ -447,12 +431,27 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    // Two "Merged" labels once the runs fetch resolves: the always-present
-    // Merged section header and the card's merged status tag.
+    // The review action wins, linking to the open PR from the run state.
+    expect(await screen.findByRole('button', {name: 'Review PR'})).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry/pull/123'
+    );
+    // Only the always-present (empty) Merged section header — no leaked card tag.
+    expect(screen.getByRole('button', {name: 'Merged 0'})).toBeInTheDocument();
+    expect(screen.getAllByText('Merged')).toHaveLength(1);
+  });
+
+  it('shows a merged tag for cards in the merged section', async () => {
+    // The merged bucket's card renders the Merged status tag and no action.
+    mockSection(SECTION_QUERIES.review_pr, {body: []});
+    mockSection(SECTION_QUERIES.merged, {body: [issue], hits: '1'});
+
+    renderPage();
+
+    // Two "Merged" once the card hydrates: the section header and the card tag.
     await waitFor(() => {
       expect(screen.getAllByText('Merged')).toHaveLength(2);
     });
-    // The merged tag replaces the Review PR action.
     expect(screen.queryByRole('button', {name: 'Review PR'})).not.toBeInTheDocument();
   });
 

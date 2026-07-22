@@ -35,8 +35,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {DEFAULT_STATS_PERIOD, PERIOD_FILTER_OPTIONS} from './periods';
 import {SectionIssueCard} from './sectionIssueCard';
 import {STATUS_GROUP_META, StatusGroupTooltip, type StatusGroupKey} from './statusGroups';
-import {type OverviewIssue, QUERY_STALE_TIME} from './types';
-import {SECTION_ORDER, useAutofixSections} from './useAutofixSections';
+import {type OverviewIssue, QUERY_STALE_TIME, SECTION_ORDER} from './types';
+import {useAutofixSections} from './useAutofixSections';
 
 type SortValue = 'activity' | 'events';
 type OverviewView = 'cards' | 'table';
@@ -313,6 +313,7 @@ export default function AutofixOverview() {
                                 key={issue.id}
                                 issue={issue}
                                 orgSlug={organization.slug}
+                                sectionKey={section.key}
                                 view={view}
                                 statsPeriod={period}
                                 isLast={index === section.issues.length - 1}

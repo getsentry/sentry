@@ -1,8 +1,8 @@
 import {LazyRender} from 'sentry/components/lazyRender';
 
-import {buildOverviewRow} from './buildOverviewRows';
+import {buildOverviewRow, deriveSectionKey} from './buildOverviewRows';
 import {IssueCard, IssueTableRow} from './issueCard';
-import type {OverviewIssue} from './types';
+import type {AutofixStateKey, OverviewIssue} from './types';
 import {useIssueAutofixEnrichment} from './useIssueAutofixEnrichment';
 
 const CARD_PLACEHOLDER_HEIGHT = 180;
@@ -13,6 +13,7 @@ function HydratedCard({
   defaultExpanded,
   issue,
   orgSlug,
+  sectionKey,
   view,
   statsPeriod,
   isLast,
@@ -23,14 +24,28 @@ function HydratedCard({
   view: 'cards' | 'table';
   defaultExpanded?: boolean;
   isLast?: boolean;
+  // The server-bucketed section. Absent in focus mode, where the issues
+  // endpoint omits issue.autofix_state, so we reconstruct it from enrichment.
+  sectionKey?: AutofixStateKey;
 }) {
   const {run, state, statePending} = useIssueAutofixEnrichment(issue.id);
   const row = buildOverviewRow(issue, run, state, statePending, statsPeriod);
+  const resolvedSectionKey = sectionKey ?? deriveSectionKey(run, state);
 
   return view === 'cards' ? (
-    <IssueCard row={row} orgSlug={orgSlug} defaultExpanded={defaultExpanded} />
+    <IssueCard
+      row={row}
+      orgSlug={orgSlug}
+      sectionKey={resolvedSectionKey}
+      defaultExpanded={defaultExpanded}
+    />
   ) : (
-    <IssueTableRow row={row} orgSlug={orgSlug} isLast={isLast ?? false} />
+    <IssueTableRow
+      row={row}
+      orgSlug={orgSlug}
+      sectionKey={resolvedSectionKey}
+      isLast={isLast ?? false}
+    />
   );
 }
 
@@ -45,6 +60,7 @@ export function SectionIssueCard({
   defaultExpanded?: boolean;
   isLast?: boolean;
   lazy?: boolean;
+  sectionKey?: AutofixStateKey;
 }) {
   return (
     <LazyRender

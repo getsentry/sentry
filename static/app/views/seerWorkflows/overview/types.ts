@@ -12,6 +12,50 @@ export const RUNS_QUERY = 'type:explorer source:autofix';
 // Always applied to the issue query: only issues Seer has run autofix on.
 export const REQUIRED_ISSUE_FILTER = 'has:issue.seer_last_run';
 
+// The section an issue is bucketed into, from the ``issue.autofix_state``
+// search key (server-authoritative) or, in focus mode, deriveSectionKey.
+export type AutofixStateKey =
+  | 'review_pr'
+  | 'code_changes_ready'
+  | 'solution_ready'
+  | 'needs_investigation'
+  | 'merged';
+
+// One pipeline stage. `fill` is how many of the five checklist steps
+// (root cause → plan → code → PR → merge) a card in this stage has reached; it
+// is the single source of stage precedence, driving the section-header
+// checklist and the focus-mode fallback (which walks stages furthest-first).
+export interface PipelineStage {
+  fill: number;
+  key: AutofixStateKey;
+}
+
+// The whole pipeline, in display order. Every hand-encoded stage ordering in
+// the overview derives from this table.
+export const PIPELINE: PipelineStage[] = [
+  {key: 'review_pr', fill: 4},
+  {key: 'code_changes_ready', fill: 3},
+  {key: 'solution_ready', fill: 2},
+  {key: 'needs_investigation', fill: 1},
+  {key: 'merged', fill: 5},
+];
+
+export const SECTION_ORDER: AutofixStateKey[] = PIPELINE.map(stage => stage.key);
+
+// Live run status, mirrored straight from ExplorerAutofixState.status. Drives
+// the transient card overlays (Running / Retry / Add context), never the
+// section-driven primary action.
+export type RunStatus = 'processing' | 'completed' | 'error' | 'awaiting_user_input';
+
+// The primary action a card offers, derived from its section. review_pr carries
+// the linked PR so it can offer the external review button.
+export type CardAction =
+  | {prNumber: number | undefined; prUrl: string | undefined; type: 'review_pr'}
+  | {type: 'code_changes_ready'}
+  | {type: 'solution_ready'}
+  | {type: 'needs_investigation'}
+  | {type: 'merged'};
+
 // One answered question, mirrors the run output in
 // src/sentry/api/serializers/models/seer_run.py
 export interface RunQuestion {
@@ -56,12 +100,6 @@ export interface OverviewIssue {
   userCount: number;
 }
 
-export type AutofixOutcome = 'root_cause' | 'solution' | 'code_changes' | 'pr_opened';
-
-// Run status buckets mapped from ExplorerAutofixState.status; 'processing' maps
-// to SETTLED with isProcessing set on the row.
-export type AutofixRunStatus = 'SETTLED' | 'ERROR' | 'NEED_MORE_INFORMATION';
-
 // How the run was started. Sources without a mapping render a fallback
 // badge with the raw source text.
 export type AutofixTrigger =
@@ -70,13 +108,6 @@ export type AutofixTrigger =
   | 'alert'
   | 'post_process'
   | 'night_shift';
-
-export type AttentionReason =
-  | 'awaiting_input'
-  | 'solution_ready'
-  | 'code_changes_ready'
-  | 'review_pr'
-  | 'errored';
 
 // One answered run question joined to its question config
 // See ./runQuestions.ts
@@ -106,16 +137,16 @@ export interface PatchStats {
 // One issue + its latest autofix run, flattened for the overview cards.
 export interface OverviewRow {
   analysis: RunAnalysisEntry[];
-  autofixRunStatus: AutofixRunStatus;
   eventCount: number;
   id: string;
   // Most recent activity on the run (state update, trigger, or issue-level
   // last-trigger timestamp) - drives sorting and the period filter.
   lastActivityAt: string;
   level: Level;
-  outcomes: AutofixOutcome[];
-  prMerged: boolean;
   project: {slug: string; platform?: PlatformKey};
+  // Live run status, mirrored straight from the state payload; drives the
+  // transient overlays only. Null until the state request resolves.
+  runStatus: RunStatus | null;
   shortId: string;
   // Whether the per-issue autofix state request is still in flight.
   statePending: boolean;
@@ -131,7 +162,6 @@ export interface OverviewRow {
   // small enough to render inline (see the INLINE_DIFF_* limits in
   // buildOverviewRows).
   inlinePatches?: Array<{patch: FilePatch; repoName?: string}>;
-  isProcessing?: boolean;
   patchStats?: PatchStats;
   // The question autofix paused on, when status is NEED_MORE_INFORMATION and
   // the pending input payload carries readable text.
