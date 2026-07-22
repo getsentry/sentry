@@ -500,15 +500,32 @@ def configure_sdk():
                     ):
                         args_list = list(args)
                         envelope = args_list[0]
+
+                        relay_envelope = copy.copy(envelope)
+                        s4s_args = (relay_envelope, *args_list[1:])
+
                         trace = envelope.headers.get("trace")
+
+                        prior_sample_rate = None
+                        try:
+                            prior_sample_rate = float(trace["sample_rate"])
+                        except Exception:
+                            pass
+
                         if (
                             isinstance(trace, dict)
-                            and isinstance(trace.get("sample_rate"), float)
+                            and isinstance(prior_sample_rate, float)
                             and isinstance(s4s_sample_rate, float)
                         ):
-                            envelope.headers.setdefault("trace", {})["sample_rate"] = str(
-                                trace["sample_rate"] * s4s_sample_rate
-                            )
+                            # Maintain accurate extrapolation by incorporating sampling factor.
+
+                            relay_envelope.headers = {
+                                **envelope.headers,
+                                "trace": {
+                                    **trace,
+                                    "sample_rate": str(prior_sample_rate * s4s_sample_rate),
+                                },
+                            }
 
                         # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
                         # unless we allow them via a separate sample rate.
@@ -519,9 +536,7 @@ def configure_sdk():
                             or in_random_rollout("store.allow-s4s-ddm-sample-rate")
                         ]
                         if len(safe_items) != len(envelope.items):
-                            relay_envelope = copy.copy(envelope)
                             relay_envelope.items = safe_items
-                            s4s_args = (relay_envelope, *args_list[1:])
 
                     getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
