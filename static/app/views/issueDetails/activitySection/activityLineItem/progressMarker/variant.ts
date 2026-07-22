@@ -28,6 +28,7 @@ export function getActivityMarkerState(item: GroupActivity): ActivityMarkerState
     case GroupActivityType.SEER_CODING_COMPLETED:
     case GroupActivityType.SEER_ITERATION_STARTED:
     case GroupActivityType.SEER_ITERATION_COMPLETED:
+    case GroupActivityType.TRIGGER_AUTOFIX:
     case GroupActivityType.CREATE_ISSUE:
     case GroupActivityType.SET_PUBLIC:
     case GroupActivityType.SET_PRIVATE:

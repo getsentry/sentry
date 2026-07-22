@@ -945,6 +945,7 @@ describe('ActivitySection', () => {
     activity: GroupActivity;
     expectedCopy: Array<RegExp | string>;
     name: string;
+    expectedMarker?: string;
   }>([
     {
       name: 'automatic ongoing',
@@ -1090,32 +1091,40 @@ describe('ActivitySection', () => {
         data: {},
       } satisfies GroupActivity,
       expectedCopy: ['Autofix triggered'],
+      expectedMarker: 'Activity update',
     },
-  ])('renders $name v2 activity copy', async ({activity, expectedCopy}) => {
-    const activityGroup = GroupFixture({
-      id: '1339',
-      activity: [activity],
-      project,
-    });
+  ])(
+    'renders $name v2 activity copy',
+    async ({activity, expectedCopy, expectedMarker}) => {
+      const activityGroup = GroupFixture({
+        id: '1339',
+        activity: [activity],
+        project,
+      });
 
-    render(
-      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
-        <ActivitySection group={activityGroup} variant="standalone" size="md" />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({
-          features: [
-            'display-seer-actions-as-issue-activities',
-            'issue-activity-feed-v2',
-          ],
-        }),
+      render(
+        <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+          <ActivitySection group={activityGroup} variant="standalone" size="md" />
+        </GroupDataContextProvider>,
+        {
+          organization: OrganizationFixture({
+            features: [
+              'display-seer-actions-as-issue-activities',
+              'issue-activity-feed-v2',
+              ...(expectedMarker ? ['issue-activity-progress'] : []),
+            ],
+          }),
+        }
+      );
+
+      for (const copy of expectedCopy) {
+        expect(await screen.findByText(copy)).toBeInTheDocument();
       }
-    );
-
-    for (const copy of expectedCopy) {
-      expect(await screen.findByText(copy)).toBeInTheDocument();
+      if (expectedMarker) {
+        expect(screen.getByRole('img', {name: expectedMarker})).toBeInTheDocument();
+      }
     }
-  });
+  );
 
   it('renders reprocessed events as a linked activity update', () => {
     const activityGroup = GroupFixture({
