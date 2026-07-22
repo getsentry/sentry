@@ -65,6 +65,7 @@ class OrganizationReportContext:
         self.top_spans_timeseries: dict[str, dict[int, float]] = {}  # {span_name: {timestamp: p95}}
         self.top_spans_projects: dict[str, int] = {}  # {span_name: project_id}
         self.spans_count_by_project: dict[int, int] = {}  # {project_id: count}
+        self.prev_week_spans_count_by_project: dict[int, int] = {}  # {project_id: count}
 
     def __repr__(self) -> str:
         return self.projects_context_map.__repr__()
