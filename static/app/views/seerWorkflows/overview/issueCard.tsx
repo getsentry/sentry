@@ -281,47 +281,7 @@ export function IssueCard({
             right, the project linking to its page */}
         <Flex justify="between" align="center" gap="md">
           <Flex gap="sm" align="center">
-            {row.statePending ? (
-              <Text variant="muted">{'…'}</Text>
-            ) : row.isProcessing ? (
-              <Tag variant="info">{t('Running')}</Tag>
-            ) : row.prMerged ? (
-              <Tooltip title={t('The pull request for this fix was merged.')}>
-                <Tag variant="success" icon={<IconMerge />}>
-                  {t('Merged')}
-                </Tag>
-              </Tooltip>
-            ) : attention === 'review_pr' && row.prUrl ? (
-              <Tooltip
-                title={
-                  row.prNumber
-                    ? t(
-                        'Autofix opened pull request #%s. Review and merge it.',
-                        row.prNumber
-                      )
-                    : ATTENTION_META.review_pr.description
-                }
-                skipWrapper
-              >
-                <LinkButton
-                  size="sm"
-                  variant="warning"
-                  icon={<IconPullRequest />}
-                  href={row.prUrl}
-                  external
-                >
-                  {ATTENTION_META.review_pr.label}
-                </LinkButton>
-              </Tooltip>
-            ) : attention ? (
-              <AttentionBadge reason={attention} to={runUrl} />
-            ) : (
-              <Tooltip title={t('Open the Seer run for this issue.')} skipWrapper>
-                <LinkButton size="sm" variant="secondary" to={runUrl}>
-                  {t('View run')}
-                </LinkButton>
-              </Tooltip>
-            )}
+            <IssuePrimaryAction row={row} runUrl={runUrl} />
             {row.prUrl && attention !== 'review_pr' && (
               <LinkButton
                 size="sm"
@@ -346,5 +306,149 @@ export function IssueCard({
         </Flex>
       </Stack>
     </Container>
+  );
+}
+
+/**
+ * The compact, Linear-style rendering used by the overview's table mode.
+ * Keep this deliberately sparse: the full analysis and diff stay in card
+ * mode, while this row is optimized for scanning and taking the next action.
+ */
+export function IssueTableRow({
+  isLast,
+  orgSlug,
+  row,
+}: {
+  isLast: boolean;
+  orgSlug: string;
+  row: OverviewRow;
+}) {
+  const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
+  const runUrl = {pathname: issueUrl, query: {seerDrawer: 'true'}};
+  const eventCountLabel =
+    row.eventCount === 1
+      ? t('1 event')
+      : t('%s events', formatAbbreviatedNumber(row.eventCount));
+  const userCountLabel =
+    row.userCount === 1
+      ? t('1 user')
+      : t('%s users', formatAbbreviatedNumber(row.userCount));
+
+  return (
+    <Flex
+      justify="between"
+      align="center"
+      gap="lg"
+      padding="md lg"
+      borderBottom={isLast ? undefined : 'primary'}
+    >
+      <Stack gap="2xs" minWidth="0" flex="1">
+        <Text bold ellipsis>
+          {row.headline ? (
+            <Tooltip
+              maxWidth={480}
+              title={
+                <Stack gap="2xs">
+                  <Text size="xs" bold uppercase variant="muted" align="left">
+                    {t('Raw issue title')}
+                  </Text>
+                  <Text size="xs" align="left">
+                    {ellipsize(row.title, 200)}
+                  </Text>
+                </Stack>
+              }
+            >
+              <TitleLink to={issueUrl}>{row.headline}</TitleLink>
+            </Tooltip>
+          ) : (
+            <TitleLink to={issueUrl}>{row.title}</TitleLink>
+          )}
+        </Text>
+        <Flex gap="xs" align="center" wrap="wrap">
+          <ProjectBadge project={row.project} avatarSize={14} hideName />
+          <Text size="sm" variant="muted" monospace wrap="nowrap">
+            {row.shortId}
+          </Text>
+          <Text size="sm" variant="muted" aria-hidden>
+            {'·'}
+          </Text>
+          <Text size="sm" variant="muted" wrap="nowrap">
+            {eventCountLabel}
+            {row.userCount > 0 && ` · ${userCountLabel}`}
+          </Text>
+          <Text size="sm" variant="muted" aria-hidden>
+            {'·'}
+          </Text>
+          <Text size="sm" variant="muted" wrap="nowrap">
+            <TimeSince
+              date={row.lastActivityAt}
+              prefix={t('updated')}
+              tooltipPrefix={t('Last activity on this Seer run')}
+            />
+          </Text>
+        </Flex>
+      </Stack>
+      <Flex align="center" flexShrink={0}>
+        <IssuePrimaryAction row={row} runUrl={runUrl} />
+      </Flex>
+    </Flex>
+  );
+}
+
+function IssuePrimaryAction({
+  row,
+  runUrl,
+}: {
+  row: OverviewRow;
+  runUrl: {pathname: string; query: {seerDrawer: string}};
+}) {
+  const attention = getAttentionReason(row);
+
+  if (row.statePending) {
+    return <Text variant="muted">{'…'}</Text>;
+  }
+  if (row.isProcessing) {
+    return <Tag variant="info">{t('Running')}</Tag>;
+  }
+  if (row.prMerged) {
+    return (
+      <Tooltip title={t('The pull request for this fix was merged.')}>
+        <Tag variant="success" icon={<IconMerge />}>
+          {t('Merged')}
+        </Tag>
+      </Tooltip>
+    );
+  }
+  if (attention === 'review_pr' && row.prUrl) {
+    return (
+      <Tooltip
+        title={
+          row.prNumber
+            ? t('Autofix opened pull request #%s. Review and merge it.', row.prNumber)
+            : ATTENTION_META.review_pr.description
+        }
+        skipWrapper
+      >
+        <LinkButton
+          size="sm"
+          variant="warning"
+          icon={<IconPullRequest />}
+          href={row.prUrl}
+          external
+        >
+          {ATTENTION_META.review_pr.label}
+        </LinkButton>
+      </Tooltip>
+    );
+  }
+  if (attention) {
+    return <AttentionBadge reason={attention} to={runUrl} />;
+  }
+  return (
+    <Tooltip title={t('Open the Seer run for this issue.')} skipWrapper>
+      <LinkButton size="sm" variant="secondary" to={runUrl}>
+        {t('View run')}
+      </LinkButton>
+    </Tooltip>
   );
 }

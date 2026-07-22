@@ -197,6 +197,36 @@ describe('AutofixOverview', () => {
     expect(screen.getByText(/100 events/)).toBeInTheDocument();
   });
 
+  it('switches between card and table views', async () => {
+    renderPage();
+
+    expect(
+      await screen.findByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Root cause')).toBeVisible();
+    expect(screen.getByRole('radio', {name: 'Card view'})).toBeChecked();
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Table view'}));
+
+    expect(screen.getByRole('radio', {name: 'Table view'})).toBeChecked();
+    expect(screen.queryByText('Root cause')).not.toBeInTheDocument();
+    const shortId = screen.getByText('PROJ-1');
+    const impactStats = screen.getByText(/100 events · 5 users/);
+    const projectIcon = screen.getByRole('link', {name: 'View Project Details'});
+    expect(
+      projectIcon.compareDocumentPosition(shortId) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      shortId.compareDocumentPosition(impactStats) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(screen.getByRole('button', {name: 'Review PR'})).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry/pull/123'
+    );
+  });
+
   it('renders the analysis on the card face in thought order', async () => {
     renderPage();
 

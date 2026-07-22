@@ -10,6 +10,7 @@ import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -23,7 +24,7 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {Sticky} from 'sentry/components/sticky';
-import {IconArrow, IconChevron} from 'sentry/icons';
+import {IconArrow, IconChevron, IconGrid, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -34,7 +35,7 @@ import {useAutofixIssues} from 'sentry/views/autofixIssuesDemo/useAutofixIssues'
 
 import {ATTENTION_META, ATTENTION_REASONS, getAttentionReason} from './attentionBadge';
 import {buildOverviewRows} from './buildOverviewRows';
-import {IssueCard} from './issueCard';
+import {IssueCard, IssueTableRow} from './issueCard';
 import {RUN_QUESTION_PROMPTS} from './runQuestions';
 import {
   getStatusGroup,
@@ -83,6 +84,7 @@ const ATTENTION_FILTER_OPTIONS: Array<{
 // Urgency ordering lives in the status groups now; the sort only orders
 // cards within each group.
 type SortValue = 'activity' | 'events';
+type OverviewView = 'cards' | 'table';
 
 const SORT_OPTIONS: Array<{label: string; value: SortValue}> = [
   {value: 'activity', label: t('Recent activity')},
@@ -209,6 +211,10 @@ export default function AutofixOverview() {
   const [collapsedGroups, setCollapsedGroups] = useLocalStorageState<StatusGroupKey[]>(
     'seer-autofix-overview:collapsed-groups',
     []
+  );
+  const [view, setView] = useLocalStorageState<OverviewView>(
+    'seer-autofix-overview:view',
+    storedValue => (storedValue === 'table' ? 'table' : 'cards')
   );
   const toggleGroup = (groupKey: StatusGroupKey, expanded: boolean) => {
     setCollapsedGroups(previous =>
@@ -399,6 +405,25 @@ export default function AutofixOverview() {
                       {allGroupsCollapsed ? t('Expand all') : t('Collapse all')}
                     </Button>
                   )}
+                  <SegmentedControl<OverviewView>
+                    size="xs"
+                    value={view}
+                    onChange={setView}
+                    aria-label={t('View mode')}
+                  >
+                    <SegmentedControl.Item
+                      key="cards"
+                      icon={<IconGrid />}
+                      aria-label={t('Card view')}
+                      tooltip={t('Card view')}
+                    />
+                    <SegmentedControl.Item
+                      key="table"
+                      icon={<IconTable />}
+                      aria-label={t('Table view')}
+                      tooltip={t('Table view')}
+                    />
+                  </SegmentedControl>
                 </Flex>
               </Flex>
             )}
@@ -433,7 +458,7 @@ export default function AutofixOverview() {
                 {groupedRows.map(([groupKey, rows]) => {
                   const meta = STATUS_GROUP_META[groupKey];
                   return (
-                    <Disclosure
+                    <StatusGroup
                       key={groupKey}
                       size="sm"
                       expanded={!collapsedGroups.includes(groupKey)}
@@ -457,17 +482,30 @@ export default function AutofixOverview() {
                         </Disclosure.Title>
                       </GroupHeader>
                       <Disclosure.Content>
-                        <Stack gap="md" paddingTop="sm">
-                          {rows.map(({row}) => (
-                            <IssueCard
-                              key={row.id}
-                              row={row}
-                              orgSlug={organization.slug}
-                            />
-                          ))}
-                        </Stack>
+                        {view === 'cards' ? (
+                          <Stack gap="md" paddingTop="sm">
+                            {rows.map(({row}) => (
+                              <IssueCard
+                                key={row.id}
+                                row={row}
+                                orgSlug={organization.slug}
+                              />
+                            ))}
+                          </Stack>
+                        ) : (
+                          <Stack gap="0" paddingTop="sm">
+                            {rows.map(({row}, index) => (
+                              <IssueTableRow
+                                key={row.id}
+                                row={row}
+                                orgSlug={organization.slug}
+                                isLast={index === rows.length - 1}
+                              />
+                            ))}
+                          </Stack>
+                        )}
                       </Disclosure.Content>
-                    </Disclosure>
+                    </StatusGroup>
                   );
                 })}
               </Stack>
@@ -482,6 +520,17 @@ export default function AutofixOverview() {
     </Feature>
   );
 }
+
+// Disclosure.Content indents its panel to sit under the title text (a
+// hardcoded padding-left in the core component). The panel here is full-width
+// cards, so that indent shoves them right of the sticky header box — drop it
+// (it's the content sibling after the header) so the cards line up flush with
+// their group.
+const StatusGroup = styled(Disclosure)`
+  && > * + * {
+    padding-left: 0;
+  }
+`;
 
 // Linear-style section header: parks below the top bar while its group
 // scrolls, then gets pushed away by the next header (sticky is bounded by
