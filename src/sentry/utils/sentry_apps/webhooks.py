@@ -40,7 +40,7 @@ from sentry.sentry_apps.services.app.service import app_service
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
-from sentry.taskworker.timeout import timeout_alarm
+from sentry.taskworker.timeout import InnerTimeoutError, timeout_alarm
 from sentry.utils import metrics, redis
 from sentry.utils.circuit_breaker2 import CircuitBreaker, RateBasedTripStrategy
 from sentry.utils.http import absolute_uri
@@ -333,7 +333,12 @@ def send_and_save_webhook_request(
                 halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.RESTRICTED_IP}"
             )
             raise
-
+        except InnerTimeoutError:
+            # This means we didn't even start the request since the prev. steps took too long
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INNER_TIMEOUT}"
+            )
+            raise
         track_response_code(response.status_code, slug, event)
 
         project_id = (

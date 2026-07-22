@@ -103,7 +103,7 @@ class TestGetMetricMetadata(TestCase):
                 "type": "distribution",
                 "unit": "millisecond",
                 "count": 10,
-                "context": {"brief": "Request duration", "additionalContext": "p95 latency"},
+                "context": {"brief": "Request duration", "details": ["p95 latency"]},
             }
         ]
         mock_client.get.return_value = response
@@ -119,7 +119,7 @@ class TestGetMetricMetadata(TestCase):
         assert kwargs["params"]["expand"] == "context"
         assert result.candidates[0].context == {
             "brief": "Request duration",
-            "additionalContext": "p95 latency",
+            "details": ["p95 latency"],
         }
 
     @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
@@ -137,7 +137,7 @@ class TestGetMetricMetadata(TestCase):
         )
 
         _args, kwargs = mock_client.get.call_args
-        assert kwargs["params"]["context_only"] is True
+        assert kwargs["params"]["contextOnly"] is True
 
     @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
     def test_no_substrings_returns_all_metrics(self, mock_client_cls: MagicMock) -> None:

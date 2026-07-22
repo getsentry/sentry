@@ -165,6 +165,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
         mock_enqueue.assert_not_called()
 
+    @patch(f"{CHECK_PATH}.assign_user_for_exhausted_cap")
     @patch(TRIGGER_CONSUME_PATH)
     @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=False)
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
@@ -175,6 +176,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_get_state: MagicMock,
         _mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
+        mock_assign: MagicMock,
     ) -> None:
         mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         mock_get_state.return_value = self._agent_state()
@@ -183,7 +185,14 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         pr_iteration_from_check_suite_listener(self._event(raw))
 
         mock_trigger_consume.assert_not_called()
+        # Rejected feedback routes to the cap-exhausted handler, which decides
+        # itself whether this is the hard-cap case that needs a human.
+        mock_assign.assert_called_once()
+        event_arg, resolved_arg = mock_assign.call_args[0]
+        assert event_arg.check_suite.head_sha == "abc"
+        assert resolved_arg.run_state.run_id == 67890
 
+    @patch(f"{CHECK_PATH}.assign_user_for_exhausted_cap")
     @patch(TRIGGER_CONSUME_PATH)
     @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
@@ -194,6 +203,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
+        mock_assign: MagicMock,
     ) -> None:
         mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         mock_get_state.return_value = self._agent_state()
@@ -215,6 +225,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert autofix.repository.id == 2
         assert autofix.run_state is not None
         mock_trigger_consume.assert_called_once()
+        mock_assign.assert_not_called()
 
     @patch(f"{CHECK_SUITES_PATH}.sentry_sdk.capture_exception")
     @patch(TRIGGER_CONSUME_PATH)
