@@ -710,7 +710,7 @@ class PromoteToLiveTest(TestCase):
         assert live.view_count == 2
         assert live.generated_at is not None
 
-    def test_build_and_promote_cursor_behind_preserves_pipeline_hash(self) -> None:
+    def test_build_and_promote_overwrites_old_pipeline_hash(self) -> None:
         group = self.create_group()
 
         # Insert a log entry directly to avoid inline processing.
@@ -724,19 +724,57 @@ class PromoteToLiveTest(TestCase):
             data={},
         )
 
-        # Process incrementally so the row's cursor is ahead, then set
-        # an old pipeline_hash to simulate a pipeline change.
+        # Process incrementally, then set an old pipeline_hash to
+        # simulate a pipeline change.
         process_group_log(group.id)
         GroupDerivedData.objects.filter(group_id=group.id).update(pipeline_hash="old_hash")
 
-        # build_and_promote starts from EPOCH, hits CURSOR_BEHIND on
-        # promote (live row's cursor is ahead), copies the live row's
-        # state (including the old pipeline_hash), then retries.
         build_and_promote_derived_data(group.id, time_limit=timedelta(minutes=5))
         derived = GroupDerivedData.objects.get(group_id=group.id)
-        # The promoted row must carry the current pipeline hash, not the
-        # old one copied from the live row during the CURSOR_BEHIND retry.
         assert derived.pipeline_hash == PIPELINE.pipeline_hash
+
+    def test_build_and_promote_cursor_behind_orphaned_cursor(self) -> None:
+        from sentry.issues.derived.processing import PromotionFailed
+
+        group = self.create_group()
+
+        # Create a live row with a cursor pointing past any existing entries.
+        GroupDerivedData.objects.create(
+            group_id=group.id,
+            cursor_date=django_timezone.now(),
+            cursor_id=99999,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+
+        # build_and_promote drains nothing (no entries), gets CURSOR_BEHIND
+        # because the candidate's EPOCH cursor is behind the live row's.
+        # With no entries to catch up on, the log was modified and the
+        # replay is incomplete — give up.
+        with pytest.raises(PromotionFailed):
+            build_and_promote_derived_data(group.id, time_limit=timedelta(minutes=5))
+
+    def test_build_and_promote_cursor_behind_new_entries(self) -> None:
+        group = self.create_group()
+
+        # Create initial entry and process it incrementally.
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+        live = GroupDerivedData.objects.get(group_id=group.id)
+        first_cursor = live.cursor_id
+
+        # Add a new entry that only incremental processing has seen.
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+        live.refresh_from_db()
+        assert live.cursor_id > first_cursor
+
+        # build_and_promote replays the full log, gets CURSOR_BEHIND on
+        # first promote (live cursor advanced), drains the new entry on
+        # retry, and promotes successfully.
+        build_and_promote_derived_data(group.id, time_limit=timedelta(minutes=5))
+        derived = GroupDerivedData.objects.get(group_id=group.id)
+        assert derived.view_count == 2
 
     def test_build_and_promote_prevents_stale_incremental_write(self) -> None:
         """End-to-end ABA test: incremental write computed from pre-generation

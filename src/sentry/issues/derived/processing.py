@@ -454,20 +454,12 @@ def build_and_promote_derived_data(
             # A newer generation already won — retrying is futile.
             break
 
-        # CURSOR_BEHIND: the live row's cursor advanced past ours (via
-        # incremental processing). Load the live row's full state so the
-        # next _drain_log builds on the correct base, not stale aggregations.
-        live_row = GroupDerivedData.objects.filter(group_id=group_id).first()
-        if live_row is None:
-            if not Group.objects.filter(id=group_id).exists():
-                raise Group.DoesNotExist(f"Group {group_id} does not exist")
+        # CURSOR_BEHIND: the live row's cursor is ahead of ours.
+        # If new entries exist past our cursor, the next drain will pick
+        # them up. If not, the log was modified (e.g. merge deleted
+        # entries) and our replay is incomplete — give up.
+        if not _entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, 1):
             break
-        for field in _STATE_FIELDS:
-            setattr(derived, field, getattr(live_row, field))
-        # Keep our generated_at and pipeline_hash — the live row's may
-        # be from an older generation or an older pipeline version.
-        derived.generated_at = generated_at
-        derived.pipeline_hash = pipeline_hash
 
     _generation_cache.delete(current_gen_id)
     raise PromotionFailed(group_id, result, attempt + 1)
