@@ -123,6 +123,7 @@ class MarkReadyForReviewTest(TestCase):
     def _wire_scm_actions(self, mock_actions: MagicMock, *, head_sha: str = HEAD_SHA) -> None:
         mock_actions.get_pull_request.return_value = _pull_request_result(head_sha=head_sha)
 
+    @patch(f"{READY_FOR_REVIEW_PATH}.GetPullRequestProtocol", object)
     @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
     @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
@@ -193,6 +194,7 @@ class MarkReadyForReviewTest(TestCase):
         assert self._marker() is None
         mock_actions.mark_pull_request_ready_for_review.assert_not_called()
 
+    @patch(f"{READY_FOR_REVIEW_PATH}.GetPullRequestProtocol", object)
     @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
     @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
@@ -212,6 +214,7 @@ class MarkReadyForReviewTest(TestCase):
 
         assert self._marker() is None
 
+    @patch(f"{READY_FOR_REVIEW_PATH}.GetPullRequestProtocol", object)
     @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
     @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
