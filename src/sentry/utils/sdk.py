@@ -528,7 +528,7 @@ def configure_sdk():
                                 and isinstance(prior_sample_rate, float)
                                 and isinstance(s4s_sample_rate, float)
                             ):
-                                # Maintain accurate extrapolation by incorporating sampling factor.
+                                # Maintain accurate extrapolation by incorporating "store.s4s-transaction-sample-rate"
                                 relay_envelope.headers = {
                                     **relay_envelope.headers,
                                     "trace": {
