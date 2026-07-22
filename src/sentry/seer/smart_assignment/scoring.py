@@ -75,25 +75,36 @@ def _ground_truth_updates(
     explicit assignee has been recorded -- an assignment is better truth.
     """
     if activity_type == ActivityType.ASSIGNED:
-        assignee = GroupAssignee.objects.filter(group=group).first()
-        if assignee is None:
-            return None
-        return {
-            "actual_assignee_user_id": assignee.user_id,
-            "actual_assignee_team_id": assignee.team_id,
-            "ground_truth_source": activity_type.name,
-        }
+        return _assignment_updates(group)
     if activity_type in RESOLUTION_ACTIVITIES:
         if activity is None or activity.user_id is None:
             return None
         if (run.extras or {}).get("actual_assignee_user_id") is not None:
-            # An explicit assignee is better ground truth than the resolver.
+            # An assignment is better ground truth than the resolver.
             return None
+        # The assignment may never have been mirrored onto the run, so fall back to
+        # the resolver only when the group truly has no assignee.
+        assignment = _assignment_updates(group)
+        if assignment is not None:
+            return assignment
         return {
             "actual_assignee_user_id": activity.user_id,
             "ground_truth_source": activity_type.name,
         }
     return None
+
+
+def _assignment_updates(group: Group) -> RunUpdates | None:
+    """Mirror the current assignee (user and/or team), or ``None`` when the group
+    has no assignee."""
+    assignee = GroupAssignee.objects.filter(group=group).first()
+    if assignee is None:
+        return None
+    return {
+        "actual_assignee_user_id": assignee.user_id,
+        "actual_assignee_team_id": assignee.team_id,
+        "ground_truth_source": ActivityType.ASSIGNED.name,
+    }
 
 
 def _apply(run_id: int, updates: RunUpdates) -> bool:
