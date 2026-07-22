@@ -13,12 +13,16 @@ from sentry.workflow_engine.types import DetectorId, WorkflowEventData
 
 logger = logging.getLogger(__name__)
 
-# Seer runs on an issue and reaches the stage...
 SEER_WORKFLOW_ACTIVITIES = [
+    ActivityType.SEER_RCA_STARTED,
     ActivityType.SEER_RCA_COMPLETED,
+    ActivityType.SEER_SOLUTION_STARTED,
     ActivityType.SEER_SOLUTION_COMPLETED,
+    ActivityType.SEER_CODING_STARTED,
     ActivityType.SEER_CODING_COMPLETED,
     ActivityType.SEER_PR_CREATED,
+    ActivityType.SEER_ITERATION_STARTED,
+    ActivityType.SEER_ITERATION_COMPLETED,
 ]
 
 # Activity types handled by the generic activity_handler.
