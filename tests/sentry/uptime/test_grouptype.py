@@ -33,7 +33,8 @@ from sentry.uptime.utils import build_detector_fingerprint_component, build_fing
 from sentry.utils import json
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
-from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorPriorityLevel
+from sentry.workflow_engine.processors import DetectorEvaluation
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class ResolveUptimeIssueTest(UptimeTestCase):
@@ -130,7 +131,7 @@ class BuildEventDataTest(UptimeTestCase):
 class TestUptimeHandler(UptimeTestCase):
     def handle_result(
         self, detector: Detector, sub: UptimeSubscription, check_result: CheckResult
-    ) -> DetectorEvaluationResult | None:
+    ) -> DetectorEvaluation | None:
         handler = UptimeDetectorHandler(detector)
 
         value = UptimePacketValue(
@@ -165,7 +166,7 @@ class TestUptimeHandler(UptimeTestCase):
         )
         assert evaluation is None
 
-        # Second evaluation produces a DetectorEvaluationResult
+        # Second evaluation produces a DetectorEvaluation
         evaluation = self.handle_result(
             detector,
             uptime_subscription,

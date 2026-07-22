@@ -87,18 +87,7 @@ class ConditionError:
     msg: str
 
 
-@dataclass(frozen=True)
-class DetectorEvaluationResult:
-    # TODO - Should group key live at this level?
-    group_key: DetectorGroupKey
-    # TODO: Are these actually necessary? We're going to produce the occurrence in the detector, so we probably don't
-    # need to know the other results externally
-    is_triggered: bool
-    priority: DetectorPriorityLevel
-    # TODO: This is only temporarily optional. We should always have a value here if returning a result
-    result: IssueOccurrence | StatusChangeMessage | None = None
-    # Event data to supplement the `IssueOccurrence`, if passed.
-    event_data: dict[str, Any] | None = None
+type DetectorResult = IssueOccurrence | StatusChangeMessage | None
 
 
 class _WorkflowEventLocalCache(TypedDict, total=False):

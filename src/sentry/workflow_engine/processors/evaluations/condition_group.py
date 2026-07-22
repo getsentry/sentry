@@ -31,4 +31,4 @@ class DataConditionGroupEvaluation(BaseWorkflowEngineEvaluation[bool, GroupEvalu
     - outcome: TriggerResult
     """
 
-    data: GroupEvaluationData
+    pass

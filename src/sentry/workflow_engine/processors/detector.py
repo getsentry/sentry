@@ -20,8 +20,8 @@ from sentry.workflow_engine.defaults.detectors import (
 )
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
+from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
     DetectorGroupKey,
     DetectorId,
     WorkflowEventData,
@@ -195,7 +195,7 @@ def get_preferred_detector(event_data: WorkflowEventData) -> Detector:
         raise
 
 
-def create_issue_platform_payload(result: DetectorEvaluationResult, detector_type: str) -> None:
+def create_issue_platform_payload(result: DetectorEvaluation, detector_type: str) -> None:
     occurrence, status_change = None, None
 
     if isinstance(result.result, IssueOccurrence):
@@ -220,15 +220,15 @@ def create_issue_platform_payload(result: DetectorEvaluationResult, detector_typ
         payload_type=payload_type,
         occurrence=occurrence,
         status_change=status_change,
-        event_data=result.event_data,
+        event_data=result.data["event_data"],
     )
 
 
 @trace
 def process_detectors[T](
     data_packet: DataPacket[T], detectors: list[Detector]
-) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
-    results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]] = []
+) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]]:
+    results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]] = []
 
     for detector in detectors:
         handler = detector.detector_handler

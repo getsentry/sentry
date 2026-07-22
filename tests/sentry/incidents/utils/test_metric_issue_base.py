@@ -14,8 +14,9 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.processors.data_packet import process_data_packet
-from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class BaseMetricIssueTest(TestCase):
@@ -96,5 +97,5 @@ class BaseMetricIssueTest(TestCase):
         if not results:
             # alert did not trigger
             return None
-        evaluation_result: DetectorEvaluationResult = results[0][1][self.detector_group_key]
+        evaluation_result: DetectorEvaluation = results[0][1][self.detector_group_key]
         return evaluation_result.result

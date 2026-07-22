@@ -17,14 +17,23 @@ from sentry.workflow_engine.handlers.detector import (
 from sentry.workflow_engine.handlers.detector.stateful import DetectorCounters
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
     DetectorGroupKey,
     DetectorPriorityLevel,
+    DetectorResult,
     DetectorSettings,
 )
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
+
+
+def build_mock_group_evaluation() -> DataConditionGroupEvaluation:
+    """A minimal trigger-group evaluation for use in mock detector evaluations."""
+    return DataConditionGroupEvaluation(
+        result=True,
+        data={"condition_evaluations": [], "logic_type": "any"},
+    )
 
 
 def build_mock_occurrence_and_event(
@@ -104,7 +113,18 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 self, data_packet: DataPacket[dict[str, Any]]
             ) -> GroupedDetectorEvaluationResult:
                 return GroupedDetectorEvaluationResult(
-                    result={None: DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH)},
+                    result={
+                        None: DetectorEvaluation(
+                            result=None,
+                            data=DetectorEvaluationData(
+                                group_key=None,
+                                trigger_group_evaluation=build_mock_group_evaluation(),
+                                event_data=None,
+                            ),
+                            triggered=True,
+                            priority=DetectorPriorityLevel.HIGH,
+                        )
+                    },
                     tainted=False,
                 )
 
@@ -136,8 +156,15 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
                 return GroupedDetectorEvaluationResult(
                     result={
-                        None: DetectorEvaluationResult(
-                            None, True, DetectorPriorityLevel.HIGH, status_change
+                        None: DetectorEvaluation(
+                            result=status_change,
+                            data=DetectorEvaluationData(
+                                group_key=None,
+                                trigger_group_evaluation=build_mock_group_evaluation(),
+                                event_data=None,
+                            ),
+                            triggered=True,
+                            priority=DetectorPriorityLevel.HIGH,
                         )
                     },
                     tainted=False,
@@ -250,6 +277,27 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
         if priority is not None:
             assert state_data.status == priority
+
+    def assert_evaluation(
+        self,
+        evaluation: DetectorEvaluation,
+        *,
+        group_key: DetectorGroupKey,
+        triggered: bool,
+        priority: DetectorPriorityLevel,
+        result: DetectorResult = None,
+        event_data: dict[str, Any] | None = None,
+    ) -> None:
+        """
+        Assert the meaningful fields of a DetectorEvaluation. We assert on fields
+        rather than whole-object equality because the evaluation's `data` carries a
+        DataConditionGroupEvaluation that is impractical to reconstruct in tests.
+        """
+        assert evaluation.data["group_key"] == group_key
+        assert evaluation.outcome.triggered is triggered
+        assert evaluation.priority == priority
+        assert evaluation.result == result
+        assert evaluation.data["event_data"] == event_data
 
     def detector_to_issue_occurrence(
         self,

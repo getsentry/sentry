@@ -25,10 +25,10 @@ from sentry.workflow_engine.handlers.detector.base import (
     GroupedDetectorEvaluationResult,
 )
 from sentry.workflow_engine.models import DataPacket, DataSource, Detector, DetectorState
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
+from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
     DetectorGroupKey,
     DetectorPriorityLevel,
 )
@@ -416,7 +416,7 @@ class StatefulDetectorHandler(
         dedupe_value = self.extract_dedupe_value(data_packet)
         group_data_values = self._extract_value_from_packet(data_packet)
         state = self.state_manager.get_state_data(list(group_data_values.keys()))
-        results: dict[DetectorGroupKey, DetectorEvaluationResult] = {}
+        results: dict[DetectorGroupKey, DetectorEvaluation] = {}
 
         tainted = False
 
@@ -558,7 +558,7 @@ class StatefulDetectorHandler(
         group_evaluation: DataConditionGroupEvaluation,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
-    ) -> DetectorEvaluationResult:
+    ) -> DetectorEvaluation:
         detector_result: IssueOccurrence | StatusChangeMessage
         event_data: EventData | None = None
 
@@ -593,12 +593,15 @@ class StatefulDetectorHandler(
             event_data.setdefault("received", detector_result.detection_time)
             event_data.setdefault("tags", {})
 
-        return DetectorEvaluationResult(
-            group_key=group_key,
-            is_triggered=new_priority != DetectorPriorityLevel.OK,
-            priority=new_priority,
+        return DetectorEvaluation(
             result=detector_result,
-            event_data=event_data,
+            data=DetectorEvaluationData(
+                group_key=group_key,
+                trigger_group_evaluation=group_evaluation,
+                event_data=event_data,
+            ),
+            triggered=new_priority != DetectorPriorityLevel.OK,
+            priority=new_priority,
         )
 
     def _is_detector_group_value(self, value: Any) -> bool:
