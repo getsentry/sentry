@@ -201,6 +201,29 @@ export const SEER_EMBED_SCHEMAS = {
       },
     ],
   },
+  autofix: {
+    featureFlag: 'organizations:seer-agent-autofix',
+    description: 'The result of an Autofix step/action.',
+    level: ['block'],
+    schema: z.object({
+      step: z.string(),
+      result: z.string(),
+      issue_short_id: z.string(),
+      issue_id: z.string(),
+    }),
+    examples: [
+      {
+        label: 'Root cause',
+        data: {
+          issue_short_id: 'EXMPL-123',
+          issue_id: '1234567890',
+          result:
+            'The root cause of the issue is that the code is not working correctly.',
+          step: 'Root Cause' as const,
+        },
+      },
+    ],
+  },
 } as const satisfies Record<string, SeerEmbedSchema>;
 
 export type SeerEmbedName = keyof typeof SEER_EMBED_SCHEMAS;
