@@ -265,15 +265,21 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
             scm = scm_by_repo.get(repo_name)
             if scm is None:
-                # Resolve the repo by DB id so we don't assume a provider: a fixed
-                # ("github", ...) tuple can't resolve GitHub Enterprise repos.
-                repo = Repository.objects.filter(
-                    organization_id=organization.id, name=repo_name
-                ).first()
+                # Refuse to guess when the same name spans providers; None on both
+                # "not found" and "ambiguous".
+                repo, resolution = Repository.objects.resolve_active(
+                    organization_id=organization.id,
+                    name=repo_name,
+                    normalized_provider=None,
+                )
                 if repo is None:
                     logger.warning(
                         "autofix.on_completion_hook.completion_reaction.repo_not_found",
-                        extra={"run_id": run_id, "organization_id": organization.id},
+                        extra={
+                            "run_id": run_id,
+                            "organization_id": organization.id,
+                            "resolution": resolution,
+                        },
                     )
                     continue
                 try:

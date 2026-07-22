@@ -1040,3 +1040,24 @@ class TestMaybeReactToCompletedIteration(TestCase):
             )
 
         mock_react.assert_not_called()
+
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_skips_reaction_when_repo_name_ambiguous(self, mock_react, mock_make_scm):
+        # The same slug can exist under multiple providers in one org; rather than
+        # guess and react on the wrong repo, the source is skipped.
+        self.create_repo(
+            project=self.project,
+            provider="integrations:gitlab",
+            external_id="456",
+            name="owner/repo",
+        )
+        state = self._state_with([self._top_level_source()])
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+
+        mock_make_scm.assert_not_called()
+        mock_react.assert_not_called()
