@@ -37,10 +37,7 @@ import {
   useAddMetricQuery,
   useMultiMetricsQueryParams,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {
-  EQUATION_LABEL,
-  parseAggregateExpression,
-} from 'sentry/views/explore/metrics/parseAggregateExpression';
+import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
@@ -388,7 +385,7 @@ function MetricToolbar({
         name="metricAggregateRow"
         checked={isSelected}
         onChange={() =>
-          onRowSelection(isVisualizeEquation(visualize) ? EQUATION_LABEL : queryLabel)
+          onRowSelection(isVisualizeEquation(visualize) ? getEquationLabel() : queryLabel)
         }
         aria-label={t('Use row %s as the alert aggregate', queryLabel)}
         disabled={isVisualizeFunction(visualize) && traceMetric.name === ''}
