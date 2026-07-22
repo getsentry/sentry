@@ -2261,18 +2261,16 @@ class WeeklyReportsTest(
         group2.resolved_at = self.now - timedelta(minutes=1)
         group2.save()
 
-        GroupLink.objects.create(
+        self.create_group_link(
             group=group1,
-            project=self.project,
-            linked_type=GroupLink.LinkedType.commit,
             linked_id=1,
+            linked_type=GroupLink.LinkedType.commit,
             relationship=GroupLink.Relationship.resolves,
         )
-        GroupLink.objects.create(
+        self.create_group_link(
             group=group2,
-            project=self.project,
-            linked_type=GroupLink.LinkedType.commit,
             linked_id=2,
+            linked_type=GroupLink.LinkedType.commit,
             relationship=GroupLink.Relationship.references,
         )
 
@@ -2385,11 +2383,10 @@ class WeeklyReportsTest(
         group.resolved_at = self.now - timedelta(minutes=1)
         group.save()
 
-        GroupLink.objects.create(
+        self.create_group_link(
             group=group,
-            project=self.project,
-            linked_type=GroupLink.LinkedType.pull_request,
             linked_id=1,
+            linked_type=GroupLink.LinkedType.pull_request,
             relationship=GroupLink.Relationship.resolves,
         )
 
@@ -2428,7 +2425,7 @@ class WeeklyReportsTest(
         group.save()
 
         release = self.create_release(project=self.project, version="1.2.3")
-        GroupResolution.objects.create(
+        self.create_group_resolution(
             group=group,
             release=release,
             type=GroupResolution.Type.in_release,
@@ -2470,7 +2467,7 @@ class WeeklyReportsTest(
         group.save()
 
         release = self.create_release(project=self.project, version="2.0.0")
-        GroupResolution.objects.create(
+        self.create_group_resolution(
             group=group,
             release=release,
             type=GroupResolution.Type.in_next_release,
@@ -2511,16 +2508,15 @@ class WeeklyReportsTest(
         group.resolved_at = self.now - timedelta(minutes=1)
         group.save()
 
-        GroupLink.objects.create(
+        self.create_group_link(
             group=group,
-            project=self.project,
-            linked_type=GroupLink.LinkedType.pull_request,
             linked_id=1,
+            linked_type=GroupLink.LinkedType.pull_request,
             relationship=GroupLink.Relationship.resolves,
         )
 
         release = self.create_release(project=self.project, version="1.2.3")
-        GroupResolution.objects.create(
+        self.create_group_resolution(
             group=group,
             release=release,
             type=GroupResolution.Type.in_release,
@@ -2562,7 +2558,7 @@ class WeeklyReportsTest(
         group.save()
 
         release = self.create_release(project=self.project, version="1.0.0")
-        GroupResolution.objects.create(
+        self.create_group_resolution(
             group=group,
             release=release,
             type=None,
@@ -2606,7 +2602,7 @@ class WeeklyReportsTest(
         group.save()
 
         release = self.create_release(project=self.project, version="2.0.0")
-        GroupResolution.objects.create(
+        self.create_group_resolution(
             group=group,
             release=release,
             type=GroupResolution.Type.in_release,
