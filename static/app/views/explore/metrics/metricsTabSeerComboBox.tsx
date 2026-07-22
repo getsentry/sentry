@@ -275,12 +275,33 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       );
       const [replacementAggregate, ...extraAggregates] = seerAggregates;
 
+      // When the interacted row is an equation, the replacement aggregate
+      // needs a letter label (A, B, C…) rather than inheriting the
+      // equation's ƒn label, because ƒn labels are reserved for equations
+      // and will break the equation's internalExpression after labels are
+      // reassigned sequentially on the next render.
+      const interactedIndex = metricQueries.findIndex(
+        (mq: BaseMetricQuery) => mq.queryParams === queryParams
+      );
+      const isInteractedEquation =
+        interactedRow && isVisualizeEquation(interactedRow.queryParams.visualizes[0]!);
+      let replacementAggregateLabel: string | undefined;
+      if (hasEquation && isInteractedEquation && interactedIndex >= 0) {
+        const aggregatesBefore = metricQueries
+          .slice(0, interactedIndex)
+          .filter(mq => !isVisualizeEquation(mq.queryParams.visualizes[0]!)).length;
+        replacementAggregateLabel = getFunctionLabel(aggregatesBefore);
+      }
+
       const previousRefs = getMetricReferences(metricQueries);
 
       let updatedMetricQueries = metricQueries.map((mq: BaseMetricQuery) => {
         if (mq.queryParams === queryParams) {
           if (hasEquation && replacementAggregate) {
-            return {...replacementAggregate, label: mq.label};
+            return {
+              ...replacementAggregate,
+              label: replacementAggregateLabel ?? mq.label,
+            };
           }
           return {
             ...mq,
@@ -334,11 +355,11 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // insertion offset, so they get sequential labels from there.
       const eqStartIdx = newEncodedMetrics.findIndex(e => e.includes(EQUATION_PREFIX));
       const insertionOffset = eqStartIdx === -1 ? newEncodedMetrics.length : eqStartIdx;
-      const interactedLabel = interactedRow?.label;
 
       const fullRemap: Record<string, string> = {};
-      if (hasEquation && interactedLabel) {
-        fullRemap[getFunctionLabel(0)] = interactedLabel;
+      const remapLabel = replacementAggregateLabel ?? interactedRow?.label;
+      if (hasEquation && remapLabel) {
+        fullRemap[getFunctionLabel(0)] = remapLabel;
       }
       for (let i = 0; i < extraAggregates.length; i++) {
         fullRemap[getFunctionLabel(i + 1)] = getFunctionLabel(insertionOffset + i);
