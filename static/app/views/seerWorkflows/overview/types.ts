@@ -1,3 +1,4 @@
+import type {FilePatch} from 'sentry/components/events/autofix/types';
 import type {Level} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 
@@ -24,17 +25,12 @@ export type AttentionReason =
   | 'review_pr'
   | 'errored';
 
-// Where an answered run question renders on the card: on the face (always
-// visible) or inside the collapsed "Full analysis" disclosure.
-export type AnswerPlacement = 'face' | 'details';
-
 // One answered run question joined to its question config
 // See ./runQuestions.ts
 export interface RunAnalysisEntry {
   answer: string;
   key: string;
   label: string;
-  placement: AnswerPlacement;
 }
 
 // One changed file within the run's drafted diff.
@@ -73,10 +69,13 @@ export interface OverviewRow {
   statePending: boolean;
   title: string;
   userCount: number;
-  fixabilityScore?: number | null;
   // Plain-language title from the run's root-cause answer (see runQuestions).
   // Falls back to the raw issue title.
   headline?: string;
+  // Structured patches for the on-card differ; present only when the diff is
+  // small enough to render inline (see the INLINE_DIFF_* limits in
+  // buildOverviewRows).
+  inlinePatches?: Array<{patch: FilePatch; repoName?: string}>;
   isProcessing?: boolean;
   patchStats?: PatchStats;
   // The question autofix paused on, when status is NEED_MORE_INFORMATION and

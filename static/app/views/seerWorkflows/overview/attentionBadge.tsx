@@ -93,40 +93,6 @@ export function getAttentionReason(row: OverviewRow): AttentionReason | null {
   return null;
 }
 
-// Actionable tiers ordered by urgency-to-a-human: blocked-on-you first, then
-// nearest-to-shipping, with the low-confidence retry last.
-const ATTENTION_TRIAGE_RANK: Record<AttentionReason, number> = {
-  awaiting_input: 0,
-  review_pr: 1,
-  code_changes_ready: 2,
-  solution_ready: 3,
-  errored: 4,
-};
-
-/**
- * Queue position for the overview's triage sort: everything a human can act on
- * (ranked by urgency), then rows whose state is still loading (parked in the
- * middle so they don't leap from the top when they resolve), then Seer-is-
- * working, then diagnosed-only, with merged wins sinking to the bottom as an
- * archive shelf. Lower sorts first.
- */
-export function getTriageRank(row: OverviewRow, attention: AttentionReason | null) {
-  if (attention !== null) {
-    return ATTENTION_TRIAGE_RANK[attention];
-  }
-  if (row.statePending) {
-    return 5;
-  }
-  if (row.isProcessing) {
-    return 6;
-  }
-  if (row.prMerged) {
-    return 8;
-  }
-  // Diagnosed-only: informational, optional next step.
-  return 7;
-}
-
 const AccentLinkButton = styled(LinkButton)`
   background: ${p => p.theme.tokens.background.accent};
   border-color: ${p => p.theme.tokens.border.accent};
@@ -163,7 +129,7 @@ export function AttentionBadge({
   if (reason === 'code_changes_ready') {
     return (
       <Tooltip title={meta.description} skipWrapper>
-        <AccentLinkButton size="zero" icon={<meta.Icon />} to={to}>
+        <AccentLinkButton size="sm" icon={<meta.Icon />} to={to}>
           {meta.label}
         </AccentLinkButton>
       </Tooltip>
@@ -172,7 +138,7 @@ export function AttentionBadge({
   if (reason === 'solution_ready') {
     return (
       <Tooltip title={meta.description} skipWrapper>
-        <SuccessLinkButton size="zero" icon={<meta.Icon />} to={to}>
+        <SuccessLinkButton size="sm" icon={<meta.Icon />} to={to}>
           {meta.label}
         </SuccessLinkButton>
       </Tooltip>
@@ -181,7 +147,7 @@ export function AttentionBadge({
   if (reason === 'errored') {
     return (
       <Tooltip title={meta.description} skipWrapper>
-        <MutedLinkButton size="zero" icon={<meta.Icon />} to={to}>
+        <MutedLinkButton size="sm" icon={<meta.Icon />} to={to}>
           {meta.label}
         </MutedLinkButton>
       </Tooltip>
@@ -190,7 +156,7 @@ export function AttentionBadge({
 
   return (
     <Tooltip title={meta.description} skipWrapper>
-      <LinkButton size="zero" variant={meta.variant} icon={<meta.Icon />} to={to}>
+      <LinkButton size="sm" variant={meta.variant} icon={<meta.Icon />} to={to}>
         {meta.label}
       </LinkButton>
     </Tooltip>

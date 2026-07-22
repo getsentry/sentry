@@ -2,9 +2,8 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {Disclosure} from '@sentry/scraps/disclosure';
 import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -15,7 +14,6 @@ import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconArrow,
-  IconCircleCheckmark,
   IconCommit,
   IconFocus,
   IconMerge,
@@ -25,6 +23,7 @@ import {
 import {t, tn} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
+import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
 import {ATTENTION_META, AttentionBadge, getAttentionReason} from './attentionBadge';
 import {TriggerBadge} from './triggerBadge';
@@ -41,6 +40,18 @@ const TitleLink = styled(Link)`
 // The most-changed files shown on hover before collapsing into "+N more".
 const MAX_TOOLTIP_FILES = 5;
 
+// Paths have no spaces to wrap on, so a long one would push the +/− counts
+// out of the tooltip's max width. Truncate from the LEFT (rtl trick, like the
+// diff viewer's file header) so the filename end stays visible; overflow
+// hidden also gives the flex item its min-width of 0.
+const TooltipPath = styled(Text)`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+`;
+
 // Per-file breakdown for the diff pill's tooltip: path left, churn right,
 // biggest files first (fileList is pre-sorted by churn).
 function PatchFilesTooltip({stats}: {stats: PatchStats}) {
@@ -50,9 +61,9 @@ function PatchFilesTooltip({stats}: {stats: PatchStats}) {
     <Stack gap="2xs" align="stretch">
       {shown.map(file => (
         <Flex key={file.path} gap="lg" justify="between" align="baseline">
-          <Text size="xs" monospace align="left">
+          <TooltipPath size="xs" monospace>
             {file.path}
-          </Text>
+          </TooltipPath>
           <Text size="xs" monospace wrap="nowrap">
             <Text size="xs" variant="success">
               +{file.added}
@@ -72,37 +83,52 @@ function PatchFilesTooltip({stats}: {stats: PatchStats}) {
   );
 }
 
-// Buckets the raw 0–1 score into a scannable label; the 0.7 threshold matches
-// isIssueQuickFixable (sentry/components/events/autofix/utils).
-function FixabilityTag({score}: {score: number}) {
-  const high = score > 0.7;
-  const label = high
-    ? t('High fixability')
-    : score > 0.4
-      ? t('Medium fixability')
-      : t('Low fixability');
-  return (
-    <Tooltip title={t('Fixability score: %s', score.toFixed(2))}>
-      <Tag variant={high ? 'success' : 'muted'}>{label}</Tag>
-    </Tooltip>
-  );
-}
-
-export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
+export function IssueCard({
+  orgSlug,
+  row,
+  defaultExpanded = false,
+}: {
+  orgSlug: string;
+  row: OverviewRow;
+  // Open the inline diffs on mount — the overview's ?id= focus mode wants
+  // the whole card readable at once.
+  defaultExpanded?: boolean;
+}) {
   const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
   // Deep-link into the issue page with the Seer drawer already open, so the
   // run itself is one click away (matches the issue details ?seerDrawer param).
   const runUrl = {pathname: issueUrl, query: {seerDrawer: 'true'}};
   const attention = getAttentionReason(row);
-  // The body shows exactly one block: the proposed fix when the run drafted
-  // code (the fix prompt returns an empty answer otherwise, and empty answers
-  // never become entries), else the diagnosis summary.
-  const summary = row.analysis.find(entry => entry.key === 'summary');
+  const rootCause = row.analysis.find(entry => entry.key === 'root_cause');
   const proposedFix = row.analysis.find(entry => entry.key === 'fix_summary');
-  const bodyEntry = proposedFix ?? summary;
-  const isFixBody = bodyEntry?.key === 'fix_summary';
-  const detailEntries = row.analysis.filter(entry => entry.placement === 'details');
+  const reviewerNotes = row.analysis.find(entry => entry.key === 'reviewer_notes');
 
+  // Thought order: what broke → what Seer changed → what the human does
+  // next. The fix and next-step prompts return empty answers when they don't
+  // apply, and empty answers never become entries.
+  const sections = [
+    rootCause && {
+      key: 'root_cause',
+      label: t('Root cause'),
+      icon: <IconFocus size="xs" variant="muted" aria-hidden />,
+      variant: 'muted' as const,
+      answer: rootCause.answer,
+    },
+    proposedFix && {
+      key: 'fix_summary',
+      label: t('Proposed fix'),
+      icon: <IconCommit size="xs" variant="success" aria-hidden />,
+      variant: 'success' as const,
+      answer: proposedFix.answer,
+    },
+    reviewerNotes && {
+      key: 'reviewer_notes',
+      label: t('Next steps'),
+      icon: <IconArrow direction="right" size="xs" variant="muted" aria-hidden />,
+      variant: 'muted' as const,
+      answer: reviewerNotes.answer,
+    },
+  ].filter(section => !!section);
   const eventCountLabel =
     row.eventCount === 1
       ? t('1 event')
@@ -114,18 +140,21 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
 
   return (
     <Container background="primary" border="primary" radius="md" padding="lg">
-      <Stack gap="md">
-        {/* Header: title + change size + action */}
+      {/* lg between blocks gives the sections air; each section binds its
+          eyebrow to its prose with a tight xs gap */}
+      <Stack gap="lg">
+        {/* Header: title over its metadata subline on the left, diff size +
+            progress ring pinned right */}
         <Flex justify="between" align="start" gap="md">
-          <Flex gap="sm" align="center" minWidth="0" flex="1">
-            <ErrorLevel level={row.level} />
+          <Stack gap="2xs" minWidth="0" flex="1">
             {/* The ellipsis Text is the shrinking flex item (overflow:hidden
                   resolves its min-width to 0); the Link must nest inside it or
                   the anchor refuses to shrink and the title overflows the card.
                   When Seer produced a plain-language headline it replaces the
                   raw issue title, which stays reachable via the tooltip and
                   the expanded details. */}
-            <Text bold ellipsis>
+            {/* lg matches the issues feed's row titles */}
+            <Text bold ellipsis size="lg">
               {row.headline ? (
                 <Tooltip
                   maxWidth={480}
@@ -146,11 +175,45 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
                 <TitleLink to={issueUrl}>{row.title}</TitleLink>
               )}
             </Text>
-          </Flex>
+            {/* Metadata subline: the run's vitals as a quiet dot-separated
+                  run tucked under the title. "Manual" is the default trigger
+                  and reads as noise on every card, so only non-default
+                  triggers earn their badge. */}
+            <Flex gap="sm" align="center" wrap="wrap">
+              <InfoText
+                title={
+                  row.userCount > 0
+                    ? t(
+                        '%s events and %s affected users in the last 90 days',
+                        row.eventCount.toLocaleString(),
+                        row.userCount.toLocaleString()
+                      )
+                    : t('%s events in the last 90 days', row.eventCount.toLocaleString())
+                }
+                size="sm"
+                variant="muted"
+              >
+                {eventCountLabel}
+                {row.userCount > 0 && ` · ${userCountLabel}`}
+              </InfoText>
+              <Text size="sm" variant="muted" aria-hidden>
+                {'·'}
+              </Text>
+              <Text size="sm" variant="muted" wrap="nowrap">
+                <TimeSince
+                  date={row.lastActivityAt}
+                  prefix={t('updated')}
+                  tooltipPrefix={t('Last activity on this Seer run')}
+                />
+              </Text>
+              {row.trigger !== 'manual' && (
+                <TriggerBadge trigger={row.trigger} rawSource={row.rawSource} />
+              )}
+            </Flex>
+          </Stack>
+          {/* Right cluster: just the diff-size fact — the action lives in
+              the card's tail, the pipeline story on the group header */}
           <Flex gap="sm" align="center" flexShrink={0}>
-            {/* No stage chip here: the action verb already encodes the stage
-                  (Review PR ⇒ PR opened, Open PR ⇒ code drafted, …) and the
-                  Outcome filter covers querying by it. One fact + one action. */}
             {row.patchStats && (
               <Tooltip
                 title={<PatchFilesTooltip stats={row.patchStats} />}
@@ -177,50 +240,59 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
                 </Container>
               </Tooltip>
             )}
-            {row.statePending ? (
-              <Text variant="muted">{'…'}</Text>
-            ) : row.isProcessing ? (
-              <Tag variant="info">{t('Running')}</Tag>
-            ) : row.prMerged ? (
-              <Tooltip title={t('The pull request for this fix was merged.')}>
-                <Tag variant="success" icon={<IconMerge />}>
-                  {t('Merged')}
-                </Tag>
-              </Tooltip>
-            ) : attention === 'review_pr' && row.prUrl ? (
-              <Tooltip
-                title={
-                  row.prNumber
-                    ? t(
-                        'Autofix opened pull request #%s. Review and merge it.',
-                        row.prNumber
-                      )
-                    : ATTENTION_META.review_pr.description
-                }
-                skipWrapper
-              >
-                <LinkButton
-                  size="zero"
-                  variant="warning"
-                  icon={<IconPullRequest />}
-                  href={row.prUrl}
-                  external
-                >
-                  {ATTENTION_META.review_pr.label}
-                </LinkButton>
-              </Tooltip>
-            ) : attention ? (
-              <AttentionBadge reason={attention} to={runUrl} />
-            ) : (
-              <Tooltip title={t('Open the Seer run for this issue.')} skipWrapper>
-                <LinkButton size="zero" variant="secondary" to={runUrl}>
-                  {t('View run')}
-                </LinkButton>
-              </Tooltip>
-            )}
+          </Flex>
+        </Flex>
+
+        {/* The question autofix is blocked on, surfaced right on the card */}
+        {row.pendingQuestion && (
+          <Text size="md" variant="accent">
+            {t('Seer asked: %s', row.pendingQuestion)}
+          </Text>
+        )}
+
+        {/* The analysis sections, one shared voice (eyebrow icon +
+            uppercase label + prose), in thought order */}
+        {sections.map(section => (
+          <Stack key={section.key} gap="xs">
+            <Flex gap="xs" align="center">
+              {section.icon}
+              <Text size="xs" bold uppercase variant={section.variant}>
+                {section.label}
+              </Text>
+            </Flex>
+            <Text size="md" density="comfortable" as="div">
+              <SeerMarkdown raw={section.answer} />
+            </Text>
+          </Stack>
+        ))}
+
+        {/* The drafted diff itself, but only when it's small enough to read
+            on a card (see the INLINE_DIFF_* limits): collapsed file headers
+            that expand in place, aligned with the body's text column */}
+        {row.inlinePatches && (
+          <Stack gap="xs">
+            {row.inlinePatches.map(({patch, repoName}) => (
+              <FileDiffViewer
+                key={`${repoName ?? ''}:${patch.path}`}
+                patch={patch}
+                repoName={repoName}
+                collapsible
+                defaultExpanded={defaultExpanded}
+                showBorder
+              />
+            ))}
+          </Stack>
+        )}
+
+        {/* Tail row: the run's action anchors the bottom left; identity
+            (level, short id, project) reads as quiet provenance on the
+            right, the project linking to its page */}
+        <Flex justify="between" align="center" gap="md">
+          <Flex gap="sm" align="center">
+            <IssuePrimaryAction row={row} runUrl={runUrl} />
             {row.prUrl && attention !== 'review_pr' && (
               <LinkButton
-                size="zero"
+                size="sm"
                 variant="link"
                 icon={<IconPullRequest />}
                 href={row.prUrl}
@@ -230,163 +302,169 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
               </LinkButton>
             )}
           </Flex>
-        </Flex>
-
-        {/* The question autofix is blocked on, surfaced right on the card */}
-        {row.pendingQuestion && (
-          <Text size="sm" variant="accent">
-            {t('Seer asked: %s', row.pendingQuestion)}
-          </Text>
-        )}
-
-        {/* The body is exactly ONE block, either/or: the proposed fix when the
-            run drafted code (the fix text supersedes the summary, which would
-            describe the same change twice), otherwise the diagnosis summary.
-            Same anatomy for both; icon + label color tell them apart. */}
-        {bodyEntry && (
-          <Container
-            background="secondary"
-            border="muted"
-            radius="md"
-            padding="sm md"
-            maxWidth="90ch"
-          >
-            <Stack gap="xs">
-              <Flex gap="xs" align="center">
-                {isFixBody ? (
-                  <IconCommit size="xs" variant="success" aria-hidden />
-                ) : (
-                  <IconSearch size="xs" variant="muted" aria-hidden />
-                )}
-                <Text size="xs" bold uppercase variant={isFixBody ? 'success' : 'muted'}>
-                  {isFixBody ? t('Proposed fix') : t('Diagnosis')}
-                </Text>
-              </Flex>
-              <Text size="sm" density="comfortable" as="div">
-                <SeerMarkdown raw={bodyEntry.answer} />
-              </Text>
-            </Stack>
-          </Container>
-        )}
-
-        {/* Footer: the collapsed analysis on the left, project pinned in the
-            card's bottom-right corner */}
-        <Flex justify="between" align="start" gap="md" borderTop="muted" paddingTop="sm">
-          <Container flex="1" minWidth="0">
-            {detailEntries.length > 0 && (
-              <Disclosure size="xs">
-                <Disclosure.Title>{t('Full analysis')}</Disclosure.Title>
-                <Disclosure.Content>
-                  <Stack gap="md" paddingTop="xs">
-                    {/* Compact identity strip: the short id and Seer's
-                        fixability read — the raw title lives in the headline
-                        tooltip, not here */}
-                    <Flex gap="sm" align="center">
-                      <Text size="xs" monospace variant="muted">
-                        {row.shortId}
-                      </Text>
-                      {typeof row.fixabilityScore === 'number' && (
-                        <FixabilityTag score={row.fixabilityScore} />
-                      )}
-                    </Flex>
-                    {/* Sections share the body blocks' icon+label voice and
-                        sit side by side on wide screens instead of leaving
-                        the card's right half empty */}
-                    <Grid
-                      columns={{xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))'}}
-                      gap="lg xl"
-                      align="start"
-                    >
-                      {detailEntries.map(entry => {
-                        const section =
-                          entry.key === 'reviewer_notes'
-                            ? isFixBody
-                              ? {
-                                  label: t('Review checklist'),
-                                  icon: (
-                                    <IconCircleCheckmark
-                                      size="xs"
-                                      variant="muted"
-                                      aria-hidden
-                                    />
-                                  ),
-                                }
-                              : {
-                                  label: t('Next steps'),
-                                  icon: (
-                                    <IconArrow
-                                      direction="right"
-                                      size="xs"
-                                      variant="muted"
-                                      aria-hidden
-                                    />
-                                  ),
-                                }
-                            : {
-                                label: entry.label,
-                                icon: <IconFocus size="xs" variant="muted" aria-hidden />,
-                              };
-                        return (
-                          <Stack key={entry.key} gap="xs">
-                            <Flex gap="xs" align="center">
-                              {section.icon}
-                              <Text size="xs" bold uppercase variant="muted">
-                                {section.label}
-                              </Text>
-                            </Flex>
-                            <Text size="sm" density="comfortable" as="div">
-                              <SeerMarkdown raw={entry.answer} />
-                            </Text>
-                          </Stack>
-                        );
-                      })}
-                    </Grid>
-                  </Stack>
-                </Disclosure.Content>
-              </Disclosure>
-            )}
-          </Container>
-          {/* Provenance + vitals read as one quiet metadata line */}
-          <Flex gap="md" align="center" flexShrink={0}>
-            {/* "Manual" is the default trigger and reads as noise on every
-                card; only non-default triggers earn a badge */}
-            {row.trigger !== 'manual' && (
-              <TriggerBadge trigger={row.trigger} rawSource={row.rawSource} />
-            )}
-            <Flex gap="xs" align="center">
-              <InfoText
-                title={
-                  row.userCount > 0
-                    ? t(
-                        '%s events and %s affected users in the last 90 days',
-                        row.eventCount.toLocaleString(),
-                        row.userCount.toLocaleString()
-                      )
-                    : t('%s events in the last 90 days', row.eventCount.toLocaleString())
-                }
-                size="xs"
-                variant="muted"
-              >
-                {eventCountLabel}
-                {row.userCount > 0 && ` · ${userCountLabel}`}
-              </InfoText>
-              <Text size="xs" variant="muted" aria-hidden>
-                {'·'}
-              </Text>
-              <Text size="xs" variant="muted" wrap="nowrap">
-                <TimeSince
-                  date={row.lastActivityAt}
-                  prefix={t('updated')}
-                  tooltipPrefix={t('Last activity on this Seer run')}
-                />
-              </Text>
-            </Flex>
-            <Tooltip title={t('Project')} skipWrapper>
-              <ProjectBadge project={row.project} avatarSize={14} disableLink />
+          <Flex gap="sm" align="center" flexShrink={0}>
+            <ErrorLevel level={row.level} />
+            <Text size="xs" monospace variant="muted">
+              {row.shortId}
+            </Text>
+            <Tooltip title={t('View project')} skipWrapper>
+              <ProjectBadge project={row.project} avatarSize={14} />
             </Tooltip>
           </Flex>
         </Flex>
       </Stack>
     </Container>
+  );
+}
+
+/**
+ * The compact, Linear-style rendering used by the overview's table mode.
+ * Keep this deliberately sparse: the full analysis and diff stay in card
+ * mode, while this row is optimized for scanning and taking the next action.
+ */
+export function IssueTableRow({
+  isLast,
+  orgSlug,
+  row,
+}: {
+  isLast: boolean;
+  orgSlug: string;
+  row: OverviewRow;
+}) {
+  const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
+  const runUrl = {pathname: issueUrl, query: {seerDrawer: 'true'}};
+  const eventCountLabel =
+    row.eventCount === 1
+      ? t('1 event')
+      : t('%s events', formatAbbreviatedNumber(row.eventCount));
+  const userCountLabel =
+    row.userCount === 1
+      ? t('1 user')
+      : t('%s users', formatAbbreviatedNumber(row.userCount));
+
+  return (
+    <Flex
+      justify="between"
+      align="center"
+      gap="lg"
+      padding="md lg"
+      borderBottom={isLast ? undefined : 'primary'}
+    >
+      <Stack gap="2xs" minWidth="0" flex="1">
+        <Text bold ellipsis>
+          {row.headline ? (
+            <Tooltip
+              maxWidth={480}
+              title={
+                <Stack gap="2xs">
+                  <Text size="xs" bold uppercase variant="muted" align="left">
+                    {t('Raw issue title')}
+                  </Text>
+                  <Text size="xs" align="left">
+                    {ellipsize(row.title, 200)}
+                  </Text>
+                </Stack>
+              }
+            >
+              <TitleLink to={issueUrl}>{row.headline}</TitleLink>
+            </Tooltip>
+          ) : (
+            <TitleLink to={issueUrl}>{row.title}</TitleLink>
+          )}
+        </Text>
+        <Flex gap="xs" align="center" wrap="wrap">
+          <ProjectBadge project={row.project} avatarSize={14} hideName />
+          <Text size="sm" variant="muted" monospace wrap="nowrap">
+            {row.shortId}
+          </Text>
+          <Text size="sm" variant="muted" aria-hidden>
+            {'·'}
+          </Text>
+          <Text size="sm" variant="muted" wrap="nowrap">
+            {eventCountLabel}
+            {row.userCount > 0 && ` · ${userCountLabel}`}
+          </Text>
+          <Text size="sm" variant="muted" aria-hidden>
+            {'·'}
+          </Text>
+          <Text size="sm" variant="muted" wrap="nowrap">
+            <TimeSince
+              date={row.lastActivityAt}
+              prefix={t('updated')}
+              tooltipPrefix={t('Last activity on this Seer run')}
+            />
+          </Text>
+        </Flex>
+      </Stack>
+      <Flex align="center" flexShrink={0}>
+        <IssuePrimaryAction row={row} runUrl={runUrl} />
+      </Flex>
+    </Flex>
+  );
+}
+
+function IssuePrimaryAction({
+  row,
+  runUrl,
+}: {
+  row: OverviewRow;
+  runUrl: {pathname: string; query: {seerDrawer: string}};
+}) {
+  const attention = getAttentionReason(row);
+
+  if (row.statePending) {
+    return <Text variant="muted">{'…'}</Text>;
+  }
+  if (row.isProcessing) {
+    return <Tag variant="info">{t('Running')}</Tag>;
+  }
+  if (row.prMerged) {
+    return (
+      <Tooltip title={t('The pull request for this fix was merged.')}>
+        <Tag variant="success" icon={<IconMerge />}>
+          {t('Merged')}
+        </Tag>
+      </Tooltip>
+    );
+  }
+  if (attention === 'review_pr' && row.prUrl) {
+    return (
+      <Tooltip
+        title={
+          row.prNumber
+            ? t('Autofix opened pull request #%s. Review and merge it.', row.prNumber)
+            : ATTENTION_META.review_pr.description
+        }
+        skipWrapper
+      >
+        <LinkButton
+          size="sm"
+          variant="warning"
+          icon={<IconPullRequest />}
+          href={row.prUrl}
+          external
+        >
+          {ATTENTION_META.review_pr.label}
+        </LinkButton>
+      </Tooltip>
+    );
+  }
+  if (attention) {
+    return <AttentionBadge reason={attention} to={runUrl} />;
+  }
+  // Diagnosis-only runs: Seer found a root cause but produced nothing to
+  // ship, so the human's move is to dig in — same verb (and icon) as the
+  // Needs-investigation group these rows live in.
+  return (
+    <Tooltip
+      title={t(
+        'Seer stopped at a diagnosis. Open the run to investigate the root cause.'
+      )}
+      skipWrapper
+    >
+      <LinkButton size="sm" variant="secondary" icon={<IconSearch />} to={runUrl}>
+        {t('Investigate')}
+      </LinkButton>
+    </Tooltip>
   );
 }

@@ -5,10 +5,7 @@ import {
   isCodeChangesArtifact,
   isCodeChangesSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import type {
-  AutofixIssue,
-  RunQuestion,
-} from 'sentry/views/autofixIssuesDemo/useAutofixIssues';
+import type {RunQuestion} from 'sentry/views/autofixIssuesDemo/useAutofixIssues';
 
 import {RUN_QUESTIONS} from './runQuestions';
 import {mapRunSourceToTrigger} from './triggerBadge';
@@ -19,6 +16,7 @@ import type {
   PatchStats,
   RunAnalysisEntry,
 } from './types';
+import type {OverviewIssue} from './useAutofixSections';
 
 const OUTCOME_ORDER: AutofixOutcome[] = [
   'root_cause',
@@ -69,14 +67,24 @@ function deriveRunStatus(state: ExplorerAutofixState | null): AutofixRunStatus {
   }
 }
 
-function extractPatchStats(state: ExplorerAutofixState | null): PatchStats | undefined {
+// A diff qualifies for the on-card differ only when it is genuinely small:
+// few files, few changed lines, and bounded hunk context so a fix with huge
+// surrounding context can't blow the card up.
+const INLINE_DIFF_MAX_FILES = 2;
+const INLINE_DIFF_MAX_CHANGED_LINES = 25;
+const INLINE_DIFF_MAX_RENDERED_LINES = 60;
+
+function extractPatchInfo(state: ExplorerAutofixState | null): {
+  inlinePatches?: OverviewRow['inlinePatches'];
+  patchStats?: PatchStats;
+} {
   const section = getOrderedAutofixSections(state).find(isCodeChangesSection);
   if (!section) {
-    return undefined;
+    return {};
   }
   const artifact = getAutofixArtifactFromSection(section);
   if (!isCodeChangesArtifact(artifact)) {
-    return undefined;
+    return {};
   }
   // Disambiguate paths with the repo name only when the diff spans repos.
   const multiRepo = new Set(artifact.map(filePatch => filePatch.repo_name)).size > 1;
@@ -90,11 +98,26 @@ function extractPatchStats(state: ExplorerAutofixState | null): PatchStats | und
     }))
     // Most-changed files first, so a capped tooltip shows what matters.
     .sort((a, b) => b.added + b.removed - (a.added + a.removed));
+  const added = artifact.reduce((sum, filePatch) => sum + filePatch.patch.added, 0);
+  const removed = artifact.reduce((sum, filePatch) => sum + filePatch.patch.removed, 0);
+  const renderedLines = artifact.reduce(
+    (sum, filePatch) =>
+      sum + filePatch.patch.hunks.reduce((lines, hunk) => lines + hunk.lines.length, 0),
+    0
+  );
+  const inlineEligible =
+    artifact.length <= INLINE_DIFF_MAX_FILES &&
+    added + removed <= INLINE_DIFF_MAX_CHANGED_LINES &&
+    renderedLines > 0 &&
+    renderedLines <= INLINE_DIFF_MAX_RENDERED_LINES;
   return {
-    fileList,
-    files: artifact.length,
-    added: artifact.reduce((sum, filePatch) => sum + filePatch.patch.added, 0),
-    removed: artifact.reduce((sum, filePatch) => sum + filePatch.patch.removed, 0),
+    patchStats: {fileList, files: artifact.length, added, removed},
+    inlinePatches: inlineEligible
+      ? artifact.map(filePatch => ({
+          patch: filePatch.patch,
+          repoName: multiRepo ? filePatch.repo_name : undefined,
+        }))
+      : undefined,
   };
 }
 
@@ -201,17 +224,27 @@ function buildAnalysis(outputs: RunQuestion[] | undefined): {
     entries.push({
       key: config.key,
       label: config.label,
-      placement: config.placement,
       answer,
     });
   });
   return {entries, headline};
 }
 
-function buildOverviewRow(issue: AutofixIssue): OverviewRow {
-  const state = issue.autofixState;
+export interface OverviewRunData {
+  lastTriggeredAt?: string;
+  outputs?: RunQuestion[];
+  pullRequests?: Array<{status: string | null}>;
+  source?: string | null;
+}
+
+export function buildOverviewRow(
+  issue: OverviewIssue,
+  run: OverviewRunData | null,
+  state: ExplorerAutofixState | null,
+  statePending: boolean
+): OverviewRow {
   const eventCount = Number(issue.count);
-  const {entries: analysis, headline} = buildAnalysis(issue.run?.outputs);
+  const {entries: analysis, headline} = buildAnalysis(run?.outputs);
 
   return {
     headline,
@@ -223,26 +256,21 @@ function buildOverviewRow(issue: AutofixIssue): OverviewRow {
     eventCount: Number.isFinite(eventCount) ? eventCount : 0,
     userCount: issue.userCount,
     lastSeen: issue.lastSeen,
-    fixabilityScore: issue.seerFixabilityScore,
     lastActivityAt:
       state?.updated_at ??
-      issue.run?.lastTriggeredAt ??
+      run?.lastTriggeredAt ??
       issue.seerAutofixLastTriggered ??
       issue.lastSeen,
     autofixRunStatus: deriveRunStatus(state),
-    prMerged: (issue.run?.pullRequests ?? []).some(pr => pr.status === 'merged'),
+    prMerged: (run?.pullRequests ?? []).some(pr => pr.status === 'merged'),
     isProcessing: state?.status === 'processing',
-    statePending: issue.autofixPhasePending,
+    statePending,
     outcomes: deriveAutofixOutcomes(state),
-    trigger: mapRunSourceToTrigger(issue.run?.source ?? null),
-    rawSource: issue.run?.source ?? null,
+    trigger: mapRunSourceToTrigger(run?.source ?? null),
+    rawSource: run?.source ?? null,
     analysis,
-    patchStats: extractPatchStats(state),
+    ...extractPatchInfo(state),
     pendingQuestion: extractPendingQuestion(state),
     ...extractPr(state),
   };
-}
-
-export function buildOverviewRows(issues: AutofixIssue[]): OverviewRow[] {
-  return issues.map(buildOverviewRow);
 }
