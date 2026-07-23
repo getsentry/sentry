@@ -57,9 +57,6 @@ function JsonForm({
       return;
     }
 
-    // Push onto callback queue so it runs after the DOM is updated,
-    // this is required when navigating from a different page so that
-    // the element is rendered on the page before trying to getElementById.
     try {
       document
         .querySelector(sanitizeQuerySelector(decodeURIComponent(hash)))
@@ -70,8 +67,12 @@ function JsonForm({
   };
 
   useEffect(() => {
-    const hash = location?.hash;
-    scrollToHash(hash);
+    // Let parent route effects finish, including the scroll-to-top behavior.
+    const animationFrame = window.requestAnimationFrame(() => {
+      scrollToHash(location?.hash);
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.hash]);
 
