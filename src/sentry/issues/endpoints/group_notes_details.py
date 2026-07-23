@@ -71,6 +71,11 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             raise ResourceDoesNotExist
         note = user_note[0]
 
+        original_comment_log_action = GroupActionLogEntry.objects.filter(
+            group_id=group.id,
+            idempotency_key=activity_action_idempotency_key(note),
+        ).first()
+
         webhook_data = {
             "comment_id": note.id,
             "timestamp": note.datetime,
@@ -80,13 +85,16 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         note.delete()
 
-        publish_action(
-            CommentDeleteAction(comment_id=note_id_int),
-            source=resolve_action_source(request),
-            group_id=group.id,
-            project=group.project,
-            actor=GroupActionActor.user(request.user.id),
-        )
+        if original_comment_log_action is not None:
+            publish_action(
+                CommentDeleteAction(comment_id=original_comment_log_action.id),
+                source=resolve_action_source(request),
+                group_id=group.id,
+                project=group.project,
+                actor=GroupActionActor.user(request.user.id),
+            )
+        else:
+            logger.info("group_notes.groupactionlogentry.not_found", extra={"group_id": group.id})
 
         comment_deleted.send_robust(
             project=group.project,

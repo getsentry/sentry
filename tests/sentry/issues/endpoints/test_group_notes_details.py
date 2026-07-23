@@ -251,6 +251,33 @@ class GroupNotesDetailsTest(APITestCase):
         original_entry.refresh_from_db()
         assert original_entry.data["text"] == "original"
 
+    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
+    def test_delete_writes_comment_delete_entry(self) -> None:
+        self.login_as(user=self.user)
+        group = self.group
+
+        post_url = f"/api/0/issues/{group.id}/comments/"
+        response = self.client.post(post_url, format="json", data={"text": "original"})
+        assert response.status_code == 201, response.content
+        activity_id = response.data["data"]["comment_id"]
+
+        original_entry = GroupActionLogEntry.objects.get(
+            group_id=group.id,
+            type=GroupActionType.COMMENT.value,
+            data__comment_id=activity_id,
+        )
+
+        delete_url = f"/api/0/issues/{group.id}/comments/{activity_id}/"
+        response = self.client.delete(delete_url, format="json")
+        assert response.status_code == 204, response.status_code
+
+        delete_entry = GroupActionLogEntry.objects.get(
+            group_id=group.id, type=GroupActionType.COMMENT_DELETE.value
+        )
+        # the tombstone references the original COMMENT entry by its GALE id, the
+        # same way COMMENT_EDIT entries do, so it can be joined to the COMMENT row
+        assert delete_entry.data["comment_id"] == original_entry.id
+
     @with_feature("projects:issue-action-log-activity")
     def test_put_falls_back_to_activity_without_gale_entry(self) -> None:
         # read flag on but write flag off: no COMMENT entry was ever written, so
