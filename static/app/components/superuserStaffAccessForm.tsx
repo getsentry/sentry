@@ -141,7 +141,7 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
   handleError = (err: any) => {
     let errorType = '';
     if (err.status === 403) {
-      if (err.responseJSON.detail.code === 'no_u2f') {
+      if (err.responseJSON?.detail?.code === 'no_u2f') {
         errorType = ErrorCodes.NO_AUTHENTICATOR;
       } else {
         errorType = ErrorCodes.INVALID_PASSWORD;
@@ -149,7 +149,7 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
     } else if (err.status === 401) {
       errorType = ErrorCodes.INVALID_SSO_SESSION;
     } else if (err.status === 400) {
-      if (err.responseJSON.detail.code === 'missing_password_or_u2f') {
+      if (err.responseJSON?.detail?.code === 'missing_password_or_u2f') {
         errorType = ErrorCodes.MISSING_PASSWORD_OR_U2F;
       } else {
         errorType = ErrorCodes.INVALID_ACCESS_CATEGORY;
