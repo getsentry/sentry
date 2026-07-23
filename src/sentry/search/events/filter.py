@@ -21,7 +21,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.release import Release
-from sentry.models.releases.util import SemverFilter
+from sentry.models.releases.util import SemverFilter, normalize_semver_prerelease
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
@@ -487,8 +487,11 @@ def parse_semver(version: str, operator: str) -> SemverFilter:
     parsed = parse_release_relay(version, json_loads=orjson.loads)
     parsed_version = parsed.get("version_parsed")
     if parsed_version:
-        # Convert `pre` to always be a string
-        prerelease = parsed_version["pre"] if parsed_version["pre"] else ""
+        # Convert `pre` to always be a string, normalized the same way as the
+        # `Release.prerelease` column it is compared against.
+        prerelease = normalize_semver_prerelease(
+            parsed_version["pre"] if parsed_version["pre"] else ""
+        )
         semver_filter = SemverFilter(
             operator,
             [

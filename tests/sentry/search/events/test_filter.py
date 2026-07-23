@@ -10,7 +10,10 @@ from snuba_sdk.function import Function
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models.releases.util import SemverFilter
+from sentry.models.releases.util import (
+    SEMVER_PRERELEASE_NUMERIC_PAD_WIDTH,
+    SemverFilter,
+)
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.constants import (
     SEMVER_ALIAS,
@@ -454,6 +457,15 @@ class ParseSemverTest(unittest.TestCase):
         self.run_test("1.2.3-hi", ">", SemverFilter("gt", [1, 2, 3, 0, 0, "hi"]))
         self.run_test("1.2.3-hi", "<", SemverFilter("lt", [1, 2, 3, 0, 0, "hi"]))
         self.run_test("sentry@1.2.3-hi", "<", SemverFilter("lt", [1, 2, 3, 0, 0, "hi"], "sentry"))
+
+    def test_numeric_prerelease(self) -> None:
+        # Numeric prerelease identifiers are normalized (zero-padded) to match
+        # the form stored in the `Release.prerelease` column.
+        padded_9 = "rc." + "9".zfill(SEMVER_PRERELEASE_NUMERIC_PAD_WIDTH)
+        self.run_test("1.2.3-rc.9", ">", SemverFilter("gt", [1, 2, 3, 0, 0, padded_9]))
+        self.run_test(
+            "sentry@1.2.3-rc.9", "=", SemverFilter("exact", [1, 2, 3, 0, 0, padded_9], "sentry")
+        )
 
     def test_wildcard(self) -> None:
         self.run_test("1.*", "=", SemverFilter("exact", [1]))

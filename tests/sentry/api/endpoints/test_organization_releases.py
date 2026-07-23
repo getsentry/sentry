@@ -289,6 +289,23 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         ]
         self.assert_expected_versions(response, expected_order)
 
+    def test_release_list_order_by_semver_numeric_prerelease(self) -> None:
+        # Numeric prerelease identifiers must sort numerically (96 < 193 < 195),
+        # not lexicographically ("193" < "195" < "96").
+        self.login_as(user=self.user)
+        release_96 = self.create_release(version="test@3.0.0-prerelease.96")
+        release_193 = self.create_release(version="test@3.0.0-prerelease.193")
+        release_195 = self.create_release(version="test@3.0.0-prerelease.195")
+        release_rc_9 = self.create_release(version="test@3.0.0-rc.9")
+        release_rc_10 = self.create_release(version="test@3.0.0-rc.10")
+        release_final = self.create_release(version="test@3.0.0")
+
+        response = self.get_success_response(self.organization.slug, sort="semver")
+        self.assert_expected_versions(
+            response,
+            [release_final, release_rc_10, release_rc_9, release_195, release_193, release_96],
+        )
+
     def test_query_filter(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
