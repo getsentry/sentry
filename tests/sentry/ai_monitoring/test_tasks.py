@@ -464,6 +464,7 @@ class SpawnConversationTitleGenerationTest(TestCase):
                     messages=_user_messages("middle"),
                 ),
             ],
+            self.project,
         )
 
         mock_delay.assert_called_once_with(
@@ -480,6 +481,7 @@ class SpawnConversationTitleGenerationTest(TestCase):
                 make_gen_ai_span(project_id=self.project.id, conversation_id="a"),
                 make_gen_ai_span(project_id=self.project.id, conversation_id="b"),
             ],
+            self.project,
         )
 
         assert mock_delay.call_count == 2
@@ -493,6 +495,7 @@ class SpawnConversationTitleGenerationTest(TestCase):
                 make_gen_ai_span(project_id=self.project.id, omit_messages=True),
                 make_gen_ai_span(project_id=self.project.id, messages="[Filtered]"),
             ],
+            self.project,
         )
         mock_delay.assert_not_called()
 
@@ -505,24 +508,16 @@ class SpawnConversationTitleGenerationTest(TestCase):
                     messages=_user_messages("a" * (MAX_USER_MESSAGE_CHARS + 100)),
                 )
             ],
+            self.project,
         )
         assert len(mock_delay.call_args.kwargs["first_user_message"]) == MAX_USER_MESSAGE_CHARS
 
     @patch(DELAY)
-    def test_resolves_project_from_span(self, mock_delay: MagicMock) -> None:
-        spawn_conversation_title_generation([make_gen_ai_span(project_id=self.project.id)])
-        mock_delay.assert_called_once()
-        assert mock_delay.call_args.kwargs["project_id"] == self.project.id
-
-    @patch(DELAY)
-    def test_no_enqueue_when_project_not_found(self, mock_delay: MagicMock) -> None:
-        spawn_conversation_title_generation([make_gen_ai_span(project_id=2**31 - 1)])
-        mock_delay.assert_not_called()
-
-    @patch(DELAY)
     def test_no_enqueue_when_hide_ai_features(self, mock_delay: MagicMock) -> None:
         self.organization.update_option("sentry:hide_ai_features", True)
-        spawn_conversation_title_generation([make_gen_ai_span(project_id=self.project.id)])
+        spawn_conversation_title_generation(
+            [make_gen_ai_span(project_id=self.project.id)], self.project
+        )
         mock_delay.assert_not_called()
 
     @patch(DELAY)
@@ -540,6 +535,7 @@ class SpawnConversationTitleGenerationTest(TestCase):
                 ),
                 make_gen_ai_span(project_id=self.project.id, omit_conversation_id=True),
             ],
+            self.project,
         )
         assert sum(1 for c in mock_incr.call_args_list if c == call(metric, 2)) == 1
         # Only the conversation with a message is enqueued.
@@ -554,6 +550,7 @@ class SpawnConversationTitleGenerationTest(TestCase):
         metric = "spans.consumers.process_segments.gen_ai_conversation"
         spawn_conversation_title_generation(
             [make_gen_ai_span(project_id=self.project.id, omit_conversation_id=True)],
+            self.project,
         )
         assert not any(c.args[:1] == (metric,) for c in mock_incr.call_args_list)
 
@@ -577,6 +574,7 @@ class SpawnConversationTitleGenerationTest(TestCase):
                 make_gen_ai_span(project_id=self.project.id, start_timestamp=TS + 30),
                 make_gen_ai_span(project_id=self.project.id, start_timestamp=TS + 60),
             ],
+            self.project,
         )
         assert mock_extract.call_count == 1
         mock_delay.assert_called_once()
@@ -586,5 +584,5 @@ class SpawnConversationTitleGenerationFeatureDisabledTest(TestCase):
     @patch(DELAY)
     def test_no_enqueue_when_feature_disabled(self, mock_delay: MagicMock) -> None:
         project = self.create_project()
-        spawn_conversation_title_generation([make_gen_ai_span(project_id=project.id)])
+        spawn_conversation_title_generation([make_gen_ai_span(project_id=project.id)], project)
         mock_delay.assert_not_called()

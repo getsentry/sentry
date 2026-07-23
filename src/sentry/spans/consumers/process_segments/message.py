@@ -12,6 +12,7 @@ from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry import options
+from sentry.ai_monitoring.tasks import spawn_conversation_title_generation
 from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
@@ -108,8 +109,9 @@ def _process_segment(
     ):
         return []
 
-    if any(attribute_value(s, ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID) for s in unprocessed_spans):
-        metrics.incr("spans.consumers.process_segments.gen_ai_conversation")
+    # Always attempt title generation, even when enrichment is skipped below.
+    if project is not None:
+        spawn_conversation_title_generation(unprocessed_spans, project)
 
     if skip_enrichment:
         return [make_compatible(span) for span in unprocessed_spans]

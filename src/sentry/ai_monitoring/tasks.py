@@ -121,7 +121,9 @@ def generate_ai_conversation_title(
     metrics.incr("ai_monitoring.conversation_title.written", tags={"result": "created"})
 
 
-def spawn_conversation_title_generation(spans: Sequence[Mapping[str, Any]]) -> None:
+def spawn_conversation_title_generation(
+    spans: Sequence[Mapping[str, Any]], project: Project
+) -> None:
     """
     Entrypoint that spawns one title-generation task per conversation,
     using the earliest span that has a user message.
@@ -161,15 +163,6 @@ def spawn_conversation_title_generation(spans: Sequence[Mapping[str, Any]]) -> N
         )
 
     if not earliest_by_conversation:
-        return
-
-    # All spans in a segment share a project; the first one is enough.
-    project_id = spans[0].get("project_id")
-    if not isinstance(project_id, int):
-        return
-    try:
-        project = Project.objects.get_from_cache(id=project_id)
-    except Project.DoesNotExist:
         return
 
     organization = project.organization
