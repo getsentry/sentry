@@ -270,8 +270,7 @@ class JiraIntegration(IssueSyncIntegration):
         self, configuration: list[dict[str, Any]]
     ) -> list[dict[str, Any]]:
         """
-        Pre-load statuses only for already-configured projects and provide a
-        statusUrl so the frontend can lazy-load statuses for newly-added projects.
+        Pre-load statuses only for already-configured projects.
         """
         client = self.get_client()
 
