@@ -153,7 +153,7 @@ class GetTargetsSlackUserTest(TestCase):
         target = slack_targets[0]
         assert isinstance(target, IntegrationNotificationTarget)
         assert target.resource_type == NotificationTargetResourceType.DIRECT_MESSAGE
-        assert target.resource_id == self.integration.external_id
+        assert target.resource_id == "UXXXXXXX1"
         assert target.integration_id == self.integration.id
         assert target.organization_id == self.organization.id
         assert target.specific_data == {"user_id": self.user.id}

@@ -154,7 +154,7 @@ def _get_slack_user_targets(
             IntegrationNotificationTarget(
                 provider_key=NotificationProviderKey.SLACK,
                 resource_type=NotificationTargetResourceType.DIRECT_MESSAGE,
-                resource_id=external_id,
+                resource_id=identity.external_id,
                 integration_id=integration_id,
                 organization_id=organization_id,
                 specific_data={"user_id": identity.user_id},
