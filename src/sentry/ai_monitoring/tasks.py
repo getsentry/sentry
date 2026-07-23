@@ -27,7 +27,7 @@ from sentry.taskworker.namespaces import ai_agent_monitoring_tasks
 from sentry.utils import metrics
 
 
-def _supersedable(source_ts: datetime) -> Q:
+def _is_earliest(source_ts: datetime) -> Q:
     """Rows this source is allowed to overwrite: untitled, or titled from a later span."""
     return Q(title_source_timestamp__isnull=True) | Q(title_source_timestamp__gt=source_ts)
 
@@ -85,7 +85,7 @@ def generate_ai_conversation_title(
     stored_conversation_id = clamp_conversation_id_for_storage(conversation_id)
 
     # Update an existing row only if this span is still the earliest.
-    if qs.filter(_supersedable(source_ts)).update(
+    if qs.filter(_is_earliest(source_ts)).update(
         title=title,
         conversation_id=stored_conversation_id,
         title_source_timestamp=source_ts,
@@ -105,7 +105,7 @@ def generate_ai_conversation_title(
             )
     except IntegrityError:
         # Another task created the row first; keep our title only if it's earlier.
-        if qs.filter(_supersedable(source_ts)).update(
+        if qs.filter(_is_earliest(source_ts)).update(
             title=title,
             title_source_timestamp=source_ts,
         ):
