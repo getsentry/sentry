@@ -159,7 +159,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                 publish_action(
                     CommentEditAction(
                         comment_id=original_comment_log_action.id,
-                        text=payload.data.get("text"),
+                        text=payload.get("text"),
                         mentions=mentions,
                     ),
                     source=resolve_action_source(request),
