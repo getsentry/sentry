@@ -406,10 +406,13 @@ export function hasUnsavedFilterChanges(
   const isAllProjectsSelected =
     currentFilters.projects?.size === 1 &&
     currentFilters.projects.has(ALL_ACCESS_PROJECTS);
-  const isForcedAllProjectsDefault = userHasNoMemberProjects && isAllProjectsSelected;
   const doesNotHaveSavedDashboardProjects = savedFilters.projects?.size === 0;
 
-  if (isForcedAllProjectsDefault && doesNotHaveSavedDashboardProjects) {
+  if (
+    userHasNoMemberProjects &&
+    isAllProjectsSelected &&
+    doesNotHaveSavedDashboardProjects
+  ) {
     currentFilters.projects = new Set();
   }
 
@@ -506,10 +509,13 @@ export function getSaveablePageFilters(
 
   const isAllProjectsSelected =
     pageFilters.projects?.length === 1 && pageFilters.projects[0] === ALL_ACCESS_PROJECTS;
-  const isForcedAllProjectsDefault = userHasNoMemberProjects && isAllProjectsSelected;
   const doesNotHaveSavedDashboardProjects = (savedDashboard.projects?.length ?? 0) === 0;
 
-  if (isForcedAllProjectsDefault && doesNotHaveSavedDashboardProjects) {
+  if (
+    userHasNoMemberProjects &&
+    isAllProjectsSelected &&
+    doesNotHaveSavedDashboardProjects
+  ) {
     pageFilters.projects = [];
   }
   return pageFilters;
