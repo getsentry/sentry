@@ -214,6 +214,7 @@ type ComponentOverrides = {
   'component:replay-settings-alert': () => React.ComponentType | null;
   'component:scm-github-multi-org-install': () => React.ComponentType<ScmGithubMultiOrgInstallProps>;
   'component:seer-beta-closing-alert': () => React.ComponentType;
+  'component:seer-trial-cta': () => React.ComponentType | null;
   'component:superuser-access-category': React.ComponentType<any>;
   'component:superuser-warning': React.ComponentType<any>;
   'component:superuser-warning-excluded': SuperuserWarningExcluded;
