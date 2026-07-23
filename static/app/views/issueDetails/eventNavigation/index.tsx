@@ -340,7 +340,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                       }}
                       aria-label={
                         getDiscoverDeprecation(organization)
-                          ? t('Open in Errors')
+                          ? t('Open in Explore')
                           : t('Open in Discover')
                       }
                       size="xs"
