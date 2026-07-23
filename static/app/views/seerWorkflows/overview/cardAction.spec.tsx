@@ -135,9 +135,9 @@ describe('IssuePrimaryAction', () => {
   );
 
   it.each([
-    {type: 'code_changes_ready', label: 'Open PR'},
+    {type: 'code_changes_ready', label: 'Draft PR'},
     {type: 'solution_ready', label: 'Generate code'},
-    {type: 'needs_investigation', label: 'Investigate'},
+    {type: 'needs_investigation', label: 'Approve Root Cause'},
   ] as Array<{label: string; type: Exclude<CardAction['type'], 'review_pr'>}>)(
     'opens the run drawer when the $label action is clicked',
     async ({type, label}) => {
@@ -163,7 +163,7 @@ describe('IssuePrimaryAction', () => {
   it.each([
     {
       action: {type: 'code_changes_ready'} as CardAction,
-      label: 'Open PR',
+      label: 'Draft PR',
       row: makeRow({runStatus: 'completed'}),
     },
     {
@@ -173,7 +173,7 @@ describe('IssuePrimaryAction', () => {
     },
     {
       action: {type: 'needs_investigation'} as CardAction,
-      label: 'Investigate',
+      label: 'Approve Root Cause',
       row: makeRow({runStatus: 'completed'}),
     },
     {
