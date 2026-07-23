@@ -27,6 +27,7 @@ def _send_deploy_activity_notification(activity: Activity, organization: Organiz
     from sentry.notifications.platform.templates.deploy import (
         DeployReleaseData,
         build_deploy_release_data,
+        filter_deploy_data,
     )
     from sentry.notifications.platform.types import NotificationSource
     from sentry.notifications.utils import get_deploy, get_release
@@ -50,7 +51,12 @@ def _send_deploy_activity_notification(activity: Activity, organization: Organiz
         organization=organization,
         committer_user_ids=frozenset(result["committer_user_ids"]),
     )
-    NotificationService[DeployReleaseData](data=result["data"]).notify_sync(strategy=strategy)
+    targets = strategy.get_targets()
+
+    for target in targets:
+        user_id = target.specific_data.get("user_id") if target.specific_data else None
+        data = filter_deploy_data(data=result["data"], user_id=user_id, organization=organization)
+        NotificationService[DeployReleaseData](data=data).notify_target(target=target)
 
 
 @instrumented_task(

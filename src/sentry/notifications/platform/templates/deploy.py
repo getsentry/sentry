@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TypedDict
 from urllib.parse import urlencode
 
@@ -8,6 +10,9 @@ from sentry_relay.processing import parse_release
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.deploy import Deploy
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.repository import Repository
 from sentry.notifications.platform.registry import template_registry
@@ -329,3 +334,25 @@ def build_deploy_release_data(deploy: Deploy, release: Release) -> DeployRelease
         data=data,
         committer_user_ids={u.id for u in users},
     )
+
+
+def filter_deploy_data(
+    *,
+    data: DeployReleaseData,
+    organization: Organization,
+    user_id: int | None,
+) -> DeployReleaseData:
+    if user_id is None or organization.flags.allow_joinleave:
+        return data
+
+    user_team_ids = OrganizationMember.objects.get_teams_by_user(organization).get(user_id, [])
+    user_project_slugs = (
+        set(Project.objects.get_for_team_ids(user_team_ids).values_list("slug", flat=True))
+        if user_team_ids
+        else set()
+    )
+    filtered_release_projects = [
+        rp for rp in data.release_projects if rp["project_slug"] in user_project_slugs
+    ]
+
+    return data.copy(update={"release_projects": filtered_release_projects})

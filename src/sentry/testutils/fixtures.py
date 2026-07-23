@@ -540,6 +540,9 @@ class Fixtures:
             organization=organization, projects=projects, **kwargs
         )
 
+    def create_notification_setting_option(self, *args, **kwargs):
+        return Factories.create_notification_setting_option(*args, **kwargs)
+
     def create_notification_settings_provider(self, *args, **kwargs):
         return Factories.create_notification_settings_provider(*args, **kwargs)
 

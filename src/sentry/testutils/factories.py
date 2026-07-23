@@ -140,6 +140,7 @@ from sentry.notifications.models.notificationaction import (
     ActionTrigger,
     NotificationAction,
 )
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.preprod.models import (
@@ -2222,6 +2223,11 @@ class Factories:
         action.save()
 
         return action
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_notification_setting_option(*args, **kwargs) -> NotificationSettingOption:
+        return NotificationSettingOption.objects.create(*args, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
