@@ -93,9 +93,8 @@ function PatchFilesTooltip({stats}: {stats: PatchStats}) {
 }
 
 // One icon-prefixed item in the metadata subline. The icon stands in for a
-// text label, so each item needs a tooltip carrying its meaning — InfoText
-// pairs the tooltip with the dotted-underline affordance, matching the
-// underline TimeSince children already render on their own.
+// text label, so each item needs a tooltip carrying its meaning — TimeSince
+// children bring their own.
 function MetaItem({
   children,
   icon,
@@ -106,15 +105,11 @@ function MetaItem({
   tooltip?: React.ReactNode;
 }) {
   return (
-    // Shrink-to-fit rows keep tooltip anchors hugging the text, but need
-    // maxWidth 100% as the cross-axis bound in the non-stretching vitals
-    // stack — with minWidth 0 + ellipsis, long content truncates instead of
-    // overflowing the rail.
+    // maxWidth is the cross-axis bound in the non-stretching vitals stack:
+    // long content truncates instead of overflowing the rail.
     <Flex gap="xs" align="center" minWidth="0" maxWidth="100%">
       {icon}
       {tooltip ? (
-        // Capped width keeps the bubble proportional to these small items —
-        // uncapped, a long sentence floats as a wide detached-looking card.
         <InfoText title={tooltip} maxWidth={220} size="sm" variant="muted" ellipsis>
           {children}
         </InfoText>
@@ -396,10 +391,9 @@ export function IssueCard({
             flexShrink={0}
             width={{xs: '100%', sm: '380px'}}
           >
-            {/* align start: stretched rows would stretch each item's
-                ellipsis-Text (width: 100%) with it, anchoring the tooltips
-                to the full column instead of the words — the arrow ends up
-                pointing at empty space right of the text. */}
+            {/* align start (not stretch): stretched rows would stretch the
+                ellipsis-Texts (width: 100%) with them, detaching the tooltip
+                anchors from the words. */}
             <Stack
               gap={{xs: 'md', sm: 'xs'}}
               direction={{xs: 'row', sm: 'column'}}
@@ -407,8 +401,6 @@ export function IssueCard({
               align="start"
               minWidth="0"
             >
-              {/* maxWidth bounds the shrink-to-fit row so a long shortId
-                  truncates instead of overflowing the rail */}
               <Flex gap="xs" align="center" minWidth="0" maxWidth="100%">
                 <Tooltip title={t('View project')} skipWrapper>
                   <ProjectBadge project={row.project} avatarSize={14} hideName />
