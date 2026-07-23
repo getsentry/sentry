@@ -135,6 +135,13 @@ class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
     line: int | None = None
     start_line: int | None = None
     diff_hunk: str | None = None
+    # The GitHub review this inline comment was submitted as part of, shared with
+    # the review's ``GithubPrReviewBodyFeedbackSource.review_id`` so the UI can
+    # group a review's summary body and its inline comments under one parent. The
+    # review's state lives on that body source (the review's representation), not
+    # here. Optional: an inline comment delivered outside a submitted review has
+    # none, and feedback serialized before this field predates it.
+    review_id: int | None = None
     # Whether the review author is a bot (e.g. a test-coverage bot). Bot reviews
     # count toward the automated-iteration streak cap; human reviews reset it.
     author_is_bot: bool = False
@@ -207,6 +214,11 @@ class GithubPrReviewBodyFeedbackSource(FeedbackSourceBase):
     type: Literal["github-pr-review-body"] = "github-pr-review-body"
     # The GitHub review id, used to dedupe re-delivered reviews.
     review_id: int | None = None
+    # The submitted review's state — ``approved`` / ``changes_requested`` /
+    # ``commented`` / ``dismissed`` / ``pending`` (scm ``PullRequestReviewState``).
+    # Stored as a plain ``str`` so a future provider state can't break
+    # deserialization of replayed feedback.
+    review_state: str | None = None
     body: str = ""
     html_url: str | None = None
     # Whether the review author is a bot (e.g. a test-coverage bot). Bot reviews
