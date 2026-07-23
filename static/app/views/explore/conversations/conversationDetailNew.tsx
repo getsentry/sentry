@@ -1,11 +1,14 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
+import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -18,6 +21,10 @@ import {
 } from 'sentry/views/explore/conversations/components/conversationViewNew';
 import {ConversationViewContainer} from 'sentry/views/explore/conversations/conversationDetail';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
+import {
+  extractMessagesFromNodes,
+  messagesToMarkdown,
+} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 function useConversationDetailQueryState() {
@@ -39,6 +46,8 @@ export function ConversationDetailPageNew() {
   const conversation = useMemo(() => ({conversationId}), [conversationId]);
 
   const {nodes, nodeTraceMap, isLoading} = useConversation(conversation);
+
+  const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
 
   const projectSlug = useMemo(
     () => nodes.find(node => node.projectSlug)?.projectSlug,
@@ -84,13 +93,27 @@ export function ConversationDetailPageNew() {
         />
       </Container>
       <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="xl">
-        <Flex flexShrink={0}>
+        <Flex flexShrink={0} align="center" justify="between" gap="md">
           <Tabs value={queryState.tab} onChange={tab => setQueryState({tab})}>
             <TabList variant="floating">
               <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>
               <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
             </TabList>
           </Tabs>
+          {queryState.tab === 'transcript' && !isLoading && messages.length > 0 && (
+            <Button
+              size="xs"
+              icon={<IconCopy />}
+              onClick={() => {
+                trackAnalytics('conversations.detail.copy-conversation', {
+                  organization,
+                });
+                copyToClipboard(messagesToMarkdown(messages));
+              }}
+            >
+              {t('Copy Transcript')}
+            </Button>
+          )}
         </Flex>
         <ConversationViewContainer>
           <ConversationViewContentNew

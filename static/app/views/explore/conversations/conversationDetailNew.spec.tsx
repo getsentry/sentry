@@ -100,4 +100,20 @@ describe('ConversationDetailPageNew span default selection', () => {
     // Timeline should open on its first span.
     await waitFor(() => expect(detailPane()).toBeInTheDocument());
   });
+
+  it('shows the copy transcript button only on the transcript tab', async () => {
+    renderPage();
+
+    // The transcript tab exposes the copy control once messages have loaded.
+    expect(
+      await screen.findByRole('button', {name: 'Copy Transcript'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Timeline'}));
+
+    // The timeline tab has no transcript to copy.
+    expect(
+      screen.queryByRole('button', {name: 'Copy Transcript'})
+    ).not.toBeInTheDocument();
+  });
 });
