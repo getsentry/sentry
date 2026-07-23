@@ -167,7 +167,7 @@ def fetch_rows_matching_pattern(
         functools.partial(
             execute_query,
             query,
-            {"tenant_id": Organization.objects.filter(project__id=project_id).get().id},
+            {"organization_id": Organization.objects.filter(project__id=project_id).get().id},
             "replays.delete_replays_bulk",
         )
     )

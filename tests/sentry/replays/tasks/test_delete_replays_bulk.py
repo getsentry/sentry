@@ -381,6 +381,10 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert result == {"has_more": False, "rows": []}
         assert mock_execute_query.call_count == 3
 
+        # Snuba allocation policies key quotas on organization_id.
+        tenant_ids = mock_execute_query.call_args[0][1]
+        assert tenant_ids == {"organization_id": self.project.organization.id}
+
     @patch("sentry.utils.retries.time.sleep")
     @patch("sentry.replays.usecases.delete.execute_query")
     def test_fetch_rows_matching_pattern_retries_exhausted(
