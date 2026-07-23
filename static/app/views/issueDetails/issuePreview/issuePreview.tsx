@@ -119,8 +119,10 @@ function IssuePreviewContent() {
             />
           </Container>
           <Flex justify="between" align="center" gap="md">
-            <GroupStatusSubtitle group={group} project={project} />
-            <Flex align="center" gap="xs">
+            <Flex flex="1" minWidth={0}>
+              <GroupStatusSubtitle group={group} project={project} />
+            </Flex>
+            <Flex align="center" gap="xs" flexShrink={0} wrap="nowrap">
               {group.derivedData?.progress && (
                 <IssueProgressTag state={group.derivedData.progress} />
               )}
