@@ -150,7 +150,7 @@
     "@types/reflux": "0.4.1",
     "ansi-to-react": "^6.1.6",
     "base64-arraybuffer": "^1.0.1",
-    "cbor2": "^1.12.0",
+    "cbor2": "^2.3.0",
     "classnames": "2.3.1",
     "color": "5.0.2",
     "compression-webpack-plugin": "12.0.0",
