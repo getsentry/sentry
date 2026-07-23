@@ -27,7 +27,7 @@ from sentry.pr_metrics.emit import (
     VerdictDeferral,
     _activity_derived_metrics,
     ci_failing_at_close,
-    reviews_requested_count,
+    review_activity,
     select_fallback_verdict,
     select_verdict,
 )
@@ -176,11 +176,11 @@ class ActivityDocumentReadersTest(TestCase):
         self._write_doc(_doc(checks={"sha1|github-actions": _group(suite_conclusion="success")}))
         assert ci_failing_at_close(self.pr) is False
 
-    # --- reviews_requested_count -------------------------------------------
+    # --- review_activity (requested_count, results) -------------------------
 
     def test_reviews_requested_count_from_doc(self) -> None:
         self._write_doc(_doc(counts={"review_requested": 3, "review_request_removed": 1}))
-        assert reviews_requested_count(self.pr) == 2
+        assert review_activity(self.pr).requested_count == 2
 
     def test_reviews_requested_count_from_legacy_rows(self) -> None:
         # No PullRequestActivityLog row → routes to the legacy PullRequestActivity
@@ -203,7 +203,37 @@ class ActivityDocumentReadersTest(TestCase):
             event_type=PullRequestActivityType.REVIEW_REQUEST_REMOVED,
             payload={},
         )
-        assert reviews_requested_count(self.pr) == 1
+        assert review_activity(self.pr).requested_count == 1
+
+    def test_review_results_from_doc(self) -> None:
+        self._write_doc(
+            _doc(
+                events=[
+                    _entry("review_submitted", "r1", review_state="approved"),
+                    _entry("review_submitted", "r2", review_state="changes_requested"),
+                ]
+            )
+        )
+        assert review_activity(self.pr).results == {
+            "approved": 1,
+            "changes_requested": 1,
+            "commented": 0,
+        }
+
+    def test_review_results_from_legacy_rows(self) -> None:
+        # No PullRequestActivityLog row → routes to the legacy PullRequestActivity
+        # rows instead of the doc.
+        PullRequestActivity.objects.create(
+            pull_request=self.pr,
+            webhook_id="r1",
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            payload={"review_state": "commented"},
+        )
+        assert review_activity(self.pr).results == {
+            "approved": 0,
+            "changes_requested": 0,
+            "commented": 1,
+        }
 
     # --- resolved_group_ids -----------------------------------------------
 
