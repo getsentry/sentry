@@ -474,6 +474,9 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
     return data
 
 
+ISSUE_SUMMARY_BATCH_SIZE = 50
+
+
 def organization_project_issue_summaries(
     start: datetime, end: datetime, ctx: OrganizationReportContext
 ) -> list[dict[str, Any]]:
@@ -481,17 +484,22 @@ def organization_project_issue_summaries(
 
     Returns raw rows; callers roll up by substatus or by day as needed.
     """
-    return list(
-        Group.objects.filter(
-            project_id__in=list(ctx.projects_context_map.keys()),
-            last_seen__gte=start,
-            last_seen__lt=end,
-            status=GroupStatus.UNRESOLVED,
+    project_ids = list(ctx.projects_context_map.keys())
+    results: list[dict[str, Any]] = []
+    for i in range(0, len(project_ids), ISSUE_SUMMARY_BATCH_SIZE):
+        batch = project_ids[i : i + ISSUE_SUMMARY_BATCH_SIZE]
+        results.extend(
+            Group.objects.filter(
+                project_id__in=batch,
+                last_seen__gte=start,
+                last_seen__lt=end,
+                status=GroupStatus.UNRESOLVED,
+            )
+            .annotate(day=TruncDay("last_seen"))
+            .values("project_id", "substatus", "day")
+            .annotate(total=Count("id"))
         )
-        .annotate(day=TruncDay("last_seen"))
-        .values("project_id", "substatus", "day")
-        .annotate(total=Count("id"))
-    )
+    return results
 
 
 PAST_ISSUES_CANDIDATE_LIMIT = 50
