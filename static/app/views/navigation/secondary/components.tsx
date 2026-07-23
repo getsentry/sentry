@@ -421,7 +421,7 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
         // Once the collapse animation settles, the scroll container may have shrunk
         // enough to leave this section's header below the scrollable area, with no
         // way to scroll back to it. Nudge it into view so it stays reachable.
-        onCollapsed={() => sectionRef.current?.scrollIntoView({block: 'nearest'})}
+        onCollapsed={() => sectionRef.current?.scrollIntoView?.({block: 'nearest'})}
       >
         {props.children}
       </Collapsible>
