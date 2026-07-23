@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -92,8 +93,9 @@ function PatchFilesTooltip({stats}: {stats: PatchStats}) {
 }
 
 // One icon-prefixed item in the metadata subline. The icon stands in for a
-// text label, so each item needs a tooltip carrying its meaning — TimeSince
-// children bring their own.
+// text label, so each item needs a tooltip carrying its meaning — InfoText
+// pairs the tooltip with the dotted-underline affordance, matching the
+// underline TimeSince children already render on their own.
 function MetaItem({
   children,
   icon,
@@ -103,22 +105,23 @@ function MetaItem({
   icon: React.ReactNode;
   tooltip?: React.ReactNode;
 }) {
-  const item = (
+  return (
     // minWidth 0 + ellipsis let the item truncate inside a tight rail column
     // instead of pushing the layout wider.
     <Flex gap="xs" align="center" minWidth="0">
       {icon}
-      <Text size="sm" variant="muted" ellipsis>
-        {children}
-      </Text>
+      {tooltip ? (
+        // Capped width keeps the bubble proportional to these small items —
+        // uncapped, a long sentence floats as a wide detached-looking card.
+        <InfoText title={tooltip} maxWidth={220} size="sm" variant="muted" ellipsis>
+          {children}
+        </InfoText>
+      ) : (
+        <Text size="sm" variant="muted" ellipsis>
+          {children}
+        </Text>
+      )}
     </Flex>
-  );
-  return tooltip ? (
-    <Tooltip title={tooltip} skipWrapper>
-      {item}
-    </Tooltip>
-  ) : (
-    item
   );
 }
 
@@ -391,10 +394,15 @@ export function IssueCard({
             flexShrink={0}
             width={{xs: '100%', sm: '380px'}}
           >
+            {/* align start: stretched rows would stretch each item's
+                ellipsis-Text (width: 100%) with it, anchoring the tooltips
+                to the full column instead of the words — the arrow ends up
+                pointing at empty space right of the text. */}
             <Stack
               gap={{xs: 'md', sm: 'xs'}}
               direction={{xs: 'row', sm: 'column'}}
               wrap="wrap"
+              align="start"
               minWidth="0"
             >
               <Flex gap="xs" align="center" minWidth="0">
