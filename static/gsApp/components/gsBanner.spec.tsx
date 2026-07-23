@@ -19,7 +19,7 @@ import type {Guide} from 'sentry/components/assistant/types';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {GuideStoreState} from 'sentry/stores/guideStore';
 
-import {openForcedTrialModal, openTrialEndingModal} from 'getsentry/actionCreators/modal';
+import {openTrialEndingModal} from 'getsentry/actionCreators/modal';
 import GSBanner from 'getsentry/components/gsBanner';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
@@ -419,125 +419,6 @@ describe('GSBanner', () => {
         })
       );
     });
-  });
-
-  it('automatically starts forced trial', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-
-    const subscription = SubscriptionFixture({
-      plan: 'am1_f',
-      organization,
-      totalLicenses: 1,
-      usedLicenses: 2,
-    });
-
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const mockForceTrial = MockApiClient.addMockResponse({
-      method: 'POST',
-      url: `/organizations/${organization.slug}/over-member-limit-trial/`,
-      body: {},
-    });
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await waitFor(() => {
-      expect(mockForceTrial).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/over-member-limit-trial/`,
-        expect.objectContaining({
-          method: 'POST',
-        })
-      );
-    });
-
-    expect(openForcedTrialModal).toHaveBeenCalled();
-  });
-
-  it('does not automatically start forced trial if already on a trial', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-
-    const subscription = SubscriptionFixture({
-      plan: 'am1_f',
-      organization,
-      totalLicenses: 1,
-      usedLicenses: 2,
-      isTrial: true,
-      isForcedTrial: false,
-    });
-
-    SubscriptionStore.set(organization.slug, subscription);
-
-    const mockForceTrial = MockApiClient.addMockResponse({
-      method: 'POST',
-      url: `/organizations/${organization.slug}/over-member-limit-trial/`,
-      body: {},
-    });
-
-    const {container} = render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    // wait for requests to finish
-    await act(tick);
-    expect(container).toBeEmptyDOMElement();
-
-    expect(mockForceTrial).not.toHaveBeenCalled();
-    expect(openForcedTrialModal).not.toHaveBeenCalled();
-  });
-
-  it('opens the forced trial modal', async () => {
-    const now = moment();
-    const organization = OrganizationFixture({
-      slug: 'forced-trial',
-    });
-    SubscriptionStore.set(
-      organization.slug,
-      SubscriptionFixture({
-        organization,
-        hasDismissedForcedTrialNotice: false,
-        plan: 'am1_t',
-        trialEnd: now.add(14, 'day').toISOString(),
-        isForcedTrial: true,
-        isTrial: true,
-      })
-    );
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await waitFor(() => expect(openForcedTrialModal).toHaveBeenCalled());
-  });
-
-  it('does not open forced trial modal if dismissed', async () => {
-    const now = moment();
-    const organization = OrganizationFixture({
-      slug: 'forced-trial',
-    });
-    SubscriptionStore.set(
-      organization.slug,
-      SubscriptionFixture({
-        organization,
-        hasDismissedForcedTrialNotice: true,
-        plan: 'am1_t',
-        trialEnd: now.add(14, 'day').toISOString(),
-        isForcedTrial: true,
-        isTrial: true,
-      })
-    );
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await act(tick);
-    expect(openForcedTrialModal).not.toHaveBeenCalled();
   });
 
   it('activates the first available promotion', async () => {
