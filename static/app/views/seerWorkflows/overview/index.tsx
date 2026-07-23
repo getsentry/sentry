@@ -68,7 +68,7 @@ export default function AutofixOverview() {
       features="seer-night-shift-ui"
       renderDisabled={() => <NoAccess />}
     >
-      <PageFiltersContainer>
+      <PageFiltersContainer skipInitializeUrlParams>
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
           <Layout.Title>
             {t('Autofix Overview')}
