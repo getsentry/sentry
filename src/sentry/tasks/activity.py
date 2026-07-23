@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -7,11 +10,14 @@ from sentry.utils.sdk import bind_organization_context
 
 logger = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
+    from sentry.models.activity import Activity
 
-def get_activity_notifiers(project):
+
+def _send_legacy_activity_notification(activity: Activity) -> None:
     from sentry.mail import mail_adapter
 
-    return [mail_adapter]
+    mail_adapter.notify_about_activity(activity)
 
 
 @instrumented_task(
@@ -23,6 +29,15 @@ def get_activity_notifiers(project):
 def send_activity_notifications(activity_id: int) -> None:
     from sentry.models.activity import Activity
     from sentry.models.organization import Organization
+    from sentry.notifications.platform.service import NotificationService
+    from sentry.notifications.platform.strategies.issue_subscribers import (
+        IssueSubscribersActivityStrategy,
+    )
+    from sentry.notifications.platform.templates.activity.base import (
+        ACTIVITY_TYPE_TO_SOURCE,
+        ActivityNotificationData,
+        build_activity_notification_data,
+    )
 
     try:
         activity = Activity.objects.get(pk=activity_id)
@@ -32,5 +47,15 @@ def send_activity_notifications(activity_id: int) -> None:
     organization = Organization.objects.get_from_cache(pk=activity.project.organization_id)
     bind_organization_context(organization)
 
-    for notifier in get_activity_notifiers(activity.project):
-        notifier.notify_about_activity(activity)
+    source = ACTIVITY_TYPE_TO_SOURCE.get(activity.type)
+    if not source:
+        _send_legacy_activity_notification(activity=activity)
+        return
+
+    if not NotificationService.has_access(organization=organization, source=source):
+        _send_legacy_activity_notification(activity=activity)
+        return
+
+    data = build_activity_notification_data(activity=activity)
+    strategy = IssueSubscribersActivityStrategy(activity=activity)
+    NotificationService[ActivityNotificationData](data=data).notify_sync(strategy=strategy)
