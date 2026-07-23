@@ -62,6 +62,16 @@ class OurLogs(rpc_dataset_common.RPCBase):
                 orderby.append(direction + "id")
                 if "id" not in selected_columns:
                     selected_columns.append("id")
+            else:
+                # Some SDK environments (e.g. Cloudflare Workers) can't produce
+                # sub-millisecond timestamps, so logs emitted in quick succession
+                # share an identical timestamp_precise. The SDK emits a monotonic
+                # sequence attribute to break those ties in emission order. Flex time
+                # sampling can't page over this mostly-absent attribute, so it relies
+                # on the item id above for strict ordering instead.
+                orderby.append(direction + constants.TIMESTAMP_SEQUENCE_ALIAS)
+                if constants.TIMESTAMP_SEQUENCE_ALIAS not in selected_columns:
+                    selected_columns.append(constants.TIMESTAMP_SEQUENCE_ALIAS)
 
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
