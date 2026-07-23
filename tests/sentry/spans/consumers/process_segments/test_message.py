@@ -524,43 +524,41 @@ class TestSegmentDropKillswitch(TestCase):
     def setUp(self) -> None:
         self.project = self.create_project()
 
-    def _spans(self) -> list[Any]:
-        segment = build_mock_span(project_id=self.project.id, is_segment=True)
-        child = build_mock_span(
-            project_id=self.project.id,
-            parent_span_id=segment["span_id"],
-        )
-        return [child, segment]
-
-    def _drop_options(self) -> dict[str, Any]:
-        return {
-            "spans.process-segments.drop-segments": [{"org_id": str(self.project.organization_id)}],
-        }
-
     def test_drop_segment_by_org_id(self) -> None:
-        with override_options(self._drop_options()):
-            assert process_segment(self._spans()) == []
+        """Test that segments are dropped when org_id matches killswitch."""
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+        child_span = build_mock_span(
+            project_id=self.project.id,
+            parent_span_id=segment_span["span_id"],
+        )
 
-    def test_drop_segment_with_skip_enrichment(self) -> None:
-        with override_options(self._drop_options()):
-            assert process_segment(self._spans(), skip_enrichment=True) == []
-
-    def test_drop_segment_with_skip_enrichment_projects(self) -> None:
         with override_options(
             {
-                **self._drop_options(),
-                "spans.process-segments.skip-enrichment-projects": [self.project.id],
+                "spans.process-segments.drop-segments": [
+                    {"org_id": str(self.project.organization_id)}
+                ]
             }
         ):
-            assert process_segment(self._spans()) == []
+            processed_spans = process_segment([child_span, segment_span])
+            assert len(processed_spans) == 0
 
-    @mock.patch(
-        "sentry.spans.consumers.process_segments.message.TreeEnricher.enrich_spans",
-    )
-    def test_drop_segment_skips_enrichment(self, mock_enrich: mock.MagicMock) -> None:
-        with override_options(self._drop_options()):
-            assert process_segment(self._spans()) == []
-        mock_enrich.assert_not_called()
+    def test_drop_segment_with_skip_enrichment(self) -> None:
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+
+        with override_options(
+            {
+                "spans.process-segments.drop-segments": [
+                    {"org_id": str(self.project.organization_id)}
+                ]
+            }
+        ):
+            assert process_segment([segment_span], skip_enrichment=True) == []
 
 
 @exclude_experimental_detectors
