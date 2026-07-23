@@ -9,18 +9,20 @@ type GroupApiOptionsParameters = {
   environments: string[];
   groupId: string;
   organizationSlug: string;
+  expandDerivedData?: boolean;
 };
 
 export function groupApiOptions({
   groupId,
   organizationSlug,
   environments,
+  expandDerivedData = false,
 }: GroupApiOptionsParameters) {
   return apiOptions.as<Group>()('/organizations/$organizationIdOrSlug/issues/$issueId/', {
     path: {organizationIdOrSlug: organizationSlug, issueId: groupId},
     query: {
       ...(environments.length > 0 ? {environment: environments} : {}),
-      expand: ['inbox', 'owners'],
+      expand: ['inbox', 'owners', ...(expandDerivedData ? ['derivedData'] : [])],
       collapse: ['release', 'tags', 'stats'],
     },
     staleTime: 30_000,
@@ -38,6 +40,11 @@ export function groupQueryKey(params: GroupQueryKeyParameters) {
 
 interface UseGroupOptions {
   groupId: string;
+  /**
+   * Request the `derivedData` expand (issue progress, root cause, etc.).
+   * Off by default to avoid the extra bulk query for consumers that don't need it.
+   */
+  expandDerivedData?: boolean;
   options?: {
     enabled?: boolean;
   };
@@ -47,7 +54,7 @@ interface UseGroupOptions {
  * Used to fetch group details for issue details.
  * Data is still synced with the GroupStore for legacy reasons.
  */
-export function useGroup({groupId, options}: UseGroupOptions) {
+export function useGroup({groupId, expandDerivedData, options}: UseGroupOptions) {
   const organization = useOrganization();
   const environments = useEnvironmentsFromUrl();
 
@@ -56,6 +63,7 @@ export function useGroup({groupId, options}: UseGroupOptions) {
       organizationSlug: organization.slug,
       groupId,
       environments,
+      expandDerivedData,
     }),
     gcTime: 30_000,
     retry: false,

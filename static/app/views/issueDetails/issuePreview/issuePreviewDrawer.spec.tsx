@@ -15,7 +15,7 @@ import {
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {IssueCategory} from 'sentry/types/group';
+import {IssueCategory, ProgressState} from 'sentry/types/group';
 import {IssuePreviewDrawer} from 'sentry/views/issueDetails/issuePreview/issuePreviewDrawer';
 
 describe('IssuePreviewDrawer', () => {
@@ -429,5 +429,43 @@ describe('IssuePreviewDrawer', () => {
     expect(
       await screen.findByRole('button', {name: 'Start Analysis'})
     ).toBeInTheDocument();
+  });
+
+  it('shows the progress tag when progress UI is enabled', async () => {
+    const organization = OrganizationFixture({features: ['issue-stream-progress-ui']});
+    const project = ProjectFixture();
+    const group = GroupFixture({
+      id: '123',
+      shortId: 'JAVASCRIPT-6QS',
+      project,
+      derivedData: {
+        progress: ProgressState.FIX_PROPOSED,
+        status: 'open',
+        viewCount: 0,
+        hasOpenFixPr: true,
+        isAssigned: true,
+        hasRootCause: true,
+        lastProgressedAt: null,
+      },
+    });
+
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: group,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: false, reason: null},
+        billing: {hasAutofixQuota: false},
+        seerReposLinked: false,
+      },
+    });
+
+    render(<IssuePreviewDrawer groupId={group.id} />, {organization});
+
+    expect(await screen.findByText('Fix Proposed')).toBeInTheDocument();
   });
 });

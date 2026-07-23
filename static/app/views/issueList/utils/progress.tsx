@@ -1,8 +1,11 @@
 import type {ReactNode} from 'react';
 
+import {Tag} from '@sentry/scraps/badge';
+
 import {ProgressMarker, type ProgressMarkerStep} from 'sentry/components/progressMarker';
 import {t} from 'sentry/locale';
 import {ProgressState} from 'sentry/types/group';
+import type {TagVariant} from 'sentry/utils/theme';
 
 const PROGRESS_STATE_LABELS: Record<ProgressState, string> = {
   [ProgressState.IDENTIFIED]: t('Identified'),
@@ -33,4 +36,27 @@ export function getProgressIcon(state: ProgressState | null): ReactNode {
   }
   const step = PROGRESS_STATE_STEPS[state];
   return step ? <ProgressMarker step={step} /> : null;
+}
+
+const PROGRESS_STATE_TAG_VARIANTS: Record<ProgressState, TagVariant> = {
+  [ProgressState.IDENTIFIED]: 'muted',
+  [ProgressState.ASSIGNED]: 'muted',
+  [ProgressState.DIAGNOSED]: 'warning',
+  [ProgressState.FIX_PROPOSED]: 'success',
+  [ProgressState.FIX_APPLIED]: 'success',
+};
+
+/**
+ * Renders an issue's progress state as a colored tag with a leading progress
+ * icon (e.g. a green "Fix Proposed"). Returns null when the state is unknown.
+ */
+export function IssueProgressTag({state}: {state: ProgressState | null}) {
+  if (!state) {
+    return null;
+  }
+  return (
+    <Tag variant={PROGRESS_STATE_TAG_VARIANTS[state]} icon={getProgressIcon(state)}>
+      {formatProgressState(state)}
+    </Tag>
+  );
 }

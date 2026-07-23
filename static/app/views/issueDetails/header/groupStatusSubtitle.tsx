@@ -17,15 +17,26 @@ import {AttachmentsBadge} from 'sentry/views/issueDetails/header/attachmentsBadg
 import {ReplayBadge} from 'sentry/views/issueDetails/header/replayBadge';
 import {SeerBadge} from 'sentry/views/issueDetails/header/seerBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/header/userFeedbackBadge';
+import {IssueProgressTag} from 'sentry/views/issueList/utils/progress';
 
 interface GroupStatusSubtitleProps {
   group: Group;
   project: Project;
+  /**
+   * Show the issue's progress state as a tag in the status line. Off by default
+   * so this only appears where opted in (e.g. the issue preview).
+   */
+  showProgress?: boolean;
 }
 
-export function GroupStatusSubtitle({group, project}: GroupStatusSubtitleProps) {
+export function GroupStatusSubtitle({
+  group,
+  project,
+  showProgress = false,
+}: GroupStatusSubtitleProps) {
   const {subtitle} = getTitle(group);
   const statusProps = getBadgeProperties(group.status, group.substatus);
+  const progress = group.derivedData?.progress ?? null;
 
   return (
     <Flex gap="md" align="center">
@@ -60,6 +71,12 @@ export function GroupStatusSubtitle({group, project}: GroupStatusSubtitleProps) 
           >
             <Subtext>{subtitle}</Subtext>
           </Tooltip>
+        </Fragment>
+      )}
+      {showProgress && progress && (
+        <Fragment>
+          <Divider />
+          <IssueProgressTag state={progress} />
         </Fragment>
       )}
       <ErrorBoundary customComponent={null}>
