@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-import logging
 from base64 import b64encode
 from collections.abc import Mapping
 from io import BytesIO
@@ -42,8 +41,6 @@ from sentry.web.frontend.base import BaseView, control_silo_view
 
 ERR_NO_SAML_SSO = _("The organization does not exist or does not have SAML SSO enabled.")
 ERR_SAML_FAILED = _("SAML SSO failed, {reason}")
-
-logger = logging.getLogger("sentry.auth.saml")
 
 
 def get_provider(organization_slug: str) -> SAML2Provider | None:
