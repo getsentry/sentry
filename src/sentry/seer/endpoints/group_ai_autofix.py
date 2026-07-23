@@ -271,7 +271,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     "referrer": data.get("referrer"),
                     "is_mcp_request": is_mcp_request(request),
                     "user_agent": request.META.get("HTTP_USER_AGENT", "")[:256],
-                    "organization_id": group.organization_id,
+                    "organization_id": group.organization.id,
                 },
             )
 
