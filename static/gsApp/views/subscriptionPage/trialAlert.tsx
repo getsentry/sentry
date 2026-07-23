@@ -20,7 +20,7 @@ type Props = {
 };
 
 export function TrialAlert({organization, subscription}: Props) {
-  if (!subscription.isTrial) {
+  if (subscription.trialPlan === null) {
     return null;
   }
 

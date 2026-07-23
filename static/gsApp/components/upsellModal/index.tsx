@@ -20,8 +20,9 @@ type Props = ModalRenderProps & {
 };
 
 function UpsellModal({source, organization, subscription}: Props) {
-  const canTrial = subscription.canTrial && !subscription.isTrial;
-  const headerMessage = subscription.isTrial ? (
+  const isTrial = subscription.trialPlan !== null;
+  const canTrial = subscription.canTrial && !isTrial;
+  const headerMessage = isTrial ? (
     <div>
       <Subheader>
         {tn(

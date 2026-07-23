@@ -20,7 +20,7 @@ export function TrialEnded({subscription}: Props) {
   const canRequestTrial =
     subscription.canSelfServe && subscription.planDetails?.trialPlan;
   const shouldRender = !(
-    subscription.isTrial ||
+    subscription.trialPlan !== null ||
     subscription.canTrial ||
     !canRequestTrial
   );

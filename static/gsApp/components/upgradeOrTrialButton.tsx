@@ -66,7 +66,8 @@ function UpgradeOrTrialButton({
 
   // can override action if we want
   const action =
-    _action ?? (subscription.canTrial && !subscription.isTrial ? 'trial' : 'upgrade');
+    _action ??
+    (subscription.canTrial && subscription.trialPlan === null ? 'trial' : 'upgrade');
 
   const childComponent =
     typeof children === 'function'

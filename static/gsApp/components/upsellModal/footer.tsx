@@ -33,7 +33,7 @@ export function Footer({
     onSuccess: onCloseModal,
   };
 
-  const canTrial = subscription.canTrial && !subscription.isTrial;
+  const canTrial = subscription.canTrial && subscription.trialPlan === null;
 
   return (
     <Flex align="end" gap="md">

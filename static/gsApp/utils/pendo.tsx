@@ -101,7 +101,6 @@ export function getPendoAccountFields(
     ...pick(subscription, [
       'isFree',
       'isManaged',
-      'isTrial',
       'isEnterpriseTrial',
       'isPerformancePlanTrial',
       'isSuspended',
@@ -109,6 +108,7 @@ export function getPendoAccountFields(
       'canSelfServe',
       'plan',
     ]),
+    isTrial: subscription.trialPlan !== null,
     ...pick(organization, ['isEarlyAdopter']),
   };
   // for fields with bucketing, we need to encode the value so
@@ -277,7 +277,7 @@ function getAccountCredit(subscription: Subscription) {
 
 function getTrialDaysLeftFromSub(subscription: Subscription) {
   // only check if trial is active
-  if (!subscription.isTrial) {
+  if (subscription.trialPlan === null) {
     return null;
   }
   return getTrialDaysLeft(subscription);

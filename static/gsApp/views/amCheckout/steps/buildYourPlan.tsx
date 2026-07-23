@@ -80,7 +80,7 @@ function PlanSubstep({
       const trialExpired = getDaysSinceDate(subscription.lastTrialEnd) > 0;
       return (
         <Tag variant="warning">
-          {subscription.isTrial && !trialExpired
+          {subscription.trialPlan !== null && !trialExpired
             ? tct('Trial expires [lastTrialEnd]', {lastTrialEnd})
             : t('You trialed this plan')}
         </Tag>

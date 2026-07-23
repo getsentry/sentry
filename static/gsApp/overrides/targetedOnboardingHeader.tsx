@@ -37,18 +37,21 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
 
   // if trial is active, show info on that
   // otherwise show help button
-  const cta = subscription.isTrial ? (
-    <ActiveTrialWrapper
-      onClick={() => openUpsellModal({organization, source: 'targeted-onboarding'})}
-    >
-      <ActiveTrialHeader>{t('Trial is Active')}</ActiveTrialHeader>
-      <div>{tn('%s Day Left', '%s Days Left', getTrialDaysLeft(subscription) || 0)}</div>
-    </ActiveTrialWrapper>
-  ) : (
-    <NeedHelpLink href="https://www.sentry.help" onClick={trackClickNeedHelp}>
-      {t('Need help?')}
-    </NeedHelpLink>
-  );
+  const cta =
+    subscription.trialPlan === null ? (
+      <NeedHelpLink href="https://www.sentry.help" onClick={trackClickNeedHelp}>
+        {t('Need help?')}
+      </NeedHelpLink>
+    ) : (
+      <ActiveTrialWrapper
+        onClick={() => openUpsellModal({organization, source: 'targeted-onboarding'})}
+      >
+        <ActiveTrialHeader>{t('Trial is Active')}</ActiveTrialHeader>
+        <div>
+          {tn('%s Day Left', '%s Days Left', getTrialDaysLeft(subscription) || 0)}
+        </div>
+      </ActiveTrialWrapper>
+    );
 
   return (
     <HeaderActionBar gap="xl">

@@ -37,7 +37,7 @@ function TryBusinessNavigationItem({
     false
   );
 
-  const isNew = !subscription.isTrial && subscription.canTrial;
+  const isNew = subscription.trialPlan === null && subscription.canTrial;
   const showIsNew = isNew && !tryBusinessSeen;
 
   return (
@@ -88,7 +88,7 @@ function TryBusinessSidebarItem(props: Props) {
   }, [props.organization]);
 
   const labelText = useMemo(() => {
-    if (props.subscription.isTrial) {
+    if (props.subscription.trialPlan !== null) {
       return t('My Sentry Trial');
     }
     if (!props.subscription.canTrial) {

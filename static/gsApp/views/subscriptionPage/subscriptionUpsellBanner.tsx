@@ -89,7 +89,7 @@ function useIsSubscriptionUpsellHidden(
     !subscription.canSelfServe ||
     (hasPerformance(subscription.planDetails) &&
       isBizPlanFamily(subscription.planDetails)) ||
-    subscription.isTrial ||
+    subscription.trialPlan !== null ||
     isLegacyUpsell ||
     hasEndingPartnerPlan ||
     isBizPlanFamily(subscription.pendingChanges?.planDetails)

@@ -14,7 +14,7 @@ const getLabel = (item: Subscription) => {
   if (item.isEnterpriseTrial) {
     return `Trialing (${item.trialPlan} enterprise)`;
   }
-  if (item.isTrial) {
+  if (item.trialPlan !== null) {
     return `Trialing (${item.trialPlan})`;
   }
   if (item.isFree) {

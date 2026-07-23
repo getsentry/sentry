@@ -197,7 +197,7 @@ export function rawTrackAnalyticsEvent(
         data.can_trial = subscription.canTrial;
       }
       if (data.is_trial === undefined) {
-        data.is_trial = subscription.isTrial;
+        data.is_trial = subscription.trialPlan !== null;
       }
       // we can add more fields but we should be carefull about which ones to add
       // since Amplitude is an external vendor

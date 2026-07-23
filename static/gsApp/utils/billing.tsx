@@ -333,14 +333,14 @@ export const isTeamPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.TE
 
 export const isBusinessTrial = (subscription: Subscription) => {
   return (
-    subscription.isTrial &&
+    subscription.trialPlan !== null &&
     !subscription.isPerformancePlanTrial &&
     !subscription.isEnterpriseTrial
   );
 };
 
 export function hasJustStartedPlanTrial(subscription: Subscription) {
-  return subscription.isTrial && subscription.isTrialStarted;
+  return subscription.trialPlan !== null && subscription.isTrialStarted;
 }
 
 export const displayBudgetName = (

@@ -42,7 +42,7 @@ export function HighlightedFeature({feature, organization, subscription}: Props)
                 strong: <strong />,
               }
             )}
-        {!subscription.isTrial &&
+        {subscription.trialPlan === null &&
           tct(" You're currently on the [current] plan.", {
             current: subscription.planDetails.name,
           })}

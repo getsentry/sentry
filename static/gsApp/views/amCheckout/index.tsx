@@ -178,8 +178,8 @@ function AMCheckout(props: Props) {
   const shouldDefaultToBusiness = useCallback(() => {
     const hasUpsell = referrer?.startsWith('upgrade') || referrer?.startsWith('upsell');
 
-    return hasUpsell || subscription.isFree || subscription.isTrial;
-  }, [referrer, subscription.isFree, subscription.isTrial]);
+    return hasUpsell || subscription.isFree || subscription.trialPlan !== null;
+  }, [referrer, subscription.isFree, subscription.trialPlan]);
 
   const getBusinessPlan = useCallback(
     (config: BillingConfig) => {

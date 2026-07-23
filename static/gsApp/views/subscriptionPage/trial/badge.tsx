@@ -14,7 +14,7 @@ type Props = {
 };
 
 export function TrialBadge({subscription, organization}: Props) {
-  if (subscription.isTrial) {
+  if (subscription.trialPlan !== null) {
     return (
       <Tag variant="promotion">
         <TrialText>

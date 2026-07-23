@@ -86,7 +86,7 @@ export function CronsBillingBanner({organization, subscription}: Props) {
     return null;
   }
 
-  if (trialDaysLeft <= 7 && subscription.isTrial) {
+  if (trialDaysLeft <= 7 && subscription.trialPlan !== null) {
     return (
       <TrialEndingBanner
         hasBillingAccess={hasBillingAccess}

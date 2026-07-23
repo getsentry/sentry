@@ -648,7 +648,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
         <DetailList>
           <DetailLabel title="Status">
             <CustomerStatus customer={customer} />
-            {customer.isTrial && (
+            {customer.trialPlan !== null && (
               <div>
                 <small>
                   <strong>{moment(customer.trialEnd).fromNow(true)} remaining</strong>{' '}

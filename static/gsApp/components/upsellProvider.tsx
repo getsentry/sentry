@@ -97,7 +97,7 @@ function UpsellProvider({
     return null;
   }
 
-  const canTrial = subscription.canTrial && !subscription.isTrial;
+  const canTrial = subscription.canTrial && subscription.trialPlan === null;
   const handleRequest = () => {
     const args = {
       api,

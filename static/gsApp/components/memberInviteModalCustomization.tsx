@@ -35,7 +35,8 @@ function MemberInviteModalCustomization({
   children,
   subscription,
 }: MemberInviteProps) {
-  const {totalMembers, canTrial, isTrial, totalLicenses} = subscription;
+  const {totalMembers, canTrial, totalLicenses} = subscription;
+  const isTrial = subscription.trialPlan !== null;
   const usedSeats = totalMembers ?? 0;
   const isOverMemberLimit = totalLicenses > 0 && usedSeats >= totalLicenses;
 

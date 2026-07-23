@@ -326,7 +326,6 @@ export type Subscription = {
   isSponsored: boolean;
   isSuspended: boolean;
 
-  isTrial: boolean;
   lastTrialEnd: string | null;
   membersDeactivatedFromLimit: number;
   name: string;
@@ -609,8 +608,14 @@ type CamelToSnake<
         ? `${Prev extends '' ? '' : Prev extends 'lower' ? '_' : ''}${Lowercase<First>}`
         : Rest extends `${infer Next}${infer _Tail}`
           ? Next extends Lowercase<Next>
-            ? `${Prev extends '' ? '' : '_'}${Lowercase<First>}${CamelToSnake<Rest, 'upper'>}`
-            : `${Prev extends 'lower' ? '_' : ''}${Lowercase<First>}${CamelToSnake<Rest, 'upper'>}`
+            ? `${Prev extends '' ? '' : '_'}${Lowercase<First>}${CamelToSnake<
+                Rest,
+                'upper'
+              >}`
+            : `${Prev extends 'lower' ? '_' : ''}${Lowercase<First>}${CamelToSnake<
+                Rest,
+                'upper'
+              >}`
           : never
       : `${First}${CamelToSnake<Rest, Prev>}`
   : S;

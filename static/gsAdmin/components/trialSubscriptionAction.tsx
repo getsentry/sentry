@@ -69,7 +69,7 @@ export class TrialSubscriptionAction extends Component<Props, State> {
     if (startEnterpriseTrial) {
       return 'Start Enterprise Trial';
     }
-    return subscription.isTrial ? 'Extend Trial' : 'Start Trial';
+    return subscription.trialPlan === null ? 'Start Trial' : 'Extend Trial';
   }
 
   render() {
