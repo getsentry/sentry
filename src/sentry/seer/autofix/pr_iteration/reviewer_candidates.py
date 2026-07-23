@@ -386,16 +386,18 @@ def _recent_committer_logins(
     for path in paths:
         try:
             result = scm_actions.get_commits_by_path(scm, path, since=since)
+            # The normalized Commit only carries the git name/email; the
+            # provider login and account type are only in the raw payload.
+            raw_commits = result["raw"]["data"] or []
         except Exception:
+            # One failing path shouldn't cost the ranking its other paths.
             logger.warning(
                 "autofix.pr_iteration.reviewer_candidates.commits_by_path_failed",
                 extra={**log_extra, "path": path},
                 exc_info=True,
             )
             continue
-        # The normalized Commit only carries the git name/email; the provider
-        # login and account type are only in the raw payload.
-        for raw_commit in result["raw"]["data"] or []:
+        for raw_commit in raw_commits:
             author = raw_commit.get("author") or {}
             login = author.get("login")
             if not login or author.get("type") != "User":

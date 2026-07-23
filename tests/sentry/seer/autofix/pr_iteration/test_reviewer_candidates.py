@@ -330,6 +330,27 @@ class CollectReviewerCandidatesTest(TestCase):
         ]
 
     @patch(f"{CANDIDATES_PATH}.scm_actions")
+    def test_recent_committer_malformed_page_skips_only_that_path(
+        self, mock_actions: MagicMock
+    ) -> None:
+        self.seer_run.update(user_id=None)
+        mock_actions.get_pull_request_files.return_value = _files_page(
+            [
+                {"filename": "src/widget.py", "changes": 10},
+                {"filename": "src/other.py", "changes": 5},
+            ]
+        )
+        malformed_page = {"data": [], "type": "github", "raw": {}, "meta": {"next_cursor": None}}
+        mock_actions.get_commits_by_path.side_effect = [
+            malformed_page,
+            _commits_page([{"author": {"login": "alice", "type": "User"}}]),
+        ]
+
+        candidates = self._collect(scm=_FakeScm())
+
+        assert candidates == [ReviewerCandidate(login="alice", source=SOURCE_RECENT_COMMITTER)]
+
+    @patch(f"{CANDIDATES_PATH}.scm_actions")
     def test_dedupes_fallback_sources_keeping_highest_ranked_provenance(
         self, mock_actions: MagicMock
     ) -> None:
