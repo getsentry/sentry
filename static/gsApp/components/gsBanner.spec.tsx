@@ -491,43 +491,6 @@ describe('GSBanner', () => {
     expect(openForcedTrialModal).not.toHaveBeenCalled();
   });
 
-  it('automatically starts forced trial for restricted integration', async () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
-
-    SubscriptionStore.set(
-      organization.slug,
-      SubscriptionFixture({
-        plan: 'am1_f',
-        organization,
-        totalLicenses: 1,
-        usedLicenses: 1,
-        hasRestrictedIntegration: true,
-      })
-    );
-
-    const mockForceTrial = MockApiClient.addMockResponse({
-      method: 'POST',
-      url: `/organizations/${organization.slug}/restricted-integration-trial/`,
-      body: {},
-    });
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-
-    await waitFor(() => {
-      expect(mockForceTrial).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/restricted-integration-trial/`,
-        expect.objectContaining({
-          method: 'POST',
-        })
-      );
-    });
-    expect(openForcedTrialModal).toHaveBeenCalled();
-  });
-
   it('opens the forced trial modal', async () => {
     const now = moment();
     const organization = OrganizationFixture({

@@ -458,17 +458,11 @@ class GSBanner extends Component<Props, State> {
       return;
     }
 
-    // mutliple possible trial endpoints depending on the situation
-    let endpoint: string;
-    // check for restricted integration
-    if (subscription.hasRestrictedIntegration) {
-      endpoint = `/organizations/${organization.slug}/restricted-integration-trial/`;
-      // only trigger if member limit is 1 and we have multiple licenses used
-    } else if (subscription.totalLicenses === 1 && subscription.usedLicenses > 1) {
-      endpoint = `/organizations/${organization.slug}/over-member-limit-trial/`;
-    } else {
+    // only trigger if member limit is 1 and we have multiple licenses used
+    if (!(subscription.totalLicenses === 1 && subscription.usedLicenses > 1)) {
       return;
     }
+    const endpoint = `/organizations/${organization.slug}/over-member-limit-trial/`;
 
     try {
       await api.requestPromise(endpoint, {
