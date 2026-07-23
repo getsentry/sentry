@@ -229,4 +229,35 @@ describe('compareLogRowsBySortBys', () => {
       sortedIds([invalid, older], [{field: OurLogKnownFieldKey.TIMESTAMP, kind: 'desc'}])
     ).not.toThrow();
   });
+
+  it('breaks ties by id in the sort direction when precise timestamps are identical', () => {
+    const a = logRow('aaa', {[OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 5_000});
+    const b = logRow('bbb', {[OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 5_000});
+
+    const descending = sortedIds(
+      [a, b],
+      [{field: OurLogKnownFieldKey.TIMESTAMP, kind: 'desc'}]
+    );
+    const ascending = sortedIds(
+      [b, a],
+      [{field: OurLogKnownFieldKey.TIMESTAMP, kind: 'asc'}]
+    );
+
+    expect([descending, ascending]).toEqual([
+      ['bbb', 'aaa'],
+      ['aaa', 'bbb'],
+    ]);
+  });
+
+  it('does not break ties by id when a non-timestamp field leads the sort', () => {
+    const a = logRow('aaa', {[OurLogKnownFieldKey.SEVERITY]: 'error'});
+    const b = logRow('bbb', {[OurLogKnownFieldKey.SEVERITY]: 'error'});
+
+    const result = sortedIds(
+      [b, a],
+      [{field: OurLogKnownFieldKey.SEVERITY, kind: 'asc'}]
+    );
+
+    expect(result).toEqual(['bbb', 'aaa']);
+  });
 });

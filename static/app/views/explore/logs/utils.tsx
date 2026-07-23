@@ -291,6 +291,24 @@ export function compareLogRowsBySortBys(
       return direction;
     }
   }
+
+  // When a timestamp sort leads, the server resolves ties on the item id in the same
+  // direction so same-timestamp rows keep a strict, page-stable order. Mirror that here.
+  const leadingSort = sortBys[0];
+  if (
+    leadingSort?.field === OurLogKnownFieldKey.TIMESTAMP ||
+    leadingSort?.field === OurLogKnownFieldKey.TIMESTAMP_PRECISE
+  ) {
+    const idDirection = leadingSort.kind === 'desc' ? -1 : 1;
+    const aId = String(a[OurLogKnownFieldKey.ID] ?? '');
+    const bId = String(b[OurLogKnownFieldKey.ID] ?? '');
+    if (aId < bId) {
+      return -1 * idDirection;
+    }
+    if (aId > bId) {
+      return idDirection;
+    }
+  }
   return 0;
 }
 
