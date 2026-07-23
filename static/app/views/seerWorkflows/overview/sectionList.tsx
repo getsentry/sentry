@@ -22,6 +22,7 @@ import {SectionIssueCard} from './sectionIssueCard';
 import {STATUS_GROUP_META, StatusGroupTooltip, type StatusGroupKey} from './statusGroups';
 import type {OverviewView, SortValue} from './types';
 import {SECTION_LIMIT, useAutofixSections} from './useAutofixSections';
+import {useValidPrIssues} from './useValidPrIssues';
 
 function formatSectionCount(count: number | undefined) {
   if (count === undefined) {
@@ -67,6 +68,18 @@ export function SectionList({
     enabled: enabled && hasCardIssues,
   });
 
+  // Cards in the review bucket sometimes have no PR behind them (the run's
+  // PR creation never completed). Hide those and count only what's left; the
+  // per-issue state queries here share cache keys with the cards' own
+  // enrichment, so nothing is fetched twice.
+  const reviewPrSection = sections.find(section => section.key === 'review_pr');
+  const {validIssues, isPending: prFilterPending} = useValidPrIssues({
+    enabled: Boolean(
+      enabled && reviewPrSection && !reviewPrSection.isPending && !reviewPrSection.isError
+    ),
+    issues: reviewPrSection?.issues ?? [],
+  });
+
   const firstLoad = isPending && sections.every(section => section.isPending);
   const allSectionsEmpty = sections.every(
     section => !section.isPending && !section.isError && section.issues.length === 0
@@ -98,6 +111,15 @@ export function SectionList({
       {sections.map(section => {
         const meta = STATUS_GROUP_META[section.key];
         const expanded = !collapsedGroups.includes(section.key);
+        const isReviewPr = section.key === 'review_pr';
+        const issues = isReviewPr ? validIssues : section.issues;
+        const count = isReviewPr
+          ? prFilterPending
+            ? undefined
+            : issues.length
+          : section.count;
+        const contentPending =
+          section.isPending || (isReviewPr && prFilterPending && issues.length === 0);
         return (
           <StatusGroup
             key={section.key}
@@ -116,16 +138,16 @@ export function SectionList({
                     <meta.Icon size="sm" aria-hidden />
                   </Tooltip>
                   <Text bold>{meta.label}</Text>
-                  <Badge variant="muted">{formatSectionCount(section.count)}</Badge>
+                  <Badge variant="muted">{formatSectionCount(count)}</Badge>
                 </Flex>
               </Disclosure.Title>
             </GroupHeader>
             <Disclosure.Content data-view={view}>
               {section.isError ? (
                 <LoadingError onRetry={section.refetch} />
-              ) : section.isPending ? (
+              ) : contentPending ? (
                 <LoadingIndicator />
-              ) : section.issues.length === 0 ? (
+              ) : issues.length === 0 ? (
                 <Container padding="md">
                   <Text as="p" variant="muted" size="sm">
                     {t('No issues')}
@@ -137,7 +159,7 @@ export function SectionList({
                   paddingTop={view === 'cards' ? 'sm' : '0'}
                   data-view={view}
                 >
-                  {section.issues.map(issue => (
+                  {issues.map(issue => (
                     <SectionIssueCard
                       key={issue.id}
                       issue={issue}
