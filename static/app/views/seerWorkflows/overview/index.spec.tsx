@@ -368,6 +368,10 @@ describe('AutofixOverview', () => {
       screen.getByRole('button', {name: 'Modify issue assignee'})
     ).toBeInTheDocument();
 
+    expect(
+      screen.getByRole('button', {name: 'Modify issue priority'})
+    ).toBeInTheDocument();
+
     // Identity sits in the tail: short id + exactly one level marker.
     expect(screen.getByText('PROJ-1')).toBeVisible();
     expect(screen.getAllByText('Level: Warning')).toHaveLength(1);

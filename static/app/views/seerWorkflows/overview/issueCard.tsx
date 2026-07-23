@@ -29,6 +29,7 @@ import {ellipsize} from 'sentry/utils/string/ellipsize';
 
 import {deriveCardAction, IssuePrimaryAction} from './cardAction';
 import {OverviewIssueAssignee} from './overviewIssueAssignee';
+import {OverviewIssuePriority} from './overviewIssuePriority';
 import {useOpenOverviewSeerDrawer} from './overviewSeerDrawer';
 import {periodWindowLabel} from './periods';
 import {TriggerBadge} from './triggerBadge';
@@ -397,6 +398,7 @@ export function IssueCard({
             columns="minmax(0, 1fr) auto"
             gap="xl"
             align="start"
+            alignSelf="stretch"
             flexShrink={0}
             width={{xs: '100%', sm: '380px'}}
           >
@@ -421,44 +423,74 @@ export function IssueCard({
                 <TriggerBadge trigger={row.trigger} rawSource={row.rawSource} />
               )}
             </Stack>
-            <Stack gap="xs" align="end">
-              <IssuePrimaryAction
-                action={cardAction}
-                row={row}
-                onOpenRun={onOpenRun}
-                runUrl={runUrl}
-              />
-              <Flex gap="xs" align="center">
+            <Stack gap="lg" align="end" justify="between" alignSelf="stretch">
+              <Stack gap="xs" align="end">
+                <IssuePrimaryAction
+                  action={cardAction}
+                  row={row}
+                  onOpenRun={onOpenRun}
+                  runUrl={runUrl}
+                />
                 {row.patchStats && (
-                  <Tooltip
-                    title={<PatchFilesTooltip stats={row.patchStats} />}
-                    maxWidth={480}
-                    skipWrapper
-                  >
-                    <Container
-                      tabIndex={0}
-                      aria-label={tn(
-                        '%s file changed',
-                        '%s files changed',
-                        row.patchStats.files
-                      )}
-                      border="muted"
-                      radius="sm"
-                      background="secondary"
-                      padding="2xs sm"
+                  <Flex gap="xs" align="center">
+                    <Tooltip
+                      title={<PatchFilesTooltip stats={row.patchStats} />}
+                      maxWidth={480}
+                      skipWrapper
                     >
-                      <Text size="xs" variant="muted" monospace wrap="nowrap">
-                        {tn('%s file', '%s files', row.patchStats.files)}{' '}
-                        <Text size="xs" variant="success">
-                          +{row.patchStats.added}
-                        </Text>{' '}
-                        <Text size="xs" variant="danger">
-                          −{row.patchStats.removed}
+                      <Container
+                        tabIndex={0}
+                        aria-label={tn(
+                          '%s file changed',
+                          '%s files changed',
+                          row.patchStats.files
+                        )}
+                        border="muted"
+                        radius="sm"
+                        background="secondary"
+                        padding="2xs sm"
+                      >
+                        <Text size="xs" variant="muted" monospace wrap="nowrap">
+                          {tn('%s file', '%s files', row.patchStats.files)}{' '}
+                          <Text size="xs" variant="success">
+                            +{row.patchStats.added}
+                          </Text>{' '}
+                          <Text size="xs" variant="danger">
+                            −{row.patchStats.removed}
+                          </Text>
                         </Text>
-                      </Text>
-                    </Container>
-                  </Tooltip>
+                      </Container>
+                    </Tooltip>
+                  </Flex>
                 )}
+                {row.prUrl && cardAction.type !== 'review_pr' && (
+                  <LinkButton
+                    size="sm"
+                    variant="link"
+                    icon={<IconPullRequest />}
+                    href={row.prUrl}
+                    external
+                  >
+                    {row.prNumber ? `#${row.prNumber}` : t('PR')}
+                  </LinkButton>
+                )}
+              </Stack>
+              <Flex gap="xs" align="center">
+                <OverviewIssuePriority
+                  group={{
+                    assignedTo: row.assignedTo,
+                    count: String(row.eventCount),
+                    id: row.id,
+                    issueCategory: row.issueCategory,
+                    issueType: row.issueType,
+                    lastSeen: row.lastSeen,
+                    level: row.level,
+                    owners: row.owners,
+                    priority: row.priority,
+                    priorityLockedAt: row.priorityLockedAt,
+                    project: {id: row.project.id},
+                  }}
+                />
                 <OverviewIssueAssignee
                   groupId={row.id}
                   projectId={row.project.id}
@@ -469,17 +501,6 @@ export function IssueCard({
                   owners={row.owners ?? undefined}
                 />
               </Flex>
-              {row.prUrl && cardAction.type !== 'review_pr' && (
-                <LinkButton
-                  size="sm"
-                  variant="link"
-                  icon={<IconPullRequest />}
-                  href={row.prUrl}
-                  external
-                >
-                  {row.prNumber ? `#${row.prNumber}` : t('PR')}
-                </LinkButton>
-              )}
             </Stack>
           </Grid>
         </Flex>
