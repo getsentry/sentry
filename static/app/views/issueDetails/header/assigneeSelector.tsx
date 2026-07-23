@@ -36,8 +36,7 @@ interface GroupHeaderAssigneeSelectorProps {
   group: Group;
   project: Project;
   /**
-   * Show the assignee name next to the avatar. On by default; disable for compact
-   * surfaces (e.g. the issue preview) that want an avatar-only control.
+   * Show the assignee name next to the avatar. Defaults to true.
    */
   showLabel?: boolean;
 }
