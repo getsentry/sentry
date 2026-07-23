@@ -31,10 +31,7 @@ const PROGRESS_STATE_STEPS: Record<ProgressState, ProgressMarkerStep> = {
   [ProgressState.FIX_APPLIED]: 'complete',
 };
 
-export function getProgressIcon(
-  state: ProgressState | null,
-  size?: IconSize
-): ReactNode {
+export function getProgressIcon(state: ProgressState | null, size?: IconSize): ReactNode {
   if (!state) {
     return null;
   }
