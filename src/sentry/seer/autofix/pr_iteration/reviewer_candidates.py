@@ -34,6 +34,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 
+from django.db.models import F
 from django.db.models.functions import Lower
 from django.utils import timezone
 from scm import actions as scm_actions
@@ -276,13 +277,17 @@ def _code_owner_logins(repository: Repository, changed_files: list[PullRequestFi
     """
     if not changed_files:
         return []
-    # Several projects can sync the same repo's CODEOWNERS file; any copy has
-    # the same rules, so the most recently synced one is simply the freshest.
+    # Several projects can sync the same repo's CODEOWNERS file; prefer the
+    # copy whose raw content was fetched most recently. ``date_updated`` alone
+    # can't tell that apart: schema-only rebuilds (e.g. on team changes) bump
+    # it without refreshing ``raw``. ``date_synced`` is the fetch timestamp,
+    # but is NULL for manually uploaded copies, where ``date_updated`` is the
+    # only freshness signal left.
     codeowners = (
         ProjectCodeOwners.objects.filter(
             repository_project_path_config__project_repository__repository=repository
         )
-        .order_by("-date_updated")
+        .order_by(F("date_synced").desc(nulls_last=True), "-date_updated")
         .first()
     )
     if codeowners is None or not codeowners.raw:

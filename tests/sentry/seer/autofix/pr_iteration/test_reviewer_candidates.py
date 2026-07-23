@@ -1,7 +1,11 @@
+from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from django.utils import timezone
+
 from sentry.models.groupowner import GroupOwnerType
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.seer.autofix.pr_iteration.reviewer_candidates import (
     MAX_CANDIDATES,
     REVIEWER_CANDIDATES_EXTRA,
@@ -240,6 +244,48 @@ class CollectReviewerCandidatesTest(TestCase):
         candidates = self._collect(scm=_FakeScm())
 
         assert candidates == [ReviewerCandidate(login="elsewhere-dev", source=SOURCE_CODE_OWNER)]
+
+    @patch(f"{CANDIDATES_PATH}.scm_actions")
+    def test_code_owner_prefers_the_most_recently_synced_copy(
+        self, mock_actions: MagicMock
+    ) -> None:
+        # Schema-only rebuilds (e.g. on team changes) bump date_updated
+        # without refreshing raw, so the copy that looks newest by
+        # date_updated can hold stale rules; date_synced marks when raw was
+        # actually fetched.
+        self.seer_run.update(user_id=None)
+        for login in ("current-dev", "stale-dev"):
+            member = self.create_user(email=f"{login}@example.com")
+            self.create_member(organization=self.organization, user=member, teams=[self.team])
+            self.create_external_user(
+                user=member, organization=self.organization, external_name=f"@{login}"
+            )
+        synced = self.create_codeowners(
+            project=self.project,
+            code_mapping=self.create_code_mapping(project=self.project, repo=self.repo),
+            raw="src/widget.py @current-dev",
+        )
+        other_project = self.create_project(organization=self.organization, teams=[self.team])
+        rebuilt = self.create_codeowners(
+            project=other_project,
+            code_mapping=self.create_code_mapping(project=other_project, repo=self.repo),
+            raw="src/widget.py @stale-dev",
+        )
+        now = timezone.now()
+        # Queryset updates dodge the pre_save signal that would overwrite
+        # date_updated with the save time.
+        ProjectCodeOwners.objects.filter(id=synced.id).update(
+            date_synced=now - timedelta(hours=1), date_updated=now - timedelta(hours=1)
+        )
+        ProjectCodeOwners.objects.filter(id=rebuilt.id).update(date_synced=None, date_updated=now)
+        mock_actions.get_pull_request_files.return_value = _files_page(
+            [{"filename": "src/widget.py", "changes": 10}]
+        )
+        mock_actions.get_commits_by_path.return_value = _commits_page([])
+
+        candidates = self._collect(scm=_FakeScm())
+
+        assert candidates == [ReviewerCandidate(login="current-dev", source=SOURCE_CODE_OWNER)]
 
     @patch(f"{CANDIDATES_PATH}.scm_actions")
     def test_code_owner_last_matching_rule_wins(self, mock_actions: MagicMock) -> None:
