@@ -35,6 +35,10 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.models.releases.util import (
+    SEMVER_PRERELEASE_NUMERIC_PAD_WIDTH,
+    normalize_semver_prerelease,
+)
 from sentry.models.repository import Repository
 from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
@@ -95,6 +99,56 @@ def test_version_is_semver_valid(release_version) -> None:
 )
 def test_version_is_semver_invalid(release_version) -> None:
     assert Release.is_semver_version(release_version) is False
+
+
+@pytest.mark.parametrize(
+    "prerelease,expected",
+    [
+        ("", ""),
+        ("alpha", "alpha"),
+        ("rc1", "rc1"),  # `rc1` is a single alphanumeric identifier, not numeric
+        ("rc.1", f"rc.{'1'.zfill(SEMVER_PRERELEASE_NUMERIC_PAD_WIDTH)}"),
+        ("alpha.beta", "alpha.beta"),
+        (
+            "0.3.7",
+            ".".join(part.zfill(SEMVER_PRERELEASE_NUMERIC_PAD_WIDTH) for part in ("0", "3", "7")),
+        ),
+        # Identifiers longer than the pad width are left as-is.
+        ("rc.12345678901234567890", "rc.12345678901234567890"),
+        # Non-ascii digits are not numeric identifiers and must not be padded.
+        ("rc.١٢٣", "rc.١٢٣"),
+    ],
+)
+def test_normalize_semver_prerelease(prerelease, expected) -> None:
+    assert normalize_semver_prerelease(prerelease) == expected
+
+
+def test_normalize_semver_prerelease_ordering() -> None:
+    """
+    The normalized form must sort lexicographically in the same order that the
+    semver spec defines for the raw prereleases (spec item 11.4: numeric
+    identifiers compare numerically and sort below alphanumeric ones, fewer
+    identifiers sort first).
+    """
+    prereleases_in_semver_order = [
+        "1",
+        "2",
+        "9",
+        "10",
+        "96",
+        "193",
+        "alpha",
+        "alpha.1",
+        "alpha.beta",
+        "beta",
+        "beta.2",
+        "beta.11",
+        "prerelease.96",
+        "prerelease.193",
+        "rc.1",
+    ]
+    normalized = [normalize_semver_prerelease(p) for p in prereleases_in_semver_order]
+    assert normalized == sorted(normalized)
 
 
 class GetOrCreateNoCreateTest(TestCase):
@@ -1148,6 +1202,19 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_number is None
         assert release.package == "org.example.FooApp"
 
+    def test_parse_release_normalizes_numeric_prerelease(self) -> None:
+        """
+        Test that numeric prerelease identifiers are zero-padded when stored, so
+        that the lexicographic ordering Postgres applies to the `prerelease`
+        column matches semver precedence (`rc.9` < `rc.10`).
+        """
+        version = "org.example.FooApp@1.0.0-rc.9"
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release.prerelease == f"rc.{'9'.zfill(SEMVER_PRERELEASE_NUMERIC_PAD_WIDTH)}"
+        # Alphanumeric identifiers are stored untouched.
+        assert release.prerelease > "rc"
+        assert release.prerelease < f"rc.{'10'.zfill(SEMVER_PRERELEASE_NUMERIC_PAD_WIDTH)}"
+
     def test_parse_non_semver_should_not_fail(self) -> None:
         """
         Test that ensures nothing breaks when sending a non semver compatible release
@@ -1269,6 +1336,22 @@ class ReleaseFilterBySemverTest(TestCase):
             [release_1, release_2, release_3, release_4],
         )
         self.run_test("<", "1.2.3", [release_1, release])
+
+    def test_prerelease_numeric_identifiers(self) -> None:
+        # Numeric prerelease identifiers must be compared numerically, not
+        # lexicographically (semver spec item 11.4.1): 9 < 10 < 96 < 193.
+        release_9 = self.create_release(version="test@3.0.0-prerelease.9")
+        release_10 = self.create_release(version="test@3.0.0-prerelease.10")
+        release_96 = self.create_release(version="test@3.0.0-prerelease.96")
+        release_193 = self.create_release(version="test@3.0.0-prerelease.193")
+        release_final = self.create_release(version="test@3.0.0")
+
+        self.run_test(">", "3.0.0-prerelease.9", [release_10, release_96, release_193, release_final])
+        self.run_test(">", "3.0.0-prerelease.96", [release_193, release_final])
+        self.run_test("<", "3.0.0-prerelease.96", [release_9, release_10])
+        self.run_test(">=", "3.0.0-prerelease.193", [release_193, release_final])
+        self.run_test("=", "3.0.0-prerelease.96", [release_96])
+        self.run_test("<", "3.0.0", [release_9, release_10, release_96, release_193])
 
     def test_granularity(self) -> None:
         self.create_release(version="test@1.0.0.0")

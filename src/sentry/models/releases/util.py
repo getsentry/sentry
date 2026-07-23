@@ -37,6 +37,45 @@ class SemverFilter:
     negated: bool = False
 
 
+# Width that numeric prerelease identifiers are zero-padded to in
+# `normalize_semver_prerelease`. 19 digits covers the full range of a 64 bit
+# integer, which is far beyond any realistic prerelease counter.
+SEMVER_PRERELEASE_NUMERIC_PAD_WIDTH = 19
+
+
+def normalize_semver_prerelease(prerelease: str) -> str:
+    """
+    Converts a raw semver prerelease string into the sortable form stored in
+    `Release.prerelease`.
+
+    The semver spec requires dot-separated prerelease identifiers that consist
+    solely of digits to be compared numerically (e.g. `rc.9` < `rc.10`), but we
+    store `prerelease` in a text column that Postgres compares
+    lexicographically (where `rc.9` > `rc.10`). To make the two orderings
+    agree, numeric identifiers are zero-padded to a fixed width before being
+    stored or compared against this column.
+
+    Note that the raw prerelease remains available by parsing
+    `Release.version`; this column only exists for sorting/filtering.
+
+    Known limitation (pre-existing): alphanumeric identifiers containing `-`
+    can still sort out of spec order relative to the `.` separator, because
+    `-` < `.` in ASCII (e.g. `alpha-1` vs `alpha.0`).
+    """
+    if not prerelease:
+        return prerelease
+    return ".".join(
+        (
+            identifier.zfill(SEMVER_PRERELEASE_NUMERIC_PAD_WIDTH)
+            if identifier.isascii()
+            and identifier.isdigit()
+            and len(identifier) <= SEMVER_PRERELEASE_NUMERIC_PAD_WIDTH
+            else identifier
+        )
+        for identifier in prerelease.split(".")
+    )
+
+
 class ReleaseQuerySet(BaseQuerySet["Release"]):
     def annotate_prerelease_column(self) -> Self:
         """
@@ -265,7 +304,9 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
                             "minor": version_parsed.get("minor"),
                             "patch": version_parsed.get("patch"),
                             "revision": version_parsed.get("revision"),
-                            "prerelease": version_parsed.get("pre") or "",
+                            "prerelease": normalize_semver_prerelease(
+                                version_parsed.get("pre") or ""
+                            ),
                             "build_code": build_code,
                             "build_number": build_number,
                             "package": package,

@@ -256,6 +256,9 @@ class Release(Model):
     minor = models.BigIntegerField(null=True)
     patch = models.BigIntegerField(null=True)
     revision = models.BigIntegerField(null=True)
+    # Stored in the normalized form produced by `normalize_semver_prerelease`
+    # (numeric identifiers zero-padded) so that the text ordering Postgres uses
+    # matches semver precedence. Parse `version` to get the raw prerelease.
     prerelease = models.TextField(null=True)
     build_code = models.TextField(null=True)
     # If `build_code` can be parsed as a 64 bit int we'll store it here as well for
