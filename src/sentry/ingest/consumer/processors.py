@@ -74,6 +74,215 @@ def trace_func(**span_kwargs):
     return wrapper
 
 
+def _lookup_organization(project: Project, project_id: int) -> bool:
+    """Fetch and cache the organization on the project. Returns False if not found."""
+    try:
+        project.set_cached_field_value(
+            "organization", Organization.objects.get_from_cache(id=project.organization_id)
+        )
+    except Organization.DoesNotExist:
+        logger.warning(
+            "Organization does not exist",
+            extra={
+                "project_id": project_id,
+                "organization_id": project.organization_id,
+            },
+        )
+        return False
+    return True
+
+
+def _set_dedup_and_signal(
+    deduplication_key: str,
+    remote_addr: str | None,
+    data: Mapping[str, Any],
+    project: Project,
+) -> None:
+    with start_span(op="cache.set", name="cache.set"):
+        cache.set(deduplication_key, "", CACHE_TIMEOUT)
+
+    with start_span(op="event_accepted.send_robust", name="event_accepted.send_robust"):
+        event_accepted.send_robust(
+            ip=remote_addr, data=data, project=project, sender=process_event
+        )
+
+
+def _process_transaction_event(
+    consumer_type: str,
+    data: MutableMapping[str, Any],
+    project: Project,
+    project_id: int,
+    event_id: str,
+    start_time: float,
+    remote_addr: str | None,
+    payload: bytes,
+    attachments: tuple[Any, ...],
+    deduplication_key: str,
+    reprocess_only_stuck_events: bool,
+    reprocess_only_events_not_in_nodestore: bool,
+    inline_save_event_transaction: bool,
+) -> None:
+    processing_store = transaction_processing_store
+
+    if reprocess_only_stuck_events:
+        with start_span(
+            op="event_processing_store.exists", name="event_processing_store.exists"
+        ):
+            if not processing_store.exists(data):
+                return
+
+    if reprocess_only_events_not_in_nodestore:
+        with start_span(op="nodestore.exists", name="nodestore.exists"):
+            node_id = Event.generate_node_id(project_id, event_id)
+            if nodestore.backend.get(node_id) is not None:
+                return
+
+    attachment_objects = [
+        CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
+        for attachment in attachments
+    ]
+    if attachment_objects:
+        store_attachments_for_event(project, data, attachment_objects, timeout=CACHE_TIMEOUT)
+
+    with metrics.timer("ingest_consumer._store_event"):
+        cache_key = processing_store.store(data)
+
+    if consumer_type == ConsumerType.Transactions:
+        track_sampled_event(
+            data["event_id"], ConsumerType.Transactions, TransactionStageStatus.REDIS_PUT
+        )
+
+    try:
+        record(settings.EVENT_PROCESSING_STORE, "transactions", len(payload), UsageUnit.BYTES)
+    except Exception:
+        pass
+
+    if not _lookup_organization(project, project_id):
+        return
+
+    save_transaction_kwargs: dict[str, Any] = {
+        "cache_key": cache_key,
+        "data": None,
+        "start_time": start_time,
+        "event_id": event_id,
+        "project_id": project_id,
+    }
+    if inline_save_event_transaction:
+        save_event_transaction(**save_transaction_kwargs)
+    else:
+        save_event_transaction.delay(**save_transaction_kwargs)
+
+    try:
+        collect_span_metrics(project, data)
+    except Exception:
+        pass
+
+    _set_dedup_and_signal(deduplication_key, remote_addr, data, project)
+
+
+def _process_feedback_event(
+    data: MutableMapping[str, Any],
+    project: Project,
+    project_id: int,
+    event_id: str,
+    start_time: float,
+    remote_addr: str | None,
+    deduplication_key: str,
+) -> None:
+    if not _lookup_organization(project, project_id):
+        return
+
+    if not is_in_feedback_denylist(project.organization):
+        save_event_feedback.delay(
+            cache_key=None,
+            data=data,
+            start_time=start_time,
+            event_id=event_id,
+            project_id=project_id,
+        )
+    else:
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project_id,
+            key_id=None,
+            outcome=Outcome.RATE_LIMITED,
+            reason="feedback_denylist",
+            timestamp=to_datetime(start_time),
+            event_id=event_id,
+            category=DataCategory.USER_REPORT_V2,
+            quantity=1,
+        )
+
+    _set_dedup_and_signal(deduplication_key, remote_addr, data, project)
+
+
+def _process_error_event(
+    data: MutableMapping[str, Any],
+    project: Project,
+    project_id: int,
+    event_id: str,
+    start_time: float,
+    remote_addr: str | None,
+    payload: bytes,
+    attachments: tuple[Any, ...],
+    deduplication_key: str,
+    reprocess_only_stuck_events: bool,
+    reprocess_only_events_not_in_nodestore: bool,
+    inline_save_event: bool,
+) -> None:
+    processing_store = event_processing_store
+
+    if reprocess_only_stuck_events:
+        with start_span(
+            op="event_processing_store.exists", name="event_processing_store.exists"
+        ):
+            if not processing_store.exists(data):
+                return
+
+    if reprocess_only_events_not_in_nodestore:
+        with start_span(op="nodestore.exists", name="nodestore.exists"):
+            node_id = Event.generate_node_id(project_id, event_id)
+            if nodestore.backend.get(node_id) is not None:
+                return
+
+    attachment_objects = [
+        CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
+        for attachment in attachments
+    ]
+    if attachment_objects:
+        store_attachments_for_event(project, data, attachment_objects, timeout=CACHE_TIMEOUT)
+
+    with metrics.timer("ingest_consumer._store_event"):
+        cache_key = processing_store.store(data)
+
+    if data.get("type") == "error":
+        try:
+            record(settings.EVENT_PROCESSING_STORE, "errors", len(payload), UsageUnit.BYTES)
+        except Exception:
+            pass
+
+    if not _lookup_organization(project, project_id):
+        return
+
+    with start_span(
+        op="ingest_consumer.process_event.preprocess_event",
+        name="ingest_consumer.process_event.preprocess_event",
+    ):
+        preprocess_kwargs: dict[str, Any] = {
+            "cache_key": cache_key or "",
+            "data": data,
+            "start_time": start_time,
+            "event_id": event_id,
+            "project": project,
+            "has_attachments": bool(attachments),
+        }
+        if inline_save_event:
+            preprocess_kwargs["inline_save_event"] = True
+        preprocess_event(**preprocess_kwargs)
+
+    _set_dedup_and_signal(deduplication_key, remote_addr, data, project)
+
+
 @trace_func(name="ingest_consumer.process_event")
 @metrics.wraps("ingest_consumer.process_event")
 def process_event(
@@ -86,7 +295,8 @@ def process_event(
     inline_save_event_transaction: bool = False,
 ) -> None:
     """
-    Perform some initial filtering and deserialize the message payload.
+    Perform some initial filtering and deserialize the message payload,
+    then dispatch to the appropriate type-specific handler.
     """
     payload = message["payload"]
     start_time = float(message["start_time"])
@@ -149,15 +359,10 @@ def process_event(
     with start_span(op="orjson.loads", name="orjson.loads"):
         data = orjson.loads(payload)
 
-    # We also need to check "type" as transactions are also sent to ingest-attachments
-    # along with other event types if they have attachments.
-    if consumer_type == ConsumerType.Transactions or data.get("type") == "transaction":
-        processing_store = transaction_processing_store
-    else:
-        processing_store = event_processing_store
+    event_type = data.get("type")
 
-    sentry_sdk.set_extra("event_type", data.get("type"))
-    sentry_sdk.set_attribute("event_type", data.get("type"))
+    sentry_sdk.set_extra("event_type", event_type)
+    sentry_sdk.set_attribute("event_type", event_type)
 
     with start_span(
         op="killswitch_matches_context", name="store.load-shed-parsed-pipeline-projects"
@@ -167,7 +372,7 @@ def process_event(
             {
                 "organization_id": project.organization_id,
                 "project_id": project.id,
-                "event_type": data.get("type") or "null",
+                "event_type": event_type or "null",
                 "has_attachments": bool(attachments),
                 "event_id": event_id,
             },
@@ -177,142 +382,48 @@ def process_event(
     # Raise the retriable exception and skip DLQ if anything below this point fails as it may be caused by
     # intermittent network issue
     try:
-        # If we only want to reprocess "stuck" events, we check if this event is already in the
-        # `processing_store`. We only continue here if the event *is* present, as that will eventually
-        # process and consume the event from the `processing_store`, whereby getting it "unstuck".
-        if reprocess_only_stuck_events:
-            with start_span(
-                op="event_processing_store.exists", name="event_processing_store.exists"
-            ):
-                if not processing_store.exists(data):
-                    return
-
-        # If we only want to reprocess events that never made it into `nodestore`, we check whether the event body has
-        # already been persisted. We only continue here if the event is *not* present.
-        if reprocess_only_events_not_in_nodestore:
-            with start_span(op="nodestore.exists", name="nodestore.exists"):
-                node_id = Event.generate_node_id(project_id, event_id)
-                if nodestore.backend.get(node_id) is not None:
-                    return
-
-        attachment_objects = [
-            CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
-            for attachment in attachments
-        ]
-        if attachment_objects:
-            store_attachments_for_event(project, data, attachment_objects, timeout=CACHE_TIMEOUT)
-
-        # Feedback events pass their payload inline to `save_event_feedback` and
-        # never read it back from the processing store, so skip the Redis write
-        # for them. Storing would orphan the payload in Redis until its TTL
-        # expires, since nothing on the feedback path deletes it.
-        cache_key = None
-        if data.get("type") != "feedback":
-            with metrics.timer("ingest_consumer._store_event"):
-                cache_key = processing_store.store(data)
-        if consumer_type == ConsumerType.Transactions:
-            track_sampled_event(
-                data["event_id"], ConsumerType.Transactions, TransactionStageStatus.REDIS_PUT
+        # Transactions can arrive on the attachments topic if they have attachments,
+        # so we check the data type as well as the consumer type.
+        if consumer_type == ConsumerType.Transactions or event_type == "transaction":
+            _process_transaction_event(
+                consumer_type=consumer_type,
+                data=data,
+                project=project,
+                project_id=project_id,
+                event_id=event_id,
+                start_time=start_time,
+                remote_addr=remote_addr,
+                payload=payload,
+                attachments=attachments,
+                deduplication_key=deduplication_key,
+                reprocess_only_stuck_events=reprocess_only_stuck_events,
+                reprocess_only_events_not_in_nodestore=reprocess_only_events_not_in_nodestore,
+                inline_save_event_transaction=inline_save_event_transaction,
             )
-
-        try:
-            # Records rc-processing usage broken down by
-            # event type.
-            event_type = data.get("type")
-            if event_type == "error":
-                app_feature = "errors"
-            elif event_type == "transaction":
-                app_feature = "transactions"
-            else:
-                app_feature = None
-
-            if app_feature is not None:
-                record(settings.EVENT_PROCESSING_STORE, app_feature, len(payload), UsageUnit.BYTES)
-        except Exception:
-            pass
-
-        try:
-            project.set_cached_field_value(
-                "organization", Organization.objects.get_from_cache(id=project.organization_id)
+        elif event_type == "feedback":
+            _process_feedback_event(
+                data=data,
+                project=project,
+                project_id=project_id,
+                event_id=event_id,
+                start_time=start_time,
+                remote_addr=remote_addr,
+                deduplication_key=deduplication_key,
             )
-        except Organization.DoesNotExist:
-            logger.warning(
-                "Organization does not exist",
-                extra={
-                    "project_id": project_id,
-                    "organization_id": project.organization_id,
-                },
-            )
-            return
-        if data.get("type") == "transaction":
-            assert cache_key is not None
-            # No need for preprocess/process for transactions thus submit
-            # directly transaction specific save_event task.
-            save_transaction_kwargs: dict[str, Any] = {
-                "cache_key": cache_key,
-                "data": None,
-                "start_time": start_time,
-                "event_id": event_id,
-                "project_id": project_id,
-            }
-            if inline_save_event_transaction:
-                save_event_transaction(**save_transaction_kwargs)
-            else:
-                save_event_transaction.delay(**save_transaction_kwargs)
-
-            try:
-                collect_span_metrics(project, data)
-            except Exception:
-                pass
-        elif data.get("type") == "feedback":
-            if not is_in_feedback_denylist(project.organization):
-                save_event_feedback.delay(
-                    cache_key=None,  # data is passed inline; not stored in Redis
-                    data=data,
-                    start_time=start_time,
-                    event_id=event_id,
-                    project_id=project_id,
-                )
-            else:
-                track_outcome(
-                    org_id=project.organization_id,
-                    project_id=project_id,
-                    key_id=None,
-                    outcome=Outcome.RATE_LIMITED,
-                    reason="feedback_denylist",
-                    timestamp=to_datetime(start_time),
-                    event_id=event_id,
-                    category=DataCategory.USER_REPORT_V2,
-                    quantity=1,
-                )
         else:
-            # Preprocess this event, which spawns either process_event or
-            # save_event. Pass data explicitly to avoid fetching it again from the
-            # cache.
-            with start_span(
-                op="ingest_consumer.process_event.preprocess_event",
-                name="ingest_consumer.process_event.preprocess_event",
-            ):
-                preprocess_kwargs: dict[str, Any] = {
-                    "cache_key": cache_key or "",
-                    "data": data,
-                    "start_time": start_time,
-                    "event_id": event_id,
-                    "project": project,
-                    "has_attachments": bool(attachments),
-                }
-                if inline_save_event:
-                    preprocess_kwargs["inline_save_event"] = True
-                preprocess_event(**preprocess_kwargs)
-
-        # remember for an 1 hour that we saved this event (deduplication protection)
-        with start_span(op="cache.set", name="cache.set"):
-            cache.set(deduplication_key, "", CACHE_TIMEOUT)
-
-        # emit event_accepted once everything is done
-        with start_span(op="event_accepted.send_robust", name="event_accepted.send_robust"):
-            event_accepted.send_robust(
-                ip=remote_addr, data=data, project=project, sender=process_event
+            _process_error_event(
+                data=data,
+                project=project,
+                project_id=project_id,
+                event_id=event_id,
+                start_time=start_time,
+                remote_addr=remote_addr,
+                payload=payload,
+                attachments=attachments,
+                deduplication_key=deduplication_key,
+                reprocess_only_stuck_events=reprocess_only_stuck_events,
+                reprocess_only_events_not_in_nodestore=reprocess_only_events_not_in_nodestore,
+                inline_save_event=inline_save_event,
             )
     except Exception as exc:
         if isinstance(exc, KeyError):  # ex: missing event_id in message["payload"]
