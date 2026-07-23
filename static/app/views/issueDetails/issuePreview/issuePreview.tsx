@@ -138,7 +138,7 @@ function IssuePreviewContent() {
                 to={issueDetailsUrl}
                 size="zero"
                 variant="transparent"
-                icon={<IconOpen />}
+                icon={<IconOpen size="xs" variant="muted" />}
                 aria-label={t('Open Issue')}
                 tooltipProps={{title: t('Open Issue')}}
               />
