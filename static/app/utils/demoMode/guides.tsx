@@ -6,8 +6,6 @@ import {
   type OnboardingTaskStatus,
   type UpdatedTask,
 } from 'sentry/types/onboarding';
-import type {Organization} from 'sentry/types/organization';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 const DEMO_MODE_WALKTHROUGH_TASKS_KEY = 'demo-mode:walkthrough-tasks';
 
@@ -69,7 +67,7 @@ export function getDemoGuides() {
   return [{guide: 'sidebar_v2', seen: false}];
 }
 
-export function getDemoModeGuides(organization: Organization | null): GuidesContent {
+export function getDemoModeGuides(): GuidesContent {
   return [
     {
       guide: 'sidebar_v2',
@@ -106,11 +104,9 @@ export function getDemoModeGuides(organization: Organization | null): GuidesCont
           ),
         },
         {
-          title: organization
-            ? getDiscoverDeprecation(organization)
-              ? t('Errors')
-              : t('Discover')
-            : t('Discover'),
+          // TODO: Update this to use the new title when the feature is fully released.
+          // It cannot be done right now because organization is not available in demo mode.
+          title: t('Discover'),
           target: 'discover',
           description: t(
             'Query and unlock insights into the health of your entire system and get answers to critical business questions all in one place.'

@@ -2,13 +2,12 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import type {GuidesContent} from 'sentry/components/assistant/types';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDemoModeGuides} from 'sentry/utils/demoMode/guides';
 
-export function getGuidesContent(organization: Organization | null): GuidesContent {
+export function getGuidesContent(): GuidesContent {
   if (isDemoModeActive()) {
-    return getDemoModeGuides(organization);
+    return getDemoModeGuides();
   }
   return [
     {

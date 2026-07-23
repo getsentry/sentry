@@ -66,7 +66,11 @@ function DashboardWidgetQuerySelectorModal(props: Props) {
                     widget_type: widget.displayType,
                   });
                 }}
-                aria-label={t('Open in Discover')}
+                aria-label={
+                  getDiscoverDeprecation(organization)
+                    ? t('Open in Explore')
+                    : t('Open in Discover')
+                }
               />
             </Link>
           </Flex>
