@@ -106,6 +106,35 @@ describe('ToolUseBlock', () => {
     expect(checkboxes[2]).not.toBeChecked();
   });
 
+  it('renders todo list for Code Mode (non-todo_write) tool calls', () => {
+    // Code Mode's execute tool projects its todos onto block.todos; the checklist should
+    // render even though the tool is not todo_write (code-mode-effects-bus).
+    const block = createBlock({
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+      },
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ran',
+        },
+      ],
+      todos: [
+        {content: 'Investigate p95', status: 'in_progress'},
+        {content: 'Propose a fix', status: 'pending'},
+      ],
+    });
+
+    const blocks = [block];
+    render(<BlockComponent block={block} blockIndex={0} blocks={blocks} />);
+
+    expect(screen.getByText('Investigate p95')).toBeInTheDocument();
+    expect(screen.getByText('Propose a fix')).toBeInTheDocument();
+  });
+
   it('does not render action bar', () => {
     render(<BlockComponent block={createBlock()} blockIndex={0} runId={123} />);
     expect(
