@@ -27,6 +27,7 @@ from sentry.models.pullrequest import (
     ResolvedPullRequest,
     parse_pull_request_number,
 )
+from sentry.seer.autofix.utils import CodingAgentProviderType
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,23 @@ DELEGATED_SIGNAL_TYPES = frozenset(
 JUDGE_ELIGIBLE_SIGNAL_TYPES = DELEGATED_SIGNAL_TYPES | frozenset(
     {PullRequestAttributionSignalType.SENTRY_APP}
 )
+
+# Maps a SeerRunCodingAgentHandoff.provider value to its SEER_DELEGATED_*
+# signal type. Falls back to SEER_DELEGATED_UNKNOWN for a provider we don't
+# recognize, so a new/renamed provider degrades to a weaker-confidence signal
+# rather than raising or silently attributing to the wrong agent.
+CODING_AGENT_PROVIDER_TO_SIGNAL_TYPE: dict[str, PullRequestAttributionSignalType] = {
+    CodingAgentProviderType.CURSOR_BACKGROUND_AGENT: PullRequestAttributionSignalType.SEER_DELEGATED_CURSOR,
+    CodingAgentProviderType.GITHUB_COPILOT_AGENT: PullRequestAttributionSignalType.SEER_DELEGATED_GITHUB_COPILOT,
+    CodingAgentProviderType.CLAUDE_CODE_AGENT: PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+}
+
+
+def signal_type_for_coding_agent_provider(provider: str) -> PullRequestAttributionSignalType:
+    """The SEER_DELEGATED_* signal type for a SeerRunCodingAgentHandoff.provider value."""
+    return CODING_AGENT_PROVIDER_TO_SIGNAL_TYPE.get(
+        provider, PullRequestAttributionSignalType.SEER_DELEGATED_UNKNOWN
+    )
 
 
 def is_seer_attribution(attribution: PullRequestAttribution) -> bool:

@@ -78,6 +78,7 @@ from sentry.pr_metrics.attribution import (
     DelegatedAgentSignalDetails,
     SentryAppSignalDetails,
     record_attribution_signal,
+    signal_type_for_coding_agent_provider,
 )
 from sentry.pr_metrics.emit import (
     VerdictDeferral,
@@ -95,6 +96,7 @@ from sentry.pr_metrics.utils import (
     org_has_coding_agent_for_provider,
     resolved_group_ids,
     seer_run_link_for_pull_request,
+    seer_run_pull_request_link,
 )
 from sentry.seer.autofix.utils import (
     DelegatedAgentMatch,
@@ -385,6 +387,80 @@ def _claim_cooldown(pr: PullRequest) -> bool:
     return bool(claimed)
 
 
+def _reconcile_seer_run_attribution(pr: PullRequest, organization: Organization) -> None:
+    """Sharpen a naive ``SENTRY_APP:webhook_data`` attribution using the local
+    ``SeerRunPullRequest`` link, if one has since landed.
+
+    The webhook-time author-id check (``_write_author_attribution``) can only
+    tell a PR was opened by one of our own GitHub apps -- it can't distinguish a
+    Seer-native PR from one opened by a Seer-delegated coding agent, since
+    Claude Code opens PRs under the Sentry app's own GitHub identity with no
+    distinct bot login. By the time this deferred-emission checkpoint runs (a
+    full cooldown window after close/merge), that distinction -- and a Seer
+    run's ``run_id``/``group_id`` -- may have landed via ``SeerRunPullRequest``,
+    written by either the Seer-native ``seer.pr_created`` flow or a delegated
+    coding-agent handoff. Backfilling it here closes races where the webhook's
+    "closed" re-check (``handle_attribution``) fired before that link existed.
+
+    Only runs for PRs that already carry a valid ``SENTRY_APP:webhook_data``
+    signal -- other attribution rows are left alone, and other signal types
+    (e.g. MCP) aren't naive webhook attributions this needs to correct.
+    ``record_attribution_signal`` is keyed on ``(pull_request, signal_type,
+    source)``, so writing a different signal_type/source here never clobbers
+    the existing row; it only adds to or refines the PR's attribution set.
+
+    Gated on ``pr-metrics-attribution``, matching every other attribution
+    writer.
+    """
+    if not features.has("organizations:pr-metrics-attribution", organization):
+        return
+
+    if not PullRequestAttribution.objects.filter(
+        pull_request=pr,
+        is_valid=True,
+        signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+        source=PullRequestAttributionSource.WEBHOOK_DATA,
+    ).exists():
+        return
+
+    link = seer_run_pull_request_link(pr)
+    if link is None:
+        return
+
+    pr_url = pr.get_external_url() or ""
+    group_ids = [link.group_id] if link.group_id is not None else []
+
+    if link.coding_agent_provider is not None:
+        # A delegated coding agent (Cursor/GitHub Copilot/Claude Code) produced
+        # this PR -- correct the naive SENTRY_APP bucketing to reflect that.
+        signal_type = signal_type_for_coding_agent_provider(link.coding_agent_provider)
+        record_attribution_signal(
+            pull_request=pr,
+            signal_type=signal_type,
+            source=PullRequestAttributionSource.SEER_DATA,
+            signal_details=DelegatedAgentSignalDetails(
+                agent_id=link.coding_agent_id,
+                pr_url=pr_url,
+                run_id=link.run_id,
+                group_ids=group_ids,
+            ).dict(),
+        )
+        metrics.incr("pr_metrics.attribution.reconciled", tags={"signal_type": str(signal_type)})
+        return
+
+    # A Seer-native run opened this PR -- record the run_id/group_id the
+    # webhook-time check may have missed.
+    record_attribution_signal(
+        pull_request=pr,
+        signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+        source=PullRequestAttributionSource.SEER_DATA,
+        signal_details=SentryAppSignalDetails(
+            pr_url=pr_url, group_ids=group_ids, run_id=link.run_id
+        ).dict(),
+    )
+    metrics.incr("pr_metrics.attribution.reconciled", tags={"signal_type": "sentry_app"})
+
+
 def handle_emission(
     *,
     github_event: GithubWebhookType,
@@ -469,9 +545,11 @@ def run_deferred_emission(pull_request: PullRequest, organization: Organization)
     final state.
 
     Reopen handling: if the PR is no longer terminal (reopened during the window),
-    release the sentinel and stop — a later re-close reschedules. Otherwise run the
-    standard verdict -> emit/forward path, whose own NULL-based guards settle the
-    row exactly once (a late redelivery that races the brief NULL window still
+    release the sentinel and stop — a later re-close reschedules. Otherwise
+    ``_reconcile_seer_run_attribution`` sharpens a naive ``SENTRY_APP:webhook_data``
+    signal against any ``SeerRunPullRequest`` link that has since landed, then the
+    standard verdict -> emit/forward path runs, whose own NULL-based guards settle
+    the row exactly once (a late redelivery that races the brief NULL window still
     emits once: whichever of the two claims the verdict wins, the other no-ops).
     """
     log_extra = {
@@ -490,6 +568,8 @@ def run_deferred_emission(pull_request: PullRequest, organization: Organization)
         metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "reopened"})
         logger.info("pr_metrics.cooldown.reopened", extra=log_extra)
         return
+
+    _reconcile_seer_run_attribution(pull_request, organization)
 
     verdict = select_verdict(pull_request, organization)
     if isinstance(verdict, VerdictDeferral):

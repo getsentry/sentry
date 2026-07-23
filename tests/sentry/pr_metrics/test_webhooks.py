@@ -36,6 +36,7 @@ from sentry.pr_metrics.webhooks import (
     handle_review,
     handle_review_comment,
     handle_review_thread,
+    run_deferred_emission,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -787,6 +788,228 @@ class HandleWebhookForPrMetricsCooldownTest(TestCase):
 
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
         assert self._verdict() is None
+
+
+@with_feature("organizations:pr-metrics-emit")
+@with_feature("organizations:pr-metrics-attribution")
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@cell_silo_test
+class DeferredEmissionReconcilesSeerRunAttributionTest(TestCase):
+    """The deferred-emission checkpoint (``run_deferred_emission`` via
+    ``emit_pr_metrics_cooldown_task``) sharpens a naive ``SENTRY_APP:webhook_data``
+    attribution against any ``SeerRunPullRequest`` link that has since landed.
+    """
+
+    def setUp(self) -> None:
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(
+            self.project,
+            provider="integrations:github",
+            external_id="99",
+            url="https://github.com/getsentry/sentry",
+        )
+        self.pull_request = self.create_pull_request(
+            repository_id=self.repo.id, organization_id=self.organization.id, key="42"
+        )
+        PullRequestAttribution.objects.create(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+            is_valid=True,
+        )
+        PullRequestMetrics.objects.create(pull_request=self.pull_request, additions=1)
+        self.pull_request.update(
+            head_commit_sha=HEAD_SHA,
+            opened_at=OPENED_AT,
+            closed_at=CLOSED_AT,
+            merged_at=CLOSED_AT,
+            merge_commit_sha=MERGE_SHA,
+            draft=False,
+        )
+
+    def _run_deferred_emission(self) -> None:
+        with (
+            patch(f"{MODULE}.emit_pr_metrics_cooldown_task.apply_async"),
+            patch("sentry.analytics.record"),
+        ):
+            handle_emission(
+                github_event=GithubWebhookType.PULL_REQUEST,
+                event={"action": "closed", "pull_request": {"number": 42}},
+                organization=self.organization,
+                repo=self.repo,
+            )
+            emit_pr_metrics_cooldown_task(
+                pull_request_id=self.pull_request.id,
+                organization_id=self.organization.id,
+                repository_id=self.repo.id,
+            )
+
+    def test_seer_native_run_adds_sentry_app_seer_data_signal(self) -> None:
+        group = self.create_group(project=self.project)
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        self.create_seer_agent_run(run=run, group=group)
+        self.create_seer_run_pull_request(run=run, pull_request=self.pull_request)
+
+        self._run_deferred_emission()
+
+        webhook_attr = PullRequestAttribution.objects.get(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+        )
+        assert webhook_attr.is_valid is True
+
+        seer_data_attr = PullRequestAttribution.objects.get(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+        )
+        assert seer_data_attr.signal_details == {
+            "pr_url": "https://github.com/getsentry/sentry/pull/42",
+            "group_ids": [group.id],
+            "run_id": 555,
+        }
+
+    def test_cursor_handoff_adds_delegated_signal(self) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=111)
+        handoff = self.create_seer_run_coding_agent_handoff(
+            seer_run=run, provider="cursor_background_agent", agent_id="cursor-agent-1"
+        )
+        self.create_seer_run_pull_request(
+            run=run, pull_request=self.pull_request, coding_agent_handoff=handoff
+        )
+
+        self._run_deferred_emission()
+
+        # The naive SENTRY_APP:webhook_data row is left untouched...
+        assert PullRequestAttribution.objects.filter(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+            is_valid=True,
+        ).exists()
+        # ...and a delegated-agent signal is added alongside it.
+        delegated_attr = PullRequestAttribution.objects.get(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CURSOR,
+            source=PullRequestAttributionSource.SEER_DATA,
+        )
+        assert delegated_attr.signal_details == {
+            "agent_id": "cursor-agent-1",
+            "pr_url": "https://github.com/getsentry/sentry/pull/42",
+            "run_id": 111,
+            "group_ids": [],
+        }
+
+    def test_github_copilot_handoff_adds_delegated_signal(self) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=222)
+        handoff = self.create_seer_run_coding_agent_handoff(
+            seer_run=run, provider="github_copilot_agent", agent_id="copilot-agent-1"
+        )
+        self.create_seer_run_pull_request(
+            run=run, pull_request=self.pull_request, coding_agent_handoff=handoff
+        )
+
+        self._run_deferred_emission()
+
+        assert PullRequestAttribution.objects.filter(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_GITHUB_COPILOT,
+            source=PullRequestAttributionSource.SEER_DATA,
+        ).exists()
+
+    def test_claude_code_handoff_adds_delegated_signal(self) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=333)
+        handoff = self.create_seer_run_coding_agent_handoff(
+            seer_run=run, provider="claude_code_agent", agent_id="claude-agent-1"
+        )
+        self.create_seer_run_pull_request(
+            run=run, pull_request=self.pull_request, coding_agent_handoff=handoff
+        )
+
+        self._run_deferred_emission()
+
+        assert PullRequestAttribution.objects.filter(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+            source=PullRequestAttributionSource.SEER_DATA,
+        ).exists()
+
+    def test_unrecognized_provider_falls_back_to_unknown(self) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=444)
+        handoff = self.create_seer_run_coding_agent_handoff(
+            seer_run=run, provider="some_future_agent", agent_id="future-agent-1"
+        )
+        self.create_seer_run_pull_request(
+            run=run, pull_request=self.pull_request, coding_agent_handoff=handoff
+        )
+
+        self._run_deferred_emission()
+
+        assert PullRequestAttribution.objects.filter(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_UNKNOWN,
+            source=PullRequestAttributionSource.SEER_DATA,
+        ).exists()
+
+    def test_no_seer_run_link_leaves_attribution_unchanged(self) -> None:
+        self._run_deferred_emission()
+
+        assert PullRequestAttribution.objects.filter(pull_request=self.pull_request).count() == 1
+        assert PullRequestAttribution.objects.filter(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+        ).exists()
+
+    def test_non_sentry_app_webhook_attribution_is_not_reconciled(self) -> None:
+        # e.g. MCP attribution -- this reconciliation only corrects the naive
+        # SENTRY_APP:webhook_data signal, not other attribution types.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
+        PullRequestAttribution.objects.create(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.MCP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+            is_valid=True,
+        )
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        self.create_seer_run_pull_request(run=run, pull_request=self.pull_request)
+
+        self._run_deferred_emission()
+
+        assert PullRequestAttribution.objects.filter(pull_request=self.pull_request).count() == 1
+
+    def test_invalid_sentry_app_webhook_attribution_is_not_reconciled(self) -> None:
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).update(is_valid=False)
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        self.create_seer_run_pull_request(run=run, pull_request=self.pull_request)
+
+        self._run_deferred_emission()
+
+        assert PullRequestAttribution.objects.filter(pull_request=self.pull_request).count() == 1
+
+    def test_idempotent_on_redelivery(self) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        handoff = self.create_seer_run_coding_agent_handoff(
+            seer_run=run, provider="cursor_background_agent", agent_id="cursor-agent-1"
+        )
+        self.create_seer_run_pull_request(
+            run=run, pull_request=self.pull_request, coding_agent_handoff=handoff
+        )
+
+        self._run_deferred_emission()
+        # A redelivered cooldown task re-runs the reconciliation; it must not
+        # duplicate the delegated-agent attribution row.
+        with patch("sentry.analytics.record"):
+            run_deferred_emission(self.pull_request, self.organization)
+
+        assert (
+            PullRequestAttribution.objects.filter(
+                pull_request=self.pull_request,
+                signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CURSOR,
+            ).count()
+            == 1
+        )
 
 
 @with_feature("organizations:pr-metrics-emit")

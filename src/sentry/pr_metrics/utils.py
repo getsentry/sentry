@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import cast
 
@@ -254,22 +255,37 @@ def resolved_group_ids(pull_request: PullRequest) -> list[int]:
     return sorted(GroupLink.objects.filter(combined).values_list("group_id", flat=True).distinct())
 
 
-def seer_run_link_for_pull_request(pull_request: PullRequest) -> tuple[list[int], int | None]:
-    """Group id and run id for the Seer run that opened this PR, via the local
-    ``SeerRunPullRequest`` link.
+@dataclass(frozen=True)
+class SeerRunPullRequestLink:
+    """The Seer run (and, if applicable, delegated coding agent) that opened a PR,
+    resolved from the local ``SeerRunPullRequest`` link.
+    """
+
+    run_id: int | None
+    group_id: int | None
+    coding_agent_provider: str | None
+    coding_agent_id: str | None
+
+
+def seer_run_pull_request_link(pull_request: PullRequest) -> SeerRunPullRequestLink | None:
+    """The ``SeerRunPullRequest`` link for this PR, resolved to its run/group/agent
+    provider, or ``None`` if the PR has no such link.
 
     That link is written by the on_completion_hook-driven ``seer.pr_created`` flow
-    (``process_autofix_updates`` -> ``link_seer_run_pull_requests``). It may not
-    exist yet at the "opened" webhook if that flow hasn't landed; the "closed"
-    re-check in ``handle_attribution`` covers that case.
+    (``process_autofix_updates`` -> ``link_seer_run_pull_requests``) for Seer-native
+    PRs, and by ``sync_coding_agent_status`` for PRs opened by a delegated coding
+    agent (Cursor/GitHub Copilot/Claude Code) -- distinguished by a non-null
+    ``coding_agent_handoff``. It may not exist yet at the "opened" webhook if
+    neither flow has landed; the "closed" re-check in ``handle_attribution`` (and
+    the deferred-emission re-check in ``run_deferred_emission``) covers that case.
     """
     link = (
-        SeerRunPullRequest.objects.select_related("seer_run__agent")
+        SeerRunPullRequest.objects.select_related("seer_run__agent", "coding_agent_handoff")
         .filter(pull_request=pull_request)
         .first()
     )
     if link is None:
-        return [], None
+        return None
 
     run_id = link.seer_run.seer_run_state_id
     try:
@@ -277,4 +293,31 @@ def seer_run_link_for_pull_request(pull_request: PullRequest) -> tuple[list[int]
     except SeerAgentRun.DoesNotExist:
         group_id = None
 
-    return ([group_id] if group_id is not None else []), run_id
+    coding_agent_provider = (
+        link.coding_agent_handoff.provider if link.coding_agent_handoff is not None else None
+    )
+    coding_agent_id = (
+        link.coding_agent_handoff.agent_id if link.coding_agent_handoff is not None else None
+    )
+
+    return SeerRunPullRequestLink(
+        run_id=run_id,
+        group_id=group_id,
+        coding_agent_provider=coding_agent_provider,
+        coding_agent_id=coding_agent_id,
+    )
+
+
+def seer_run_link_for_pull_request(pull_request: PullRequest) -> tuple[list[int], int | None]:
+    """Group id and run id for the Seer run that opened this PR, via the local
+    ``SeerRunPullRequest`` link.
+
+    Thin wrapper around ``seer_run_pull_request_link`` for callers that only need
+    group ids/run id (e.g. the webhook-side ``SENTRY_APP`` author attribution) and
+    don't care whether the PR was opened by a delegated coding agent.
+    """
+    link = seer_run_pull_request_link(pull_request)
+    if link is None:
+        return [], None
+
+    return ([link.group_id] if link.group_id is not None else []), link.run_id
