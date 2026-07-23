@@ -88,6 +88,10 @@ function extractPr(
   return pr ? {prUrl: pr.pr_url ?? undefined, prNumber: pr.pr_number ?? undefined} : {};
 }
 
+export function hasValidPr(state: ExplorerAutofixState | null): boolean {
+  return Boolean(extractPr(state).prUrl);
+}
+
 // The pending-input payload is untyped (Record<string, unknown>). The canonical
 // ask_user_question shape is {questions: [{question, options}]} (see
 // usePendingUserInput's AskUserQuestionData); fall back to a flat key otherwise.

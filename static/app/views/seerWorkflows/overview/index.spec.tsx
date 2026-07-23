@@ -165,8 +165,8 @@ describe('AutofixOverview', () => {
       body: [ProjectFixture()],
     });
 
-    // One issue lives in the review bucket (X-Hits 3 exceeds the returned
-    // body, proving the count comes from the header); the other four are empty.
+    // One issue lives in the review bucket (its count reflects the rendered
+    // valid-PR cards, not the X-Hits header); the other four are empty.
     mockSection(SECTION_QUERIES.review_pr, {body: [issue], hits: '3'});
     mockSection(SECTION_QUERIES.code_changes_ready);
     mockSection(SECTION_QUERIES.solution_ready);
@@ -205,9 +205,11 @@ describe('AutofixOverview', () => {
   it('renders the five status sections with server-provided counts', async () => {
     renderPage();
 
-    // Every section renders, in order, with its X-Hits count in the badge.
+    // Every section renders, in order. The review bucket counts only its
+    // cards with a real PR behind them (here 1, despite X-Hits 3); the other
+    // buckets show their X-Hits count.
     const reviewHeader = await screen.findByRole('button', {
-      name: 'Awaiting your review 3',
+      name: 'Awaiting your review 1',
     });
     expect(
       screen.getByRole('button', {name: 'Code changes ready 0'})
@@ -410,7 +412,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     const reviewHeader = await screen.findByRole('button', {
-      name: 'Awaiting your review 3',
+      name: 'Awaiting your review 1',
     });
     expect(
       await screen.findByRole('link', {
@@ -459,7 +461,7 @@ describe('AutofixOverview', () => {
     many.forEach(group => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
-        body: {autofix: null},
+        body: {autofix: makeAutofixState()},
       });
     });
     mockSection(SECTION_QUERIES.review_pr, {body: many, hits: '30'});
@@ -476,13 +478,40 @@ describe('AutofixOverview', () => {
   it('caps the section count badge at 100+ when hits exceed the fetch limit', async () => {
     // Only 100 issues are ever fetched per section, so an exact total above
     // that would overstate what scrolling can reveal.
-    mockSection(SECTION_QUERIES.review_pr, {body: [issue], hits: '150'});
+    mockSection(SECTION_QUERIES.code_changes_ready, {body: [issue], hits: '150'});
 
     renderPage();
 
     expect(
-      await screen.findByRole('button', {name: 'Awaiting your review 100+'})
+      await screen.findByRole('button', {name: 'Code changes ready 100+'})
     ).toBeInTheDocument();
+  });
+
+  it('hides review cards without a valid PR and counts only the rest', async () => {
+    const invalidIssue = GroupFixture({
+      id: '5',
+      shortId: 'PROJ-5',
+      title: 'Run with no PR behind it',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/5/autofix/`,
+      body: {autofix: makeAutofixState({repo_pr_states: {}})},
+    });
+    mockSection(SECTION_QUERIES.review_pr, {body: [issue, invalidIssue], hits: '2'});
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Awaiting your review 1'})
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'Run with no PR behind it'})
+    ).not.toBeInTheDocument();
   });
 
   it('surfaces the blocking question when a run awaits user input', async () => {
