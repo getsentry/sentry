@@ -221,6 +221,11 @@ class GithubPrReviewBodyFeedbackSource(FeedbackSourceBase):
     review_state: str | None = None
     body: str = ""
     html_url: str | None = None
+    # The review author, carried the same way an inline comment carries its
+    # author on ``comment.user`` — so the UI can render the reviewer's avatar on
+    # the review header. Optional: absent on feedback serialized before this
+    # field, in which case the UI falls back to the source glyph.
+    user: GithubPrCommentUser | None = None
     # Whether the review author is a bot (e.g. a test-coverage bot). Bot reviews
     # count toward the automated-iteration streak cap; human reviews reset it.
     author_is_bot: bool = False
