@@ -807,20 +807,20 @@ describe('AutofixOverview', () => {
       id: '42',
       name: 'Remote Member',
       email: 'remote.member@example.com',
-      username: 'remote-member',
+      username: 'Jane Doe',
     });
     const remoteRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
-      match: [MockApiClient.matchQuery({query: 'remote-member'})],
+      match: [MockApiClient.matchQuery({query: remoteUser.username})],
       body: [MemberFixture({id: '42', user: remoteUser})],
     });
-    const reviewRequest = mockAssigneeSections(remoteUser.username);
+    const reviewRequest = mockAssigneeSections('"Jane Doe"');
     const {router} = renderPage();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Assignee None'}));
     await userEvent.type(
       screen.getByPlaceholderText('Search assignees…'),
-      'remote-member'
+      remoteUser.username
     );
     await userEvent.click(await screen.findByRole('option', {name: remoteUser.name}));
 
@@ -831,7 +831,7 @@ describe('AutofixOverview', () => {
         `/organizations/${organization.slug}/issues/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            query: `${SECTION_QUERIES.review_pr} assigned:${remoteUser.username}`,
+            query: `${SECTION_QUERIES.review_pr} assigned:"Jane Doe"`,
           }),
         })
       )
@@ -947,5 +947,69 @@ describe('AutofixOverview', () => {
 
     await waitFor(() => expect(assignRequest).toHaveBeenCalled());
     await waitFor(() => expect(reviewRequest).toHaveBeenCalledTimes(2));
+  });
+
+  it('invalidates cached filtered sections after reassignment in focus mode', async () => {
+    const nextAssignee = UserFixture({
+      id: '42',
+      name: 'Next Assignee',
+      email: 'next.assignee@example.com',
+    });
+    mockAssigneeSections('me');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      match: [MockApiClient.matchQuery({group: [issue.id]})],
+      body: [issue],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [
+        MemberFixture({
+          id: nextAssignee.id,
+          projects: [issue.project.slug],
+          user: nextAssignee,
+        }),
+      ],
+    });
+    const assignRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${issue.id}/`,
+      method: 'PUT',
+      body: {
+        ...issue,
+        assignedTo: {id: nextAssignee.id, name: nextAssignee.name, type: 'user'},
+      },
+    });
+    const {router} = renderPage({assignee: 'me'});
+
+    expect(
+      await screen.findByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).toBeInTheDocument();
+    router.navigate(`${basePath}?assignee=me&id=${issue.id}`);
+    expect(await screen.findByRole('button', {name: 'All issues'})).toBeInTheDocument();
+
+    mockAssigneeSections('me', []);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      match: [MockApiClient.matchQuery({group: [issue.id]})],
+      body: [
+        {
+          ...issue,
+          assignedTo: {id: nextAssignee.id, name: nextAssignee.name, type: 'user'},
+        },
+      ],
+    });
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Modify issue assignee'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: /Next Assignee/}));
+    await waitFor(() => expect(assignRequest).toHaveBeenCalled());
+
+    await userEvent.click(screen.getByRole('button', {name: 'All issues'}));
+
+    expect(
+      await screen.findByText('No autofix runs match your filters.')
+    ).toBeInTheDocument();
   });
 });

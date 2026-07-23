@@ -252,7 +252,6 @@ export function IssueCard({
   memberList,
   memberListLoading,
   minHeight,
-  onAssigneeChange,
 }: {
   orgSlug: string;
   row: OverviewRow;
@@ -260,7 +259,6 @@ export function IssueCard({
   memberList?: User[];
   memberListLoading?: boolean;
   minHeight?: string;
-  onAssigneeChange?: () => void;
 }) {
   const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
   // Deep-link into the issue page with the Seer drawer already open, so the
@@ -459,7 +457,6 @@ export function IssueCard({
                   assignedTo={row.assignedTo ?? undefined}
                   memberList={memberList}
                   memberListLoading={memberListLoading}
-                  onSuccess={onAssigneeChange}
                   owners={row.owners ?? undefined}
                 />
               </Flex>

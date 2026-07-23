@@ -10,13 +10,12 @@ describe('OverviewIssueAssignee', () => {
   const organization = OrganizationFixture();
   const group = GroupFixture();
 
-  it('updates the local assignment and calls onSuccess after mutation', async () => {
+  it('updates the local assignment after mutation', async () => {
     const assignee = UserFixture({
       id: '42',
       name: 'Next Assignee',
       email: 'next.assignee@example.com',
     });
-    const onSuccess = jest.fn();
     const assignRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/`,
       method: 'PUT',
@@ -32,7 +31,6 @@ describe('OverviewIssueAssignee', () => {
         projectId={group.project.id}
         projectSlug={group.project.slug}
         memberList={[assignee]}
-        onSuccess={onSuccess}
       />,
       {organization}
     );
@@ -47,10 +45,5 @@ describe('OverviewIssueAssignee', () => {
       'title',
       assignee.name
     );
-    expect(onSuccess).toHaveBeenCalledWith({
-      id: assignee.id,
-      name: assignee.name,
-      type: 'user',
-    });
   });
 });

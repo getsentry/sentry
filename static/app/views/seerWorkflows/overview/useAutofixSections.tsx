@@ -1,5 +1,6 @@
 import {useQueries} from '@tanstack/react-query';
 
+import {escapeTagValue} from 'sentry/components/searchBar/utils';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -46,7 +47,7 @@ export function useAutofixSections({
           path: {organizationIdOrSlug: organization.slug},
           query: {
             query: `${REQUIRED_ISSUE_FILTER} issue.autofix_state:${key}${
-              assignee ? ` assigned:${assignee}` : ''
+              assignee ? ` assigned:${escapeTagValue(assignee)}` : ''
             }`,
             project: projects,
             statsPeriod,

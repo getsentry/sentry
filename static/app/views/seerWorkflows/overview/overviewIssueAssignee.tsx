@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {
   AssigneeSelector,
@@ -7,6 +8,7 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface OverviewIssueAssigneeProps {
@@ -16,7 +18,6 @@ interface OverviewIssueAssigneeProps {
   assignedTo?: Group['assignedTo'];
   memberList?: User[];
   memberListLoading?: boolean;
-  onSuccess?: (assignedTo: Group['assignedTo']) => void;
   owners?: Group['owners'];
 }
 
@@ -28,10 +29,13 @@ export function OverviewIssueAssignee({
   assignedTo,
   memberList,
   memberListLoading = false,
-  onSuccess,
   owners,
 }: OverviewIssueAssigneeProps) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const issueIndexUrl = getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
   const [assignedToOverride, setAssignedToOverride] = useState<{
     assignedTo: Group['assignedTo'];
     groupId: OverviewIssueAssigneeProps['groupId'];
@@ -58,9 +62,9 @@ export function OverviewIssueAssignee({
   const handleSuccess = useCallback(
     (nextAssignedTo: Group['assignedTo']) => {
       setAssignedToOverride({groupId, assignedTo: nextAssignedTo});
-      onSuccess?.(nextAssignedTo);
+      void queryClient.invalidateQueries({queryKey: [issueIndexUrl]});
     },
-    [groupId, onSuccess]
+    [groupId, issueIndexUrl, queryClient]
   );
 
   const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({

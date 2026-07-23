@@ -147,7 +147,6 @@ export function SectionList({
                           : (memberQuery.data?.get(issue.project.slug) ?? [])
                       }
                       memberListLoading={memberQuery.isPending}
-                      onAssigneeChange={refetch}
                       orgSlug={organization.slug}
                       sectionKey={section.key}
                       view={view}

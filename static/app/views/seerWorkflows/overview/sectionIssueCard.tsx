@@ -18,7 +18,6 @@ function HydratedCard({
   statsPeriod,
   memberList,
   memberListLoading,
-  onAssigneeChange,
 }: {
   issue: OverviewIssue;
   orgSlug: string;
@@ -26,7 +25,6 @@ function HydratedCard({
   view: 'cards' | 'table';
   memberList?: User[];
   memberListLoading?: boolean;
-  onAssigneeChange?: () => void;
   // The server-bucketed section. Absent in focus mode, where the issues
   // endpoint omits issue.autofix_state, so we reconstruct it from enrichment.
   sectionKey?: AutofixStateKey;
@@ -49,7 +47,6 @@ function HydratedCard({
       memberList={memberList}
       memberListLoading={memberListLoading}
       minHeight={minHeight}
-      onAssigneeChange={onAssigneeChange}
     />
   ) : (
     <IssueTableRow
@@ -72,7 +69,6 @@ export function SectionIssueCard({
   lazy?: boolean;
   memberList?: User[];
   memberListLoading?: boolean;
-  onAssigneeChange?: () => void;
   sectionKey?: AutofixStateKey;
 }) {
   return (
