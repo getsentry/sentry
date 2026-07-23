@@ -14,6 +14,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import {getAnalyticsDataForEvent} from 'sentry/utils/events';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -42,7 +44,7 @@ import {Entries} from './sections/entries';
 import {GeneralInfo} from './sections/generalInfo';
 import {TransactionHighlights} from './sections/highlights';
 import {hasMeasurements, Measurements} from './sections/measurements';
-import {ReplayPreview} from './sections/replayPreview';
+import {getEventTimestampMs, ReplayPreview} from './sections/replayPreview';
 import {Request} from './sections/request';
 import {hasSDKContext} from './sections/sdk';
 
@@ -199,7 +201,14 @@ export function TransactionNodeDetails({
           <EventEvidence event={event} project={project} disableCollapsePersistence />
         ) : null}
 
-        {replay ? null : <ReplayPreview event={event} organization={organization} />}
+        {replay ? null : (
+          <ReplayPreview
+            replayId={getReplayIdFromEvent(event)}
+            eventTimestampMs={getEventTimestampMs(event)}
+            organization={organization}
+            analyticsParams={getAnalyticsDataForEvent(event)}
+          />
+        )}
 
         <BreadCrumbs event={event} />
 

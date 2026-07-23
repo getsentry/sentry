@@ -282,6 +282,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             ) and features.has(
                 "organizations:seer-explorer-chat-coding", organization, actor=request.user
             )
+
             has_code_mode_feature = features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
             )
@@ -291,10 +292,12 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 enable_code_mode_tools = override_code_mode_enable
             else:
                 enable_code_mode_tools = "on"
+
             client = SeerAgentClient(
                 organization,
                 request.user,
                 is_interactive=True,
+                enable_bash_tools=override_bash_mode_enabled,
                 enable_coding=enable_coding,
                 enable_code_mode_tools=enable_code_mode_tools,
                 reasoning_effort="medium",
@@ -323,7 +326,6 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 on_page_context=on_page_context,
                 page_name=page_name,
                 ui_tools=ui_tools,
-                override_bash_mode_enabled=override_bash_mode_enabled,
                 override_ce_enable=override_ce_enable,
                 request=request,
             )
