@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.constants import DataCategory
@@ -10,6 +11,11 @@ from sentry.seer.agent.client_models import (
     Message,
     RepoPRState,
     SeerRunState,
+)
+from sentry.seer.autofix.artifact_schemas import (
+    AnalyzedWindow,
+    RootCauseArtifact,
+    RootCauseClassification,
 )
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
@@ -1487,3 +1493,110 @@ class TestTriggerPushChanges(TestCase):
             f"Fixes [PROJ2-456](https://linear.app/team/issue/PROJ2-456)"
         )
         assert body["payload"]["pr_description_suffix"] == expected
+
+
+class TestRootCauseArtifactSchema:
+    """Contract tests for RootCauseArtifact: its generated JSON schema is sent to Seer as
+    the artifact tool definition, and typed reads parse the artifact data back through it."""
+
+    _BASE_PAYLOAD = {
+        "one_line_description": "Memory leak in cache handler",
+        "five_whys": ["Cache not cleared", "No TTL set"],
+    }
+    _WINDOW = {
+        "open_period_id": "42",
+        "start": "2024-01-01T00:00:00Z",
+        "end": "2024-01-02T00:00:00Z",
+    }
+
+    def test_parses_legacy_payload_without_new_fields(self) -> None:
+        artifact = RootCauseArtifact.parse_obj(self._BASE_PAYLOAD)
+
+        assert artifact.classification is None
+        assert artifact.no_code_fix_reason is None
+        assert artifact.analyzed_window is None
+
+    def test_code_fix_classification_does_not_require_reason(self) -> None:
+        artifact = RootCauseArtifact.parse_obj({**self._BASE_PAYLOAD, "classification": "code_fix"})
+
+        assert artifact.classification == RootCauseClassification.CODE_FIX
+
+    @pytest.mark.parametrize("classification", ["rca_only", "action_recommended"])
+    def test_non_code_fix_classification_with_reason_parses(self, classification: str) -> None:
+        artifact = RootCauseArtifact.parse_obj(
+            {
+                **self._BASE_PAYLOAD,
+                "classification": classification,
+                "no_code_fix_reason": "Expected traffic increase from a marketing campaign",
+            }
+        )
+
+        assert artifact.classification == classification
+        assert artifact.no_code_fix_reason == "Expected traffic increase from a marketing campaign"
+
+    @pytest.mark.parametrize("classification", ["rca_only", "action_recommended"])
+    @pytest.mark.parametrize("reason", [None, "", "   "])
+    def test_non_code_fix_classification_requires_reason(
+        self, classification: str, reason: str | None
+    ) -> None:
+        payload = {
+            **self._BASE_PAYLOAD,
+            "classification": classification,
+            "no_code_fix_reason": reason,
+        }
+
+        with pytest.raises(ValidationError):
+            RootCauseArtifact.parse_obj(payload)
+
+    def test_non_code_fix_classification_with_reason_key_absent_raises(self) -> None:
+        with pytest.raises(ValidationError):
+            RootCauseArtifact.parse_obj({**self._BASE_PAYLOAD, "classification": "rca_only"})
+
+    def test_analyzed_window_round_trip(self) -> None:
+        artifact = RootCauseArtifact.parse_obj(
+            {**self._BASE_PAYLOAD, "analyzed_window": self._WINDOW}
+        )
+
+        assert artifact.analyzed_window == AnalyzedWindow(
+            open_period_id="42",
+            start="2024-01-01T00:00:00Z",
+            end="2024-01-02T00:00:00Z",
+        )
+        assert artifact.dict()["analyzed_window"] == self._WINDOW
+
+    @pytest.mark.parametrize("missing_field", ["open_period_id", "start", "end"])
+    def test_analyzed_window_requires_all_fields(self, missing_field: str) -> None:
+        window = {key: value for key, value in self._WINDOW.items() if key != missing_field}
+
+        with pytest.raises(ValidationError):
+            RootCauseArtifact.parse_obj({**self._BASE_PAYLOAD, "analyzed_window": window})
+
+    def test_generated_schema_keeps_new_fields_optional(self) -> None:
+        schema = RootCauseArtifact.schema()
+
+        assert {"classification", "no_code_fix_reason", "analyzed_window"} <= set(
+            schema["properties"]
+        )
+        assert set(schema["required"]) == {"one_line_description", "five_whys"}
+        assert schema["definitions"]["AnalyzedWindow"]["required"] == [
+            "open_period_id",
+            "start",
+            "end",
+        ]
+
+    def test_generated_schema_carries_llm_guidance(self) -> None:
+        schema = RootCauseArtifact.schema()
+
+        assert schema["definitions"]["RootCauseClassification"]["enum"] == [
+            "rca_only",
+            "action_recommended",
+            "code_fix",
+        ]
+        classification_description = schema["properties"]["classification"]["description"]
+        assert "'code_fix'" in classification_description
+        assert "'action_recommended'" in classification_description
+        assert "'rca_only'" in classification_description
+        assert "not 'code_fix'" in schema["properties"]["no_code_fix_reason"]["description"]
+        window_properties = schema["definitions"]["AnalyzedWindow"]["properties"]
+        assert "ISO 8601" in window_properties["start"]["description"]
+        assert "ISO 8601" in window_properties["end"]["description"]

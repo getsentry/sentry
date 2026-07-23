@@ -1,4 +1,27 @@
-from pydantic import BaseModel, Field
+from enum import StrEnum
+from typing import Any
+
+from pydantic import BaseModel, Field, root_validator
+
+
+class RootCauseClassification(StrEnum):
+    """How the root cause should be acted on."""
+
+    RCA_ONLY = "rca_only"
+    ACTION_RECOMMENDED = "action_recommended"
+    CODE_FIX = "code_fix"
+
+
+class AnalyzedWindow(BaseModel):
+    """The open period and time range investigated for a root cause analysis."""
+
+    open_period_id: str = Field(
+        description="The ID of the open period that was investigated, copied from the provided monitor/open-period context"
+    )
+    start: str = Field(description="ISO 8601 timestamp for the start of the analyzed time range")
+    end: str = Field(
+        description="ISO 8601 timestamp for the end of the time range actually examined. If the open period is still ongoing, this is the analysis cutoff time."
+    )
 
 
 class SolutionStep(BaseModel):
@@ -29,6 +52,37 @@ class RootCauseArtifact(BaseModel):
         default=None,
         description="The full repository name (e.g. 'owner/repo') where the fix should be made. Pick the one repo most directly responsible for the root cause.",
     )
+    classification: RootCauseClassification | None = Field(
+        default=None,
+        description=(
+            "How the root cause should be acted on: 'code_fix' if it lies in code the user owns and is addressable with a code change, "
+            "'action_recommended' if a non-code action (e.g. config, infra, or third-party follow-up) would resolve it, "
+            "'rca_only' if an explanation is the outcome and no action is warranted."
+        ),
+    )
+    no_code_fix_reason: str | None = Field(
+        default=None,
+        description=(
+            "Justification for why the root cause is not solvable with a code change "
+            "(e.g. infra outage, expected traffic, isolated customer/workload, third-party regression, "
+            "config/data problem, noisy alert). Required whenever classification is not 'code_fix'."
+        ),
+    )
+    analyzed_window: AnalyzedWindow | None = Field(
+        default=None,
+        description="The open period and time range that was investigated for this analysis",
+    )
+
+    @root_validator
+    def _require_no_code_fix_reason(cls, values: dict[str, Any]) -> dict[str, Any]:
+        classification = values.get("classification")
+        if (
+            classification is not None
+            and classification != RootCauseClassification.CODE_FIX
+            and not (values.get("no_code_fix_reason") or "").strip()
+        ):
+            raise ValueError("no_code_fix_reason is required when classification is not 'code_fix'")
+        return values
 
 
 class SolutionArtifact(BaseModel):
