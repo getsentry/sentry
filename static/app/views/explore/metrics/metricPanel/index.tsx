@@ -1,4 +1,4 @@
-import {Activity, Fragment, useRef, useState} from 'react';
+import {Activity, Fragment, useEffect, useRef, useState} from 'react';
 import type {DraggableAttributes} from '@dnd-kit/core';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
@@ -35,8 +35,8 @@ import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetric
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import {
-  MetricsGraph,
   getMetricsChartTypeOptions,
+  MetricsGraph,
 } from 'sentry/views/explore/metrics/metricGraph';
 import {MetricInfoTabs} from 'sentry/views/explore/metrics/metricInfoTabs';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -133,6 +133,15 @@ export function MetricPanel({
     }
     return;
   });
+
+  useEffect(() => {
+    if (isVisualizeEquation(visualize)) {
+      setTitle(
+        visualize.internalExpression ??
+          unresolveExpression(visualize.expression.text, referenceMap)
+      );
+    }
+  }, [visualize, referenceMap]);
 
   const areQueriesEnabled = isVisualizeFunction(visualize)
     ? Boolean(traceMetric.name) && !isMetricOptionsEmpty

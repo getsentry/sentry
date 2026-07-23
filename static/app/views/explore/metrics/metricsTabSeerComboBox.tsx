@@ -3,6 +3,7 @@ import {mutationOptions} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {ALL_DATE_TIME_QUERY_KEYS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
@@ -22,24 +23,27 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {resolveSeerProjectSelection} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
+import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isEquation} from 'sentry/utils/discover/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {applySeerEquation} from 'sentry/views/explore/metrics/applySeerEquation';
 import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {
   defaultAggregateSortBys,
-  encodeMetricQueryParams,
-  type BaseMetricQuery,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {isTraceMetricTypeValue} from 'sentry/views/explore/metrics/types';
 import {
+  encodeEquationMetricQueries,
   makeMetricsAggregate,
   parseTraceMetricFromQuery,
   stripTraceMetricTokens,
@@ -47,9 +51,12 @@ import {
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualize,
+  isVisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {getSeerExploreQuery, getSeerSort} from 'sentry/views/explore/seerQuery';
-
 interface MetricsTabSeerComboBoxProps {
   traceMetric: TraceMetric;
 }
@@ -110,8 +117,23 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         pageDatetime: pageFilters.selection.datetime,
       });
 
-      const seerVisualizes = (result.visualizations ?? []).flatMap(viz =>
-        viz.yAxes.map(yAxis => new VisualizeFunction(yAxis, {chartType: viz.chartType}))
+      // Seer responses only return equations or functions at the moment, but equations need special handling
+      // to generate its base metricQueries.
+      const seerVisualizeFunctions = (result.visualizations ?? []).flatMap(viz =>
+        viz.yAxes
+          .filter(yAxis => !isEquation(yAxis))
+          .map(yAxis => new VisualizeFunction(yAxis, {chartType: viz.chartType}))
+      );
+
+      // Parse out the metric queries required for equations.
+      const seerEquationMetricQueries = (result.visualizations ?? []).flatMap(viz =>
+        viz.yAxes.filter(isEquation).flatMap(yAxis => {
+          const parsed = parseAggregateExpression(yAxis);
+          return [
+            ...parsed.metricQueries,
+            ...(parsed.equationRow ? [parsed.equationRow] : []),
+          ];
+        })
       );
 
       // Move any `project:` filter Seer put in the query onto the page-level
@@ -173,8 +195,8 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // so build a default one from the metric's type. When Seer didn't resolve
       // a valid metric, leave the existing visualizes untouched so we don't
       // clobber a customized aggregate.
-      if (seerVisualizes.length > 0) {
-        for (const viz of seerVisualizes) {
+      if (seerVisualizeFunctions.length > 0) {
+        for (const viz of seerVisualizeFunctions) {
           const {aggregation, traceMetric: vizMetric} = parseMetricAggregate(viz.yAxis);
           const isQualified = Boolean(
             vizMetric.name && vizMetric.type && isTraceMetricTypeValue(vizMetric.type)
@@ -231,18 +253,24 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // Build encoded metric queries, updating the current metric's query params
       // and trace metric (the metric is parsed out of the agent's visualization
       // aggregate or query filters above so the panel matches what was queried).
-      const newEncodedMetrics = metricQueries
-        .map((mq: BaseMetricQuery) => {
-          if (mq.queryParams === queryParams) {
-            return encodeMetricQueryParams({
-              ...mq,
-              metric: nextMetric,
-              queryParams: newQueryParams,
-            });
-          }
-          return encodeMetricQueryParams(mq);
-        })
-        .filter(Boolean);
+      const seerAggregates = seerEquationMetricQueries.filter(
+        mq => !mq.queryParams.visualizes.some(isVisualizeEquation)
+      );
+      const seerEquations = seerEquationMetricQueries.filter(mq =>
+        mq.queryParams.visualizes.some(isVisualizeEquation)
+      );
+
+      // TODO I think we can drop the seerAggregates and seerEquations individual parts
+      const {encodedMetrics: newEncodedMetrics, spliceResult} = applySeerEquation({
+        metricQueries,
+        interactedQueryParams: queryParams,
+        seerAggregates,
+        seerEquations,
+        nonEquationReplacement: {
+          metric: nextMetric,
+          queryParams: newQueryParams,
+        },
+      });
 
       const selection = {
         ...pageFilters.selection,
@@ -269,27 +297,47 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         setRunId(runId);
       }
 
-      // Single navigate with both metric params and datetime — previously
-      // setQueryParams and navigate were separate calls, and the second
-      // navigate overwrote the first with stale location.
-      navigate(
-        {
-          ...location,
-          query: {
-            ...omit(location.query, ALL_DATE_TIME_QUERY_KEYS),
-            ...(projectIds?.length ? {project: projectIds.map(String)} : {}),
-            metric: newEncodedMetrics,
-            start: seerQuery.datetime.start,
-            end: seerQuery.datetime.end,
-            statsPeriod: seerQuery.datetime.period,
-            utc: seerQuery.datetime.utc,
-            // Only override the interval when Seer suggested one, otherwise
-            // leave the user's current interval untouched.
-            ...(seerQuery.interval ? {interval: seerQuery.interval} : {}),
+      const navigateWithMetrics = (encodedMetrics: string[]) => {
+        // Single navigate with both metric params and datetime — previously
+        // setQueryParams and navigate were separate calls, and the second
+        // navigate overwrote the first with stale location.
+        navigate(
+          {
+            ...location,
+            query: {
+              ...omit(location.query, ALL_DATE_TIME_QUERY_KEYS),
+              ...(projectIds?.length ? {project: projectIds.map(String)} : {}),
+              metric: encodedMetrics,
+              start: seerQuery.datetime.start,
+              end: seerQuery.datetime.end,
+              statsPeriod: seerQuery.datetime.period,
+              utc: seerQuery.datetime.utc,
+              // Only override the interval when Seer suggested one, otherwise
+              // leave the user's current interval untouched.
+              ...(seerQuery.interval ? {interval: seerQuery.interval} : {}),
+            },
           },
-        },
-        {replace: true, preventScrollReset: true}
-      );
+          {replace: true, preventScrollReset: true}
+        );
+      };
+
+      if (spliceResult === 'requires_clear') {
+        openConfirmModal({
+          header: t('Clear Queries'),
+          message: t(
+            "This equation needs an additional %s queries but, there isn't enough room. Clear existing queries to make room?",
+            seerAggregates.length
+          ),
+          confirmText: t('Clear and apply'),
+          isDangerous: true,
+          onConfirm: () => {
+            navigateWithMetrics(encodeEquationMetricQueries(seerEquationMetricQueries));
+          },
+        });
+        return;
+      }
+
+      navigateWithMetrics(newEncodedMetrics);
     },
     [
       analyticsArea,
