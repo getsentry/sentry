@@ -28,7 +28,10 @@ from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.models.team import TeamStatus
+from sentry.plugins.base import bindings
 from sentry.search.eap.occurrences.query_utils import keyed_counts_subset_match
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
@@ -99,8 +102,8 @@ class ProjectContext:
         self.key_error_issues: list[tuple[Group, int]] = []
         # Array of (Group, count)
         self.key_performance_issues = []
-        # Array of (Group, event_count, resolution_label)
-        self.past_resolved_issues: list[tuple[Group, int, str]] = []
+        # Array of (Group, event_count, resolution_label, resolution_url)
+        self.past_resolved_issues: list[tuple[Group, int, str, str | None]] = []
 
         self.key_replay_events = []
 
@@ -510,7 +513,7 @@ PAST_ISSUES_LINK_BOOST = 2
 
 def project_past_resolved_issues(
     ctx: OrganizationReportContext, project: Project, referrer: str
-) -> list[tuple[Group, int, str]]:
+) -> list[tuple[Group, int, str, str | None]]:
     if not project.first_event:
         return []
 
@@ -576,12 +579,12 @@ def project_past_resolved_issues(
             event_counts.update(performance_counts)
 
         # resolution_label defaults to "Resolved"; enriched by fetch_past_resolved_issue_links at org level
-        scored = []
+        scored: list[tuple[Group, int, str, str | None]] = []
         for group_id, count in event_counts.items():
             group = group_id_to_group.get(group_id)
             if group is None:
                 continue
-            scored.append((group, count, "Resolved"))
+            scored.append((group, count, "Resolved", None))
 
         scored.sort(key=lambda x: x[1], reverse=True)
         return scored
@@ -665,24 +668,56 @@ def _past_resolved_performance_counts(
 def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
     all_group_ids: list[int] = []
     for project_ctx in ctx.projects_context_map.values():
-        all_group_ids.extend(group.id for group, _count, _label in project_ctx.past_resolved_issues)
+        all_group_ids.extend(
+            group.id for group, _count, _label, _url in project_ctx.past_resolved_issues
+        )
 
     if not all_group_ids:
         return
 
     resolution_labels: dict[int, str] = {}
+    resolution_urls: dict[int, str] = {}
 
-    groups_with_pr = set(
+    pr_links = list(
         GroupLink.objects.filter(
             group_id__in=all_group_ids,
             linked_type=GroupLink.LinkedType.pull_request,
             relationship=GroupLink.Relationship.resolves,
-        ).values_list("group_id", flat=True)
+        ).values_list("group_id", "linked_id")
     )
+    groups_with_pr = {gid for gid, _lid in pr_links}
     for gid in groups_with_pr:
         resolution_labels[gid] = "Resolved in PR"
 
-    for gr in GroupResolution.objects.filter(group_id__in=all_group_ids):
+    pr_ids = {lid for _gid, lid in pr_links}
+    if pr_ids:
+        prs_by_id = {pr.id: pr for pr in PullRequest.objects.filter(id__in=pr_ids)}
+        repo_ids = {pr.repository_id for pr in prs_by_id.values()}
+        repos_by_id = {r.id: r for r in Repository.objects.filter(id__in=repo_ids)}
+
+        provider_cache: dict[str, Any] = {}
+        for group_id, linked_id in pr_links:
+            pr = prs_by_id.get(linked_id)
+            if pr is None:
+                continue
+            repo = repos_by_id.get(pr.repository_id)
+            if repo is None or not repo.provider or not repo.provider.startswith("integrations:"):
+                continue
+            if repo.provider not in provider_cache:
+                try:
+                    provider_cls = bindings.get("integration-repository.provider").get(
+                        repo.provider
+                    )
+                    provider_cache[repo.provider] = provider_cls(repo.provider)
+                except Exception:
+                    provider_cache[repo.provider] = None
+            provider = provider_cache[repo.provider]
+            if provider is not None:
+                url = provider.pull_request_url(repo, pr)
+                if url:
+                    resolution_urls[group_id] = url
+
+    for gr in GroupResolution.objects.filter(group_id__in=all_group_ids).select_related("release"):
         if gr.group_id in resolution_labels:
             continue
         if gr.current_release_version or gr.type in (
@@ -693,10 +728,19 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
         else:
             resolution_labels[gr.group_id] = "Resolved in release"
 
+        if gr.release and gr.release.version:
+            release_path = f"/organizations/{ctx.organization.slug}/releases/{gr.release.version}/"
+            resolution_urls[gr.group_id] = ctx.organization.absolute_url(release_path)
+
     for project_ctx in ctx.projects_context_map.values():
         project_ctx.past_resolved_issues = [
-            (group, count, resolution_labels.get(group.id, "Resolved"))
-            for group, count, _label in project_ctx.past_resolved_issues
+            (
+                group,
+                count,
+                resolution_labels.get(group.id, "Resolved"),
+                resolution_urls.get(group.id),
+            )
+            for group, count, _label, _url in project_ctx.past_resolved_issues
         ]
 
     # Re-sort with link boost applied, then truncate to top 3

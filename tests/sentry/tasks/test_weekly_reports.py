@@ -2285,9 +2285,12 @@ class WeeklyReportsTest(
         fetch_past_resolved_issue_links(ctx)
 
         updated = ctx.projects_context_map[self.project.id].past_resolved_issues
-        label_by_group = {group.id: label for group, _count, label in updated}
+        label_by_group = {group.id: label for group, _count, label, _url in updated}
         assert label_by_group[group1.id] == "Resolved"
         assert label_by_group[group2.id] == "Resolved"
+        url_by_group = {group.id: url for group, _count, _label, url in updated}
+        assert url_by_group[group1.id] is None
+        assert url_by_group[group2.id] is None
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -2401,6 +2404,7 @@ class WeeklyReportsTest(
         updated = ctx.projects_context_map[self.project.id].past_resolved_issues
         assert len(updated) == 1
         assert updated[0][2] == "Resolved in PR"
+        assert updated[0][3] is None
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_fetch_resolution_label_release(self) -> None:
@@ -2443,6 +2447,8 @@ class WeeklyReportsTest(
         updated = ctx.projects_context_map[self.project.id].past_resolved_issues
         assert len(updated) == 1
         assert updated[0][2] == "Resolved in release"
+        assert updated[0][3] is not None
+        assert "/releases/1.2.3/" in updated[0][3]
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_fetch_resolution_label_next_release(self) -> None:
@@ -2485,6 +2491,8 @@ class WeeklyReportsTest(
         updated = ctx.projects_context_map[self.project.id].past_resolved_issues
         assert len(updated) == 1
         assert updated[0][2] == "Resolved in next release"
+        assert updated[0][3] is not None
+        assert "/releases/2.0.0/" in updated[0][3]
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_fetch_resolution_label_pr_priority_over_release(self) -> None:
@@ -2534,6 +2542,7 @@ class WeeklyReportsTest(
         updated = ctx.projects_context_map[self.project.id].past_resolved_issues
         assert len(updated) == 1
         assert updated[0][2] == "Resolved in PR"
+        assert updated[0][3] is None
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_fetch_resolution_label_null_type(self) -> None:
@@ -2576,6 +2585,8 @@ class WeeklyReportsTest(
         updated = ctx.projects_context_map[self.project.id].past_resolved_issues
         assert len(updated) == 1
         assert updated[0][2] == "Resolved in next release"
+        assert updated[0][3] is not None
+        assert "/releases/1.0.0/" in updated[0][3]
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_fetch_resolution_label_expired_next_release(self) -> None:
@@ -2621,3 +2632,57 @@ class WeeklyReportsTest(
         updated = ctx.projects_context_map[self.project.id].past_resolved_issues
         assert len(updated) == 1
         assert updated[0][2] == "Resolved in next release"
+        assert updated[0][3] is not None
+        assert "/releases/2.0.0/" in updated[0][3]
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_fetch_resolution_url_pr(self) -> None:
+        self.project.first_event = self.now - timedelta(days=3)
+        self.project.save()
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "pr url test",
+                "timestamp": min_ago,
+                "fingerprint": ["pr-url-test-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group = event.group
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.resolved_at = self.now - timedelta(minutes=1)
+        group.save()
+
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            url="https://github.com/getsentry/sentry",
+        )
+        pr = self.create_pull_request(
+            repository_id=repo.id,
+            organization_id=self.organization.id,
+            key="42",
+        )
+        self.create_group_link(
+            group=group,
+            linked_id=pr.id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        timestamp = self.now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        results = project_past_resolved_issues(
+            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
+        )
+        ctx.projects_context_map[self.project.id].past_resolved_issues = results
+        fetch_past_resolved_issue_links(ctx)
+
+        updated = ctx.projects_context_map[self.project.id].past_resolved_issues
+        assert len(updated) == 1
+        assert updated[0][2] == "Resolved in PR"
+        assert updated[0][3] == "https://github.com/getsentry/sentry/pull/42"
