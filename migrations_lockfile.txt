@@ -33,7 +33,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0029_add_agent_write_grant
 
-sentry: 1145_delete_organizationmemberteamreplica
+sentry: 1146_add_gcp_service_account
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
