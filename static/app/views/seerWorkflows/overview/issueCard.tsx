@@ -104,9 +104,11 @@ function MetaItem({
   tooltip?: React.ReactNode;
 }) {
   const item = (
-    <Flex gap="xs" align="center">
+    // minWidth 0 + ellipsis let the item truncate inside a tight rail column
+    // instead of pushing the layout wider.
+    <Flex gap="xs" align="center" minWidth="0">
       {icon}
-      <Text size="sm" variant="muted" wrap="nowrap">
+      <Text size="sm" variant="muted" ellipsis>
         {children}
       </Text>
     </Flex>
@@ -369,32 +371,31 @@ export function IssueCard({
           </Stack>
 
           {/* Right rail: issue identity and vitals, then the action column.
-              min-width (not a fixed width) keeps the rail lined up across
-              cards while letting a wide button (long PR number) GROW the
-              rail instead of overflowing the card — flex children can't
-              shrink below their content, so a hard width would push the
-              action past the card edge. Full-width band above the narrative
-              on narrow cards. */}
-          {/* 3xl separates the vitals column from the action column — the
-              button shouldn't sit on top of the timestamps */}
-          <Flex
-            gap="3xl"
+              The rail width is FIXED so every card's rail — and therefore
+              every card's narrative width and analysis columns — starts at
+              the same x. Inside, a grid gives the action column its natural
+              size and lets the vitals column shrink (minmax(0,1fr)) with
+              truncating text, so oversized content can never push past the
+              card edge. Full-width band above the narrative on narrow
+              cards. */}
+          <Grid
+            columns="minmax(0, 1fr) auto"
+            gap="xl"
             align="start"
-            justify="between"
             flexShrink={0}
-            width={{xs: '100%', sm: 'auto'}}
-            minWidth={{xs: '0', sm: '320px'}}
+            width={{xs: '100%', sm: '320px'}}
           >
             <Stack
               gap={{xs: 'md', sm: 'xs'}}
               direction={{xs: 'row', sm: 'column'}}
               wrap="wrap"
+              minWidth="0"
             >
-              <Flex gap="xs" align="center">
+              <Flex gap="xs" align="center" minWidth="0">
                 <Tooltip title={t('View project')} skipWrapper>
                   <ProjectBadge project={row.project} avatarSize={14} hideName />
                 </Tooltip>
-                <Text size="sm" monospace variant="muted" wrap="nowrap">
+                <Text size="sm" monospace variant="muted" ellipsis>
                   {row.shortId}
                 </Text>
               </Flex>
@@ -448,7 +449,7 @@ export function IssueCard({
                 </LinkButton>
               )}
             </Stack>
-          </Flex>
+          </Grid>
         </Flex>
       </Stack>
     </Container>
