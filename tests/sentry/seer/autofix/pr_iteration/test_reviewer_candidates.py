@@ -212,6 +212,36 @@ class CollectReviewerCandidatesTest(TestCase):
         assert candidates == [ReviewerCandidate(login="linked-dev", source=SOURCE_CODE_OWNER)]
 
     @patch(f"{CANDIDATES_PATH}.scm_actions")
+    def test_code_owner_does_not_require_access_to_the_codeowners_project(
+        self, mock_actions: MagicMock
+    ) -> None:
+        # A repo can be shared by several projects, and the owner may lack
+        # Sentry team access on the one whose CODEOWNERS row we happen to
+        # read. GitHub repo access is what makes them a valid reviewer, so
+        # the org-wide identity link alone must suffice.
+        self.seer_run.update(user_id=None)
+        other_team = self.create_team(organization=self.organization)
+        member = self.create_user(email="elsewhere@example.com")
+        self.create_member(organization=self.organization, user=member, teams=[other_team])
+        self.create_external_user(
+            user=member, organization=self.organization, external_name="@elsewhere-dev"
+        )
+        code_mapping = self.create_code_mapping(project=self.project, repo=self.repo)
+        self.create_codeowners(
+            project=self.project,
+            code_mapping=code_mapping,
+            raw="src/widget.py @elsewhere-dev",
+        )
+        mock_actions.get_pull_request_files.return_value = _files_page(
+            [{"filename": "src/widget.py", "changes": 10}]
+        )
+        mock_actions.get_commits_by_path.return_value = _commits_page([])
+
+        candidates = self._collect(scm=_FakeScm())
+
+        assert candidates == [ReviewerCandidate(login="elsewhere-dev", source=SOURCE_CODE_OWNER)]
+
+    @patch(f"{CANDIDATES_PATH}.scm_actions")
     def test_code_owner_last_matching_rule_wins(self, mock_actions: MagicMock) -> None:
         self.seer_run.update(user_id=None)
         for login in ("first-dev", "second-dev"):

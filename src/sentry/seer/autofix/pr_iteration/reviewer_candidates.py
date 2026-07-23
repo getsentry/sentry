@@ -34,13 +34,15 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 
+from django.db.models.functions import Lower
 from django.utils import timezone
 from scm import actions as scm_actions
 from scm.helpers import iter_all_pages
 from scm.manager import SourceCodeManager
 from scm.types import GetCommitsByPathProtocol, GetPullRequestFilesProtocol, PullRequestFile
 
-from sentry.api.validators.project_codeowners import build_codeowners_associations
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.types import ExternalProviders
 from sentry.issues.ownership.grammar import get_codeowners_path_and_owners
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -274,11 +276,12 @@ def _code_owner_logins(repository: Repository, changed_files: list[PullRequestFi
     """
     if not changed_files:
         return []
+    # Several projects can sync the same repo's CODEOWNERS file; any copy has
+    # the same rules, so the most recently synced one is simply the freshest.
     codeowners = (
         ProjectCodeOwners.objects.filter(
             repository_project_path_config__project_repository__repository=repository
         )
-        .select_related("project")
         .order_by("-date_updated")
         .first()
     )
@@ -302,16 +305,28 @@ def _code_owner_logins(repository: Repository, changed_files: list[PullRequestFi
     if not handles:
         return []
 
-    associations, _ = build_codeowners_associations(codeowners.raw, codeowners.project)
-    linked_users = {
-        name.lower()
-        for name, sentry_name in associations.items()
-        if isinstance(sentry_name, str) and not sentry_name.startswith("#")
-    }
+    # Org-scoped on purpose, matching how the triggering-user source resolves
+    # identities: reviewing happens on GitHub, where repo access is what
+    # matters, so requiring Sentry team access on whichever single project the
+    # CODEOWNERS row belongs to would wrongly drop owners in multi-project
+    # repos.
+    linked_handles = set(
+        ExternalActor.objects.annotate(external_name_lower=Lower("external_name"))
+        .filter(
+            external_name_lower__in={handle.lower() for handle in handles},
+            organization_id=repository.organization_id,
+            provider__in=[
+                ExternalProviders.GITHUB.value,
+                ExternalProviders.GITHUB_ENTERPRISE.value,
+            ],
+            user_id__isnull=False,
+        )
+        .values_list("external_name_lower", flat=True)
+    )
     return [
         handle.removeprefix("@")
         for handle, _count in owner_file_counts.most_common()
-        if handle in handles and handle.lower() in linked_users
+        if handle in handles and handle.lower() in linked_handles
     ]
 
 
