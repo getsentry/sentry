@@ -73,6 +73,12 @@ SUPPORTED_MAPPINGS = (
         RetentionAliasGroup.SPAN,
     ),
     (
+        ProtoDataCategory.DATA_CATEGORY_SPAN_INDEXED,
+        DataCategory.SPAN_INDEXED,
+        RetentionConfigKey.SPAN,
+        RetentionAliasGroup.SPAN,
+    ),
+    (
         ProtoDataCategory.DATA_CATEGORY_TRACE_METRIC,
         DataCategory.TRACE_METRIC,
         RetentionConfigKey.TRACE_METRIC,
@@ -213,10 +219,15 @@ def test_span_alias_keeps_distinct_runtime_categories() -> None:
 
 
 def test_supported_wire_mapping_matches_existing_retention_config() -> None:
+    # The adapter may map runtime categories the legacy map does not project
+    # (for example SPAN_INDEXED). Assert it agrees with the legacy map on every
+    # runtime category the legacy map covers, rather than requiring exact
+    # equality with the broader adapter set.
     actual = {
         mapping.runtime_category: mapping.wire_key.value
         for mapping in RETENTION_CATEGORY_DECISIONS.values()
         if isinstance(mapping, RetentionCategoryMapping) and mapping.wire_key is not None
     }
 
-    assert actual == RETENTIONS_CONFIG_MAPPING
+    for runtime_category, wire_key in RETENTIONS_CONFIG_MAPPING.items():
+        assert actual[runtime_category] == wire_key

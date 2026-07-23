@@ -64,6 +64,15 @@ _SUPPORTED_DECISIONS: dict[int, RetentionCategoryMapping] = {
         wire_key=RetentionConfigKey.SPAN,
         alias_group=RetentionAliasGroup.SPAN,
     ),
+    # Indexed spans share the one span product with TRANSACTION and SPAN. The
+    # runtime identity stays distinct so two platform categories do not emit the
+    # same runtime key.
+    ProtoDataCategory.DATA_CATEGORY_SPAN_INDEXED: RetentionCategoryMapping(
+        policy_category=ProtoDataCategory.DATA_CATEGORY_SPAN_INDEXED,
+        runtime_category=DataCategory.SPAN_INDEXED,
+        wire_key=RetentionConfigKey.SPAN,
+        alias_group=RetentionAliasGroup.SPAN,
+    ),
     ProtoDataCategory.DATA_CATEGORY_TRACE_METRIC: RetentionCategoryMapping(
         policy_category=ProtoDataCategory.DATA_CATEGORY_TRACE_METRIC,
         runtime_category=DataCategory.TRACE_METRIC,
@@ -90,7 +99,6 @@ _UNSUPPORTED_REASONS: dict[int, UnsupportedRetentionCategoryReason] = {
     ProtoDataCategory.DATA_CATEGORY_SECURITY: UnsupportedRetentionCategoryReason.NOT_ESTABLISHED,
     ProtoDataCategory.DATA_CATEGORY_PROFILE_CHUNK: UnsupportedRetentionCategoryReason.NOT_ESTABLISHED,
     ProtoDataCategory.DATA_CATEGORY_PROFILE_CHUNK_UI: UnsupportedRetentionCategoryReason.NOT_ESTABLISHED,
-    ProtoDataCategory.DATA_CATEGORY_SPAN_INDEXED: UnsupportedRetentionCategoryReason.NOT_ESTABLISHED,
     ProtoDataCategory.DATA_CATEGORY_TRANSACTION_PROCESSED: UnsupportedRetentionCategoryReason.NOT_ESTABLISHED,
     ProtoDataCategory.DATA_CATEGORY_TRANSACTION_INDEXED: UnsupportedRetentionCategoryReason.NOT_ESTABLISHED,
     ProtoDataCategory.DATA_CATEGORY_PROFILE_INDEXED: UnsupportedRetentionCategoryReason.NOT_ESTABLISHED,
