@@ -3,14 +3,26 @@ from sentry.ingest.inbound_filters.constants import (
     FilterStatKeys,
     FilterTypes,
 )
-from sentry.ingest.inbound_filters.inbound_filters import (
+from sentry.ingest.inbound_filters.default_filters import (
+    Filter,
+    FilterSerializer,
+    LegacyBrowserFilterSerializer,
+    browser_extensions_filter,
+    healthcheck_filter,
+    legacy_browsers_filter,
+    localhost_filter,
+    web_crawlers_filter,
+)
+from sentry.ingest.inbound_filters.filter_conditions import (
     ACTIVE_GENERIC_FILTERS,
-    GENERIC_FILTERS_VERSION,
-    FilterNotRegistered,
     _chunk_load_error_filter,
     _custom_error_filter,
     _error_message_condition,
     _hydration_error_filter,
+)
+from sentry.ingest.inbound_filters.inbound_filters import (
+    GENERIC_FILTERS_VERSION,
+    FilterNotRegistered,
     get_all_filter_specs,
     get_filter_key,
     get_filter_state,
@@ -18,16 +30,6 @@ from sentry.ingest.inbound_filters.inbound_filters import (
     get_log_messages_generic_filter,
     get_trace_metric_names_generic_filter,
     set_filter_state,
-)
-from sentry.ingest.inbound_filters.specs import (
-    FilterSerializer,
-    FilterSpec,
-    LegacyBrowserFilterSerializer,
-    browser_extensions_filter,
-    healthcheck_filter,
-    legacy_browsers_filter,
-    localhost_filter,
-    web_crawlers_filter,
 )
 
 __all__ = (
@@ -38,7 +40,7 @@ __all__ = (
     "FilterTypes",
     "GENERIC_FILTERS_VERSION",
     "FilterSerializer",
-    "FilterSpec",
+    "Filter",
     "LegacyBrowserFilterSerializer",
     "browser_extensions_filter",
     "_chunk_load_error_filter",

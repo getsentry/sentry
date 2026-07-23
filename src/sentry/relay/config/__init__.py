@@ -17,7 +17,7 @@ from sentry.constants import (
 from sentry.dynamic_sampling import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
-    FilterSpec,
+    Filter,
     FilterStatKeys,
     FilterTypes,
     get_all_filter_specs,
@@ -1063,7 +1063,7 @@ class ProjectConfig(_ConfigBase):
         super().__init__(**kwargs)
 
 
-def _load_filter_settings(flt: FilterSpec, project: Project) -> Mapping[str, Any]:
+def _load_filter_settings(flt: Filter, project: Project) -> Mapping[str, Any]:
     """
     Returns the filter settings for the specified project
     :param flt: the filter function
@@ -1080,7 +1080,7 @@ def _load_filter_settings(flt: FilterSpec, project: Project) -> Mapping[str, Any
     return _filter_option_to_config_setting(flt, setting)
 
 
-def _filter_option_to_config_setting(flt: FilterSpec, setting: str) -> Mapping[str, Any]:
+def _filter_option_to_config_setting(flt: Filter, setting: str) -> Mapping[str, Any]:
     """
     Encapsulates the logic for associating a filter database option with the filter setting from project_config
     :param flt: the filter

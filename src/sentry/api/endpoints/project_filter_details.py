@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -102,15 +104,14 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             if current_state is True and new_state is False:
                 audit_log_state = audit_log.get_event_id("PROJECT_DISABLE")
 
-        audit_state: bool | str | list[str] | None = (
-            sorted(returned_state) if isinstance(returned_state, set) else returned_state
-        )
+        if isinstance(returned_state, Iterable) and not isinstance(returned_state, str):
+            returned_state = list(returned_state)
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=project.id,
             event=audit_log_state,
-            data={"state": audit_state, "slug": project.slug},
+            data={"state": returned_state, "slug": project.slug},
         )
 
         return Response(status=204)

@@ -3,6 +3,7 @@ from typing import Any
 from rest_framework import serializers
 
 from sentry.ingest.inbound_filters.constants import FilterStatKeys
+from sentry.relay.utils import to_camel_case_name
 
 
 class FilterSerializer(serializers.Serializer[dict[str, Any]]):
@@ -60,7 +61,7 @@ Deprecated options:
     )
 
 
-class FilterSpec:
+class Filter:
     """
     Data associated with a filter, it defines its name, id, default enable state and how its  state is serialized
     in the database
@@ -86,20 +87,23 @@ class FilterSpec:
         self.serializer_cls = serializer_cls or FilterSerializer
         self.config_name = config_name or id
 
+    def get_filter_key(self) -> str:
+        return to_camel_case_name(self.config_name.replace("-", "_"))
 
-localhost_filter = FilterSpec(
+
+localhost_filter = Filter(
     id=FilterStatKeys.LOCALHOST,
     name="Filter out events coming from localhost",
     description="This applies to both IPv4 (``127.0.0.1``) and IPv6 (``::1``) addresses.",
 )
 
-browser_extensions_filter = FilterSpec(
+browser_extensions_filter = Filter(
     id=FilterStatKeys.BROWSER_EXTENSION,
     name="Filter out errors known to be caused by browser extensions",
     description="Certain browser extensions will inject inline scripts and are known to cause errors.",
 )
 
-legacy_browsers_filter = FilterSpec(
+legacy_browsers_filter = Filter(
     id=FilterStatKeys.LEGACY_BROWSER,
     name="Filter out known errors from legacy browsers",
     description="Older browsers often give less accurate information, and while they may report valid issues, "
@@ -107,14 +111,14 @@ legacy_browsers_filter = FilterSpec(
     serializer_cls=LegacyBrowserFilterSerializer,
 )
 
-web_crawlers_filter = FilterSpec(
+web_crawlers_filter = Filter(
     id=FilterStatKeys.WEB_CRAWLER,
     name="Filter out known web crawlers",
     description="Some crawlers may execute pages in incompatible ways which then cause errors that"
     " are unlikely to be seen by a normal user.",
 )
 
-healthcheck_filter = FilterSpec(
+healthcheck_filter = Filter(
     id=FilterStatKeys.HEALTH_CHECK,
     name="Filter out health check transactions",
     description="Filter transactions that match most common naming patterns for health checks.",

@@ -49,7 +49,7 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
         `active` will be either a boolean or a list for the legacy browser filters.
         """
         results: list[ProjectFilterResponse] = []
-        for flt in inbound_filters.get_all_filter_specs():
+        for flt in inbound_filters.ALL_FILTERS.values():
             results.append(
                 {
                     "id": flt.id,
