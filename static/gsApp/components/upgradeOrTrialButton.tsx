@@ -11,7 +11,7 @@ import {withApi} from 'sentry/utils/withApi';
 import {sendTrialRequest, sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import type {Subscription} from 'getsentry/types';
-import {getTrialLength} from 'getsentry/utils/billing';
+import {getTrialLength, isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type ChildRenderProps = {
@@ -67,7 +67,7 @@ function UpgradeOrTrialButton({
   // can override action if we want
   const action =
     _action ??
-    (subscription.canTrial && subscription.trialPlan === null ? 'trial' : 'upgrade');
+    (subscription.canTrial && !isTrial(subscription) ? 'trial' : 'upgrade');
 
   const childComponent =
     typeof children === 'function'

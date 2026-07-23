@@ -1,52 +1,70 @@
-import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
+import { MetricHistoryFixture } from "getsentry-test/fixtures/metricHistory";
 import {
   PlanDetailsLookupFixture,
   type PlanIds,
-} from 'getsentry-test/fixtures/planDetailsLookup';
-import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
+} from "getsentry-test/fixtures/planDetailsLookup";
+import { SeerReservedBudgetFixture } from "getsentry-test/fixtures/reservedBudget";
 
-import {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
+import { DataCategory } from "sentry/types/core";
+import type { Organization } from "sentry/types/organization";
 
-import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {Plan, Subscription as TSubscription} from 'getsentry/types';
-import {AddOnCategory, BillingType} from 'getsentry/types';
+import { RESERVED_BUDGET_QUOTA } from "getsentry/constants";
+import type { Plan, Subscription as TSubscription } from "getsentry/types";
+import { AddOnCategory, BillingType } from "getsentry/types";
 
-const TRIAL_PLANS = ['am1_t', 'am2_t', 'am3_t', 'am1_t_ent', 'am2_t_ent', 'am3_t_ent'];
+const TRIAL_PLANS = [
+  "am1_t",
+  "am2_t",
+  "am3_t",
+  "am1_t_ent",
+  "am2_t_ent",
+  "am3_t_ent",
+];
 
 // Derives whether a plan id is a trial plan, so the fixture can set the
 // trial-related fields the backend resolves from the subscription.
 const isTrialPlan = (plan: string) => TRIAL_PLANS.includes(plan);
 
-type Props = Partial<TSubscription> & {organization: Organization};
+type Props = Partial<TSubscription> & { organization: Organization };
 
 export function SubscriptionFixture(props: Props): TSubscription {
-  const {organization, ...params} = props;
-  const planData = {plan: 'am1_f', ...params};
+  const { organization, ...params } = props;
+  const planData = { plan: "am1_f", ...params };
 
   // Use planDetails from params if provided, otherwise look it up
   const planDetails = (planData.planDetails ||
     PlanDetailsLookupFixture(planData.plan as PlanIds)) as Plan;
 
-  const hasPerformance = planDetails?.categories?.includes(DataCategory.TRANSACTIONS);
+  const hasPerformance = planDetails?.categories?.includes(
+    DataCategory.TRANSACTIONS
+  );
   const hasReplays = planDetails?.categories?.includes(DataCategory.REPLAYS);
-  const hasMonitors = planDetails?.categories?.includes(DataCategory.MONITOR_SEATS);
+  const hasMonitors = planDetails?.categories?.includes(
+    DataCategory.MONITOR_SEATS
+  );
   const hasUptime = planDetails?.categories?.includes(DataCategory.UPTIME);
   const hasSpans = planDetails?.categories?.includes(DataCategory.SPANS);
-  const hasSpansIndexed = planDetails?.categories?.includes(DataCategory.SPANS_INDEXED);
+  const hasSpansIndexed = planDetails?.categories?.includes(
+    DataCategory.SPANS_INDEXED
+  );
   const hasProfileDuration = planDetails?.categories?.includes(
     DataCategory.PROFILE_DURATION
   );
   const hasProfileDurationUI = planDetails?.categories?.includes(
     DataCategory.PROFILE_DURATION_UI
   );
-  const hasAttachments = planDetails?.categories?.includes(DataCategory.ATTACHMENTS);
+  const hasAttachments = planDetails?.categories?.includes(
+    DataCategory.ATTACHMENTS
+  );
   const hasLogBytes = planDetails?.categories?.includes(DataCategory.LOG_BYTE);
-  const hasSizeAnalyses = planDetails?.categories?.includes(DataCategory.SIZE_ANALYSIS);
+  const hasSizeAnalyses = planDetails?.categories?.includes(
+    DataCategory.SIZE_ANALYSIS
+  );
   const hasInstallableBuilds = planDetails?.categories?.includes(
     DataCategory.INSTALLABLE_BUILD
   );
-  const hasLegacySeer = AddOnCategory.LEGACY_SEER in planDetails.addOnCategories;
+  const hasLegacySeer =
+    AddOnCategory.LEGACY_SEER in planDetails.addOnCategories;
   const hasSeer = AddOnCategory.SEER in planDetails.addOnCategories;
 
   // Create a safe default for planCategories if it doesn't exist
@@ -57,14 +75,16 @@ export function SubscriptionFixture(props: Props): TSubscription {
   const reservedBudgets = [];
   if (hasLegacySeer) {
     if (isTrial) {
-      reservedBudgets.push(SeerReservedBudgetFixture({reservedBudget: 150_00}));
+      reservedBudgets.push(
+        SeerReservedBudgetFixture({ reservedBudget: 150_00 })
+      );
     } else {
-      reservedBudgets.push(SeerReservedBudgetFixture({reservedBudget: 0}));
+      reservedBudgets.push(SeerReservedBudgetFixture({ reservedBudget: 0 }));
     }
   }
 
-  const addOns: TSubscription['addOns'] = {};
-  Object.values(planDetails.addOnCategories).forEach(addOnCategory => {
+  const addOns: TSubscription["addOns"] = {};
+  Object.values(planDetails.addOnCategories).forEach((addOnCategory) => {
     addOns[addOnCategory.apiName] = {
       ...addOnCategory,
       enabled: isTrial,
@@ -78,7 +98,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     hasDismissedTrialEndingNotice: false,
     hasMigratedToBillingPlatform: false,
     hadCustomDynamicSampling: false,
-    id: '',
+    id: "",
     isEnterpriseTrial,
     isOverMemberLimit: false,
     isPartner: false,
@@ -86,30 +106,30 @@ export function SubscriptionFixture(props: Props): TSubscription {
     isPerformancePlanTrial: false,
     lastTrialEnd: null,
     spendAllocationEnabled: false,
-    status: 'active',
+    status: "active",
     totalProjects: 0,
     trialPlan: isTrial ? planDetails.id : null,
-    onDemandPeriodStart: '2018-09-25',
+    onDemandPeriodStart: "2018-09-25",
     trialEnd: null,
     countryCode: null,
     cancelAtPeriodEnd: false,
     onTrialPlan: isTrial,
     paymentSource: {
-      last4: '4242',
-      countryCode: 'US',
-      zipCode: '94242',
+      last4: "4242",
+      countryCode: "US",
+      zipCode: "94242",
       expMonth: 12,
       expYear: 2077,
-      brand: 'Visa',
+      brand: "Visa",
     },
-    billingPeriodEnd: '2018-10-24',
+    billingPeriodEnd: "2018-10-24",
     onDemandSpendUsed: 0,
-    renewalDate: '2018-10-25',
+    renewalDate: "2018-10-25",
     partner: null,
     planDetails,
     totalMembers: 1,
     totalLicenses: 1,
-    billingPeriodStart: '2018-09-25',
+    billingPeriodStart: "2018-09-25",
     suspensionReason: null,
     accountBalance: -10000,
     companyName: null,
@@ -135,11 +155,11 @@ export function SubscriptionFixture(props: Props): TSubscription {
     slug: organization.slug,
     pendingChanges: null,
     name: organization.name,
-    billingInterval: planDetails.billingInterval || 'monthly',
-    dateJoined: '2018-09-10T23:58:10.167Z',
-    onDemandPeriodEnd: '2018-10-24',
+    billingInterval: planDetails.billingInterval || "monthly",
+    dateJoined: "2018-09-10T23:58:10.167Z",
+    onDemandPeriodEnd: "2018-10-24",
     msaUpdatedForDataConsent: false,
-    orgRetention: {standard: null, downsampled: null},
+    orgRetention: { standard: null, downsampled: null },
     addOns,
     reservedBudgets,
     categories: {
@@ -319,7 +339,7 @@ export function SubscriptionWithLegacySeerFixture(props: Props): TSubscription {
 }
 
 export function InvoicedSubscriptionFixture(props: Props): TSubscription {
-  const planData = {plan: 'am2_business_ent_auf', ...props};
+  const planData = { plan: "am2_business_ent_auf", ...props };
   const planDetails = PlanDetailsLookupFixture(planData.plan as PlanIds);
   const subscription = SubscriptionFixture({
     ...props,
@@ -327,7 +347,7 @@ export function InvoicedSubscriptionFixture(props: Props): TSubscription {
     plan: planDetails?.id,
     canSelfServe: false,
     type: BillingType.INVOICED,
-    channel: 'sales',
+    channel: "sales",
     accountBalance: 0,
     isFree: false,
   });

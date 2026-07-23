@@ -16,7 +16,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
-import {getTrialLength, hasPerformance} from 'getsentry/utils/billing';
+import {getTrialLength, hasPerformance, isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import {FeatureList} from './featureList';
@@ -303,8 +303,37 @@ export class Details extends Component<Props, State> {
       ];
     }
 
-    return subscription.trialPlan === null
-      ? hasPerformance(subscription.planDetails)
+    return isTrial(subscription)
+      ? // If the subscription already has performance
+        hasPerformance(subscription.planDetails)
+        ? [
+            t(
+              `With your trial you have access to Sentry’s Power Features, which
+               offer a macro-level perspective of error trends and application
+               health, while also allowing you to drill down into a single
+               issue or event with Dashboards and Discover-powered queries.`
+            ),
+            t(
+              `We hope you’re enjoying these new features to create complex
+               queries against event data, see all issues across projects, and
+               view dashboards for a comprehensive and holistic view.`
+            ),
+          ]
+        : [
+            t(
+              `With your trial you have access to Sentry’s Performance Monitoring
+               features which give you deeper visibility into your frontend page
+               load times and database queries that are critical toward
+               delivering fast customer experiences.`
+            ),
+            t(
+              `With just five lines of code, you’re now able to highlight your
+               key transactions and set metric alerts to detect latency spikes.
+               You can also dive in and query across multiple projects for a
+               comprehensive view into your application.`
+            ),
+          ]
+      : hasPerformance(subscription.planDetails)
         ? [
             t(
               `We added a bunch of new features that made Sentry a whole lot better.
@@ -334,35 +363,6 @@ export class Details extends Component<Props, State> {
               `Confusing, we know. Basically, your Sentry organization is perfect just the way it is,
              but upgrade now if you want it to be even better. `
             ),
-          ]
-      : // If the subscription already has performance
-        hasPerformance(subscription.planDetails)
-        ? [
-            t(
-              `With your trial you have access to Sentry’s Power Features, which
-               offer a macro-level perspective of error trends and application
-               health, while also allowing you to drill down into a single
-               issue or event with Dashboards and Discover-powered queries.`
-            ),
-            t(
-              `We hope you’re enjoying these new features to create complex
-               queries against event data, see all issues across projects, and
-               view dashboards for a comprehensive and holistic view.`
-            ),
-          ]
-        : [
-            t(
-              `With your trial you have access to Sentry’s Performance Monitoring
-               features which give you deeper visibility into your frontend page
-               load times and database queries that are critical toward
-               delivering fast customer experiences.`
-            ),
-            t(
-              `With just five lines of code, you’re now able to highlight your
-               key transactions and set metric alerts to detect latency spikes.
-               You can also dive in and query across multiple projects for a
-               comprehensive view into your application.`
-            ),
           ];
   }
 
@@ -373,7 +373,7 @@ export class Details extends Component<Props, State> {
         'Start your trial again to invite team members, integrate with Sentry with services like Slack, GitHub, and Jira, and build custom dashboards to view issues across projects.'
       );
     }
-    return subscription.canTrial && subscription.trialPlan === null
+    return subscription.canTrial && !isTrial(subscription)
       ? t(
           'Enable all power features by starting your %s day trial',
           getTrialLength(organization)

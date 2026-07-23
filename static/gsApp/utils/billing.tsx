@@ -1,11 +1,11 @@
-import type {PromptData} from 'sentry/actionCreators/prompts';
-import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
-import {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils/defined';
-import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
-import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import type { PromptData } from "sentry/actionCreators/prompts";
+import { IconBuilding, IconGroup, IconSeer, IconUser } from "sentry/icons";
+import type { SVGIconProps } from "sentry/icons/svgIcon";
+import { DataCategory } from "sentry/types/core";
+import type { Organization } from "sentry/types/organization";
+import { defined } from "sentry/utils/defined";
+import { getDaysSinceDate } from "sentry/utils/getDaysSinceDate";
+import { toTitleCase } from "sentry/utils/string/toTitleCase";
 
 import {
   BILLION,
@@ -15,7 +15,7 @@ import {
   RESERVED_BUDGET_QUOTA,
   UNLIMITED,
   UNLIMITED_RESERVED,
-} from 'getsentry/constants';
+} from "getsentry/constants";
 import {
   AddOnCategory,
   CREDIT_INVOICE_ITEM_TYPES,
@@ -23,7 +23,7 @@ import {
   OnDemandBudgetMode,
   PlanName,
   ReservedBudgetCategoryType,
-} from 'getsentry/types';
+} from "getsentry/types";
 import type {
   BillingConfig,
   BillingDetails,
@@ -34,15 +34,15 @@ import type {
   Plan,
   ProductTrial,
   Subscription,
-} from 'getsentry/types';
-import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
-import {titleCase} from 'getsentry/utils/titleCase';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+} from "getsentry/types";
+import { getCategoryInfoFromPlural } from "getsentry/utils/dataCategory";
+import { titleCase } from "getsentry/utils/titleCase";
+import { displayPriceWithCents } from "getsentry/views/amCheckout/utils";
 
 export const MILLISECONDS_IN_HOUR = 3600_000;
 
 function isNum(val: unknown): val is number {
-  return typeof val === 'number';
+  return typeof val === "number";
 }
 
 // TODO(brendan): remove condition for 0 once -1 is the value we use to represent unlimited reserved quota
@@ -76,17 +76,20 @@ export const getSlot = (
   shouldMinimize = false
 ) => {
   let s = 0;
-  if (!slots?.length || (typeof events !== 'number' && typeof price !== 'number')) {
+  if (
+    !slots?.length ||
+    (typeof events !== "number" && typeof price !== "number")
+  ) {
     return 0;
   }
-  const byEvents = typeof events === 'number';
+  const byEvents = typeof events === "number";
 
   const value = isNum(events) ? events : isNum(price) ? price : null;
   if (value === null) {
     return 0;
   }
 
-  const slotKey = byEvents ? 'events' : 'price';
+  const slotKey = byEvents ? "events" : "price";
 
   while (value > slots[s]![slotKey]) {
     s++;
@@ -145,13 +148,13 @@ export function formatReservedWithUnits(
   isReservedBudget = false
 ): string {
   if (isReservedBudget) {
-    return displayPriceWithCents({cents: reservedQuantity ?? 0});
+    return displayPriceWithCents({ cents: reservedQuantity ?? 0 });
   }
 
   const categoryInfo = getCategoryInfoFromPlural(dataCategory);
-  const unitType = categoryInfo?.formatting.unitType ?? 'count';
+  const unitType = categoryInfo?.formatting.unitType ?? "count";
 
-  if (unitType !== 'bytes') {
+  if (unitType !== "bytes") {
     return formatReservedNumberToString(reservedQuantity, options);
   }
 
@@ -162,15 +165,18 @@ export function formatReservedWithUnits(
       ? reservedQuantity * GIGABYTE
       : reservedQuantity;
   if (isUnlimitedReserved(usageGb)) {
-    return options.isGifted ? '0 GB' : UNLIMITED;
+    return options.isGifted ? "0 GB" : UNLIMITED;
   }
 
   if (!options.useUnitScaling) {
     const byteOptions =
       dataCategory === DataCategory.LOG_BYTE
-        ? {...options, isAbbreviated: false}
+        ? { ...options, isAbbreviated: false }
         : options;
-    const formatted = formatReservedNumberToString(reservedQuantity, byteOptions);
+    const formatted = formatReservedNumberToString(
+      reservedQuantity,
+      byteOptions
+    );
     return `${formatted} GB`;
   }
 
@@ -186,12 +192,12 @@ export function formatReservedWithUnits(
 export function formatUsageWithUnits(
   usageQuantity = 0,
   dataCategory: DataCategory,
-  options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
+  options: FormatOptions = { isAbbreviated: false, useUnitScaling: false }
 ) {
   const categoryInfo = getCategoryInfoFromPlural(dataCategory);
-  const unitType = categoryInfo?.formatting.unitType ?? 'count';
+  const unitType = categoryInfo?.formatting.unitType ?? "count";
 
-  if (unitType === 'bytes') {
+  if (unitType === "bytes") {
     if (options.useUnitScaling) {
       return formatByteUnits(usageQuantity);
     }
@@ -199,16 +205,18 @@ export function formatUsageWithUnits(
     const usageGb = usageQuantity / GIGABYTE;
     return options.isAbbreviated
       ? `${displayNumber(usageGb)} GB`
-      : `${usageGb.toLocaleString(undefined, {maximumFractionDigits: 2})} GB`;
+      : `${usageGb.toLocaleString(undefined, { maximumFractionDigits: 2 })} GB`;
   }
-  if (unitType === 'durationHours') {
+  if (unitType === "durationHours") {
     const usageProfileHours = usageQuantity / MILLISECONDS_IN_HOUR;
     if (usageProfileHours === 0) {
-      return '0';
+      return "0";
     }
     return options.isAbbreviated
       ? displayNumber(usageProfileHours, 1)
-      : usageProfileHours.toLocaleString(undefined, {maximumFractionDigits: 1});
+      : usageProfileHours.toLocaleString(undefined, {
+          maximumFractionDigits: 1,
+        });
   }
   return options.isAbbreviated
     ? displayNumber(usageQuantity, 0)
@@ -220,12 +228,12 @@ export function convertUsageToReservedUnit(
   category: DataCategory | string
 ): number {
   const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
-  const unitType = categoryInfo?.formatting.unitType ?? 'count';
+  const unitType = categoryInfo?.formatting.unitType ?? "count";
 
-  if (unitType === 'bytes') {
+  if (unitType === "bytes") {
     return usage / GIGABYTE;
   }
-  if (unitType === 'durationHours') {
+  if (unitType === "durationHours") {
     return usage / MILLISECONDS_IN_HOUR;
   }
   return usage;
@@ -246,11 +254,11 @@ function formatReservedNumberToString(
 ): string {
   // "null" indicates that there's no quota for it.
   if (!defined(reservedQuantity)) {
-    return '0';
+    return "0";
   }
 
   if (reservedQuantity === RESERVED_BUDGET_QUOTA) {
-    return 'N/A';
+    return "N/A";
   }
 
   if (isUnlimitedReserved(reservedQuantity) && !options.isGifted) {
@@ -259,7 +267,7 @@ function formatReservedNumberToString(
 
   return options.isAbbreviated
     ? displayNumber(reservedQuantity, options.fractionDigits)
-    : reservedQuantity.toLocaleString(undefined, {maximumFractionDigits: 1});
+    : reservedQuantity.toLocaleString(undefined, { maximumFractionDigits: 1 });
 }
 
 /**
@@ -278,7 +286,7 @@ function formatReservedNumberToString(
  * sentry/utils/formatBytes.
  */
 function formatByteUnits(bytes: number, u = 0) {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  const units = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
   const threshold = 1000;
 
   while (bytes >= threshold) {
@@ -286,7 +294,11 @@ function formatByteUnits(bytes: number, u = 0) {
     u += 1;
   }
 
-  return bytes.toLocaleString(undefined, {maximumFractionDigits: 2}) + ' ' + units[u];
+  return (
+    bytes.toLocaleString(undefined, { maximumFractionDigits: 2 }) +
+    " " +
+    units[u]
+  );
 }
 
 /**
@@ -295,15 +307,21 @@ function formatByteUnits(bytes: number, u = 0) {
  */
 function displayNumber(n: number, fractionDigits = 0) {
   if (n >= BILLION) {
-    return (n / BILLION).toLocaleString(undefined, {maximumFractionDigits: 2}) + 'B';
+    return (
+      (n / BILLION).toLocaleString(undefined, { maximumFractionDigits: 2 }) +
+      "B"
+    );
   }
 
   if (n >= MILLION) {
-    return (n / MILLION).toLocaleString(undefined, {maximumFractionDigits: 1}) + 'M';
+    return (
+      (n / MILLION).toLocaleString(undefined, { maximumFractionDigits: 1 }) +
+      "M"
+    );
   }
 
   if (n >= 1000) {
-    return (n / 1000).toFixed().toLocaleString() + 'K';
+    return (n / 1000).toFixed().toLocaleString() + "K";
   }
 
   // Do not show decimals
@@ -320,27 +338,37 @@ export const hasPerformance = (plan?: Plan) => {
 };
 
 export const hasPartnerMigrationFeature = (organization: Organization) =>
-  organization.features.includes('partner-billing-migration');
+  organization.features.includes("partner-billing-migration");
 
 export const hasActiveVCFeature = (organization: Organization) =>
-  organization.features.includes('vc-marketplace-active-customer');
+  organization.features.includes("vc-marketplace-active-customer");
 
-export const isDeveloperPlan = (plan?: Plan) => plan?.name === PlanName.DEVELOPER;
+export const isDeveloperPlan = (plan?: Plan) =>
+  plan?.name === PlanName.DEVELOPER;
 
-export const isBizPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.BUSINESS);
+export const isBizPlanFamily = (plan?: Plan) =>
+  plan?.name.includes(PlanName.BUSINESS);
 
-export const isTeamPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.TEAM);
+export const isTeamPlanFamily = (plan?: Plan) =>
+  plan?.name.includes(PlanName.TEAM);
+
+/**
+ * Whether the subscription is currently on a trial, derived from `trialPlan`
+ * (non-null iff trialing).
+ */
+export const isTrial = (subscription: Subscription) =>
+  defined(subscription.trialPlan);
 
 export const isBusinessTrial = (subscription: Subscription) => {
   return (
-    subscription.trialPlan !== null &&
+    isTrial(subscription) &&
     !subscription.isPerformancePlanTrial &&
     !subscription.isEnterpriseTrial
   );
 };
 
 export function hasJustStartedPlanTrial(subscription: Subscription) {
-  return subscription.trialPlan !== null && subscription.isTrialStarted;
+  return isTrial(subscription) && subscription.isTrialStarted;
 }
 
 export const displayBudgetName = (
@@ -352,23 +380,23 @@ export const displayBudgetName = (
     withBudget?: boolean;
   } = {}
 ) => {
-  const budgetTerm = plan?.budgetTerm ?? 'pay-as-you-go';
-  const text = `${budgetTerm}${options.withBudget ? ' budget' : ''}`;
+  const budgetTerm = plan?.budgetTerm ?? "pay-as-you-go";
+  const text = `${budgetTerm}${options.withBudget ? " budget" : ""}`;
   if (options.abbreviated) {
-    if (budgetTerm === 'pay-as-you-go') {
-      return 'PAYG';
+    if (budgetTerm === "pay-as-you-go") {
+      return "PAYG";
     }
-    return 'OD';
+    return "OD";
   }
   if (options.title) {
-    if (budgetTerm === 'on-demand') {
+    if (budgetTerm === "on-demand") {
       if (options.withBudget) {
         if (options.pluralOndemand) {
-          return 'On-Demand Budgets';
+          return "On-Demand Budgets";
         }
-        return 'On-Demand Budget';
+        return "On-Demand Budget";
       }
-      return 'On-Demand';
+      return "On-Demand";
     }
     return titleCase(text);
   }
@@ -391,7 +419,7 @@ export const getOnDemandCategories = ({
   plan: Plan;
 }) => {
   if (budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-    return plan.onDemandCategories.filter(category => {
+    return plan.onDemandCategories.filter((category) => {
       const categoryInfo = getCategoryInfoFromPlural(category);
       if (!categoryInfo) {
         return false;
@@ -404,7 +432,7 @@ export const getOnDemandCategories = ({
 };
 
 export const displayPlanName = (plan?: Plan | null) => {
-  return plan?.isEnterprise ? 'Enterprise' : (plan?.name ?? '[unavailable]');
+  return plan?.isEnterprise ? "Enterprise" : plan?.name ?? "[unavailable]";
 };
 
 export const isNewPayingCustomer = (
@@ -420,7 +448,7 @@ export const isNewPayingCustomer = (
  */
 export function getTrialDaysLeft(subscription: Subscription): number {
   // trial end is in the future
-  return -1 * getDaysSinceDate(subscription.trialEnd ?? '');
+  return -1 * getDaysSinceDate(subscription.trialEnd ?? "");
 }
 
 /**
@@ -428,13 +456,19 @@ export function getTrialDaysLeft(subscription: Subscription): number {
  * Used to find the best plan for an org to upgrade to
  * based on a particular feature to unlock.
  */
-function sortPlansForUpgrade(billingConfig: BillingConfig, subscription: Subscription) {
+function sortPlansForUpgrade(
+  billingConfig: BillingConfig,
+  subscription: Subscription
+) {
   // Filter plans down to just user selectable plans types of the orgs current
   // contract interval. Sorted by price as features will become progressively
   // more available.
   let plans = billingConfig.planList
     .sort((a, b) => a.totalPrice - b.totalPrice)
-    .filter(p => p.userSelectable && p.billingInterval === subscription.billingInterval);
+    .filter(
+      (p) =>
+        p.userSelectable && p.billingInterval === subscription.billingInterval
+    );
 
   // If we're dealing with plans that are *not part of a tier* Then we can
   // assume special case that there is only one plan.
@@ -450,7 +484,7 @@ export function getBestPlanForUnlimitedMembers(
 ) {
   const plans = sortPlansForUpgrade(billingConfig, subscription);
   // the best plan is the first one that has unlimited members
-  return plans.find(p => p.maxMembers === null);
+  return plans.find((p) => p.maxMembers === null);
 }
 
 export function getTrialLength(_organization: Organization) {
@@ -460,16 +494,16 @@ export function getTrialLength(_organization: Organization) {
 
 export function formatBalance(value: number) {
   return value < 0
-    ? `${displayPriceWithCents({cents: 0 - value})} credit`
-    : `${displayPriceWithCents({cents: value})} owed`;
+    ? `${displayPriceWithCents({ cents: 0 - value })} credit`
+    : `${displayPriceWithCents({ cents: value })} owed`;
 }
 
 export enum UsageAction {
-  START_TRIAL = 'start_trial',
-  ADD_EVENTS = 'add_events',
-  REQUEST_ADD_EVENTS = 'request_add_events',
-  REQUEST_UPGRADE = 'request_upgrade',
-  SEND_TO_CHECKOUT = 'send_to_checkout',
+  START_TRIAL = "start_trial",
+  ADD_EVENTS = "add_events",
+  REQUEST_ADD_EVENTS = "request_add_events",
+  REQUEST_UPGRADE = "request_upgrade",
+  SEND_TO_CHECKOUT = "send_to_checkout",
 }
 
 /**
@@ -481,7 +515,7 @@ export function getBestActionToIncreaseEventLimits(
   subscription: Subscription
 ) {
   const isPaidPlan = subscription.planDetails?.totalPrice > 0;
-  const hasBillingPerms = organization.access?.includes('org:billing');
+  const hasBillingPerms = organization.access?.includes("org:billing");
 
   // free orgs can increase event limits by trialing
   if (!isPaidPlan && subscription.canTrial) {
@@ -489,26 +523,34 @@ export function getBestActionToIncreaseEventLimits(
   }
   // paid plans should add events without changing plans
   const hasAnyUsageExceeded = Object.values(subscription.categories).some(
-    category => category.usageExceeded
+    (category) => category.usageExceeded
   );
-  if (isPaidPlan && hasPerformance(subscription.planDetails) && hasAnyUsageExceeded) {
-    return hasBillingPerms ? UsageAction.ADD_EVENTS : UsageAction.REQUEST_ADD_EVENTS;
+  if (
+    isPaidPlan &&
+    hasPerformance(subscription.planDetails) &&
+    hasAnyUsageExceeded
+  ) {
+    return hasBillingPerms
+      ? UsageAction.ADD_EVENTS
+      : UsageAction.REQUEST_ADD_EVENTS;
   }
   // otherwise, we want them to upgrade to a different plan if they're not already on a Business plan
   if (!isBizPlanFamily(subscription.planDetails)) {
-    return hasBillingPerms ? UsageAction.SEND_TO_CHECKOUT : UsageAction.REQUEST_UPGRADE;
+    return hasBillingPerms
+      ? UsageAction.SEND_TO_CHECKOUT
+      : UsageAction.REQUEST_UPGRADE;
   }
-  return '';
+  return "";
 }
 
 /**
  * Returns a name for the plan that we can display to users
  */
 export function getFriendlyPlanName(subscription: Subscription) {
-  const {name} = subscription.planDetails;
+  const { name } = subscription.planDetails;
   switch (name) {
-    case 'Trial':
-      return 'Business Trial';
+    case "Trial":
+      return "Business Trial";
     default:
       return name;
   }
@@ -526,7 +568,10 @@ export function getPlanIcon(plan: Plan) {
   return <IconUser />;
 }
 
-export function getProductIcon(product: AddOnCategory, size?: SVGIconProps['size']) {
+export function getProductIcon(
+  product: AddOnCategory,
+  size?: SVGIconProps["size"]
+) {
   if ([AddOnCategory.LEGACY_SEER, AddOnCategory.SEER].includes(product)) {
     return <IconSeer size={size} />;
   }
@@ -537,7 +582,9 @@ export function getProductIcon(product: AddOnCategory, size?: SVGIconProps['size
  * Returns true if the subscription can use pay-as-you-go.
  */
 export function supportsPayg(subscription: Subscription) {
-  return subscription.planDetails.allowOnDemand && subscription.supportsOnDemand;
+  return (
+    subscription.planDetails.allowOnDemand && subscription.supportsOnDemand
+  );
 }
 
 /**
@@ -551,7 +598,9 @@ export function hasPaygBudgetForCategory(
   if (!subscription.onDemandBudgets) {
     return false;
   }
-  if (subscription.onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+  if (
+    subscription.onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY
+  ) {
     return (subscription.onDemandBudgets.budgets?.[category] ?? 0) > 0;
   }
   return subscription.onDemandBudgets.sharedMaxBudget > 0;
@@ -561,7 +610,7 @@ export function hasPaygBudgetForCategory(
  * Returns true if the current user has billing perms.
  */
 export function hasBillingAccess(organization: Organization) {
-  return organization.access.includes('org:billing');
+  return organization.access.includes("org:billing");
 }
 
 export function hasAccessToSubscriptionOverview(
@@ -575,11 +624,16 @@ export function hasAccessToSubscriptionOverview(
  * Returns the soft cap type for the given metric history category that can be
  * displayed to users if applicable. Returns null for if no soft cap type.
  */
-export function getSoftCapType(metricHistory: BillingMetricHistory): string | null {
+export function getSoftCapType(
+  metricHistory: BillingMetricHistory
+): string | null {
   if (metricHistory.softCapType) {
-    return toTitleCase(metricHistory.softCapType.replace(/_/g, ' ').toLowerCase(), {
-      allowInnerUpperCase: true,
-    }).replace(' ', metricHistory.softCapType === 'ON_DEMAND' ? '-' : ' ');
+    return toTitleCase(
+      metricHistory.softCapType.replace(/_/g, " ").toLowerCase(),
+      {
+        allowInnerUpperCase: true,
+      }
+    ).replace(" ", metricHistory.softCapType === "ON_DEMAND" ? "-" : " ");
   }
   return null;
 }
@@ -598,8 +652,8 @@ export function getProductTrial(
 ): ProductTrial | null {
   const trialsForCategory =
     productTrials
-      ?.filter(pt => pt.category === category)
-      .sort((a, b) => b.endDate?.localeCompare(a.endDate ?? '') || 0) ?? [];
+      ?.filter((pt) => pt.category === category)
+      .sort((a, b) => b.endDate?.localeCompare(a.endDate ?? "") || 0) ?? [];
 
   const activeProductTrial = getActiveProductTrial(trialsForCategory, category);
 
@@ -607,7 +661,10 @@ export function getProductTrial(
     return activeProductTrial;
   }
 
-  const longestAvailableTrial = getPotentialProductTrial(trialsForCategory, category);
+  const longestAvailableTrial = getPotentialProductTrial(
+    trialsForCategory,
+    category
+  );
 
   if (longestAvailableTrial) {
     return longestAvailableTrial;
@@ -629,13 +686,13 @@ export function getActiveProductTrial(
   }
   const currentTrials = productTrials
     .filter(
-      pt =>
+      (pt) =>
         pt.category === category &&
         pt.isStarted &&
-        getDaysSinceDate(pt.endDate ?? '') <= 0 &&
-        getDaysSinceDate(pt.startDate ?? '') >= 0
+        getDaysSinceDate(pt.endDate ?? "") <= 0 &&
+        getDaysSinceDate(pt.startDate ?? "") >= 0
     )
-    .sort((a, b) => b.endDate?.localeCompare(a.endDate ?? '') || 0);
+    .sort((a, b) => b.endDate?.localeCompare(a.endDate ?? "") || 0);
 
   return currentTrials[0] ?? null;
 }
@@ -653,10 +710,10 @@ export function getPotentialProductTrial(
   }
   const potentialTrials = productTrials
     .filter(
-      pt =>
+      (pt) =>
         pt.category === category &&
         !pt.isStarted &&
-        getDaysSinceDate(pt.endDate ?? '') <= 0
+        getDaysSinceDate(pt.endDate ?? "") <= 0
     )
     .sort((a, b) => (b.lengthDays ?? 0) - (a.lengthDays ?? 0));
 
@@ -683,8 +740,9 @@ export function getSeerTrialCategory(
   // For started trials, endDate is the expiration date
   // In both cases, endDate must not have passed
   const seerUserTrial = productTrials.find(
-    pt =>
-      pt.category === DataCategory.SEER_USER && getDaysSinceDate(pt.endDate ?? '') <= 0
+    (pt) =>
+      pt.category === DataCategory.SEER_USER &&
+      getDaysSinceDate(pt.endDate ?? "") <= 0
   );
   if (seerUserTrial) {
     return DataCategory.SEER_USER;
@@ -692,8 +750,9 @@ export function getSeerTrialCategory(
 
   // Fall back to SEER_AUTOFIX (legacy)
   const seerAutofixTrial = productTrials.find(
-    pt =>
-      pt.category === DataCategory.SEER_AUTOFIX && getDaysSinceDate(pt.endDate ?? '') <= 0
+    (pt) =>
+      pt.category === DataCategory.SEER_AUTOFIX &&
+      getDaysSinceDate(pt.endDate ?? "") <= 0
   );
   if (seerAutofixTrial) {
     return DataCategory.SEER_AUTOFIX;
@@ -702,8 +761,11 @@ export function getSeerTrialCategory(
   return null;
 }
 
-export function trialPromptIsDismissed(prompt: PromptData, subscription: Subscription) {
-  const {snoozedTime, dismissedTime} = prompt || {};
+export function trialPromptIsDismissed(
+  prompt: PromptData,
+  subscription: Subscription
+) {
+  const { snoozedTime, dismissedTime } = prompt || {};
   const time = snoozedTime || dismissedTime;
   if (!time) {
     return false;
@@ -713,7 +775,7 @@ export function trialPromptIsDismissed(prompt: PromptData, subscription: Subscri
 }
 
 export function getPercentage(quantity: number, total: number | null) {
-  if (typeof total === 'number' && total > 0) {
+  if (typeof total === "number" && total > 0) {
     return (Math.min(quantity, total) / total) * 100;
   }
   return 0;
@@ -721,13 +783,15 @@ export function getPercentage(quantity: number, total: number | null) {
 
 export function displayPercentage(quantity: number, total: number | null) {
   const percentage = getPercentage(quantity, total);
-  return percentage.toFixed(0) + '%';
+  return percentage.toFixed(0) + "%";
 }
 
 /**
  * Returns true if some billing details are set.
  */
-export function hasSomeBillingDetails(billingDetails: BillingDetails | undefined) {
+export function hasSomeBillingDetails(
+  billingDetails: BillingDetails | undefined
+) {
   if (!billingDetails) {
     return false;
   }
@@ -736,13 +800,15 @@ export function hasSomeBillingDetails(billingDetails: BillingDetails | undefined
     Object.entries(billingDetails)
       .filter(
         ([key, _]) =>
-          key !== 'billingEmail' && key !== 'companyName' && key !== 'taxNumber'
+          key !== "billingEmail" && key !== "companyName" && key !== "taxNumber"
       )
       .some(([_, value]) => defined(value))
   );
 }
 
-export function getReservedBudgetCategoryForAddOn(addOnCategory: AddOnCategory) {
+export function getReservedBudgetCategoryForAddOn(
+  addOnCategory: AddOnCategory
+) {
   if (addOnCategory === AddOnCategory.LEGACY_SEER) {
     return ReservedBudgetCategoryType.SEER;
   }
@@ -757,15 +823,13 @@ export const RETENTION_SETTINGS_CATEGORIES = new Set([
   DataCategory.TRANSACTIONS,
 ]);
 
-export function getCredits<T extends {amount: number; type: InvoiceItemType}>({
-  invoiceItems,
-}: {
-  invoiceItems: T[];
-}) {
+export function getCredits<
+  T extends { amount: number; type: InvoiceItemType }
+>({ invoiceItems }: { invoiceItems: T[] }) {
   return invoiceItems.filter(
-    item =>
+    (item) =>
       CREDIT_INVOICE_ITEM_TYPES.includes(item.type as any) ||
-      (item.type === 'balance_change' && item.amount < 0)
+      (item.type === "balance_change" && item.amount < 0)
   );
 }
 
@@ -779,10 +843,10 @@ export function getCreditApplied({
   invoiceItems,
 }: {
   creditApplied: number;
-  invoiceItems: Array<{amount: number; type: InvoiceItemType}>;
+  invoiceItems: Array<{ amount: number; type: InvoiceItemType }>;
 }) {
-  const credits = getCredits({invoiceItems});
-  if (credits.some(item => item.type === 'balance_change')) {
+  const credits = getCredits({ invoiceItems });
+  if (credits.some((item) => item.type === "balance_change")) {
     return 0;
   }
   return creditApplied;
@@ -792,27 +856,25 @@ export function getCreditApplied({
  * Returns extra fees included in the invoice or preview data, such as tax
  * or cancellation fees.
  */
-export function getFees<T extends {amount: number; type: InvoiceItemType}>({
+export function getFees<T extends { amount: number; type: InvoiceItemType }>({
   invoiceItems,
 }: {
   invoiceItems: T[];
 }) {
   return invoiceItems.filter(
-    item =>
+    (item) =>
       FEE_INVOICE_ITEM_TYPES.includes(item.type as any) ||
-      (item.type === 'balance_change' && item.amount > 0)
+      (item.type === "balance_change" && item.amount > 0)
   );
 }
 
 /**
  * Returns ondemand invoice items from the invoice or preview data.
  */
-export function getOnDemandItems<T extends {amount: number; type: InvoiceItemType}>({
-  invoiceItems,
-}: {
-  invoiceItems: T[];
-}) {
-  return invoiceItems.filter(item => item.type.startsWith('ondemand'));
+export function getOnDemandItems<
+  T extends { amount: number; type: InvoiceItemType }
+>({ invoiceItems }: { invoiceItems: T[] }) {
+  return invoiceItems.filter((item) => item.type.startsWith("ondemand"));
 }
 
 /**
@@ -822,8 +884,10 @@ export function formatOnDemandDescription(
   description: string,
   plan?: Plan | null
 ): string {
-  const budgetTerm = displayBudgetName(plan, {title: false}).toLowerCase();
-  return description.replace(new RegExp(`\\s*${budgetTerm}\\s*`, 'gi'), ' ').trim();
+  const budgetTerm = displayBudgetName(plan, { title: false }).toLowerCase();
+  return description
+    .replace(new RegExp(`\\s*${budgetTerm}\\s*`, "gi"), " ")
+    .trim();
 }
 
 /**
@@ -832,7 +896,9 @@ export function formatOnDemandDescription(
 export function checkIsAddOn(
   selectedProduct: DataCategory | AddOnCategory | string
 ): boolean {
-  return Object.values(AddOnCategory).includes(selectedProduct as AddOnCategory);
+  return Object.values(AddOnCategory).includes(
+    selectedProduct as AddOnCategory
+  );
 }
 
 /**
@@ -868,8 +934,8 @@ export function getParentAddOn(
     return null;
   }
   const parentAddOn = Object.values(subscription.addOns ?? {})
-    .filter(addOn => addOn.isAvailable)
-    .find(addOn => addOn.dataCategories.includes(category));
+    .filter((addOn) => addOn.isAvailable)
+    .find((addOn) => addOn.dataCategories.includes(category));
 
   if (!parentAddOn) {
     return null;
@@ -903,17 +969,17 @@ export function getBilledCategory(
       return null;
     }
 
-    const {dataCategories, apiName} = addOnInfo;
+    const { dataCategories, apiName } = addOnInfo;
     const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
     const reservedBudget = subscription.reservedBudgets?.find(
-      budget => budget.apiName === reservedBudgetCategory
+      (budget) => budget.apiName === reservedBudgetCategory
     );
     return reservedBudget
-      ? (dataCategories.find(dataCategory =>
+      ? dataCategories.find((dataCategory) =>
           subscription.planDetails.planCategories[dataCategory]?.find(
-            bucket => bucket.events === RESERVED_BUDGET_QUOTA
+            (bucket) => bucket.events === RESERVED_BUDGET_QUOTA
           )
-        ) ?? dataCategories[0]!)
+        ) ?? dataCategories[0]!
       : dataCategories[0]!;
   }
 
