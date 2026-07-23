@@ -344,9 +344,7 @@ function GithubAvatar({item}: {item: IterationFeedback}) {
 
 function CheckSuiteAvatar() {
   // A system notice — no author, so the source icon is the primary glyph.
-  return (
-    <PrimaryIconAvatar Icon={IconGithub} tooltip={postedOnLabel(null, t('GitHub'))} />
-  );
+  return <PrimaryIconAvatar Icon={IconGithub} tooltip={t('GitHub Actions failed')} />;
 }
 
 // A comment whose author/source we can't identify. We render `LetterAvatar`
@@ -362,10 +360,12 @@ function UnknownAvatarCell({item}: {item: IterationFeedback}) {
     initials: '?',
   } as React.ComponentProps<typeof LetterAvatar>['configuration'];
 
-  const source = item.sourceType === 'other' ? item.source : 'unknown';
+  // Unknown source: show the raw source name alone (no "posted by" framing,
+  // since we can't attribute it to an author or a known origin).
+  const source = item.sourceType === 'other' ? item.source : t('unknown');
 
   return (
-    <Tooltip title={postedOnLabel(null, source)}>
+    <Tooltip title={source}>
       <AvatarFrame>
         <UnknownLetterAvatar round configuration={configuration} />
       </AvatarFrame>
