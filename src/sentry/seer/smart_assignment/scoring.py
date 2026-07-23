@@ -58,7 +58,11 @@ def record_ground_truth(
         return
 
     if _apply(run.id, updates):
-        metrics.incr("smart_assignment.ground_truth.recorded", tags={"trigger": activity_type.name})
+        metrics.incr(
+            "smart_assignment.ground_truth.recorded",
+            tags={"trigger": activity_type.name},
+            sample_rate=1.0,
+        )
 
 
 def _ground_truth_updates(
@@ -172,6 +176,7 @@ def _apply(run_id: int, updates: RunUpdates) -> bool:
                 "hit_rank": hit_rank if hit_rank is not None else 0,
                 "trigger": extras.get("trigger"),
             },
+            sample_rate=1.0,
         )
     return True
 
