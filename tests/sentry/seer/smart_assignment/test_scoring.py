@@ -12,7 +12,7 @@ from sentry.seer.smart_assignment.scoring import (
     record_prediction,
 )
 from sentry.testutils.cases import TestCase
-from sentry.types.activity import ActivityType
+from sentry.types.activity import ActivityIntegration, ActivityType
 
 METRICS_PATH = "sentry.seer.smart_assignment.scoring.metrics"
 
@@ -241,6 +241,57 @@ class RecordGroundTruthTest(ScoringTestBase):
         run.refresh_from_db()
         assert "actual_assignee_user_id" not in run.extras
         assert "ground_truth_source" not in run.extras
+
+    def _seer_auto_assign(self, assignee_id: int) -> Activity:
+        GroupAssignee.objects.create(
+            group=self.group, project=self.group.project, user_id=assignee_id
+        )
+        return self.create_group_activity(
+            group=self.group,
+            type=ActivityType.ASSIGNED.value,
+            data={
+                "assignee": str(assignee_id),
+                "assigneeType": "user",
+                "integration": ActivityIntegration.SEER_SUGGESTED.value,
+            },
+        )
+
+    def test_resolution_ignores_seer_auto_assignment(self) -> None:
+        # Seer auto-assigned (never reassigned by a human); a human resolves. The
+        # auto-assignment must not become ground truth -- that would score us against
+        # ourselves -- so the resolver is recorded as the fallback truth instead.
+        run = self._run()
+        seer_assignee = self.create_user()
+        self._seer_auto_assign(seer_assignee.id)
+        resolver = self.create_user()
+        record_ground_truth(
+            self.group, ActivityType.SET_RESOLVED, self._resolved_activity(resolver.id)
+        )
+
+        run.refresh_from_db()
+        assert run.extras["actual_assignee_user_id"] == resolver.id
+        assert run.extras["ground_truth_source"] == ActivityType.SET_RESOLVED.name
+
+    def test_resolution_records_human_reassignment_over_seer(self) -> None:
+        # A human reassigns after Seer auto-assigned (a new, untagged ASSIGNED
+        # activity), so on resolution the human assignee is honored as ground truth.
+        run = self._run()
+        seer_assignee = self.create_user()
+        self._seer_auto_assign(seer_assignee.id)
+        human_assignee = self.create_user()
+        GroupAssignee.objects.filter(group=self.group).update(user_id=human_assignee.id)
+        self.create_group_activity(
+            group=self.group,
+            type=ActivityType.ASSIGNED.value,
+            data={"assignee": str(human_assignee.id), "assigneeType": "user"},
+        )
+        record_ground_truth(
+            self.group, ActivityType.SET_RESOLVED, self._resolved_activity(self.create_user().id)
+        )
+
+        run.refresh_from_db()
+        assert run.extras["actual_assignee_user_id"] == human_assignee.id
+        assert run.extras["ground_truth_source"] == ActivityType.ASSIGNED.name
 
     @patch(METRICS_PATH)
     def test_records_ground_truth_scores_existing_prediction(self, mock_metrics: MagicMock) -> None:
