@@ -263,7 +263,7 @@ class DeliverSmartAssignmentResultTest(TestCase):
         self.create_member(user=alice, organization=self.organization)
         deliver_smart_assignment_result(
             self.organization.id,
-            str(seer_run.uuid),
+            seer_run.uuid,
             "completed",
             {"candidates": [{"identifier": "alice", "identifier_kind": "username"}]},
             None,
