@@ -290,6 +290,7 @@ export function AggregatesTable({
                         <FieldRenderer
                           column={columns[field]}
                           data={row}
+                          disableTraceLinks
                           unit={meta?.units?.[field]}
                           meta={meta}
                         />
@@ -323,12 +324,17 @@ function prettifyField(
   numberTags: TagCollection,
   booleanTags: TagCollection
 ): string {
+  const prettifiedAggregation = prettifyAggregation(field);
+  if (prettifiedAggregation) {
+    return prettifiedAggregation;
+  }
+
   const tag = stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
   if (tag) {
     return tag.name;
   }
 
-  return prettifyAggregation(field) ?? prettifyTagKey(field);
+  return prettifyTagKey(field);
 }
 
 const TopResultsIndicator = styled('div')<{color: string}>`

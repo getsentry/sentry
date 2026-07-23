@@ -1,4 +1,5 @@
 import type {PropsWithChildren} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
@@ -7,6 +8,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {makeCloseButton} from '@sentry/scraps/modal';
 
+import Indicators from 'sentry/components/indicators';
 import {SentryAppPublishRequestModal} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppPublishRequestModal';
 
 describe('SentryAppDetailsModal', () => {
@@ -233,16 +235,19 @@ describe('SentryAppDetailsModal', () => {
     const closeModal = jest.fn();
 
     render(
-      <SentryAppPublishRequestModal
-        closeModal={closeModal}
-        Header={p => <span>{p.children}</span>}
-        Footer={styledWrapper()}
-        Body={styledWrapper()}
-        CloseButton={makeCloseButton(() => {})}
-        organization={OrganizationFixture()}
-        app={sentryApp}
-        onPublishSubmission={jest.fn()}
-      />
+      <Fragment>
+        <Indicators />
+        <SentryAppPublishRequestModal
+          closeModal={closeModal}
+          Header={p => <span>{p.children}</span>}
+          Footer={styledWrapper()}
+          Body={styledWrapper()}
+          CloseButton={makeCloseButton(() => {})}
+          organization={OrganizationFixture()}
+          app={sentryApp}
+          onPublishSubmission={jest.fn()}
+        />
+      </Fragment>
     );
 
     // Fill out the form fields
@@ -295,15 +300,51 @@ describe('SentryAppDetailsModal', () => {
     await userEvent.click(submitButton);
 
     expect(mockRequest).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText(new RegExp(errorMessage))).toBeInTheDocument();
     // Verify modal stays open
     expect(closeModal).not.toHaveBeenCalled();
   });
-  it('button is disabled if invalid urls are used', async () => {
-    const organization = OrganizationFixture();
+
+  it('blocks submission and shows required errors when fields are empty', async () => {
+    const closeModal = jest.fn();
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/sentry-apps/${sentryApp.slug}/publish-request/`,
+      method: 'POST',
+    });
 
     render(
       <SentryAppPublishRequestModal
-        closeModal={jest.fn()}
+        closeModal={closeModal}
+        Header={p => <span>{p.children}</span>}
+        Footer={styledWrapper()}
+        Body={styledWrapper()}
+        CloseButton={makeCloseButton(() => {})}
+        organization={OrganizationFixture()}
+        app={sentryApp}
+        onPublishSubmission={onPublishSubmission}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Request Publication'}));
+
+    expect((await screen.findAllByText('Field is required')).length).toBeGreaterThan(0);
+    // Empty URL fields report as required, not as an invalid link
+    expect(screen.queryByText('Enter a valid URL')).not.toBeInTheDocument();
+    expect(mockRequest).not.toHaveBeenCalled();
+    expect(closeModal).not.toHaveBeenCalled();
+  });
+
+  it('shows a validation error and does not submit if invalid urls are used', async () => {
+    const organization = OrganizationFixture();
+    const closeModal = jest.fn();
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/sentry-apps/${sentryApp.slug}/publish-request/`,
+      method: 'POST',
+    });
+
+    render(
+      <SentryAppPublishRequestModal
+        closeModal={closeModal}
         Header={p => <span>{p.children}</span>}
         Footer={styledWrapper()}
         Body={styledWrapper()}
@@ -353,9 +394,11 @@ describe('SentryAppDetailsModal', () => {
     );
 
     const submitButton = screen.getByRole('button', {name: 'Request Publication'});
-    expect(submitButton).toBeDisabled();
-    expect(
-      screen.getByText('Invalid link: URL must start with https://')
-    ).toBeInTheDocument();
+    expect(submitButton).toBeEnabled();
+    await userEvent.click(submitButton);
+
+    expect(await screen.findByText('Enter a valid URL')).toBeInTheDocument();
+    expect(mockRequest).not.toHaveBeenCalled();
+    expect(closeModal).not.toHaveBeenCalled();
   });
 });

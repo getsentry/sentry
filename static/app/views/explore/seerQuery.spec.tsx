@@ -52,6 +52,29 @@ describe('getSeerExploreQuery', () => {
     });
   });
 
+  it('keeps Seer relative datetime mutually exclusive from absolute ranges', () => {
+    const result = getSeerExploreQuery({
+      pageDatetime: {
+        start: '2024-01-01T00:00:00',
+        end: '2024-01-02T00:00:00',
+        period: null,
+        utc: false,
+      },
+      result: seerResult({
+        start: '2024-06-01T00:00:00Z',
+        end: '2024-06-02T00:00:00Z',
+        statsPeriod: '24h',
+      }),
+    });
+
+    expect(result.datetime).toEqual({
+      start: null,
+      end: null,
+      period: '24h',
+      utc: null,
+    });
+  });
+
   it('passes through the interval', () => {
     const result = getSeerExploreQuery({
       pageDatetime,

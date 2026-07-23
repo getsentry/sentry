@@ -7,16 +7,15 @@ from scm.types import (
 
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.mention import (
-    handle_issue_comment_for_autofix_iteration,
-    handle_pull_request_review_comment_for_autofix_iteration,
-)
-from sentry.seer.autofix.pr_iteration.types import (
+from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
+    GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
     GithubPrReviewCommentFeedbackSource,
 )
+from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
 from sentry.tasks.seer.pr_iteration import (
-    _add_comment_eyes_reaction,
+    _add_comment_reaction,
     trigger_pr_iteration_from_comment,
 )
 from sentry.testutils.cases import TestCase
@@ -61,20 +60,21 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         with self.feature("organizations:autofix-pr-iteration"):
             self._call(self._event())
 
-        mock_delay.assert_called_once_with(
-            organization_id=self.organization.id,
-            repo_id=self.repo.id,
-            integration_id=self.integration.id,
-            pr_number=7,
-            feedback="fix it",
-            comment={
-                "id": 999,
-                "body": "@sentry fix it",
-                "user": {"login": "octocat"},
-                "html_url": "https://github.com/getsentry/sentry/pull/7#issuecomment-999",
-            },
-            source_type="github-pr-comment",
-        )
+        mock_delay.assert_called_once()
+        _, kwargs = mock_delay.call_args
+        assert kwargs["organization_id"] == self.organization.id
+        assert kwargs["repo_id"] == self.repo.id
+        assert kwargs["integration_id"] == self.integration.id
+        assert kwargs["pr_number"] == 7
+        assert "comment" not in kwargs
+
+        # `feedback` is now a serialized `Feedback` built from the comment, not
+        # the raw feedback string plus a separate `comment` kwarg.
+        feedback = Feedback.parse_raw(kwargs["feedback"])
+        assert isinstance(feedback.source, GithubPrCommentFeedbackSource)
+        assert feedback.source.comment.id == 999
+        assert feedback.text == "fix it"
+        assert feedback.ui_text == "fix it"
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_non_created_action(self, mock_delay: MagicMock) -> None:
@@ -107,64 +107,6 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         event["issue"].pop("number")
         with self.feature("organizations:autofix-pr-iteration"):
             self._call(event)
-        mock_delay.assert_not_called()
-
-
-class HandlePullRequestReviewCommentForAutofixIterationTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.repo = self.create_repo(
-            project=self.project,
-            provider="integrations:github",
-            external_id="123",
-            name="owner/repo",
-        )
-        self.integration = MagicMock(id=42, provider="github")
-
-    def _event(self, body: str = "@sentry fix it", action: str = "created") -> dict:
-        return {
-            "action": action,
-            "comment": {
-                "id": 999,
-                "body": body,
-                "user": {"login": "octocat"},
-                "html_url": "https://github.com/getsentry/sentry/pull/7#discussion_r999",
-                "path": "src/sentry/foo.py",
-                "line": 42,
-                "start_line": 40,
-            },
-            "pull_request": {"number": 7},
-        }
-
-    def _call(self, event: dict):
-        return handle_pull_request_review_comment_for_autofix_iteration(
-            event=event,
-            organization=self.organization,
-            repo=self.repo,
-            integration=self.integration,
-        )
-
-    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
-    def test_schedules_task_with_review_comment_source(self, mock_delay: MagicMock) -> None:
-        with self.feature("organizations:autofix-pr-iteration"):
-            self._call(self._event())
-
-        mock_delay.assert_called_once()
-        kwargs = mock_delay.call_args.kwargs
-        assert kwargs["pr_number"] == 7
-        assert kwargs["feedback"] == "fix it"
-        assert kwargs["source_type"] == "github-pr-review-comment"
-
-    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
-    def test_skips_non_created_action(self, mock_delay: MagicMock) -> None:
-        with self.feature("organizations:autofix-pr-iteration"):
-            self._call(self._event(action="edited"))
-        mock_delay.assert_not_called()
-
-    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
-    def test_skips_when_not_iterate_command(self, mock_delay: MagicMock) -> None:
-        with self.feature("organizations:autofix-pr-iteration"):
-            self._call(self._event(body="just a comment"))
         mock_delay.assert_not_called()
 
 
@@ -206,21 +148,25 @@ class TriggerPrIterationFromCommentTest(TestCase):
         comment: dict | None = None,
         source_type: GithubPrCommentFeedbackType = "github-pr-comment",
     ) -> None:
+        comment = self.comment if comment is None else comment
+        source: GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource
+        if source_type == "github-pr-review-comment":
+            source = GithubPrReviewCommentFeedbackSource(comment=comment)
+        else:
+            source = GithubPrCommentFeedbackSource(comment=comment)
         trigger_pr_iteration_from_comment(
             organization_id=self.organization.id,
             repo_id=self.repo.id,
             integration_id=42,
             pr_number=7,
-            feedback="fix it",
-            comment=self.comment if comment is None else comment,
-            source_type=source_type,
+            feedback=Feedback(source=source).json(),
         )
 
-    @patch(f"{TASK_PATH}._add_comment_eyes_reaction")
+    @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_triggers_agent_when_authorized(
@@ -251,20 +197,21 @@ class TriggerPrIterationFromCommentTest(TestCase):
             kwargs={
                 "run_id": 67890,
                 "organization_id": self.organization.id,
-                "group_id": self.group.id,
-            }
+            },
+            countdown=None,
         )
         mock_reaction.assert_called_once_with(
             mock_make_scm.return_value,
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
+            reaction="eyes",
         )
 
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_when_no_write_access(
@@ -285,9 +232,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue.assert_not_called()
         mock_consume.assert_not_called()
 
+    @patch(f"{TASK_PATH}._add_comment_reaction")
+    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_when_no_agent_state(
@@ -297,8 +246,12 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue: MagicMock,
         mock_consume: MagicMock,
         mock_has_access: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_reaction: MagicMock,
     ) -> None:
-        mock_get_integration.return_value = self._mock_integration()
+        # Multi-region fan-out: missing run must no-op without reacting.
+        mock_integration = self._mock_integration()
+        mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = None
 
         self._call()
@@ -306,12 +259,15 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_has_access.assert_not_called()
         mock_enqueue.assert_not_called()
         mock_consume.assert_not_called()
+        mock_reaction.assert_not_called()
+        mock_make_scm.assert_not_called()
+        mock_integration.get_installation.return_value.get_client.return_value.create_comment.assert_not_called()
 
-    @patch(f"{TASK_PATH}._add_comment_eyes_reaction")
+    @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_review_comment_hoists_file_and_line(
@@ -348,6 +304,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             source_type="github-pr-review-comment",
             pr_number=7,
             comment_id=999,
+            reaction="eyes",
         )
 
 
@@ -355,8 +312,8 @@ class AddCommentEyesReactionTest(TestCase):
     @patch(f"{TASK_PATH}.scm_actions")
     def test_pr_comment_uses_pull_request_comment_reaction(self, mock_actions: MagicMock) -> None:
         scm = MagicMock(spec=CreatePullRequestCommentReactionProtocol)
-        _add_comment_eyes_reaction(
-            scm, source_type="github-pr-comment", pr_number=7, comment_id=999
+        _add_comment_reaction(
+            scm, source_type="github-pr-comment", pr_number=7, comment_id=999, reaction="eyes"
         )
 
         mock_actions.create_pull_request_comment_reaction.assert_called_once_with(
@@ -367,8 +324,12 @@ class AddCommentEyesReactionTest(TestCase):
     @patch(f"{TASK_PATH}.scm_actions")
     def test_review_comment_uses_review_comment_reaction(self, mock_actions: MagicMock) -> None:
         scm = MagicMock(spec=CreateReviewCommentReactionProtocol)
-        _add_comment_eyes_reaction(
-            scm, source_type="github-pr-review-comment", pr_number=7, comment_id=999
+        _add_comment_reaction(
+            scm,
+            source_type="github-pr-review-comment",
+            pr_number=7,
+            comment_id=999,
+            reaction="eyes",
         )
 
         mock_actions.create_review_comment_reaction.assert_called_once_with(scm, "7", "999", "eyes")
@@ -377,8 +338,12 @@ class AddCommentEyesReactionTest(TestCase):
     @patch(f"{TASK_PATH}.scm_actions")
     def test_noop_when_provider_unsupported(self, mock_actions: MagicMock) -> None:
         # A provider that doesn't implement the reaction protocol is skipped.
-        _add_comment_eyes_reaction(
-            MagicMock(spec=object), source_type="github-pr-comment", pr_number=7, comment_id=999
+        _add_comment_reaction(
+            MagicMock(spec=object),
+            source_type="github-pr-comment",
+            pr_number=7,
+            comment_id=999,
+            reaction="eyes",
         )
 
         mock_actions.create_pull_request_comment_reaction.assert_not_called()
@@ -389,9 +354,10 @@ class AddCommentEyesReactionTest(TestCase):
         mock_actions.create_pull_request_comment_reaction.side_effect = Exception("boom")
 
         # Should not raise.
-        _add_comment_eyes_reaction(
+        _add_comment_reaction(
             MagicMock(spec=CreatePullRequestCommentReactionProtocol),
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
+            reaction="eyes",
         )

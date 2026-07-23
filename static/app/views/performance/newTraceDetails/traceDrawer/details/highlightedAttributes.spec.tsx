@@ -177,10 +177,10 @@ describe('getHighlightedSpanAttributes', () => {
     expect(result.find(attr => attr.name === 'Cost')).toBeDefined();
   });
 
-  it('should include reasoning effort when attribute is present', () => {
+  it('should include reasoning level when attribute is present', () => {
     const attributes = {
       'gen_ai.operation.type': 'ai_client',
-      'gen_ai.request.reasoning_effort': 'high',
+      'gen_ai.request.reasoning.level': 'high',
     };
 
     const result = getHighlightedSpanAttributes({
@@ -188,12 +188,12 @@ describe('getHighlightedSpanAttributes', () => {
       attributes,
     });
 
-    const reasoningEffort = result.find(attr => attr.name === 'Reasoning Effort');
-    expect(reasoningEffort).toBeDefined();
-    expect(reasoningEffort?.value).toBe('high');
+    const reasoningLevel = result.find(attr => attr.name === 'Reasoning Level');
+    expect(reasoningLevel).toBeDefined();
+    expect(reasoningLevel?.value).toBe('high');
   });
 
-  it('should not include reasoning effort when attribute is absent', () => {
+  it('should not include reasoning level when attribute is absent', () => {
     const attributes = {
       'gen_ai.operation.type': 'ai_client',
     };
@@ -203,7 +203,7 @@ describe('getHighlightedSpanAttributes', () => {
       attributes,
     });
 
-    expect(result.find(attr => attr.name === 'Reasoning Effort')).toBeUndefined();
+    expect(result.find(attr => attr.name === 'Reasoning Level')).toBeUndefined();
   });
 
   it('should include tokens attribute when values are present', () => {

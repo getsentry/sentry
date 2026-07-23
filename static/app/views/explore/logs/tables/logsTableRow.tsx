@@ -29,6 +29,7 @@ import type {Organization} from 'sentry/types/organization';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {toSplicedSorted} from 'sentry/utils/array/toSplicedSorted';
 import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -52,13 +53,19 @@ import {
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  LOGS_QUERY_KEY,
+  LOGS_ROW_ID_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {
   TraceItemDetailsResponse,
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {usePrefetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {
+  usePrefetchTraceItemDetailsOnHover,
+  usePrefetchTraceItemDetailsOnMount,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH,
@@ -131,6 +138,7 @@ type LogsRowProps = {
   };
   expansionKey?: string;
   isExpanded?: boolean;
+  isHighlighted?: boolean;
   isHoverLinked?: boolean;
   isPinned?: boolean;
   logEnd?: string;
@@ -231,6 +239,7 @@ export const LogRowContent = memo(function LogRowContent({
   logEnd,
   isPinned,
   isHoverLinked,
+  isHighlighted,
   setHoveredRowId,
   togglePinnedRow,
   showCellActions,
@@ -245,6 +254,7 @@ export const LogRowContent = memo(function LogRowContent({
 
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
+  const isFrozen = useLogsFrozenIsFrozen();
   const measureRef = useRef<HTMLTableRowElement>(null);
 
   const rowId = String(dataRow[OurLogKnownFieldKey.ID]);
@@ -336,7 +346,7 @@ export const LogRowContent = memo(function LogRowContent({
   const logTimestampSeconds = isRegularLogResponseItem(dataRow)
     ? getLogRowTimestampMillis(dataRow) / 1000
     : null;
-  const {hoverProps, traceItemMeta, traceItemAttributes} =
+  const {hoverProps, prefetch, isProjectReady, traceItemMeta, traceItemAttributes} =
     usePrefetchTraceItemDetailsOnHover({
       traceItemId: rowId,
       projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
@@ -347,6 +357,11 @@ export const LogRowContent = memo(function LogRowContent({
       sharedHoverTimeoutRef,
       timeout: prefetchTimeout,
     });
+  usePrefetchTraceItemDetailsOnMount({
+    prefetch,
+    enabled: isHighlighted,
+    isProjectReady,
+  });
   const [caseInsensitivity] = useCaseInsensitivity();
 
   const observedTimestamp = traceItemAttributes?.find(
@@ -383,8 +398,8 @@ export const LogRowContent = memo(function LogRowContent({
     ? {isClickable: false}
     : blockRowExpanding
       ? onEmbeddedRowClick
-        ? {onClick, isClickable: true}
-        : {}
+        ? {...hoverProps, onClick, isClickable: true}
+        : {...hoverProps}
       : {
           ...hoverProps,
           onPointerUp,
@@ -425,6 +440,7 @@ export const LogRowContent = memo(function LogRowContent({
       <LogTableRow
         data-test-id="log-table-row"
         data-row-hover-linked={isHoverLinked}
+        data-row-linked={isHighlighted}
         highlighted={isPseudoRow}
         pinned={isPinned}
         {...omit(rowInteractProps, 'className')}
@@ -542,7 +558,7 @@ export const LogRowContent = memo(function LogRowContent({
             name: field,
             key: field,
             isSortable: true,
-            type: FieldValueType.STRING,
+            type: meta?.fields?.[field] ?? FieldValueType.STRING,
           };
 
           return (
@@ -578,7 +594,16 @@ export const LogRowContent = memo(function LogRowContent({
                         const logId = String(dataRow[OurLogKnownFieldKey.ID]);
                         const url = new URL(window.location.origin + location.pathname);
                         const params = new URLSearchParams(location.search);
-                        params.set(LOGS_QUERY_KEY, `id:${logId}`);
+                        // In frozen/embedded views (e.g. trace details) the row set is
+                        // bounded, so link to the row and let it highlight + expand in
+                        // context. On the standalone logs page the row may not be loaded,
+                        // so filter to it instead.
+                        if (isFrozen) {
+                          params.set(LOGS_ROW_ID_KEY, logId);
+                        } else {
+                          params.set(LOGS_QUERY_KEY, `id:${logId}`);
+                          params.delete(LOGS_ROW_ID_KEY);
+                        }
                         url.search = params.toString();
                         copy(url.toString(), {
                           successMessage: t('Copied!'),
@@ -738,8 +763,16 @@ function LogRowDetails({
               </DetailsBody>
               <LogAttributeTreeWrapper>
                 <AttributesTree<RendererExtra>
-                  attributes={data.attributes.filter(
-                    attribute => !HiddenLogDetailFields.includes(attribute.name)
+                  attributes={toSplicedSorted(
+                    data.attributes.filter(
+                      attribute => !HiddenLogDetailFields.includes(attribute.name)
+                    ),
+                    {
+                      name: OurLogKnownFieldKey.TIMESTAMP,
+                      type: 'str',
+                      value: dataRow[OurLogKnownFieldKey.TIMESTAMP],
+                    },
+                    (a, b) => a.name.localeCompare(b.name)
                   )}
                   getCustomActions={getActions}
                   getAdjustedAttributeKey={adjustAliases}

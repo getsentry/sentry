@@ -118,6 +118,7 @@ from sentry.net.http import connection_from_url
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
 from sentry.receivers.onboarding import record_release_received
+from sentry.releases.auto_creation import should_auto_create_releases
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.services.eventstore.processing import event_processing_store
@@ -726,16 +727,19 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
     for job in jobs:
         data = job["data"]
         if not data.get("release"):
-            return
+            continue
 
         project = projects[job["project_id"]]
         date = job["event"].datetime
+
+        create_release = should_auto_create_releases(project)
 
         try:
             release = Release.get_or_create(
                 project=project,
                 version=data["release"],
                 date_added=date,
+                create=create_release,
             )
         except ValidationError:
             logger.exception(
@@ -746,7 +750,9 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
 
         job["release"] = release
         if not release:
-            return
+            if not create_release:
+                metrics.incr("event_manager.release_autocreation_skipped")
+            continue
 
         # Don't allow a conflicting 'release' tag
         pop_tag(data, "release")
@@ -1720,7 +1726,7 @@ def _handle_regression(
             id=group.id,
             # ensure we can't update things if the status has been set to
             # ignored
-            status__in=[GroupStatus.RESOLVED, GroupStatus.UNRESOLVED],
+            status=GroupStatus.RESOLVED,
         )
         .exclude(
             # add to the regression window to account for races here
@@ -1728,8 +1734,6 @@ def _handle_regression(
         )
         .update(
             active_at=date,
-            # explicitly set last_seen here as ``is_resolved()`` looks
-            # at the value
             last_seen=date,
             status=GroupStatus.UNRESOLVED,
             substatus=GroupSubStatus.REGRESSED,
