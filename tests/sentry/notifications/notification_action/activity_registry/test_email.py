@@ -93,7 +93,7 @@ class TestEmailActivityHandler(BaseWorkflowTest):
 
         EmailActivityHandler.invoke_action(invocation=invocation, activity=activity)
 
-        mock_build_data.assert_called_once_with(invocation, activity)
+        mock_build_data.assert_called_once_with(activity, workflow_id=self.workflow.id)
         mock_service_instance = mock_notification_service.__getitem__.return_value.return_value
         mock_service_instance.notify_sync.assert_called_once()
         call_kwargs = mock_service_instance.notify_sync.call_args[1]
