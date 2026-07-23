@@ -1,11 +1,16 @@
 import {useEffect, useMemo, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {IconClose} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
@@ -216,6 +221,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
             metrics={traceMetricsData}
           />
           <TraceInnerLayout>
+            <TraceWaterfallVersionBanner />
             <ErrorsOnlyWarnings
               tree={tree}
               traceSlug={traceSlug}
@@ -269,6 +275,57 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
 }
 
 const TraceViewImpl = registerLLMContext('trace', TraceViewImplInner);
+
+function TraceWaterfallVersionBanner() {
+  const organization = useOrganization();
+  const openForm = useFeedbackForm();
+  const {isDismissed, dismiss} = useDismissAlert({
+    key: 'trace-waterfall-version-message',
+  });
+
+  if (
+    !organization.features.includes('trace-waterfall-version-message') ||
+    isDismissed ||
+    !openForm
+  ) {
+    return null;
+  }
+
+  return (
+    <Alert
+      variant="info"
+      trailingItems={
+        <Alert.Button
+          variant="transparent"
+          icon={<IconClose size="sm" />}
+          onClick={dismiss}
+          aria-label={t('Dismiss')}
+        />
+      }
+    >
+      {tct(
+        "You're seeing a new version of the trace waterfall that shows the full distributed trace. We'd love your [feedback].",
+        {
+          feedback: (
+            <Button
+              variant="link"
+              onClick={() =>
+                openForm({
+                  tags: {
+                    ['feedback.source']: 'trace-waterfall-version-message',
+                    ['feedback.owner']: 'performance',
+                  },
+                })
+              }
+            >
+              {t('feedback')}
+            </Button>
+          ),
+        }
+      )}
+    </Alert>
+  );
+}
 
 function TraceInnerLayout(props: FlexProps) {
   return (
