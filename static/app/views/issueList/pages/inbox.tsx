@@ -132,7 +132,6 @@ function InboxContent() {
           'screen:xs': 'minmax(0, 1fr)',
           'screen:md': 'minmax(320px, 2fr) minmax(0, 3fr)',
         }}
-        gap="lg"
       >
         <Stack
           as="section"
