@@ -66,11 +66,6 @@ export type ProjectCreationEventParameters = {
     platform: string;
     variant?: ProjectCreationVariant;
   };
-  'project_creation.platform_selected': {
-    platform: string;
-    source: 'detected' | 'manual';
-    variant?: ProjectCreationVariant;
-  };
   'project_creation.project_details_alert_selected': {
     option: string;
     variant?: ProjectCreationVariant;
@@ -150,7 +145,6 @@ export const projectCreationEventMap: Record<
     'Project Creation: Platform Change Platform Clicked',
   'project_creation.platform_feature_toggled':
     'Project Creation: Platform Feature Toggled',
-  'project_creation.platform_selected': 'Project Creation: Platform Selected',
   'project_creation.project_details_alert_selected':
     'Project Creation: Project Details Alert Selected',
   'project_creation.project_details_create_clicked':

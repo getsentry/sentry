@@ -1,3 +1,6 @@
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import type {PlatformSelectionSource} from 'sentry/utils/analytics/growthAnalyticsEvents';
 import type {ProjectCreationVariant} from 'sentry/utils/analytics/projectCreationAnalyticsEvents';
 
 /**
@@ -19,4 +22,34 @@ export function scmFlowVariantParams(flow: ScmAnalyticsFlow): {
   variant?: ProjectCreationVariant;
 } {
   return flow === 'project-creation' ? {variant: 'scm'} : {};
+}
+
+/**
+ * Route one SCM platform selection to the flow's canonical event. Onboarding
+ * keeps its existing name and payload; project creation reuses the legacy
+ * `growth.select_platform` counter with separate flow, variant, and selection-source
+ * dimensions.
+ */
+export function trackScmPlatformSelected(
+  flow: ScmAnalyticsFlow,
+  organization: Organization,
+  platformKey: string,
+  selectionSource: PlatformSelectionSource
+) {
+  if (flow === 'onboarding') {
+    trackAnalytics('onboarding.scm_platform_selected', {
+      organization,
+      platform: platformKey,
+      source: selectionSource,
+    });
+    return;
+  }
+
+  trackAnalytics('growth.select_platform', {
+    organization,
+    platform_id: platformKey,
+    selection_source: selectionSource,
+    source: 'project-creation',
+    variant: 'scm',
+  });
 }
