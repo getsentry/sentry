@@ -514,12 +514,18 @@ export function getSaveablePageFilters(
   userHasNoMemberProjects: boolean
 ) {
   const pageFilters = getCurrentPageFilters(location);
-  if (
-    userHasNoMemberProjects &&
-    (savedDashboard.projects?.length ?? 0) === 0 &&
-    pageFilters.projects?.length === 1 &&
-    pageFilters.projects[0] === ALL_ACCESS_PROJECTS
-  ) {
+
+  const isAllProjectsSelected =
+    pageFilters.projects?.length === 1 && pageFilters.projects[0] === ALL_ACCESS_PROJECTS;
+  // A user with no member projects gets `project=-1` forced into the URL as a
+  // default, so their All Projects value is (treated as) the forced default.
+  const isForcedAllProjectsDefault = userHasNoMemberProjects && isAllProjectsSelected;
+  const doesNotHaveSavedDashboardProjects = (savedDashboard.projects?.length ?? 0) === 0;
+
+  // Only drop the forced default back to empty when the dashboard itself has no
+  // saved projects ("My Projects"); a real saved selection switched to All
+  // Projects is a deliberate change and should be persisted as-is.
+  if (isForcedAllProjectsDefault && doesNotHaveSavedDashboardProjects) {
     pageFilters.projects = [];
   }
   return pageFilters;
