@@ -1,10 +1,18 @@
-import {Fragment, memo, useCallback, useMemo, useState} from 'react';
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useMemo,
+  useState,
+  type ComponentPropsWithRef,
+} from 'react';
 import {css, type Theme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
@@ -21,30 +29,26 @@ import {
 } from 'sentry/components/tables/gridEditable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconEdit, IconUser} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {MarkedText} from 'sentry/utils/marked/markedText';
+import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
-import {
-  CellContent,
-  getUserDisplayName,
-  UserNotInstrumentedTooltip,
-} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {ConversationsTableEditModal} from 'sentry/views/explore/conversations/components/conversationsTableEditModal';
 import {ConversationToolCallsBreakdown} from 'sentry/views/explore/conversations/components/conversationToolCallsBreakdown';
 import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
   useConversations,
   type Conversation,
+  type ConversationUser,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useConversationsTableColumns} from 'sentry/views/explore/conversations/hooks/useConversationsTableColumns';
 import {useConversationToolBreakdown} from 'sentry/views/explore/conversations/hooks/useConversationToolBreakdown';
-import {getConversationsListLocationState} from 'sentry/views/explore/conversations/utils/listNavigation';
 import {
   type ConversationColumnKey,
   CONVERSATION_COLUMNS,
@@ -57,7 +61,6 @@ import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/ne
 export function ConversationsTableNew() {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const location = useLocation();
   const {selection} = usePageFilters();
   const {openModal} = useModal();
   const {columns, setColumns} = useConversationsTableColumns();
@@ -166,11 +169,9 @@ export function ConversationsTableNew() {
 
   const handleRowClick = useCallback(
     (dataRow: Conversation) => {
-      navigate(getConversationDetailUrl(organization.slug, dataRow, selection.projects), {
-        state: getConversationsListLocationState(location.query),
-      });
+      navigate(getConversationDetailUrl(organization.slug, dataRow, selection.projects));
     },
-    [navigate, organization, selection.projects, location.query]
+    [navigate, organization, selection.projects]
   );
 
   return (
@@ -210,7 +211,6 @@ function ConversationLink(props: {
   organization: Organization;
   projects: number[];
 }) {
-  const location = useLocation();
   const detailUrl = getConversationDetailUrl(
     props.organization.slug,
     props.dataRow,
@@ -219,7 +219,6 @@ function ConversationLink(props: {
   return (
     <Link
       to={detailUrl}
-      state={getConversationsListLocationState(location.query)}
       onClick={event => {
         // Let the link handle navigation; don't also trigger the row click.
         event.stopPropagation();
@@ -411,3 +410,68 @@ function ToolCallsCell({
     </Flex>
   );
 }
+
+export function normalizeUserField(value: string | null | undefined): string | null {
+  if (!value || value.toLowerCase() === 'none') {
+    return null;
+  }
+  return value;
+}
+
+export function getUserDisplayName(user: ConversationUser): string | null {
+  return (
+    normalizeUserField(user.email) ||
+    normalizeUserField(user.username) ||
+    normalizeUserField(user.ip_address) ||
+    null
+  );
+}
+
+const CELL_MAX_CHARS = 256;
+
+function cleanMarkdownForCell(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, '') // fenced code blocks
+    .replace(/^#{1,6}\s+(.+)$/gm, '**$1**') // headings -> bold text
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+type CellContentProps = ComponentPropsWithRef<'div'> & {
+  text: string;
+};
+
+function CellContent({text, ref, ...props}: CellContentProps) {
+  const cleanedText = cleanMarkdownForCell(text);
+  return (
+    <SingleLineMarkdown ref={ref} {...props}>
+      <MarkedText text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
+    </SingleLineMarkdown>
+  );
+}
+
+export function UserNotInstrumentedTooltip() {
+  return (
+    <Text>
+      {tct(
+        'User data not found. Call [code:sentry.setUser()] in your SDK to track users. [link:Learn more]',
+        {
+          code: <code />,
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/configuration/apis/#setUser" />
+          ),
+        }
+      )}
+    </Text>
+  );
+}
+
+const SingleLineMarkdown = styled('div')`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  * {
+    display: inline;
+  }
+`;
