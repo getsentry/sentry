@@ -112,18 +112,18 @@ class Repository(Model):
     def get_provider(self):
         from sentry.plugins.base import bindings
 
-        if self.has_integration_provider():
-            provider_cls = bindings.get("integration-repository.provider").get(self.provider)
-            return provider_cls(self.provider)
+        if not self.has_integration_provider():
+            return None
 
-        provider_cls = bindings.get("repository.provider").get(self.provider)
+        provider_cls = bindings.get("integration-repository.provider").get(self.provider)
         return provider_cls(self.provider)
 
     def generate_delete_fail_email(self, error_message):
+        provider = self.get_provider()
         new_context = {
             "repo": self,
             "error_message": error_message,
-            "provider_name": self.get_provider().name,
+            "provider_name": provider.name if provider else self.provider,
         }
 
         return MessageBuilder(
@@ -144,7 +144,7 @@ class Repository(Model):
 
         data = UnableToDeleteRepository(
             repository_name=self.name,
-            provider_name=self.get_provider().name,
+            provider_name=provider.name if (provider := self.get_provider()) else self.provider,
             error_message=error_message,
         )
 
@@ -256,11 +256,6 @@ def on_delete(instance, actor: RpcUser | None = None, **kwargs):
     if instance.has_integration_provider():
         try:
             instance.get_provider().on_delete_repository(repo=instance)
-        except Exception as exc:
-            handle_exception(exc)
-    else:
-        try:
-            instance.get_provider().delete_repository(repo=instance, actor=actor)
         except Exception as exc:
             handle_exception(exc)
 

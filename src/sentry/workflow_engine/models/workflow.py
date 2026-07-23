@@ -19,7 +19,7 @@ from sentry.workflow_engine.models.data_condition_group import (
     DataConditionGroup,
     DataConditionGroupSnapshot,
 )
-from sentry.workflow_engine.processors.data_condition_group import TriggerResult
+from sentry.workflow_engine.processors.evaluations import TriggerResult
 from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 
 from .json_config import JSONConfigBase
@@ -168,7 +168,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         group_evaluation, remaining_conditions = process_data_condition_group(
             group, workflow_event_data, when_data_conditions
         )
-        return group_evaluation.logic_result, remaining_conditions
+        return group_evaluation.outcome, remaining_conditions
 
 
 def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:

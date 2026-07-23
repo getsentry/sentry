@@ -29,8 +29,14 @@ import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {ColumnType} from 'sentry/utils/discover/fields';
+import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {isRateLimitError} from 'sentry/utils/requestError/requestError';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useElementOffset} from 'sentry/utils/useElementOffset';
+import {useLocation} from 'sentry/utils/useLocation';
 import {
   TableBodyCell,
   TableHead,
@@ -41,6 +47,7 @@ import {
 } from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {LOGS_ROW_ID_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
 import {
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
@@ -63,7 +70,9 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
 import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
+import {LogsRateLimitError} from 'sentry/views/explore/logs/tables/logsRateLimitError';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
+import {useLogsTableColumnWidths} from 'sentry/views/explore/logs/tables/useLogsTableColumnWidths';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -94,7 +103,6 @@ type LogsTableProps = {
     event?: Event;
     scrollToDisabled?: boolean;
   };
-  allowPagination?: boolean;
   booleanAttributes?: TagCollection;
   embedded?: boolean;
   embeddedOptions?: {
@@ -114,6 +122,7 @@ type LogsTableProps = {
   showCellActions?: boolean;
   showExploreSimilarSpansLink?: boolean;
   stringAttributes?: TagCollection;
+  validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 };
 
 const {info, fmt} = Sentry.logger;
@@ -133,7 +142,10 @@ export function LogsInfiniteTable({
   additionalData,
   showCellActions,
   showExploreSimilarSpansLink,
+  validatedFieldTypes = {},
 }: LogsTableProps) {
+  const location = useLocation();
+  const linkedRowId = decodeScalar(location.query[LOGS_ROW_ID_KEY]);
   const fields = useQueryParamsFields();
   const search = useQueryParamsSearch();
   const autoRefresh = useLogsAutoRefreshEnabled();
@@ -141,9 +153,11 @@ export function LogsInfiniteTable({
   const {
     isPending,
     isEmpty,
-    meta,
+    meta: rawMeta,
     data: originalData,
     isError,
+    error,
+    refetch,
     fetchNextPage,
     fetchPreviousPage,
     isFetchingNextPage,
@@ -155,6 +169,14 @@ export function LogsInfiniteTable({
     resumeAutoFetch,
     totalPayloadBytes,
   } = useLogsPageDataQueryResult();
+  const meta = useMemo(
+    () =>
+      addValidatedFieldTypesToLogsMeta({
+        meta: rawMeta,
+        validatedFieldTypes,
+      }),
+    [rawMeta, validatedFieldTypes]
+  );
 
   const baseData = localOnlyItemFilters?.filteredItems ?? originalData;
   const baseDataLength = useBox(baseData.length);
@@ -235,28 +257,38 @@ export function LogsInfiniteTable({
   const {width: tableWidth} = useDimensions({elementRef: tableRef});
   const {top: backToTopOffset} = useElementOffset(tableBodyRef, tableRef);
   const [expandedLogRows, setExpandedLogRows] = useState(
-    new Set(embeddedOptions?.openWithExpandedIds)
+    new Set([
+      ...(embeddedOptions?.openWithExpandedIds ?? []),
+      ...(linkedRowId ? [linkedRowId] : []),
+    ])
   );
   const [expandedLogRowsHeights, setExpandedLogRowsHeights] = useState<
     Record<string, number>
   >({});
+
+  // Keep the linked row expanded across client-side navigations that change
+  // `logsRowId`. This is additive: we never collapse a previously expanded row
+  // since we can't tell a prior link apart from a user-expanded row.
+  useEffect(() => {
+    if (!linkedRowId) {
+      return;
+    }
+    setExpandedLogRows(prev => {
+      if (prev.has(linkedRowId)) {
+        return prev;
+      }
+      const next = new Set(prev);
+      next.add(linkedRowId);
+      return next;
+    });
+  }, [linkedRowId]);
+
   const [isFunctionScrolling, setIsFunctionScrolling] = useState(false);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const scrollFetchDisabled = isFunctionScrolling || autorefreshEnabled;
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    fields.slice(),
-    tableRef,
-    {
-      minimumColumnWidth: 50,
-      prefixColumnWidth: 'min-content',
-      staticColumnWidths: {
-        [OurLogKnownFieldKey.MESSAGE]: 'minmax(90px,1fr)',
-      },
-    }
-  );
 
   const estimateSize = useCallback(
     (index: number) => {
@@ -278,12 +310,17 @@ export function LogsInfiniteTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchString, localOnlyItemFilters?.filterText]);
 
+  const getItemKey = useCallback(
+    (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
+    [data]
+  );
+
   const virtualizer = useVirtualizer<HTMLElement, Element>({
     count: data?.length ?? 0,
     estimateSize,
     overscan: 35,
     getScrollElement: () => tableBodyRef?.current,
-    getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
+    getItemKey,
   });
 
   useLayoutEffect(() => {
@@ -355,6 +392,24 @@ export function LogsInfiniteTable({
       : [0, 0];
 
   const {scrollDirection, scrollOffset, isScrolling} = virtualizer;
+
+  const staticColumnWidths = useLogsTableColumnWidths({
+    fields,
+    tableRef,
+    isPending,
+    isScrolling,
+    dataLength: data?.length ?? 0,
+  });
+
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+    fields.slice(),
+    tableRef,
+    {
+      minimumColumnWidth: 50,
+      prefixColumnWidth: 'min-content',
+      staticColumnWidths,
+    }
+  );
 
   useEffect(() => {
     if (isFunctionScrolling && !isScrolling && scrollOffset === 0) {
@@ -463,7 +518,7 @@ export function LogsInfiniteTable({
   );
 
   const renderRow = useCallback(
-    (dataRow: LogTableRowItem) => {
+    (dataRow: OurLogsResponseItem) => {
       const rowId = dataRow[OurLogKnownFieldKey.ID];
       const pinnedExpandKey = `pinned-${rowId}`;
       return (
@@ -508,7 +563,7 @@ export function LogsInfiniteTable({
       <Fragment>
         <Flex justify="center" align="center" height="100%" minHeight="200px">
           {isPending && <LoadingRenderer />}
-          {isError && <ErrorRenderer />}
+          {isError && <ErrorRenderer error={error} onRetry={refetch} />}
           {isEmpty &&
             (emptyRenderer ? (
               emptyRenderer()
@@ -546,12 +601,13 @@ export function LogsInfiniteTable({
             numberAttributes={numberAttributes}
             stringAttributes={stringAttributes}
             booleanAttributes={booleanAttributes}
+            validatedFieldTypes={validatedFieldTypes}
             onResizeMouseDown={onResizeMouseDown}
           />
         )}
         {!isPending && logsPinning && (
           <PinnedLogs
-            allRows={data}
+            allRows={data as OurLogsResponseItem[]}
             logsPinning={logsPinning}
             pinnedLogsQuery={pinnedLogsQuery}
             renderRow={renderRow}
@@ -576,7 +632,7 @@ export function LogsInfiniteTable({
               totalPayloadBytes={totalPayloadBytes}
             />
           )}
-          {!hasReplay && isError && <ErrorRenderer />}
+          {!hasReplay && isError && <ErrorRenderer error={error} onRetry={refetch} />}
           {!hasReplay &&
             isEmpty &&
             (emptyRenderer ? (
@@ -608,7 +664,7 @@ export function LogsInfiniteTable({
             return (
               <Fragment key={virtualRow.key}>
                 <LogRowContent
-                  dataRow={dataRow}
+                  dataRow={dataRow as OurLogsResponseItem}
                   meta={meta}
                   highlightTerms={highlightTerms}
                   embedded={embedded}
@@ -625,6 +681,7 @@ export function LogsInfiniteTable({
                   showCellActions={showCellActions}
                   showExploreSimilarSpansLink={showExploreSimilarSpansLink}
                   isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+                  isHighlighted={!!linkedRowId && rowId === linkedRowId}
                   isHoverLinked={hoveredRowId === rowId}
                   setHoveredRowId={setHoveredRowId}
                   togglePinnedRow={logsPinning ? handleTogglePinnedRow : undefined}
@@ -677,8 +734,12 @@ function LogsTableHeader({
   booleanAttributes,
   numberAttributes,
   stringAttributes,
+  validatedFieldTypes = {},
   onResizeMouseDown,
-}: Pick<LogsTableProps, 'numberAttributes' | 'stringAttributes' | 'booleanAttributes'> & {
+}: Pick<
+  LogsTableProps,
+  'numberAttributes' | 'stringAttributes' | 'booleanAttributes' | 'validatedFieldTypes'
+> & {
   isFrozen: boolean;
   onResizeMouseDown: (e: React.MouseEvent<HTMLDivElement>, index: number) => void;
 }) {
@@ -687,6 +748,10 @@ function LogsTableHeader({
   const setSortBys = useSetQueryParamsSortBys();
 
   const {data, meta, isError, isPending} = useLogsPageDataQueryResult();
+  const resolvedMeta = useMemo(
+    () => addValidatedFieldTypesToLogsMeta({meta, validatedFieldTypes}),
+    [meta, validatedFieldTypes]
+  );
   const pinningEnabled = !!useLogsPinning();
   return (
     <TableHead>
@@ -697,7 +762,7 @@ function LogsTableHeader({
         {fields.map((field, index) => {
           const direction = sortBys.find(s => s.field === field)?.kind;
 
-          const fieldType = meta?.fields?.[field];
+          const fieldType = resolvedMeta.fields[field];
           const align = logsFieldAlignment(field, fieldType);
           const headerLabel = getTableHeaderLabel(
             field,
@@ -771,10 +836,14 @@ function LogsTableHeader({
   );
 }
 
-function ErrorRenderer() {
+function ErrorRenderer({error, onRetry}: {error?: unknown; onRetry?: () => void}) {
   return (
     <TableStatus>
-      <IconWarning variant="muted" size="lg" />
+      {isRateLimitError(error) ? (
+        <LogsRateLimitError onRetry={onRetry} />
+      ) : (
+        <IconWarning variant="muted" size="lg" />
+      )}
     </TableStatus>
   );
 }
@@ -816,6 +885,37 @@ export function LoadingRenderer({
       </Stack>
     </TableStatus>
   );
+}
+
+export function addValidatedFieldTypesToLogsMeta({
+  meta,
+  validatedFieldTypes,
+}: {
+  meta: EventsMetaType | undefined;
+  validatedFieldTypes: Partial<Record<string, FieldValueType>>;
+}): EventsMetaType {
+  const fields: Record<string, ColumnType> = {...meta?.fields};
+
+  for (const [field, fieldType] of Object.entries(validatedFieldTypes)) {
+    const definitionType = fieldValueTypeToColumnType(
+      getFieldDefinition(field, 'log')?.valueType ?? undefined
+    );
+    const columnType =
+      definitionType ?? fields[field] ?? fieldValueTypeToColumnType(fieldType);
+    if (columnType) {
+      fields[field] = columnType;
+    }
+  }
+
+  return {...meta, fields, units: meta?.units ?? {}};
+}
+
+function fieldValueTypeToColumnType(fieldType?: FieldValueType): ColumnType | undefined {
+  if (!fieldType || fieldType === FieldValueType.NEVER) {
+    return undefined;
+  }
+
+  return fieldType;
 }
 
 const StyledLoadingIndicator = styled(LoadingIndicator)<{

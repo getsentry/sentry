@@ -18,11 +18,24 @@ from sentry.utils.signing import sign, unsign
 
 logger = logging.getLogger("sentry.auth.email_verification")
 
+
+class SignupLinkExpired(SignatureExpired):
+    def __init__(self, message: str, email: str) -> None:
+        super().__init__(message)
+        self.email = email
+
+
+def hash_email(email: str) -> str:
+    """One-way hash for logging and analytics. Not the same hash used for rollout group assignment."""
+    return sha256_text(email.lower()).hexdigest()
+
+
 DEFAULT_MAX_AGE_MINUTES = 120
 
 
 def send_signup_verification_email(
     email: str,
+    url_name: str,
     max_age_minutes: int = DEFAULT_MAX_AGE_MINUTES,
 ) -> None:
     """
@@ -31,6 +44,9 @@ def send_signup_verification_email(
     Signs {email, expires_at} into a URL-safe blob and emails the link.
     Pure send function — callers are responsible for session state
     (setting request.session[PENDING_VERIFICATION_SESSION_KEY])
+
+    url_name controls which verification endpoint the link points to,
+    allowing different signup methods to have their own completion logic.
     """
     payload = {
         "email": email,
@@ -38,7 +54,7 @@ def send_signup_verification_email(
     }
     signed_data = sign(salt=settings.SIGNUP_VERIFICATION_EMAIL_SALT, **payload)
 
-    url = absolute_uri(reverse("sentry-signup-verify-email", args=[signed_data]))
+    url = absolute_uri(reverse(url_name, args=[signed_data]))
 
     context = {
         "confirm_email": email,
@@ -58,7 +74,7 @@ def send_signup_verification_email(
 
     logger.info(
         "signup_verification.sent",
-        extra={"email_hash": sha256_text(email.lower()).hexdigest()},
+        extra={"email_hash": hash_email(email)},
     )
 
 
@@ -75,12 +91,13 @@ def verify_signup_link(signed_data: str) -> dict[str, Any]:
     Session binding is the caller's responsibility — compare
     payload["email"] against request.session[PENDING_VERIFICATION_SESSION_KEY].
 
-    Raises BadSignature if tampered, SignatureExpired if past expires_at.
+    Raises BadSignature if tampered, SignupLinkExpired (a SignatureExpired
+    subclass) if past expires_at.
     """
     try:
         payload = unsign(signed_data, salt=settings.SIGNUP_VERIFICATION_EMAIL_SALT, max_age=None)
     except binascii.Error as e:
         raise BadSignature("Malformed verification link") from e
     if time.time() > payload["expires_at"]:
-        raise SignatureExpired("Verification link expired")
+        raise SignupLinkExpired("Verification link expired", email=payload["email"])
     return payload

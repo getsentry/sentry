@@ -2,7 +2,6 @@ from datetime import timedelta
 from re import Match
 from typing import TypedDict
 
-import sentry_sdk
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -27,6 +26,7 @@ from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import raw_snql_query
+from sentry.utils.tracing import start_span
 
 
 class TrendColumns(TypedDict):
@@ -311,7 +311,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response([])
 
-        with sentry_sdk.start_span(op="discover.endpoint", name="trend_dates"):
+        with start_span(op="discover.endpoint", name="trend_dates"):
             middle_date = request.GET.get("middle")
             if middle_date:
                 try:

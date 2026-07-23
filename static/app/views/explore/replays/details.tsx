@@ -42,7 +42,7 @@ function ReplayDetailsInner() {
               align="center"
               gap="md"
               wrap="wrap"
-              padding={{sm: 'sm lg', md: 'md xl'}}
+              padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
             >
               {t('Replay Details')}
             </Flex>
@@ -102,21 +102,27 @@ function ReplayDetailsContent() {
   });
 
   const title = replayRecord
-    ? `${replayRecord.user.display_name ?? t('Anonymous User')} — Session Replay — ${orgSlug}`
+    ? `${
+        replayRecord.user.display_name ?? t('Anonymous User')
+      } — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
   const pageFrameContent = (
     <Fragment>
-      <TopBar.Slot name="title">
+      {organization.features.includes('ui-migration-breadcrumbs') ? (
         <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-      </TopBar.Slot>
+      ) : (
+        <TopBar.Slot name="title">
+          <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+        </TopBar.Slot>
+      )}
       <ReplayDetailsHeaderActions readerResult={readerResult} />
       <Flex
         justify="between"
         align="center"
         gap="md"
         wrap="wrap"
-        padding={{sm: 'md lg', md: 'md xl'}}
+        padding={{'screen:sm': 'md lg', 'screen:md': 'md xl'}}
         borderBottom="secondary"
       >
         <ReplayDetailsUserBadge readerResult={readerResult} />

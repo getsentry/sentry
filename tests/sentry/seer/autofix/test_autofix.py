@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -595,6 +596,62 @@ class TestGetGithubUsernameForUser(TestCase):
 
         username = get_github_username_for_user(user, organization.id)
         assert username == "ghuser"
+
+    @patch("sentry.seer.utils.metrics.incr")
+    def test_get_github_username_for_user_records_resolution_source(
+        self, mock_incr: MagicMock
+    ) -> None:
+        """Tests that each resolution outcome is counted with its source and referrer."""
+        from sentry.integrations.models.external_actor import ExternalActor
+        from sentry.integrations.types import ExternalProviders
+        from sentry.models.commitauthor import CommitAuthor
+
+        organization = self.create_organization()
+
+        mapped_user = self.create_user()
+        ExternalActor.objects.create(
+            user_id=mapped_user.id,
+            organization=organization,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@mapped",
+            external_id="1",
+            integration_id=1,
+        )
+        committer = self.create_user(email="committer@example.com")
+        self.create_member(user=committer, organization=organization)
+        CommitAuthor.objects.create(
+            organization_id=organization.id,
+            name="Committer",
+            email="committer@example.com",
+            external_id="github:committer",
+        )
+        unmapped_user = self.create_user()
+
+        get_github_username_for_user(mapped_user, organization.id, referrer="pr_review_request")
+        get_github_username_for_user(committer, organization.id, referrer="pr_review_request")
+        get_github_username_for_user(unmapped_user, organization.id)
+
+        # `sentry.seer.utils.metrics` is the shared metrics module, so the mock
+        # also sees unrelated counters (e.g. lock bookkeeping); filter to ours.
+        resolution_calls = [
+            c
+            for c in mock_incr.call_args_list
+            if c.args and c.args[0] == "seer.github_username_for_user"
+        ]
+        assert resolution_calls == [
+            call(
+                "seer.github_username_for_user",
+                tags={"source": "external_actor", "referrer": "pr_review_request"},
+            ),
+            call(
+                "seer.github_username_for_user",
+                tags={"source": "commit_author", "referrer": "pr_review_request"},
+            ),
+            call(
+                "seer.github_username_for_user",
+                tags={"source": "none", "referrer": "unknown"},
+            ),
+        ]
 
     def test_get_github_username_for_user_external_actor_priority(self) -> None:
         """Tests that ExternalActor is checked before CommitAuthor."""

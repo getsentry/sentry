@@ -1,4 +1,3 @@
-import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,6 +13,7 @@ from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.utils.tracing import set_span_data, start_span
 
 
 @cell_silo_endpoint
@@ -51,7 +51,11 @@ class GroupCurrentReleaseEndpoint(GroupEndpoint):
         except IndexError:
             return None
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-current-release"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-current-release",
+        url_names=["sentry-api-0-group-current-release"],
+    )
     def get(self, request: Request, group) -> Response:
         """Get the current release in the group's project.
 
@@ -69,9 +73,13 @@ class GroupCurrentReleaseEndpoint(GroupEndpoint):
 
         environments = get_environments(request, group.project.organization)
 
-        with sentry_sdk.start_span(op="CurrentReleaseEndpoint.get.current_release") as span:
-            span.set_data("Environment Count", len(environments))
-            span.set_data(
+        with start_span(
+            op="CurrentReleaseEndpoint.get.current_release",
+            name="CurrentReleaseEndpoint.get.current_release",
+        ) as span:
+            set_span_data(span, "Environment Count", len(environments))
+            set_span_data(
+                span,
                 "Raw Parameters",
                 {
                     "group.id": group.id,

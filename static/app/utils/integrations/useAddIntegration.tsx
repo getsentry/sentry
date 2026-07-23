@@ -26,6 +26,7 @@ export interface AddIntegrationParams {
       | 'seer_onboarding_code_review'
       | 'test_analytics_onboarding'
       | 'test_analytics_org_selector';
+    referrer?: string;
   };
   /**
    * Overrides for the install modal's copy. Passed straight through to

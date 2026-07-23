@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {
-  act,
   fireEvent,
   render,
   renderGlobalModal,
@@ -100,7 +99,7 @@ describe('projectGeneralSettings', () => {
     expect(getField('checkbox', 'Verify TLS/SSL')).toBeChecked();
   });
 
-  it('allows undoing an Allowed Domains change from the toast', async () => {
+  it('saves an Allowed Domains change on blur', async () => {
     putMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
@@ -129,29 +128,54 @@ describe('projectGeneralSettings', () => {
         data: {allowedDomains: ['changed.com']},
       })
     );
+  });
 
-    const addSuccessMessageMock = jest.mocked(addSuccessMessage);
-    const undo = addSuccessMessageMock.mock.calls[0]?.[1]?.undo;
-
-    expect(undo).toBeInstanceOf(Function);
-
-    act(() => {
-      undo?.();
+  it('hides the release auto-creation toggle without the feature flag', async () => {
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
+      organization,
+      initialRouterConfig,
     });
 
-    await waitFor(() => expect(putMock).toHaveBeenCalledTimes(2));
-
-    expect(putMock).toHaveBeenLastCalledWith(
-      `/projects/${organization.slug}/${project.slug}/`,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {allowedDomains: ['example.com', 'https://example.com']},
+    expect(await screen.findByRole('textbox', {name: 'Slug'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', {
+        name: 'Enable release auto-creation from telemetry',
       })
-    );
+    ).not.toBeInTheDocument();
+  });
+
+  it('confirms before disabling release auto-creation', async () => {
+    const orgWithFeature = OrganizationFixture({features: ['auto-release-creation']});
+    putMock = MockApiClient.addMockResponse({
+      url: `/projects/${orgWithFeature.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {...project, enableAutoReleaseCreation: false},
+    });
+
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
+      organization: orgWithFeature,
+      initialRouterConfig,
+    });
+
+    const toggle = await screen.findByRole('checkbox', {
+      name: 'Enable release auto-creation from telemetry',
+    });
+    expect(toggle).toBeChecked();
+
+    await userEvent.click(toggle);
+
+    // A confirmation modal must appear before the change is persisted.
+    renderGlobalModal();
+    expect(putMock).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     await waitFor(() =>
-      expect(screen.getByRole('textbox', {name: 'Allowed Domains'})).toHaveValue(
-        'example.com,https://example.com'
+      expect(putMock).toHaveBeenCalledWith(
+        `/projects/${orgWithFeature.slug}/${project.slug}/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {enableAutoReleaseCreation: false},
+        })
       )
     );
   });

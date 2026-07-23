@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import orjson
-import sentry_sdk
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import options, reprocessing2
@@ -25,8 +24,9 @@ from sentry.models.project import Project
 from sentry.relay.datascrubbing import scrub_data
 from sentry.services.eventstore import processing
 from sentry.silo.base import SiloMode
-from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
+from sentry.stacktraces.processing import process_stacktraces
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.symbolication import get_symbolication_functions
 from sentry.taskworker.namespaces import (
     ingest_attachments_tasks,
     ingest_errors_tasks,
@@ -38,6 +38,7 @@ from sentry.utils.event import track_event_since_received
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
+from sentry.utils.tracing import set_span_data, start_span, trace
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
@@ -53,9 +54,6 @@ def should_process(data: Mapping[str, Any]) -> bool:
         return False
 
     if get_event_preprocessors(data):
-        return True
-
-    if should_process_for_stacktraces(data):
         return True
 
     return False
@@ -134,8 +132,6 @@ def _do_preprocess_event(
 ) -> None:
     from sentry.stacktraces.processing import find_stacktraces_in_data
     from sentry.tasks.symbolication import (
-        get_symbolication_function_for_platform,
-        get_symbolication_platforms,
         submit_symbolicate,
     )
 
@@ -170,20 +166,17 @@ def _do_preprocess_event(
     # The event will be submitted to Symbolicator for all returned platforms,
     # one after the other, so we handle mixed stacktraces.
     stacktraces = find_stacktraces_in_data(data)
-    symbolicate_platforms = get_symbolication_platforms(data, stacktraces)
+    symbolicate_functions = get_symbolication_functions(data, stacktraces)
     metrics.incr(
         "events.to-symbolicate",
-        tags={platform.value: True for platform in symbolicate_platforms},
+        tags={f.value: True for f in symbolicate_functions},
         skip_internal=False,
     )
 
-    should_symbolicate = len(symbolicate_platforms) > 0
+    should_symbolicate = len(symbolicate_functions) > 0
     if should_symbolicate:
-        first_platform = symbolicate_platforms.pop(0)
-        symbolication_function = get_symbolication_function_for_platform(
-            first_platform, data, stacktraces
-        )
-        symbolication_function_name = getattr(symbolication_function, "__name__", "none")
+        symbolication_function = symbolicate_functions.pop(0)
+        symbolication_function_name = getattr(symbolication_function.function(), "__name__", "none")
 
         if not killswitch_matches_context(
             "store.load-shed-symbolicate-event-projects",
@@ -198,14 +191,14 @@ def _do_preprocess_event(
 
             submit_symbolicate(
                 SymbolicatorTaskKind(
-                    platform=first_platform,
+                    function=symbolication_function,
                     is_reprocessing=from_reprocessing,
                 ),
                 cache_key=cache_key,
                 event_id=event_id,
                 start_time=start_time,
                 has_attachments=has_attachments,
-                symbolicate_platforms=symbolicate_platforms,
+                symbolicate_functions=symbolicate_functions,
             )
             return
         # else: go directly to process, do not go through the symbolicate queue, do not collect 200
@@ -295,7 +288,7 @@ def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
     return random.random() < rollout_rate
 
 
-@sentry_sdk.tracing.trace
+@trace
 def normalize_event(data: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     normalizer = StoreNormalizer(
         remove_other=False,
@@ -354,7 +347,10 @@ def do_process_event(
         return _continue_to_save_event()
 
     # NOTE: This span ranges in the 1-2ms range.
-    with sentry_sdk.start_span(op="tasks.store.process_event.get_project_from_cache"):
+    with start_span(
+        op="tasks.store.process_event.get_project_from_cache",
+        name="tasks.store.process_event.get_project_from_cache",
+    ):
         project = Project.objects.get_from_cache(id=project_id)
 
     project.set_cached_field_value(
@@ -401,8 +397,10 @@ def do_process_event(
     # Default event processors.
     preprocessors = get_event_preprocessors(data)
 
-    with sentry_sdk.start_span(op="task.store.process_event.preprocessors") as span:
-        span.set_data("from_symbolicate", from_symbolicate)
+    with start_span(
+        op="task.store.process_event.preprocessors", name="task.store.process_event.preprocessors"
+    ) as span:
+        set_span_data(span, "from_symbolicate", from_symbolicate)
         for processor in preprocessors:
             try:
                 result = processor(data)

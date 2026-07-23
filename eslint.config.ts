@@ -24,8 +24,13 @@
  *    - Controls which internal modules can import from each other
  *    - Examples: preventing sentry from importing getsentry, core isolation, test boundaries
  */
+import e18e from '@e18e/eslint-plugin';
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
+// eslint-disable-next-line boundaries/dependencies
+import * as sentryScrapsPlugin from '@sentry-internal/eslint-plugin-scraps';
+// eslint-disable-next-line boundaries/dependencies
+import * as sentryPlugin from '@sentry-internal/eslint-plugin-sentry';
 import pluginQuery from '@tanstack/eslint-plugin-query';
 import prettier from 'eslint-config-prettier';
 import boundaries from 'eslint-plugin-boundaries';
@@ -46,11 +51,6 @@ import {globalIgnores} from 'eslint/config';
 import globals from 'globals';
 import invariant from 'invariant';
 import typescript from 'typescript-eslint';
-
-// eslint-disable-next-line boundaries/dependencies
-import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index';
-// eslint-disable-next-line boundaries/dependencies
-import * as sentryPlugin from './static/eslint/eslintPluginSentry/index';
 
 invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
@@ -253,6 +253,7 @@ export default typescript.config([
   // https://eslint.org/docs/latest/use/configure/configuration-files#globally-ignoring-files-with-ignores
   globalIgnores([
     '.devenv/**/*',
+    '.agents/**/*',
     '.github/**/*',
     '.sentry-refactor-tasks/**/*',
     '.mypy_cache/**/*',
@@ -426,6 +427,24 @@ export default typescript.config([
     },
   },
   {
+    extends: [e18e.configs.recommended],
+    name: 'plugin/e18e',
+    rules: {
+      'e18e/ban-dependencies': 'off',
+      'e18e/prefer-array-at': 'off',
+      'e18e/prefer-array-fill': 'off',
+      'e18e/prefer-array-from-map': 'off',
+      'e18e/prefer-array-some': 'off',
+      'e18e/prefer-array-to-reversed': 'off',
+      'e18e/prefer-array-to-sorted': 'off',
+      'e18e/prefer-object-has-own': 'off',
+      'e18e/prefer-regex-test': 'off',
+      'e18e/prefer-spread-syntax': 'off',
+      'e18e/prefer-static-regex': 'off',
+      'e18e/prefer-timer-args': 'off',
+    },
+  },
+  {
     // https://github.com/import-js/eslint-plugin-import/tree/main/docs/rules
     extends: [importPlugin.flatConfigs.recommended],
     name: 'plugin/import',
@@ -473,6 +492,7 @@ export default typescript.config([
       '@sentry/scraps/no-double-dollar-interpolation': 'error',
       '@sentry/scraps/no-token-import': 'error',
       '@sentry/scraps/prefer-info-text': 'error',
+      '@sentry/scraps/prefer-stack-for-column-flex': 'error',
       '@sentry/scraps/use-semantic-token': [
         'error',
         {enabledCategories: ['background', 'border', 'content']},
@@ -646,7 +666,7 @@ export default typescript.config([
     files: [
       '*.config.*',
       '**/__mocks__/*',
-      'static/app/stories/*-loader.ts',
+      'static/app/stories/*Loader.ts',
       'static/app/chartcuterie/config.tsx',
       'tests/js/*-transform.*',
       'tests/js/test-*/*',
@@ -813,14 +833,30 @@ export default typescript.config([
     extends: [unicorn.configs.unopinionated],
     rules: {
       'unicorn/custom-error-definition': 'error',
-      'unicorn/no-instanceof-array': 'error',
-      'unicorn/no-useless-undefined': ['error', {checkArguments: false}],
-
-      'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/filename-case': [
+        'error',
+        {
+          case: 'camelCase',
+          ignore: [
+            'jest-pegjs-transform\\.js',
+            'jest-environment\\.js',
+            'jest-environment-node\\.js',
+            '/__mocks__/',
+            // Shebang scripts can't use an inline disable comment (it must sit
+            // on line 1, where the shebang is) and are invoked by their
+            // kebab-case names from package.json/CI, so ignore them here.
+            'analyze-styled\\.ts$',
+            'type-coverage\\.ts$',
+            'type-coverage-diff\\.ts$',
+          ],
+        },
+      ],
       'unicorn/no-array-push-push': 'error',
+      'unicorn/no-instanceof-array': 'error',
       'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-static-only-class': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-this-assignment': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-useless-undefined': ['error', {checkArguments: false}],
       'unicorn/no-zero-fractions': 'error',
       'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
@@ -1164,6 +1200,14 @@ export default typescript.config([
     extends: [mdx.flat],
     rules: {
       'import/no-webpack-loader-syntax': 'off', // type loader requires webpack syntax
+    },
+  },
+  {
+    // Flex's own documentation intentionally demonstrates `direction="column"`.
+    name: 'files/mdx/flex-docs',
+    files: ['static/app/components/core/layout/flex.mdx'],
+    rules: {
+      '@sentry/scraps/prefer-stack-for-column-flex': 'off',
     },
   },
   {

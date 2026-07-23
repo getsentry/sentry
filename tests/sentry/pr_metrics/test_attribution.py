@@ -63,7 +63,7 @@ class AttributeSeerCreatedPullRequestsTest(TestCase):
         assert attribution.is_valid is True
         assert attribution.signal_details == {
             "run_id": 123,
-            "group_id": self.group.id,
+            "group_ids": [self.group.id],
             "pr_url": "https://github.com/getsentry/sentry/pull/42",
         }
 
@@ -199,6 +199,7 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
         pr_url: str = "https://github.com/getsentry/sentry/pull/42",
         agent_id: str | None = "agent-1",
         run_id: int | None = None,
+        group_ids: list[int] | None = None,
         organization_id: int | None = None,
         has_feature: bool = True,
     ) -> None:
@@ -213,6 +214,7 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
                 pr_url=pr_url,
                 agent_id=agent_id,
                 run_id=run_id,
+                group_ids=group_ids,
             )
 
     def test_records_the_given_signal_type(self) -> None:
@@ -236,6 +238,7 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
                 "agent_id": "agent-1",
                 "pr_url": f"https://github.com/getsentry/sentry/pull/{pr_number}",
                 "run_id": None,
+                "group_ids": [],
             }
 
     def test_includes_run_id_in_signal_details(self) -> None:
@@ -250,6 +253,38 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
             "agent_id": "agent-1",
             "pr_url": "https://github.com/getsentry/sentry/pull/77",
             "run_id": 9999,
+            "group_ids": [],
+        }
+
+    def test_includes_group_ids_in_signal_details(self) -> None:
+        self._attribute(
+            pr_url="https://github.com/getsentry/sentry/pull/78",
+            run_id=9999,
+            group_ids=[self.group.id],
+        )
+
+        pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="78")
+        attribution = PullRequestAttribution.objects.get(pull_request=pull_request)
+        assert attribution.signal_details == {
+            "agent_id": "agent-1",
+            "pr_url": "https://github.com/getsentry/sentry/pull/78",
+            "run_id": 9999,
+            "group_ids": [self.group.id],
+        }
+
+    def test_includes_multiple_group_ids_in_signal_details(self) -> None:
+        self._attribute(
+            pr_url="https://github.com/getsentry/sentry/pull/88",
+            group_ids=[555],
+        )
+
+        pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="88")
+        attribution = PullRequestAttribution.objects.get(pull_request=pull_request)
+        assert attribution.signal_details == {
+            "agent_id": "agent-1",
+            "pr_url": "https://github.com/getsentry/sentry/pull/88",
+            "run_id": None,
+            "group_ids": [555],
         }
 
     def test_noop_when_feature_disabled(self) -> None:
@@ -325,10 +360,10 @@ class RecordAttributionSignalTest(TestCase):
 
     def test_updates_details_on_redelivery(self) -> None:
         first = self._record_seer_signal(
-            signal_details={"run_id": 1, "group_id": 2, "pr_url": "https://x/1"}
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
         )
         second = self._record_seer_signal(
-            signal_details={"run_id": 1, "group_id": 2, "pr_url": "https://x/2"}
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/2"}
         )
 
         assert first.id == second.id
@@ -344,6 +379,81 @@ class RecordAttributionSignalTest(TestCase):
 
         attribution.refresh_from_db()
         assert attribution.is_valid is True
+
+    def test_merges_list_values_across_producers(self) -> None:
+        self._record_seer_signal(
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+        )
+        second = self._record_seer_signal(
+            signal_details={"run_id": 1, "group_ids": [3], "pr_url": "https://x/1"}
+        )
+
+        second.refresh_from_db()
+        assert second.signal_details is not None
+        assert second.signal_details["group_ids"] == [2, 3]
+
+    def test_merges_dict_values_across_producers(self) -> None:
+        first = record_attribution_signal(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.MCP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+            signal_details={"group_ids": {"1": "cursor"}},
+        )
+        second = record_attribution_signal(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.MCP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+            signal_details={"group_ids": {"2": "claude_code"}},
+        )
+
+        assert first.id == second.id
+        second.refresh_from_db()
+        assert second.signal_details is not None
+        assert second.signal_details["group_ids"] == {"1": "cursor", "2": "claude_code"}
+
+    def test_scalar_merge_keeps_existing_when_incoming_is_falsy(self) -> None:
+        self._record_seer_signal(
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+        )
+        second = self._record_seer_signal(
+            signal_details={"run_id": None, "group_ids": [], "pr_url": "https://x/1"}
+        )
+
+        second.refresh_from_db()
+        assert second.signal_details is not None
+        assert second.signal_details["run_id"] == 1
+
+    def test_merge_treats_none_existing_details_as_incoming(self) -> None:
+        self._record_seer_signal(signal_details=None)
+        second = self._record_seer_signal(
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+        )
+
+        second.refresh_from_db()
+        assert second.signal_details == {"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+
+    def test_merge_keeps_existing_details_when_incoming_is_none(self) -> None:
+        self._record_seer_signal(
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+        )
+        second = self._record_seer_signal(signal_details=None)
+
+        second.refresh_from_db()
+        assert second.signal_details == {"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+
+    def test_replaces_outright_when_existing_signal_invalid(self) -> None:
+        attribution = self._record_seer_signal(
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+        )
+        attribution.update(is_valid=False)
+
+        second = self._record_seer_signal(
+            signal_details={"run_id": 9, "group_ids": [3], "pr_url": "https://x/2"}
+        )
+
+        second.refresh_from_db()
+        assert second.signal_details == {"run_id": 9, "group_ids": [3], "pr_url": "https://x/2"}
+        assert second.is_valid is True
 
 
 class RecomputePullRequestAttributionTest(TestCase):

@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
@@ -89,7 +89,7 @@ export function BillingDetailsPanel({
       data-test-id="billing-details-panel"
       maxWidth={maxPanelWidth}
     >
-      <Flex direction="column" gap="lg" width="100%">
+      <Stack gap="lg" width="100%">
         <Heading as="h2" size="lg">
           {t('Business address')}
         </Heading>
@@ -168,7 +168,7 @@ export function BillingDetailsPanel({
         ) : (
           <Text>{t('No business address on file')}</Text>
         )}
-      </Flex>
+      </Stack>
       {!isEditing && (
         <Button
           variant="secondary"

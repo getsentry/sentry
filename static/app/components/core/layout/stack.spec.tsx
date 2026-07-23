@@ -1,7 +1,8 @@
 import {createRef, Fragment} from 'react';
 import {expectTypeOf} from 'expect-type';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
   Stack,
@@ -10,7 +11,48 @@ import {
 } from '@sentry/scraps/layout';
 import type {Responsive} from '@sentry/scraps/layout';
 
+const theme = ThemeFixture();
+
+// A matchMedia mock that tracks listeners so tests can drive breakpoint changes.
+function setupTrackedMatchMedia(initialMatches: (query: string) => boolean) {
+  const listeners: Record<string, Array<() => void>> = {};
+  const queries: Record<string, {matches: boolean}> = {};
+
+  window.matchMedia = jest.fn((query: string) => {
+    const mock = {
+      matches: initialMatches(query),
+      media: query,
+      addEventListener: jest.fn((_event: string, listener: () => void) => {
+        (listeners[query] ??= []).push(listener);
+      }),
+      removeEventListener: jest.fn((_event: string, listener: () => void) => {
+        listeners[query] = (listeners[query] ?? []).filter(l => l !== listener);
+      }),
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+      onchange: null,
+    };
+    queries[query] = mock;
+    return mock;
+  });
+
+  return {
+    setMatches(query: string, matches: boolean) {
+      if (queries[query]) {
+        queries[query].matches = matches;
+      }
+      (listeners[query] ?? []).forEach(listener => listener());
+    },
+  };
+}
+
 describe('Stack', () => {
+  const originalMatchMedia = window.matchMedia;
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
   it('renders children', () => {
     render(<Stack>Hello</Stack>);
     expect(screen.getByText('Hello')).toBeInTheDocument();
@@ -146,6 +188,56 @@ describe('Stack', () => {
       'aria-orientation',
       'horizontal'
     );
+  });
+
+  it('does not re-render on a breakpoint change when it has no separator', () => {
+    const matchMedia = setupTrackedMatchMedia(() => false);
+
+    let renderCount = 0;
+    function Probe() {
+      renderCount++;
+      return <span>probe</span>;
+    }
+
+    render(
+      <Stack>
+        <Probe />
+      </Stack>
+    );
+
+    const initialRenderCount = renderCount;
+
+    // A Stack without a separator must not subscribe to breakpoint changes, so
+    // crossing a breakpoint should not re-render its subtree.
+    act(() => {
+      matchMedia.setMatches(`(min-width: ${theme.breakpoints.lg})`, true);
+    });
+
+    expect(renderCount).toBe(initialRenderCount);
+  });
+
+  it('updates separator orientation reactively when the breakpoint changes', () => {
+    const matchMedia = setupTrackedMatchMedia(() => false);
+
+    render(
+      <Stack direction={{'screen:2xs': 'column', 'screen:lg': 'row'}}>
+        <div>Item</div>
+        <Stack.Separator />
+      </Stack>
+    );
+
+    // 2xs (nothing matches) => column => horizontal separator
+    expect(screen.getByRole('separator')).toHaveAttribute(
+      'aria-orientation',
+      'horizontal'
+    );
+
+    act(() => {
+      matchMedia.setMatches(`(min-width: ${theme.breakpoints.lg})`, true);
+    });
+
+    // lg => row => vertical separator
+    expect(screen.getByRole('separator')).toHaveAttribute('aria-orientation', 'vertical');
   });
 
   describe('types', () => {

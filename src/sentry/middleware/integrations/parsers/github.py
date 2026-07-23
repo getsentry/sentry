@@ -8,7 +8,6 @@ import orjson
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 
-import sentry.options as options
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
@@ -16,8 +15,11 @@ from sentry.integrations.github.webhook import (
 )
 from sentry.integrations.github.webhook_types import (
     _CONTROL_ONLY_EVENTS,
+    CELL_PROCESSED_CHECK_RUN_ACTIONS,
     CELL_PROCESSED_GITHUB_EVENTS,
+    GITHUB_CHECK_RUN_ACTIONS,
     GITHUB_WEBHOOK_TYPE_HEADER,
+    GithubWebhookType,
 )
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
@@ -55,19 +57,11 @@ class GithubRequestParser(BaseRequestParser):
     def get_mailbox_identifier(
         self, integration: RpcIntegration | Integration, data: dict[str, Any]
     ) -> str:
-        """Override to gate bucketing on an options flag for safe rollout and revert.
+        """Distribute webhooks across sub-mailboxes by repository ID and event type.
 
-        When disabled (default), all webhooks route to a single mailbox per integration.
-        When enabled, webhooks are distributed across sub-mailboxes by repository ID and
-        event type, bypassing the rate-limit auto-switch used by the base class.
+        Bypasses the rate-limit auto-switch used by the base class so GitHub webhooks
+        are always bucketed.
         """
-        if not options.get("github.webhook.mailbox-bucketing.enabled"):
-            metrics.incr(
-                "hybridcloud.webhookpayload.mailbox_routing",
-                tags={"provider": self.provider, "bucketed": "false"},
-            )
-            return str(integration.id)
-
         base = self._build_bucketed_identifier(integration, data)
         event_type = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
         if event_type:
@@ -138,6 +132,28 @@ class GithubRequestParser(BaseRequestParser):
                 tags={"event_type": github_event or "unknown"},
             )
             return HttpResponse(status=202)
+
+        # check_run is by far the highest-volume event type and only some actions
+        # have a cell-side consumer (see CELL_PROCESSED_CHECK_RUN_ACTIONS); drop the
+        # rest, most notably "created" which is roughly half of all deliveries.
+        if github_event == GithubWebhookType.CHECK_RUN:
+            action = event.get("action")
+            if not (isinstance(action, str) and action in CELL_PROCESSED_CHECK_RUN_ACTIONS):
+                # The body is not signature-verified until it reaches the cell, so
+                # only known check_run actions may be tagged verbatim to keep tag
+                # cardinality bounded.
+                metrics.incr(
+                    "github.webhook.drop_unprocessed_event",
+                    tags={
+                        "event_type": github_event,
+                        "action": (
+                            action
+                            if isinstance(action, str) and action in GITHUB_CHECK_RUN_ACTIONS
+                            else "unknown"
+                        ),
+                    },
+                )
+                return HttpResponse(status=202)
 
         response = self.get_response_from_webhookpayload(
             cells=cells,

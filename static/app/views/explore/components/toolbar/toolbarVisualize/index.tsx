@@ -97,6 +97,7 @@ export function ToolbarVisualizeDropdown({
           <FieldCompactSelect
             key={param.name}
             search={{
+              highlight: true,
               onChange: onSearch,
               filter: (option, searchText) => {
                 return sortSearchedAttributes({
@@ -118,6 +119,7 @@ export function ToolbarVisualizeDropdown({
       {aggregateDefinition?.parameters?.length === 0 && ( // for parameterless functions, we want to still show show greyed out spans
         <FieldCompactSelect
           search={{
+            highlight: true,
             onChange: onSearch,
             filter: (option, searchText) => {
               return sortSearchedAttributes({

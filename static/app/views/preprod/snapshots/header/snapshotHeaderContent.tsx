@@ -89,7 +89,7 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
         {...{[TITLE_MARKER_ATTR]: ''}}
       >
         {t('Snapshots')}
-        <Container display={{'2xs': 'none', xs: 'flex'}}>
+        <Container display={{'screen:2xs': 'none', 'screen:xs': 'flex'}}>
           <PageHeadingQuestionTooltip
             docsUrl="https://docs.sentry.io/product/snapshots/"
             title={t('Catch visual regressions before they reach users.')}
@@ -97,7 +97,7 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
         </Container>
 
         {project && (
-          <Container display={{'2xs': 'none', lg: 'block'}}>
+          <Container display={{'screen:2xs': 'none', 'screen:lg': 'block'}}>
             <Text as="div" size="sm">
               <IdBadge project={project} avatarSize={16} />
             </Text>
@@ -110,7 +110,7 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
           flexShrink={1}
           minWidth={0}
           overflow="hidden"
-          display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
+          display={{'screen:2xs': 'none', 'screen:xs': 'none', 'screen:sm': 'flex'}}
         >
           {shortSha && shaUrl && (
             <Flex align="center" gap="xs" flexShrink={0}>

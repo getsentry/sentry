@@ -113,7 +113,6 @@ describe('GroupActions', () => {
         billing: null,
         integration: {ok: false, reason: null},
         seerReposLinked: false,
-        githubWriteIntegration: null,
       },
     });
     MockApiClient.addMockResponse({

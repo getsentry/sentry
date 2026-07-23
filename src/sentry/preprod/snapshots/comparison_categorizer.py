@@ -46,6 +46,7 @@ def _build_base_image(key: str, meta: ImageMetadata) -> SnapshotImageResponse:
         height=meta.height,
         description=meta.description,
         tags=meta.tags,
+        canvas_theme=meta.canvas_theme,
     )
 
 

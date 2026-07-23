@@ -54,6 +54,7 @@ interface SearchQueryBuilderConfigContextData {
   disabled: boolean;
   disallowFreeText: boolean;
   disallowLogicalOperators: boolean;
+  disallowNegation: boolean;
   disallowWildcard: boolean;
   filterKeyAliases: TagCollection | undefined;
   filterKeyRegistryQueryKey: QueryKey;
@@ -86,13 +87,17 @@ interface SearchQueryBuilderAIContextData {
   aiSearchBadgeType: 'alpha' | 'beta';
   askSeerNLQueryRef: React.RefObject<string | null>;
   askSeerSuggestedQueryRef: React.RefObject<string | null>;
+  autoSubmitFromCurrentQuery: boolean;
   autoSubmitSeer: boolean;
+  defaultToAskSeerOnFreeTextSearch: boolean;
   displayAskSeer: boolean;
   displayAskSeerFeedback: boolean;
   enableAISearch: boolean;
+  setAutoSubmitFromCurrentQuery: (enabled: boolean) => void;
   setAutoSubmitSeer: (enabled: boolean) => void;
   setDisplayAskSeer: (enabled: boolean) => void;
   setDisplayAskSeerFeedback: (enabled: boolean) => void;
+  skipNextSearchQueryBuilderAutoFocusRef: React.RefObject<boolean>;
 }
 
 interface SearchQueryBuilderInteractionContextData {
@@ -163,8 +168,10 @@ export function SearchQueryBuilderProvider({
   disabled = false,
   disallowLogicalOperators,
   disallowFreeText,
+  disallowNegation,
   disallowUnsupportedFilters,
   disallowWildcard,
+  defaultToAskSeerOnFreeTextSearch: defaultToAskSeerOnFreeTextSearchProp,
   enableAISearch: enableAISearchProp,
   invalidMessages,
   initialQuery,
@@ -193,18 +200,24 @@ export function SearchQueryBuilderProvider({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
 
+  const [autoSubmitFromCurrentQuery, setAutoSubmitFromCurrentQuery] = useState(false);
   const [autoSubmitSeer, setAutoSubmitSeer] = useState(false);
   const [displayAskSeerFeedback, setDisplayAskSeerFeedback] = useState(false);
   const [reopenDropdownOnQueryClear, setReopenDropdownOnQueryClear] = useState(false);
   const currentInputValueRef = useRef('');
   const askSeerNLQueryRef = useRef<string | null>(null);
   const askSeerSuggestedQueryRef = useRef<string | null>(null);
+  const skipNextSearchQueryBuilderAutoFocusRef = useRef(false);
 
   const organization = useOrganization();
   const enableAISearch =
     Boolean(enableAISearchProp) &&
     !organization.hideAiFeatures &&
     organization.features.includes('gen-ai-features');
+  const defaultToAskSeerOnFreeTextSearch =
+    enableAISearch &&
+    Boolean(defaultToAskSeerOnFreeTextSearchProp) &&
+    organization.features.includes('gen-ai-default-to-ask-seer');
 
   const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
   const displayAskSeer = enableAISearch ? displayAskSeerState : false;
@@ -264,6 +277,7 @@ export function SearchQueryBuilderProvider({
         getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
+        disallowNegation,
         disallowUnsupportedFilters,
         disallowWildcard,
         filterKeys: mergedFilterKeys,
@@ -274,6 +288,7 @@ export function SearchQueryBuilderProvider({
     [
       disallowFreeText,
       disallowLogicalOperators,
+      disallowNegation,
       disallowUnsupportedFilters,
       disallowWildcard,
       getFieldDefinitionWithTagMetadata,
@@ -384,6 +399,7 @@ export function SearchQueryBuilderProvider({
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowLogicalOperators: Boolean(disallowLogicalOperators),
+      disallowNegation: Boolean(disallowNegation),
       disallowWildcard: Boolean(disallowWildcard),
       filterKeyAliases,
       filterKeyRegistryQueryKey: filterKeyRegistryQueryOptions.queryKey,
@@ -407,6 +423,7 @@ export function SearchQueryBuilderProvider({
     disabled,
     disallowFreeText,
     disallowLogicalOperators,
+    disallowNegation,
     disallowWildcard,
     filterKeyAliases,
     filterKeyRegistryQueryOptions.queryKey,
@@ -450,23 +467,30 @@ export function SearchQueryBuilderProvider({
       aiSearchBadgeType,
       askSeerNLQueryRef,
       askSeerSuggestedQueryRef,
+      autoSubmitFromCurrentQuery,
       autoSubmitSeer,
+      defaultToAskSeerOnFreeTextSearch,
       displayAskSeer,
       displayAskSeerFeedback,
       enableAISearch,
+      setAutoSubmitFromCurrentQuery,
       setAutoSubmitSeer,
       setDisplayAskSeer: setDisplayAskSeerState,
       setDisplayAskSeerFeedback,
+      skipNextSearchQueryBuilderAutoFocusRef,
     };
   }, [
     aiSearchBadgeType,
     askSeerNLQueryRef,
     askSeerSuggestedQueryRef,
+    autoSubmitFromCurrentQuery,
     autoSubmitSeer,
+    defaultToAskSeerOnFreeTextSearch,
     displayAskSeer,
     displayAskSeerFeedback,
     enableAISearch,
     setDisplayAskSeerFeedback,
+    skipNextSearchQueryBuilderAutoFocusRef,
   ]);
 
   const interactionValue = useMemo((): SearchQueryBuilderInteractionContextData => {

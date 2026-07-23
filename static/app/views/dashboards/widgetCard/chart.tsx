@@ -43,10 +43,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
-import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
-import {getSelectedAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregate';
-import {buildHeatmapCellQuery} from 'sentry/views/dashboards/widgetCard/buildHeatmapCellQuery';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {AgentsTracesTableWidgetVisualization} from 'sentry/views/dashboards/widgets/agentsTracesTableWidget/agentsTracesTableWidgetVisualization';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
@@ -64,6 +61,7 @@ import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detail
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {HeatMapWidgetVisualization} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {RageAndDeadClicksWidgetVisualization} from 'sentry/views/dashboards/widgets/rageAndDeadClicksWidget/rageAndDeadClicksVisualization';
 import {ServerTreeWidgetVisualization} from 'sentry/views/dashboards/widgets/serverTreeWidget/serverTreeWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
@@ -76,14 +74,10 @@ import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWid
 import {WidgetError} from 'sentry/views/dashboards/widgets/widget/widgetError';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
-import {getExploreUrl as buildExploreUrl} from 'sentry/views/explore/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
-import {
-  applyDashboardFiltersToWidget,
-  type GenericWidgetQueriesResult,
-} from './genericWidgetQueries';
+import {type GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 type TableComponentProps = Pick<
   GenericWidgetQueriesResult,
@@ -198,7 +192,6 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   if (widget.displayType === DisplayType.HEATMAP) {
     return (
       <TransitionChart loading={loading} reloading={loading}>
-        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
         <HeatmapSeriesComponent {...props} />
       </TransitionChart>
     );
@@ -448,18 +441,11 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
     },
   });
 
-  // Empty series array means the widget is misconfigured (missing X-axis or aggregate)
-  // This is different from "no data found" which would return series with empty values
-  if (categoricalSeriesData.length === 0) {
-    return (
-      <StyledErrorPanel>
-        <IconWarning variant="primary" size="lg" />
-      </StyledErrorPanel>
-    );
-  }
-
-  // Create Bars plottables from the transformed data
   const plottables = categoricalSeriesData.map(series => new Bars(series));
+
+  if (!plottablesCanBeVisualized(plottables)) {
+    return <CategoricalSeriesWidgetVisualization.NoData />;
+  }
 
   return (
     <ChartWrapper autoHeightResize>
@@ -469,70 +455,26 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
 }
 
 function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
-  const {heatmapResults, loading, widget, dashboardFilters, selection} = props;
-  const organization = useOrganization();
-
-  const selectedAggregate = getSelectedAggregate(widget);
-  const traceMetric = selectedAggregate
-    ? extractTraceMetricFromColumn(selectedAggregate)
-    : undefined;
+  const {heatmapResults, loading} = props;
 
   if (loading || !heatmapResults) {
-    return <LoadingPlaceholder />;
+    return <HeatMapWidgetVisualization.LoadingPlaceholder />;
   }
 
-  if (heatmapResults.values.length === 0) {
-    return (
-      <StyledErrorPanel>
-        <IconWarning variant="primary" size="lg" />
-      </StyledErrorPanel>
-    );
-  }
+  const plottables: [HeatMap] = [new HeatMap(heatmapResults)];
 
-  // Match the conditions the heat map actually fetched with (dashboard filters
-  // applied), so the cell's Explore link is scoped the same way.
-  const exploreBaseQuery = applyDashboardFiltersToWidget(widget, dashboardFilters)
-    .queries[0]?.conditions;
+  if (!plottablesCanBeVisualized(plottables)) {
+    return <HeatMapWidgetVisualization.NoData />;
+  }
 
   return (
     <ChartWrapper autoHeightResize>
-      <HeatMapWidgetVisualization
-        plottables={[new HeatMap(heatmapResults)]}
-        // The heat map links each cell's tooltip to its metric in Explore.
-        renderTooltipActions={({valueMin, valueMax, timestampStart, timestampEnd}) => {
-          if (!traceMetric) {
-            return null;
-          }
-          const tracesUrl = buildExploreUrl({
-            organization,
-            selection: {
-              ...selection,
-              datetime: {
-                ...selection.datetime,
-                start: new Date(timestampStart),
-                end: new Date(timestampEnd),
-                period: null,
-              },
-            },
-            crossEvents: [
-              {
-                type: 'metrics',
-                metric: traceMetric,
-                query: buildHeatmapCellQuery(exploreBaseQuery, valueMin, valueMax),
-              },
-            ],
-          });
-          return (
-            <div>
-              <span className="tooltip-label tooltip-label-centered">
-                <a data-traces-link={tracesUrl} href={tracesUrl}>
-                  {t('View connected spans')}
-                </a>
-              </span>
-            </div>
-          );
-        }}
-      />
+      {/* Drag-to-zoom not implemented in Dashboards because we haven't come up
+      with a sensible behaviour here. The X-axis selection can update the
+      selected date range, but what about the Y-axis? It might update the global
+      filter, but that affects other widgets, is that okay? Or, it might affect
+      just the current widget, but how does the UI react? */}
+      <HeatMapWidgetVisualization plottables={plottables} />
     </ChartWrapper>
   );
 }

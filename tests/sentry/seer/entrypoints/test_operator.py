@@ -40,7 +40,7 @@ from sentry.seer.entrypoints.types import (
     SeerOperatorCacheResult,
 )
 from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
-from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options

@@ -7,7 +7,7 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/loader/indeterminateLoader.tsx
 ---
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {IndeterminateLoader} from '@sentry/scraps/loader';
 
@@ -52,7 +52,7 @@ Pass an array of `messages` to step through loading messages as the loader runs.
 Constrain the loader's width by wrapping it in a sized container.
 
 <Demo>
-  <Flex direction="column" gap="lg">
+  <Stack gap="lg">
     <Container style={{width: 120}}>
       <IndeterminateLoader />
     </Container>
@@ -60,7 +60,7 @@ Constrain the loader's width by wrapping it in a sized container.
       <IndeterminateLoader />
     </Container>
     <IndeterminateLoader />
-  </Flex>
+  </Stack>
 </Demo>
 
 ```jsx
@@ -82,7 +82,7 @@ Use `variant="monochrome"` to inherit `currentColor` from the parent. The track 
 This is used internally in the Button component.
 
 <Demo>
-  <Flex direction="column" gap="lg">
+  <Stack gap="lg">
     <Container style={{width: '320px', color: '#7553ff'}}>
       <IndeterminateLoader variant="monochrome" />
     </Container>
@@ -90,7 +90,7 @@ This is used internally in the Button component.
       <IndeterminateLoader variant="monochrome" />
     </Container>
     <IndeterminateLoader variant="monochrome" />
-  </Flex>
+  </Stack>
 </Demo>
 
 ```jsx

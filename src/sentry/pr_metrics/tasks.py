@@ -4,12 +4,21 @@ from __future__ import annotations
 
 import logging
 
+from django.conf import settings
+from django.db import Error as DjangoDBError
 from taskbroker_client.retry import Retry
 from urllib3.exceptions import HTTPError
 
-from sentry.models.pullrequest import PullRequest
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestActivity,
+    PullRequestActivityLog,
+    PullRequestMetrics,
+    PullRequestVerdict,
+)
 from sentry.models.repository import Repository
-from sentry.pr_metrics.judge import forward_pr_to_seer_judge
+from sentry.pr_metrics.judge import forward_pr_to_seer_judge, reap_stuck_judge_verdicts
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
@@ -20,6 +29,12 @@ logger = logging.getLogger(__name__)
 MAX_RETRIES = 5
 DELAY_BETWEEN_RETRIES = 60  # seconds
 
+# forward_pr_to_seer_task's Seer call blocks for up to settings.SEER_DEFAULT_TIMEOUT.
+# Give the task headroom past that instead of the taskbroker client's 10s default —
+# otherwise the broker can decide the worker is dead (and redeliver the task to
+# another worker) while the call is still legitimately in flight.
+FORWARD_PROCESSING_DEADLINE = settings.SEER_DEFAULT_TIMEOUT + 15
+
 
 @instrumented_task(
     name="sentry.pr_metrics.tasks.forward_pr_to_seer",
@@ -27,6 +42,7 @@ DELAY_BETWEEN_RETRIES = 60  # seconds
     # introducing an unrouted one; both forward PR events to the same Seer host.
     namespace=seer_code_review_tasks,
     retry=Retry(times=MAX_RETRIES, delay=DELAY_BETWEEN_RETRIES, on=(HTTPError,)),
+    processing_deadline_duration=FORWARD_PROCESSING_DEADLINE,
     silo_mode=SiloMode.CELL,
 )
 def forward_pr_to_seer_task(
@@ -68,3 +84,93 @@ def forward_pr_to_seer_task(
         return
 
     forward_pr_to_seer_judge(pull_request, repository)
+
+
+@instrumented_task(
+    name="sentry.pr_metrics.tasks.emit_pr_metrics_cooldown",
+    namespace=seer_code_review_tasks,
+    retry=Retry(times=MAX_RETRIES, delay=DELAY_BETWEEN_RETRIES, on=(DjangoDBError, HTTPError)),
+    silo_mode=SiloMode.CELL,
+)
+def emit_pr_metrics_cooldown_task(
+    *,
+    pull_request_id: int,
+    organization_id: int,
+    repository_id: int,
+) -> None:
+    """Settle and emit a PR's ``scm.pr.closed`` row after the post-close cooldown.
+
+    Scheduled by ``handle_emission`` when a close/merge webhook claims the
+    ``WAITING_EVENT_COOLDOWN`` sentinel. Deferring emission by the cooldown lets
+    late attribution and activity settle before the verdict is chosen and the row
+    read (see ``run_deferred_emission``).
+    """
+    log_extra = {
+        "pull_request_id": pull_request_id,
+        "organization_id": organization_id,
+        "repository_id": repository_id,
+    }
+
+    # Scope to the claimed org+repo, matching the rest of the pipeline.
+    try:
+        pull_request = PullRequest.objects.get(
+            id=pull_request_id,
+            organization_id=organization_id,
+            repository_id=repository_id,
+        )
+    except PullRequest.DoesNotExist:
+        logger.exception("pr_metrics.cooldown.pull_request_not_found", extra=log_extra)
+        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "pr_gone"})
+        return
+
+    PullRequestMetrics.objects.filter(
+        pull_request=pull_request, verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN
+    ).update(verdict=None)
+
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.exception("pr_metrics.cooldown.organization_not_found", extra=log_extra)
+        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "org_gone"})
+        return
+
+    # Imported here to avoid a circular import: webhooks imports this module.
+    from sentry.pr_metrics.webhooks import run_deferred_emission
+
+    run_deferred_emission(pull_request, organization)
+
+
+@instrumented_task(
+    name="sentry.pr_metrics.tasks.cleanup_pr_activity",
+    namespace=seer_code_review_tasks,
+    silo_mode=SiloMode.CELL,
+)
+def cleanup_pr_activity_task(*, pull_request_id: int) -> None:
+    """Delete a PR's activity after its scm.pr.closed event has been emitted.
+
+    Enqueued by ``emit_pr_metrics_row`` once emission succeeds, and sweeps both
+    stores: the legacy ``PullRequestActivity`` rows and the reduced
+    ``PullRequestActivityLog`` document (only one exists for a given PR, per the
+    per-PR routing). The data is no longer needed — the judge path has consumed
+    it and neither store is reread after a terminal event. A failure here is safe
+    to drop: the age-based cleanup command sweeps any survivors (the document
+    keyed on ``date_updated``).
+    """
+    logger.info("pr_metrics.cleanup_activity", extra={"pull_request_id": pull_request_id})
+    deleted, _ = PullRequestActivity.objects.filter(pull_request_id=pull_request_id).delete()
+    metrics.incr("pr_metrics.cleanup_activity.deleted", amount=deleted)
+    doc_deleted, _ = PullRequestActivityLog.objects.filter(pull_request_id=pull_request_id).delete()
+    metrics.incr("pr_metrics.cleanup_activity.doc_deleted", amount=doc_deleted)
+
+
+@instrumented_task(
+    name="sentry.pr_metrics.tasks.reap_stuck_judge_verdicts",
+    namespace=seer_code_review_tasks,
+    silo_mode=SiloMode.CELL,
+)
+def reap_stuck_judge_verdicts_task() -> None:
+    """Daily sweep settling ``PullRequestMetrics`` rows stuck at ``JUDGE_IN_PROGRESS``.
+
+    See ``reap_stuck_judge_verdicts`` for the settling logic and its bounds.
+    """
+    reap_stuck_judge_verdicts()

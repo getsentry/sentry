@@ -87,7 +87,7 @@ export interface DropdownMenuProps
   /**
    * Items to display inside the dropdown menu. If the item has a `children`
    * prop, it will be rendered as a menu section. If it has a `children` prop
-   * and its `isSubmenu` prop is true, it will be rendered as a submenu.
+   * and its `submenu` prop is set, it will be rendered as a submenu.
    */
   items: MenuItemProps[];
   /**
@@ -277,7 +277,7 @@ function DropdownMenu({
         {(item: MenuItemProps) => {
           const {onAction: _onAction, ...itemProps} = item;
 
-          if (item.children && item.children.length > 0 && !item.isSubmenu) {
+          if (item.children && item.children.length > 0 && !item.submenu) {
             return (
               <Section key={item.key} title={item.label} items={item.children}>
                 {sectionItem => {

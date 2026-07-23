@@ -21,88 +21,81 @@ class BaseActivityPayload:
     """
 
     action: str = ""
+
+
+@dataclass
+class SenderMixin:
+    """Mixin for payload types that record who triggered the webhook action."""
+
     # Login of the account that triggered the webhook action (the
     # sender field in the event payload, not necessarily the PR author).
     sender_login: str = ""
     sender_type: SenderType = ""
-    head_sha: str | None = None
-    base_sha: str | None = None
 
 
 @dataclass
-class OpenedPayload(BaseActivityPayload):
+class OpenedPayload(BaseActivityPayload, SenderMixin):
     action: str = "opened"
     additions: int = 0
     deletions: int = 0
     changed_files: int = 0
     commits: int = 0
+    head_sha: str | None = None
+    base_sha: str | None = None
+    # Visibility of the repo the webhook fired for, straight off the payload's
+    # top-level ``repository.private`` — the only point in the PR's lifecycle
+    # where Sentry observes this, since ``Repository`` never persists it.
+    is_private: bool | None = None
 
 
 @dataclass
-class ClosedPayload(BaseActivityPayload):
-    action: str = "closed"
-    merged: bool = False
-    additions: int = 0
-    deletions: int = 0
-    changed_files: int = 0
-    commits: int = 0
-    comments: int = 0
-    review_comments: int = 0
-    # Login of the account that merged the PR; None when not merged.
-    merged_by: str | None = None
-
-
-@dataclass
-class ReopenedPayload(BaseActivityPayload):
-    action: str = "reopened"
-    additions: int = 0
-    deletions: int = 0
-    changed_files: int = 0
-    commits: int = 0
-
-
-@dataclass
-class SynchronizePayload(BaseActivityPayload):
+class SynchronizePayload(BaseActivityPayload, SenderMixin):
     action: str = "synchronize"
     before_sha: str | None = None  # head SHA before the push
     after_sha: str | None = None  # head SHA after the push
 
 
 @dataclass
-class EditedPayload(BaseActivityPayload):
+class ReopenedPayload(BaseActivityPayload, SenderMixin):
+    action: str = "reopened"
+
+
+@dataclass
+class EditedPayload(BaseActivityPayload, SenderMixin):
     action: str = "edited"
-    # Names of changed properties (keys from the webhook changes dict),
-    # not their values — deliberately excludes the old title/body text.
+    # Names of the changed PR properties (the keys of the webhook ``changes``
+    # object — e.g. ``["base", "title"]``), never their values: ``changes`` carries
+    # the OLD title/body text, which the structural-only posture excludes.
     changed_fields: list[str] = field(default_factory=list)
 
 
 @dataclass
-class LabeledPayload(BaseActivityPayload):
+class LabeledPayload(BaseActivityPayload, SenderMixin):
     action: str = "labeled"
     label_name: str = ""
 
 
 @dataclass
-class UnlabeledPayload(BaseActivityPayload):
+class UnlabeledPayload(BaseActivityPayload, SenderMixin):
     action: str = "unlabeled"
     label_name: str = ""
 
 
 @dataclass
-class ReviewRequestedPayload(BaseActivityPayload):
+class ReviewRequestedPayload(BaseActivityPayload, SenderMixin):
     action: str = "review_requested"
     # True when a team was requested; False for an individual reviewer.
     is_team_review: bool = False
 
 
 @dataclass
-class ReviewRequestRemovedPayload(BaseActivityPayload):
+class ReviewRequestRemovedPayload(BaseActivityPayload, SenderMixin):
     action: str = "review_request_removed"
     is_team_review: bool = False
 
 
 @dataclass
-class CommentCreatedPayload(BaseActivityPayload):
+class CommentCreatedPayload(BaseActivityPayload, SenderMixin):
     action: str = "comment_created"
     author_association: AuthorAssociation = "NONE"
     is_review: bool = False
@@ -110,38 +103,45 @@ class CommentCreatedPayload(BaseActivityPayload):
 
 
 @dataclass
-class CommentEditedPayload(BaseActivityPayload):
-    action: str = "comment_edited"
-    author_association: AuthorAssociation = "NONE"
-    is_review: bool = False
-    review_id: int | None = None
-
-
-@dataclass
-class ConvertedToDraftPayload(BaseActivityPayload):
+class ConvertedToDraftPayload(BaseActivityPayload, SenderMixin):
     action: str = "converted_to_draft"
 
 
 @dataclass
-class ReadyForReviewPayload(BaseActivityPayload):
+class ReadyForReviewPayload(BaseActivityPayload, SenderMixin):
     action: str = "ready_for_review"
 
 
 @dataclass
-class AssignedPayload(BaseActivityPayload):
+class ClosedPayload(BaseActivityPayload, SenderMixin):
+    # GitHub fires one "closed" action for both outcomes; a set ``merged_at`` on the
+    # PR row disambiguates. This payload is the closed-without-merge case, so the
+    # sender is whoever closed the PR (Bot vs human is the human-involvement signal).
+    action: str = "closed"
+
+
+@dataclass
+class MergedPayload(BaseActivityPayload, SenderMixin):
+    # The merged case of GitHub's "closed" action: the sender is whoever merged the
+    # PR (or the app, for auto-merge).
+    action: str = "merged"
+
+
+@dataclass
+class AssignedPayload(BaseActivityPayload, SenderMixin):
     action: str = "assigned"
     # Login of the account that was added as an assignee.
     assignee_login: str = ""
 
 
 @dataclass
-class UnassignedPayload(BaseActivityPayload):
+class UnassignedPayload(BaseActivityPayload, SenderMixin):
     action: str = "unassigned"
     assignee_login: str = ""
 
 
 @dataclass
-class ReviewSubmittedPayload(BaseActivityPayload):
+class ReviewSubmittedPayload(BaseActivityPayload, SenderMixin):
     action: str = ""
     # "approved", "changes_requested", or "commented"
     review_state: str = ""
@@ -149,7 +149,7 @@ class ReviewSubmittedPayload(BaseActivityPayload):
 
 
 @dataclass
-class ReviewThreadPayload(BaseActivityPayload):
+class ReviewThreadPayload(BaseActivityPayload, SenderMixin):
     action: str = ""
     # GitHub node_id of the review thread (the thread object has no numeric id).
     thread_id: str = ""
@@ -181,7 +181,7 @@ class CheckRunCompletedPayload(BaseActivityPayload):
 
 
 @dataclass
-class ReviewDismissedPayload(BaseActivityPayload):
+class ReviewDismissedPayload(BaseActivityPayload, SenderMixin):
     action: str = "dismissed"
     # Numeric id of the dismissed review. The dismissed payload reports the review
     # state only as "dismissed", so the id is what lets the judge correlate this
@@ -191,7 +191,7 @@ class ReviewDismissedPayload(BaseActivityPayload):
 
 
 @dataclass
-class AutoMergeEnabledPayload(BaseActivityPayload):
+class AutoMergeEnabledPayload(BaseActivityPayload, SenderMixin):
     action: str = "auto_merge_enabled"
     # "merge", "squash", or "rebase" — a bounded enum; the auto-merge commit
     # title/message are deliberately excluded.
@@ -199,17 +199,17 @@ class AutoMergeEnabledPayload(BaseActivityPayload):
 
 
 @dataclass
-class AutoMergeDisabledPayload(BaseActivityPayload):
+class AutoMergeDisabledPayload(BaseActivityPayload, SenderMixin):
     action: str = "auto_merge_disabled"
 
 
 @dataclass
-class EnqueuedPayload(BaseActivityPayload):
+class EnqueuedPayload(BaseActivityPayload, SenderMixin):
     action: str = "enqueued"
 
 
 @dataclass
-class DequeuedPayload(BaseActivityPayload):
+class DequeuedPayload(BaseActivityPayload, SenderMixin):
     action: str = "dequeued"
     # Why GitHub removed the PR from the merge queue (e.g. "MERGE", "CI_FAILURE",
     # "MERGE_CONFLICT", "MANUAL"). A bounded enum carrying the merge-intent signal.

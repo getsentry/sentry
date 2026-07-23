@@ -77,15 +77,15 @@ function PageContent({
                 flexGrow={1}
                 gap="md"
                 area="top"
-                direction={{xs: 'column', sm: 'row'}}
-                align={{xs: 'stretch', sm: 'start'}}
+                direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+                align={{'screen:xs': 'stretch', 'screen:sm': 'start'}}
               >
                 <FeedbackFilters />
                 <Flex
                   flexGrow={1}
                   gap="md"
-                  direction={{xs: 'column', md: 'row'}}
-                  align={{xs: 'stretch', md: 'center'}}
+                  direction={{'screen:xs': 'column', 'screen:md': 'row'}}
+                  align={{'screen:xs': 'stretch', 'screen:md': 'center'}}
                 >
                   <SearchContainer>
                     <FeedbackSearch />

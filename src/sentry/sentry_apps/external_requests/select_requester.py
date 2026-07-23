@@ -8,13 +8,14 @@ from django.utils.functional import cached_property
 from requests import RequestException
 
 from sentry.http import safe_urlread
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.external_requests.utils import (
     integrator_error_message,
     send_and_save_sentry_app_request,
     validate,
+    validate_outbound_url,
 )
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppExternalRequestFailureReason,
     SentryAppExternalRequestHaltReason,
     SentryAppInteractionEvent,
@@ -158,6 +159,7 @@ class SelectRequester:
             )
 
         urlparts: list[str] = [url_part for url_part in urlparse(self.sentry_app.webhook_url)]
+        expected_netloc = urlparts[1]
         urlparts[2] = self.uri
 
         query = {"installationId": self.install.uuid}
@@ -172,7 +174,9 @@ class SelectRequester:
             query["dependentData"] = self.dependent_data
 
         urlparts[4] = urlencode(query)
-        return str(urlunparse(urlparts))
+        url = str(urlunparse(urlparts))
+        validate_outbound_url(url, expected_netloc, self.uri)
+        return url
 
     # response format must be:
     # https://docs.sentry.io/organization/integrations/integration-platform/ui-components/formfield/#uri-response-format

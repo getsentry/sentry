@@ -108,6 +108,13 @@ class ProxyTimeoutPipe(Pipe):
         return next_pipe(timeout=self.timeout, **kwargs)
 
 
+def build_proxied_url(target: str, path: str) -> str:
+    url = urljoin(target, path)
+    if httpx.URL(target)._uri_reference.netloc != httpx.URL(url)._uri_reference.netloc:
+        abort_with_json(400, {"error": "apigateway", "detail": "Bad request"})
+    return url
+
+
 def build_proxied_headers(
     request: Any, target: str, pass_host: bool = False
 ) -> list[tuple[str, str]]:
@@ -186,7 +193,7 @@ def adapt_response(presp: httpx.Response) -> Any:
 
 
 async def proxy_cell_request(cell: Cell, request: Any, timeout: float | None = None) -> Any:
-    target_url = urljoin(get_cell_address(cell), request.path)
+    target_url = build_proxied_url(get_cell_address(cell), request.path)
     headers = build_proxied_cell_headers(request, cell.address)
     timeout = timeout or app.config.proxy.timeout
 
@@ -210,7 +217,7 @@ async def proxy_cell_request(cell: Cell, request: Any, timeout: float | None = N
             except asyncio.CancelledError:
                 metric_abort.labels(route=request.name, target=cell.name).inc()
                 raise
-            except httpx.ConnectError:
+            except httpx.NetworkError:
                 metric_failed.labels(route=request.name, target=cell.name).inc()
                 circuitbreaker.incr_failures()
                 abort_with_json(
@@ -234,7 +241,7 @@ async def proxy_cell_request(cell: Cell, request: Any, timeout: float | None = N
 
 
 async def proxy_control_request(request: Any) -> Any:
-    target_url = urljoin(app.config.endpoints.control, request.path)
+    target_url = build_proxied_url(app.config.endpoints.control, request.path)
     headers = build_proxied_headers(request, app.config.endpoints.control, pass_host=True)
 
     try:
@@ -253,7 +260,7 @@ async def proxy_control_request(request: Any) -> Any:
     except asyncio.CancelledError:
         metric_abort.labels(route=request.name, target="control").inc()
         raise
-    except httpx.ConnectError:
+    except httpx.NetworkError:
         metric_failed.labels(route=request.name, target="control").inc()
         abort_with_json(503, {"error": "apigateway", "detail": "Downstream service unavailable"})
     except httpx.TimeoutException:

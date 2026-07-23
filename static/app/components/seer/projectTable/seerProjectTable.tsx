@@ -21,6 +21,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
@@ -40,8 +41,13 @@ import {
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
+  NON_GITHUB_HANDOFF_WARNING,
   seerAgentProviderNameSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
+import {
+  fetchProjectHasNonGithubRepo,
+  prefetchAllSeerProjectRepos,
+} from 'sentry/utils/seer/seerProjectRepos';
 import {
   getMutateSeerProjectSettingsOptions,
   getInfiniteSeerProjectsSettingsQueryOptions,
@@ -51,6 +57,7 @@ import {
   coaleseStoppingPoint,
   useStoppingPointSelectOptions,
 } from 'sentry/utils/seer/stoppingPoint';
+import type {AgentIntegration, AutofixAgentSelectOption} from 'sentry/utils/seer/types';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -256,33 +263,16 @@ export function SeerProjectTable() {
                         <Text tabular>{item.reposCount}</Text>
                       </InfiniteTable.RowCell>
                       <InfiniteTable.RowCell overflow="visible">
-                        <AutoSaveForm
-                          name="agentOption"
-                          schema={seerProjectSettingsSchema}
+                        <AgentSelectCell
+                          projectSlug={item.projectSlug}
                           initialValue={coalesePreferredAgent(
                             item.agent,
                             item.integrationId
                           )}
-                          mutationOptions={getMutateSeerProjectSettingsOptions({
-                            organization,
-                            project: {slug: item.projectSlug},
-                            queryClient,
-                            knownAgents,
-                          })}
-                        >
-                          {field => (
-                            <field.Select
-                              disabled={!canWrite}
-                              menuPortalTarget={document.body}
-                              multiple={false}
-                              onChange={field.handleChange}
-                              options={agentSelectOptions}
-                              // @ts-expect-error: Select component does not have a size prop defined
-                              size="xs"
-                              value={field.state.value}
-                            />
-                          )}
-                        </AutoSaveForm>
+                          agentSelectOptions={agentSelectOptions}
+                          knownAgents={knownAgents}
+                          disabled={!canWrite}
+                        />
                       </InfiniteTable.RowCell>
                       <InfiniteTable.RowCell>
                         <Stack align="stretch" flex="1">
@@ -323,6 +313,83 @@ export function SeerProjectTable() {
         </InfiniteTable.Table>
       </ListItemCheckboxProvider>
     </Fragment>
+  );
+}
+
+interface AgentSelectCellProps {
+  agentSelectOptions: Array<{label: string; value: AutofixAgentSelectOption}>;
+  disabled: boolean;
+  initialValue: AutofixAgentSelectOption;
+  knownAgents: AgentIntegration[] | undefined;
+  projectSlug: string;
+}
+
+function AgentSelectCell({
+  agentSelectOptions,
+  disabled,
+  initialValue,
+  knownAgents,
+  projectSlug,
+}: AgentSelectCellProps) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  return (
+    <AutoSaveForm
+      name="agentOption"
+      schema={seerProjectSettingsSchema}
+      initialValue={initialValue}
+      mutationOptions={getMutateSeerProjectSettingsOptions({
+        organization,
+        project: {slug: projectSlug},
+        queryClient,
+        knownAgents,
+      })}
+    >
+      {field => (
+        <field.Select
+          disabled={disabled}
+          menuPortalTarget={document.body}
+          multiple={false}
+          onMenuOpen={() => {
+            // Warm the cache so the on-change check below usually resolves from
+            // cache instead of blocking on a fetch.
+            void prefetchAllSeerProjectRepos({
+              organization,
+              project: {slug: projectSlug},
+              queryClient,
+            });
+          }}
+          onChange={async newValue => {
+            // Coding-agent handoff only works for GitHub repos. Verify before
+            // committing so a project with any non-GitHub repo stays on Seer
+            // (and nothing is persisted).
+            if (newValue !== 'seer') {
+              let hasNonGithubRepo: boolean;
+              try {
+                hasNonGithubRepo = await fetchProjectHasNonGithubRepo({
+                  organization,
+                  project: {slug: projectSlug},
+                  queryClient,
+                });
+              } catch {
+                addErrorMessage(t('Could not verify repositories. Please try again.'));
+                return;
+              }
+              if (hasNonGithubRepo) {
+                addErrorMessage(NON_GITHUB_HANDOFF_WARNING);
+                return;
+              }
+            }
+            field.handleChange(newValue);
+          }}
+          options={agentSelectOptions}
+          // @ts-expect-error: Select component does not have a size prop defined
+          size="xs"
+          value={field.state.value}
+        />
+      )}
+    </AutoSaveForm>
   );
 }
 

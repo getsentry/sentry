@@ -20,6 +20,7 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
+  LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {type TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -34,6 +35,20 @@ function ProviderWrapper({children}: {children?: React.ReactNode}) {
     <LogsQueryParamsProvider
       analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
       source="location"
+    >
+      <table>
+        <tbody>{children}</tbody>
+      </table>
+    </LogsQueryParamsProvider>
+  );
+}
+
+function FrozenProviderWrapper({children}: {children?: React.ReactNode}) {
+  return (
+    <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+      source="state"
+      freeze={{traceId: '7b91699f'}}
     >
       <table>
         <tbody>{children}</tbody>
@@ -262,7 +277,36 @@ describe('logsTableRow', () => {
       timestamp: Math.trunc(rowDataTimestamp),
     });
     expect(rowDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
-    jest.useRealTimers();
+  });
+
+  it('hovering an embedded row causes prefetching of the row details', async () => {
+    jest.useFakeTimers();
+    expect(rowDetailsMock).toHaveBeenCalledTimes(0);
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{current: null}}
+        embedded
+        blockRowExpanding
+        onEmbeddedRowClick={jest.fn()}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    const row = screen.getByTestId('log-table-row');
+    await userEvent.hover(row, {delay: null});
+
+    act(() => {
+      jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+    });
+
+    await waitFor(() => {
+      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+    });
+    // Flush the .then() callback that reads cached data after prefetch
+    await act(async () => {});
   });
 
   it.isKnownFlake('renders row details', async () => {
@@ -419,6 +463,102 @@ describe('logsTableRow', () => {
         query: 'message:"test \\"quoted\\" log body"',
       },
     ]);
+  });
+
+  it('does not show string filter actions for numeric fields', async () => {
+    const numericField = 'custom.duration';
+    const numericRowData = LogFixture({
+      ...rowData,
+      [numericField]: 123,
+    });
+    const numericFieldRouterConfig = structuredClone(initialRouterConfig);
+    numericFieldRouterConfig.location.query[LOGS_FIELDS_KEY] = [numericField];
+
+    render(
+      <LogRowContent
+        dataRow={numericRowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(numericRowData)}
+        sharedHoverTimeoutRef={{current: null}}
+      />,
+      {
+        organization,
+        initialRouterConfig: numericFieldRouterConfig,
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await userEvent.hover(await screen.findByTestId('log-table-row'));
+    const numericCell = await screen.findByTestId(`log-table-cell-${numericField}`);
+    await userEvent.click(within(numericCell).getByRole('button', {name: 'Actions'}));
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Copy to clipboard'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Add to filter'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Exclude from filter'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('uses the message template for the message cell action filter when available', async () => {
+    const rowDataWithTemplate = LogFixture({
+      [OurLogKnownFieldKey.ID]: '1',
+      [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+      [OurLogKnownFieldKey.MESSAGE]: 'User 123 logged in',
+      [OurLogKnownFieldKey.TEMPLATE]: 'User {id} logged in',
+    });
+
+    const {router} = render(
+      <LogRowContent
+        dataRow={rowDataWithTemplate}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowDataWithTemplate)}
+        sharedHoverTimeoutRef={{current: null}}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.hover(logTableRow);
+    const messageCell = await screen.findByTestId('log-table-cell-message');
+    await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Add to filter'})
+    );
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_QUERY_KEY]).toBe(
+        'message.template:"User {id} logged in"'
+      );
+    });
+  });
+
+  it('uses the message value for the message cell action filter when no template is available', async () => {
+    const {router} = render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{current: null}}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.hover(logTableRow);
+    const messageCell = await screen.findByTestId('log-table-cell-message');
+    await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Add to filter'})
+    );
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_QUERY_KEY]).toBe('message:"test log body"');
+    });
   });
 
   it.isKnownFlake(
@@ -594,6 +734,97 @@ describe('logsTableRow', () => {
 
     const copiedUrl = mockWriteText.mock.calls[0]![0];
     expect(copiedUrl).toContain('logsQuery=id%3A1');
+  });
+
+  it('clears a stale logsRowId when copying a non-frozen link', async () => {
+    const mockWriteText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: {
+        writeText: mockWriteText,
+      },
+      writable: true,
+    });
+
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              logsRowId: '999',
+            },
+          },
+        },
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.hover(logTableRow);
+
+    const actionsButton = screen.getAllByRole('button', {name: 'Actions'})[0]!;
+    await userEvent.click(actionsButton);
+
+    const copyLinkItem = await screen.findByRole('menuitemradio', {name: 'Copy link'});
+    await userEvent.click(copyLinkItem);
+
+    await waitFor(() => {
+      expect(mockWriteText).toHaveBeenCalledTimes(1);
+    });
+
+    const copiedUrl = mockWriteText.mock.calls[0]![0];
+    expect(copiedUrl).toContain('logsQuery=id%3A1');
+    expect(copiedUrl).not.toContain('logsRowId');
+  });
+
+  it('copies a row link with logsRowId in a frozen view', async () => {
+    const mockWriteText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: {
+        writeText: mockWriteText,
+      },
+      writable: true,
+    });
+
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: FrozenProviderWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.hover(logTableRow);
+
+    const actionsButton = screen.getAllByRole('button', {name: 'Actions'})[0]!;
+    await userEvent.click(actionsButton);
+
+    const copyLinkItem = await screen.findByRole('menuitemradio', {name: 'Copy link'});
+    await userEvent.click(copyLinkItem);
+
+    await waitFor(() => {
+      expect(mockWriteText).toHaveBeenCalledTimes(1);
+    });
+
+    const copiedUrl = mockWriteText.mock.calls[0]![0];
+    expect(copiedUrl).toContain('logsRowId=1');
+    expect(copiedUrl).not.toContain('logsQuery=id');
   });
 
   it('adds a grouping and opens the sidebar when the attributes menu group by is clicked', async () => {

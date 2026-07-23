@@ -3,8 +3,10 @@ from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.objectstore import debug_files_test_both_backends
 
 
+@debug_files_test_both_backends
 class DeleteDebugFilesTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self) -> None:
         dif = self.create_dif_file()

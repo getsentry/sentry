@@ -228,6 +228,7 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
                 method_info["servers"] = servers
 
     _fix_issue_paths(result)
+    _fix_nullable_enums(result)
 
     # Fetch schema component references
     schema_components = result["components"]["schemas"]
@@ -300,6 +301,23 @@ def _check_tag(method_info: Mapping[str, Any], endpoint_name: str) -> None:
 def _check_description(json_body: Mapping[str, Any], err_str: str) -> None:
     if json_body.get("description") is None:
         raise SentryApiBuildError(err_str)
+
+
+def _fix_nullable_enums(node: Any) -> None:
+    """Add null to the values of any nullable enum schema.
+
+    A nullable enum must list null among its enum values; otherwise strict validators
+    reject a null value even when "nullable: true" is set, because in OpenAPI 3.0 the
+    enum membership constraint is evaluated independently of nullability.
+    """
+    if isinstance(node, dict):
+        if node.get("nullable") and isinstance(node.get("enum"), list) and None not in node["enum"]:
+            node["enum"].append(None)
+        for value in node.values():
+            _fix_nullable_enums(value)
+    elif isinstance(node, list):
+        for item in node:
+            _fix_nullable_enums(item)
 
 
 def _fix_issue_paths(result: Any) -> Any:

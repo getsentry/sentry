@@ -13,6 +13,9 @@ from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_co
 from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare_download import (
     ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint,
 )
+from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_comparisons import (
+    ProjectPreprodArtifactSizeAnalysisComparisonsEndpoint,
+)
 from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_download import (
     ProjectPreprodArtifactSizeAnalysisDownloadEndpoint,
 )
@@ -54,6 +57,10 @@ from .public.project_preprod_build_distribution_latest import (
 )
 from .public.project_preprod_size_analysis_status_check_rules import (
     ProjectPreprodSizeAnalysisStatusCheckRulesEndpoint,
+)
+from .public.project_preprod_skip_status_check import (
+    ProjectPreprodSizeAnalysisSkipStatusCheckEndpoint,
+    ProjectPreprodSnapshotSkipStatusCheckEndpoint,
 )
 from .public.project_preprod_snapshot_status_check_rules import (
     ProjectPreprodSnapshotStatusCheckRulesEndpoint,
@@ -131,6 +138,16 @@ preprod_project_urlpatterns = [
         ProjectPreprodSnapshotStatusCheckRulesEndpoint.as_view(),
         name="sentry-api-0-project-preprod-snapshot-status-check-rules",
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprod/size-analysis/status-checks/skip/$",
+        ProjectPreprodSizeAnalysisSkipStatusCheckEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-size-analysis-skip-status-check",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprod/snapshots/status-checks/skip/$",
+        ProjectPreprodSnapshotSkipStatusCheckEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-snapshot-skip-status-check",
+    ),
 ]
 
 preprod_organization_urlpatterns = [
@@ -148,6 +165,11 @@ preprod_organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/build-details/$",
         ProjectPreprodBuildDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-preprod-artifact-build-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/size-analysis/comparisons/$",
+        ProjectPreprodArtifactSizeAnalysisComparisonsEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-size-analysis-comparisons",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/private-install-details/$",

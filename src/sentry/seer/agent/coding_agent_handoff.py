@@ -26,8 +26,9 @@ from sentry.seer.autofix.coding_agent import (
     store_coding_agent_states_to_seer,
     validate_and_get_integration,
 )
+from sentry.seer.autofix.coding_agent_handoffs import create_seer_run_coding_agent_handoff
 from sentry.seer.autofix.utils import CodingAgentState, extract_api_error_message
-from sentry.seer.models import SeerApiError, SeerRepoDefinition
+from sentry.seer.models import SeerRepoDefinition
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
@@ -192,6 +193,8 @@ def launch_coding_agents(
             }
         )
 
+        create_seer_run_coding_agent_handoff(organization, run_id, coding_agent_state)
+
     # Store the coding agent states to Seer
     try:
         store_coding_agent_states_to_seer(
@@ -199,7 +202,7 @@ def launch_coding_agents(
             coding_agent_states=states_to_store,
             organization_id=organization.id,
         )
-    except SeerApiError:
+    except Exception:
         logger.exception(
             "explorer.coding_agent.seer_storage_error",
             extra={
@@ -218,6 +221,11 @@ def launch_coding_agents(
             "run_id": run_id,
             "repos_succeeded": len(successes),
             "repos_failed": len(failures),
+            # The launched agent ids are the only join key between this run and the
+            # provider webhooks that later report completion (keyed on agent_id). Seer's
+            # handoff record carries run_id but no agent_id, so without this a webhook's
+            # attribution outcome cannot be traced back to the run that launched it.
+            "agent_ids": [state.id for state in states_to_store],
         },
     )
 

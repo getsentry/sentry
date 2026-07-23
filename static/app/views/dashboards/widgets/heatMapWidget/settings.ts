@@ -32,9 +32,10 @@ export const HEATMAP_COLORS = [
 /**
  * Target size, in pixels, of a single heat map bucket along each axis. Both the
  * X-axis (time) interval and the Y-axis bucket count are chosen so that cells
- * are roughly this size, keeping them approximately square.
+ * are roughly this size, keeping them approximately square. A smaller value
+ * yields denser buckets, which makes modality in the data easier to resolve.
  */
-export const PIXELS_PER_BUCKET = 15;
+export const PIXELS_PER_BUCKET = 5;
 
 /**
  * How long, in milliseconds, to debounce the measured chart dimensions before

@@ -23,11 +23,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = True
 
-    replaces = [
-        ("social_auth", "0001_initial"),
-        ("social_auth", "0002_default_auto_field"),
-    ]
-
     initial = True
 
     checked = False  # This is an initial migration and can take locks

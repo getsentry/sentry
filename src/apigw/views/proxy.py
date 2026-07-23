@@ -56,6 +56,10 @@ proxy.route(
 #       cells through below route `proxy_cell_from_org`
 @proxy.route(
     [
+        "/api/0/customers/<str:org>/integrations",
+        "/api/0/customers/<str:org>/migrate-google-domain",
+        "/api/0/customers/<str:org>/policies",
+        "/api/0/customers/<str:org>/subscription/usage-logs",
         "/api/0/organizations/<str:org>/api-keys(/<any:subp>)?",
         "/api/0/organizations/<str:org>/audit-logs",
         "/api/0/organizations/<str:org>/broadcasts",
@@ -69,10 +73,12 @@ proxy.route(
         "/api/0/organizations/<str:org>/intercom-jwt",
         "/api/0/organizations/<str:org>/monitoring-providers(/<any:subp>)?",
         "/api/0/organizations/<str:org>/org-auth-tokens(/<any:subp>)?",
+        "/api/0/organizations/<str:org>/partnership-agreements",
         "/api/0/organizations/<str:org>/pipeline/<str:subp>",
         "/api/0/organizations/<str:org>/sentry-app-components",
         "/api/0/organizations/<str:org>/sentry-app-installations(/<any:subp>)?",
         "/api/0/organizations/<str:org>/sentry-apps(/<any:subp>)?",
+        "/organizations/<str:org>/payments/<str:subp>",
     ],
     methods=["get", "post", "put", "patch", "delete", "head", "options"],
 )
@@ -207,6 +213,7 @@ async def proxy_cell_from_dsn_qp() -> Any:
         "/api/0/seer/models",
         "/api/0/users/<str:p1>/organizations",
         "/api/hooks/release(/<any:p1>)?",
+        "/docs/api/user",
         "/issues/<str:p1>/<str:p2>/tags/<str:p3>/export",
         "/organization-avatar(/<any:p1>)?",
     ],
@@ -218,6 +225,18 @@ async def proxy_cell_legacy(**kwargs: Any) -> Any:
     except CellResolutionError:
         abort_with_json(404, {"error": "apigateway", "detail": "Not found"})
     return await proxy_cell_request(cell, request)
+
+
+# NOTE: this is to catch control routes that would otherwise match with shortlinks
+@proxy.route(
+    [
+        "/groups/<str:p1>(/<any:subp>)?",
+        "/issues/<str:p1>(/<any:subp>)?",
+    ],
+    methods=["get", "post", "put", "patch", "delete", "head", "options"],
+)
+async def proxy_control_from_misleading(**kwargs: Any) -> Any:
+    return await proxy_control_request(request)
 
 
 # NOTE: legacy org/project shortlinks start with a bare org slug, so they are

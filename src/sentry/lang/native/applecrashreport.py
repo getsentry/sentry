@@ -1,7 +1,6 @@
 import posixpath
 from collections.abc import Mapping
 
-import sentry_sdk
 from symbolic.common import parse_addr
 
 from sentry.constants import NATIVE_UNKNOWN_STRING
@@ -14,6 +13,7 @@ from sentry.lang.native.registers import (
 )
 from sentry.lang.native.utils import image_name
 from sentry.utils.safe import get_path
+from sentry.utils.tracing import trace
 
 REPORT_VERSION = "104"
 
@@ -79,7 +79,7 @@ class AppleCrashReport:
             if new_image.get("image_vmaddr") is not None:
                 self.image_addrs_to_vmaddrs[new_image["image_addr"]] = new_image["image_vmaddr"]
 
-    @sentry_sdk.trace
+    @trace
     def __str__(self) -> str:
         rv = []
         rv.append(self._get_meta_header())
@@ -90,7 +90,7 @@ class AppleCrashReport:
 
         return "\n\n".join(rv) + "\n\nEOF"
 
-    @sentry_sdk.trace
+    @trace
     def _get_meta_header(self):
         return "OS Version: {} {} ({})\nReport Version: {}".format(
             get_path(self.context, "os", "name"),
@@ -136,7 +136,7 @@ class AppleCrashReport:
         except Exception:
             return value
 
-    @sentry_sdk.trace
+    @trace
     def _get_crashed_thread_registers(self):
         rv = []
         exception = get_path(self.exceptions, 0)
@@ -178,7 +178,7 @@ class AppleCrashReport:
 
         return "\n".join(rv)
 
-    @sentry_sdk.trace
+    @trace
     def _get_exception_info(self):
         rv = []
 
@@ -216,7 +216,7 @@ class AppleCrashReport:
 
         return "\n".join(rv)
 
-    @sentry_sdk.trace
+    @trace
     def get_threads_apple_string(self):
         rv = []
         exceptions = self.exceptions or []
@@ -313,7 +313,7 @@ class AppleCrashReport:
     def _get_slide_value(self, image_addr):
         return self.image_addrs_to_vmaddrs.get(image_addr, 0)
 
-    @sentry_sdk.trace
+    @trace
     def get_binary_images_apple_string(self):
         # We don't need binary images on symbolicated crashreport
         if self.symbolicated or not self.debug_images:

@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest import mock
 
+import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
 from django.http import HttpRequest
@@ -15,6 +16,7 @@ from sentry.utils.auth import (
     SsoSession,
     construct_link_with_query,
     get_login_redirect,
+    is_valid_relative_redirect,
     login,
 )
 
@@ -219,3 +221,28 @@ def test_construct_link_with_query() -> None:
     expected_path = "foobar"
 
     assert construct_link_with_query(path=path, query_params=query_params) == expected_path
+
+
+@pytest.mark.parametrize(
+    "url,expected",
+    [
+        ("/organizations/foo/explorer/?explorerRunId=5", True),
+        ("/", True),
+        ("", False),
+        ("foo/bar", False),  # not rooted
+        ("http://testserver/foo", False),  # same-host absolute
+        ("https://myorg.sentry.io/foo", False),  # sentry subdomain absolute
+        ("https://evil.example.com/phish", False),  # external
+        ("//evil.com", False),  # protocol-relative
+        ("//myorg.sentry.io/foo", False),  # protocol-relative sentry subdomain
+        ("/\\evil.com", False),  # backslash trick
+        ("javascript:alert(1)", False),  # scheme
+        # non-string JSON values
+        (None, False),
+        (123, False),
+        (["/x"], False),
+        ({"/x": 1}, False),
+    ],
+)
+def test_is_valid_relative_redirect(url: object, expected: bool) -> None:
+    assert is_valid_relative_redirect(url) is expected

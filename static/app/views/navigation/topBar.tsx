@@ -1,5 +1,6 @@
 import {useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {mergeProps} from '@react-aria/utils';
 
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
@@ -25,7 +26,7 @@ import {
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
 
-const Slot = slot(['title', 'search', 'actions', 'feedback'] as const);
+const Slot = slot(['breadcrumbs', 'title', 'search', 'actions', 'feedback'] as const);
 
 function TopBarContent() {
   const theme = useTheme();
@@ -54,13 +55,13 @@ function TopBarContent() {
     <Flex
       as="header"
       height={{
-        sm: `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
-        md: `${PRIMARY_HEADER_HEIGHT}px`,
+        'screen:sm': `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
+        'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
       }}
       justify="between"
       background="secondary"
       align="center"
-      padding={{sm: 'sm lg', md: 'md xl'}}
+      padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
       position="sticky"
       borderBottom="primary"
       top={barTop}
@@ -70,21 +71,45 @@ function TopBarContent() {
     >
       <SizeProvider size="sm">
         {/*
-         * The title slot is rendered as a semantic <h1> so the page title
-         * (whatever a view routes into it — breadcrumbs, text, etc.) is exposed
-         * as the page heading. The Heading uses variant="inherit" so it carries
-         * the TopBar typography (no visual weight of its own), and Flex's render
-         * function applies the layout className to that same <h1> element.
+         * Breadcrumbs and the title are separate slots so the title slot always
+         * owns the page heading. BreadcrumbList.Title renders title content
+         * without a heading, while this outlet supplies the single <h1>.
+         *
+         * The title occupies the remaining inline space (the header is
+         * justify="between", so this absorbs the empty middle; content stays
+         * left-aligned and actions stay pinned right). This is required by any
+         * title-slot child that establishes a container query.
          */}
-        <Slot.Outlet name="title">
-          {props => (
-            <Flex align="center" gap="sm" minWidth="0">
-              {({className}) => (
-                <Heading as="h1" variant="inherit" className={className} {...props} />
-              )}
-            </Flex>
-          )}
-        </Slot.Outlet>
+        <Flex
+          align="center"
+          gap="sm"
+          minWidth="0"
+          flexGrow={1}
+          containerType="inline-size"
+        >
+          <Slot.Outlet name="breadcrumbs">
+            {(props, hasConsumers) => (
+              <Flex
+                {...props}
+                align="center"
+                gap="sm"
+                minWidth="0"
+                flex="0 1 auto"
+                display={hasConsumers ? 'flex' : 'none'}
+              />
+            )}
+          </Slot.Outlet>
+
+          <Slot.Outlet name="title">
+            {props => (
+              <Flex align="center" gap="sm" minWidth="0" flexGrow={1}>
+                {flexProps => (
+                  <Heading as="h1" variant="inherit" {...mergeProps(flexProps, props)} />
+                )}
+              </Flex>
+            )}
+          </Slot.Outlet>
+        </Flex>
 
         <Flex align="center" gap="sm">
           <Slot.Outlet name="search">

@@ -38,6 +38,7 @@ from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
+from sentry.utils.tracing import start_span, trace
 
 if TYPE_CHECKING:
     from sentry.eventstream.base import GroupState
@@ -152,7 +153,7 @@ def _capture_group_stats(job: PostProcessJob) -> None:
     metrics.incr("events.unique", tags={"platform": platform}, skip_internal=False)
 
 
-@sentry_sdk.trace
+@trace
 def should_issue_owners_ratelimit(
     project_id: int, group_id: int, organization_id: int | None
 ) -> bool:
@@ -184,7 +185,7 @@ def should_issue_owners_ratelimit(
 
 
 @metrics.wraps("post_process.handle_owner_assignment")
-@sentry_sdk.trace
+@trace
 def handle_owner_assignment(job: PostProcessJob) -> None:
     """
     The handle_owner_assignment task attempts to find issue owners for a group.
@@ -297,7 +298,7 @@ def handle_owner_assignment(job: PostProcessJob) -> None:
         handle_invalid_group_owners(group)
 
 
-@sentry_sdk.trace
+@trace
 def handle_invalid_group_owners(group: Group) -> None:
     from sentry.models.groupowner import GroupOwner, GroupOwnerType
 
@@ -313,7 +314,7 @@ def handle_invalid_group_owners(group: Group) -> None:
         )
 
 
-@sentry_sdk.trace
+@trace
 def handle_group_owners(
     project: Project,
     group: Group,
@@ -339,7 +340,9 @@ def handle_group_owners(
     try:
         logger.info("handle_group_owners.start", extra=logging_params)
         with (
-            sentry_sdk.start_span(op="post_process.handle_group_owners"),
+            start_span(
+                op="post_process.handle_group_owners", name="post_process.handle_group_owners"
+            ),
             lock.acquire(),
         ):
             current_group_owners = GroupOwner.objects.filter(
@@ -588,7 +591,10 @@ def post_process_group(
 
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
-        with sentry_sdk.start_span(op="tasks.post_process_group.project_get_from_cache"):
+        with start_span(
+            op="tasks.post_process_group.project_get_from_cache",
+            name="tasks.post_process_group.project_get_from_cache",
+        ):
             try:
                 event.project = Project.objects.get_from_cache(id=event.project_id)
             except Project.DoesNotExist:
@@ -637,6 +643,9 @@ def post_process_group(
 
 
 def run_post_process_job(job: PostProcessJob) -> None:
+    from sentry.issues.action_log.publish import action_context_scope
+    from sentry.issues.action_log.types import ActionSource
+
     group_event = job["event"]
     issue_category = group_event.group.issue_category if group_event.group else None
     issue_category_metric = issue_category.name.lower() if issue_category else None
@@ -666,7 +675,11 @@ def run_post_process_job(job: PostProcessJob) -> None:
                         "is_reprocessed": job["is_reprocessed"],
                     },
                 ),
-                sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"),
+                start_span(
+                    op=f"tasks.post_process_group.{pipeline_step.__name__}",
+                    name=f"tasks.post_process_group.{pipeline_step.__name__}",
+                ),
+                action_context_scope(ActionSource.SYSTEM),
             ):
                 pipeline_step(job)
         except Exception:
@@ -730,7 +743,10 @@ def update_event_group(event: Event, group_state: GroupState) -> GroupEvent:
     # We fetch buffered updates to group aggregates here and populate them on the Group. This
     # helps us avoid problems with processing group ignores and alert rules that rely on these
     # stats.
-    with sentry_sdk.start_span(op="tasks.post_process_group.fetch_buffered_group_stats"):
+    with start_span(
+        op="tasks.post_process_group.fetch_buffered_group_stats",
+        name="tasks.post_process_group.fetch_buffered_group_stats",
+    ):
         fetch_buffered_group_stats(rebound_group)
 
     rebound_group.project = event.project
@@ -748,7 +764,10 @@ def process_inbox_adds(job: PostProcessJob) -> None:
     from sentry.models.group import GroupStatus
     from sentry.types.group import GroupSubStatus
 
-    with sentry_sdk.start_span(op="tasks.post_process_group.add_group_to_inbox"):
+    with start_span(
+        op="tasks.post_process_group.add_group_to_inbox",
+        name="tasks.post_process_group.add_group_to_inbox",
+    ):
         event = job["event"]
         is_reprocessed = job["is_reprocessed"]
         is_new = job["group_state"]["is_new"]
@@ -1230,7 +1249,9 @@ def process_similarity(job: PostProcessJob) -> None:
 
     event = job["event"]
 
-    with sentry_sdk.start_span(op="tasks.post_process_group.similarity"):
+    with start_span(
+        op="tasks.post_process_group.similarity", name="tasks.post_process_group.similarity"
+    ):
         safe_execute(similarity.record, event.project, [event])
 
 
@@ -1280,12 +1301,14 @@ def sdk_crash_monitoring(job: PostProcessJob) -> None:
     if not features.has("organizations:sdk-crash-detection", event.project.organization):
         return
 
-    with sentry_sdk.start_span(op="post_process.build_sdk_crash_config"):
+    with start_span(
+        op="post_process.build_sdk_crash_config", name="post_process.build_sdk_crash_config"
+    ):
         configs = build_sdk_crash_detection_configs()
         if not configs or len(configs) == 0:
             return None
 
-    with sentry_sdk.start_span(op="post_process.detect_sdk_crash"):
+    with start_span(op="post_process.detect_sdk_crash", name="post_process.detect_sdk_crash"):
         sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
 
 
@@ -1486,63 +1509,46 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
-    from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
-    from sentry.seer.autofix.trigger import (
-        get_default_seer_automation_skip_reason,
-        get_seat_based_seer_automation_skip_reason,
+    from sentry.seer.autofix.issue_summary import (
+        get_issue_summary_cache_key,
+        get_issue_summary_lock_key,
     )
-    from sentry.seer.autofix.utils import (
-        is_seer_scanner_rate_limited,
-        is_seer_seat_based_tier_enabled,
-    )
+    from sentry.seer.autofix.trigger import get_default_seer_automation_skip_reason
+    from sentry.seer.autofix.utils import is_seer_seat_based_tier_enabled
     from sentry.tasks.seer.autofix import (
         generate_issue_summary_only,
         generate_summary_and_run_automation,
-        run_automation_only_task,
     )
 
     event = job["event"]
     group = event.group
 
-    # Default behaviour
-    if not is_seer_seat_based_tier_enabled(group.organization):
-        skip_reason = get_default_seer_automation_skip_reason(group, locks)
-        if skip_reason is not None:
-            metrics.incr(
-                "seer.automation.filtered", tags={"reason": skip_reason, "tier": "default"}
-            )
+    if is_seer_seat_based_tier_enabled(group.organization):
+        # Guards to prevent thundering herd on issue summary generation.
+        if options.get("seer.post-process-issue-summary-killswitch.enabled"):
             return
-
-        generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
-    else:
-        # Seat-based tier behaviour
-        skip_reason = get_seat_based_seer_automation_skip_reason(group)
-        if skip_reason is not None:
-            metrics.incr(
-                "seer.automation.filtered", tags={"reason": skip_reason, "tier": "seat_based"}
-            )
-            if skip_reason == "below_occurrence_threshold":
-                generate_issue_summary_only.delay(group.id)
+        if group.seer_fixability_score is not None:
             return
-
-        # Check if summary exists in cache
+        # Issues created in last 5 minutes only. This can be removed once this is live past 1 week.
+        # We don't want to backfill old issues since that will overwhelm Seer.
+        if (timezone.now() - group.first_seen).total_seconds() > 300:
+            return
+        # Generate issue summary and fixability score if not cached.
+        # Agentic Triage handles automations for seat-based orgs but still needs these.
         cache_key = get_issue_summary_cache_key(group.id)
-        if cache.get(cache_key) is not None:
-            # Summary exists, run automation directly
-            run_automation_only_task.delay(group.id)
-        else:
-            # Rate limit check before generating summary
-            if is_seer_scanner_rate_limited(group.project, group.organization):
-                metrics.incr(
-                    "seer.automation.filtered",
-                    tags={"reason": "rate_limited", "tier": "seat_based"},
-                )
-                return
+        if cache.get(cache_key) is None:
+            lock_key, lock_name = get_issue_summary_lock_key(group.id)
+            lock = locks.get(lock_key, duration=1, name=lock_name)
+            if not lock.locked():
+                generate_issue_summary_only.delay(group.id)
+        return
 
-            # No summary yet, generate summary + run automation in one go
-            generate_summary_and_run_automation.delay(
-                group.id, trigger_path="seat_based_seer_automation"
-            )
+    skip_reason = get_default_seer_automation_skip_reason(group, locks)
+    if skip_reason is not None:
+        metrics.incr("seer.automation.filtered", tags={"reason": skip_reason, "tier": "default"})
+        return
+
+    generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
 
 
 def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:

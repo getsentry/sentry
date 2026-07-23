@@ -411,8 +411,8 @@ export function SpendAllocationsRoot({subscription}: Props) {
       )}
       {canViewSpendAllocation && (
         <Grid
-          columns={{xs: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)'}}
-          areas={{xs: '"bb bb dd"', lg: '"bb bb dd . ."'}}
+          columns={{'screen:xs': 'repeat(3, 1fr)', 'screen:lg': 'repeat(5, 1fr)'}}
+          areas={{'screen:xs': '"bb bb dd"', 'screen:lg': '"bb bb dd . ."'}}
           gap="xl"
           margin="xl 0"
           data-test-id="subhead-actions"

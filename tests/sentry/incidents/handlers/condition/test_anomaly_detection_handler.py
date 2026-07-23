@@ -123,10 +123,8 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         mock_seer_request.return_value = HTTPResponse(
             orjson.dumps(self.high_confidence_seer_response), status=200
         )
-        assert (
-            self.dc.evaluate_value(self.data_packet.packet.values)
-            == DetectorPriorityLevel.HIGH.value
-        )
+        evaluation = self.dc.evaluate_value(self.data_packet.packet.values)
+        assert evaluation.result == DetectorPriorityLevel.HIGH.value
         assert mock_seer_request.call_args.args[0] == "POST"
         assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = orjson.loads(mock_seer_request.call_args.kwargs["body"])
@@ -139,9 +137,9 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         mock_seer_request.return_value = HTTPResponse(
             orjson.dumps(self.low_confidence_seer_response), status=200
         )
-        assert (
-            self.dc.evaluate_value(self.data_packet.packet.values) == DetectorPriorityLevel.OK.value
-        )
+        evaluation = self.dc.evaluate_value(self.data_packet.packet.values)
+        assert evaluation.result == DetectorPriorityLevel.OK.value
+
         assert mock_seer_request.call_args.args[0] == "POST"
         assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = orjson.loads(mock_seer_request.call_args.kwargs["body"])
@@ -157,10 +155,10 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         mock_seer_request.return_value = HTTPResponse(
             orjson.dumps(self.high_confidence_seer_response), status=200
         )
-        assert (
-            self.dc.evaluate_value(self.data_packet.packet.values)
-            == DetectorPriorityLevel.HIGH.value
-        )
+
+        evaluation = self.dc.evaluate_value(self.data_packet.packet.values)
+        assert evaluation.result == DetectorPriorityLevel.HIGH.value
+
         assert mock_seer_request.call_args.args[0] == "POST"
         assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = orjson.loads(mock_seer_request.call_args.kwargs["body"])
@@ -170,9 +168,8 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         mock_seer_request.return_value = HTTPResponse(
             orjson.dumps(self.low_confidence_seer_response), status=200
         )
-        assert (
-            self.dc.evaluate_value(self.data_packet.packet.values) == DetectorPriorityLevel.OK.value
-        )
+        evaluation = self.dc.evaluate_value(self.data_packet.packet.values)
+        assert evaluation.result == DetectorPriorityLevel.OK.value
         assert mock_seer_request.call_args.args[0] == "POST"
         assert mock_seer_request.call_args.args[1] == SEER_ANOMALY_DETECTION_ENDPOINT_URL
         deserialized_body = orjson.loads(mock_seer_request.call_args.kwargs["body"])
@@ -183,7 +180,9 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
     )
     @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
     def test_seer_call_nan_aggregation_value(
-        self, mock_logger: mock.MagicMock, mock_seer_request: mock.MagicMock
+        self,
+        mock_logger: mock.MagicMock,
+        mock_seer_request: mock.MagicMock,
     ) -> None:
         seer_return_value = self.high_confidence_seer_response
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -204,9 +203,11 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             packet=packet,
         )
 
-        assert self.dc.evaluate_value(data_packet.packet.values) == ConditionError(
-            msg="Error during Seer data evaluation process."
-        )
+        evaluation = self.dc.evaluate_value(data_packet.packet.values)
+        assert evaluation.result is None
+        assert evaluation.error == ConditionError(msg="Error during Seer data evaluation process.")
+        assert evaluation.outcome.triggered is False
+
         mock_logger.warning.assert_called_with(
             "Invalid aggregation value",
             extra={

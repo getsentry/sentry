@@ -8,13 +8,38 @@ resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/%F0%9F%90%A6-Components?node-id=3040-309&p=f&t=fldvMEFX98yRuTH5-0
 ---
 
-import {Container, Flex} from '@sentry/scraps/layout';
-
+import {Container, Flex, useContainerBreakpoint} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/layout/container');
 
 import {SIZES} from './__stories__/consts';
+
+export function ContainerBreakpointLabel() {
+  const breakpoint = useContainerBreakpoint();
+  const isCompact = breakpoint === 'zero';
+  return (
+    <span>
+      Active container breakpoint: <Text bold>{breakpoint}</Text> —{' '}
+      {isCompact ? 'showing a compact label.' : 'showing the full, descriptive label.'}
+    </span>
+  );
+}
+
+export function ContainerBreakpointExample() {
+  return (
+    <Container
+      containerType="inline-size"
+      padding="md"
+      background="secondary"
+      border="primary"
+      radius="md"
+    >
+      <ContainerBreakpointLabel />
+    </Container>
+  );
+}
 
 The `Container` component is a foundational layout component that extends HTML elements with responsive CSS properties through props. It serves as the building block for other layout components like `Flex` and `Grid` to provides a consistent API for spacing, sizing, positioning, and styling.
 
@@ -145,9 +170,13 @@ Set positioning for absolute/relative layouts:
 
 <Storybook.Demo>
   <Flex
-    padding={{xs: 'sm', lg: 'xl'}}
-    background={{xs: 'primary', sm: 'secondary', lg: 'primary'}}
-    radius={{xs: '0', sm: 'md'}}
+    padding={{'screen:xs': 'sm', 'screen:lg': 'xl'}}
+    background={{
+      'screen:xs': 'primary',
+      'screen:sm': 'secondary',
+      'screen:lg': 'primary',
+    }}
+    radius={{'screen:xs': '0', 'screen:sm': 'md'}}
     border="primary"
   >
     <Container padding="sm" background="primary" style={{flex: 1}} border="primary">
@@ -161,29 +190,136 @@ Set positioning for absolute/relative layouts:
 ```jsx
 <Container
   // Padding increases at lg breakpoint
-  padding={{xs: 'sm', lg: 'xl'}}
+  padding={{'screen:xs': 'sm', 'screen:lg': 'xl'}}
   // Background changes at sm and lg breakpoints
-  background={{xs: 'primary', sm: 'secondary', lg: 'primary'}}
+  background={{'screen:xs': 'primary', 'screen:sm': 'secondary', 'screen:lg': 'primary'}}
   // Adds border="primary" radius at sm breakpoint
-  radius={{xs: '0', sm: 'md'}}
+  radius={{'screen:xs': '0', 'screen:sm': 'md'}}
 >
   <div>Responsive layout content</div>
 </Container>
 ```
 
-#### 2xs breakpoint
+### Container Queries
 
-The `2xs` breakpoint is a breakpoint that applies from 0 to the smallest defined breakpoint size.
+Responsive props take a single value (`padding="md"`) or an object keyed by
+breakpoint (`padding={{md: 'sm', lg: 'xl'}}`), where each value applies from that
+breakpoint up. Keys come in two kinds:
 
-<Storybook.Demo>
-  <Container display={{'2xs': 'none', sm: 'block'}}>
-    This content is hidden below the sm breakpoint
+- **bare keys** follow the **container** — the room a component has where it sits.
+- **`screen:` keys** follow the **viewport** — the browser window.
+
+Each kind has its own scale, and both can be mixed on one prop.
+
+> [!NOTE]
+> **Prefer container keys.** A component should respond to the room it has, not
+> the size of the window. Reach for `screen:` only when the layout truly depends
+> on the viewport.
+
+#### Container tokens
+
+Resolve against the nearest query container (`@container`, `theme.container`).
+`zero` is the always-applied base.
+
+| Token  | Min width    |
+| ------ | ------------ |
+| `zero` | `0px` (base) |
+| `3xs`  | `320px`      |
+| `2xs`  | `384px`      |
+| `xs`   | `448px`      |
+| `sm`   | `512px`      |
+| `md`   | `576px`      |
+| `lg`   | `640px`      |
+| `xl`   | `768px`      |
+| `2xl`  | `896px`      |
+| `3xl`  | `1024px`     |
+| `4xl`  | `1152px`     |
+| `5xl`  | `1280px`     |
+
+An element can't query its own size — mark a parent with
+`containerType="inline-size"`, then use bare keys on its descendants:
+
+<Storybook.SizingWindow display="block">
+  <Container
+    containerType="inline-size"
+    padding="md"
+    background="secondary"
+    radius="md"
+    border="primary"
+  >
+    <Flex direction={{zero: 'column', sm: 'row'}} gap="md">
+      <Container padding="sm" background="primary" border="primary" radius="md">
+        Stacked below `sm` (container narrower than 512px)...
+      </Container>
+      <Container padding="sm" background="primary" border="primary" radius="md">
+        ...and side by side from `sm` up (512px+). Drag the handle at the bottom-right to
+        flip it — the viewport never changes.
+      </Container>
+    </Flex>
   </Container>
-</Storybook.Demo>
+</Storybook.SizingWindow>
 ```jsx
-<Container display={{'2xs': 'none', sm: 'block'}}>
-  This content is hidden below the sm breakpoint
+<Container containerType="inline-size">
+  {/* Bare keys on descendants resolve against the container's width. */}
+  <Flex direction={{zero: 'column', sm: 'row'}}>
+    <div>Reflows based on the container's width, not the viewport's.</div>
+    <div>Resize the container above to see it switch.</div>
+  </Flex>
 </Container>
+```
+
+> [!TIP]
+> Prefer `containerType="inline-size"`. It contains only the inline (width) axis,
+> so height still flows from content. `size` also contains the block axis, which
+> forces you to give the element an explicit height or its content collapses —
+> only use it for height-based container queries.
+
+For the underlying CSS, see MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries">container queries guide</a>, <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/container-type">container-type</a>, and the <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/@container">@container</a> at-rule.
+
+#### Screen tokens
+
+Resolve against the viewport (`@media`, `theme.breakpoints`). `2xs` is the
+always-applied base.
+
+| Token | Min width    |
+| ----- | ------------ |
+| `2xs` | `0px` (base) |
+| `xs`  | `500px`      |
+| `sm`  | `800px`      |
+| `md`  | `992px`      |
+| `lg`  | `1200px`     |
+| `xl`  | `1440px`     |
+| `2xl` | `2560px`     |
+
+#### Mixing the two
+
+Both kinds of key can live on the same prop. For example,
+`direction={{zero: 'column', md: 'row', 'screen:lg': 'column'}}` starts as a
+column, becomes a row once the **container** reaches `md`, then returns to a
+column once the **viewport** reaches `lg`.
+
+### Reading the breakpoint in JS
+
+When you need the resolved breakpoint in JS rather than just CSS, use
+`useContainerBreakpoint()` — the JS equivalent of a CSS container query and the
+container-scoped replacement for width-based `useMedia`. Call it from a
+descendant of a query container (a `Container`/`Flex`/… with `containerType`) and
+it returns the container's active breakpoint (on the container scale — `zero`
+through `5xl`), updating as the container crosses a breakpoint. Drag the box below
+across the `3xs` breakpoint (320px) to see the label swap — independent of the
+viewport width.
+
+<Storybook.SizingWindow display="block">
+  <ContainerBreakpointExample />
+</Storybook.SizingWindow>
+```jsx
+// Rendered inside a query container, e.g.
+// <Container containerType="inline-size">…</Container>
+function PanelLabel() {
+  const breakpoint = useContainerBreakpoint();
+  const isCompact = breakpoint === 'zero';
+  return isCompact ? 'Compact label' : 'Full, descriptive label';
+}
 ```
 
 ### Grid Integration

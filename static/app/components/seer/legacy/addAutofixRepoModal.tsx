@@ -1,12 +1,4 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ChangeEvent,
-} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState, type ChangeEvent} from 'react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {useVirtualizer} from '@tanstack/react-virtual';
@@ -68,7 +60,6 @@ export function AddAutofixRepoModal({
 
   const [modalSearchQuery, setModalSearchQuery] = useState('');
   const [selectedExternalIds, setSelectedExternalIds] = useState<string[]>([]);
-  const [showMaxLimitAlert, setShowMaxLimitAlert] = useState(false);
 
   const filteredRepositories = useMemo(() => {
     if (!repositories) {
@@ -100,9 +91,7 @@ export function AddAutofixRepoModal({
     [hiddenExternalIds.length]
   );
 
-  useEffect(() => {
-    setShowMaxLimitAlert(selectedExternalIds.length >= MAX_REPOS_LIMIT);
-  }, [selectedExternalIds.length]);
+  const showMaxLimitAlert = selectedExternalIds.length >= MAX_REPOS_LIMIT;
 
   const parentRef = useRef<HTMLDivElement>(null);
 

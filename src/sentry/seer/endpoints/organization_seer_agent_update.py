@@ -21,6 +21,7 @@ from sentry.seer.agent.client_utils import (
     has_seer_agent_access_with_detail,
 )
 from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES
+from sentry.seer.endpoints.utils import resolve_seer_run
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
@@ -61,7 +62,7 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
     permission_classes = (OrganizationSeerAgentUpdatePermission,)
 
-    def post(self, request: Request, organization: Organization, run_id: int) -> Response:
+    def post(self, request: Request, organization: Organization, run_id: str) -> Response:
         """
         Send an update event to the agent for a given run.
         """
@@ -83,12 +84,16 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
                     data={"detail": "Code generation is disabled for this organization"},
                 )
 
+        resolved = resolve_seer_run(run_id, organization, for_continue=True)
+        if isinstance(resolved, Response):
+            return resolved
+
         path = "/v1/automation/explorer/update"
 
         body = orjson.dumps(
             {
                 **request.data,
-                "run_id": run_id,
+                "run_id": resolved.seer_run_state_id,
                 "organization_id": organization.id,
             }
         )

@@ -151,6 +151,52 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert query_param_dict["foo"] == resp_json["foo"][0]
         assert query_param_dict["numlist"] == resp_json["numlist"]
 
+    def test_async_query_string_forwarded_verbatim(self) -> None:
+        captured: dict[str, str] = {}
+
+        def capture(request: httpx.Request) -> tuple[int, dict[str, str], bytes]:
+            captured["raw_query"] = str(request.url).split("?", 1)[1]
+            return (200, {}, b"{}")
+
+        self.httpx_router.add_callback("GET", f"{self.CELL.address}/echo-verbatim", capture)
+
+        # The ``:`` and ``+`` would be percent-encoded by ``dict(request.GET)``.
+        query = (
+            "os_kid=sentry&os_timestamp=2026-07-13T13:19:24+00:00&os_duration=300&os_sig=ab_c-D9z"
+        )
+        request = RequestFactory().get(f"http://sentry.io/echo-verbatim?{query}")
+
+        resp = proxy_request(request, self.organization.slug, url_name)
+        close_streaming_response(resp)
+
+        assert captured["raw_query"] == query
+
+    @responses.activate
+    def test_sync_query_string_forwarded_verbatim(self) -> None:
+        captured: dict[str, str] = {}
+
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            assert request.url is not None
+            captured["url"] = request.url
+            return 200, {"Content-Type": "application/json"}, json.dumps({"proxy": True})
+
+        responses.add_callback(
+            responses.GET,
+            "http://us.internal.sentry.io/echo-verbatim",
+            callback=request_callback,
+        )
+
+        # The ``:`` and ``+`` would be percent-encoded by ``dict(request.GET)``.
+        query = (
+            "os_kid=sentry&os_timestamp=2026-07-13T13:19:24+00:00&os_duration=300&os_sig=ab_c-D9z"
+        )
+        request = RequestFactory().get(f"http://sentry.io/echo-verbatim?{query}")
+
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        close_streaming_response(resp)
+
+        assert captured["url"].split("?", 1)[1] == query
+
     def test_bad_org(self) -> None:
         request = RequestFactory().get("http://sentry.io/get")
         resp = proxy_request(request, "doesnotexist", url_name)
@@ -493,48 +539,11 @@ api_gateway_address_cell = Cell(
 @control_silo_test(cells=[api_gateway_address_cell], include_monolith_run=True)
 class ApiGatewayAddressProxyTestCase(ApiGatewayTestCase):
     @responses.activate
-    @override_options({"apigateway.proxy.cell-rollout": {"us": 1.0}})
     def test_sync_post(self) -> None:
         responses.add(
             responses.POST,
             "http://sentry-api-gateway-rpc:8999/post",
             body=json.dumps({"test": "header"}),
-        )
-        request = RequestFactory().post(
-            "http://sentry.io/post", data={"test": "header"}, content_type="application/json"
-        )
-        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
-        resp_json = json.loads(close_streaming_response(resp))
-
-        assert resp.status_code == 200
-        assert resp_json["test"]
-        assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
-
-    @responses.activate
-    @override_options({"apigateway.proxy.cell-rollout": "lol"})
-    def test_sync_post_corrupt_rollout_option(self) -> None:
-        responses.add(
-            responses.POST,
-            "http://sentry-rpc:8999/post",
-            body=json.dumps({"test": "value"}),
-        )
-        request = RequestFactory().post(
-            "http://sentry.io/post", data={"test": "header"}, content_type="application/json"
-        )
-        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
-        resp_json = json.loads(close_streaming_response(resp))
-
-        assert resp.status_code == 200
-        assert resp_json["test"]
-        assert resp.has_header(PROXY_DIRECT_LOCATION_HEADER)
-
-    @responses.activate
-    @override_options({"apigateway.proxy.cell-rollout": {"nope": 1.0}})
-    def test_sync_post_undefined_cell_in_option(self) -> None:
-        responses.add(
-            responses.POST,
-            "http://sentry-rpc:8999/post",
-            body=json.dumps({"test": "value"}),
         )
         request = RequestFactory().post(
             "http://sentry.io/post", data={"test": "header"}, content_type="application/json"

@@ -161,7 +161,7 @@ function getArchiveActions({
     {
       key: 'for',
       label: t('For\u2026'),
-      isSubmenu: true,
+      submenu: true,
       children: [
         ...IGNORE_DURATIONS.map(duration => ({
           key: `for-${duration}`,
@@ -178,7 +178,7 @@ function getArchiveActions({
     {
       key: 'until-reoccur',
       label: t('Until this occurs again\u2026'),
-      isSubmenu: true,
+      submenu: true,
       children: [
         ...IGNORE_COUNTS.map(count => ({
           key: `until-reoccur-${count}-times`,
@@ -186,7 +186,7 @@ function getArchiveActions({
             count === 1
               ? t('one time\u2026') // This is intentional as unbalanced string formatters are problematic
               : tn('%s time\u2026', '%s times\u2026', count),
-          isSubmenu: true,
+          submenu: true,
           children: [
             {
               key: `until-reoccur-${count}-times-from-now`,
@@ -214,7 +214,7 @@ function getArchiveActions({
     {
       key: 'until-affect',
       label: t('Until this affects an additional\u2026'),
-      isSubmenu: true,
+      submenu: true,
       children: [
         ...IGNORE_COUNTS.map(count => ({
           key: `until-affect-${count}-users`,
@@ -222,7 +222,7 @@ function getArchiveActions({
             count === 1
               ? t('one user\u2026') // This is intentional as unbalanced string formatters are problematic
               : tn('%s user\u2026', '%s users\u2026', count),
-          isSubmenu: true,
+          submenu: true,
           children: [
             {
               key: `until-affect-${count}-users-from-now`,

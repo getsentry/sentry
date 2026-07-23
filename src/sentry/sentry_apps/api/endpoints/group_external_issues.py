@@ -41,7 +41,11 @@ class GroupExternalIssuesEndpoint(GroupEndpoint):
         },
         examples=SentryAppExamples.GET_PLATFORM_EXTERNAL_ISSUE,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-external-issues"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-external-issues",
+        url_names=["sentry-api-0-group-external-issues"],
+    )
     def get(
         self, request: Request, group
     ) -> Response[list[PlatformExternalIssueSerializerResponse]]:

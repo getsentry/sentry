@@ -13,7 +13,9 @@ import {getFrameDetails} from 'sentry/utils/replays/getFrameDetails';
 import {useActiveReplayTab} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {isWebVitalFrame} from 'sentry/utils/replays/types';
 import type {GraphicsVariant} from 'sentry/utils/theme';
+import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 
 const NODE_SIZES = [8, 12, 16];
 
@@ -100,20 +102,32 @@ function Event({
       onShowSnippet={() => {}}
     />
   ));
+  // Scope the card's nested hoverable tooltips (e.g. the selector link's own
+  // tooltip in a User Click crumb) to their own hover-overlay delay group.
+  // Otherwise a nested tooltip opening snap-closes this card and unmounts the
+  // link out from under the cursor.
   const title = (
-    <Container maxHeight="80vh" overflow="auto">
-      {buttons}
-    </Container>
+    <HoverOverlayGroupProvider>
+      <Container maxHeight="80vh" overflow="auto">
+        {buttons}
+      </Container>
+    </HoverOverlayGroupProvider>
   );
+
+  // Web vital frames render an expandable JSON block that needs more room than
+  // the default tooltip width, otherwise its content wraps to a very tall sliver.
+  const hasWebVitalFrame = frames.some(isWebVitalFrame);
+  const tooltipWidth = hasWebVitalFrame ? 400 : 291;
+  const mobileMaxWidth = hasWebVitalFrame ? 300 : 220;
 
   const overlayStyle = css`
     /* We make sure to override existing styles */
     padding: ${theme.space.xs} !important;
-    max-width: 291px !important;
-    width: 291px;
+    max-width: ${tooltipWidth}px !important;
+    width: ${tooltipWidth}px;
 
     @media screen and (max-width: ${theme.breakpoints.sm}) {
-      max-width: 220px !important;
+      max-width: ${mobileMaxWidth}px !important;
     }
   `;
 

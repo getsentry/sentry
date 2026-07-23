@@ -93,6 +93,47 @@ def test_insert_spans_metrics_emits_evalsha_data() -> None:
     )
 
 
+def test_insert_spans_metrics_ignores_unsampled_results() -> None:
+    insert_spans_metrics = InsertSpansMetrics()
+    buffer_logger = mock.Mock()
+
+    # Unsampled call: latency_ms == -1 sentinel with empty metric tables. Should be ignored.
+    insert_spans_metrics.record_evalsha_result(
+        "1:" + "a" * 32,
+        EvalshaResult(
+            segment_key=_segment_id(1, "a" * 32, "a" * 16),
+            has_root_span=False,
+            latency_ms=-1,
+            latency_metrics=[],
+            gauge_metrics=[],
+            merged_segment_span_ids=[],
+        ),
+    )
+    # Sampled call.
+    insert_spans_metrics.record_evalsha_result(
+        "1:" + "b" * 32,
+        EvalshaResult(
+            segment_key=_segment_id(1, "b" * 32, "b" * 16),
+            has_root_span=True,
+            latency_ms=20,
+            latency_metrics=[(b"step", 20.0)],
+            gauge_metrics=[(b"gauge", 2.0)],
+            merged_segment_span_ids=[],
+        ),
+    )
+
+    with mock.patch("sentry.spans.buffer_logger.emit_observability_metrics") as emit_metrics:
+        buffer_logger.log(insert_spans_metrics.evalsha_latency_entries)
+        insert_spans_metrics.emit_metrics()
+
+    buffer_logger.log.assert_called_once_with([("1:" + "b" * 32, 20)])
+    emit_metrics.assert_called_once_with(
+        [[(b"step", 20.0)]],
+        [[(b"gauge", 2.0)]],
+        (20, [(b"step", 20.0)], [(b"gauge", 2.0)]),
+    )
+
+
 def test_insert_spans_metrics_from_inserted_subsegments() -> None:
     trace_id = "a" * 32
     parent_span_id = "b" * 16
@@ -228,7 +269,7 @@ def test_accumulates_batches_and_tracks_cumulative_latency(mock_time):
         for i in range(1100):
             # Create entries with different latencies
             # Lower i values get higher latencies to test trimming
-            latency = 1000 - i if i < 500 else 100
+            latency = 1000.0 - i if i < 500 else 100.0
             entries_to_add.append((f"project{i}:trace{i}", latency))
 
         buffer_logger.log(entries_to_add)
@@ -260,9 +301,9 @@ def test_logs_only_top_50_when_more_than_1000_traces(mock_time, mock_logger):
 
         buffer_logger = BufferLogger()
 
-        buffer_logger.log([("high_project:trace", 150)] * 10)
+        buffer_logger.log([("high_project:trace", 150.0)] * 10)
 
-        entries = [(f"project{i}:trace{i}", 100) for i in range(1000)]
+        entries = [(f"project{i}:trace{i}", 100.0) for i in range(1000)]
         buffer_logger.log(entries)
 
         assert len(buffer_logger._metrics_per_trace) == 50
@@ -278,7 +319,7 @@ def test_logs_only_top_50_when_more_than_1000_traces(mock_time, mock_logger):
         entries_list = extra["top_slow_operations"]
         assert len(entries_list) == 50
 
-        assert entries_list[0] == "high_project:trace:10:1500"
+        assert entries_list[0] == "high_project:trace:10:1500.000"
 
         assert extra["num_tracked_keys"] == 50
 

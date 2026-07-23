@@ -122,6 +122,7 @@ export interface Organization extends OrganizationSummary {
   ingestThroughTrustedRelaysOnly?: 'enabled' | 'disabled';
   orgRole?: string;
   planSampleRate?: number | null;
+  relayDsnEndpoint?: string | null;
   trustedRelays?: Relay[];
 }
 

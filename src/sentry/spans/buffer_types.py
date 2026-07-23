@@ -33,6 +33,15 @@ def _unflatten_data(flat: Sequence[Any]) -> EvalshaData:
     return [(flat[i], flat[i + 1]) for i in range(0, len(flat), 2)]
 
 
+def _unflatten_latency_data(flat: Sequence[Any]) -> EvalshaData:
+    """
+    Latency tables arrive as integer microseconds. Convert to fractional milliseconds and rename the
+    `_us` step keys back to `_ms` so metric names and stage tags keep their historical millisecond-based
+    names.
+    """
+    return [(flat[i].replace(b"_us", b"_ms"), flat[i + 1] / 1000.0) for i in range(0, len(flat), 2)]
+
+
 # NamedTuples are faster to construct than dataclasses
 class Span(NamedTuple):
     trace_id: str
@@ -86,7 +95,7 @@ class Subsegment(NamedTuple):
 class EvalshaResult(NamedTuple):
     segment_key: SegmentKey
     has_root_span: bool
-    latency_ms: int
+    latency_ms: float
     latency_metrics: EvalshaData
     gauge_metrics: EvalshaData
     merged_segment_span_ids: list[bytes]
@@ -96,7 +105,7 @@ class EvalshaResult(NamedTuple):
         (
             segment_key,
             has_root_span,
-            latency_ms,
+            latency_us,
             latency_metrics,
             gauge_metrics,
             merged_segment_span_ids,
@@ -104,8 +113,8 @@ class EvalshaResult(NamedTuple):
         return cls(
             segment_key,
             has_root_span,
-            latency_ms,
-            _unflatten_data(latency_metrics),
+            latency_us / 1000.0,
+            _unflatten_latency_data(latency_metrics),
             _unflatten_data(gauge_metrics),
             merged_segment_span_ids,
         )

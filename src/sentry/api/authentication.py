@@ -14,6 +14,7 @@ from django.http import HttpHeaders
 from django.urls import resolve
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
+from jwt import PyJWTError
 from rest_framework.authentication import (
     BaseAuthentication,
     BasicAuthentication,
@@ -24,7 +25,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from sentry_relay.exceptions import UnpackError
 
-from sentry import options
+from sentry import features, options
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
@@ -41,6 +42,7 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay
 from sentry.organizations.services.organization import organization_service
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
+from sentry.seer import agent_token
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import GrantTypes
@@ -520,7 +522,10 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             return True
 
         token_str = force_str(auth[1])
-        return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
+        if token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX):
+            return False
+
+        return not agent_token.is_agent_token_string(token_str)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         user: AnonymousUser | User | RpcUser | None = AnonymousUser()
@@ -603,6 +608,53 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             api_token_type=self.token_name,
             api_token_is_sentry_app=getattr(user, "is_sentry_app", False),
         )
+
+
+@AuthenticationSiloLimit(SiloMode.CELL, SiloMode.CONTROL)
+class AgentTokenAuthentication(StandardAuthentication):
+    """Authenticates the Seer agent's typed capability JWT.
+
+    Authenticates as a non-user actor -- the request stays anonymous -- so user-only web
+    views fail closed; API access is derived from the delegating member in
+    ``access.from_agent_auth``."""
+
+    token_name = b"bearer"
+
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        if not super().accepts_auth(auth) or len(auth) != 2:
+            return False
+        return agent_token.is_agent_token_string(force_str(auth[1]))
+
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+        try:
+            claims = agent_token.decode_agent_token(token_str)
+            user_id = int(claims["sub"])
+            # Building the token casts org and scopes too, so any missing/mis-typed claim
+            # in a signed token is a clean 401 here, not a 500 downstream.
+            auth_token = agent_token.build_authenticated_token(claims)
+        except (PyJWTError, KeyError, ValueError, TypeError):
+            raise AuthenticationFailed("Invalid agent token")
+
+        # The delegating user must still be valid even though they are not the request user.
+        user = user_service.get_user(user_id=user_id)
+        if user is None or not user.is_active or getattr(user, "is_suspended", False):
+            raise AuthenticationFailed("Invalid agent token")
+
+        org_context = organization_service.get_organization_by_id(
+            id=auth_token.organization_id,
+            user_id=user_id,
+            include_projects=False,
+            include_teams=False,
+        )
+        if org_context is None or not features.has(
+            agent_token.FEATURE_FLAG,
+            org_context.organization,
+            actor=user,
+            skip_experiment_exposure=True,
+        ):
+            raise AuthenticationFailed("Invalid agent token")
+
+        return self.transform_auth(None, auth_token)
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)

@@ -9,15 +9,16 @@ from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
 from sentry.issue_detection.detectors.utils import total_span_time
 from sentry.issue_detection.performance_detection import (
+    DETECTOR_CLASSES,
     PERFORMANCE_DETECTOR_CONFIG_MAPPINGS,
     SETTINGS_PROJECT_OPTION_KEY,
-    EventPerformanceProblem,
     SettingsMode,
     _detect_performance_problems,
     detect_performance_problems,
     get_detection_settings,
     reset_performance_settings,
     reset_wfe_detector_configs,
+    run_detector_on_data,
     sync_project_options_to_wfe_detectors,
     update_performance_settings,
 )
@@ -29,7 +30,6 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
     registry,
 )
-from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.issue_detection.event_generators import get_event
@@ -326,7 +326,7 @@ class PerformanceDetectionTest(TestCase):
                 op="http",
                 desc="GET https://my-api.io/api/users?page=1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
-                parent_span_ids=None,
+                parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=[
                     "96e0ae187b5481a1",
@@ -338,7 +338,7 @@ class PerformanceDetectionTest(TestCase):
                 ],
                 evidence_data={
                     "op": "http",
-                    "parent_span_ids": None,
+                    "parent_span_ids": [],
                     "cause_span_ids": [],
                     "offender_span_ids": [
                         "96e0ae187b5481a1",
@@ -477,106 +477,45 @@ class PerformanceDetectionTest(TestCase):
         pre_checked_keys = ["sdk_name", "is_early_adopter", "browser_name", "uncompressed_assets"]
         assert not any([v for k, v in tags.items() if k not in pre_checked_keys])
 
+    def test_other_detectors_run_even_when_one_errors(self) -> None:
+        n_plus_one_event = get_event("n-plus-one-db/n-plus-one-db-mongodb")
+        sdk_span_mock = MagicMock()
 
-class EventPerformanceProblemTest(TestCase):
-    def test_save_and_fetch(self) -> None:
-        event = Event(self.project.id, "something")
-        problem = PerformanceProblem(
-            "test",
-            "db",
-            "something bad happened",
-            PerformanceNPlusOneGroupType,
-            ["1"],
-            ["2", "3", "4"],
-            ["4", "5", "6"],
-            {},
-            [],
-        )
+        with (
+            # Make the slow DB detector error out, to check if the other detectors run anyway
+            patch(
+                "sentry.issue_detection.performance_detection.SlowDBQueryDetector.visit_span",
+                side_effect=ValueError,
+            ),
+            patch(
+                "sentry.issue_detection.performance_detection.logger.exception"
+            ) as logger_exception_mock,
+            patch(
+                "sentry.issue_detection.performance_detection.run_detector_on_data",
+                wraps=run_detector_on_data,
+            ) as run_detector_spy,
+        ):
+            _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
 
-        EventPerformanceProblem(event, problem).save()
-        found = EventPerformanceProblem.fetch(event, problem.fingerprint)
-        assert found is not None
-        assert found.problem == problem
+            logger_exception_mock.assert_called_with(
+                "Error running issue detector `SlowDBQueryDetector`",
+                extra={
+                    "project_id": self.project.id,
+                    "org_id": self.organization.id,
+                    "event_id": n_plus_one_event["event_id"],
+                    "standalone": False,
+                },
+            )
 
-    def test_fetch_multi(self) -> None:
-        event_1 = Event(self.project.id, "something")
-        event_1_problems = [
-            PerformanceProblem(
-                "test",
-                "db",
-                "something bad happened",
-                PerformanceNPlusOneGroupType,
-                ["1"],
-                ["2", "3", "4"],
-                ["4", "5", "6"],
-                {},
-                [],
-            ),
-            PerformanceProblem(
-                "test_2",
-                "db",
-                "something horrible happened",
-                PerformanceSlowDBQueryGroupType,
-                ["234"],
-                ["67", "87686", "786"],
-                ["4", "5", "6"],
-                {},
-                [],
-            ),
-        ]
-        event_2 = Event(self.project.id, "something else")
-        event_2_problems = [
-            PerformanceProblem(
-                "event_2_test",
-                "db",
-                "something happened",
-                PerformanceNPlusOneGroupType,
-                ["1"],
-                ["a", "b", "c"],
-                ["d", "e", "f"],
-                {},
-                [],
-            ),
-            PerformanceProblem(
-                "event_2_test_2",
-                "db",
-                "hello",
-                PerformanceSlowDBQueryGroupType,
-                ["234"],
-                ["fdgh", "gdhgf", "gdgh"],
-                ["gdf", "yu", "kjl"],
-                {},
-                [],
-            ),
-        ]
-        all_event_problems = [
-            (event, problem)
-            for event, problems in ((event_1, event_1_problems), (event_2, event_2_problems))
-            for problem in problems
-        ]
-        for event, problem in all_event_problems:
-            EventPerformanceProblem(event, problem).save()
-
-        unsaved_problem = PerformanceProblem(
-            "fake_fingerprint",
-            "db",
-            "hello",
-            PerformanceSlowDBQueryGroupType,
-            ["234"],
-            ["fdgh", "gdhgf", "gdgh"],
-            ["gdf", "yu", "kjl"],
-            {},
-            [],
-        )
-        result = EventPerformanceProblem.fetch_multi(
-            [
-                (event, problem.fingerprint)
-                for event, problem in all_event_problems + [(event, unsaved_problem)]
-            ]
-        )
-        assert [r.problem if r else None for r in result] == [
-            problem for _, problem in all_event_problems
-        ] + [None]
+            num_enabled_detectors = len(
+                [
+                    detector_class
+                    for detector_class in DETECTOR_CLASSES
+                    if detector_class.is_detection_allowed_for_system()
+                ]
+            )
+            # All of the detectors ran, even though the slow DB detector errored out
+            assert run_detector_spy.call_count == num_enabled_detectors
 
 
 @pytest.mark.parametrize(

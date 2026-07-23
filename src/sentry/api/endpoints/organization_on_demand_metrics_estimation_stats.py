@@ -4,7 +4,6 @@ from enum import Enum
 from types import ModuleType
 from typing import TypedDict, Union, cast
 
-import sentry_sdk
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -21,6 +20,7 @@ from sentry.snuba.metrics.extraction import to_standard_metrics_query
 from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.snuba import SnubaTSResult
+from sentry.utils.tracing import set_span_data, start_span
 
 
 class CountResult(TypedDict):
@@ -66,8 +66,8 @@ class OrganizationOnDemandMetricsEstimationStatsEndpoint(OrganizationEventsEndpo
         if measurement is None:
             return Response({"detail": "missing required parameter yAxis"}, status=400)
 
-        with sentry_sdk.start_span(op="discover.metrics.endpoint", name="get_full_metrics") as span:
-            span.set_data("organization", organization)
+        with start_span(op="discover.metrics.endpoint", name="get_full_metrics") as span:
+            set_span_data(span, "organization", organization)
 
             try:
                 # the discover stats

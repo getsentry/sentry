@@ -46,8 +46,8 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppInteractionEvent,
     SentryAppInteractionType,
     SentryAppWebhookFailureReason,
@@ -71,12 +71,14 @@ from sentry.sentry_apps.utils.webhooks import (
     MetricAlertActionType,
     SentryAppResourceType,
     find_alert_rule_action_ui_component,
+    is_subscribed,
 )
 from sentry.services.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
+from sentry.taskworker.timeout import InnerTimeoutError
 from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -87,11 +89,12 @@ from sentry.utils.sentry_apps import send_and_save_webhook_request
 from sentry.utils.sentry_apps.service_hook_manager import (
     create_or_update_service_hooks_for_installation,
 )
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.sentry_apps.tasks.sentry_apps")
 
 
-_SENTRY_APP_WEBHOOK_RETRY_ON = (RequestException,)
+_SENTRY_APP_WEBHOOK_RETRY_ON = (RequestException, InnerTimeoutError)
 _SENTRY_APP_WEBHOOK_RETRY_IGNORE = (
     ClientError,
     SentryAppSentryError,
@@ -107,6 +110,7 @@ _SENTRY_APP_WEBHOOK_SILENCED = (
     ApiTimeoutError,
     ConnectionError,
     HTTPError,
+    InnerTimeoutError,
     # Anything not retriable should be silenced by default
     *_SENTRY_APP_WEBHOOK_RETRY_IGNORE,
 )
@@ -351,7 +355,7 @@ def _process_resource_change(
                 for installation in app_service.installations_for_organization(
                     organization_id=org.id
                 )
-                if event in installation.sentry_app.events
+                if is_subscribed(installation.sentry_app.events, event)
             ]
             data: dict[str, Any] = {}
             if isinstance(instance, (Event, GroupEvent)):
@@ -446,7 +450,7 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
     silo_mode=SiloMode.CELL,
     silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
 )
-@sentry_sdk.trace(name="process_resource_change_bound")
+@trace(name="process_resource_change_bound")
 def process_resource_change_bound(
     action: str, sender: str, instance_id: str, **kwargs: Any
 ) -> None:
@@ -560,7 +564,7 @@ def workflow_notification(
 
         install, issue, user = webhook_data
         data = kwargs.get("data", {})
-        data.update({"issue": serialize(issue)})
+        data.update({"issue": _webhook_issue_data(group=issue, serialized_group=serialize(issue))})
 
     send_webhooks(installation=install, event=event, data=data, actor=user)
 
@@ -1150,13 +1154,10 @@ def broadcast_webhooks_for_organization(
         # Get installations for this organization
         installations = app_service.installations_for_organization(organization_id=organization_id)
 
-        # Filter for installations that subscribe to the event category
-        from sentry.sentry_apps.logic import consolidate_events
-
         relevant_installations = [
             installation
             for installation in installations
-            if resource_name in consolidate_events(installation.sentry_app.events)
+            if is_subscribed(installation.sentry_app.events, event_type)
         ]
 
         if not relevant_installations:

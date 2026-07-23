@@ -27,6 +27,10 @@ export function coalesePreferredAgent(
   return `${agent}::${integrationId ?? ''}` as const;
 }
 
+export const NON_GITHUB_HANDOFF_WARNING = t(
+  'Only the Seer agent is supported for non-GitHub repositories.'
+);
+
 export function isPreferredAgentProvider(
   provider: string | undefined
 ): provider is PreferredAgentProvider {

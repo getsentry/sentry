@@ -16,12 +16,17 @@ import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobile
 import ListPage from 'sentry/views/explore/replays/list';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 jest.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useReplayPageview');
 jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
 jest.mock('sentry/views/explore/replays/detail/useAllMobileProj');
+jest.mock('sentry/views/seerExplorer/contexts/llmContext', () => ({
+  ...jest.requireActual('sentry/views/seerExplorer/contexts/llmContext'),
+  useLLMContext: jest.fn(),
+}));
 
 const mockUseDeadRageSelectors = jest.mocked(useDeadRageSelectors);
 mockUseDeadRageSelectors.mockReturnValue({
@@ -36,6 +41,7 @@ const mockUseHaveSelectedProjectsSentAnyReplayEvents = jest.mocked(
   useHaveSelectedProjectsSentAnyReplayEvents
 );
 const mockUseProjectSdkNeedsUpdate = jest.mocked(useProjectSdkNeedsUpdate);
+const mockUseLLMContext = jest.mocked(useLLMContext);
 
 const mockUseReplayOnboardingSidebarPanel = jest.mocked(useReplayOnboardingSidebarPanel);
 mockUseReplayOnboardingSidebarPanel.mockReturnValue({activateSidebar: jest.fn()});
@@ -85,6 +91,7 @@ describe('ReplayList', () => {
     mockUseProjectSdkNeedsUpdate.mockClear();
     mockUseDeadRageSelectors.mockClear();
     mockUseAllMobileProj.mockClear();
+    mockUseLLMContext.mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -190,6 +197,40 @@ describe('ReplayList', () => {
     expect(screen.queryByText('Most Dead Clicks')).not.toBeInTheDocument();
     expect(screen.queryByText('Most Rage Clicks')).not.toBeInTheDocument();
     expect(mockFetchReplayListRequest).toHaveBeenCalled();
+  });
+
+  it('should render rage click card placeholders while widget prerequisites are loading', async () => {
+    const mockOrg = getMockOrganizationFixture({features: AM2_FEATURES});
+    mockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
+      fetching: false,
+      hasSentOneReplay: true,
+    });
+    mockUseProjectSdkNeedsUpdate.mockReturnValue({
+      isError: false,
+      isFetching: true,
+      needsUpdate: undefined,
+      data: undefined,
+    });
+
+    render(<ListPage />, {
+      organization: mockOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
+    });
+
+    await screen.findByTestId('replay-table');
+
+    expect(screen.getByText('Most Dead Clicks')).toBeInTheDocument();
+    expect(screen.getByText('Most Rage Clicks')).toBeInTheDocument();
+
+    const widgets = screen.getAllByTestId('selector-widget');
+    expect(widgets).toHaveLength(2);
+    expect(within(widgets[0]!).getAllByTestId('loading-placeholder')).toHaveLength(3);
+    expect(within(widgets[1]!).getAllByTestId('loading-placeholder')).toHaveLength(3);
+    expect(screen.getByRole('button', {name: 'Hide Widgets'})).toBeInTheDocument();
+    expect(mockUseLLMContext).toHaveBeenCalledWith(
+      expect.objectContaining({deadRageClickWidgetsVisible: true})
+    );
+    expect(mockUseDeadRageSelectors).not.toHaveBeenCalled();
   });
 
   it('should fetch the replay table when the org is on AM2, has sent some replays, and has a newer SDK version', async () => {

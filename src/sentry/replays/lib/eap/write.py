@@ -3,18 +3,13 @@ from datetime import datetime
 from typing import TypedDict
 
 import requests
-from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload
 from django.conf import settings
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue, KeyValue, KeyValueList
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem as EAPTraceItem
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.replays.lib.eap.snuba_transpiler import TRACE_ITEM_TYPE_MAP, TRACE_ITEM_TYPES
-from sentry.replays.lib.kafka import EAP_ITEMS_CODEC, eap_producer
 from sentry.utils.eap import EAP_ITEMS_INSERT_ENDPOINT
-from sentry.utils.kafka_config import get_topic_definition
 
 Value = bool | bytes | str | int | float | Sequence["Value"] | MutableMapping[str, "Value"]
 
@@ -93,11 +88,3 @@ def write_trace_items_test_suite(trace_items: list[EAPTraceItem]) -> None:
         },
     )
     assert response.status_code == 200
-
-
-def write_trace_items(trace_items: list[EAPTraceItem]) -> None:
-    """Publish trace-items to the EAP trace-items topic."""
-    topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
-    for trace_item in trace_items:
-        payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
-        eap_producer.produce(ArroyoTopic(topic), payload)

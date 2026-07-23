@@ -20,6 +20,7 @@ from sentry.services import eventstore
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.objectstore import debug_files_test_both_backends
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka, requires_symbolicator
 from sentry.utils import json
@@ -86,6 +87,7 @@ def load_fixture(name):
         return fp.read()
 
 
+@debug_files_test_both_backends
 class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, live_server):

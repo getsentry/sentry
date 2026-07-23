@@ -1,4 +1,4 @@
-from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 
 MOCK_RUN_ID = 123
 MOCK_GROUP_ID = 456
@@ -9,6 +9,7 @@ MOCK_SEER_WEBHOOKS = {
         "root_cause": {
             "description": "Test description",
             "steps": [{"title": "Step 1"}, {"title": "Step 2"}],
+            "five_whys": ["First reason", "Second reason"],
         },
     },
     SentryAppEventType.SEER_SOLUTION_COMPLETED: {

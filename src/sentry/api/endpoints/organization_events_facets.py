@@ -1,7 +1,6 @@
 from collections import defaultdict
 from typing import TypedDict
 
-import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,6 +14,7 @@ from sentry.api.utils import handle_query_errors, update_snuba_params_with_times
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.search.utils import DEVICE_CLASS
+from sentry.utils.tracing import set_span_data, start_span
 
 
 class _TopValue(TypedDict):
@@ -55,7 +55,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
         dataset = self.get_dataset(request, organization)
 
         def data_fn(offset, limit):
-            with sentry_sdk.start_span(op="discover.endpoint", name="discover_query"):
+            with start_span(op="discover.endpoint", name="discover_query"):
                 with handle_query_errors():
                     facets = dataset.get_facets(
                         query=request.GET.get("query"),
@@ -65,8 +65,8 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
                         cursor=offset,
                     )
 
-            with sentry_sdk.start_span(op="discover.endpoint", name="populate_results") as span:
-                span.set_data("facet_count", len(facets or []))
+            with start_span(op="discover.endpoint", name="populate_results") as span:
+                set_span_data(span, "facet_count", len(facets or []))
                 resp: dict[str, _KeyTopValues]
                 resp = defaultdict(lambda: {"key": "", "topValues": []})
                 for row in facets:

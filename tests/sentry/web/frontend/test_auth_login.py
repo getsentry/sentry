@@ -715,6 +715,51 @@ class AuthLoginCustomerDomainTest(TestCase):
             assert resp.status_code == 200
             self.assertTemplateUsed("sentry/login.html")
 
+    def test_authenticated_user_with_session_active_org_does_not_get_no_org_access(self) -> None:
+        visible_org = self.create_organization(owner=self.user)
+        self.create_organization(name="albertos-apples")
+        self.login_as(self.user)
+        self.session["activeorg"] = visible_org.slug
+        self.save_session()
+
+        with self.feature({"organizations:create": False}):
+            resp = self.client.get(
+                self.path,
+                HTTP_HOST="albertos-apples.testserver",
+                follow=True,
+            )
+
+            assert resp.status_code == 200
+            assert resp.redirect_chain == [
+                (f"http://testserver/organizations/{visible_org.slug}/issues/", 302)
+            ]
+
+    def test_authenticated_user_without_visible_org_still_gets_no_org_access(self) -> None:
+        user = self.create_user()
+        self.create_organization(name="albertos-apples")
+        self.login_as(user)
+
+        with self.feature({"organizations:create": False}):
+            resp = self.client.get(
+                self.path,
+                HTTP_HOST="albertos-apples.testserver",
+            )
+
+            assert resp.status_code == 403
+            self.assertTemplateUsed(resp, "sentry/no-organization-access.html")
+
+    def test_explicit_org_path_does_not_use_customer_domain_subdomain(self) -> None:
+        visible_org = self.create_organization(owner=self.user)
+        self.create_organization(name="albertos-apples")
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            reverse("sentry-organization-issue-list", args=[visible_org.slug]),
+            HTTP_HOST="albertos-apples.testserver",
+        )
+
+        assert resp.status_code == 200
+
     def test_login_valid_credentials(self) -> None:
         # load it once for test cookie
         with self.disable_registration():

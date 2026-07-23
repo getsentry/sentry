@@ -19,6 +19,7 @@ from .exporteddata import *  # noqa: F401,F403
 from .filechange import *  # noqa: F401,F403
 from .group import *  # noqa: F401,F403
 from .group_stream import *  # noqa: F401,F403
+from .groupactionlogentry import *  # noqa: F401,F403
 from .grouprelease import GroupReleaseSerializer, GroupReleaseWithStatsSerializer  # noqa: F401,F403
 from .groupseen import *  # noqa: F401,F403
 from .grouptombstone import *  # noqa: F401,F403
@@ -48,8 +49,8 @@ from .release_threshold import *  # noqa: F401,F403
 from .repository import *  # noqa: F401,F403
 from .role import *  # noqa: F401,F403
 from .rule import *  # noqa: F401,F403
-from .savedsearch import *  # noqa: F401,F403
 from .tagvalue import *  # noqa: F401,F403
 from .team import *  # noqa: F401,F403
 from .user_social_auth import *  # noqa: F401,F403
 from .userreport import *  # noqa: F401,F403
+from .weeklyreportprojectexclusion import *  # noqa: F401,F403

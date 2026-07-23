@@ -90,6 +90,7 @@ describe('useBootstrapOrganizationQuery', () => {
 
     const mockScope = {
       setTag: jest.fn(),
+      setAttributes: jest.fn(),
       setContext: jest.fn(),
     } as unknown as Scope;
     jest.spyOn(Sentry, 'getCurrentScope').mockReturnValue(mockScope);
@@ -112,6 +113,10 @@ describe('useBootstrapOrganizationQuery', () => {
     ]);
     expect(mockScope.setTag).toHaveBeenCalledWith('organization', org.id);
     expect(mockScope.setTag).toHaveBeenCalledWith('organization.slug', org.slug);
+    expect(mockScope.setAttributes).toHaveBeenCalledWith({
+      organization: org.id,
+      'organization.slug': org.slug,
+    });
     expect(mockScope.setContext).toHaveBeenCalledWith('organization', {
       id: org.id,
       slug: org.slug,

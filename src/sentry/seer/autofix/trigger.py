@@ -1,22 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import TYPE_CHECKING, Literal, Union
-
-from django.utils import timezone
-
-from sentry.seer.autofix.constants import (
-    AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
-    FixabilityScoreThresholds,
-)
-from sentry.utils.cache import cache
-
-# This timeout should be longer than what we expect the seer agents to take.
-# This is because we do not want to trigger another run while the previous
-# run is still running.
-#
-# NOTE: The timeout on the seer job is 5 minutes.
-SEER_AUTOMATION_TIMEOUT_SECONDS = 30 * 60
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -33,17 +17,8 @@ SeerAutomationIneligibilityReason = Literal[
 SeerAutomationSkipReason = Union[
     Literal[
         "already_has_fixability_score",
-        "already_triggered",
-        "already_triggered_explorer",
-        "automation_already_dispatched",
-        "below_occurrence_threshold",
-        "fixability_too_low",
-        "issue_too_old",
         "lock_already_held",
-        "no_connected_repos",
         "rate_limited",
-        "summary_already_cached",
-        "summary_already_dispatched",
     ],
     SeerAutomationIneligibilityReason,
 ]
@@ -114,75 +89,5 @@ def get_default_seer_automation_skip_reason(
 
     if is_seer_scanner_rate_limited(group.project, group.organization):
         return "rate_limited"
-
-    return None
-
-
-def get_seat_based_seer_automation_skip_reason(
-    group: Group,
-) -> SeerAutomationSkipReason | None:
-    """Return skip reason for the seat-based automation path, or None if eligible."""
-    from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
-    from sentry.seer.autofix.utils import (
-        has_project_connected_repos,
-        is_seer_scanner_rate_limited,
-    )
-
-    # If event count < threshold, only generate summary (no automation)
-    if group.times_seen_with_pending < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD:
-        # Check if summary exists in cache
-        cache_key = get_issue_summary_cache_key(group.id)
-        if cache.get(cache_key) is not None:
-            return "summary_already_cached"
-
-        # Early returns for eligibility checks (cheap checks first)
-        ineligibility_reason = get_seer_automation_ineligibility_reason(group)
-        if ineligibility_reason is not None:
-            return ineligibility_reason
-
-        # Atomically set cache to prevent duplicate summary generation
-        summary_dispatch_cache_key = f"seer-summary-dispatched:{group.id}"
-        if not cache.add(summary_dispatch_cache_key, True, timeout=30):
-            return "summary_already_dispatched"  # Another process already dispatched summary generation
-
-        # Rate limit check must be last, after cache.add succeeds, to avoid wasting quota
-        if is_seer_scanner_rate_limited(group.project, group.organization):
-            return "rate_limited"
-
-        return "below_occurrence_threshold"
-
-    # Event count >= threshold: run automation
-    # Long-term check to avoid re-running
-    if group.seer_autofix_last_triggered is not None:
-        return "already_triggered"
-
-    if group.seer_explorer_autofix_last_triggered is not None:
-        return "already_triggered_explorer"
-
-    # Don't run automation on old issues
-    if group.first_seen < (timezone.now() - timedelta(days=14)):
-        return "issue_too_old"
-
-    # Will not run issues if they are not fixable at MEDIUM threshold
-    if group.seer_fixability_score is not None:
-        if (
-            group.seer_fixability_score < FixabilityScoreThresholds.MEDIUM.value
-            and not group.issue_type.always_trigger_seer_automation
-        ):
-            return "fixability_too_low"
-
-    # Early returns for eligibility checks (cheap checks first)
-    ineligibility_reason = get_seer_automation_ineligibility_reason(group)
-    if ineligibility_reason is not None:
-        return ineligibility_reason
-
-    # Atomically set cache to prevent duplicate dispatches (returns False if key exists)
-    automation_dispatch_cache_key = f"seer-automation-dispatched:{group.id}"
-    if not cache.add(automation_dispatch_cache_key, True, timeout=SEER_AUTOMATION_TIMEOUT_SECONDS):
-        return "automation_already_dispatched"  # Another process already dispatched automation
-
-    # Check if project has connected repositories - requirement for new pricing
-    if not has_project_connected_repos(group.organization, group.project):
-        return "no_connected_repos"
 
     return None

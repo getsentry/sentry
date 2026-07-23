@@ -44,7 +44,6 @@ KNOWN_MISLEADING = {
     "robots\\.txt",
     "\\.well-known/security\\.txt",
     "favicon\\.ico",
-    "plugins/github/installations/webhook/",
 }
 KNOWN_MISROUTED = {
     # Cell endpoints with no org in the path

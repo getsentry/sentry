@@ -84,19 +84,19 @@ def test_subsegment_exposes_span_metadata() -> None:
 def test_evalsha_result_from_redis_result() -> None:
     segment_key = _segment_id(1, "a" * 32, "b" * 16)
     # The Lua script returns flattened [key1, value1, key2, value2, ...] lists.
-    latency_metrics = [b"operation", 12.0, b"another", 5.0]
+    latency_metrics = [b"operation_latency_us", 12500, b"another_latency_us", 500]
     gauge_metrics = [b"gauge", 3.0]
     merged_segment_span_ids = [b"c" * 16]
 
     result = EvalshaResult.from_redis_result(
-        [segment_key, True, 15, latency_metrics, gauge_metrics, merged_segment_span_ids]
+        [segment_key, True, 15000, latency_metrics, gauge_metrics, merged_segment_span_ids]
     )
 
     assert result == EvalshaResult(
         segment_key=segment_key,
         has_root_span=True,
-        latency_ms=15,
-        latency_metrics=[(b"operation", 12.0), (b"another", 5.0)],
+        latency_ms=15.0,
+        latency_metrics=[(b"operation_latency_ms", 12.5), (b"another_latency_ms", 0.5)],
         gauge_metrics=[(b"gauge", 3.0)],
         merged_segment_span_ids=merged_segment_span_ids,
     )
@@ -155,12 +155,12 @@ def test_inserted_subsegment_from_redis_result() -> None:
 
     inserted = InsertedSubsegment.from_redis_result(
         subsegment,
-        [segment_key, False, 12, [], [], []],
+        [segment_key, False, 12000, [], [], []],
     )
 
     assert inserted == InsertedSubsegment(
         subsegment,
-        EvalshaResult(segment_key, False, 12, [], [], []),
+        EvalshaResult(segment_key, False, 12.0, [], [], []),
     )
 
 

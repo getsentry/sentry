@@ -9,23 +9,20 @@ import {GroupActivityType} from 'sentry/types/group';
 
 import {getLinkedPullRequestActivityIds, LinkedPullRequests} from './linkedPullRequests';
 
-const LINKED_PULL_REQUESTS_FEATURE = 'issue-details-linked-pull-requests';
 const REPOSITORY_NAME = 'example/widget-app';
 
 describe('LinkedPullRequests', () => {
   const group = GroupFixture();
-  const organizationWithFeature = OrganizationFixture({
-    features: [LINKED_PULL_REQUESTS_FEATURE],
-  });
+  const organization = OrganizationFixture();
   const repository = RepositoryFixture({
     id: '42',
     name: REPOSITORY_NAME,
     provider: {id: 'integrations:github', name: 'GitHub'},
   });
 
-  it('renders linked pull requests when the feature is enabled', async () => {
+  it('renders linked pull requests', async () => {
     const pullRequestsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organizationWithFeature.slug}/issues/${group.id}/pull-requests/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
       body: {
         pullRequests: [
           {
@@ -59,7 +56,7 @@ describe('LinkedPullRequests', () => {
     });
 
     render(<LinkedPullRequests group={group} />, {
-      organization: organizationWithFeature,
+      organization,
     });
 
     const list = await screen.findByRole('list', {name: 'Linked pull requests'});

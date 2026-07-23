@@ -31,8 +31,12 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
         """
 
         try:
-            data_export = ExportedData.objects.get(id=data_export_id, organization=organization)
+            data_export = ExportedData.objects.get(
+                id=data_export_id, organization=organization, user_id=request.user.id
+            )
         except ExportedData.DoesNotExist:
+            if ExportedData.objects.filter(id=data_export_id, organization=organization).exists():
+                metrics.incr("dataexport.details.cross_user_access", sample_rate=1.0)
             return Response(status=404)
         # Check data export permissions
         if data_export.query_info.get("project"):

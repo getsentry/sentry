@@ -1,6 +1,7 @@
 from drf_spectacular.utils import OpenApiExample
 
 from sentry.api.endpoints.organization_trace_meta_types import OrganizationTraceMetaResponse
+from sentry.snuba.trace import SerializedSpan
 
 TRACE_META: OrganizationTraceMetaResponse = {
     "errorsCount": 0,
@@ -20,7 +21,7 @@ TRACE_META: OrganizationTraceMetaResponse = {
 }
 
 
-TRACE_SPAN = {
+TRACE_SPAN: SerializedSpan = {
     "event_id": "0123456789abcdef0123456789abcdef",
     "event_type": "span",
     "transaction_id": "280027d94f30428c83a2de46f932612a",
@@ -35,10 +36,13 @@ TRACE_SPAN = {
     "profiler_id": "",
     "sdk_name": "sentry.python",
     "is_transaction": True,
-    "start_timestamp": "2026-04-15T18:22:31.000000Z",
-    "end_timestamp": "2026-04-15T18:22:31.250000Z",
+    "start_timestamp": 1776277351.0,
+    "end_timestamp": 1776277351.25,
     "duration": 250.0,
-    "measurements": {},
+    "measurements": {
+        "measurements.frames_slow_rate": 0.02,
+        "measurements.frames_frozen_rate": 0.01,
+    },
     "browser_web_vital": {
         "browser.web_vital.lcp.value": 2807.335,
         "browser.web_vital.cls.value": 0.0382,

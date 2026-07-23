@@ -512,4 +512,81 @@ describe('useConversation', () => {
     expect(result.current.nodes).toHaveLength(1);
     expect(result.current.nodes[0]?.id).toBe('span-ai');
   });
+
+  it('maps errors and occurrences from the response onto the node', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-issues/`,
+      body: [
+        {
+          ...BASE_SPAN,
+          'gen_ai.conversation.id': 'conv-issues',
+          span_id: 'span-issues',
+          errors: [
+            {
+              event_id: 'error-1',
+              event_type: 'error',
+              issue_id: 111,
+              level: 'error',
+              project_id: 1,
+              project_slug: 'test-project',
+              start_timestamp: 1000,
+              transaction: 'gen_ai.generate',
+            },
+          ],
+          occurrences: [
+            {
+              event_id: 'occurrence-1',
+              event_type: 'occurrence',
+              issue_id: 222,
+              issue_type: 1001,
+              level: 'info',
+              culprit: 'culprit',
+              description: 'Slow thing',
+              project_id: 1,
+              project_slug: 'test-project',
+              start_timestamp: 1000,
+              transaction: 'gen_ai.generate',
+            },
+          ],
+        },
+      ],
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-issues'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const node = result.current.nodes[0];
+    expect(node?.uniqueErrorIssues.map(issue => issue.issue_id)).toEqual([111]);
+    expect(node?.uniqueOccurrenceIssues.map(issue => issue.issue_id)).toEqual([222]);
+    expect(node?.uniqueIssues.map(issue => issue.issue_id)).toEqual([111, 222]);
+  });
+
+  it('defaults to no issues when the response omits errors and occurrences', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-no-issues/`,
+      body: [
+        {...BASE_SPAN, 'gen_ai.conversation.id': 'conv-no-issues', span_id: 'span-x'},
+      ],
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-no-issues'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const node = result.current.nodes[0];
+    expect(node?.uniqueIssues).toEqual([]);
+    expect(node?.uniqueErrorIssues).toEqual([]);
+    expect(node?.uniqueOccurrenceIssues).toEqual([]);
+  });
 });

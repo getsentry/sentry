@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import IntEnum, unique
+from functools import total_ordering
 from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
 from django.core.cache import cache
@@ -120,6 +121,7 @@ def build_metric_abuse_quotas() -> list[AbuseQuota]:
     return quotas
 
 
+@total_ordering
 class QuotaConfig:
     """
     Abstract configuration for a quota.
@@ -237,6 +239,46 @@ class QuotaConfig:
 
     def __repr__(self) -> str:
         return str(self.to_json())
+
+    def _comparison_key(self) -> tuple[object, ...]:
+        """A total, deterministic key describing this quota by value.
+
+        ``QuotaConfig`` instances are not persisted and are rebuilt independently on
+        each call, so equality and ordering must be value-based rather than
+        identity-based. ``categories`` is a ``set``, so its members are sorted here to
+        keep the key stable. Optional fields are encoded as ``(present, value)`` pairs
+        so ``None`` never has to be compared against a concrete value.
+        """
+        categories = tuple(sorted(str(category) for category in self.categories))
+        return (
+            self.id is not None,
+            "" if self.id is None else str(self.id),
+            int(self.scope) if self.scope is not None else -1,
+            self.scope_id is not None,
+            self.scope_id or "",
+            categories,
+            self.limit is not None,
+            self.limit if self.limit is not None else 0,
+            self.window is not None,
+            self.window if self.window is not None else 0,
+            self.reason_code is not None,
+            self.reason_code or "",
+            self.namespace is not None,
+            self.namespace or "",
+        )
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, QuotaConfig):
+            return NotImplemented
+        return self._comparison_key() == other._comparison_key()
+
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, QuotaConfig):
+            return NotImplemented
+        return self._comparison_key() < other._comparison_key()
+
+    def __hash__(self) -> int:
+        return hash(self._comparison_key())
 
 
 class RateLimit:

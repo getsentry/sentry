@@ -93,6 +93,8 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
         assert configuration.get_sample_rate() == 0.25
+        # Blended rate is below 100%, so serving is not gated and matches the usage rate.
+        assert configuration.get_serving_sample_rate() == 0.25
         get_volume.assert_called_once()
         assert get_volume.call_args.kwargs["time_interval"] == timedelta(
             hours=FALLBACK_SLIDING_WINDOW_SIZE
@@ -103,6 +105,34 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             total_root_count=1000,
             window_size=FALLBACK_SLIDING_WINDOW_SIZE,
         )
+
+    def test_blended_full_sample_rate_gates_only_the_serving_rate(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org)
+        sliding_window_volume = OrganizationDataVolume(org_id=org.id, total=1000, indexed=250)
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=1.0,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                return_value=sliding_window_volume,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.compute_sliding_window_sample_rate",
+                return_value=0.25,
+            ),
+        ):
+            configuration = get_configuration(org.id)
+
+        assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
+        # get_sample_rate stays ungated so balancing + comparison align with the legacy cache,
+        # which is also ungated (usage-based).
+        assert configuration.get_sample_rate() == 0.25
+        # The blended-100% gate applies only at serve time, mirroring legacy serving.
+        assert configuration.get_serving_sample_rate() == 1.0
 
     def test_subscription_backed_org_falls_back_to_blended_sample_rate_without_volume(
         self,

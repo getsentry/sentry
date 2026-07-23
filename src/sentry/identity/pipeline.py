@@ -11,7 +11,6 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from sentry.identity.base import Provider
-from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
@@ -23,6 +22,7 @@ from sentry.pipeline.store import PipelineSessionStore
 from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity, IdentityProvider, OrganizationIdentity
 from sentry.utils import metrics
+from sentry.utils.auth import is_valid_relative_redirect
 
 from . import default_manager
 
@@ -54,6 +54,8 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
         return self.provider.get_pipeline_views()
 
     def finish_pipeline(self) -> HttpResponseBase:
+        from sentry.integrations.base import IntegrationDomain
+
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.IDENTITY_LINK,
             IntegrationDomain.IDENTITY,
@@ -119,7 +121,12 @@ class IdentityPipeline(Pipeline[IdentityProvider, PipelineSessionStore]):
                 skip_internal=False,
             )
 
+            return_url = self.config.get("return_url")
+
             self.state.clear()
+
+            if return_url and is_valid_relative_redirect(return_url):
+                return HttpResponseRedirect(return_url)
 
             # TODO(epurkhiser): When we have more identities and have built out an
             # identity management page that supports these new identities (not

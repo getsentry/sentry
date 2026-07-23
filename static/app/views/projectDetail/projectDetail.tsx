@@ -37,7 +37,7 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
 import {ProjectScoreCards} from './projectScoreCards/projectScoreCards';
-import ProjectCharts from './projectCharts';
+import {ProjectCharts} from './projectCharts';
 import {ProjectFilters} from './projectFilters';
 import {ProjectIssues} from './projectIssues';
 import {ProjectLatestAlerts} from './projectLatestAlerts';

@@ -326,10 +326,6 @@ const mockGroupApis = (
         ok: true,
         reason: null,
       },
-      githubWriteIntegration: {
-        ok: true,
-        repos: [],
-      },
     }),
   });
   MockApiClient.addMockResponse({

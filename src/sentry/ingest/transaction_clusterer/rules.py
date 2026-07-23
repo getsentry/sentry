@@ -155,6 +155,15 @@ class CompositeRuleStore:
                     "discarded_rules": sorted_rules[self.MERGE_MAX_RULES :],
                 },
             )
+            sentry_sdk.get_isolation_scope().set_attribute(
+                "clustering_rules_max.num_existing_rules", len(rules)
+            )
+            sentry_sdk.get_isolation_scope().set_attribute(
+                "clustering_rules_max.max_amount", self.MERGE_MAX_RULES
+            )
+            sentry_sdk.get_isolation_scope().set_attribute(
+                "clustering_rules_max.discarded_rules", repr(sorted_rules[self.MERGE_MAX_RULES :])
+            )
             sentry_sdk.set_tag("namespace", self._namespace.value.name)
             sentry_sdk.set_attribute("namespace", self._namespace.value.name)
             sentry_sdk.capture_message("Clusterer discarded rules", level="warning")

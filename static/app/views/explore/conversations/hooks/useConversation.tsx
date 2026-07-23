@@ -12,10 +12,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
+import {AiSpanDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/aiSpanDetails';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 
 export interface UseConversationsOptions {
   conversationId: string;
@@ -37,6 +36,7 @@ interface ConversationApiSpan {
   'span.status': string;
   span_id: string;
   trace: string;
+  errors?: TraceTree.EAPError[];
   'gen_ai.agent.name'?: string;
   'gen_ai.cost.total_tokens'?: number;
   'gen_ai.input.messages'?: string;
@@ -48,9 +48,12 @@ interface ConversationApiSpan {
   'gen_ai.response.object'?: string;
   'gen_ai.response.text'?: string;
   'gen_ai.tool.call.arguments'?: string;
+  'gen_ai.tool.call.result'?: string;
   'gen_ai.tool.input'?: string;
   'gen_ai.tool.name'?: string;
+  'gen_ai.tool.output'?: string;
   'gen_ai.usage.total_tokens'?: number;
+  occurrences?: TraceTree.EAPOccurrence[];
   'span.description'?: string;
   'span.op'?: string;
   'user.email'?: string;
@@ -75,7 +78,7 @@ interface UseConversationResult {
 
 /**
  * Creates a node-like object from a flat API span response so existing UI
- * components (AISpanList, MessagesPanel) work without full trace fetches.
+ * components (AiSpanTimeline, MessagesPanel) work without full trace fetches.
  */
 function createNodeFromApiSpan(
   apiSpan: ConversationApiSpan,
@@ -105,8 +108,8 @@ function createNodeFromApiSpan(
     transaction: '',
     transaction_id: '',
     name: apiSpan['span.name'] || '',
-    errors: [],
-    occurrences: [],
+    errors: apiSpan.errors ?? [],
+    occurrences: apiSpan.occurrences ?? [],
     additional_attributes: {
       [SpanFields.GEN_AI_CONVERSATION_ID]: apiSpan['gen_ai.conversation.id'],
       [SpanFields.GEN_AI_INPUT_MESSAGES]: apiSpan['gen_ai.input.messages'] ?? '',
@@ -120,7 +123,9 @@ function createNodeFromApiSpan(
       [SpanFields.GEN_AI_AGENT_NAME]: apiSpan['gen_ai.agent.name'] ?? '',
       [SpanFields.GEN_AI_TOOL_NAME]: apiSpan['gen_ai.tool.name'] ?? '',
       'gen_ai.tool.call.arguments': apiSpan['gen_ai.tool.call.arguments'] ?? '',
+      'gen_ai.tool.call.result': apiSpan['gen_ai.tool.call.result'] ?? '',
       'gen_ai.tool.input': apiSpan['gen_ai.tool.input'] ?? '',
+      'gen_ai.tool.output': apiSpan['gen_ai.tool.output'] ?? '',
       [SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: apiSpan['gen_ai.usage.total_tokens'] ?? 0,
       [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: apiSpan['gen_ai.cost.total_tokens'] ?? 0,
       [SpanFields.SPAN_STATUS]: apiSpan['span.status'],
@@ -134,7 +139,20 @@ function createNodeFromApiSpan(
   const startMs = value.start_timestamp * 1e3;
   const durationMs = (value.end_timestamp - value.start_timestamp) * 1e3;
   const parentSpanId = apiSpan.parent_span;
-  const errors = new Set<TraceTree.TraceError>();
+
+  const dedupeByIssueId = <T extends {issue_id: number}>(issues: T[]): T[] => {
+    const seen = new Set<number>();
+    return issues.filter(issue => {
+      if (seen.has(issue.issue_id)) {
+        return false;
+      }
+      seen.add(issue.issue_id);
+      return true;
+    });
+  };
+
+  const uniqueErrorIssues = dedupeByIssueId(value.errors);
+  const uniqueOccurrenceIssues = dedupeByIssueId(value.occurrences);
 
   const node = {
     id: apiSpan.span_id,
@@ -148,10 +166,16 @@ function createNodeFromApiSpan(
     endTimestamp: value.end_timestamp,
     projectSlug: value.project_slug,
     attributes: value.additional_attributes,
-    errors,
+    errors: new Set<TraceTree.TraceErrorIssue>(value.errors),
+    occurrences: new Set<TraceTree.TraceOccurrence>(value.occurrences),
     profileId: undefined,
     profilerId: undefined,
-    uniqueIssues: [] as TraceTree.TraceIssue[],
+    uniqueErrorIssues,
+    uniqueOccurrenceIssues,
+    uniqueIssues: [
+      ...uniqueErrorIssues,
+      ...uniqueOccurrenceIssues,
+    ] as TraceTree.TraceIssue[],
 
     findClosestParentTransaction: () => null,
     findParent<T>(predicate: (node: T) => boolean): T | null {
@@ -171,7 +195,7 @@ function createNodeFromApiSpan(
     findParentEapTransaction: () => null,
 
     renderDetails(props: TraceTreeNodeDetailsProps<AITraceSpanNode>) {
-      return <EAPSpanNodeDetails {...props} node={this as unknown as EapSpanNode} />;
+      return <AiSpanDetails node={props.node} traceId={props.traceId} />;
     },
   };
 
@@ -269,7 +293,12 @@ export function useConversation(
   }, [allSpans]);
 
   if (!conversation.conversationId) {
-    return {nodes: [], nodeTraceMap: new Map(), isLoading: false, error: false};
+    return {
+      nodes: [],
+      nodeTraceMap: new Map(),
+      isLoading: false,
+      error: false,
+    };
   }
 
   return {

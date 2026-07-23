@@ -17,6 +17,7 @@ from sentry.options.rollout import in_random_rollout
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.flag import record_feature_flag
+from sentry.utils.tracing import set_span_data, start_span
 from sentry.utils.types import Dict
 
 from .base import Feature, FeatureHandlerStrategy
@@ -110,14 +111,14 @@ class RegisteredFeatureManager:
                 if not remaining:
                     break
 
-                with sentry_sdk.start_span(
+                with start_span(
                     op="feature.has_for_batch.handler",
                     name=f"{type(handler).__name__} ({name})",
                 ) as span:
                     batch_size = len(remaining)
-                    span.set_data("Batch Size", batch_size)
-                    span.set_data("Feature Name", name)
-                    span.set_data("Handler Type", type(handler).__name__)
+                    set_span_data(span, "Batch Size", batch_size)
+                    set_span_data(span, "Feature Name", name)
+                    set_span_data(span, "Handler Type", type(handler).__name__)
 
                     batch = FeatureCheckBatch(self, name, organization, remaining, actor)
                     handler_result = handler.has_for_batch(batch)
@@ -125,7 +126,7 @@ class RegisteredFeatureManager:
                         if flag is not None:
                             remaining.remove(obj)
                             result[obj] = flag
-                    span.set_data("Flags Found", batch_size - len(remaining))
+                    set_span_data(span, "Flags Found", batch_size - len(remaining))
 
             default_flag = settings.SENTRY_FEATURES.get(name, False)
             for obj in remaining:

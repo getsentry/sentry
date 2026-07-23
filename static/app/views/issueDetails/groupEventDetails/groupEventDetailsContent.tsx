@@ -36,7 +36,6 @@ import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import {DebugMetaSearchProvider} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {Exception} from 'sentry/components/events/interfaces/exception';
-import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {EventTraceView} from 'sentry/components/events/interfaces/performance/eventTraceView';
@@ -68,7 +67,8 @@ import {
 } from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {LowValueSpanIssueDetails} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanIssueDetails';
+import {LowValueSpanProblemSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanProblemSection';
+import {LowValueSpanTroubleshootingSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanTroubleshootingSection';
 import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
@@ -124,11 +124,7 @@ export function EventDetailsContent({
   const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   if (group.issueType === IssueType.SOURCEMAP_CONFIGURATION) {
-    return <SourceMapIssueDetails group={group} event={event} project={project} />;
-  }
-
-  if (group.issueType === IssueType.LOW_VALUE_SPAN_CONFIGURATION) {
-    return <LowValueSpanIssueDetails group={group} event={event} project={project} />;
+    return <SourceMapIssueDetails event={event} project={project} />;
   }
 
   return (
@@ -145,6 +141,25 @@ export function EventDetailsContent({
       {event.userReport && (
         <FoldSection title={t('User Feedback')} sectionKey={SectionKey.USER_FEEDBACK}>
           <EventUserFeedback report={event.userReport} />
+        </FoldSection>
+      )}
+      {issueTypeConfig.configurationProblem.enabled && (
+        <FoldSection sectionKey={SectionKey.CONFIGURATION_PROBLEM} title={t('Problem')}>
+          {/* Low-value spans is the only consumer of configurationProblem today;
+              the implementation will be generalized once more configuration
+              issues opt into this flag. */}
+          <LowValueSpanProblemSection event={event} />
+        </FoldSection>
+      )}
+      {issueTypeConfig.configurationTroubleshooting.enabled && (
+        <FoldSection
+          sectionKey={SectionKey.CONFIGURATION_TROUBLESHOOTING}
+          title={t('Troubleshooting')}
+        >
+          {/* Low-value spans is the only consumer of configurationTroubleshooting
+              today; the implementation will be generalized once more
+              configuration issues opt into this flag. */}
+          <LowValueSpanTroubleshootingSection event={event} project={project} />
         </FoldSection>
       )}
       <EventEvidence event={event} group={group} project={project} />
@@ -280,38 +295,13 @@ export function EventDetailsContent({
         <MetricDetectorTriggeredSection group={group} event={event} />
       </ErrorBoundary>
       <ErrorBoundary customComponent={() => null}>
-        <SizeAnalysisTriggeredSection group={group} event={event} />
+        <SizeAnalysisTriggeredSection event={event} />
       </ErrorBoundary>
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
-      {defined(eventEntries[EntryType.HPKP]) && (
-        <EntryErrorBoundary type={EntryType.HPKP}>
-          <Generic
-            type={EntryType.HPKP}
-            data={eventEntries[EntryType.HPKP].data}
-            meta={event._meta?.hpkp ?? {}}
-          />
-        </EntryErrorBoundary>
-      )}
       {defined(eventEntries[EntryType.CSP]) && (
         <EntryErrorBoundary type={EntryType.CSP}>
           <Csp event={event} data={eventEntries[EntryType.CSP].data} />
-        </EntryErrorBoundary>
-      )}
-      {defined(eventEntries[EntryType.EXPECTCT]) && (
-        <EntryErrorBoundary type={EntryType.EXPECTCT}>
-          <Generic
-            type={EntryType.EXPECTCT}
-            data={eventEntries[EntryType.EXPECTCT].data}
-          />
-        </EntryErrorBoundary>
-      )}
-      {defined(eventEntries[EntryType.EXPECTSTAPLE]) && (
-        <EntryErrorBoundary type={EntryType.EXPECTSTAPLE}>
-          <Generic
-            type={EntryType.EXPECTSTAPLE}
-            data={eventEntries[EntryType.EXPECTSTAPLE].data}
-          />
         </EntryErrorBoundary>
       )}
       {defined(eventEntries[EntryType.TEMPLATE]) && (
@@ -330,7 +320,8 @@ export function EventDetailsContent({
           <MetricsSection event={event} group={group} project={project} />
         </Feature>
       </ErrorBoundary>
-      {event.contexts.trace?.trace_id &&
+      {issueTypeConfig.trace.enabled &&
+        event.contexts.trace?.trace_id &&
         organization.features.includes('performance-view') && (
           <EventTraceView group={group} event={event} organization={organization} />
         )}
@@ -344,7 +335,7 @@ export function EventDetailsContent({
           <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
         </Fragment>
       ) : null}
-      <EventContexts event={event} />
+      {issueTypeConfig.contexts.enabled && <EventContexts event={event} />}
       <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
         <EventFeatureFlagSection group={group} project={project} event={event} />
       </ErrorBoundary>

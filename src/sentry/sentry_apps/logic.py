@@ -29,21 +29,21 @@ from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiscopes import add_scope_hierarchy
 from sentry.models.apitoken import ApiToken
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppInteractionEvent,
     SentryAppInteractionType,
 )
 from sentry.sentry_apps.models.sentry_app import (
     MASKED_VALUE,
-    REQUIRED_EVENT_PERMISSIONS,
     UUID_CHARS_IN_SLUG,
     SentryApp,
     default_uuid,
+    required_scope_for_subscription,
 )
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -80,7 +80,7 @@ def expand_events(rolled_up_events: list[str]) -> list[str]:
     Can also be given a list of event types (e.g. ['issue.created', 'issue.resolved'])
     """
 
-    expanded_events = []
+    expanded_events: list[str] = []
     for event in rolled_up_events:
         if event in EVENT_EXPANSION:
             expanded_events.extend(EVENT_EXPANSION.get(SentryAppResourceType(event), [event]))
@@ -206,7 +206,7 @@ class SentryAppUpdater:
     def _update_events(self) -> None:
         if self.events is not None:
             for event in self.events:
-                needed_scope = REQUIRED_EVENT_PERMISSIONS[event]
+                needed_scope = required_scope_for_subscription(event)
                 if needed_scope not in self.sentry_app.scope_list:
                     raise ParseError(
                         detail=f"{event} webhooks require the {needed_scope} permission."

@@ -4,7 +4,7 @@ from typing import Any, Literal, Protocol, TypedDict
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.autofix.utils import CodingAgentProviderType
-from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 
 
 class SeerEntrypointKey(StrEnum):

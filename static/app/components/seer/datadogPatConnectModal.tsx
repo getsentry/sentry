@@ -5,7 +5,7 @@ import {useMutation} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -15,21 +15,12 @@ import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-
-const DATADOG_SITES = [
-  {value: 'datadoghq.com', label: 'datadoghq.com (US1)'},
-  {value: 'us3.datadoghq.com', label: 'us3.datadoghq.com (US3)'},
-  {value: 'us5.datadoghq.com', label: 'us5.datadoghq.com (US5)'},
-  {value: 'datadoghq.eu', label: 'datadoghq.eu (EU)'},
-  {value: 'ddog-gov.com', label: 'ddog-gov.com (US1-FED)'},
-  {value: 'us2.ddog-gov.com', label: 'us2.ddog-gov.com (US2-FED)'},
-  {value: 'ap1.datadoghq.com', label: 'ap1.datadoghq.com (AP1)'},
-  {value: 'ap2.datadoghq.com', label: 'ap2.datadoghq.com (AP2)'},
-];
+import {DATADOG_SITES} from 'sentry/utils/seer/datadogSites';
 
 interface DatadogPatConnectModalProps extends ModalRenderProps {
   onSuccess: () => void;
   orgSlug: string;
+  isReauth?: boolean;
 }
 
 export function DatadogPatConnectModal({
@@ -39,6 +30,7 @@ export function DatadogPatConnectModal({
   closeModal,
   onSuccess,
   orgSlug,
+  isReauth = false,
 }: DatadogPatConnectModalProps) {
   const [accessToken, setAccessToken] = useState('');
   const [site, setSite] = useState('datadoghq.com');
@@ -47,7 +39,7 @@ export function DatadogPatConnectModal({
   const connectMutation = useMutation({
     mutationFn: () =>
       fetchMutation<void>({
-        method: 'POST',
+        method: isReauth ? 'PUT' : 'POST',
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/monitoring-providers/$providerKey/',
           {
@@ -57,7 +49,7 @@ export function DatadogPatConnectModal({
             },
           }
         ),
-        data: {access_token: accessToken, site},
+        data: isReauth ? {access_token: accessToken} : {access_token: accessToken, site},
       }),
     onSuccess: () => {
       closeModal();
@@ -82,11 +74,15 @@ export function DatadogPatConnectModal({
   return (
     <form onSubmit={handleSubmit}>
       <Header>
-        <h4>{t('Connect Datadog (Personal Access Token)')}</h4>
+        <h4>
+          {isReauth
+            ? t('Reconnect Datadog (Personal Access Token)')
+            : t('Connect Datadog (Personal Access Token)')}
+        </h4>
       </Header>
       <Body>
-        <Flex direction="column" gap="md">
-          <Flex direction="column" gap="xs">
+        <Stack gap="md">
+          <Stack gap="xs">
             <Text as="label" htmlFor="datadog-pat-token">
               {t('Access Token')}
             </Text>
@@ -98,20 +94,25 @@ export function DatadogPatConnectModal({
               placeholder={t('Enter your Datadog personal access token')}
               aria-label={t('Access Token')}
             />
-          </Flex>
-          <Flex direction="column" gap="xs">
-            <Text as="label">{t('Datadog Site')}</Text>
-            <StyledCompactSelect
-              value={site}
-              options={DATADOG_SITES}
-              onChange={option => setSite(String(option.value))}
-              trigger={triggerProps => (
-                <OverlayTrigger.Button {...triggerProps} aria-label={t('Datadog Site')} />
-              )}
-            />
-          </Flex>
+          </Stack>
+          {!isReauth && (
+            <Stack gap="xs">
+              <Text as="label">{t('Datadog Site')}</Text>
+              <StyledCompactSelect
+                value={site}
+                options={DATADOG_SITES}
+                onChange={option => setSite(String(option.value))}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button
+                    {...triggerProps}
+                    aria-label={t('Datadog Site')}
+                  />
+                )}
+              />
+            </Stack>
+          )}
           {formError ? <ErrorText role="alert">{formError}</ErrorText> : null}
-        </Flex>
+        </Stack>
       </Body>
       <Footer>
         <Flex gap="sm" align="center" justify="end">

@@ -8,7 +8,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
 type TPayload = {note?: NoteType; noteId?: string};
 type TMethod = 'PUT' | 'POST' | 'DELETE';
@@ -40,15 +40,10 @@ interface Props {
 export function useMutateActivity({organization, group}: Props) {
   const queryClient = useQueryClient();
 
-  // The group's activity is not environment-specific, but the group query key
-  // includes the selected environment. Match every environment variant of the
-  // group query (they share the same URL, which is queryKey[0]) so switching
-  // environments doesn't read a stale cache entry missing the mutated comment.
-  const groupQueryUrl = groupApiOptions({
+  const queryKey = groupQueryKey({
     organizationSlug: organization.slug,
     groupId: group.id,
-    environments: [],
-  }).queryKey[0];
+  });
 
   const {mutateAsync} = useMutation<TData, TError, TVariables>({
     mutationFn: ([{note, noteId}, method]) => {
@@ -66,7 +61,7 @@ export function useMutateActivity({organization, group}: Props) {
     },
     onSuccess: (result, [{noteId}, method]) => {
       queryClient.setQueriesData<ApiResponse<Group>>(
-        {predicate: query => query.queryKey[0] === groupQueryUrl},
+        {queryKey},
         (prev): ApiResponse<Group> | undefined => {
           if (!prev) {
             return prev;

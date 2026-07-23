@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
+  useSearchQueryBuilderAI,
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
@@ -11,6 +12,9 @@ import type {DateString} from 'sentry/types/core';
 import type {PageFilters} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useProjects} from 'sentry/utils/useProjects';
+import {parseTraceMetricFromQuery} from 'sentry/views/explore/metrics/utils';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
+import {makeCrossEvent} from 'sentry/views/explore/spans/crossEvents/utils';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 
 import type {
@@ -19,17 +23,25 @@ import type {
   SeerRawResponse,
   SeerRawResponseItem,
 } from './types';
-import {getExpandedProjectIds} from './utils';
+import {getExpandedProjectIds, normalizeSeerDateTimeParams} from './utils';
 
 export function useInitialSeerQuery(): string {
   const {query, committedQuery, parseQuery} = useSearchQueryBuilderState();
+  const {autoSubmitFromCurrentQuery, autoSubmitSeer, displayAskSeer} =
+    useSearchQueryBuilderAI();
   const {currentInputValueRef} = useSearchQueryBuilderLayout();
+  const isAutoSubmittingCurrentQuery =
+    autoSubmitFromCurrentQuery && autoSubmitSeer && displayAskSeer;
 
   const queryDetails = useMemo(() => {
-    const queryToUse = committedQuery.length > 0 ? committedQuery : query;
+    let queryToUse = query;
+    if (!isAutoSubmittingCurrentQuery && committedQuery.length > 0) {
+      queryToUse = committedQuery;
+    }
+
     const parsedQuery = parseQuery(queryToUse);
     return {parsedQuery, queryToUse};
-  }, [committedQuery, query, parseQuery]);
+  }, [committedQuery, isAutoSubmittingCurrentQuery, parseQuery, query]);
 
   const inputValue = currentInputValueRef.current.trim();
 
@@ -37,7 +49,11 @@ export function useInitialSeerQuery(): string {
   const filteredCommittedQuery = queryDetails?.parsedQuery
     ?.filter(
       token =>
-        !(token.type === Token.FREE_TEXT && inputValue && token.text.includes(inputValue))
+        !(
+          token.type === Token.FREE_TEXT &&
+          inputValue &&
+          (isAutoSubmittingCurrentQuery || token.text.includes(inputValue))
+        )
     )
     ?.map(token => stringifyToken(token))
     ?.join(' ')
@@ -147,11 +163,33 @@ export function buildSeerMutationResult<T extends QueryTokensProps>(
   };
 }
 
+function buildCrossEvents(item: SeerRawResponseItem): CrossEvent[] {
+  const crossEvents: CrossEvent[] = [];
+  if (item.span_query) {
+    crossEvents.push(makeCrossEvent('spans', item.span_query));
+  }
+  if (item.log_query) {
+    crossEvents.push(makeCrossEvent('logs', item.log_query));
+  }
+  if (item.metric_query) {
+    // A metric cross-event needs a parseable metric identity (metric.name/type)
+    // in the query. parseTraceMetricFromQuery returns no metric when it's absent
+    // (e.g. an aggregate-mode sibling whose identity lives in the visualization),
+    // and we drop the cross-event in that case.
+    const {metric, rest} = parseTraceMetricFromQuery(item.metric_query);
+    if (metric) {
+      crossEvents.push({type: 'metrics', query: rest, metric});
+    }
+  }
+  return crossEvents;
+}
+
 export function mapSeerResponseItem(
   item: SeerRawResponseItem,
   defaultMode = 'samples'
 ): AskSeerSearchQuery {
   const interval = getRawSeerInterval(item);
+  const crossEvents = defaultMode === 'spans' ? buildCrossEvents(item) : [];
   return {
     visualizations:
       item.visualization
@@ -170,6 +208,7 @@ export function mapSeerResponseItem(
     end: item.end ?? null,
     mode: item.mode || defaultMode,
     ...(interval ? {interval} : {}),
+    ...(crossEvents.length ? {crossEvents} : {}),
   };
 }
 
@@ -198,23 +237,31 @@ export function buildSeerDateTimeSelection(
   statsPeriod: string,
   pageFiltersDatetime: PageFilters['datetime']
 ): SeerDateTimeSelection {
-  let start: DateString = null;
-  let end: DateString = null;
+  const normalized = normalizeSeerDateTimeParams({
+    start: resultStart,
+    end: resultEnd,
+    statsPeriod,
+  });
 
-  if (resultStart && resultEnd) {
-    start = getUtcDateString(resultStart);
-    end = getUtcDateString(resultEnd);
-  } else {
-    start = pageFiltersDatetime.start;
-    end = pageFiltersDatetime.end;
+  if (normalized.statsPeriod) {
+    return {
+      start: null,
+      end: null,
+      period: normalized.statsPeriod,
+      utc: null,
+    };
   }
 
-  return {
-    start,
-    end,
-    // Seer returns absolute ranges as UTC, so display them in UTC to match the
-    // suggestion preview the user accepted.
-    utc: resultStart && resultEnd ? true : pageFiltersDatetime.utc,
-    period: resultStart && resultEnd ? null : statsPeriod || pageFiltersDatetime.period,
-  };
+  if (normalized.start && normalized.end) {
+    return {
+      start: getUtcDateString(normalized.start),
+      end: getUtcDateString(normalized.end),
+      period: null,
+      // Seer returns absolute ranges as UTC, so display them in UTC to match
+      // the suggestion preview the user accepted.
+      utc: true,
+    };
+  }
+
+  return {...pageFiltersDatetime};
 }

@@ -118,6 +118,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
           : undefined,
       supportedAggregates:
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+      defaultToAskSeerOnFreeTextSearch: true,
       replaceRawSearchKeys: ['span.description'],
       matchKeySuggestions: [
         {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
@@ -168,8 +169,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                 <Grid
                   gap="md"
                   columns={{
-                    sm: '1fr',
-                    md: 'minmax(300px, auto) 1fr min-content',
+                    'screen:sm': '1fr',
+                    'screen:md': 'minmax(300px, auto) 1fr min-content',
                   }}
                 >
                   <StyledPageFilterBar condensed>

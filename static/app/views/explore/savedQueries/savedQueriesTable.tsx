@@ -247,6 +247,7 @@ export function SavedQueriesTable({
                 query={query.query[0].query}
                 visualizes={query.query[0].visualize}
                 groupBys={query.query[0].groupby}
+                agent={query.agent}
               />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="created-by">

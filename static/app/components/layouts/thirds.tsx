@@ -29,7 +29,12 @@ export function Page(props: FlexProps<'main'>) {
  * Use `noActionWrap` to disable wrapping if there are minimal actions.
  */
 export const Header = styled((props: ContainerProps<'header'>) => {
-  return <Container padding={{sm: 'md lg 0 lg', md: 'lg xl 0 xl'}} {...props} />;
+  return (
+    <Container
+      padding={{'screen:sm': 'md lg 0 lg', 'screen:md': 'lg xl 0 xl'}}
+      {...props}
+    />
+  );
 })<{
   borderStyle?: 'dashed' | 'solid';
   noActionWrap?: boolean;

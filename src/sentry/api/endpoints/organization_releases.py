@@ -75,6 +75,7 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import ReleaseQuerySet, SemverFilter
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.releases.auto_creation import should_auto_create_releases
 from sentry.releases.use_cases.release import serialize as release_serializer
 from sentry.search.events.constants import (
     OPERATOR_TO_DJANGO,
@@ -90,10 +91,12 @@ from sentry.signals import release_created
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.sdk import bind_organization_context
+from sentry.utils.tracing import trace
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
 
@@ -218,14 +221,22 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
 
 class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
-    projects = ListField()
+    projects = ListField(help_text="A list of project slugs that are involved in this release.")
     headCommits = ListField(
-        child=ReleaseHeadCommitSerializerDeprecated(), required=False, allow_null=False
+        child=ReleaseHeadCommitSerializerDeprecated(),
+        required=False,
+        allow_null=False,
+        help_text="(Deprecated) Use `refs` instead. An optional list of head commits to associate with the release, one per repository.",
     )
-    refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
+    refs = ListField(
+        child=ReleaseHeadCommitSerializer(),
+        required=False,
+        allow_null=False,
+        help_text="An optional list of commit references, one per repository, used to associate commits with the release.",
+    )
 
 
-@sentry_sdk.trace
+@trace
 def debounce_update_release_health_data(organization, project_ids: list[int]):
     """This causes a flush of snuba health data to the postgres tables once
     per minute for the given projects.
@@ -298,9 +309,16 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
             # happen if the release only had health data so far.  For these cases
             # we want to create the release the first time we observed it on the
             # health side.
+            project.set_cached_field_value("organization", organization)
             release = Release.get_or_create(
-                project=project, version=version, date_added=dates.get((project_id, version))
+                project=project,
+                version=version,
+                date_added=dates.get((project_id, version)),
+                create=should_auto_create_releases(project),
             )
+            if release is None:
+                metrics.incr("organization_releases.release_autocreation_skipped")
+                continue
 
             # Make sure that the release knows about this project.  Like we had before
             # the project might not have been associated with this release yet.
@@ -315,8 +333,8 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnalyticsMixin):
     owner = ApiOwner.COMMUNITY
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
 
     rate_limits = RateLimitConfig(

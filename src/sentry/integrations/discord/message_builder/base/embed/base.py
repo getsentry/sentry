@@ -35,7 +35,7 @@ class DiscordMessageEmbed:
 
     Some fields are not implemented, add to this as needed.
 
-    https://discord.com/developers/docs/resources/channel#embed-object
+    https://docs.discord.com/developers/resources/message#embed-object
     """
 
     def __init__(

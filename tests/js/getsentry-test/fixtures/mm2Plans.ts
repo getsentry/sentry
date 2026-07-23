@@ -17,7 +17,6 @@ const commonFields = {
   addOnCategories: {},
   categories: MM2_CATEGORIES,
   categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
-  checkoutCategories: MM2_CATEGORIES,
   onDemandCategories: MM2_CATEGORIES,
   hasOnDemandModes: false,
   budgetTerm: BUDGET_TERM as 'on-demand',
@@ -27,7 +26,6 @@ const commonFields = {
 export const MM2_PLANS = {
   mm2_a_100k: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_a_100k',
     isEnterprise: false,
@@ -72,7 +70,6 @@ export const MM2_PLANS = {
   },
   mm2_a_100k_ac: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_a_100k_ac',
     isEnterprise: false,
@@ -117,7 +114,6 @@ export const MM2_PLANS = {
   },
   mm2_a_100k_auf: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_a_100k_auf',
     isEnterprise: false,
@@ -162,7 +158,6 @@ export const MM2_PLANS = {
   },
   mm2_a_500k: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_a_500k',
     isEnterprise: false,
@@ -207,7 +202,6 @@ export const MM2_PLANS = {
   },
   mm2_a_500k_ac: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_a_500k_ac',
     isEnterprise: false,
@@ -252,7 +246,6 @@ export const MM2_PLANS = {
   },
   mm2_a_500k_auf: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_a_500k_auf',
     isEnterprise: false,
@@ -297,7 +290,6 @@ export const MM2_PLANS = {
   },
   mm2_b_100k: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_b_100k',
     isEnterprise: false,
@@ -332,7 +324,6 @@ export const MM2_PLANS = {
   },
   mm2_b_100k_ac: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_b_100k_ac',
     isEnterprise: false,
@@ -367,7 +358,6 @@ export const MM2_PLANS = {
   },
   mm2_b_100k_auf: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_b_100k_auf',
     isEnterprise: false,
@@ -402,7 +392,6 @@ export const MM2_PLANS = {
   },
   mm2_b_500k: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_b_500k',
     isEnterprise: false,
@@ -438,7 +427,6 @@ export const MM2_PLANS = {
   },
   mm2_b_500k_ac: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_b_500k_ac',
     isEnterprise: false,
@@ -473,7 +461,6 @@ export const MM2_PLANS = {
   },
   mm2_b_500k_auf: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_b_500k_auf',
     isEnterprise: false,
@@ -508,7 +495,6 @@ export const MM2_PLANS = {
   },
   mm2_f: {
     ...commonFields,
-    isTestPlan: false,
     basePrice: 0,
     id: 'mm2_f',
     isEnterprise: false,
@@ -540,7 +526,6 @@ export const MM2_PLANS = {
     basePrice: 0,
     totalPrice: 0,
     trialPlan: 'am2_business',
-    isTestPlan: false,
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,

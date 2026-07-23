@@ -12,17 +12,13 @@ class PerformanceProblem:
     op: str
     desc: str
     type: type[GroupType]
-    parent_span_ids: Sequence[str] | None
+    parent_span_ids: Sequence[str]
     # For related spans that caused the bad spans
-    cause_span_ids: Sequence[str] | None
+    cause_span_ids: Sequence[str]
     # The actual bad spans
     offender_span_ids: Sequence[str]
     # Evidence to be used for the group
-    # TODO: make evidence_data and evidence_display required once all detectors have been migrated to platform
-    # We can't make it required until we stop loading these from nodestore via EventPerformanceProblem,
-    # since there's legacy data in there that won't have these fields.
-    # So until we disable transaction based perf issues we'll need to keep this optional.
-    evidence_data: dict[str, Any] | None
+    evidence_data: dict[str, Any]
     # User-friendly evidence to be displayed directly
     evidence_display: Sequence[IssueEvidence]
 
@@ -55,10 +51,10 @@ class PerformanceProblem:
             data["parent_span_ids"],
             data["cause_span_ids"],
             data["offender_span_ids"],
-            data.get("evidence_data", {}),
+            data["evidence_data"],
             [
                 IssueEvidence(evidence["name"], evidence["value"], evidence["important"])
-                for evidence in data.get("evidence_display", [])
+                for evidence in data["evidence_display"]
             ],
         )
 

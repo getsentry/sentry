@@ -2,7 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -96,7 +96,7 @@ export function CreditCardPanel({
       data-test-id="credit-card-panel"
       maxWidth={maxPanelWidth}
     >
-      <Flex direction="column" gap="lg" width="100%">
+      <Stack gap="lg" width="100%">
         <Heading as="h2" size="lg">
           {t('Payment method')}
         </Heading>
@@ -124,7 +124,7 @@ export function CreditCardPanel({
         ) : (
           <Text>{t('No payment method on file')}</Text>
         )}
-      </Flex>
+      </Stack>
       {!isEditing && (
         <Button
           variant="secondary"

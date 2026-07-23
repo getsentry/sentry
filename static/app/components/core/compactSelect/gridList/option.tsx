@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef, useState} from 'react';
+import {Fragment, useContext, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {AriaGridListItemOptions} from '@react-aria/gridlist';
 import {useGridListItem, useGridListSelectionCheckbox} from '@react-aria/gridlist';
@@ -8,7 +8,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {LeadWrap} from '@sentry/scraps/compactSelect';
+import {ControlContext, HighlightText, LeadWrap} from '@sentry/scraps/compactSelect';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {
   InnerWrap,
@@ -53,6 +53,14 @@ export function GridListOption<T extends ListItemBase>({
 
   const {rowProps, gridCellProps, isSelected, isDisabled, isPressed, isFocused} =
     useGridListItem({node, shouldSelectOnPressUp: true}, listState, ref);
+
+  const {search, highlightSearch} = useContext(ControlContext);
+  const renderedLabel =
+    highlightSearch && search && typeof label === 'string' ? (
+      <HighlightText text={label} query={search} />
+    ) : (
+      label
+    );
 
   const {
     checkboxProps: {
@@ -119,7 +127,7 @@ export function GridListOption<T extends ListItemBase>({
       {...rowPropsMerged}
       ref={ref}
       size={size}
-      label={label}
+      label={renderedLabel}
       details={details}
       disabled={isDisabled}
       isSelected={isSelected}

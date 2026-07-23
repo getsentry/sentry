@@ -193,12 +193,12 @@ describe('LoaderScript', () => {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    expect(screen.getByText('Enable Performance Monitoring')).toBeInTheDocument();
+    expect(screen.getByText('Enable Tracing')).toBeInTheDocument();
     expect(screen.getByText('Enable Session Replay')).toBeInTheDocument();
     expect(screen.getByText('Enable SDK debugging')).toBeInTheDocument();
 
     let performanceCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable Performance Monitoring',
+      name: 'Enable Tracing',
     });
     expect(performanceCheckbox).toBeEnabled();
     expect(performanceCheckbox).not.toBeChecked();
@@ -218,12 +218,12 @@ describe('LoaderScript', () => {
     // Toggle performance option
     await userEvent.click(
       screen.getByRole('checkbox', {
-        name: 'Enable Performance Monitoring',
+        name: 'Enable Tracing',
       })
     );
 
     performanceCheckbox = await screen.findByRole('checkbox', {
-      name: 'Enable Performance Monitoring',
+      name: 'Enable Tracing',
       checked: true,
     });
     expect(performanceCheckbox).toBeEnabled();
@@ -311,7 +311,7 @@ describe('LoaderScript', () => {
 
     expect(
       screen.getAllByRole('checkbox', {
-        name: 'Enable Performance Monitoring',
+        name: 'Enable Tracing',
         checked: false,
       })
     ).toHaveLength(2);
@@ -331,20 +331,20 @@ describe('LoaderScript', () => {
     // Toggle performance option
     await userEvent.click(
       screen.getAllByRole('checkbox', {
-        name: 'Enable Performance Monitoring',
+        name: 'Enable Tracing',
       })[1]!
     );
 
     expect(
       await screen.findByRole('checkbox', {
-        name: 'Enable Performance Monitoring',
+        name: 'Enable Tracing',
         checked: true,
       })
     ).toBeInTheDocument();
 
     expect(
       screen.getByRole('checkbox', {
-        name: 'Enable Performance Monitoring',
+        name: 'Enable Tracing',
         checked: false,
       })
     ).toBeInTheDocument();

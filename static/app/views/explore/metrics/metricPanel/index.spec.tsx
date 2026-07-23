@@ -202,7 +202,7 @@ describe('MetricPanel', () => {
 
     const equationOrg = {
       ...organization,
-      features: [...organization.features, 'tracemetrics-equations-in-explore'],
+      features: [...organization.features],
     };
 
     render(
@@ -246,11 +246,7 @@ describe('MetricPanel', () => {
 
     const equationOrg = {
       ...organization,
-      features: [
-        ...organization.features,
-        'tracemetrics-equations-in-explore',
-        'data-browsing-heat-map-widget',
-      ],
+      features: [...organization.features],
     };
 
     render(
@@ -273,7 +269,43 @@ describe('MetricPanel', () => {
     expect(chartTypeSelect).toBeInTheDocument();
     await userEvent.click(chartTypeSelect);
     expect(await screen.findByText('Type')).toBeInTheDocument();
-    const heatMapOption = await screen.findByRole('option', {name: 'Heat Map'});
+    const heatMapOption = await screen.findByRole('option', {name: 'Heatmap'});
+    expect(heatMapOption).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('disables heat map visualization for non-distribution metrics', async () => {
+    const counterTraceMetric: TraceMetric = {name: 'bar', type: 'counter'};
+    const counterQueryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.AGGREGATE,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [new VisualizeFunction('sum(value)', {chartType: ChartType.LINE})],
+      aggregateSortBys: [{field: 'sum(value)', kind: 'desc'}],
+    });
+
+    const heatMapOrg = {
+      ...organization,
+      features: [...organization.features],
+    };
+
+    render(
+      <MetricPanel traceMetric={counterTraceMetric} queryIndex={0} queryLabel="A" />,
+      {
+        organization: heatMapOrg,
+        additionalWrapper: createWrapper({
+          queryParams: counterQueryParams,
+          traceMetric: counterTraceMetric,
+        }),
+      }
+    );
+
+    const chartTypeSelect = await screen.findByTestId('metric-panel-chart-type-select');
+    await userEvent.click(chartTypeSelect);
+    const heatMapOption = await screen.findByRole('option', {name: 'Heatmap'});
     expect(heatMapOption).toHaveAttribute('aria-disabled', 'true');
   });
 

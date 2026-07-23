@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections.abc import Mapping, Sequence
+from functools import partial
 from typing import TYPE_CHECKING, Any
 
 from arroyo import Topic as ArroyoTopic
@@ -11,10 +12,13 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+from taskbroker_client.state import current_task
 
 from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.options.rollout import in_random_rollout
 from sentry.search.eap.rpc_utils import anyvalue
+from sentry.taskworker.producer import get_task_producer
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.eap import hex_to_item_id
@@ -30,14 +34,18 @@ PROCESSING_ERROR_NAMESPACE = uuid.UUID("a4d8f4e2-1b3c-4a9d-9e1f-5c2b1a0d7f6e")
 EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
 
 
-def _get_eap_items_producer() -> KafkaProducer:
+def _get_eap_items_producer(name: str = "sentry.processing_errors.eap.producer") -> KafkaProducer:
     return get_arroyo_producer(
-        name="sentry.processing_errors.eap.producer",
+        name=name,
         topic=Topic.SNUBA_ITEMS,
     )
 
 
 _eap_producer = SingletonProducer(_get_eap_items_producer)
+_eap_tp_name = "sentry.processing_errors.eap.taskproducer"
+_eap_task_producer = get_task_producer(
+    producer_name=_eap_tp_name, producer_factory=partial(_get_eap_items_producer, name=_eap_tp_name)
+)
 
 
 def produce_processing_errors_to_eap(
@@ -126,7 +134,12 @@ def produce_processing_errors_to_eap(
             )
 
             payload = KafkaPayload(None, EAP_ITEMS_CODEC.encode(trace_item), [])
-            _eap_producer.produce(ArroyoTopic(topic), payload)
+            if current_task() is not None and in_random_rollout(
+                "tasks.producer.processing-errors.rollout"
+            ):
+                _eap_task_producer.produce(ArroyoTopic(topic), payload)
+            else:
+                _eap_producer.produce(ArroyoTopic(topic), payload)
             count += 1
 
         metrics.incr(

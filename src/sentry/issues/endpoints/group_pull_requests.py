@@ -8,7 +8,6 @@ from django.db.models import Exists, OuterRef
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -17,13 +16,14 @@ from sentry.api.serializers.models.pullrequest import (
     LinkedPullRequestResponse,
     LinkedPullRequestSerializer,
     PullRequestStatus,
+    get_stored_pull_request_status,
 )
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -63,20 +63,6 @@ def _get_valid_group_pull_request_links(group: Group, organization_id: int) -> l
         .filter(Exists(valid_pull_requests))
         .order_by("-datetime")[:DEFAULT_LIMIT]
     )
-
-
-def _get_stored_pull_request_status(pull_request: PullRequest) -> PullRequestStatus | None:
-    if pull_request.state == PullRequestLifecycleState.MERGED:
-        return "merged"
-    if pull_request.state == PullRequestLifecycleState.CLOSED:
-        return "closed"
-    if pull_request.draft is True:
-        return "draft"
-    # `draft` is nullable for older rows, so only trust `open` when we know the PR
-    # is not a draft.
-    if pull_request.state == PullRequestLifecycleState.OPEN and pull_request.draft is False:
-        return "open"
-    return None
 
 
 def _get_pull_request_repo_name(repository: Repository) -> str:
@@ -159,7 +145,7 @@ def _get_provider_pull_request_status(
 def _get_pull_request_status(
     pull_request: PullRequest, repository: Repository | None
 ) -> PullRequestStatus:
-    stored_status = _get_stored_pull_request_status(pull_request)
+    stored_status = get_stored_pull_request_status(pull_request)
     if stored_status is not None:
         return stored_status
 
@@ -174,13 +160,6 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
     }
 
     def get(self, request: Request, group: Group) -> Response[GroupPullRequestsResponse]:
-        if not features.has(
-            "organizations:issue-details-linked-pull-requests",
-            group.organization,
-            actor=request.user,
-        ):
-            return Response(status=404)
-
         organization_id = group.project.organization_id
         group_links = _get_valid_group_pull_request_links(group, organization_id)
         if not group_links:
