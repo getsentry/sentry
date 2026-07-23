@@ -280,12 +280,9 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
         )}
       </Stack>
       <Flex justify="between" align="center" gap="md" margin="xl 0 0">
-        <Flex align="center" margin="0 3xl">
-          {/* COPS/CSM shortcut: skip the access-category/reason step with canned values. */}
-          <Button onClick={() => submitAuth('cops_csm', 'COPS and CSM use')}>
-            {t('COPS/CSM')}
-          </Button>
-        </Flex>
+        <Button onClick={() => submitAuth('cops_csm', 'COPS and CSM use')}>
+          {t('COPS/CSM')}
+        </Button>
         <form.SubmitButton>{t('Continue')}</form.SubmitButton>
       </Flex>
     </form.AppForm>
