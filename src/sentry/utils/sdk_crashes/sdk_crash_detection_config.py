@@ -91,6 +91,9 @@ class SDKCrashDetectionConfig:
     sdk_crash_ignore_when_only_sdk_frame_matchers: set[FunctionAndModulePattern] = field(
         default_factory=set
     )
+    """The package names that identify the customer-facing hybrid SDK for an SDK event.
+    Maps the event SDK name to the hybrid SDK name and package name."""
+    hybrid_sdk_packages: dict[str, tuple[str, str]] = field(default_factory=dict)
 
 
 class SDKCrashDetectionOptions(TypedDict):
@@ -194,6 +197,9 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     function_pattern="**CPPExceptionTerminate**",
                 ),
             },
+            hybrid_sdk_packages={
+                "sentry.cocoa.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
+            },
         )
         configs.append(cocoa_config)
 
@@ -287,6 +293,9 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             project_id=java_options["project_id"],
             sample_rate=java_options["sample_rate"],
             organization_allowlist=java_options["organization_allowlist"],
+            hybrid_sdk_packages={
+                "sentry.java.android.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
+            },
             sdk_names={
                 "sentry.java.android": java_min_sdk_version,
                 "sentry.java.android.capacitor": java_min_sdk_version,

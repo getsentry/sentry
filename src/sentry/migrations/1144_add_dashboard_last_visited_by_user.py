@@ -26,7 +26,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1142_remove_organizationmemberteamreplica_pending"),
+        ("sentry", "1143_add_pipeline_hash_index_to_groupderiveddata"),
     ]
 
     operations = [

@@ -68,7 +68,6 @@ export function FocusedIssue({id, period}: {id: string; period: string}) {
               orgSlug={organization.slug}
               view="cards"
               statsPeriod={period}
-              defaultExpanded
               lazy={false}
             />
           ))}

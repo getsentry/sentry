@@ -10,7 +10,6 @@ const TABLE_ROW_PLACEHOLDER_HEIGHT = 48;
 const LAZY_OBSERVER_OPTIONS = {rootMargin: '200px 0px'};
 
 function HydratedCard({
-  defaultExpanded,
   issue,
   orgSlug,
   sectionKey,
@@ -21,13 +20,15 @@ function HydratedCard({
   orgSlug: string;
   statsPeriod: string;
   view: 'cards' | 'table';
-  defaultExpanded?: boolean;
   // The server-bucketed section. Absent in focus mode, where the issues
   // endpoint omits issue.autofix_state, so we reconstruct it from enrichment.
   sectionKey?: AutofixStateKey;
 }) {
-  const {run, state, enrichmentPending} = useIssueAutofixEnrichment(issue.id);
-  const row = buildOverviewRow(issue, run, state, enrichmentPending, statsPeriod);
+  const {run, state, statePending, enrichmentPending} = useIssueAutofixEnrichment(
+    issue.id
+  );
+  const classificationPending = sectionKey ? statePending : enrichmentPending;
+  const row = buildOverviewRow(issue, run, state, classificationPending, statsPeriod);
   const resolvedSectionKey = sectionKey ?? deriveSectionKey(run, state);
   const minHeight = enrichmentPending
     ? `${view === 'cards' ? CARD_PLACEHOLDER_HEIGHT : TABLE_ROW_PLACEHOLDER_HEIGHT}px`
@@ -38,7 +39,6 @@ function HydratedCard({
       row={row}
       orgSlug={orgSlug}
       sectionKey={resolvedSectionKey}
-      defaultExpanded={defaultExpanded}
       minHeight={minHeight}
     />
   ) : (
@@ -59,7 +59,6 @@ export function SectionIssueCard({
   orgSlug: string;
   statsPeriod: string;
   view: 'cards' | 'table';
-  defaultExpanded?: boolean;
   lazy?: boolean;
   sectionKey?: AutofixStateKey;
 }) {

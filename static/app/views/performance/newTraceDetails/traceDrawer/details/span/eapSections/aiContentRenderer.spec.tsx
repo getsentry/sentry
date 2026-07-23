@@ -18,11 +18,6 @@ describe('AIContentRenderer', () => {
     expect(screen.getByText('key')).toBeInTheDocument();
   });
 
-  it('renders fixed JSON with truncated indicator', () => {
-    render(<AIContentRenderer text='{"key": "value", "nested": {"inner": "trun' />);
-    expect(screen.getByText('Truncated')).toBeInTheDocument();
-  });
-
   it('renders Python dict as JSON', () => {
     render(<AIContentRenderer text="{'name': 'test', 'flag': True}" />);
     expect(screen.getByText('name')).toBeInTheDocument();

@@ -17,6 +17,7 @@ function makeRow(overrides: Partial<OverviewRow> = {}): OverviewRow {
     eventCount: 1,
     id: '2',
     lastActivityAt: '2026-07-14T10:00:00Z',
+    lastSeen: '2026-07-14T09:00:00Z',
     level: 'error',
     project: {slug: 'proj'},
     runStatus: null,
@@ -88,7 +89,7 @@ describe('IssuePrimaryAction', () => {
       renderAction(action, makeRow({runStatus}));
 
       expect(screen.getByText(overlay)).toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Review PR'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: /Review PR/})).not.toBeInTheDocument();
     }
   );
 
@@ -100,7 +101,7 @@ describe('IssuePrimaryAction', () => {
     };
     renderAction(action, makeRow({runStatus: 'completed'}));
 
-    expect(screen.getByRole('button', {name: 'Review PR'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Review PR #9'})).toHaveAttribute(
       'href',
       'https://github.com/o/r/pull/9'
     );
@@ -108,9 +109,9 @@ describe('IssuePrimaryAction', () => {
 
   it.each([
     {type: 'merged', label: 'Merged'},
-    {type: 'code_changes_ready', label: 'Open PR'},
+    {type: 'code_changes_ready', label: 'Draft PR'},
     {type: 'solution_ready', label: 'Generate code'},
-    {type: 'needs_investigation', label: 'Investigate'},
+    {type: 'needs_investigation', label: 'Approve Root Cause'},
   ] as Array<{label: string; type: Exclude<CardAction['type'], 'review_pr'>}>)(
     'renders the $label action for a completed $type card',
     ({type, label}) => {

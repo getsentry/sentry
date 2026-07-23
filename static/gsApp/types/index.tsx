@@ -310,7 +310,6 @@ export type Subscription = {
   hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
   hasMigratedToBillingPlatform: boolean;
-  hasRestrictedIntegration: boolean | null;
   id: string;
 
   // Added by SubscriptionStore to show/hide a UI element

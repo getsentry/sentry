@@ -11,6 +11,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Sticky} from 'sentry/components/sticky';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import {DEFAULT_STATS_PERIOD} from './periods';
 import {SectionIssueCard} from './sectionIssueCard';
@@ -43,6 +44,7 @@ export function SectionList({
   view: OverviewView;
 }) {
   const organization = useOrganization();
+  const {projects: orgProjects} = useProjects();
   const {sections, isPending, isError, refetch} = useAutofixSections({
     enabled,
     projects,
@@ -54,7 +56,8 @@ export function SectionList({
   const allSectionsEmpty = sections.every(
     section => !section.isPending && !section.isError && section.issues.length === 0
   );
-  const hasNonDefaultFilters = projects.length > 0 || period !== DEFAULT_STATS_PERIOD;
+  const hasProjectFilter = projects.length > 0 && orgProjects.length > 1;
+  const hasNonDefaultFilters = hasProjectFilter || period !== DEFAULT_STATS_PERIOD;
 
   if (isError) {
     return <LoadingError onRetry={refetch} />;
@@ -78,14 +81,16 @@ export function SectionList({
     <Stack gap="lg">
       {sections.map(section => {
         const meta = STATUS_GROUP_META[section.key];
+        const expanded = !collapsedGroups.includes(section.key);
         return (
           <StatusGroup
             key={section.key}
             size="sm"
-            expanded={!collapsedGroups.includes(section.key)}
+            expanded={expanded}
             onExpandedChange={next => onToggleGroup(section.key, next)}
+            data-view={view}
           >
-            <GroupHeader>
+            <GroupHeader data-view={view} data-expanded={expanded}>
               <Disclosure.Title>
                 <Flex gap="sm" align="center">
                   <Tooltip
@@ -99,7 +104,7 @@ export function SectionList({
                 </Flex>
               </Disclosure.Title>
             </GroupHeader>
-            <Disclosure.Content>
+            <Disclosure.Content data-view={view}>
               {section.isError ? (
                 <LoadingError onRetry={section.refetch} />
               ) : section.isPending ? (
@@ -113,7 +118,7 @@ export function SectionList({
               ) : (
                 <SectionRows
                   gap={view === 'cards' ? 'md' : '0'}
-                  paddingTop="sm"
+                  paddingTop={view === 'cards' ? 'sm' : '0'}
                   data-view={view}
                 >
                   {section.issues.map(issue => (
@@ -142,22 +147,49 @@ const SectionRows = styled(Stack)`
   }
 `;
 
-// Disclosure.Content hardcodes a padding-left to indent its panel under the
-// title; the `> * + *` sibling selector drops it so the full-width cards line
-// up flush with their group header.
+// Disclosure.Content adds panel padding by default. Cards keep the vertical
+// spacing, but table rows should sit flush against the group border and header.
 const StatusGroup = styled(Disclosure)`
+  &[data-view='table'] {
+    position: relative;
+    border-radius: ${p => p.theme.radius.md};
+
+    &::after {
+      content: '';
+      position: absolute;
+      z-index: ${p => p.theme.zIndex.initial + 1};
+      inset: 0;
+      border: 1px solid ${p => p.theme.tokens.border.primary};
+      border-radius: inherit;
+      pointer-events: none;
+    }
+  }
+
   && > * + * {
     padding-left: 0;
+    padding-right: 0;
+  }
+
+  && > * + *[data-view='table'] {
+    padding: 0;
   }
 `;
 
 // Sticky group header; z-index isn't a layout-primitive prop so it lives here.
 // Opaque background so cards scroll under it.
 const GroupHeader = styled(Sticky)`
-  z-index: ${p => p.theme.zIndex.initial};
-  width: 100%;
+  z-index: ${p => p.theme.zIndex.initial + 1};
+  align-self: stretch;
   background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
+
+  &[data-view='table'] {
+    border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
+  }
+
+  &[data-view='table'][data-expanded='false'] {
+    border-radius: ${p => p.theme.radius.md};
+  }
 
   &[data-stuck] {
     border-radius: 0;
