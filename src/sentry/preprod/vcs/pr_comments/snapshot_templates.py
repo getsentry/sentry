@@ -35,13 +35,17 @@ def format_snapshot_pr_comment(
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     comparisons_map: dict[int, PreprodSnapshotComparison],
     base_artifact_map: dict[int, PreprodArtifact],
-    changes_map: dict[int, bool],
-    approvals_map: dict[int, PreprodComparisonApproval] | None = None,
+    reportable_changes_by_artifact_id: dict[int, bool],
+    approvals_by_artifact_id: dict[int, PreprodComparisonApproval] | None = None,
     *,
+    approval_requirements_by_artifact_id: dict[int, bool] | None = None,
     project: Project,
 ) -> str:
     if not artifacts:
         raise ValueError("Cannot format PR comment for empty artifact list")
+
+    approval_requirements_by_artifact_id = approval_requirements_by_artifact_id or {}
+    approvals_by_artifact_id = approvals_by_artifact_id or {}
 
     table_rows = []
     total_errored = 0
@@ -86,12 +90,13 @@ def format_snapshot_pr_comment(
         elif comparison.state == PreprodSnapshotComparison.State.FAILED:
             table_rows.append(f"| {name_cell} | - | - | - | - | - | - | ❌ Comparison failed |")
         else:
-            has_changes = changes_map.get(artifact.id, False)
-            is_approved = approvals_map is not None and artifact.id in approvals_map
-            if has_changes and is_approved:
-                status = "✅ Approved"
-            elif has_changes:
-                status = "⏳ Needs approval"
+            has_reportable_changes = reportable_changes_by_artifact_id.get(artifact.id, False)
+            requires_approval = approval_requirements_by_artifact_id.get(artifact.id, False)
+            is_approved = artifact.id in approvals_by_artifact_id
+            if requires_approval:
+                status = "✅ Approved" if is_approved else "⏳ Needs approval"
+            elif has_reportable_changes:
+                status = "⚠️ Changes detected"
             else:
                 status = "✅ Unchanged"
 
