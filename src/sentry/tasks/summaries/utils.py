@@ -712,7 +712,7 @@ def _get_transaction_projects(ctx: OrganizationReportContext) -> list[Project]:
 
 
 def spans_count_by_project(
-    projects: list[Project],
+    projects: Sequence[Project],
     organization: Organization,
     start: datetime,
     end: datetime,

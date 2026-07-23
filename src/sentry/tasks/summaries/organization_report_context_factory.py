@@ -150,8 +150,10 @@ class OrganizationReportContextFactory:
                             project_id
                         ].prev_week_total_substatus_count += item["total"]
 
-            if spans_missed_project_ids and features.has(
-                "organizations:weekly-report-spans-chart", ctx.organization
+            if (
+                spans_missed_project_ids
+                and not ctx.organization.flags.enhanced_privacy
+                and features.has("organizations:weekly-report-spans-chart", ctx.organization)
             ):
                 try:
                     tx_projects = [
