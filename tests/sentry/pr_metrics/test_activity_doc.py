@@ -1037,3 +1037,35 @@ def test_timeline_recovered_run_excluded_from_failing_names() -> None:
     suite = timeline_events_from_doc(doc)[0]
     # The run recovered (latest conclusion success), so it isn't a failing name.
     assert suite["payload"]["failing_check_names"] == []
+    # …but the failure it recovered from still reaches the judge via check_runs,
+    # which is the whole point: the group reads plain "success" otherwise, and the
+    # flakiness is unrecoverable downstream.
+    assert suite["payload"]["check_runs"] == {
+        "flaky": {"conclusion": "success", "failed_attempts": 1}
+    }
+
+
+def test_timeline_check_runs_carries_failure_counts_alongside_failing_names() -> None:
+    doc = new_document()
+    # `broken` is a live failure; `flaky` failed twice and came back green.
+    _run(doc, check_name="broken", conclusion="failure", completed_at="2026-07-10T12:00:00Z")
+    _run(doc, check_name="flaky", conclusion="failure", completed_at="2026-07-10T12:01:00Z")
+    _run(doc, check_name="flaky", conclusion="failure", completed_at="2026-07-10T12:02:00Z")
+    _run(doc, check_name="flaky", conclusion="success", completed_at="2026-07-10T12:05:00Z")
+
+    payload = timeline_events_from_doc(doc)[0]["payload"]
+
+    assert payload["failing_check_names"] == ["broken"]
+    assert payload["check_runs"] == {
+        "broken": {"conclusion": "failure", "failed_attempts": 1},
+        "flaky": {"conclusion": "success", "failed_attempts": 2},
+    }
+
+
+def test_timeline_check_runs_is_empty_when_nothing_ever_failed() -> None:
+    # Only ever-failed checks are tracked, so an all-green group forwards no
+    # recovery detail — the common case costs nothing on the wire.
+    doc = new_document()
+    _suite(doc, conclusion="success", updated_at="2026-07-10T12:06:00Z")
+
+    assert timeline_events_from_doc(doc)[0]["payload"]["check_runs"] == {}
