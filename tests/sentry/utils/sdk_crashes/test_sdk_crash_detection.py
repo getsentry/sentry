@@ -34,18 +34,34 @@ def build_sdk_configs() -> Sequence[SDKCrashDetectionConfig]:
     return build_sdk_crash_detection_configs()
 
 
-@pytest.mark.parametrize("sdk_name", ["sentry.cocoa.flutter", "sentry.java.android.flutter"])
-def test_get_hybrid_sdk(sdk_name: str) -> None:
+@pytest.mark.parametrize(
+    ("sdk_name", "hybrid_sdk_name", "package_name"),
+    [
+        ("sentry.cocoa.flutter", "sentry.dart.flutter", "pub:sentry_flutter"),
+        ("sentry.java.android.flutter", "sentry.dart.flutter", "pub:sentry_flutter"),
+        (
+            "sentry.cocoa.react-native",
+            "sentry.javascript.react-native",
+            "npm:@sentry/react-native",
+        ),
+        (
+            "sentry.java.android.react-native",
+            "sentry.javascript.react-native",
+            "npm:@sentry/react-native",
+        ),
+    ],
+)
+def test_get_hybrid_sdk(sdk_name: str, hybrid_sdk_name: str, package_name: str) -> None:
     packages = [
         {"name": "cocoapods:Sentry", "version": "8.2.0"},
-        {"name": "pub:sentry_flutter", "version": "9.24.0"},
+        {"name": package_name, "version": "9.24.0"},
     ]
     hybrid_sdk_packages = {
-        sdk_name: ("sentry.dart.flutter", "pub:sentry_flutter"),
+        sdk_name: (hybrid_sdk_name, package_name),
     }
 
     assert get_hybrid_sdk(sdk_name, packages, hybrid_sdk_packages) == (
-        "sentry.dart.flutter",
+        hybrid_sdk_name,
         "9.24.0",
     )
 
@@ -71,6 +87,18 @@ def test_get_hybrid_sdk_rejects_ambiguous_versions(packages: object) -> None:
 
 def test_get_hybrid_sdk_exits_early_without_configured_packages() -> None:
     assert get_hybrid_sdk("sentry.cocoa.flutter", object(), {}) is None
+
+
+def test_react_native_native_sdks_have_hybrid_package_attribution() -> None:
+    hybrid_sdk_packages = {
+        sdk_name: package
+        for config in build_sdk_configs()
+        for sdk_name, package in config.hybrid_sdk_packages.items()
+    }
+
+    expected = ("sentry.javascript.react-native", "npm:@sentry/react-native")
+    assert hybrid_sdk_packages["sentry.cocoa.react-native"] == expected
+    assert hybrid_sdk_packages["sentry.java.android.react-native"] == expected
 
 
 class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
