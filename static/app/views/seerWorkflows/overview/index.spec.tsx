@@ -831,4 +831,58 @@ describe('AutofixOverview', () => {
       await screen.findByText('There was an error loading data.')
     ).toBeInTheDocument();
   });
+
+  it('replaces the overview content when the org is eligible for Seer but has not purchased it', () => {
+    render(<AutofixOverview />, {
+      organization: OrganizationFixture({
+        features: ['seer-night-shift-ui', 'seer-user-billing-launch'],
+      }),
+      initialRouterConfig: {location: {pathname: basePath}},
+    });
+
+    expect(screen.getByText('Autofix Overview')).toBeInTheDocument();
+    expect(screen.queryByRole('radio', {name: 'Card view'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: /Awaiting your review/})
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the overview normally when the org has seat-based Seer', async () => {
+    render(<AutofixOverview />, {
+      organization: OrganizationFixture({
+        features: ['seer-night-shift-ui', 'seat-based-seer-enabled'],
+      }),
+      initialRouterConfig: {location: {pathname: basePath}},
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'Awaiting your review 3'})
+    ).toBeInTheDocument();
+  });
+
+  it('renders the overview normally when the org hides AI features', async () => {
+    render(<AutofixOverview />, {
+      organization: OrganizationFixture({
+        features: ['seer-night-shift-ui', 'seer-user-billing-launch'],
+        hideAiFeatures: true,
+      }),
+      initialRouterConfig: {location: {pathname: basePath}},
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'Awaiting your review 3'})
+    ).toBeInTheDocument();
+  });
+
+  it('prefers the trial CTA over the focused-issue view', () => {
+    render(<AutofixOverview />, {
+      organization: OrganizationFixture({
+        features: ['seer-night-shift-ui', 'seer-user-billing-launch'],
+      }),
+      initialRouterConfig: {location: {pathname: basePath, query: {id: '2'}}},
+    });
+
+    expect(screen.queryByRole('radio', {name: 'Card view'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'All issues'})).not.toBeInTheDocument();
+  });
 });
