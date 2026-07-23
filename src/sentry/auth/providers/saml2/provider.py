@@ -20,7 +20,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
 from onelogin.saml2.constants import OneLogin_Saml2_Constants
-from PIL import Image
+from PIL import Image, ImageOps
 from rest_framework.request import Request
 
 from sentry import features, options
@@ -250,9 +250,11 @@ def _validate_saml_avatar(value: str | None) -> str | None:
     invalid.
 
     This never raises: a malformed profile picture must not block SSO login. An
-    optional ``data:<mimetype>;base64,`` prefix is stripped, the size and format
-    are validated via :class:`AvatarField`, and the image is re-encoded to strip
-    EXIF/metadata before storage.
+    optional ``data:<mimetype>;base64,`` prefix is stripped and the size and
+    format are validated via :class:`AvatarField`. The image is then normalized
+    for storage: EXIF orientation is baked in, non-square photos are center-
+    cropped (avatars are served resized to a square), and the result is
+    re-encoded to strip EXIF and other metadata.
     """
     if not value:
         return None
@@ -274,13 +276,32 @@ def _validate_saml_avatar(value: str | None) -> str | None:
         return None
 
     try:
-        # Re-encode the image to strip EXIF and any other metadata. Restricting
-        # the decoders to the allowed formats keeps Pillow from being steered
-        # into loading a different one; Pillow drops metadata on save unless it
-        # is passed back explicitly, so a plain round-trip is enough.
+        # Restrict the decoders to the allowed formats so Pillow can't be steered
+        # into loading a different one.
         with Image.open(decoded, formats=["PNG", "JPEG", "GIF"]) as image:
+            image_format = image.format or "PNG"
+
+            # Bake in any EXIF orientation before the metadata is dropped below,
+            # otherwise portrait photos that rely on the orientation tag would be
+            # stored (and shown) rotated.
+            oriented = ImageOps.exif_transpose(image) or image
+
+            # Avatars are served resized to a forced square (see
+            # BaseAvatar.get_cached_photo), so center-crop non-square
+            # identity-provider photos here rather than let them be stretched.
+            width, height = oriented.size
+            if width != height:
+                side = min(width, height)
+                left = (width - side) // 2
+                top = (height - side) // 2
+                oriented = oriented.crop((left, top, left + side, top + side))
+
+            # Re-encode to strip EXIF and any other metadata; Pillow drops it on
+            # save unless it is passed back explicitly. JPEG is re-encoded at high
+            # quality since the goal is metadata removal, not shrinking the image.
+            save_kwargs: dict[str, Any] = {"quality": 95} if image_format == "JPEG" else {}
             buffer = BytesIO()
-            image.save(buffer, format=image.format)
+            oriented.save(buffer, format=image_format, **save_kwargs)
     except Exception:
         return None
 

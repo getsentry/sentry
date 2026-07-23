@@ -183,6 +183,38 @@ class ValidateSamlAvatarTest(TestCase):
         with Image.open(BytesIO(b64decode(result))) as image:
             assert not dict(image.getexif())
 
+    def test_crops_non_square_to_square(self) -> None:
+        buffer = BytesIO()
+        Image.new("RGB", (20, 10), "blue").save(buffer, format="PNG")
+
+        result = _validate_saml_avatar(b64encode(buffer.getvalue()).decode())
+
+        assert result is not None
+        with Image.open(BytesIO(b64decode(result))) as image:
+            assert image.size == (10, 10)
+
+    def test_applies_exif_orientation(self) -> None:
+        # A 2x2 image with distinct corners and Orientation=6 (rotate 90 CW on
+        # display). Validation must bake the rotation into the pixels and drop
+        # the now-meaningless orientation tag.
+        source = Image.new("RGB", (2, 2))
+        source.putpixel((0, 0), (255, 0, 0))  # top-left, red
+        source.putpixel((1, 0), (0, 255, 0))  # top-right, green
+        source.putpixel((0, 1), (0, 0, 255))  # bottom-left, blue
+        source.putpixel((1, 1), (255, 255, 0))  # bottom-right, yellow
+        exif = source.getexif()
+        exif[0x0112] = 6  # Orientation
+        buffer = BytesIO()
+        source.save(buffer, format="PNG", exif=exif)
+
+        result = _validate_saml_avatar(b64encode(buffer.getvalue()).decode())
+
+        assert result is not None
+        with Image.open(BytesIO(b64decode(result))) as image:
+            # After a 90 CW rotation the original top-left pixel lands top-right.
+            assert image.getpixel((1, 0)) == (255, 0, 0)
+            assert not image.getexif().get(0x0112)
+
     def test_rejects_non_image(self) -> None:
         assert _validate_saml_avatar(b64encode(b"this is not an image").decode()) is None
 
