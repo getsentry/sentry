@@ -478,8 +478,11 @@ class DetectorSnubaQuery(BaseModel):
 
 class DetectorContext(BaseModel):
     """The detector (monitor) definition behind a detector-backed issue, plus the
-    issue's open periods. Only allowlisted query fields are exposed — never raw
-    data-source payloads, which can carry credentials (e.g. uptime request headers)."""
+    issue's open periods. This payload reaches an LLM, so every field is an explicit
+    disclosure decision: raw `detector.config` and raw data-source payloads are
+    deliberately not passed through (config schemas are input-validation contracts,
+    not disclosure policies, and data sources can carry credentials such as uptime
+    request headers)."""
 
     id: str
     name: str
@@ -488,7 +491,6 @@ class DetectorContext(BaseModel):
     enabled: bool
     detection_type: str | None
     comparison_delta_seconds: int | None
-    config: dict[str, Any]
     conditions: list[DetectorCondition]
     snuba_query: DetectorSnubaQuery | None
     open_periods: list[DetectorOpenPeriod]

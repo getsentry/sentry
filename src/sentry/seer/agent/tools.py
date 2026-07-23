@@ -1406,9 +1406,11 @@ def _get_detector_context(
     meaningful context) and for groups without a valid DetectorGroup association —
     deliberately no inference by project/type, which could attach the wrong monitor.
 
-    Only allowlisted snuba-query fields are exposed. Raw data-source payloads must
-    never enter this LLM-facing response: e.g. uptime request headers can carry
-    credentials.
+    Every exposed field is an explicit disclosure decision: only allowlisted
+    snuba-query fields are included, and neither raw data-source payloads (uptime
+    request headers can carry credentials) nor raw detector.config (validation
+    schemas are permissive and are not a disclosure policy) may enter this
+    LLM-facing response.
     """
     issue_type = group.issue_type
     if issue_type.detector_settings is None or issue_type.type_id == ErrorGroupType.type_id:
@@ -1489,6 +1491,10 @@ def _get_detector_context(
         for period in open_period_rows[:_DETECTOR_OPEN_PERIODS_LIMIT]
     ]
 
+    # detector.config is read only for the explicitly hoisted, shape-checked fields
+    # below — never passed through wholesale. Config schemas are input-validation
+    # contracts, not disclosure policies (several are permissive), so raw config
+    # must not enter this LLM-facing response.
     detector_config: dict[str, Any] = dict(detector.config or {})
     detection_type = detector_config.get("detection_type")
     comparison_delta = detector_config.get("comparison_delta")
@@ -1498,9 +1504,8 @@ def _get_detector_context(
         description=detector.description,
         type=detector.type,
         enabled=detector.enabled,
-        detection_type=str(detection_type) if detection_type is not None else None,
+        detection_type=detection_type if isinstance(detection_type, str) else None,
         comparison_delta_seconds=(comparison_delta if isinstance(comparison_delta, int) else None),
-        config=detector_config,
         conditions=conditions,
         snuba_query=snuba_query,
         open_periods=open_periods,

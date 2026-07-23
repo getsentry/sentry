@@ -2073,7 +2073,14 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
             type=MetricIssue.slug,
             name="API error spike",
             description="Fires when errors spike above baseline",
-            config={"detection_type": "percent", "comparison_delta": 3600},
+            # The extra key is deliberate: the metric config schema is permissive
+            # (no additionalProperties: False), so stored config can carry keys the
+            # schema never declared — none of it may reach the LLM-facing payload.
+            config={
+                "detection_type": "percent",
+                "comparison_delta": 3600,
+                "secret_token": "do-not-expose",
+            },
             workflow_condition_group=condition_group,
         )
         subscription = self._create_snuba_subscription_data_source(detector)
@@ -2147,10 +2154,9 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert detector_context["enabled"] is True
         assert detector_context["detection_type"] == "percent"
         assert detector_context["comparison_delta_seconds"] == 3600
-        assert detector_context["config"] == {
-            "detection_type": "percent",
-            "comparison_delta": 3600,
-        }
+        # Raw detector config must not be exposed — only the hoisted typed fields.
+        assert "config" not in detector_context
+        assert "do-not-expose" not in str(result.dict())
         assert detector_context["conditions"] == [
             {
                 "type": Condition.GREATER.value,
@@ -2268,8 +2274,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert detector_context["detection_type"] is None
         assert detector_context["comparison_delta_seconds"] is None
         assert detector_context["snuba_query"] is None
-        assert detector_context["config"]["recovery_threshold"] is not None
-        assert detector_context["config"]["downtime_threshold"] is not None
+        assert "config" not in detector_context
         priorities = sorted(
             condition["triggers_priority"] for condition in detector_context["conditions"]
         )
