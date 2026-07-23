@@ -81,7 +81,8 @@ const HAS_WEBPACK_DEV_SERVER_CONFIG =
 
 // User/tooling configurable environment variables
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
-const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
+// Type checking is resource intensive, enable it explicitly with ENABLE_TS_CHECKER=1.
+const SHOULD_CHECK_TYPES = DEV_MODE && Boolean(env.ENABLE_TS_CHECKER);
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 // Only entry points are eagerly built, lazy build routes. Saves memory and startup time.
@@ -430,7 +431,7 @@ const appConfig: Configuration = {
      */
     new rspack.DefinePlugin(DEFINED_ENV_VARS),
 
-    ...(SHOULD_FORK_TS
+    ...(SHOULD_CHECK_TYPES
       ? [
           new TsCheckerRspackPlugin({
             typescript: {

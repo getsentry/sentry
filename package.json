@@ -39,7 +39,7 @@
     "build": "NODE_OPTIONS='--max-old-space-size=4096' rspack --config ./rspack.config.ts",
     "build-js-loader": "node scripts/build-js-loader.ts",
     "build-js-po": "node build-utils/ts-extract-gettext.ts",
-    "build-profile": "NO_TS_FORK=1 rspack --profile --json > stats.json",
+    "build-profile": "rspack --profile --json > stats.json",
     "extract-form-fields": "node scripts/extractFormFields.ts",
     "gen:embed-widgets": "node scripts/genEmbedWidgets.ts",
     "gen:platform-info": "node scripts/genPlatformProductInfo.ts",
