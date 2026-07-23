@@ -115,7 +115,7 @@ def get_filter_state(filter_id: str, project: Project) -> bool | list[str]:
     if filter == legacy_browsers_filter and filter_state not in ("0", "1"):
         # legacy-browsers stores the list of enabled subfilters
         return filter_state
-    return filter_state == "1"
+    return bool(filter_state == "1")
 
 
 def get_log_filter(project: Project) -> list[GenericFilter]:
