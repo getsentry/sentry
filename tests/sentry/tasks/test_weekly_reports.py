@@ -2463,6 +2463,7 @@ class WeeklyReportsTest(
 
     def test_project_breakdown_equals_covers_project_limit(self):
         assert len(project_breakdown_colors) == TOP_SPANS_LIMIT
+
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_fetch_resolution_label_pr(self) -> None:
         self.project.first_event = self.now - timedelta(days=3)
