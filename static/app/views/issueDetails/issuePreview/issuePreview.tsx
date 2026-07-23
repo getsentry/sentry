@@ -10,7 +10,6 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {TimeSince} from 'sentry/components/timeSince';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getMessage, getTitle} from 'sentry/utils/events';
@@ -38,6 +37,7 @@ import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
+import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 
 interface IssuePreviewProps {
   groupId: string;
@@ -116,23 +116,7 @@ function IssuePreviewContent() {
                 tooltipProps={{title: t('Open Issue')}}
               />
             </Flex>
-            <Flex align="center" gap="xs" wrap="nowrap">
-              <TimeSince
-                date={group.lastSeen}
-                suffix=""
-                unitStyle="extraShort"
-                tooltipPrefix={t('Last Seen')}
-                variant="muted"
-              />
-              <Text variant="muted">|</Text>
-              <TimeSince
-                date={group.firstSeen}
-                suffix=""
-                unitStyle="extraShort"
-                tooltipPrefix={t('First Seen')}
-                variant="muted"
-              />
-            </Flex>
+            <IssueSeenTimes group={group} />
           </Flex>
           <EventMessage level={group.level} message={secondaryTitle} type={group.type} />
           <GroupStatusSubtitle group={group} project={project} />
