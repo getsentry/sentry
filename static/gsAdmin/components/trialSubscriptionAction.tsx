@@ -11,6 +11,7 @@ import type {
   AdminConfirmRenderProps,
 } from 'admin/components/adminConfirmationModal';
 import type {Subscription} from 'getsentry/types';
+import {isTrial} from 'getsentry/utils/billing';
 
 type Props = AdminConfirmRenderProps & {
   subscription: Subscription;
@@ -69,7 +70,7 @@ export class TrialSubscriptionAction extends Component<Props, State> {
     if (startEnterpriseTrial) {
       return 'Start Enterprise Trial';
     }
-    return subscription.isTrial ? 'Extend Trial' : 'Start Trial';
+    return isTrial(subscription) ? 'Extend Trial' : 'Start Trial';
   }
 
   render() {

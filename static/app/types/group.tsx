@@ -550,6 +550,7 @@ export type SuggestedOwnerReason =
   | 'suspectCommit'
   | 'ownershipRule'
   | 'projectOwnership'
+  | 'seerSuggested'
   // TODO: codeowners may no longer exist
   | 'codeowners';
 
@@ -924,7 +925,8 @@ export interface GroupActivityAssigned extends GroupActivityBase {
       | 'codeowners'
       | 'slack'
       | 'msteams'
-      | 'suspectCommitter';
+      | 'suspectCommitter'
+      | 'seerSuggested';
     /** Codeowner or Project owner rule as a string */
     rule?: string;
     user?: Team | User;

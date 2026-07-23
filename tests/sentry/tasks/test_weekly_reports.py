@@ -16,6 +16,7 @@ from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -2133,7 +2134,7 @@ class WeeklyReportsTest(
         assert len(results) == 1
         assert results[0][0].id == group1.id
         assert results[0][1] >= 1
-        assert results[0][2] is False
+        assert results[0][2] == "Resolved"
 
     @mock.patch("sentry.tasks.summaries.utils._past_resolved_performance_counts")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
@@ -2160,7 +2161,7 @@ class WeeklyReportsTest(
             ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
         )
 
-        assert results == [(group, 1, False)]
+        assert results == [(group, 1, "Resolved")]
         mock_perf_counts.assert_called_once()
         assert mock_perf_counts.call_args.args[2] == [group.id]
 
@@ -2260,18 +2261,16 @@ class WeeklyReportsTest(
         group2.resolved_at = self.now - timedelta(minutes=1)
         group2.save()
 
-        GroupLink.objects.create(
+        self.create_group_link(
             group=group1,
-            project=self.project,
-            linked_type=GroupLink.LinkedType.commit,
             linked_id=1,
+            linked_type=GroupLink.LinkedType.commit,
             relationship=GroupLink.Relationship.resolves,
         )
-        GroupLink.objects.create(
+        self.create_group_link(
             group=group2,
-            project=self.project,
-            linked_type=GroupLink.LinkedType.commit,
             linked_id=2,
+            linked_type=GroupLink.LinkedType.commit,
             relationship=GroupLink.Relationship.references,
         )
 
@@ -2286,9 +2285,9 @@ class WeeklyReportsTest(
         fetch_past_resolved_issue_links(ctx)
 
         updated = ctx.projects_context_map[self.project.id].past_resolved_issues
-        has_link_by_group = {group.id: has_link for group, _count, has_link in updated}
-        assert has_link_by_group[group1.id] is True
-        assert has_link_by_group[group2.id] is False
+        label_by_group = {group.id: label for group, _count, label in updated}
+        assert label_by_group[group1.id] == "Resolved"
+        assert label_by_group[group2.id] == "Resolved"
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -2361,3 +2360,264 @@ class WeeklyReportsTest(
             assert context["show_past_issues"] is False
             assert len(context["past_issues"]) == 0
             assert len(context["top_issues"]) == 1
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_fetch_resolution_label_pr(self) -> None:
+        self.project.first_event = self.now - timedelta(days=3)
+        self.project.save()
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "pr resolved error",
+                "timestamp": min_ago,
+                "fingerprint": ["pr-resolved-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group = event.group
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.resolved_at = self.now - timedelta(minutes=1)
+        group.save()
+
+        self.create_group_link(
+            group=group,
+            linked_id=1,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        timestamp = self.now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        results = project_past_resolved_issues(
+            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
+        )
+        ctx.projects_context_map[self.project.id].past_resolved_issues = results
+        fetch_past_resolved_issue_links(ctx)
+
+        updated = ctx.projects_context_map[self.project.id].past_resolved_issues
+        assert len(updated) == 1
+        assert updated[0][2] == "Resolved in PR"
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_fetch_resolution_label_release(self) -> None:
+        self.project.first_event = self.now - timedelta(days=3)
+        self.project.save()
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "release resolved error",
+                "timestamp": min_ago,
+                "fingerprint": ["release-resolved-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group = event.group
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.resolved_at = self.now - timedelta(minutes=1)
+        group.save()
+
+        release = self.create_release(project=self.project, version="1.2.3")
+        self.create_group_resolution(
+            group=group,
+            release=release,
+            type=GroupResolution.Type.in_release,
+            status=GroupResolution.Status.resolved,
+        )
+
+        timestamp = self.now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        results = project_past_resolved_issues(
+            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
+        )
+        ctx.projects_context_map[self.project.id].past_resolved_issues = results
+        fetch_past_resolved_issue_links(ctx)
+
+        updated = ctx.projects_context_map[self.project.id].past_resolved_issues
+        assert len(updated) == 1
+        assert updated[0][2] == "Resolved in release"
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_fetch_resolution_label_next_release(self) -> None:
+        self.project.first_event = self.now - timedelta(days=3)
+        self.project.save()
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "next release resolved error",
+                "timestamp": min_ago,
+                "fingerprint": ["next-release-resolved-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group = event.group
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.resolved_at = self.now - timedelta(minutes=1)
+        group.save()
+
+        release = self.create_release(project=self.project, version="2.0.0")
+        self.create_group_resolution(
+            group=group,
+            release=release,
+            type=GroupResolution.Type.in_next_release,
+            status=GroupResolution.Status.pending,
+        )
+
+        timestamp = self.now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        results = project_past_resolved_issues(
+            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
+        )
+        ctx.projects_context_map[self.project.id].past_resolved_issues = results
+        fetch_past_resolved_issue_links(ctx)
+
+        updated = ctx.projects_context_map[self.project.id].past_resolved_issues
+        assert len(updated) == 1
+        assert updated[0][2] == "Resolved in next release"
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_fetch_resolution_label_pr_priority_over_release(self) -> None:
+        self.project.first_event = self.now - timedelta(days=3)
+        self.project.save()
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "pr and release resolved error",
+                "timestamp": min_ago,
+                "fingerprint": ["pr-release-resolved-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group = event.group
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.resolved_at = self.now - timedelta(minutes=1)
+        group.save()
+
+        self.create_group_link(
+            group=group,
+            linked_id=1,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        release = self.create_release(project=self.project, version="1.2.3")
+        self.create_group_resolution(
+            group=group,
+            release=release,
+            type=GroupResolution.Type.in_release,
+            status=GroupResolution.Status.resolved,
+        )
+
+        timestamp = self.now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        results = project_past_resolved_issues(
+            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
+        )
+        ctx.projects_context_map[self.project.id].past_resolved_issues = results
+        fetch_past_resolved_issue_links(ctx)
+
+        updated = ctx.projects_context_map[self.project.id].past_resolved_issues
+        assert len(updated) == 1
+        assert updated[0][2] == "Resolved in PR"
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_fetch_resolution_label_null_type(self) -> None:
+        self.project.first_event = self.now - timedelta(days=3)
+        self.project.save()
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "null type resolved error",
+                "timestamp": min_ago,
+                "fingerprint": ["null-type-resolved-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group = event.group
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.resolved_at = self.now - timedelta(minutes=1)
+        group.save()
+
+        release = self.create_release(project=self.project, version="1.0.0")
+        self.create_group_resolution(
+            group=group,
+            release=release,
+            type=None,
+            status=GroupResolution.Status.pending,
+        )
+
+        timestamp = self.now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        results = project_past_resolved_issues(
+            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
+        )
+        ctx.projects_context_map[self.project.id].past_resolved_issues = results
+        fetch_past_resolved_issue_links(ctx)
+
+        updated = ctx.projects_context_map[self.project.id].past_resolved_issues
+        assert len(updated) == 1
+        assert updated[0][2] == "Resolved in next release"
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_fetch_resolution_label_expired_next_release(self) -> None:
+        """After clear_expired_resolutions rewrites type to in_release,
+        current_release_version still identifies next-release resolutions."""
+        self.project.first_event = self.now - timedelta(days=3)
+        self.project.save()
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "expired next release error",
+                "timestamp": min_ago,
+                "fingerprint": ["expired-next-release-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group = event.group
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.resolved_at = self.now - timedelta(minutes=1)
+        group.save()
+
+        release = self.create_release(project=self.project, version="2.0.0")
+        self.create_group_resolution(
+            group=group,
+            release=release,
+            type=GroupResolution.Type.in_release,
+            status=GroupResolution.Status.resolved,
+            current_release_version="1.9.0",
+        )
+
+        timestamp = self.now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        results = project_past_resolved_issues(
+            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
+        )
+        ctx.projects_context_map[self.project.id].past_resolved_issues = results
+        fetch_past_resolved_issue_links(ctx)
+
+        updated = ctx.projects_context_map[self.project.id].past_resolved_issues
+        assert len(updated) == 1
+        assert updated[0][2] == "Resolved in next release"
