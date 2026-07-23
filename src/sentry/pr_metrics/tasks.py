@@ -188,6 +188,15 @@ def reap_stuck_judge_verdicts_task() -> None:
 
 # Batch size for the per-candidate settle loop in detect_stale_pull_requests_task.
 _STALE_BATCH_SIZE = 100
+# Cap on how many candidates find_stale_pull_requests returns per run. Mirrors
+# reap_stuck_judge_verdicts's _REAP_BATCH_SIZE: no upper bound on staleness age,
+# so a first run (or one that fell behind) could otherwise match an arbitrarily
+# large historical backlog of ancient open PRs in one go. A capped, oldest-first
+# scan spreads a large backlog across runs instead of risking a timeout and a
+# flood of abandoned-verdict emissions in a single invocation — each settled PR
+# gets a non-NULL verdict, so it drops out of the candidate set and later runs
+# make steady progress through the rest.
+_STALE_SCAN_LIMIT = 500
 # How old PRs need no activity to be considered stale
 STALENESS_WINDOW = timedelta(weeks=4)
 
@@ -228,6 +237,14 @@ def find_stale_pull_requests(*, cutoff: datetime) -> list[int]:
     document before settling it, since doing so here would mean pulling every
     candidate's document into this one unbounded scan instead of per batch.
 
+    Capped at ``_STALE_SCAN_LIMIT``, oldest-opened first: there's no upper
+    bound on staleness age, so an ancient backlog (first run, or one that fell
+    behind) could otherwise match an arbitrarily large candidate set in one
+    go. Each settled PR gets a non-NULL verdict and drops out of the
+    candidate set, so a backlog past the cap still gets worked down over
+    subsequent runs rather than all being pulled into memory — and settled —
+    at once. Mirrors ``reap_stuck_judge_verdicts``'s ``_REAP_BATCH_SIZE``.
+
     Returns a list of ``PullRequest`` primary keys, not ORM instances, so the
     caller can process them in batches without holding a large queryset open.
     """
@@ -245,8 +262,9 @@ def find_stale_pull_requests(*, cutoff: datetime) -> list[int]:
             metrics__verdict__isnull=True,
         )
         .filter(~Exists(recent_engaging_activity))
+        .order_by("date_added")
         .values_list("id", flat=True)
-        .distinct()
+        .distinct()[:_STALE_SCAN_LIMIT]
     )
     return list(qs)
 

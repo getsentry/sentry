@@ -22,7 +22,11 @@ from sentry.models.pullrequest import (
 from sentry.pr_metrics.activity_doc import apply_activity, new_document
 from sentry.pr_metrics.contracts import CLOSE_ACTION_ABANDONED
 from sentry.pr_metrics.emit import NO_REVIEWER_ENGAGEMENT, emit_pr_metrics_row
-from sentry.pr_metrics.tasks import detect_stale_pull_requests_task, find_stale_pull_requests
+from sentry.pr_metrics.tasks import (
+    _STALE_SCAN_LIMIT,
+    detect_stale_pull_requests_task,
+    find_stale_pull_requests,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import cell_silo_test
@@ -179,6 +183,23 @@ class FindStalePullRequestsTest(TestCase):
         )
         ids = find_stale_pull_requests(cutoff=_ago(3))
         assert ids.count(pr.id) == 1
+
+    def test_caps_result_at_scan_limit_oldest_first(self) -> None:
+        # Guards against an unbounded first-run (or backlog) scan pulling an
+        # arbitrarily large candidate set into memory in one call: the result
+        # is capped at _STALE_SCAN_LIMIT, oldest-opened first, so a capped-off
+        # backlog still gets worked down over subsequent runs rather than all
+        # being read (and settled) at once.
+        prs = [self._make_pr(opened_weeks_ago=10.0 + i) for i in range(_STALE_SCAN_LIMIT + 5)]
+        for pr in prs:
+            self._track(pr)
+
+        ids = find_stale_pull_requests(cutoff=_ago(3))
+
+        assert len(ids) == _STALE_SCAN_LIMIT
+        # Oldest-opened (highest weeks_ago) PRs are returned first.
+        expected_oldest_first = [pr.id for pr in sorted(prs, key=lambda pr: pr.date_added)]
+        assert ids == expected_oldest_first[:_STALE_SCAN_LIMIT]
 
 
 @cell_silo_test
