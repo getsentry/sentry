@@ -463,10 +463,23 @@ function AuthorAvatar({
     <Tooltip title={tooltip}>
       <AvatarFrame>
         <UserAvatar size={AVATAR_SIZE} user={user} />
-        {/* 14px badge with 1px padding → 12px icon (`xs`). */}
-        <SourceBadge>
+        {/* Bottom-right corner badge: a filled circle in the card background
+            color behind the small source icon so it reads as separate from the
+            avatar it overlaps. Centering leaves ~1px of slack around the 12px
+            (`xs`) icon inside the 14px circle. */}
+        <Flex
+          position="absolute"
+          right="-3px"
+          bottom="-3px"
+          align="center"
+          justify="center"
+          radius="full"
+          background="primary"
+          width={`${SOURCE_BADGE_SIZE}px`}
+          height={`${SOURCE_BADGE_SIZE}px`}
+        >
           <Icon size="xs" />
-        </SourceBadge>
+        </Flex>
       </AvatarFrame>
     </Tooltip>
   );
@@ -482,24 +495,6 @@ function PrimaryIconAvatar({Icon, tooltip}: {Icon: typeof IconSeer; tooltip: str
     </Tooltip>
   );
 }
-
-// Bottom-right corner badge: a filled circle in the card background color behind
-// the small source icon so it reads as separate from the avatar it overlaps.
-// Emotion edge case: the negative offsets and circular mask aren't expressible
-// through layout primitives.
-const SourceBadge = styled('div')`
-  position: absolute;
-  right: -3px;
-  bottom: -3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: ${SOURCE_BADGE_SIZE}px;
-  height: ${SOURCE_BADGE_SIZE}px;
-  padding: 1px;
-  border-radius: 50%;
-  background: ${p => p.theme.tokens.background.primary};
-`;
 
 // Source-agnostic: the same three status glyphs regardless of where the
 // iteration came from.
