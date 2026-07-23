@@ -484,6 +484,9 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
         self.mock_actions.create_review_comment_reaction.assert_not_called()
+        # The cap runs before make_scm and the write-access gate, so the
+        # collaborator check is never consulted.
+        self.mock_actions.get_repository_user_permission.assert_not_called()
 
     def test_human_review_proceeds_when_automated_streak_capped(self) -> None:
         # The streak cap only bounds automated (bot) reviews; a human review always
@@ -523,3 +526,20 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_actions.get_repository_user_permission.assert_not_called()
         self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
+
+    def test_bot_review_proceeds_without_repo_write_access(self) -> None:
+        # A bot can only post a review once its App is installed on the repo with
+        # write access, so the per-user collaborator check is skipped for bots and
+        # the review drives an iteration even when the login has no write access.
+        self.mock_actions.get_repository_user_permission.return_value = {"data": {"perms": "none"}}
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="add a test")]
+        )
+
+        self._run(author_is_bot=True)
+
+        self.mock_actions.get_repository_user_permission.assert_not_called()
+        self.mock_enqueue.assert_called()
+        self.mock_consume.assert_called_once()
+        self.mock_actions.create_review_comment_reaction.assert_called_once()
+        assert self.mock_actions.create_review_comment_reaction.call_args.args[3] == "eyes"

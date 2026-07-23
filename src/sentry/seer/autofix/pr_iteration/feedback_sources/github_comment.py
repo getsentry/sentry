@@ -119,6 +119,13 @@ class GithubPrCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
     repo_name: str | None = None
     require_command: ClassVar[bool] = True
     type: Literal["github-pr-comment"] = "github-pr-comment"
+    # Whether the comment author is a bot. Bot comments count toward the
+    # automated-iteration streak cap; human comments reset it.
+    author_is_bot: bool = False
+
+    @property
+    def is_automated(self) -> bool:
+        return self.author_is_bot
 
 
 class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):

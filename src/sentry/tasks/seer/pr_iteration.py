@@ -448,6 +448,7 @@ def trigger_pr_iteration_from_comment(
     integration_id: int,
     pr_number: int,
     feedback: str,
+    author_is_bot: bool = False,
 ) -> None:
     """
     Resolve the Autofix run behind ``pr_number`` and kick off a PR iteration.
@@ -552,6 +553,19 @@ def trigger_pr_iteration_from_comment(
         )
         return None
 
+    # Cap bot-driven iterations so repeated @sentry pings can't loop without human
+    # input; a human comment always proceeds and resets the streak.
+    if author_is_bot and automated_iteration_cap_reached(agent_state):
+        metrics.incr("autofix.pr_iteration.comment_trigger.max_iterations_reached")
+        logger.info(
+            "autofix.pr_iteration.comment_trigger.max_iterations_reached",
+            extra={
+                "organization_id": organization_id,
+                "max_iterations": options.get("autofix.pr-iteration.max-iterations"),
+            },
+        )
+        return None
+
     try:
         scm = make_scm(organization_id, repo_id, referrer="seer")
     except Exception:
@@ -562,7 +576,7 @@ def trigger_pr_iteration_from_comment(
         )
         return None
 
-    if not _github_commenter_has_repo_write_access(scm, github_username):
+    if not author_is_bot and not _github_commenter_has_repo_write_access(scm, github_username):
         metrics.incr("autofix.pr_iteration.comment_trigger.unauthorized")
         logger.info(
             "autofix.pr_iteration.comment_trigger.unauthorized",
@@ -796,11 +810,8 @@ def trigger_pr_iteration_from_review(
         )
         return None
 
-    # Only bot reviews are capped: once the last N iterations were all automated,
-    # stop letting bots (test-coverage comments and the like) drive further ones —
-    # they'd loop forever without human input. A human review always proceeds and
-    # resets that streak. Bail before enqueueing or acking so we don't :eyes:-ack
-    # inline comments that never produce an iteration.
+    # Cap bot-driven iterations so automated reviews can't loop without human
+    # input; a human review always proceeds and resets the streak.
     if author_is_bot and automated_iteration_cap_reached(agent_state):
         metrics.incr("autofix.pr_iteration.review_trigger.max_iterations_reached")
         logger.info(
@@ -826,10 +837,9 @@ def trigger_pr_iteration_from_review(
         logger.warning("autofix.pr_iteration.review_trigger.unsupported_provider", extra=log_extra)
         return None
 
-    # Gate on repo write access before fetching, enqueueing, or acking: a review
-    # from someone without write/admin is silently dropped so an untrusted
-    # reviewer can't spend Autofix quota or inject feedback that rewrites the PR.
-    if not author_username or not _github_commenter_has_repo_write_access(scm, author_username):
+    if not author_is_bot and (
+        not author_username or not _github_commenter_has_repo_write_access(scm, author_username)
+    ):
         metrics.incr("autofix.pr_iteration.review_trigger.no_write_access")
         logger.info("autofix.pr_iteration.review_trigger.no_write_access", extra=log_extra)
         return None

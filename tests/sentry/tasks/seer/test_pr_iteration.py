@@ -78,13 +78,14 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_integration.get_installation.return_value.get_client.return_value = mock_client
         return mock_integration
 
-    def _call(self) -> None:
+    def _call(self, *, author_is_bot: bool = False) -> None:
         trigger_pr_iteration_from_comment(
             organization_id=self.organization.id,
             repo_id=self.repo.id,
             integration_id=42,
             pr_number=7,
             feedback=self.feedback.json(),
+            author_is_bot=author_is_bot,
         )
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
@@ -363,6 +364,77 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue.assert_called_once()
         mock_trigger_consume.assert_called_once()
         mock_reaction.assert_called_once()
+
+    @patch(f"{TASK_PATH}._add_comment_reaction")
+    @patch(f"{TASK_PATH}.make_scm")
+    @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
+    @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
+    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
+    def test_bot_comment_proceeds_without_write_access(
+        self,
+        mock_get_integration: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+        mock_has_access: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_reaction: MagicMock,
+    ) -> None:
+        # A bot can only post a comment once its App is installed on the repo with
+        # write access, so the per-user collaborator check is skipped for bots and
+        # the comment drives an iteration even though the helper would return False.
+        mock_get_integration.return_value = self._mock_integration()
+        mock_get_state.return_value = self._agent_state()
+
+        self._call(author_is_bot=True)
+
+        mock_has_access.assert_not_called()
+        mock_enqueue.assert_called_once()
+        mock_trigger_consume.assert_called_once()
+        mock_reaction.assert_called_once_with(
+            mock_make_scm.return_value,
+            source_type="github-pr-comment",
+            pr_number=7,
+            comment_id=999,
+            reaction="eyes",
+        )
+
+    @patch(f"{TASK_PATH}._add_comment_reaction")
+    @patch(f"{TASK_PATH}.make_scm")
+    @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
+    @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
+    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
+    def test_skips_bot_comment_when_automated_streak_capped(
+        self,
+        mock_get_integration: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+        mock_has_access: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_reaction: MagicMock,
+    ) -> None:
+        # A bot comment past the automated-iteration streak cap is dropped by the
+        # cap, which runs before make_scm and the write-access gate — so the
+        # collaborator check is never consulted. (Iterations with no human feedback
+        # count as automated, so two trip a cap of 2.)
+        mock_get_integration.return_value = self._mock_integration()
+        mock_get_state.return_value = self._agent_state(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call(author_is_bot=True)
+
+        mock_make_scm.assert_not_called()
+        mock_has_access.assert_not_called()
+        mock_enqueue.assert_not_called()
+        mock_trigger_consume.assert_not_called()
+        mock_reaction.assert_not_called()
 
 
 class ConsumeQueuedAutofixFeedbackTest(TestCase):

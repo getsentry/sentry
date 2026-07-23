@@ -23,6 +23,7 @@ from typing import Any, NamedTuple
 from pydantic import ValidationError
 
 from sentry import features
+from sentry.integrations.github.utils import is_github_bot_login
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -72,9 +73,14 @@ def _dispatch_autofix_iteration_from_comment(
     integration: RpcIntegration | None,
     log_extra: Mapping[str, Any],
 ) -> None:
+    user = comment.get("user") or {}
+    author_is_bot = user.get("type") == "Bot" or is_github_bot_login(user.get("login"))
+
     try:
         feedback = Feedback(
-            source=GithubPrCommentFeedbackSource(comment=comment, repo_name=repo.name)
+            source=GithubPrCommentFeedbackSource(
+                comment=comment, repo_name=repo.name, author_is_bot=author_is_bot
+            )
         )
     except ValidationError:
         logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_command", extra=log_extra)
@@ -107,6 +113,7 @@ def _dispatch_autofix_iteration_from_comment(
         integration_id=integration.id,
         pr_number=pr_number,
         feedback=feedback.json(),
+        author_is_bot=author_is_bot,
     )
     return None
 
