@@ -26,7 +26,13 @@ from sentry.runner.commands.cleanup import (
     run_bulk_deletes_in_deletes,
     task_execution,
 )
+from sentry.seer.models.night_shift import (
+    SeerNightShiftRun,
+    SeerNightShiftRunResult,
+    SeerNightShiftRunShard,
+)
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPullRequest
+from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -338,6 +344,27 @@ class SeerRunCleanupTest(TestCase):
         assert not SeerRun.objects.filter(id=run.id).exists()
         assert not SeerAgentRun.objects.filter(id=agent.id).exists()
         assert not SeerRunPullRequest.objects.filter(id=link.id).exists()
+
+    @assume_test_silo_mode(SiloMode.CELL)
+    def test_night_shift_links_survive_with_null_seer_run(self) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, last_triggered_at=before_now(days=31)
+        )
+        night_shift_run = SeerNightShiftRun.objects.create(organization=self.organization)
+        shard = SeerNightShiftRunShard.objects.create(run=night_shift_run, seer_run=run)
+        result = SeerNightShiftRunResult.objects.create(
+            run=night_shift_run,
+            kind=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+            result_seer_run=run,
+        )
+
+        self._run_seer_run_cleanup(days=30)
+
+        assert not SeerRun.objects.filter(id=run.id).exists()
+        shard.refresh_from_db()
+        result.refresh_from_db()
+        assert shard.seer_run_id is None
+        assert result.result_seer_run_id is None
 
 
 class PartitionValidationTest(TestCase):
