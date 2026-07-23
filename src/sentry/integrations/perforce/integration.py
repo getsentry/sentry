@@ -30,6 +30,7 @@ from sentry.integrations.perforce.client import (
     PerforceClient,
     validate_p4port_transport,
 )
+from sentry.integrations.perforce.p4protocol import P4Exception
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
@@ -800,6 +801,28 @@ class PerforceInstallationApiStep:
         except ApiError as e:
             return PipelineStepResult.error(
                 f"Failed to connect to Perforce server: {e}. Please verify your server address and SSL fingerprint."
+            )
+        except P4Exception as e:
+            # P4Exception is raised for predictable, user-fixable configuration
+            # errors that are not subclasses of ApiError/ApiUnauthorized.  The
+            # most common case is connecting to a Unicode-mode Perforce server
+            # with charset='none': the server rejects the client with
+            # "Unicode server permits only unicode enabled clients."
+            # Treat these as validation errors — return an actionable message
+            # and avoid the logger.exception() call in the catch-all below,
+            # which would generate unnecessary Sentry noise for a known-good
+            # user mistake.
+            error_msg = str(e).lower()
+            if "unicode server" in error_msg:
+                return PipelineStepResult.error(
+                    f"Failed to connect to Perforce server: {e}. "
+                    "This server requires a Unicode charset — set "
+                    "'Server Encoding' to 'Unicode server (UTF-8)' in the "
+                    "integration configuration."
+                )
+            return PipelineStepResult.error(
+                f"Failed to connect to Perforce server: {e}. "
+                "Please verify your server address and connection settings."
             )
         except Exception as e:
             logger.exception(
