@@ -157,7 +157,7 @@ const StatusGroup = styled(Disclosure)`
 // Sticky group header; z-index isn't a layout-primitive prop so it lives here.
 // Opaque background so cards scroll under it.
 const GroupHeader = styled(Sticky)`
-  z-index: ${p => p.theme.zIndex.initial};
+  z-index: ${p => p.theme.zIndex.initial + 1};
   width: 100%;
   background: ${p => p.theme.tokens.background.secondary};
   border-radius: ${p => p.theme.radius.md};
