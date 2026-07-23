@@ -274,9 +274,7 @@ def run_bulk_replay_delete_job(
         job.range_start = window_end
         job.offset = next_offset
         job.save()
-        run_bulk_replay_delete_job.delay(
-            job.id, 0, limit=limit, has_seer_data=has_seer_data
-        )
+        run_bulk_replay_delete_job.delay(job.id, 0, limit=limit, has_seer_data=has_seer_data)
         return None
 
     # All windows processed. Mark the job as completed.
