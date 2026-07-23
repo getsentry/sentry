@@ -260,7 +260,7 @@ def run_taskworker(
     """
     taskworker factory that can be reloaded
     """
-    from taskbroker_client.worker import BatchPushTaskWorker, PushTaskWorker, TaskWorker
+    from taskbroker_client.worker import PushTaskWorker, TaskWorker
     from taskbroker_client.worker.client import make_broker_hosts
 
     skip_awaiting_futures = sentry_options.get("taskworker.skip.awaiting.futures")
@@ -282,27 +282,6 @@ def run_taskworker(
                 health_check_sec_per_touch=health_check_sec_per_touch,
                 grpc_port=worker_rpc_port,
                 push_task_timeout=push_timeout_sec,
-                skip_awaiting_futures=skip_awaiting_futures,
-                future_checking_frequency=future_checking_frequency,
-                prometheus_port=prometheus_port,
-            )
-        elif batch_push_mode:
-            worker = BatchPushTaskWorker(
-                app_module="sentry.taskworker.bootstrap:app",
-                broker_service=rpc_host,
-                max_child_task_count=max_child_task_count,
-                namespace=namespace,
-                concurrency=concurrency,
-                min_concurrency=min_concurrency,
-                child_tasks_queue_maxsize=child_tasks_queue_maxsize,
-                result_queue_maxsize=result_queue_maxsize,
-                rebalance_after=rebalance_after,
-                processing_pool_name=processing_pool_name,
-                pod_name=pod_name,
-                health_check_file_path=health_check_file_path,
-                health_check_sec_per_touch=health_check_sec_per_touch,
-                grpc_port=worker_rpc_port,
-                update_in_batches=True,
                 skip_awaiting_futures=skip_awaiting_futures,
                 future_checking_frequency=future_checking_frequency,
                 prometheus_port=prometheus_port,
