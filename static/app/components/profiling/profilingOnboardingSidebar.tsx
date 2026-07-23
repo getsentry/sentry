@@ -346,7 +346,6 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
       data: registryData,
     },
     platformOptions: PROFILING_ONBOARDING_STEPS,
-    newOrg: false,
     feedbackOptions: {},
     /**
      * Page where the docs will be rendered

@@ -143,7 +143,6 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
       data: registryData,
     },
     platformOptions: {installationMode: 'auto'},
-    newOrg: false,
     replayOptions: {block: true, mask: true},
     isSelfHosted,
     urlPrefix,

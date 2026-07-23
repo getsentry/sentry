@@ -292,7 +292,6 @@ export function Onboarding() {
         ? 'continuous'
         : 'transaction',
     },
-    newOrg: false,
     urlPrefix,
     isSelfHosted,
   };

@@ -484,7 +484,6 @@ export function Onboarding({organization, project}: OnboardingProps) {
       data: registryData,
     },
     platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
-    newOrg: false,
     feedbackOptions: {},
     urlPrefix,
     isSelfHosted,

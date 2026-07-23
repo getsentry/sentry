@@ -3,6 +3,11 @@ import {Fragment} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {
+  resolveDocsFlowEvent,
+  SOURCE_MAPS_COPY_CLICKED_EVENT,
+  SOURCE_MAPS_SELECTED_AND_COPIED_EVENT,
+} from 'sentry/components/onboarding/gettingStartedDoc/docsFlowAnalytics';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import type {
   DocsParams,
@@ -20,8 +25,7 @@ export function getUploadSourceMapsStep({
   organization,
   platformKey,
   project,
-  newOrg,
-  hasScmOnboarding,
+  docsFlow,
   isSelfHosted,
   description,
 }: DocsParams & {
@@ -57,21 +61,11 @@ export function getUploadSourceMapsStep({
           <OnboardingCodeSnippet
             language="bash"
             onCopy={() =>
-              trackEvent(
-                hasScmOnboarding
-                  ? 'onboarding.scm_source_maps_wizard_button_copy_clicked'
-                  : newOrg
-                    ? 'onboarding.source_maps_wizard_button_copy_clicked'
-                    : 'project_creation.source_maps_wizard_button_copy_clicked'
-              )
+              trackEvent(resolveDocsFlowEvent(SOURCE_MAPS_COPY_CLICKED_EVENT, docsFlow))
             }
             onSelectAndCopy={() =>
               trackEvent(
-                hasScmOnboarding
-                  ? 'onboarding.scm_source_maps_wizard_selected_and_copied'
-                  : newOrg
-                    ? 'onboarding.source_maps_wizard_selected_and_copied'
-                    : 'project_creation.source_maps_wizard_selected_and_copied'
+                resolveDocsFlowEvent(SOURCE_MAPS_SELECTED_AND_COPIED_EVENT, docsFlow)
               )
             }
           >
