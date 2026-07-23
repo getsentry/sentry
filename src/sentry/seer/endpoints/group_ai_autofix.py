@@ -258,9 +258,22 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
         sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")
+        legacy_run_id_param = data.get("run_id")
         run_ref: str | int | None = (
-            str(sentry_run_id_param) if sentry_run_id_param is not None else data.get("run_id")
+            str(sentry_run_id_param) if sentry_run_id_param is not None else legacy_run_id_param
         )
+
+        if sentry_run_id_param is None and legacy_run_id_param is not None:
+            logger.info(
+                "group_ai_autofix.legacy_integer_run_id",
+                extra={
+                    "run_id": legacy_run_id_param,
+                    "referrer": data.get("referrer"),
+                    "is_mcp_request": is_mcp_request(request),
+                    "user_agent": request.META.get("HTTP_USER_AGENT", "")[:256],
+                    "organization_id": group.organization.id,
+                },
+            )
 
         resolved_run_id: int | None = None
         resolved_sentry_run_id: str | None = None
