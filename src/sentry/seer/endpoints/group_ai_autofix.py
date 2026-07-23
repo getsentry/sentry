@@ -166,6 +166,11 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         help_text="Referrer identifying where the issue fix was triggered from.",
     )
+    enable_bash_tools = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Override bash mode tools.",
+    )
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         stopping_point = data.get("stopping_point", None)
@@ -401,6 +406,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         user_context=user_context,
                         insert_index=data.get("insert_index"),
                         user=request.user,
+                        enable_bash_tools=data.get("enable_bash_tools", False),
                     )
                 except NoSeerQuotaException:
                     return Response(
@@ -480,12 +486,14 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     user_id=request.user.id,
                     organization_id=group.organization.id,
                     run_id=state.run_id,
+                    group_id=group.id,
                 )
             if CodingAgentProviderType.CLAUDE_CODE_AGENT in agent_providers:
                 poll_claude_code_agents(
                     coding_agents=state.coding_agents,
                     organization_id=group.organization.id,
                     run_id=state.run_id,
+                    group_id=group.id,
                 )
 
         run = get_seer_run(state.run_id, group.organization)

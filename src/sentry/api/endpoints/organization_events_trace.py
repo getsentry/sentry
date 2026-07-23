@@ -271,7 +271,7 @@ class TraceEvent:
                     suspect_spans.append(event_span["span_id"])
 
                 parent_span_ids = problem.evidence_data.get("parent_span_ids")
-                if parent_span_ids is not None:
+                if parent_span_ids:
                     unique_spans = unique_spans.union(parent_span_ids)
 
                 # Logic for qualified_short_id is copied from property on the Group model
@@ -381,7 +381,7 @@ class TraceEvent:
                         if problem is None:
                             continue
                         parent_span_ids = problem.evidence_data.get("parent_span_ids")
-                        if parent_span_ids is not None:
+                        if parent_span_ids:
                             unique_spans = unique_spans.union(parent_span_ids)
                     span = list(unique_spans)
                     for event_span in self.nodestore_event.data.get("spans", []):

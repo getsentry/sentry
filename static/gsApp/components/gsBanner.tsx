@@ -13,11 +13,7 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
-import {
-  batchedPromptsCheck,
-  promptsCheck,
-  promptsUpdate,
-} from 'sentry/actionCreators/prompts';
+import {batchedPromptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -32,11 +28,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {withApi} from 'sentry/utils/withApi';
 
-import {
-  openForcedTrialModal,
-  openPartnerPlanEndingModal,
-  openTrialEndingModal,
-} from 'getsentry/actionCreators/modal';
+import {openForcedTrialModal, openTrialEndingModal} from 'getsentry/actionCreators/modal';
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import {ProductTrialAlert} from 'getsentry/components/productTrial/productTrialAlert';
 import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
@@ -51,12 +43,9 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {
-  getContractDaysLeft,
   getProductTrial,
-  hasPartnerMigrationFeature,
   hasPerformance,
   isBusinessTrial,
-  partnerPlanEndingModalIsDismissed,
   trialPromptIsDismissed,
 } from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
@@ -284,7 +273,6 @@ class GSBanner extends Component<Props, State> {
       this.tryTriggerNoticeModal();
       this.tryTriggerForcedTrial();
       this.tryTriggerForcedTrialModal();
-      this.tryTriggerPartnerPlanEndingModal();
     }
     await this.checkPrompts();
   }
@@ -384,47 +372,6 @@ class GSBanner extends Component<Props, State> {
     openTrialEndingModal({organization});
   }
 
-  async tryTriggerPartnerPlanEndingModal() {
-    const {organization, subscription, api} = this.props;
-    const hasEndingPartnerPlan = hasPartnerMigrationFeature(organization);
-    const hasPendingUpgrade =
-      subscription.pendingChanges !== null &&
-      subscription.pendingChanges?.planDetails.totalPrice > 0;
-    const daysLeft = getContractDaysLeft(subscription);
-
-    const showPartnerPlanEndingNotice =
-      subscription.partner !== null &&
-      !hasPendingUpgrade &&
-      daysLeft >= 0 &&
-      daysLeft <= 30 &&
-      subscription.partner.isActive &&
-      hasEndingPartnerPlan;
-
-    if (!showPartnerPlanEndingNotice) {
-      return;
-    }
-
-    let hasDismissed = true;
-    const prompt = await promptsCheck(api, {
-      organization,
-      feature: 'partner_plan_ending_modal',
-    });
-
-    if (daysLeft > 7) {
-      hasDismissed = partnerPlanEndingModalIsDismissed(prompt, subscription, 'month');
-    } else if (daysLeft > 2) {
-      hasDismissed = partnerPlanEndingModalIsDismissed(prompt, subscription, 'week');
-    } else if (daysLeft > 0) {
-      hasDismissed = partnerPlanEndingModalIsDismissed(prompt, subscription, 'two');
-    } else if (daysLeft === 0) {
-      hasDismissed = partnerPlanEndingModalIsDismissed(prompt, subscription, 'zero');
-    }
-
-    if (!hasDismissed) {
-      openPartnerPlanEndingModal({organization, subscription});
-    }
-  }
-
   tryTriggerSuspendedModal() {
     const {organization, subscription} = this.props;
 
@@ -511,17 +458,11 @@ class GSBanner extends Component<Props, State> {
       return;
     }
 
-    // mutliple possible trial endpoints depending on the situation
-    let endpoint: string;
-    // check for restricted integration
-    if (subscription.hasRestrictedIntegration) {
-      endpoint = `/organizations/${organization.slug}/restricted-integration-trial/`;
-      // only trigger if member limit is 1 and we have multiple licenses used
-    } else if (subscription.totalLicenses === 1 && subscription.usedLicenses > 1) {
-      endpoint = `/organizations/${organization.slug}/over-member-limit-trial/`;
-    } else {
+    // only trigger if member limit is 1 and we have multiple licenses used
+    if (!(subscription.totalLicenses === 1 && subscription.usedLicenses > 1)) {
       return;
     }
+    const endpoint = `/organizations/${organization.slug}/over-member-limit-trial/`;
 
     try {
       await api.requestPromise(endpoint, {

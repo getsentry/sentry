@@ -39,6 +39,7 @@ export type TraceItemSearchQueryBuilderProps = {
   disallowFreeText?: boolean;
   disallowHas?: boolean;
   disallowLogicalOperators?: boolean;
+  disallowNegation?: boolean;
   hiddenAttributeKeys?: string[];
   invalidFilterKeys?: string[];
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
@@ -111,6 +112,7 @@ export function useTraceItemSearchQueryBuilderProps({
   disallowHas,
   disallowFreeText,
   disallowLogicalOperators,
+  disallowNegation,
   disableRecentSearches,
   disabled,
   defaultToAskSeerOnFreeTextSearch,
@@ -210,6 +212,7 @@ export function useTraceItemSearchQueryBuilderProps({
       disallowUnsupportedFilters: !getTagKeys,
       disallowFreeText,
       disallowLogicalOperators,
+      disallowNegation,
       defaultToAskSeerOnFreeTextSearch,
       recentSearches: disableRecentSearches
         ? undefined
@@ -238,6 +241,7 @@ export function useTraceItemSearchQueryBuilderProps({
       defaultToAskSeerOnFreeTextSearch,
       disallowFreeText,
       disallowLogicalOperators,
+      disallowNegation,
       filterKeySections,
       filterTags,
       getFilterTokenWarning,
@@ -292,6 +296,7 @@ export function TraceItemSearchQueryBuilder({
   disallowHas,
   disallowFreeText,
   disallowLogicalOperators,
+  disallowNegation,
   disableRecentSearches,
   attributeQuery,
   hiddenAttributeKeys,
@@ -325,6 +330,7 @@ export function TraceItemSearchQueryBuilder({
     disallowHas,
     disallowFreeText,
     disallowLogicalOperators,
+    disallowNegation,
     disableRecentSearches,
     disabled,
     defaultToAskSeerOnFreeTextSearch,

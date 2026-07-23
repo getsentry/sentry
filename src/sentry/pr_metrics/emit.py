@@ -10,7 +10,9 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from enum import Enum
-from typing import Any
+from typing import Any, NamedTuple, cast
+
+from django.db.models import Count, Q
 
 from sentry import analytics
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
@@ -23,7 +25,10 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestMetrics,
     PullRequestVerdict,
+    normalize_scm_provider,
 )
+from sentry.models.repository import Repository
+from sentry.pr_metrics import activity_doc
 from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
 from sentry.pr_metrics.contracts import (
     CLOSE_ACTION_CLOSED,
@@ -31,11 +36,46 @@ from sentry.pr_metrics.contracts import (
     CloseAction,
     PrConversationAnalysis,
 )
-from sentry.pr_metrics.utils import is_activity_tracking_enabled, iso_or_none, resolved_group_ids
+from sentry.pr_metrics.utils import (
+    is_activity_tracking_enabled,
+    iso_or_none,
+    load_activity_document,
+    resolved_group_ids,
+)
 from sentry.seer.models.run import SeerRun
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
+
+# GitHub's review-submission vocabulary (a "submitted" pull_request_review
+# action's review.state) — see ReviewSubmittedPayload.review_state. Always
+# emitted with all three keys present (0 for a state never seen), rather than
+# sparse, so a consumer doesn't need to coalesce missing keys itself. GitLab
+# reviews aren't tracked by this pipeline at all (see webhooks.py), so these
+# are GitHub-only today.
+REVIEW_STATES = ("approved", "changes_requested", "commented")
+
+
+class ReviewActivity(NamedTuple):
+    """Review-submission facts read live off activity at emit time (see
+    ``review_activity``), never persisted onto ``PullRequestMetrics``.
+
+    ``requested_count``: net outstanding review requests (``REVIEW_REQUESTED``
+    minus ``REVIEW_REQUEST_REMOVED``, floored at 0). Distinct from
+    ``reviews_count``: that only says whether a review was ever *submitted*, so
+    a PR with reviewers requested but never actioned looks identical to one
+    nobody was ever asked to review. Floored at 0 because a removal can't be
+    matched to which earlier request it revoked — e.g. a second reviewer's
+    request outliving the first's removal — so the net can't go negative.
+
+    ``results``: every ``REVIEW_SUBMITTED`` tallied by its ``review_state``
+    (``REVIEW_STATES``), each key always present (0 default). A reviewer who
+    submits twice counts twice, same as ``reviews_count``; the three values sum
+    to ``reviews_count``.
+    """
+
+    requested_count: int
+    results: dict[str, int]
 
 
 class VerdictDeferral(Enum):
@@ -58,6 +98,22 @@ class VerdictDeferral(Enum):
 
     NEEDS_JUDGE = "needs_judge"
     INDETERMINATE = "indeterminate"
+
+
+def _has_commits_after_open(pull_request: PullRequest) -> bool:
+    """Whether the PR was pushed to after it opened, read from whichever store holds it.
+
+    Shared by ``select_verdict`` and ``select_fallback_verdict``: both settle the
+    same merged-PR question off this one signal, so both must read the same store
+    for the same PR. Routing in only one of them silently mislabels a doc-store PR
+    that did iterate as ``MERGED_UNCHANGED`` on the fallback path.
+    """
+    doc = load_activity_document(pull_request)
+    if doc is not None:
+        return activity_doc.has_commits_after_open(doc)
+    return PullRequestActivity.objects.filter(
+        pull_request=pull_request, event_type=PullRequestActivityType.SYNCHRONIZED
+    ).exists()
 
 
 def select_verdict(
@@ -105,9 +161,7 @@ def select_verdict(
         metrics.incr("pr_metrics.select_verdict.metrics_row_missing")
         return VerdictDeferral.INDETERMINATE
 
-    has_commits_after_open = PullRequestActivity.objects.filter(
-        pull_request=pull_request, event_type=PullRequestActivityType.SYNCHRONIZED
-    ).exists()
+    has_commits_after_open = _has_commits_after_open(pull_request)
 
     if pull_request.merged_at is not None:
         return (
@@ -146,12 +200,9 @@ def select_fallback_verdict(pull_request: PullRequest) -> PullRequestVerdict:
       engagement isn't distinguished here.
     """
     if pull_request.merged_at is not None:
-        has_commits_after_open = PullRequestActivity.objects.filter(
-            pull_request=pull_request, event_type=PullRequestActivityType.SYNCHRONIZED
-        ).exists()
         return (
             PullRequestVerdict.MERGED_WITH_ITERATION
-            if has_commits_after_open
+            if _has_commits_after_open(pull_request)
             else PullRequestVerdict.MERGED_UNCHANGED
         )
     return PullRequestVerdict.CLOSED_UNMERGED
@@ -182,6 +233,18 @@ def ci_failing_at_close(pull_request: PullRequest) -> bool:
     every recorded check row necessarily belongs to the PR's one and only head
     commit — there's no other commit's CI status to accidentally mix in.
     """
+    doc = load_activity_document(pull_request)
+    if doc is not None:
+        # The rollup already keeps the latest suite conclusion per (head_sha,
+        # app_slug); on the CLOSED_UNMERGED path there's a single head, so this is
+        # each app's latest suite. Same narrow failing vocabulary and suite-only
+        # read as the legacy path (a check_run-only app has no suite conclusion and
+        # doesn't count, matching the legacy CHECK_SUITE-row read).
+        return any(
+            group.get("suite_conclusion") in _FAILING_CHECK_CONCLUSIONS
+            for group in doc.get("checks", {}).values()
+        )
+
     rows = (
         PullRequestActivity.objects.filter(
             pull_request=pull_request, event_type=PullRequestActivityType.CHECK_SUITE_COMPLETED
@@ -194,6 +257,59 @@ def ci_failing_at_close(pull_request: PullRequest) -> bool:
     return any(
         conclusion in _FAILING_CHECK_CONCLUSIONS for conclusion in latest_conclusion_by_app.values()
     )
+
+
+def review_activity(pull_request: PullRequest) -> ReviewActivity:
+    """Review-submission facts read live off activity at emit time — never
+    persisted onto ``PullRequestMetrics`` like ``reviews_count`` and its
+    siblings, since every current caller of ``build_pr_metrics_row`` runs
+    before that PR's activity is swept (``cleanup_pr_activity_task`` is only
+    ever enqueued from inside a successful ``emit_pr_metrics_row``, and each PR
+    is only emitted once), so there's no "later re-derivation" that would need
+    a persisted copy. See ``ReviewActivity`` for what each field means.
+
+    A single conditional aggregate does all the bucketing in Postgres — no rows
+    cross into Python — rather than pulling every row over to count client-side.
+    """
+    doc = load_activity_document(pull_request)
+    if doc is not None:
+        return ReviewActivity(**activity_doc.review_activity_from_doc(doc))
+
+    counts = PullRequestActivity.objects.filter(pull_request=pull_request).aggregate(
+        requested=Count("id", filter=Q(event_type=PullRequestActivityType.REVIEW_REQUESTED)),
+        removed=Count("id", filter=Q(event_type=PullRequestActivityType.REVIEW_REQUEST_REMOVED)),
+        **{
+            state: Count(
+                "id",
+                filter=Q(
+                    event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+                    payload__review_state=state,
+                ),
+            )
+            for state in REVIEW_STATES
+        },
+    )
+    return ReviewActivity(
+        requested_count=max(counts["requested"] - counts["removed"], 0),
+        results={state: counts[state] for state in REVIEW_STATES},
+    )
+
+
+def calculate_deterministic_diagnosis_labels(
+    pull_request: PullRequest, verdict: PullRequestVerdict | None
+) -> list[str] | None:
+    """The diagnosis labels Sentry can derive on its own from a settled verdict.
+
+    Shared by every caller that settles a verdict without a judge (the cooldown
+    task's deterministic path, and the judge-reap reconciliation), so a label
+    added here reaches all of them rather than being re-derived ad hoc per
+    caller. Currently just ``CI_FAILING_AT_CLOSE``, but the shape (verdict in,
+    labels out) is meant to grow more deterministic labels over time.
+    """
+    labels = []
+    if verdict == PullRequestVerdict.CLOSED_UNMERGED and ci_failing_at_close(pull_request):
+        labels.append(CI_FAILING_AT_CLOSE)
+    return labels or None
 
 
 def is_pr_tracked(pull_request: PullRequest) -> bool:
@@ -304,6 +420,49 @@ def _conversation_analysis_fields(
     }
 
 
+def _repo_is_public(pull_request: PullRequest) -> bool | None:
+    """Whether the repo was public at PR-open time, or ``None`` if unknown.
+
+    Repository never persists visibility, so this is read back from the
+    "opened" activity payload's ``is_private`` (set at webhook-ingestion time
+    from the GitHub payload's ``repository.private``). A PR's activity can live
+    in either store depending on its ``_use_activity_document`` routing (see
+    ``pr_metrics.webhooks``), so the document is checked first and the legacy
+    row is a fallback for PRs still on the old store.
+    """
+    # Use the standard helper that correctly handles empty documents and orphaned rows
+    doc = load_activity_document(pull_request)
+    if doc:
+        opened_entry = next(
+            (e for e in doc.get("events", []) if e["event_type"] == PullRequestActivityType.OPENED),
+            None,
+        )
+        if opened_entry is not None:
+            is_private = opened_entry["payload"].get("is_private")
+            return None if is_private is None else not is_private
+
+    # Fallback to legacy store when no document exists
+    is_private = (
+        PullRequestActivity.objects.filter(
+            pull_request=pull_request, event_type=PullRequestActivityType.OPENED
+        )
+        .values_list("payload__is_private", flat=True)
+        .first()
+    )
+    return None if is_private is None else not is_private
+
+
+def _repo_provider(pull_request: PullRequest) -> str | None:
+    """Normalized SCM slug for the PR's repo (e.g. "github"), or ``None`` if the
+    ``Repository`` row is gone or its provider is unset."""
+    provider = (
+        Repository.objects.filter(id=pull_request.repository_id)
+        .values_list("provider", flat=True)
+        .first()
+    )
+    return normalize_scm_provider(provider)
+
+
 def build_pr_metrics_row(
     *,
     pull_request: PullRequest,
@@ -340,10 +499,15 @@ def build_pr_metrics_row(
     metrics = (
         PullRequestMetrics.objects.filter(pull_request=pull_request).first() or PullRequestMetrics()
     )
+    # Read once so requested_count and results (both unpersisted) come from the
+    # same activity snapshot rather than two separate reads.
+    review = review_activity(pull_request)
 
     return PrCloseMetricsEvent(
         organization_id=pull_request.organization_id,
         repository_id=pull_request.repository_id,
+        repository_provider=_repo_provider(pull_request),
+        repository_is_public=_repo_is_public(pull_request),
         pull_request_id=pull_request.id,
         pr_key=pull_request.key,
         group_ids=group_ids,
@@ -366,6 +530,8 @@ def build_pr_metrics_row(
         reviews_count=metrics.reviews_count,
         reviews_bot_count=metrics.reviews_bot_count,
         reviews_human_count=metrics.reviews_human_count,
+        reviews_requested_count=review.requested_count,
+        review_results=json.dumps(review.results),
         pushes_bot_count=metrics.pushes_bot_count,
         pushes_human_count=metrics.pushes_human_count,
         opened_by_bot=metrics.opened_by_bot,
@@ -384,6 +550,68 @@ def _is_bot(sender_type: str | None) -> bool:
     signal GitHub gives us; anything else (a human, an empty/absent type) is human.
     """
     return sender_type == "Bot"
+
+
+def _log_reducer_parity(pull_request: PullRequest) -> None:
+    """Diff the reducer's derived counters against the legacy path's — log-only.
+
+    Runs at emit for legacy-path PRs, before their rows are swept: folds the rows
+    through the reducer in memory and compares the three counters the document
+    pins (``has_commits_after_open``, ``reviews_count``, ``participants_count``) to
+    the legacy values, so a reducer bug surfaces on real data before the legacy
+    path is removed. Check rows are excluded — they don't affect these counters and
+    carry the bulk of the payload volume. Never affects emission.
+    """
+    rows = list(
+        PullRequestActivity.objects.filter(pull_request=pull_request)
+        .exclude(
+            event_type__in=(
+                PullRequestActivityType.CHECK_RUN_COMPLETED,
+                PullRequestActivityType.CHECK_SUITE_COMPLETED,
+            )
+        )
+        .order_by("date_added", "id")
+    )
+    doc = activity_doc.new_document()
+    for row in rows:
+        activity_doc.apply_activity(
+            doc,
+            event_type=cast(PullRequestActivityType, row.event_type),
+            payload=row.payload,
+            ts=row.date_added.isoformat(),
+            webhook_id=row.webhook_id,
+        )
+
+    legacy = (
+        any(row.event_type == PullRequestActivityType.SYNCHRONIZED for row in rows),
+        sum(1 for row in rows if row.event_type == PullRequestActivityType.REVIEW_SUBMITTED),
+        len(
+            {
+                row.payload.get("sender_login")
+                for row in rows
+                if row.payload.get("sender_login") and row.payload.get("sender_type") != "Bot"
+            }
+        ),
+    )
+    reduced = (
+        activity_doc.has_commits_after_open(doc),
+        doc["counts"].get(PullRequestActivityType.REVIEW_SUBMITTED, 0),
+        activity_doc.human_participant_count(doc),
+    )
+    if legacy != reduced:
+        logger.warning(
+            "pr_metrics.reducer_parity.mismatch",
+            extra={
+                "organization_id": pull_request.organization_id,
+                "repository_id": pull_request.repository_id,
+                "pull_request_id": pull_request.id,
+                "legacy": legacy,
+                "reduced": reduced,
+            },
+        )
+        metrics.incr("pr_metrics.reducer_parity.mismatch")
+    else:
+        metrics.incr("pr_metrics.reducer_parity.match")
 
 
 def _activity_derived_metrics(pull_request: PullRequest) -> dict[str, Any]:
@@ -418,6 +646,13 @@ def _activity_derived_metrics(pull_request: PullRequest) -> dict[str, Any]:
     All are only meaningful under ``pr-metrics-activity`` (no activity rows → the
     counts are 0 and the bool signals ``None``).
     """
+    doc = load_activity_document(pull_request)
+    if doc is not None:
+        return activity_doc.derived_metrics_from_doc(doc)
+
+    # Legacy path: validate the reducer against the real rows before they're swept.
+    _log_reducer_parity(pull_request)
+
     rows = list(
         PullRequestActivity.objects.filter(pull_request=pull_request)
         .order_by("date_added", "id")

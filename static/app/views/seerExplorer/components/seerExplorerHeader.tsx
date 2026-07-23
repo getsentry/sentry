@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -27,10 +26,9 @@ import type {
  * Returns a fragment — the surface (drawer / sidebar) provides the outer
  * `<header>` wrapper and the close affordance via a slot.
  *
- * The action cluster reshapes across three sizes of its nearest query container
- * (the Seer content pane): large shows everything expanded, medium (`≤ 500px`)
- * drops text labels, and small (`≤ 380px`) folds the middle actions into an
- * overflow menu.
+ * The action cluster responds to the named container breakpoints of its nearest
+ * query container (the Seer content pane): `sm` hides text labels, and `2xs`
+ * folds the middle actions into an overflow menu.
  */
 interface SeerExplorerHeaderProps {
   isPipSupported: boolean;
@@ -138,13 +136,13 @@ export function SeerExplorerHeader({
           showThinking={showThinking}
           onShowThinkingToggle={onShowThinkingToggle}
         />
-        <InlineActions>
+        <Flex display={{zero: 'none', '2xs': 'flex'}} align="center">
           <SeerExplorerHeaderActions {...actionsProps} />
-        </InlineActions>
-        <OverflowActions>
+        </Flex>
+        <Container display={{zero: 'block', '2xs': 'none'}}>
           <SeerExplorerHeaderActionsMenu {...actionsProps} />
-        </OverflowActions>
-        <Container display={{'2xs': 'none', xs: 'contents'}}>
+        </Container>
+        <Container display={{zero: 'none', sm: 'contents'}}>
           <Button
             icon={<IconAdd />}
             onClick={onNewChatClick}
@@ -156,7 +154,7 @@ export function SeerExplorerHeader({
             {t('New chat')}
           </Button>
         </Container>
-        <Container display={{'2xs': 'contents', xs: 'none'}}>
+        <Container display={{zero: 'contents', sm: 'none'}}>
           <Button
             icon={<IconAdd />}
             onClick={onNewChatClick}
@@ -171,19 +169,3 @@ export function SeerExplorerHeader({
     </Fragment>
   );
 }
-
-const InlineActions = styled(Flex)`
-  align-items: center;
-
-  @container (max-width: 380px) {
-    display: none;
-  }
-`;
-
-const OverflowActions = styled('div')`
-  display: none;
-
-  @container (max-width: 380px) {
-    display: block;
-  }
-`;

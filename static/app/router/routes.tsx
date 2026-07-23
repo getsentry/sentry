@@ -1660,7 +1660,7 @@ function buildRoutes(): RouteObject[] {
     ],
   };
 
-  const discoverChildren: SentryRouteObject[] = [
+  const discoverErrorsChildren: SentryRouteObject[] = [
     {
       index: true,
       redirectTo: 'queries/',
@@ -1683,11 +1683,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/discover/eventDetails')),
     },
   ];
-  const discoverRoutes: SentryRouteObject = {
+  const discoverErrorsRoutes: SentryRouteObject = {
     path: '/discover/',
     component: make(() => import('sentry/views/discover')),
     withOrgPath: true,
-    children: discoverChildren,
+    children: discoverErrorsChildren,
   };
 
   const errorsChildren: SentryRouteObject[] = [
@@ -1697,7 +1697,7 @@ function buildRoutes(): RouteObject[] {
     },
   ];
   const errorsRoutes: SentryRouteObject = {
-    path: '/errors/',
+    path: '/errors-v2/',
     component: make(() => import('sentry/views/explore/errors')),
     withOrgPath: true,
     children: errorsChildren,
@@ -2247,9 +2247,14 @@ function buildRoutes(): RouteObject[] {
       children: replayChildren,
     },
     {
+      path: 'errors/',
+      component: make(() => import('sentry/views/discover')),
+      children: discoverErrorsChildren,
+    },
+    {
       path: 'discover/',
       component: make(() => import('sentry/views/discover')),
-      children: discoverChildren,
+      children: discoverErrorsChildren,
     },
     {
       path: 'releases/',
@@ -2285,7 +2290,7 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: 'errors/',
+      path: 'errors-v2/',
       component: make(() => import('sentry/views/explore/errors')),
       children: errorsChildren,
     },
@@ -2484,6 +2489,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/issueList/pages/sentryConfiguration')),
     },
     {
+      path: 'inbox/',
+      component: make(() => import('sentry/views/issueList/pages/inbox')),
+    },
+    {
       path: 'awaiting-input/',
       component: make(() => import('sentry/views/issueList/pages/awaitingInput')),
     },
@@ -2508,6 +2517,10 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'autofix/issues/',
       component: make(() => import('sentry/views/autofixIssuesDemo')),
+    },
+    {
+      path: 'autofix/overview/',
+      component: make(() => import('sentry/views/seerWorkflows/overview')),
     },
     {
       path: 'views/:viewId/',
@@ -2590,6 +2603,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'users/',
+      name: t('Users'),
       children: [
         {
           index: true,
@@ -2597,6 +2611,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: ':id',
+          name: t('Details'),
           component: make(() => import('sentry/views/admin/adminUserEdit')),
         },
       ],
@@ -2745,6 +2760,10 @@ function buildRoutes(): RouteObject[] {
         )
       ),
     },
+    {
+      path: 'events/:eventId/',
+      component: errorHandler(ProjectEventRedirect),
+    },
   ];
   const legacyOrgRedirects: SentryRouteObject = {
     path: '/:orgId/:projectId/',
@@ -2766,7 +2785,7 @@ function buildRoutes(): RouteObject[] {
       releasesRoutes,
       snapshotsRedirect,
       statsRoutes,
-      discoverRoutes,
+      discoverErrorsRoutes,
       errorsRoutes,
       performanceRoutes,
       domainViewRoutes,
@@ -2904,10 +2923,6 @@ function buildRoutes(): RouteObject[] {
       {
         path: ':projectId/issues/:groupId/merged/',
         redirectTo: '/organizations/:orgId/issues/:groupId/merged/',
-      },
-      {
-        path: ':projectId/events/:eventId/',
-        component: errorHandler(ProjectEventRedirect),
       },
     ],
   };

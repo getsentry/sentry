@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
-from sentry.workflow_engine.types import ConditionError, DataConditionResult
+from sentry.workflow_engine.types import DataConditionResult
 
 from .base import BaseWorkflowEngineEvaluation
 
@@ -15,20 +15,29 @@ class DataConditionEvaluationException(Exception):
     pass
 
 
+ConditionEvaluationData: TypeAlias = Any
+
+
 @dataclass(frozen=True, kw_only=True)
-class DataConditionEvaluation(BaseWorkflowEngineEvaluation[DataConditionResult, ConditionError]):
+class DataConditionEvaluation(
+    BaseWorkflowEngineEvaluation[DataConditionResult, ConditionEvaluationData]
+):
     """
     This class is used to track the evaluation of a DataCondition's logic.
 
     This is created by DataCondition.evaluate_value(value) as a result.
 
     Attributes
-    - value: Any - this is the value that was evaluated against.
     - condition: DataCondition - This is the condition that was evaluated.
+    - result - This is set as None by default here.
 
-    Inherits `result`, `error`, and `outcome`.
+    Inherits
+    - result: DataConditionResult - If the condition failed, this will be set to None.
+        Otherwise, it will use the `DataCondition.condition_result` or boolean representation
+        of the evaluation.
+    - data: Any - The value that was used in the data conditions evaluation
+    - error: ConditionError - Set when there's an error while evaluating a condition
     """
 
     result: DataConditionResult = None
-    value: Any
     condition: DataCondition

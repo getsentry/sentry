@@ -26,7 +26,7 @@ import {
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
 
-const Slot = slot(['title', 'search', 'actions', 'feedback'] as const);
+const Slot = slot(['breadcrumbs', 'title', 'search', 'actions', 'feedback'] as const);
 
 function TopBarContent() {
   const theme = useTheme();
@@ -71,21 +71,45 @@ function TopBarContent() {
     >
       <SizeProvider size="sm">
         {/*
-         * The title slot is rendered as a semantic <h1> so the page title
-         * (whatever a view routes into it — breadcrumbs, text, etc.) is exposed
-         * as the page heading. The Heading uses variant="inherit" so it carries
-         * the TopBar typography (no visual weight of its own), and Flex's render
-         * function applies the layout className to that same <h1> element.
+         * Breadcrumbs and the title are separate slots so the title slot always
+         * owns the page heading. BreadcrumbList.Title renders title content
+         * without a heading, while this outlet supplies the single <h1>.
+         *
+         * The title occupies the remaining inline space (the header is
+         * justify="between", so this absorbs the empty middle; content stays
+         * left-aligned and actions stay pinned right). This is required by any
+         * title-slot child that establishes a container query.
          */}
-        <Slot.Outlet name="title">
-          {props => (
-            <Flex align="center" gap="sm" minWidth="0">
-              {flexProps => (
-                <Heading as="h1" variant="inherit" {...mergeProps(flexProps, props)} />
-              )}
-            </Flex>
-          )}
-        </Slot.Outlet>
+        <Flex
+          align="center"
+          gap="sm"
+          minWidth="0"
+          flexGrow={1}
+          containerType="inline-size"
+        >
+          <Slot.Outlet name="breadcrumbs">
+            {(props, hasConsumers) => (
+              <Flex
+                {...props}
+                align="center"
+                gap="sm"
+                minWidth="0"
+                flex="0 1 auto"
+                display={hasConsumers ? 'flex' : 'none'}
+              />
+            )}
+          </Slot.Outlet>
+
+          <Slot.Outlet name="title">
+            {props => (
+              <Flex align="center" gap="sm" minWidth="0" flexGrow={1}>
+                {flexProps => (
+                  <Heading as="h1" variant="inherit" {...mergeProps(flexProps, props)} />
+                )}
+              </Flex>
+            )}
+          </Slot.Outlet>
+        </Flex>
 
         <Flex align="center" gap="sm">
           <Slot.Outlet name="search">

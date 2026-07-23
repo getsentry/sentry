@@ -7,8 +7,6 @@ import {ReplayAccess} from 'sentry/components/replays/replayAccess';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {getAnalyticsDataForEvent} from 'sentry/utils/events';
-import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 const REPLAY_CLIP_OFFSETS = {
@@ -16,22 +14,27 @@ const REPLAY_CLIP_OFFSETS = {
   durationBeforeMs: 5_000,
 };
 
+export function getEventTimestampMs(event: EventTransaction): number {
+  const startTimestampMS =
+    'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
+  const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
+  return timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
+}
+
 function ReplaySection({
-  event,
+  replayId,
+  eventTimestampMs,
   organization,
+  analyticsParams,
   showTitle = false,
 }: {
-  event: EventTransaction;
+  eventTimestampMs: number;
   organization: Organization;
+  replayId: string;
+  analyticsParams?: Record<string, unknown>;
   showTitle?: boolean;
 }) {
-  const replayId = getReplayIdFromEvent(event);
-  const startTimestampMS =
-    event && 'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
-  const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
-  const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
-
-  return replayId ? (
+  return (
     <Stack>
       {showTitle ? <ReplaySectionTitle>{t('Session Replay')}</ReplaySectionTitle> : null}
       <ReplayClipPreview
@@ -43,25 +46,26 @@ function ReplaySection({
         fullReplayButtonProps={{
           analyticsEventKey: 'trace-view.drawer-open-replay-details-clicked',
           analyticsEventName: 'Trace View: Open Replay Details Clicked',
-          analyticsParams: {
-            ...getAnalyticsDataForEvent(event),
-            organization,
-          },
+          ...(analyticsParams
+            ? {analyticsParams: {...analyticsParams, organization}}
+            : {}),
         }}
       />
     </Stack>
-  ) : null;
+  );
 }
 
 export function ReplayPreview({
-  event,
+  replayId,
+  eventTimestampMs,
   organization,
+  analyticsParams,
 }: {
-  event: EventTransaction;
+  eventTimestampMs: number;
   organization: Organization;
+  replayId: string | undefined;
+  analyticsParams?: Record<string, unknown>;
 }) {
-  const replayId = getReplayIdFromEvent(event);
-
   if (!replayId) {
     return null;
   }
@@ -73,7 +77,12 @@ export function ReplayPreview({
         sectionKey="trace_session_replay"
         disableCollapsePersistence
       >
-        <ReplaySection event={event} organization={organization} />
+        <ReplaySection
+          replayId={replayId}
+          eventTimestampMs={eventTimestampMs}
+          organization={organization}
+          analyticsParams={analyticsParams}
+        />
       </FoldSection>
     </ReplayAccess>
   );

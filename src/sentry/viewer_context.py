@@ -42,6 +42,7 @@ class ActorType(enum.StrEnum):
     USER = "user"
     SYSTEM = "system"
     INTEGRATION = "integration"
+    AGENT = "agent"
     UNKNOWN = "unknown"
 
 

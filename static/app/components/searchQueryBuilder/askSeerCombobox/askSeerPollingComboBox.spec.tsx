@@ -1,12 +1,17 @@
-import {useEffect} from 'react';
+import {useEffect, useState} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
-import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilderAI,
+} from 'sentry/components/searchQueryBuilder/context';
+import * as analytics from 'sentry/utils/analytics';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {
   AsyncSDKIntegrationContextProvider,
@@ -44,7 +49,7 @@ function InstallFeedbackIntegration() {
   return null;
 }
 
-function renderPollingComboBox(features: string[]) {
+function renderPollingComboBox(features: string[], withFeedback = true) {
   const {organization} = initializeOrg({
     organization: {features, hideAiFeatures: false},
   });
@@ -58,8 +63,10 @@ function renderPollingComboBox(features: string[]) {
         applySeerSearchQuery={() => {}}
       />
     </SearchQueryBuilderProvider>,
-    {organization, additionalWrapper: FeedbackProvider}
+    withFeedback ? {organization, additionalWrapper: FeedbackProvider} : {organization}
   );
+
+  return {organization};
 }
 
 async function submitQuery() {
@@ -96,5 +103,153 @@ describe('AskSeerPollingComboBox loading state', () => {
     expect(await screen.findByRole('status')).toHaveTextContent("I'm on it...");
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
+  });
+});
+
+describe('AskSeerPollingComboBox results', () => {
+  beforeEach(() => {
+    destroyAnnouncer();
+    MockApiClient.clearMockResponses();
+  });
+
+  it('preserves the results prompt when the rework is disabled', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 123},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/123/',
+      body: {
+        session: {
+          status: 'completed',
+          current_step: null,
+          completed_steps: [],
+          final_response: {query: 'span.duration:>30s'},
+        },
+      },
+    });
+    renderPollingComboBox(['gen-ai-features']);
+
+    await submitQuery();
+
+    expect(await screen.findByText('Filter')).toBeInTheDocument();
+    expect(screen.getByText('Do any of these look right to you?')).toBeInTheDocument();
+  });
+
+  it('regenerates results when feedback is unavailable', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const startRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 123},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/123/',
+      body: {
+        session: {
+          status: 'completed',
+          current_step: null,
+          completed_steps: [],
+          final_response: {query: 'span.duration:>30s'},
+        },
+      },
+    });
+    const {organization} = renderPollingComboBox(
+      ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+      false
+    );
+
+    await submitQuery();
+    const regenerateButton = await screen.findByRole('button', {
+      name: 'Generate again',
+    });
+    expect(regenerateButton).toBeEnabled();
+    expect(screen.getByText('Filter')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Do any of these look right to you?')
+    ).not.toBeInTheDocument();
+
+    const input = screen.getByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.clear(input);
+    expect(regenerateButton).toBeEnabled();
+
+    await userEvent.click(regenerateButton);
+
+    expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
+    expect(startRequest).toHaveBeenCalledTimes(2);
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith('ai_query.regenerated', {
+      organization,
+      area: '',
+      natural_language_query: 'find slow spans',
+    });
+  });
+
+  it('does not autofocus the query builder after applying a selected query', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 123},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/123/',
+      body: {
+        session: {
+          status: 'completed',
+          current_step: null,
+          completed_steps: [],
+          final_response: {query: 'span.duration:>30s'},
+        },
+      },
+    });
+    const {organization} = initializeOrg({
+      organization: {
+        features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+        hideAiFeatures: false,
+      },
+    });
+
+    function TestComponent() {
+      const [query, setQuery] = useState('');
+      const {displayAskSeer, setDisplayAskSeer} = useSearchQueryBuilderAI();
+
+      useEffect(() => {
+        setDisplayAskSeer(true);
+      }, [setDisplayAskSeer]);
+
+      if (displayAskSeer) {
+        return (
+          <AskSeerPollingComboBox
+            initialQuery=""
+            projectIds={[]}
+            strategy="Traces"
+            applySeerSearchQuery={item => setQuery(item.query ?? '')}
+          />
+        );
+      }
+
+      return (
+        <SearchQueryBuilder {...defaultProviderProps} autoFocus initialQuery={query} />
+      );
+    }
+
+    render(
+      <SearchQueryBuilderProvider {...defaultProviderProps}>
+        <TestComponent />
+      </SearchQueryBuilderProvider>,
+      {organization}
+    );
+
+    await submitQuery();
+    await screen.findByRole('option', {name: /^Query parameters:/});
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+
+    const queryBuilderInputs = await screen.findAllByRole('combobox', {
+      name: 'Add a search term',
+    });
+    expect(queryBuilderInputs).not.toContain(document.activeElement);
+    expect(screen.getByRole('grid')).not.toHaveFocus();
   });
 });

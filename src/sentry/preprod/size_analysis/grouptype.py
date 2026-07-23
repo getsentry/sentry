@@ -20,12 +20,12 @@ from sentry.workflow_engine.handlers.detector.base import (
     GroupedDetectorEvaluationResult,
 )
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.processors.data_condition_group import (
     process_data_condition_group,
 )
+from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
     DetectorPriorityLevel,
     DetectorSettings,
 )
@@ -124,8 +124,9 @@ def _build_evidence_text(
 
     # Threshold: type > value
     threshold_part = ""
-    if evaluation.result:
-        condition = evaluation.result[0].condition
+    condition_evaluations = evaluation.data.get("condition_evaluations", [])
+    if condition_evaluations:
+        condition = condition_evaluations[0].condition
         threshold_label = _THRESHOLD_TYPE_LABELS.get(threshold_type, threshold_type)
 
         if threshold_type == "relative_diff":
@@ -232,12 +233,15 @@ class PreprodSizeAnalysisDetectorHandler(
             additional_evidence_data={},
             fingerprint=[uuid4().hex],
         )
-        result = DetectorEvaluationResult(
-            group_key=None,
-            is_triggered=True,
-            priority=priority,
-            event_data=event_data,
+        result = DetectorEvaluation(
             result=occurrence,
+            data=DetectorEvaluationData(
+                group_key=None,
+                trigger_group_evaluation=evaluation,
+                event_data=event_data,
+            ),
+            triggered=True,
+            priority=priority,
         )
         return GroupedDetectorEvaluationResult(result={None: result}, tainted=False)
 
@@ -254,7 +258,7 @@ class PreprodSizeAnalysisDetectorHandler(
 
         priorities = [
             condition_evaluation.result
-            for condition_evaluation in group_evaluation.result
+            for condition_evaluation in group_evaluation.data["condition_evaluations"]
             if isinstance(condition_evaluation.result, DetectorPriorityLevel)
         ]
         if not priorities:
@@ -323,7 +327,7 @@ class PreprodSizeAnalysisDetectorHandler(
             "value": self.extract_value(data_packet),
             "conditions": [
                 condition_evaluation.condition.get_snapshot()
-                for condition_evaluation in evaluation.result
+                for condition_evaluation in evaluation.data["condition_evaluations"]
             ],
             "config": self.detector.config,
         }

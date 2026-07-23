@@ -8,7 +8,7 @@ from django.core.cache import cache
 from django.db.models import ProtectedError
 from django.utils import timezone
 
-from sentry.issues.grouptype import FeedbackGroup, ProfileFileIOGroupType, ReplayHydrationErrorType
+from sentry.issues.grouptype import FeedbackGroup, ProfileFileIOGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -43,16 +43,6 @@ class GroupTest(TestCase, SnubaTestCase):
 
         group.status = GroupStatus.UNRESOLVED
         assert not group.is_resolved()
-
-        group.last_seen = timezone.now() - timedelta(hours=12)
-
-        group.project.update_option("sentry:resolve_age", 24)
-
-        assert not group.is_resolved()
-
-        group.project.update_option("sentry:resolve_age", 1)
-
-        assert group.is_resolved()
 
     def test_is_ignored_with_expired_snooze(self) -> None:
         group = self.create_group(status=GroupStatus.IGNORED)
@@ -451,39 +441,6 @@ class GroupTest(TestCase, SnubaTestCase):
         for status, substatus in desired_status_substatus_pairs:
             group = self.create_group(status=status, substatus=substatus)
             assert group.substatus is substatus
-
-
-class GroupIsOverResolveAgeTest(TestCase):
-    def test_simple(self) -> None:
-        group = self.group
-        group.last_seen = timezone.now() - timedelta(hours=2)
-        group.project.update_option("sentry:resolve_age", 1)  # 1 hour
-        assert group.is_over_resolve_age() is True
-        group.last_seen = timezone.now()
-        assert group.is_over_resolve_age() is False
-
-    def test_respects_enable_auto_resolve_flag(self) -> None:
-        # Create a group and make it old enough to auto-resolve
-        group = self.group
-        group.last_seen = timezone.now() - timedelta(hours=2)
-        group.project.update_option("sentry:resolve_age", 1)  # 1 hour
-
-        # Test with a group type that has auto-resolve enabled
-        group.type = ReplayHydrationErrorType.type_id
-        group.save()
-
-        # Verify it would be auto-resolved
-        assert group.is_over_resolve_age() is True
-        assert group.get_status() == GroupStatus.RESOLVED
-
-        # Test with a group type that has auto-resolve disabled
-        group.type = FeedbackGroup.type_id
-        group.status = GroupStatus.UNRESOLVED  # Reset status
-        group.save()
-
-        # Verify it would NOT be auto-resolved, even though is_over_resolve_age is True
-        assert group.is_over_resolve_age() is True
-        assert group.get_status() == GroupStatus.UNRESOLVED
 
 
 class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
