@@ -15,7 +15,7 @@ export function IssueSeenTimes({group}: {group: Group}) {
       <TimeSince
         date={group.lastSeen}
         suffix=""
-        unitStyle="extraShort"
+        unitStyle="short"
         tooltipPrefix={t('Last Seen')}
         variant="muted"
       />
@@ -23,7 +23,7 @@ export function IssueSeenTimes({group}: {group: Group}) {
       <TimeSince
         date={group.firstSeen}
         suffix=""
-        unitStyle="extraShort"
+        unitStyle="short"
         tooltipPrefix={t('First Seen')}
         variant="muted"
       />
