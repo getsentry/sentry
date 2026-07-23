@@ -309,8 +309,11 @@ export function IssueCard({
         {/* align: start is vertical in row mode, but horizontal once the card
             stacks — there it must be stretch or the children shrink to
             content width and long code tokens push past the card edge. */}
+        {/* 3xl gutter: the narrative gives up width so the prose never
+            crowds the rail; xs keeps the tighter vertical gap when the
+            regions stack. */}
         <Flex
-          gap="xl"
+          gap={{xs: 'xl', sm: '3xl'}}
           align={{xs: 'stretch', sm: 'start'}}
           justify="between"
           direction={{xs: 'column-reverse', sm: 'row'}}
