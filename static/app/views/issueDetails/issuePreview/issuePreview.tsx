@@ -161,11 +161,7 @@ function IssuePreviewContent() {
               />
             </Flex>
           </Flex>
-          <EventMessage
-            level={group.level}
-            message={secondaryTitle}
-            type={group.type}
-          />
+          <EventMessage level={group.level} message={secondaryTitle} type={group.type} />
           <GroupStatusSubtitle group={group} project={project} />
         </Stack>
       </Container>
