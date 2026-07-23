@@ -28,6 +28,7 @@ import {ellipsize} from 'sentry/utils/string/ellipsize';
 
 import {deriveCardAction, IssuePrimaryAction} from './cardAction';
 import {OverviewIssueAssignee} from './overviewIssueAssignee';
+import {useOpenOverviewSeerDrawer} from './overviewSeerDrawer';
 import {periodWindowLabel} from './periods';
 import {TriggerBadge} from './triggerBadge';
 import type {AutofixStateKey, OverviewRow, PatchStats} from './types';
@@ -261,9 +262,13 @@ export function IssueCard({
   minHeight?: string;
 }) {
   const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
-  // Deep-link into the issue page with the Seer drawer already open, so the
-  // run itself is one click away (matches the issue details ?seerDrawer param).
   const runUrl = {pathname: issueUrl, query: {seerDrawer: 'true'}};
+  // The card's CTA opens the autofix run drawer in place; the title link still
+  // navigates to the issue page.
+  const {canOpenSeerDrawer, openSeerDrawer} = useOpenOverviewSeerDrawer();
+  const onOpenRun = canOpenSeerDrawer
+    ? () => openSeerDrawer({groupId: row.id, projectSlug: row.project.slug})
+    : undefined;
   const cardAction = deriveCardAction(sectionKey, row);
   const rootCause = row.analysis.find(entry => entry.key === 'root_cause');
   const proposedFix = row.analysis.find(entry => entry.key === 'fix_summary');
@@ -418,7 +423,12 @@ export function IssueCard({
               )}
             </Stack>
             <Stack gap="xs" align="end">
-              <IssuePrimaryAction action={cardAction} row={row} runUrl={runUrl} />
+              <IssuePrimaryAction
+                action={cardAction}
+                row={row}
+                onOpenRun={onOpenRun}
+                runUrl={runUrl}
+              />
               <Flex gap="xs" align="center">
                 {row.patchStats && (
                   <Tooltip
@@ -497,6 +507,10 @@ export function IssueTableRow({
 }) {
   const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
   const runUrl = {pathname: issueUrl, query: {seerDrawer: 'true'}};
+  const {canOpenSeerDrawer, openSeerDrawer} = useOpenOverviewSeerDrawer();
+  const onOpenRun = canOpenSeerDrawer
+    ? () => openSeerDrawer({groupId: row.id, projectSlug: row.project.slug})
+    : undefined;
   const cardAction = deriveCardAction(sectionKey, row);
 
   return (
@@ -521,7 +535,13 @@ export function IssueTableRow({
         </Flex>
       </Stack>
       <Flex align="center" flexShrink={0}>
-        <IssuePrimaryAction action={cardAction} row={row} runUrl={runUrl} size="xs" />
+        <IssuePrimaryAction
+          action={cardAction}
+          row={row}
+          onOpenRun={onOpenRun}
+          runUrl={runUrl}
+          size="xs"
+        />
       </Flex>
     </Flex>
   );
