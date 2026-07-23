@@ -527,9 +527,15 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_pr_iteration_continued_run_increments_iteration_index(
-        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+        self,
+        mock_client_class,
+        mock_process_updates,
+        mock_broadcast,
+        mock_check_quota,
+        mock_record_run,
     ):
         """Continuing a PR iteration run computes the next iteration index and surfaces it."""
         mock_client = MagicMock()
@@ -545,17 +551,32 @@ class TestTriggerAutofixAgent(TestCase):
         )
         mock_client.continue_run.return_value = 67890
 
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature(
+            {
+                "organizations:autofix-pr-iteration": True,
+                "organizations:gen-ai-features": True,
+            }
+        ):
             trigger_autofix_agent(
                 group=self.group,
                 step=AutofixStep.PR_ITERATION,
                 referrer=AutofixReferrer.UNKNOWN,
                 run_id=67890,
+                actor_user_id=self.user.id,
             )
 
         call_kwargs = mock_broadcast.call_args.kwargs
         assert call_kwargs["event_name"] == SeerActionType.ITERATION_STARTED.value
-        assert call_kwargs["payload"]["iteration_index"] == 2
+        assert call_kwargs["payload"] == {
+            "run_id": 67890,
+            "sentry_run_id": None,
+            "group_id": self.group.id,
+            "iteration_index": 2,
+        }
+
+        process_kwargs = mock_process_updates.call_args.kwargs["kwargs"]
+        assert process_kwargs["actor_user_id"] == self.user.id
+        assert process_kwargs["event_payload"] == call_kwargs["payload"]
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")

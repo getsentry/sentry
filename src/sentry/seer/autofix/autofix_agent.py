@@ -384,6 +384,7 @@ def trigger_autofix_agent(
     feedback: Sequence[Feedback] | None = None,
     user: User | RpcUser | AnonymousUser | None = None,
     enable_bash_tools: bool = False,
+    actor_user_id: int | None = None,
 ) -> int:
     """
     Start or continue an agent-based autofix run.
@@ -529,6 +530,7 @@ def trigger_autofix_agent(
                     "event_type": sentry_app_event_type,
                     "event_payload": payload,
                     "organization_id": group.organization.id,
+                    "actor_user_id": actor_user_id if is_iteration_step else None,
                 }
             )
     except ValueError:

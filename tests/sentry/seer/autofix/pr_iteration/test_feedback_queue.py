@@ -71,7 +71,12 @@ def _resolved_check_suite_source(
 
 class TryEnqueueAutofixFeedbackTest(TestCase):
     def _enqueue(
-        self, run_id: int, feedback: Feedback, *, run_state: SeerRunState | None = None
+        self,
+        run_id: int,
+        feedback: Feedback,
+        *,
+        run_state: SeerRunState | None = None,
+        actor_user_id: int | None = None,
     ) -> bool:
         return try_enqueue_autofix_feedback(
             run_id=run_id,
@@ -80,16 +85,18 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
             feedback=feedback,
             referrer=AutofixReferrer.GITHUB_PR_COMMENT,
             run_state=run_state or _run_state(),
+            actor_user_id=actor_user_id,
         )
 
     def test_enqueues_when_should_queue(self) -> None:
         feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
 
-        assert self._enqueue(run_id=4242, feedback=feedback) is True
+        assert self._enqueue(run_id=4242, feedback=feedback, actor_user_id=17) is True
 
         queued = peek_queued_autofix_feedback(4242)
         assert len(queued) == 1
         assert queued[0].feedback.text == "fix it"
+        assert queued[0].actor_user_id == 17
 
     def test_skips_stale_feedback(self) -> None:
         feedback = Feedback(source=_resolved_check_suite_source())
@@ -132,6 +139,28 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
 
 
 class ParseQueuedItemTest(TestCase):
+    def test_deserializes_legacy_item(self) -> None:
+        raw = json.dumps(
+            {
+                "organization_id": self.organization.id,
+                "group_id": 1,
+                "feedback": {
+                    "source": {
+                        "type": "user-ui",
+                        "user_id": 1,
+                        "user_feedback": "fix it",
+                    }
+                },
+                "referrer": AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value,
+            }
+        )
+
+        item = _parse_queued_item(raw)
+
+        assert item is not None
+        assert item.feedback.text == "fix it"
+        assert item.referrer == AutofixReferrer.GROUP_AUTOFIX_ENDPOINT
+
     def test_deserializes_check_suite_without_resolve(self) -> None:
         raw = json.dumps(
             {

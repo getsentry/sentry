@@ -120,6 +120,14 @@ class GithubPrCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
     require_command: ClassVar[bool] = True
     type: Literal["github-pr-comment"] = "github-pr-comment"
 
+    @property
+    def is_automated(self) -> bool:
+        user = self.comment.user
+        if user is None:
+            return False
+        user_type = getattr(user, "type", "")
+        return (user.login or "").lower().endswith("[bot]") or str(user_type).lower() == "bot"
+
 
 class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
     """Feedback submitted as an inline GitHub PR review comment (``@sentry <feedback>``).

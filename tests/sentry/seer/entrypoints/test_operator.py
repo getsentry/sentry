@@ -4,6 +4,11 @@ from typing import Any, TypedDict, cast
 from unittest.mock import Mock, patch
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
+from sentry.issues.action_log.types import (
+    ActionSource,
+    GroupActionActor,
+    SeerIterationStartedAction,
+)
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
@@ -43,6 +48,7 @@ from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 
@@ -629,6 +635,29 @@ class SeerOperatorTest(TestCase):
         assert activity.data["run_id"] == MOCK_RUN_ID
         assert "changes" not in activity.data
         assert "code_changes" not in activity.data
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_iteration_started_activity_is_attributed_to_user(self, _mock_has_access):
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
+
+        with capture_action_log() as action_log:
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ITERATION_STARTED,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+                actor_user_id=self.user.id,
+            )
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.SEER_ITERATION_STARTED.value
+        )
+        assert activity.user_id == self.user.id
+        action_log.assert_logged(
+            SeerIterationStartedAction,
+            group_id=self.group.id,
+            source=ActionSource.SEER_EXPLORER,
+            actor=GroupActionActor.user(self.user.id),
+        )
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_all_mapped_event_types(self, _mock_has_access):

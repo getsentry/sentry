@@ -44,7 +44,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
             external_id="123",
             name="owner/repo",
         )
-        self.comment = {"id": 999, "body": "@sentry fix it", "user": {"login": "octocat"}}
+        self.comment = {
+            "id": 999,
+            "body": "@sentry fix it",
+            "user": {"id": 1234, "login": "octocat"},
+        }
         self.feedback = Feedback(source=GithubPrCommentFeedbackSource(comment=self.comment))
 
     def _agent_state(self, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
@@ -90,6 +94,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
+    @patch(f"{TASK_PATH}.find_user_for_scm_actor")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
@@ -100,6 +105,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
+        mock_find_user: MagicMock,
         mock_has_access: MagicMock,
         mock_make_scm: MagicMock,
         mock_reaction: MagicMock,
@@ -108,6 +114,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_get_integration.return_value = mock_integration
         agent_state = self._agent_state()
         mock_get_state.return_value = agent_state
+        mock_find_user.return_value = self.user
 
         self._call()
 
@@ -122,12 +129,19 @@ class TriggerPrIterationFromCommentTest(TestCase):
         assert kwargs["group_id"] == self.group.id
         assert kwargs["referrer"] == AutofixReferrer.GITHUB_PR_COMMENT
         assert kwargs["run_state"] is agent_state
+        assert kwargs["actor_user_id"] == self.user.id
         assert kwargs["feedback"].text == "fix it"
         source = kwargs["feedback"].source
         assert isinstance(source, GithubPrCommentFeedbackSource)
         # The comment was parsed into feedback once at mention time and threaded
         # through, so the source stores it rather than re-parsing the body.
         assert source.comment_feedback == "fix it"
+        mock_find_user.assert_called_once_with(
+            organization_id=self.organization.id,
+            integration_id=42,
+            username="octocat",
+            external_id=1234,
+        )
 
         mock_trigger_consume.assert_called_once()
         _, consume_kwargs = mock_trigger_consume.call_args
@@ -385,12 +399,18 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             metadata={"group_id": self.group.id} if metadata is None else metadata,
         )
 
-    def _queued(self, feedback: Feedback) -> QueuedAutofixFeedback:
+    def _queued(
+        self,
+        feedback: Feedback,
+        *,
+        actor_user_id: int | None = None,
+    ) -> QueuedAutofixFeedback:
         return QueuedAutofixFeedback(
             organization_id=self.organization.id,
             group_id=self.group.id,
             feedback=feedback,
             referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+            actor_user_id=actor_user_id,
         )
 
     def _iteration_block(self, idx: int) -> MemoryBlock:
@@ -480,6 +500,40 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         _, kwargs = mock_trigger.call_args
         assert kwargs["group"].id == self.group.id
         assert [f.text for f in kwargs["feedback"]] == ["fix it"]
+        assert kwargs["actor_user_id"] == 1
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_attributes_human_feedback_coalesced_with_automated_feedback(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [
+            self._queued(
+                Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it")),
+                actor_user_id=1,
+            ),
+            self._queued(
+                Feedback(
+                    source=GithubPrCommentFeedbackSource(
+                        comment={
+                            "id": 1001,
+                            "body": "@sentry automated feedback",
+                            "user": {"login": "dependabot[bot]", "type": "Bot"},
+                        }
+                    )
+                )
+            ),
+        ]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        assert mock_trigger.call_args.kwargs["actor_user_id"] == 1
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")

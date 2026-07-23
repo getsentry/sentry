@@ -4,7 +4,11 @@ from typing import Any
 from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.issues.action_log.publish import action_context_scope
-from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource
+from sentry.issues.action_log.types import (
+    SYSTEM_ACTOR,
+    ActionSource,
+    GroupActionActor,
+)
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -568,6 +572,7 @@ def _create_seer_activity(
     group: Group,
     event_type: SentryAppEventType,
     event_payload: dict[str, Any],
+    actor_user_id: int | None = None,
 ) -> None:
     activity_type = SEER_EVENT_TO_ACTIVITY_TYPE.get(event_type)
     if not activity_type:
@@ -608,6 +613,7 @@ def _create_seer_activity(
     Activity.objects.create_group_activity(
         group,
         activity_type,
+        user_id=actor_user_id,
         data=activity_data if activity_data else None,
         send_notification=False,
     )
@@ -624,6 +630,7 @@ def process_autofix_updates(
     event_type: SentryAppEventType,
     event_payload: dict[str, Any],
     organization_id: int,
+    actor_user_id: int | None = None,
 ) -> None:
     """
     Use the registry to iterate over all entrypoints and check if this payload's run_id or group_id
@@ -663,9 +670,20 @@ def process_autofix_updates(
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 
+        activity_actor = SYSTEM_ACTOR
+        activity_user_id = None
+        if event_type == SentryAppEventType.SEER_ITERATION_STARTED and actor_user_id is not None:
+            activity_actor = GroupActionActor.user(actor_user_id)
+            activity_user_id = actor_user_id
+
         try:
-            with action_context_scope(ActionSource.SEER_EXPLORER, SYSTEM_ACTOR):
-                _create_seer_activity(group, event_type, event_payload)
+            with action_context_scope(ActionSource.SEER_EXPLORER, activity_actor):
+                _create_seer_activity(
+                    group,
+                    event_type,
+                    event_payload,
+                    actor_user_id=activity_user_id,
+                )
         except Exception:
             logger.exception(
                 "seer.activity_creation_failed",

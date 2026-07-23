@@ -382,6 +382,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     feedback=feedback,
                     referrer=referrer,
                     run_state=run_state,
+                    actor_user_id=request.user.id,
                 )
 
                 consume_queued_autofix_feedback.apply_async(

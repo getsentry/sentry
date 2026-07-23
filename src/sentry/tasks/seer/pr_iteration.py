@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from datetime import timedelta
 from typing import Any
 
@@ -32,6 +33,7 @@ from taskbroker_client.retry import Retry
 from sentry import options
 from sentry.cache import default_cache
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -57,6 +59,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
+from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
     pop_queued_autofix_feedback,
@@ -99,6 +102,28 @@ def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferre
     if len(referrers) == 1:
         return referrers.pop()
     return AutofixReferrer.UNKNOWN
+
+
+def _resolve_actor_user_id(items: Iterable[QueuedAutofixFeedback]) -> int | None:
+    """Resolve a single Sentry user from human feedback."""
+    actor_user_ids: set[int] = set()
+
+    for item in items:
+        source = item.feedback.source
+        if source.is_automated:
+            continue
+
+        actor_user_id = item.actor_user_id
+        if actor_user_id is None and isinstance(source, UserUIFeedbackSource):
+            # UI feedback serialized before actor_user_id was added still carries
+            # its authenticated Sentry user on the feedback source.
+            actor_user_id = source.user_id
+
+        if actor_user_id is None:
+            return None
+        actor_user_ids.add(actor_user_id)
+
+    return actor_user_ids.pop() if len(actor_user_ids) == 1 else None
 
 
 def trigger_consume_pr_iteration_feedback(
@@ -185,6 +210,7 @@ def consume_queued_autofix_feedback(
             return
 
         feedback_items = []
+        consumable_items: list[QueuedAutofixFeedback] = []
         # Keyed by (source class, id): issue-comment, review-comment, and review
         # (body) ids come from separate GitHub namespaces, so dedupe within each
         # concrete source type.
@@ -226,6 +252,7 @@ def consume_queued_autofix_feedback(
                 seen_check_suite_keys.add(suite_key)
 
             feedback_items.append(item.feedback)
+            consumable_items.append(item)
 
         if not feedback_items:
             logger.info(
@@ -242,6 +269,7 @@ def consume_queued_autofix_feedback(
                 run_id=run_id,
                 user_context="\n\n".join(item.text for item in feedback_items),
                 feedback=feedback_items,
+                actor_user_id=_resolve_actor_user_id(consumable_items),
             )
         except (
             PrIterationNoPullRequestException,
@@ -577,6 +605,16 @@ def trigger_pr_iteration_from_comment(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
+    actor_user = (
+        find_user_for_scm_actor(
+            organization_id=organization_id,
+            integration_id=integration_id,
+            username=github_username,
+            external_id=getattr(comment.user, "id", None),
+        )
+        if not source.is_automated
+        else None
+    )
     try_enqueue_autofix_feedback(
         run_id=agent_state.run_id,
         organization_id=organization_id,
@@ -584,6 +622,7 @@ def trigger_pr_iteration_from_comment(
         feedback=feedback_obj,
         referrer=AutofixReferrer.GITHUB_PR_COMMENT,
         run_state=agent_state,
+        actor_user_id=actor_user.id if actor_user is not None else None,
     )
     trigger_consume_pr_iteration_feedback(
         run_id=agent_state.run_id,
@@ -739,6 +778,7 @@ def trigger_pr_iteration_from_review(
     pr_number: int,
     review_id: int,
     author_username: str | None = None,
+    author_external_id: str | int | None = None,
     author_is_bot: bool = False,
 ) -> None:
     """
@@ -870,6 +910,16 @@ def trigger_pr_iteration_from_review(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
+    actor_user = (
+        find_user_for_scm_actor(
+            organization_id=organization_id,
+            integration_id=integration_id,
+            username=author_username,
+            external_id=author_external_id,
+        )
+        if not author_is_bot
+        else None
+    )
     for feedback_obj in feedback_items:
         try_enqueue_autofix_feedback(
             run_id=agent_state.run_id,
@@ -878,6 +928,7 @@ def trigger_pr_iteration_from_review(
             feedback=feedback_obj,
             referrer=AutofixReferrer.GITHUB_PR_REVIEW,
             run_state=agent_state,
+            actor_user_id=actor_user.id if actor_user is not None else None,
         )
 
     # A single consume pass drains everything queued above; trigger once using
