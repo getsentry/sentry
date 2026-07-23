@@ -1228,6 +1228,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
         "schedule": crontab("0", "0", "*", "1,15", "*"),
     },
+    "heal-stale-derived-data": {
+        "task": "issues:sentry.issues.derived.tasks.heal_stale_derived_data",
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
+    },
 }
 
 TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
