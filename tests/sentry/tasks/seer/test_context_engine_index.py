@@ -272,7 +272,9 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
 
         assert org_without_github.id not in eligible
 
-    def test_includes_gitlab_org_with_gitlab_support_flag(self) -> None:
+    def test_includes_gitlab_org(self) -> None:
+        # GitLab orgs are candidates on the same footing as GitHub orgs; they
+        # only need the usual Seer eligibility flag.
         org = self._create_org_with_gitlab()
 
         TOTAL_SLOTS = 24
@@ -282,7 +284,6 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
         with freeze_time(frozen_time):
             with self.feature(
                 {
-                    "organizations:seer-gitlab-support": [org.slug],
                     "organizations:seer-explorer-index": [org.slug],
                 }
             ):
@@ -290,48 +291,25 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
 
         assert org.id in eligible
 
-    def test_excludes_gitlab_org_without_gitlab_support_flag(self) -> None:
+    def test_excludes_gitlab_org_without_seer_flags(self) -> None:
+        # A GitLab org with no Seer eligibility flag is excluded, just like GitHub.
         org = self._create_org_with_gitlab()
 
         TOTAL_SLOTS = 24
         target_slot = int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_SLOTS
         frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
 
-        # Seer-eligible, but without seer-gitlab-support the GitLab org is gated out.
         with freeze_time(frozen_time):
             with self.feature(
                 {
-                    "organizations:seer-explorer-index": [org.slug],
-                    "organizations:seat-based-seer-enabled": [org.slug],
-                    "organizations:seer-added": [org.slug],
+                    "organizations:seer-explorer-index": False,
+                    "organizations:seat-based-seer-enabled": False,
+                    "organizations:seer-added": False,
                 }
             ):
                 eligible = get_allowed_org_ids_context_engine_indexing()
 
         assert org.id not in eligible
-
-    def test_includes_github_and_gitlab_org_without_gitlab_support_flag(self) -> None:
-        # An org reachable via GitHub is included even without seer-gitlab-support.
-        org = self._create_org_with_github()
-        self.create_integration(
-            organization=org,
-            provider="gitlab",
-            external_id=f"gitlab:{org.id}",
-        )
-
-        TOTAL_SLOTS = 24
-        target_slot = int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_SLOTS
-        frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
-
-        with freeze_time(frozen_time):
-            with self.feature(
-                {
-                    "organizations:seer-explorer-index": [org.slug],
-                }
-            ):
-                eligible = get_allowed_org_ids_context_engine_indexing()
-
-        assert org.id in eligible
 
 
 @django_db_all

@@ -316,10 +316,9 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
     Get the list of allowed organizations for context engine indexing.
 
     Divides all active orgs with a supported SCM integration (Seer prerequisite:
-    GitHub, GitHub Enterprise, or GitLab) into 24 buckets via md5 hash. GitLab
-    orgs are gated on the seer-gitlab-support feature flag. Only the bucket
-    matching the current hour is checked for the seer-explorer-index feature
-    flag, keeping feature check volume at ~1/24th of total orgs.
+    GitHub, GitHub Enterprise, or GitLab) into 24 buckets via md5 hash. Only the
+    bucket matching the current hour is checked for the seer-explorer-index
+    feature flag, keeping feature check volume at ~1/24th of total orgs.
     """
     with start_span(
         op="explorer.context_engine.get_allowed_org_ids_context_engine_indexing",
@@ -328,24 +327,14 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
         now = datetime.now(UTC)
         TOTAL_HOURLY_SLOTS = 24
 
-        github_org_ids = set(
-            integration_service.get_organization_ids_with_providers(
-                providers=[
-                    IntegrationProviderSlug.GITHUB.value,
-                    IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
-                ],
-                status=ObjectStatus.ACTIVE,
-            )
+        scm_org_ids = integration_service.get_organization_ids_with_providers(
+            providers=[
+                IntegrationProviderSlug.GITHUB.value,
+                IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+                IntegrationProviderSlug.GITLAB.value,
+            ],
+            status=ObjectStatus.ACTIVE,
         )
-        # GitLab orgs are candidates too, but gated per-org on seer-gitlab-support
-        # below (we can't evaluate a per-org flag during this bulk fetch).
-        gitlab_org_ids = set(
-            integration_service.get_organization_ids_with_providers(
-                providers=[IntegrationProviderSlug.GITLAB.value],
-                status=ObjectStatus.ACTIVE,
-            )
-        )
-        scm_org_ids = list(github_org_ids | gitlab_org_ids)
         logger.info(
             "SCM integration enabled org ids fetched",
             extra={"count": len(scm_org_ids)},
@@ -367,13 +356,6 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
             Organization.objects.filter(id__in=hourly_scm_org_ids, status=ObjectStatus.ACTIVE),
             result_value_getter=lambda o: o.id,
         ):
-            # GitLab-only orgs require the seer-gitlab-support flag; orgs also
-            # reachable via GitHub are unaffected.
-            if org.id not in github_org_ids and not features.has(
-                "organizations:seer-gitlab-support", org
-            ):
-                continue
-
             if features.has("organizations:seer-explorer-index", org):
                 eligible_org_ids.append(org.id)
                 continue
