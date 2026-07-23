@@ -162,7 +162,7 @@ function IssuePreviewContent() {
           </Container>
           <TabPanels>
             <TabPanels.Item key="activity">
-              <Container paddingTop="md">
+              <Container paddingTop="md" paddingLeft="md" paddingRight="md">
                 <IssueDetailsContextProvider>
                   {event && (
                     <ErrorBoundary mini>
