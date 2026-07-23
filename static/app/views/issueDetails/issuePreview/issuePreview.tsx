@@ -143,7 +143,7 @@ function IssuePreviewContent() {
               type={group.type}
             />
           </Container>
-          <GroupStatusSubtitle group={group} project={project} />
+          <GroupStatusSubtitle group={group} project={project} showCounts />
         </Stack>
       </Container>
       <Flex

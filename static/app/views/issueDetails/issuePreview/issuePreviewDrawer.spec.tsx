@@ -430,4 +430,35 @@ describe('IssuePreviewDrawer', () => {
       await screen.findByRole('button', {name: 'Start Analysis'})
     ).toBeInTheDocument();
   });
+
+  it('shows the event and user counts', async () => {
+    const project = ProjectFixture();
+    const group = GroupFixture({
+      id: '123',
+      shortId: 'JAVASCRIPT-6QS',
+      project,
+      count: '2600',
+      userCount: 11,
+    });
+
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/`,
+      body: group,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: false, reason: null},
+        billing: {hasAutofixQuota: false},
+        seerReposLinked: false,
+      },
+    });
+
+    render(<IssuePreviewDrawer groupId={group.id} />);
+
+    expect(await screen.findByLabelText('Event count')).toHaveTextContent('2.6K');
+    expect(screen.getByLabelText('User count')).toHaveTextContent('11');
+  });
 });
