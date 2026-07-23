@@ -63,12 +63,6 @@ class OurLogs(rpc_dataset_common.RPCBase):
                 if "id" not in selected_columns:
                     selected_columns.append("id")
             else:
-                # SDKs emit a per-millisecond sentry.timestamp.sequence counter so
-                # logs sharing a millisecond timestamp keep their emission order.
-                # Relay folds it into timestamp_precise as added nanoseconds, but
-                # timestamp_precise is a float64 whose precision at epoch-nanosecond
-                # magnitudes is coarser than that shift, so same-millisecond rows
-                # collapse back to a tie. Order by the integer sequence to break it.
                 orderby.append(direction + constants.TIMESTAMP_SEQUENCE_ALIAS)
                 if constants.TIMESTAMP_SEQUENCE_ALIAS not in selected_columns:
                     selected_columns.append(constants.TIMESTAMP_SEQUENCE_ALIAS)
