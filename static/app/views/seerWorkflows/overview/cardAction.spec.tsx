@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   deriveCardAction,
@@ -29,11 +29,6 @@ function makeRow(overrides: Partial<OverviewRow> = {}): OverviewRow {
   };
 }
 
-const runUrl = {
-  pathname: '/organizations/org-slug/issues/2/',
-  query: {seerDrawer: 'true'},
-};
-
 describe('deriveCardAction', () => {
   it.each([
     'code_changes_ready',
@@ -59,7 +54,11 @@ describe('deriveCardAction', () => {
 
 describe('IssuePrimaryAction', () => {
   function renderAction(action: CardAction, row: OverviewRow) {
-    return render(<IssuePrimaryAction action={action} row={row} runUrl={runUrl} />);
+    const onOpenRun = jest.fn();
+    const result = render(
+      <IssuePrimaryAction action={action} row={row} onOpenRun={onOpenRun} />
+    );
+    return {...result, onOpenRun};
   }
 
   it('renders a placeholder while the run state is pending', () => {
@@ -120,15 +119,29 @@ describe('IssuePrimaryAction', () => {
     }
   );
 
-  it('falls back to the internal review link when a review_pr card has no PR url', () => {
-    renderAction(
+  it.each([
+    {type: 'code_changes_ready', label: 'Open PR'},
+    {type: 'solution_ready', label: 'Generate code'},
+    {type: 'needs_investigation', label: 'Investigate'},
+  ] as Array<{label: string; type: Exclude<CardAction['type'], 'review_pr'>}>)(
+    'opens the run drawer when the $label action is clicked',
+    async ({type, label}) => {
+      const {onOpenRun} = renderAction({type}, makeRow({runStatus: 'completed'}));
+
+      await userEvent.click(screen.getByRole('button', {name: label}));
+
+      expect(onOpenRun).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it('opens the run drawer when a review_pr card has no PR url', async () => {
+    const {onOpenRun} = renderAction(
       {type: 'review_pr', prUrl: undefined, prNumber: undefined},
       makeRow({runStatus: 'completed'})
     );
 
-    expect(screen.getByRole('button', {name: 'Review PR'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/issues/2/?seerDrawer=true'
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Review PR'}));
+
+    expect(onOpenRun).toHaveBeenCalledTimes(1);
   });
 });
