@@ -689,7 +689,7 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
             None,
             GroupResolution.Type.in_next_release,
         ):
-            resolution_labels[gr.group_id] = "Resolved after release"
+            resolution_labels[gr.group_id] = "Resolved in next release"
         else:
             resolution_labels[gr.group_id] = "Resolved in release"
 

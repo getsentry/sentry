@@ -210,7 +210,7 @@ class DebugWeeklyReportView(MailPreviewView):
                             "Resolved",
                             "Resolved in PR",
                             "Resolved in release",
-                            "Resolved after release",
+                            "Resolved in next release",
                         ]
                     ),
                 )
