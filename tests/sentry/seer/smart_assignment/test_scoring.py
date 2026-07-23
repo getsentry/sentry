@@ -43,9 +43,7 @@ class ScoringTestBase(TestCase):
 
 
 class RecordPredictionScoringTest(ScoringTestBase):
-    def _assert_result(
-        self, mock_metrics: MagicMock, expected: str, hit_rank: int | None = None
-    ) -> None:
+    def _assert_result(self, mock_metrics: MagicMock, expected: str, hit_rank: int = 0) -> None:
         mock_metrics.incr.assert_called_once_with(
             "smart_assignment.scored",
             tags={"result": expected, "hit_rank": hit_rank, "trigger": STARTED.name},
@@ -117,7 +115,7 @@ class RecordPredictionScoringTest(ScoringTestBase):
         run = self._run(actual_assignee_user_id=bob.id)
         record_prediction(run, [alice.id])
 
-        self._assert_result(mock_metrics, SmartAssignmentScore.MISS, hit_rank=None)
+        self._assert_result(mock_metrics, SmartAssignmentScore.MISS, hit_rank=0)
 
     @patch(METRICS_PATH)
     def test_unresolved_top_pick_is_miss_but_lower_candidate_still_hits(
@@ -137,7 +135,7 @@ class RecordPredictionScoringTest(ScoringTestBase):
         run = self._run(actual_assignee_user_id=bob.id)
         record_prediction(run, [None])
 
-        self._assert_result(mock_metrics, SmartAssignmentScore.MISS, hit_rank=None)
+        self._assert_result(mock_metrics, SmartAssignmentScore.MISS, hit_rank=0)
 
     @patch(METRICS_PATH)
     def test_unresolved_top_pick_with_team_truth_is_miss(self, mock_metrics: MagicMock) -> None:
@@ -147,7 +145,7 @@ class RecordPredictionScoringTest(ScoringTestBase):
         run = self._run(actual_assignee_team_id=team.id)
         record_prediction(run, [None])
 
-        self._assert_result(mock_metrics, SmartAssignmentScore.MISS, hit_rank=None)
+        self._assert_result(mock_metrics, SmartAssignmentScore.MISS, hit_rank=0)
 
     @patch(METRICS_PATH)
     def test_noop_without_both_sides(self, mock_metrics: MagicMock) -> None:

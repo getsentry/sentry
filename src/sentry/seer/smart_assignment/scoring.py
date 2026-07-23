@@ -145,7 +145,12 @@ def _apply(run_id: int, updates: RunUpdates) -> bool:
     if result is not None:
         metrics.incr(
             "smart_assignment.scored",
-            tags={"result": str(result), "hit_rank": hit_rank, "trigger": extras.get("trigger")},
+            tags={
+                "result": str(result),
+                # Ranks start at 1; 0 means no predicted user matched the ground truth.
+                "hit_rank": hit_rank if hit_rank is not None else 0,
+                "trigger": extras.get("trigger"),
+            },
         )
     return True
 
