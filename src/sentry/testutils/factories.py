@@ -108,6 +108,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.organizationmapping import OrganizationMapping
@@ -1302,6 +1303,12 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_group_activity(group, *args, **kwargs):
         return Activity.objects.create(group=group, project=group.project, *args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_subscription(group, **kwargs):
+        kwargs.setdefault("project", group.project)
+        return GroupSubscription.objects.create(group=group, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

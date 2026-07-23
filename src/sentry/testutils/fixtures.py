@@ -372,6 +372,11 @@ class Fixtures:
             group = self.group
         return Factories.create_group_activity(group, *args, **kwargs)
 
+    def create_group_subscription(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_subscription(group, **kwargs)
+
     def create_group_owner(self, group=None, **kwargs):
         if group is None:
             group = self.group
