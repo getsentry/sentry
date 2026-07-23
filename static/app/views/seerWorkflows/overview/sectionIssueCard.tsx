@@ -1,4 +1,5 @@
 import {LazyRender} from 'sentry/components/lazyRender';
+import type {User} from 'sentry/types/user';
 
 import {buildOverviewRow, deriveSectionKey} from './buildOverviewRows';
 import {IssueCard, IssueTableRow} from './issueCard';
@@ -15,11 +16,15 @@ function HydratedCard({
   sectionKey,
   view,
   statsPeriod,
+  memberList,
+  memberListLoading,
 }: {
   issue: OverviewIssue;
   orgSlug: string;
   statsPeriod: string;
   view: 'cards' | 'table';
+  memberList?: User[];
+  memberListLoading?: boolean;
   // The server-bucketed section. Absent in focus mode, where the issues
   // endpoint omits issue.autofix_state, so we reconstruct it from enrichment.
   sectionKey?: AutofixStateKey;
@@ -39,6 +44,8 @@ function HydratedCard({
       row={row}
       orgSlug={orgSlug}
       sectionKey={resolvedSectionKey}
+      memberList={memberList}
+      memberListLoading={memberListLoading}
       minHeight={minHeight}
     />
   ) : (
@@ -60,6 +67,8 @@ export function SectionIssueCard({
   statsPeriod: string;
   view: 'cards' | 'table';
   lazy?: boolean;
+  memberList?: User[];
+  memberListLoading?: boolean;
   sectionKey?: AutofixStateKey;
 }) {
   return (

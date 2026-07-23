@@ -1,4 +1,6 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -10,6 +12,8 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Sticky} from 'sentry/components/sticky';
 import {t} from 'sentry/locale';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {indexMembersByProject} from 'sentry/utils/members/shared';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -27,6 +31,7 @@ function formatSectionCount(count: number | undefined) {
 }
 
 export function SectionList({
+  assignee,
   collapsedGroups,
   enabled,
   onToggleGroup,
@@ -42,6 +47,7 @@ export function SectionList({
   projects: number[];
   sort: SortValue;
   view: OverviewView;
+  assignee?: string;
 }) {
   const organization = useOrganization();
   const {projects: orgProjects} = useProjects();
@@ -50,6 +56,15 @@ export function SectionList({
     projects,
     sort: sort === 'events' ? 'freq' : 'date',
     statsPeriod: period,
+    assignee,
+  });
+  const memberProjectIds = useMemo(() => projects.map(String), [projects]);
+  const hasCardIssues =
+    view === 'cards' && sections.some(section => section.issues.length > 0);
+  const memberQuery = useQuery({
+    ...useProjectMembersQueryOptions(memberProjectIds),
+    select: response => indexMembersByProject(response.json),
+    enabled: enabled && hasCardIssues,
   });
 
   const firstLoad = isPending && sections.every(section => section.isPending);
@@ -57,7 +72,8 @@ export function SectionList({
     section => !section.isPending && !section.isError && section.issues.length === 0
   );
   const hasProjectFilter = projects.length > 0 && orgProjects.length > 1;
-  const hasNonDefaultFilters = hasProjectFilter || period !== DEFAULT_STATS_PERIOD;
+  const hasNonDefaultFilters =
+    hasProjectFilter || period !== DEFAULT_STATS_PERIOD || Boolean(assignee);
 
   if (isError) {
     return <LoadingError onRetry={refetch} />;
@@ -125,6 +141,12 @@ export function SectionList({
                     <SectionIssueCard
                       key={issue.id}
                       issue={issue}
+                      memberList={
+                        memberQuery.isError
+                          ? undefined
+                          : (memberQuery.data?.get(issue.project.slug) ?? [])
+                      }
+                      memberListLoading={memberQuery.isPending}
                       orgSlug={organization.slug}
                       sectionKey={section.key}
                       view={view}

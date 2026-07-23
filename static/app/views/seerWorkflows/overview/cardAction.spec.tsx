@@ -14,12 +14,13 @@ import type {
 function makeRow(overrides: Partial<OverviewRow> = {}): OverviewRow {
   return {
     analysis: [],
+    assignedTo: null,
     eventCount: 1,
     id: '2',
     lastActivityAt: '2026-07-14T10:00:00Z',
     lastSeen: '2026-07-14T09:00:00Z',
     level: 'error',
-    project: {slug: 'proj'},
+    project: {id: '2', slug: 'proj'},
     runStatus: null,
     shortId: 'PROJ-1',
     statePending: false,

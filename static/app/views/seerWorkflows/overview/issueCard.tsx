@@ -22,10 +22,12 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
+import type {User} from 'sentry/types/user';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 
 import {deriveCardAction, IssuePrimaryAction} from './cardAction';
+import {OverviewIssueAssignee} from './overviewIssueAssignee';
 import {periodWindowLabel} from './periods';
 import {TriggerBadge} from './triggerBadge';
 import type {AutofixStateKey, OverviewRow, PatchStats} from './types';
@@ -247,11 +249,15 @@ export function IssueCard({
   orgSlug,
   row,
   sectionKey,
+  memberList,
+  memberListLoading,
   minHeight,
 }: {
   orgSlug: string;
   row: OverviewRow;
   sectionKey: AutofixStateKey;
+  memberList?: User[];
+  memberListLoading?: boolean;
   minHeight?: string;
 }) {
   const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
@@ -413,36 +419,47 @@ export function IssueCard({
             </Stack>
             <Stack gap="xs" align="end">
               <IssuePrimaryAction action={cardAction} row={row} runUrl={runUrl} />
-              {row.patchStats && (
-                <Tooltip
-                  title={<PatchFilesTooltip stats={row.patchStats} />}
-                  maxWidth={480}
-                  skipWrapper
-                >
-                  <Container
-                    tabIndex={0}
-                    aria-label={tn(
-                      '%s file changed',
-                      '%s files changed',
-                      row.patchStats.files
-                    )}
-                    border="muted"
-                    radius="sm"
-                    background="secondary"
-                    padding="2xs sm"
+              <Flex gap="xs" align="center">
+                {row.patchStats && (
+                  <Tooltip
+                    title={<PatchFilesTooltip stats={row.patchStats} />}
+                    maxWidth={480}
+                    skipWrapper
                   >
-                    <Text size="xs" variant="muted" monospace wrap="nowrap">
-                      {tn('%s file', '%s files', row.patchStats.files)}{' '}
-                      <Text size="xs" variant="success">
-                        +{row.patchStats.added}
-                      </Text>{' '}
-                      <Text size="xs" variant="danger">
-                        −{row.patchStats.removed}
+                    <Container
+                      tabIndex={0}
+                      aria-label={tn(
+                        '%s file changed',
+                        '%s files changed',
+                        row.patchStats.files
+                      )}
+                      border="muted"
+                      radius="sm"
+                      background="secondary"
+                      padding="2xs sm"
+                    >
+                      <Text size="xs" variant="muted" monospace wrap="nowrap">
+                        {tn('%s file', '%s files', row.patchStats.files)}{' '}
+                        <Text size="xs" variant="success">
+                          +{row.patchStats.added}
+                        </Text>{' '}
+                        <Text size="xs" variant="danger">
+                          −{row.patchStats.removed}
+                        </Text>
                       </Text>
-                    </Text>
-                  </Container>
-                </Tooltip>
-              )}
+                    </Container>
+                  </Tooltip>
+                )}
+                <OverviewIssueAssignee
+                  groupId={row.id}
+                  projectId={row.project.id}
+                  projectSlug={row.project.slug}
+                  assignedTo={row.assignedTo ?? undefined}
+                  memberList={memberList}
+                  memberListLoading={memberListLoading}
+                  owners={row.owners ?? undefined}
+                />
+              </Flex>
               {row.prUrl && cardAction.type !== 'review_pr' && (
                 <LinkButton
                   size="sm"
