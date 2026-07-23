@@ -58,7 +58,7 @@ import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 
-export function ConversationsTableNew() {
+export function ConversationsTable() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();

@@ -78,7 +78,7 @@ interface UseConversationResult {
 
 /**
  * Creates a node-like object from a flat API span response so existing UI
- * components (AiSpanTimeline, MessagesPanelNew) work without full trace fetches.
+ * components (AiSpanTimeline, MessagesPanel) work without full trace fetches.
  */
 function createNodeFromApiSpan(
   apiSpan: ConversationApiSpan,

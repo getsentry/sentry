@@ -19,7 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {MessageToolCallsNew} from 'sentry/views/explore/conversations/components/messageToolCallsNew';
+import {MessageToolCalls} from 'sentry/views/explore/conversations/components/messageToolCalls';
 import {
   TURN_META_WIDTH,
   TurnMeta,
@@ -38,7 +38,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 import {detectAIContentType} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
-interface MessagesPanelNewProps {
+interface MessagesPanelProps {
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
@@ -53,13 +53,13 @@ interface MessagesPanelNewProps {
 /**
  * Seer Explorer-styled conversation transcript.
  */
-export function MessagesPanelNew({
+export function MessagesPanel({
   nodes,
   selectedNodeId,
   onSelectNode,
   onViewTimeline,
   isLoading,
-}: MessagesPanelNewProps) {
+}: MessagesPanelProps) {
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
 
   // Detect XML once per list so selection re-renders don't re-parse every message.
@@ -212,7 +212,7 @@ const AssistantTurn = memo(function AssistantTurn({
     <Fragment>
       {message.toolCalls && message.toolCalls.length > 0 && (
         <MessageRow from="assistant" density="compact">
-          <MessageToolCallsNew
+          <MessageToolCalls
             toolCalls={message.toolCalls}
             selectedToolCallId={selectedToolCallId}
             nodeMap={nodeMap}
