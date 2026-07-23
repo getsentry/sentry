@@ -337,7 +337,9 @@ describe('useSaveAsMetricItems', () => {
       initialProps: {interval: '5m'},
     });
 
-    const alertItem = result.current.find(item => item.key === 'create-alert');
+    const alertItem = result.current.find(item => item.key === 'create-alert') as
+      | {children: unknown[]; disabled: boolean; tooltip: string | undefined}
+      | undefined;
 
     expect(alertItem?.disabled).toBe(true);
     expect(alertItem?.tooltip).toBe('Alerts are not available on your current plan.');

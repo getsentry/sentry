@@ -228,7 +228,9 @@ describe('useSaveAsItems', () => {
       {additionalWrapper: createWrapper()}
     );
 
-    const alertItem = result.current.find(item => item.key === 'create-alert');
+    const alertItem = result.current.find(item => item.key === 'create-alert') as
+      | {children: unknown[]; disabled: boolean; tooltip: string | undefined}
+      | undefined;
 
     expect(alertItem?.disabled).toBe(true);
     expect(alertItem?.tooltip).toBe('Alerts are not available on your current plan.');
@@ -253,7 +255,9 @@ describe('useSaveAsItems', () => {
       {additionalWrapper: createWrapper(orgWithAlerts)}
     );
 
-    const alertItem = result.current.find(item => item.key === 'create-alert');
+    const alertItem = result.current.find(item => item.key === 'create-alert') as
+      | {children: unknown[]; disabled: boolean; tooltip: string | undefined}
+      | undefined;
 
     expect(alertItem?.disabled).toBe(false);
     expect(alertItem?.tooltip).toBeUndefined();
