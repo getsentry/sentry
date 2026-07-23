@@ -320,6 +320,57 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert workflow.when_condition_group is not None
         assert workflow.when_condition_group.conditions.count() == 0
 
+    def test_update_triggers_when_condition_group_is_none(self) -> None:
+        """
+        Migrated metric alerts start with when_condition_group=None. Editing WHEN
+        triggers must create and attach a condition group so the changes persist.
+        """
+        workflow = self.create_workflow(organization=self.organization, when_condition_group=None)
+        assert workflow.when_condition_group is None
+
+        data = {
+            **self.valid_workflow,
+            "name": workflow.name,
+            "triggers": {
+                "logicType": "any-short",
+                "conditions": [
+                    {
+                        "type": "first_seen_event",
+                        "comparison": True,
+                        "conditionResult": True,
+                    },
+                    {
+                        "type": "issue_resolved_trigger",
+                        "comparison": True,
+                        "conditionResult": True,
+                    },
+                    {
+                        "type": "reappeared_event",
+                        "comparison": True,
+                        "conditionResult": True,
+                    },
+                ],
+            },
+        }
+
+        response = self.get_success_response(self.organization.slug, workflow.id, raw_data=data)
+
+        assert response.status_code == 200
+        assert response.data["triggers"] is not None
+        assert len(response.data["triggers"]["conditions"]) == 3
+
+        workflow.refresh_from_db()
+        assert workflow.when_condition_group is not None
+        assert workflow.when_condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        assert workflow.when_condition_group.conditions.count() == 3
+        assert set(
+            workflow.when_condition_group.conditions.values_list("type", flat=True)
+        ) == {
+            Condition.FIRST_SEEN_EVENT,
+            Condition.ISSUE_RESOLVED_TRIGGER,
+            Condition.REAPPEARED_EVENT,
+        }
+
     def test_update_detectors_add_detector(self) -> None:
         detector1 = self.create_detector(project=self.project)
         detector2 = self.create_detector(project=self.project, type=MetricIssue.slug)

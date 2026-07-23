@@ -319,7 +319,14 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             # Update the Workflow.when_condition_group
             triggers = validated_data.pop("triggers", None)
             if triggers is not None:
-                self.update_or_create_data_condition_group(triggers, instance.when_condition_group)
+                condition_group = self.update_or_create_data_condition_group(
+                    triggers, instance.when_condition_group
+                )
+                # Newly created trigger groups must be linked back to the workflow.
+                # Migrated metric alerts intentionally start with when_condition_group=None,
+                # and without this assignment trigger edits silently create orphaned groups.
+                if instance.when_condition_group_id != condition_group.id:
+                    validated_data["when_condition_group"] = condition_group
 
             # Update the Action Filters and Actions
             action_filters = validated_data.pop("action_filters", None)
