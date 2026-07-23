@@ -236,20 +236,15 @@ class GenerateAIConversationTitleTaskTest(TestCase):
         super().setUp()
         self.project = self.create_project()
 
-    def _run(
-        self,
-        *,
-        conversation_id: str = "conv-1",
-        first_user_message: str = "How do I reset my password?",
-        start_timestamp: float = TS,
-        project_id: int | None = None,
-    ) -> None:
-        generate_ai_conversation_title(
-            project_id=self.project.id if project_id is None else project_id,
-            conversation_id=conversation_id,
-            first_user_message=first_user_message,
-            source_timestamp=start_timestamp,
-        )
+    def _task_kwargs(self, **kwargs: Any) -> dict[str, Any]:
+        """Defaults for generate_ai_conversation_title; override per test."""
+        return {
+            "project_id": self.project.id,
+            "conversation_id": "conv-1",
+            "first_user_message": "How do I reset my password?",
+            "source_timestamp": TS,
+            **kwargs,
+        }
 
     def _create_metadata(
         self,
@@ -274,7 +269,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
 
     @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="AI Title")
     def test_creates_metadata_row(self, mock_generate: MagicMock) -> None:
-        self._run(start_timestamp=TS)
+        generate_ai_conversation_title(**self._task_kwargs())
 
         row = self._row()
         assert row.conversation_id == "conv-1"
@@ -289,7 +284,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
     @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="AI Title")
     def test_stores_clamped_conversation_id_and_hashes_full(self, mock_generate: MagicMock) -> None:
         long_id = "c" * 3000
-        self._run(conversation_id=long_id, start_timestamp=TS)
+        generate_ai_conversation_title(**self._task_kwargs(conversation_id=long_id))
 
         row = self._row(long_id)
         assert row.conversation_id == "c" * 2040 + "..."
@@ -301,7 +296,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
         earlier = _ts()
         self._create_metadata(title="Earlier Title", source_timestamp=earlier)
 
-        self._run(start_timestamp=TS + 60)
+        generate_ai_conversation_title(**self._task_kwargs(source_timestamp=TS + 60))
 
         row = self._row()
         assert row.title == "Earlier Title"
@@ -312,7 +307,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
     def test_equal_timestamp_keeps_existing(self, mock_generate: MagicMock) -> None:
         self._create_metadata(title="Original", source_timestamp=_ts())
 
-        self._run(start_timestamp=TS)
+        generate_ai_conversation_title(**self._task_kwargs())
         assert self._row().title == "Original"
         mock_generate.assert_not_called()
 
@@ -320,7 +315,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
     def test_supersedes_when_source_is_strictly_earlier(self, mock_generate: MagicMock) -> None:
         self._create_metadata(title="Later Turn Title", source_timestamp=_ts(60))
 
-        self._run(start_timestamp=TS)
+        generate_ai_conversation_title(**self._task_kwargs())
 
         row = self._row()
         assert row.title == "Earlier Title"
@@ -340,7 +335,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
             return "My Title"
 
         mock_generate.side_effect = seer_side_effect
-        self._run(start_timestamp=TS)
+        generate_ai_conversation_title(**self._task_kwargs())
 
         row = self._row()
         assert row.title == "Concurrent Earlier"
@@ -366,7 +361,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
             return real_update(self, **kwargs)
 
         with patch.object(QuerySet, "update", fake_update):
-            self._run(start_timestamp=TS)
+            generate_ai_conversation_title(**self._task_kwargs())
 
         row = self._row()
         assert row.title == "New Title"
@@ -375,31 +370,32 @@ class GenerateAIConversationTitleTaskTest(TestCase):
 
     @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="Unused")
     def test_skips_missing_project(self, mock_generate: MagicMock) -> None:
-        self._run(project_id=999999999)
+        generate_ai_conversation_title(**self._task_kwargs(project_id=999999999))
         assert AIConversationMetadata.objects.count() == 0
         mock_generate.assert_not_called()
 
     @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="Unused")
     def test_skips_when_hide_ai_features(self, mock_generate: MagicMock) -> None:
         self.organization.update_option("sentry:hide_ai_features", True)
-        self._run()
+        generate_ai_conversation_title(**self._task_kwargs())
         assert AIConversationMetadata.objects.count() == 0
         mock_generate.assert_not_called()
 
     @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="Unused")
     def test_skips_when_feature_disabled(self, mock_generate: MagicMock) -> None:
         with self.feature({"organizations:gen-ai-conversation-title-generation": False}):
-            self._run()
+            generate_ai_conversation_title(**self._task_kwargs())
         assert AIConversationMetadata.objects.count() == 0
         mock_generate.assert_not_called()
 
     @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
     def test_end_to_end_with_mocked_seer(self, mock_request: MagicMock) -> None:
         mock_request.return_value = _mock_seer_success("Password Reset Guidance")
-        self._run(
-            conversation_id="e2e-conv",
-            first_user_message="How do I reset my password?",
-            start_timestamp=TS,
+        generate_ai_conversation_title(
+            **self._task_kwargs(
+                conversation_id="e2e-conv",
+                first_user_message="How do I reset my password?",
+            )
         )
 
         row = self._row("e2e-conv")
@@ -410,7 +406,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
     @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
     def test_end_to_end_seer_failure_uses_fallback(self, mock_request: MagicMock) -> None:
         mock_request.side_effect = Exception("network down")
-        self._run(first_user_message="Short question")
+        generate_ai_conversation_title(**self._task_kwargs(first_user_message="Short question"))
         assert self._row().title == "Short question"
 
     def test_unique_constraint_project_conversation_hash(self) -> None:
