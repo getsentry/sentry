@@ -154,13 +154,13 @@ export function WebAuthnAssert({
   }
 
   return (
-    <Container>
+    <WebAuthnContainer>
       <DeviceAnimation activated={activated} role="presentation" />
       {MESSAGES[mode]}
 
       <input type="hidden" name="challenge" value={challenge} />
       <input type="hidden" name="response" value={response ?? ''} ref={inputRef} />
-    </Container>
+    </WebAuthnContainer>
   );
 }
 
@@ -219,7 +219,7 @@ function AlertContainer({children}: {children: React.ReactNode}) {
   );
 }
 
-const Container = styled('div')`
+const WebAuthnContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.xl};
