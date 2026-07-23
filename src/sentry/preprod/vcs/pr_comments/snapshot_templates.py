@@ -170,7 +170,7 @@ def _selected_types_query(comparison: PreprodSnapshotComparison) -> str:
 
 def _format_settings_link(project: Project) -> str:
     settings_url = project.organization.absolute_url(
-        f"/settings/projects/{project.slug}/mobile-builds/", query="tab=snapshots"
+        f"/settings/projects/{project.slug}/snapshots/"
     )
     return f"[⚙️ {project.name} Snapshot Settings]({settings_url})"
 
