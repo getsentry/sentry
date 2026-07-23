@@ -195,7 +195,7 @@ class RecordGroundTruthTest(ScoringTestBase):
         assert run.extras["actual_assignee_user_id"] == assignee.id
         assert run.extras["ground_truth_source"] == ActivityType.ASSIGNED.name
 
-    def test_resolution_keeps_existing_team_and_adds_resolver(self) -> None:
+    def test_resolution_keeps_team_truth_over_resolver(self) -> None:
         team = self.create_team(organization=self.organization)
         run = self._run(actual_assignee_team_id=team.id)
         resolver = self.create_user()
@@ -204,8 +204,8 @@ class RecordGroundTruthTest(ScoringTestBase):
         )
 
         run.refresh_from_db()
-        assert run.extras["actual_assignee_user_id"] == resolver.id
-        # A user-driven resolution shouldn't wipe a prior team assignee.
+        # A prior team assignee is enough truth; the resolver isn't recorded.
+        assert "actual_assignee_user_id" not in run.extras
         assert run.extras["actual_assignee_team_id"] == team.id
 
     def test_automatic_resolution_is_noop(self) -> None:

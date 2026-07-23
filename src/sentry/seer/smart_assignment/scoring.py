@@ -84,7 +84,8 @@ def _ground_truth_updates(
             extras.get("actual_assignee_user_id") is not None
             or extras.get("actual_assignee_team_id") is not None
         ):
-            # An assignment is better ground truth than the resolver.
+            # A prior team assignee is treated as enough truth, so we drop the
+            # resolver. (Could go the other way: merge the resolver in as the user.)
             return None
         # The assignment may never have been mirrored onto the run, so fall back to
         # the resolver only when the group truly has no assignee.
