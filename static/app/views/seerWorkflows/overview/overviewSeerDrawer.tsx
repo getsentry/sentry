@@ -52,7 +52,7 @@ function OverviewSeerDrawer({groupId, projectSlug}: OverviewSeerDrawerProps) {
     );
   }
 
-  return <SeerDrawer group={groupQuery.data} project={projectQuery.data} />;
+  return <SeerDrawer key={groupId} group={groupQuery.data} project={projectQuery.data} />;
 }
 
 /**

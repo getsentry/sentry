@@ -1,3 +1,4 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
@@ -15,6 +16,7 @@ import {useOpenOverviewSeerDrawer} from 'sentry/views/seerWorkflows/overview/ove
 
 const DRAWER_LABEL = 'Seer drawer';
 const GROUP_ID = '2';
+const SECOND_GROUP_ID = '3';
 const PROJECT_SLUG = 'proj';
 const OVERVIEW_PATH = '/organizations/org-slug/issues/autofix/overview/';
 const ISSUE_PATH = `/organizations/org-slug/issues/${GROUP_ID}/`;
@@ -33,12 +35,30 @@ function renderDrawerHook(organization = enabledOrganization) {
   });
 }
 
-function openDrawer(result: ReturnType<typeof renderDrawerHook>['result']): void {
+function openDrawer(
+  result: ReturnType<typeof renderDrawerHook>['result'],
+  groupId = GROUP_ID
+): void {
   act(() => {
     result.current.openSeerDrawer({
-      groupId: GROUP_ID,
+      groupId,
       projectSlug: PROJECT_SLUG,
     });
+  });
+}
+
+function mockSuccessfulPrerequisites(groupId: string) {
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/`,
+    body: GroupFixture({id: groupId}),
+  });
+  MockApiClient.addMockResponse({
+    url: PROJECT_URL,
+    body: DetailedProjectFixture({slug: PROJECT_SLUG}),
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/autofix/setup/`,
+    body: AutofixSetupFixture({}),
   });
 }
 
@@ -141,5 +161,79 @@ describe('useOpenOverviewSeerDrawer', () => {
       router.navigate(ISSUE_PATH);
     });
     await waitForDrawerToHide(DRAWER_LABEL);
+  });
+
+  it('resets drawer state when opening a different cached issue', async () => {
+    const scrollTo = jest.fn();
+    Element.prototype.scrollTo = scrollTo;
+    mockSuccessfulPrerequisites(GROUP_ID);
+    mockSuccessfulPrerequisites(SECOND_GROUP_ID);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/coding-agents/',
+      body: {integrations: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/seer/repos/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${GROUP_ID}/autofix/`,
+      body: {
+        autofix: {
+          run_id: 1,
+          blocks: [],
+          status: 'processing',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
+      },
+    });
+    const secondAutofixRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${SECOND_GROUP_ID}/autofix/`,
+      body: {
+        autofix: {
+          run_id: 2,
+          blocks: [
+            {
+              id: 'root-cause',
+              message: {
+                role: 'assistant',
+                content: 'Analysis complete',
+                metadata: {step: 'root_cause'},
+              },
+              timestamp: '2024-01-01T00:00:00Z',
+              loading: false,
+              artifacts: [
+                {
+                  key: 'root_cause',
+                  reason: 'Analysis complete',
+                  data: {
+                    one_line_description: 'Second issue root cause',
+                    five_whys: ['First why'],
+                  },
+                },
+              ],
+            },
+          ],
+          status: 'completed',
+          updated_at: '2024-01-01T00:00:00Z',
+        },
+      },
+    });
+    const {result} = renderDrawerHook();
+
+    // Warm the second issue's prerequisite queries so reopening it does not
+    // pass through the loading state and incidentally unmount the drawer.
+    openDrawer(result, SECOND_GROUP_ID);
+    expect(await screen.findByText('Second issue root cause')).toBeInTheDocument();
+
+    openDrawer(result);
+    await waitFor(() => expect(scrollTo).toHaveBeenCalled());
+
+    scrollTo.mockClear();
+    openDrawer(result, SECOND_GROUP_ID);
+
+    expect(await screen.findByText('Second issue root cause')).toBeInTheDocument();
+    await waitFor(() => expect(secondAutofixRequest).toHaveBeenCalledTimes(2));
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 });
