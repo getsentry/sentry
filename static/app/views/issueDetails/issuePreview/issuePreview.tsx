@@ -30,7 +30,6 @@ import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusS
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {IssuePreviewAutofix} from 'sentry/views/issueDetails/issuePreview/issuePreviewAutofix';
-import {IssuePreviewDetails} from 'sentry/views/issueDetails/issuePreview/issuePreviewDetails';
 import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/sidebar/externalIssueSidebarList';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -184,10 +183,6 @@ function IssuePreviewContent() {
               {hasAutofix ? (
                 <TabList.Item key="autofix">{t('Autofix')}</TabList.Item>
               ) : null}
-              <TabList.Item key="details">{t('Details')}</TabList.Item>
-              <TabList.Item key="events" disabled>
-                {t('Events')}
-              </TabList.Item>
             </TabList>
           </Container>
           <TabPanels>
@@ -228,16 +223,6 @@ function IssuePreviewContent() {
                 </Container>
               </TabPanels.Item>
             ) : null}
-            <TabPanels.Item key="details">
-              <Container paddingTop="md">
-                <IssueDetailsContextProvider>
-                  <IssuePreviewDetails group={group} project={project} />
-                </IssueDetailsContextProvider>
-              </Container>
-            </TabPanels.Item>
-            <TabPanels.Item key="events">
-              <Container />
-            </TabPanels.Item>
           </TabPanels>
         </Tabs>
       </Container>
