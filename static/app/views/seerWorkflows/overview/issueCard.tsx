@@ -381,12 +381,15 @@ export function IssueCard({
               truncating text, so oversized content can never push past the
               card edge. Full-width band above the narrative on narrow
               cards. */}
+          {/* 380px: a full-width Review PR button (~210px) + gap still
+              leaves the vitals column ~130px, enough for the longest
+              shortIds before the ellipsis kicks in. */}
           <Grid
             columns="minmax(0, 1fr) auto"
             gap="xl"
             align="start"
             flexShrink={0}
-            width={{xs: '100%', sm: '320px'}}
+            width={{xs: '100%', sm: '380px'}}
           >
             <Stack
               gap={{xs: 'md', sm: 'xs'}}
