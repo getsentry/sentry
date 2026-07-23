@@ -400,22 +400,16 @@ export function hasUnsavedFilterChanges(
     environment: new Set(currentFilters.environment),
   };
 
-  // When the user isn't a member of any project (e.g. they're not on any team)
-  // but the org has projects they can access, the page filters force
-  // `project=-1` (ALL_ACCESS_PROJECTS) into the URL as a default (see
-  // `initializeUrlState`). That default is only injected when there's no
-  // explicit selection, so it only collides with a dashboard whose saved
-  // project filter is empty ("My Projects"). In that case, treat the forced
-  // `-1` as equivalent to the empty saved filter so it isn't seen as an
-  // unsaved change. This is scoped to an empty saved filter on purpose: a
-  // dashboard with a real saved selection switched to All Projects is a
-  // genuine change and should still enable saving.
-  if (
-    userHasNoMemberProjects &&
-    savedFilters.projects?.size === 0 &&
+  // No-member users get `project=-1` forced into the URL as a default (see
+  // `initializeUrlState`); don't count that against a "My Projects" dashboard
+  // as an unsaved change.
+  const isAllProjectsSelected =
     currentFilters.projects?.size === 1 &&
-    currentFilters.projects.has(ALL_ACCESS_PROJECTS)
-  ) {
+    currentFilters.projects.has(ALL_ACCESS_PROJECTS);
+  const isForcedAllProjectsDefault = userHasNoMemberProjects && isAllProjectsSelected;
+  const doesNotHaveSavedDashboardProjects = savedFilters.projects?.size === 0;
+
+  if (isForcedAllProjectsDefault && doesNotHaveSavedDashboardProjects) {
     currentFilters.projects = new Set();
   }
 
@@ -499,14 +493,9 @@ export function getCurrentPageFilters(
 }
 
 /**
- * Like `getCurrentPageFilters`, but safe to persist to a dashboard. When the
- * user isn't a member of any project, the page filters force `project=-1`
- * (ALL_ACCESS_PROJECTS) into the URL as a default (see `initializeUrlState` and
- * `hasUnsavedFilterChanges`). Persisting that forced default would silently
- * convert a dashboard's empty "My Projects" filter into "All Projects" for
- * everyone, so drop it back to the empty saved filter. Scoped to an empty saved
- * filter on purpose: a real saved selection deliberately switched to All
- * Projects should still be persisted.
+ * Like `getCurrentPageFilters`, but drops the forced `project=-1` default (see
+ * `hasUnsavedFilterChanges`) so saving doesn't silently convert a "My Projects"
+ * dashboard into "All Projects" for everyone.
  */
 export function getSaveablePageFilters(
   location: Location,
@@ -517,14 +506,9 @@ export function getSaveablePageFilters(
 
   const isAllProjectsSelected =
     pageFilters.projects?.length === 1 && pageFilters.projects[0] === ALL_ACCESS_PROJECTS;
-  // A user with no member projects gets `project=-1` forced into the URL as a
-  // default, so their All Projects value is (treated as) the forced default.
   const isForcedAllProjectsDefault = userHasNoMemberProjects && isAllProjectsSelected;
   const doesNotHaveSavedDashboardProjects = (savedDashboard.projects?.length ?? 0) === 0;
 
-  // Only drop the forced default back to empty when the dashboard itself has no
-  // saved projects ("My Projects"); a real saved selection switched to All
-  // Projects is a deliberate change and should be persisted as-is.
   if (isForcedAllProjectsDefault && doesNotHaveSavedDashboardProjects) {
     pageFilters.projects = [];
   }
