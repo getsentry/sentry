@@ -395,6 +395,7 @@ interface SecondaryNavigationSectionProps {
 function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
   const collapsible = props.collapsible ?? true;
   const {layout} = usePrimaryNavigation();
+  const sectionRef = useRef<HTMLDivElement>(null);
   const [isCollapsedState, setIsCollapsedState] = useLocalStorageState(
     `secondary-nav-section-${props.id}-collapsed`,
     false
@@ -403,7 +404,7 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
-    <Container padding="md sm" data-nav-section>
+    <Container padding="md sm" data-nav-section ref={sectionRef}>
       {props.title ? (
         <SectionTitle
           trailingItems={props.trailingItems}
@@ -414,7 +415,14 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
           {props.title}
         </SectionTitle>
       ) : null}
-      <Collapsible collapsed={isCollapsed} disabled={!canCollapse}>
+      <Collapsible
+        collapsed={isCollapsed}
+        disabled={!canCollapse}
+        // Once the collapse animation settles, the scroll container may have shrunk
+        // enough to leave this section's header below the scrollable area, with no
+        // way to scroll back to it. Nudge it into view so it stays reachable.
+        onCollapsed={() => sectionRef.current?.scrollIntoView({block: 'nearest'})}
+      >
         {props.children}
       </Collapsible>
     </Container>
@@ -523,6 +531,10 @@ interface CollapsibleProps {
   children: React.ReactNode;
   collapsed: boolean;
   disabled?: boolean;
+  /**
+   * Called once the collapse (exit) animation has fully completed.
+   */
+  onCollapsed?: () => void;
 }
 
 function Collapsible(props: CollapsibleProps) {
@@ -531,7 +543,7 @@ function Collapsible(props: CollapsibleProps) {
   }
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence mode="wait" initial={false} onExitComplete={props.onCollapsed}>
       {!props.collapsed && (
         <MotionFlex
           // This column-reverse is what creates the "folder" animation effect, where children "fall out" of the header
