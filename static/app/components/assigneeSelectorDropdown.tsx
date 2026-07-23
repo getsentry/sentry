@@ -34,6 +34,7 @@ const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
   suspectCommit: t('Suspect Commit'),
   ownershipRule: t('Ownership Rule'),
   projectOwnership: t('Ownership Rule'),
+  seerSuggested: t('Suggested by Seer'),
   // TODO: codeowners may no longer exist
   codeowners: t('Codeowners'),
 };
@@ -128,6 +129,7 @@ function AssigneeAvatar({
     }),
     ownershipRule: t('Matching Issue Owners Rule'),
     projectOwnership: t('Matching Issue Owners Rule'),
+    seerSuggested: t('Suggested by Seer'),
     codeowners: t('Matching Codeowners Rule'),
   };
   const assignedToSuggestion = suggestedActors.find(actor => actor.id === assignedTo?.id);
