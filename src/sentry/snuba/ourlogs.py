@@ -15,6 +15,18 @@ from sentry.utils.tracing import trace
 logger = logging.getLogger("sentry.snuba.ourlogs")
 
 
+def _leading_timestamp_direction(orderby: list[str] | None) -> str | None:
+    """Returns the sort direction ('' or '-') when the orderby leads with a timestamp column,
+    otherwise None. Only a leading timestamp sort earns the precise-timestamp/id tiebreakers;
+    other sorts are left untouched."""
+    if not orderby:
+        return None
+    leading = orderby[0]
+    if leading.lstrip("-") in (constants.TIMESTAMP_ALIAS, constants.TIMESTAMP_PRECISE_ALIAS):
+        return "-" if leading.startswith("-") else ""
+    return None
+
+
 class OurLogs(rpc_dataset_common.RPCBase):
     DEFINITIONS = OURLOG_DEFINITIONS
 
@@ -42,26 +54,19 @@ class OurLogs(rpc_dataset_common.RPCBase):
         additional_queries: AdditionalQueries | None = None,
         max_string_length: int | None = None,
     ) -> EAPResponse:
-        """timestamp_precise is always displayed in the UI in lieu of timestamp but since the TraceItem table isn't a DateTime64
-        so we need to always order by it regardless of what is actually passed to the orderby.
-        Additionally, to ensure a strict order in the flex time sampling mode, we also order
-        by the item id."""
-        if (
-            orderby is not None
-            and len(orderby) == 1
-            and orderby[0].lstrip("-") == constants.TIMESTAMP_ALIAS
-        ):
-            direction = "-" if orderby[0][0] == "-" else ""
-            orderby.append(direction + constants.TIMESTAMP_PRECISE_ALIAS)
-            if constants.TIMESTAMP_PRECISE_ALIAS not in selected_columns:
-                selected_columns.append(constants.TIMESTAMP_PRECISE_ALIAS)
-
-            # When using highest accuracy flex time sampling, we make sure we sort by
-            # the item id as well to ensure we have a strict ordering.
-            if sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME":
-                orderby.append(direction + "id")
-                if "id" not in selected_columns:
-                    selected_columns.append("id")
+        """The TraceItem table stores logs with a coarse `timestamp` (not a DateTime64, so no
+        sub-millisecond precision), which makes ordering by `timestamp` alone ambiguous for logs
+        sharing a millisecond. Whenever a timestamp sort leads the orderby we resolve ties on the
+        nanosecond `timestamp_precise`, then on the item `id`, giving a strict total order that is
+        stable across pages in every sampling mode."""
+        direction = _leading_timestamp_direction(orderby)
+        if orderby is not None and direction is not None:
+            ordered_aliases = {column.lstrip("-") for column in orderby}
+            for tiebreaker in (constants.TIMESTAMP_PRECISE_ALIAS, "id"):
+                if tiebreaker not in ordered_aliases:
+                    orderby.append(direction + tiebreaker)
+                    if tiebreaker not in selected_columns:
+                        selected_columns.append(tiebreaker)
 
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(

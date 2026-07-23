@@ -663,6 +663,38 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
         assert [row["message"] for row in response.data["data"]] == ["foo", "bar", "qux"]
 
+    def test_order_by_timestamp_breaks_ties_by_id_in_normal_sampling(self):
+        logs = [
+            self.create_ourlog(
+                {"body": "foo"},
+                timestamp=self.nine_mins_ago,
+                log_id=uuid4().hex,
+            ),
+            self.create_ourlog(
+                {"body": "bar"},
+                timestamp=self.ten_mins_ago,
+                log_id="1" + uuid4().hex[1:],
+            ),
+            self.create_ourlog(
+                {"body": "qux"},
+                timestamp=self.ten_mins_ago,
+                log_id="0" + uuid4().hex[1:],  # qux's id sorts after bar's id
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["id", "timestamp", "message"],
+                "query": "",
+                "orderby": "-timestamp",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+
+        assert [row["message"] for row in response.data["data"]] == ["foo", "bar", "qux"]
+
     def test_high_accuracy_flex_time_empty_page_no_next(self):
         response = self.do_request(
             {

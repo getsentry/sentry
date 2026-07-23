@@ -151,6 +151,33 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         assert log_data["trace"] == trace_id_1
         assert log_data["message"] == "foo"
 
+    def test_orders_ties_by_id(self) -> None:
+        trace_id = "1" * 32
+        self.store_eap_items(
+            [
+                self.create_ourlog(
+                    {"body": "bar", "trace_id": trace_id},
+                    timestamp=self.ten_mins_ago,
+                    log_id="1" + uuid4().hex[1:],
+                ),
+                self.create_ourlog(
+                    {"body": "qux", "trace_id": trace_id},
+                    timestamp=self.ten_mins_ago,
+                    log_id="0" + uuid4().hex[1:],  # qux's id sorts after bar's id
+                ),
+            ]
+        )
+
+        response = self.client.get(
+            self.url,
+            data={"traceId": trace_id},
+            format="json",
+        )
+        assert response.status_code == 200, response.content
+        # The default ["-timestamp", "-timestamp_precise"] orderby must still fall back to a
+        # strict, deterministic id order when timestamps are identical.
+        assert [row["message"] for row in response.data["data"]] == ["bar", "qux"]
+
     def test_orderby_validation(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
