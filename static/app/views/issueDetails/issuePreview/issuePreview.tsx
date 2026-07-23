@@ -122,7 +122,7 @@ function IssuePreviewContent() {
       <Container paddingBottom="lg" borderBottom="muted">
         <Stack gap="xs">
           <Flex align="center" justify="between" gap="md">
-            <Flex align="center" gap="xs" minWidth={0}>
+            <Flex align="center" gap="md" minWidth={0}>
               <Tooltip
                 title={primaryTitle}
                 skipWrapper
@@ -130,7 +130,7 @@ function IssuePreviewContent() {
                 showOnlyOnOverflow
                 delay={1000}
               >
-                <Heading as="h3" size="lg" density="compressed" ellipsis>
+                <Heading as="h3" size="lg" ellipsis>
                   {primaryTitle}
                 </Heading>
               </Tooltip>
