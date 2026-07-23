@@ -3,14 +3,14 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {MessageRow} from '@sentry/scraps/chat';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {
   AssistantMessageBlock,
-  MessageBlock,
   UserMessageBlock,
 } from 'sentry/components/ai/chat/messageBlock';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -213,24 +213,31 @@ const AssistantTurn = memo(function AssistantTurn({
   return (
     <Fragment>
       {message.toolCalls && message.toolCalls.length > 0 && (
-        <MessageBlock>
+        <MessageRow from="assistant" density="compact">
           <MessageToolCallsNew
             toolCalls={message.toolCalls}
             selectedToolCallId={selectedToolCallId}
             nodeMap={nodeMap}
             onSelectNode={onSelectNode}
           />
-        </MessageBlock>
+        </MessageRow>
       )}
       {message.reasoning && (
-        <MessageBlock>
+        <MessageRow from="assistant" density="compact">
           <ReasoningSection reasoning={message.reasoning} />
           <Container width={TURN_META_WIDTH} flexShrink={0} />
-        </MessageBlock>
+        </MessageRow>
       )}
       {message.content === '' ? (
-        // Tool/reasoning-only turn: still surface the turn's cost and duration.
-        hasMeta && <MessageBlock justify="end">{meta}</MessageBlock>
+        // Tool/reasoning-only turn: no bubble, but still surface the turn's cost
+        // and duration, right-aligned to the meta column like other assistant turns.
+        hasMeta && (
+          <MessageRow from="assistant" density="compact">
+            <Flex justify="end" width="100%">
+              {meta}
+            </Flex>
+          </MessageRow>
+        )
       ) : message.content === EMPTY_TEXT_CONTENT ? (
         <AssistantMessageBlock meta={meta} isSelected={isSelected} onClick={handleClick}>
           <MessageText align="left" variant="muted">

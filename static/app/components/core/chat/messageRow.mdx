@@ -41,3 +41,31 @@ role-to-side mapping — callers express whose turn it is, not the layout.
 </MessageRow>
 <MessageRow from="assistant">Here are the three escalating issues I found.</MessageRow>
 ```
+
+## Density
+
+`density` sets the row's vertical breathing room. It defaults to `default`, the
+spacing for a full message turn. Use `compact` for sub-turn connective content —
+tool calls, reasoning — or on a surface that stacks turns directly and reads too
+airy at the default spacing. The row owns the token-to-pixel mapping, so callers
+express intent, not spacing.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md">
+    <MessageRow from="user" density="compact">
+      <UserMessage>Which of my issues are getting worse?</UserMessage>
+    </MessageRow>
+    <MessageRow from="assistant" density="compact">
+      Here are the three escalating issues I found.
+    </MessageRow>
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<MessageRow from="user" density="compact">
+  <UserMessage>Which of my issues are getting worse?</UserMessage>
+</MessageRow>
+<MessageRow from="assistant" density="compact">
+  Here are the three escalating issues I found.
+</MessageRow>
+```

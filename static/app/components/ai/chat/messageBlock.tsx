@@ -1,41 +1,18 @@
 import type {ReactNode} from 'react';
 import {css, useTheme} from '@emotion/react';
 
-import {UserMessage} from '@sentry/scraps/chat';
+import {MessageRow, UserMessage} from '@sentry/scraps/chat';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 /**
- * Presentational message shells shared across AI chat surfaces. They own
- * layout/alignment only; callers pass the rendered content as children. Mirrors
- * Seer Explorer: user bubbles right-aligned, assistant bubbles left-aligned.
+ * Presentational message bubbles shared across AI chat surfaces. Each wraps the
+ * scraps `MessageRow` primitive to own alignment; callers pass the rendered
+ * content as children. Mirrors Seer Explorer: user bubbles right-aligned,
+ * assistant bubbles left-aligned.
  */
 
 /** Max width shared by the user and assistant message bubbles. */
 const AI_MESSAGE_MAX_WIDTH = '800px';
-
-interface MessageBlockProps {
-  children: ReactNode;
-  className?: string;
-  justify?: 'start' | 'end';
-}
-
-export function MessageBlock({
-  children,
-  className,
-  justify = 'start',
-}: MessageBlockProps) {
-  return (
-    <Flex
-      align="start"
-      justify={justify}
-      width="100%"
-      padding="md xl"
-      className={className}
-    >
-      {children}
-    </Flex>
-  );
-}
 
 interface UserMessageBlockProps {
   children: ReactNode;
@@ -46,7 +23,7 @@ interface UserMessageBlockProps {
 
 export function UserMessageBlock({children, className, expand}: UserMessageBlockProps) {
   return (
-    <MessageBlock justify="end" className={className}>
+    <MessageRow from="user" density="compact" className={className}>
       {/* Placeholder for spacing as we want to keep the right aligned look even on smaller screens */}
       <Container paddingLeft="3xl" flexShrink={0} />
       <UserMessage
@@ -55,7 +32,7 @@ export function UserMessageBlock({children, className, expand}: UserMessageBlock
       >
         {children}
       </UserMessage>
-    </MessageBlock>
+    </MessageRow>
   );
 }
 
@@ -104,7 +81,7 @@ export function AssistantMessageBlock({
   `;
 
   return (
-    <MessageBlock className={className}>
+    <MessageRow from="assistant" density="compact" className={className}>
       <Flex justify="between" align="start" gap="md" width="100%">
         <Container
           maxWidth={AI_MESSAGE_MAX_WIDTH}
@@ -121,6 +98,6 @@ export function AssistantMessageBlock({
         </Container>
         {meta}
       </Flex>
-    </MessageBlock>
+    </MessageRow>
   );
 }
