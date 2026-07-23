@@ -137,11 +137,13 @@ export function IssueCard({
   minHeight?: string;
 }) {
   const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
+  const runUrl = {pathname: issueUrl, query: {seerDrawer: 'true'}};
   // The card's CTA opens the autofix run drawer in place; the title link still
   // navigates to the issue page.
-  const openSeerDrawer = useOpenOverviewSeerDrawer();
-  const onOpenRun = () =>
-    openSeerDrawer({groupId: row.id, projectSlug: row.project.slug});
+  const {canOpenSeerDrawer, openSeerDrawer} = useOpenOverviewSeerDrawer();
+  const onOpenRun = canOpenSeerDrawer
+    ? () => openSeerDrawer({groupId: row.id, projectSlug: row.project.slug})
+    : undefined;
   const cardAction = deriveCardAction(sectionKey, row);
   const rootCause = row.analysis.find(entry => entry.key === 'root_cause');
   const proposedFix = row.analysis.find(entry => entry.key === 'fix_summary');
@@ -307,7 +309,12 @@ export function IssueCard({
         {/* Tail: primary action left, issue identity right */}
         <Flex justify="between" align="center" gap="md">
           <Flex gap="sm" align="center">
-            <IssuePrimaryAction action={cardAction} row={row} onOpenRun={onOpenRun} />
+            <IssuePrimaryAction
+              action={cardAction}
+              row={row}
+              onOpenRun={onOpenRun}
+              runUrl={runUrl}
+            />
             {row.prUrl && cardAction.type !== 'review_pr' && (
               <LinkButton
                 size="sm"
@@ -352,9 +359,11 @@ export function IssueTableRow({
   minHeight?: string;
 }) {
   const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
-  const openSeerDrawer = useOpenOverviewSeerDrawer();
-  const onOpenRun = () =>
-    openSeerDrawer({groupId: row.id, projectSlug: row.project.slug});
+  const runUrl = {pathname: issueUrl, query: {seerDrawer: 'true'}};
+  const {canOpenSeerDrawer, openSeerDrawer} = useOpenOverviewSeerDrawer();
+  const onOpenRun = canOpenSeerDrawer
+    ? () => openSeerDrawer({groupId: row.id, projectSlug: row.project.slug})
+    : undefined;
   const cardAction = deriveCardAction(sectionKey, row);
   const {eventCountLabel, userCountLabel} = issueCountLabels(row);
 
@@ -398,6 +407,7 @@ export function IssueTableRow({
           action={cardAction}
           row={row}
           onOpenRun={onOpenRun}
+          runUrl={runUrl}
           size="xs"
         />
       </Flex>

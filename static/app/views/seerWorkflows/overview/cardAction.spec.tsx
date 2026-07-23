@@ -29,6 +29,11 @@ function makeRow(overrides: Partial<OverviewRow> = {}): OverviewRow {
   };
 }
 
+const runUrl = {
+  pathname: '/organizations/org-slug/issues/2/',
+  query: {seerDrawer: 'true'},
+};
+
 describe('deriveCardAction', () => {
   it.each([
     'code_changes_ready',
@@ -53,10 +58,19 @@ describe('deriveCardAction', () => {
 });
 
 describe('IssuePrimaryAction', () => {
-  function renderAction(action: CardAction, row: OverviewRow) {
-    const onOpenRun = jest.fn();
+  function renderAction(
+    action: CardAction,
+    row: OverviewRow,
+    {inline = true}: {inline?: boolean} = {}
+  ) {
+    const onOpenRun = inline ? jest.fn() : undefined;
     const result = render(
-      <IssuePrimaryAction action={action} row={row} onOpenRun={onOpenRun} />
+      <IssuePrimaryAction
+        action={action}
+        row={row}
+        onOpenRun={onOpenRun}
+        runUrl={runUrl}
+      />
     );
     return {...result, onOpenRun};
   }
@@ -144,4 +158,51 @@ describe('IssuePrimaryAction', () => {
 
     expect(onOpenRun).toHaveBeenCalledTimes(1);
   });
+
+  it.each([
+    {
+      action: {type: 'code_changes_ready'} as CardAction,
+      label: 'Open PR',
+      row: makeRow({runStatus: 'completed'}),
+    },
+    {
+      action: {type: 'solution_ready'} as CardAction,
+      label: 'Generate code',
+      row: makeRow({runStatus: 'completed'}),
+    },
+    {
+      action: {type: 'needs_investigation'} as CardAction,
+      label: 'Investigate',
+      row: makeRow({runStatus: 'completed'}),
+    },
+    {
+      action: {
+        type: 'review_pr',
+        prUrl: undefined,
+        prNumber: undefined,
+      } as CardAction,
+      label: 'Review PR',
+      row: makeRow({runStatus: 'completed'}),
+    },
+    {
+      action: {type: 'needs_investigation'} as CardAction,
+      label: 'Retry',
+      row: makeRow({runStatus: 'error'}),
+    },
+    {
+      action: {type: 'needs_investigation'} as CardAction,
+      label: 'Add context',
+      row: makeRow({runStatus: 'awaiting_user_input'}),
+    },
+  ])(
+    'links the $label action to the issue when inline opening is unavailable',
+    ({action, label, row}) => {
+      renderAction(action, row, {inline: false});
+
+      expect(screen.getByRole('button', {name: label})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/issues/2/?seerDrawer=true'
+      );
+    }
+  );
 });

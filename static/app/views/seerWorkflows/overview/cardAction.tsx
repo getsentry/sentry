@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -102,6 +103,7 @@ const AccentButton = styled(Button)`
     color: ${p => p.theme.tokens.content.accent};
   }
 `;
+const AccentLinkButton = AccentButton.withComponent(LinkButton);
 
 const SuccessButton = styled(Button)`
   background: ${p => p.theme.tokens.background.success};
@@ -111,55 +113,83 @@ const SuccessButton = styled(Button)`
     color: ${p => p.theme.tokens.content.success};
   }
 `;
+const SuccessLinkButton = SuccessButton.withComponent(LinkButton);
 
 const MutedButton = styled(Button)`
   background: transparent;
   border-color: ${p => p.theme.tokens.border.neutral};
   color: ${p => p.theme.tokens.content.secondary};
 `;
+const MutedLinkButton = MutedButton.withComponent(LinkButton);
 
 function ActionButton({
   actionKey,
   size,
   onClick,
+  to,
 }: {
   actionKey: ActionKey;
-  onClick: () => void;
+  onClick: (() => void) | undefined;
   size: 'sm' | 'xs';
+  to: LocationDescriptor;
 }) {
   const meta = ACTION_META[actionKey];
   if (actionKey === 'code_changes_ready') {
     return (
       <Tooltip title={meta.description} skipWrapper>
-        <AccentButton size={size} icon={<meta.Icon />} onClick={onClick}>
-          {meta.label}
-        </AccentButton>
+        {onClick ? (
+          <AccentButton size={size} icon={<meta.Icon />} onClick={onClick}>
+            {meta.label}
+          </AccentButton>
+        ) : (
+          <AccentLinkButton size={size} icon={<meta.Icon />} to={to}>
+            {meta.label}
+          </AccentLinkButton>
+        )}
       </Tooltip>
     );
   }
   if (actionKey === 'solution_ready') {
     return (
       <Tooltip title={meta.description} skipWrapper>
-        <SuccessButton size={size} icon={<meta.Icon />} onClick={onClick}>
-          {meta.label}
-        </SuccessButton>
+        {onClick ? (
+          <SuccessButton size={size} icon={<meta.Icon />} onClick={onClick}>
+            {meta.label}
+          </SuccessButton>
+        ) : (
+          <SuccessLinkButton size={size} icon={<meta.Icon />} to={to}>
+            {meta.label}
+          </SuccessLinkButton>
+        )}
       </Tooltip>
     );
   }
   if (actionKey === 'errored') {
     return (
       <Tooltip title={meta.description} skipWrapper>
-        <MutedButton size={size} icon={<meta.Icon />} onClick={onClick}>
-          {meta.label}
-        </MutedButton>
+        {onClick ? (
+          <MutedButton size={size} icon={<meta.Icon />} onClick={onClick}>
+            {meta.label}
+          </MutedButton>
+        ) : (
+          <MutedLinkButton size={size} icon={<meta.Icon />} to={to}>
+            {meta.label}
+          </MutedLinkButton>
+        )}
       </Tooltip>
     );
   }
   return (
     <Tooltip title={meta.description} skipWrapper>
-      <Button size={size} variant={meta.variant} icon={<meta.Icon />} onClick={onClick}>
-        {meta.label}
-      </Button>
+      {onClick ? (
+        <Button size={size} variant={meta.variant} icon={<meta.Icon />} onClick={onClick}>
+          {meta.label}
+        </Button>
+      ) : (
+        <LinkButton size={size} variant={meta.variant} icon={<meta.Icon />} to={to}>
+          {meta.label}
+        </LinkButton>
+      )}
     </Tooltip>
   );
 }
@@ -206,11 +236,13 @@ export function IssuePrimaryAction({
   action,
   row,
   onOpenRun,
+  runUrl,
   size = 'sm',
 }: {
   action: CardAction;
-  onOpenRun: () => void;
   row: OverviewRow;
+  runUrl: LocationDescriptor;
+  onOpenRun?: () => void;
   size?: 'sm' | 'xs';
 }) {
   if (row.statePending) {
@@ -220,10 +252,19 @@ export function IssuePrimaryAction({
     return <Tag variant="info">{t('Running')}</Tag>;
   }
   if (row.runStatus === 'error') {
-    return <ActionButton actionKey="errored" size={size} onClick={onOpenRun} />;
+    return (
+      <ActionButton actionKey="errored" size={size} onClick={onOpenRun} to={runUrl} />
+    );
   }
   if (row.runStatus === 'awaiting_user_input') {
-    return <ActionButton actionKey="awaiting_input" size={size} onClick={onOpenRun} />;
+    return (
+      <ActionButton
+        actionKey="awaiting_input"
+        size={size}
+        onClick={onOpenRun}
+        to={runUrl}
+      />
+    );
   }
 
   switch (action.type) {
@@ -239,9 +280,16 @@ export function IssuePrimaryAction({
       return action.prUrl ? (
         <ReviewPrButton prUrl={action.prUrl} prNumber={action.prNumber} size={size} />
       ) : (
-        <ActionButton actionKey="review_pr" size={size} onClick={onOpenRun} />
+        <ActionButton actionKey="review_pr" size={size} onClick={onOpenRun} to={runUrl} />
       );
     default:
-      return <ActionButton actionKey={action.type} size={size} onClick={onOpenRun} />;
+      return (
+        <ActionButton
+          actionKey={action.type}
+          size={size}
+          onClick={onOpenRun}
+          to={runUrl}
+        />
+      );
   }
 }
