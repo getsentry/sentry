@@ -381,13 +381,14 @@ export function getEquationMetricsTotalFilter(equation: string) {
   return createTraceMetricEventsFilter(traceMetricsUsed);
 }
 
-function _isEquationQuery(mq: BaseMetricQuery): boolean {
-  if (mq.queryParams.visualizes.length > 1) {
+function _isEquationQuery(metricQuery: BaseMetricQuery): boolean {
+  if (metricQuery.queryParams.visualizes.length > 1) {
     // Only a single equation can be plotted in a metric query.
     return false;
   }
   return Boolean(
-    mq.queryParams.visualizes[0] && isVisualizeEquation(mq.queryParams.visualizes[0])
+    metricQuery.queryParams.visualizes[0] &&
+    isVisualizeEquation(metricQuery.queryParams.visualizes[0])
   );
 }
 

@@ -32,7 +32,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {applySeerEquation} from 'sentry/views/explore/metrics/applySeerEquation';
+import {applySeerResultsToMetricQueries} from 'sentry/views/explore/metrics/applySeerEquation';
 import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {
   defaultAggregateSortBys,
@@ -51,11 +51,7 @@ import {
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {
-  isVisualize,
-  isVisualizeEquation,
-  VisualizeFunction,
-} from 'sentry/views/explore/queryParams/visualize';
+import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {getSeerExploreQuery, getSeerSort} from 'sentry/views/explore/seerQuery';
 interface MetricsTabSeerComboBoxProps {
   traceMetric: TraceMetric;
@@ -253,24 +249,16 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // Build encoded metric queries, updating the current metric's query params
       // and trace metric (the metric is parsed out of the agent's visualization
       // aggregate or query filters above so the panel matches what was queried).
-      const seerAggregates = seerEquationMetricQueries.filter(
-        mq => !mq.queryParams.visualizes.some(isVisualizeEquation)
-      );
-      const seerEquations = seerEquationMetricQueries.filter(mq =>
-        mq.queryParams.visualizes.some(isVisualizeEquation)
-      );
-
-      // TODO I think we can drop the seerAggregates and seerEquations individual parts
-      const {encodedMetrics: newEncodedMetrics, spliceResult} = applySeerEquation({
-        metricQueries,
-        interactedQueryParams: queryParams,
-        seerAggregates,
-        seerEquations,
-        nonEquationReplacement: {
-          metric: nextMetric,
-          queryParams: newQueryParams,
-        },
-      });
+      const {encodedMetrics: newEncodedMetrics, spliceResult} =
+        applySeerResultsToMetricQueries({
+          metricQueries,
+          interactedQueryParams: queryParams,
+          seerMetricQueries: seerEquationMetricQueries,
+          seerAggregateReplacement: {
+            metric: nextMetric,
+            queryParams: newQueryParams,
+          },
+        });
 
       const selection = {
         ...pageFilters.selection,
@@ -326,7 +314,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           header: t('Clear Queries'),
           message: t(
             "This equation needs an additional %s queries but, there isn't enough room. Clear existing queries to make room?",
-            seerAggregates.length
+            seerEquationMetricQueries.length - 1 // -1 because the interacted row receives a replacement not an addition
           ),
           confirmText: t('Clear and apply'),
           isDangerous: true,

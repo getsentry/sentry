@@ -1,6 +1,6 @@
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {applySeerEquation} from 'sentry/views/explore/metrics/applySeerEquation';
+import {applySeerResultsToMetricQueries} from 'sentry/views/explore/metrics/applySeerEquation';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
@@ -76,11 +76,10 @@ function runSeerEquationUpdate({
   const seerAggregates = parsed.metricQueries;
   const seerEquations = parsed.equationRow ? [parsed.equationRow] : [];
 
-  return applySeerEquation({
+  return applySeerResultsToMetricQueries({
     metricQueries: currentMetricQueries,
     interactedQueryParams,
-    seerAggregates,
-    seerEquations,
+    seerMetricQueries: [...seerAggregates, ...seerEquations],
   });
 }
 
@@ -123,7 +122,7 @@ describe('applySeerEquation', () => {
     expect(decoded[0]!.isEquation).toBe(false);
     expect(decoded[1]!.isEquation).toBe(false);
     expect(decoded[2]!.isEquation).toBe(true);
-    // expect(decoded[2]!.internalExpression).toBe('A + B');
+    expect(decoded[2]!.internalExpression).toBe('A + B');
   });
 
   it('assigns letter label when replacing an equation panel (ƒ1)', () => {
@@ -158,7 +157,8 @@ describe('applySeerEquation', () => {
     expect(decoded[2]!.yAxis).toBe('p50(value,metricC,distribution,none)');
 
     // The new equation references letter labels, not ƒ labels
-    const newEq = decoded.find(d => d.isEquation && d.yAxis === seerEquationYAxis);
+    // TODO: the new one should get the correct internalExpression, we can calculate that.
+    // const newEq = decoded.find(d => d.isEquation && d.yAxis === seerEquationYAxis);
     // expect(newEq!.internalExpression).toBe('C * D');
   });
 
@@ -214,7 +214,7 @@ describe('applySeerEquation', () => {
 
     const eqn = decoded[1]!;
     expect(eqn.yAxis).toBe('equation|sum(value,metricX,counter,none) / 2');
-    // expect(eqn.internalExpression).toBe('A / 2');
+    expect(eqn.internalExpression).toBe('A / 2');
   });
 
   it('no ƒ labels leak when equation panel is the only row', () => {
@@ -236,7 +236,7 @@ describe('applySeerEquation', () => {
     expect(eqn.yAxis).toBe(
       'equation|sum(value,metricA,counter,none) + avg(value,metricB,gauge,none)'
     );
-    // expect(eqn.internalExpression).toBe('A + B');
+    expect(eqn.internalExpression).toBe('A + B');
   });
 
   it('maps extra Seer aggregates to correct insertion positions', () => {
@@ -264,7 +264,7 @@ describe('applySeerEquation', () => {
       'equation|p50(value,metricX,distribution,none) + p99(value,metricY,distribution,none) + count(value,metricZ,counter,none)'
     );
     // "B" was left untouched because it was not interacted with and preexisting
-    // expect(eqn.internalExpression).toBe('A + C + D');
+    expect(eqn.internalExpression).toBe('A + C + D');
   });
 
   it('never produces ƒ labels with mixed aggregates and equations', () => {
@@ -327,7 +327,7 @@ describe('applySeerEquation', () => {
 
     expect(decoded[0]!.yAxis).toBe('sum(value,metricX,counter,none)');
     expect(decoded[1]!.yAxis).toBe(seerEquationYAxis);
-    // expect(decoded[1]!.internalExpression).toBe('A + A');
+    expect(decoded[1]!.internalExpression).toBe('A + A');
   });
 
   // TODO: This is kind of clunky, maybe we can do something general and pass in a type of replacement to applySeerEquation?
@@ -339,12 +339,11 @@ describe('applySeerEquation', () => {
       aggregateFields: [new VisualizeFunction('avg(value,metricX,gauge,none)')],
     });
 
-    const result = applySeerEquation({
+    const result = applySeerResultsToMetricQueries({
       metricQueries: [aggA],
       interactedQueryParams: aggA.queryParams,
-      seerAggregates: [],
-      seerEquations: [],
-      nonEquationReplacement: {
+      seerMetricQueries: [],
+      seerAggregateReplacement: {
         metric: {name: 'metricX', type: 'gauge'},
         queryParams: newQp,
       },
@@ -390,17 +389,17 @@ describe('applySeerEquation', () => {
 
     // Every equation should use only letter labels
     expect(decoded[4]!.yAxis).toBe('equation|sum(value,m1,counter,none) * 2');
-    // expect(decoded[4]!.internalExpression).toBe('A * 2');
+    expect(decoded[4]!.internalExpression).toBe('A * 2');
     expect(decoded[5]!.yAxis).toBe('equation|avg(value,m2,gauge,none) * 3');
-    // expect(decoded[5]!.internalExpression).toBe('B * 3');
+    expect(decoded[5]!.internalExpression).toBe('B * 3');
     expect(decoded[6]!.yAxis).toBe(
       'equation|p50(value,metricNew,distribution,none) / 10'
     );
-    // expect(decoded[6]!.internalExpression).toBe('C / 10');
+    expect(decoded[6]!.internalExpression).toBe('C / 10');
     expect(decoded[7]!.yAxis).toBe(
       'equation|p50(value,metricNew,distribution,none) + p99(value,metricNew,distribution,none)'
     );
-    // expect(decoded[7]!.internalExpression).toBe('C + D');
+    expect(decoded[7]!.internalExpression).toBe('C + D');
   });
 
   it('returns requires_clear when there are not enough slots', () => {
