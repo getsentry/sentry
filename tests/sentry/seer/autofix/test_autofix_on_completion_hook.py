@@ -17,6 +17,13 @@ from sentry.seer.autofix.on_completion_hook import (
     STOPPING_POINT_TO_STEP,
     AutofixOnCompletionHook,
 )
+from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
+    GithubIssueComment,
+    GithubPrCommentFeedbackSource,
+    GithubPrReviewCommentFeedbackSource,
+    GithubPullRequestReviewComment,
+)
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.sentry_apps.utils.webhooks import SeerActionType
@@ -836,3 +843,222 @@ class AutofixOnCompletionHookTest(TestCase):
         seer_run.refresh_from_db()
         group.refresh_from_db()
         assert seer_run.last_triggered_at == group.seer_explorer_autofix_last_triggered
+
+
+REACT_PATH = "sentry.seer.autofix.on_completion_hook"
+
+
+class TestMaybeReactToCompletedIteration(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="123",
+            name="owner/repo",
+        )
+
+    def _feedback_metadata(
+        self, sources: list[GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource]
+    ) -> dict[str, str]:
+        return {
+            "step": AutofixStep.PR_ITERATION.value,
+            "iteration_index": "0",
+            "feedback": serialize_feedback([Feedback(source=s) for s in sources]),
+        }
+
+    def _synced_pr_iteration_block(
+        self,
+        sources: list[GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource],
+        repo_name: str = "owner/repo",
+        commit_sha: str = "synced-sha",
+    ) -> MemoryBlock:
+        return MemoryBlock(
+            id="block-pr-iteration",
+            message=Message(
+                role="assistant",
+                content="message pr iteration",
+                metadata=self._feedback_metadata(sources),
+            ),
+            timestamp="2026-02-10T00:00:00Z",
+            merged_file_patches=[
+                AgentFilePatch(
+                    repo_name=repo_name,
+                    diff="diff --git a/test.py b/test.py",
+                    patch=FilePatch(path="test.py", type="M", added=2, removed=1),
+                )
+            ],
+            pr_commit_shas={repo_name: commit_sha},
+        )
+
+    def _top_level_source(self, comment_id: int = 111) -> GithubPrCommentFeedbackSource:
+        return GithubPrCommentFeedbackSource(
+            comment=GithubIssueComment(id=comment_id, body="@sentry fix it"),
+            repo_name="owner/repo",
+        )
+
+    def _review_source(self, comment_id: int = 222) -> GithubPrReviewCommentFeedbackSource:
+        return GithubPrReviewCommentFeedbackSource(
+            comment=GithubPullRequestReviewComment(id=comment_id, body="inline feedback"),
+        )
+
+    def _state_with(
+        self,
+        sources: list[GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource],
+        *,
+        status: str = "completed",
+        commit_sha: str = "synced-sha",
+        repo_pr_states: dict[str, RepoPRState] | None = None,
+    ) -> SeerRunState:
+        state = run_state(blocks=[self._synced_pr_iteration_block(sources, commit_sha=commit_sha)])
+        state.status = status
+        state.repo_pr_states = (
+            repo_pr_states
+            if repo_pr_states is not None
+            else {
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo", pr_number=7, commit_sha=commit_sha
+                )
+            }
+        )
+        return state
+
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_reacts_hooray_on_top_level_comment_only(self, mock_react, mock_make_scm):
+        # A review comment is present alongside the top-level comment; only the
+        # top-level one is acked (review comments are handled by CW-1688).
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        state = self._state_with([self._top_level_source(111), self._review_source(222)])
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+
+        assert mock_react.call_count == 1
+        assert mock_react.call_args.args[0] is scm
+        assert mock_react.call_args.kwargs["source_type"] == "github-pr-comment"
+        assert mock_react.call_args.kwargs["comment_id"] == 111
+        assert mock_react.call_args.kwargs["reaction"] == "hooray"
+        assert mock_react.call_args.kwargs["pr_number"] == 7
+
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_noop_on_error_status(self, mock_react, mock_make_scm):
+        state = self._state_with([self._top_level_source()], status="error")
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+        mock_react.assert_not_called()
+
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_noop_when_step_not_pr_iteration(self, mock_react, mock_make_scm):
+        state = run_state(blocks=[solution_memory_block()])
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+        mock_react.assert_not_called()
+
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_noop_when_not_synced(self, mock_react, mock_make_scm):
+        # PR commit sha differs from the pushed state, so changes aren't synced yet.
+        state = self._state_with(
+            [self._top_level_source()],
+            commit_sha="new-sha",
+            repo_pr_states={
+                "owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7, commit_sha="old-sha")
+            },
+        )
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+        mock_react.assert_not_called()
+
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_noop_when_feature_disabled(self, mock_react, mock_make_scm):
+        state = self._state_with([self._top_level_source()])
+        AutofixOnCompletionHook._maybe_react_to_completed_iteration(self.organization, 123, state)
+        mock_react.assert_not_called()
+
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_multi_repo_skips_source_without_repo_name(self, mock_react, mock_make_scm):
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        legacy_source = GithubPrCommentFeedbackSource(
+            comment=GithubIssueComment(id=111, body="@sentry fix it"),
+        )
+        assert legacy_source.repo_name is None
+        state = run_state(
+            blocks=[self._synced_pr_iteration_block([legacy_source, self._top_level_source(333)])]
+        )
+        state.repo_pr_states = {
+            "owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7, commit_sha="synced-sha"),
+            "owner/other": RepoPRState(
+                repo_name="owner/other", pr_number=9, commit_sha="other-sha"
+            ),
+        }
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+
+        # Only the source that carries repo_name is reacted on; the legacy one is
+        # skipped rather than reacted on the wrong repo.
+        assert mock_react.call_count == 1
+        assert mock_react.call_args.kwargs["comment_id"] == 333
+        assert mock_react.call_args.kwargs["source_type"] == "github-pr-comment"
+
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_skips_reaction_when_pr_number_missing(self, mock_react, mock_make_scm):
+        # A repo can be synced without a pr_number (e.g. after a repo rename).
+        # Reacting with an invalid ``0`` would just fail and capture noise, so
+        # the source is skipped instead.
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        state = self._state_with(
+            [self._top_level_source()],
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo", pr_number=None, commit_sha="synced-sha"
+                )
+            },
+        )
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+
+        mock_react.assert_not_called()
+
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_skips_reaction_when_repo_name_ambiguous(self, mock_react, mock_make_scm):
+        # The same slug can exist under multiple providers in one org; rather than
+        # guess and react on the wrong repo, the source is skipped.
+        self.create_repo(
+            project=self.project,
+            provider="integrations:gitlab",
+            external_id="456",
+            name="owner/repo",
+        )
+        state = self._state_with([self._top_level_source()])
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+
+        mock_make_scm.assert_not_called()
+        mock_react.assert_not_called()

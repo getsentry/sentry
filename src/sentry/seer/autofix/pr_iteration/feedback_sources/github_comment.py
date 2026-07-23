@@ -113,6 +113,10 @@ class _GithubPrCommentFeedbackSourceBase(FeedbackSourceBase):
 class GithubPrCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
     """Feedback submitted as a top-level GitHub PR comment (``@sentry <feedback>``)."""
 
+    # "owner/repo" slug captured at trigger time so completion handling can rebuild
+    # the SCM client for the right repo. Optional so pre-existing serialized blobs
+    # still parse.
+    repo_name: str | None = None
     require_command: ClassVar[bool] = True
     type: Literal["github-pr-comment"] = "github-pr-comment"
 
