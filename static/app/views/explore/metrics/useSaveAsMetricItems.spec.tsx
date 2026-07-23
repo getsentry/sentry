@@ -39,7 +39,7 @@ const mockHandleAddMultipleQueriesToDashboard = jest.mocked(
 
 describe('useSaveAsMetricItems', () => {
   const organization = OrganizationFixture({
-    features: ['tracemetrics-enabled', 'tracemetrics-equations-in-alerts'],
+    features: ['tracemetrics-enabled'],
   });
   const project = ProjectFixture({id: '1'});
   const queryClient = makeTestQueryClient();

@@ -33,7 +33,11 @@ from sentry.models.projectrepository import ProjectRepository, ProjectRepository
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
+from sentry.seer.autofix.constants import (
+    AutofixAutomationTuningSettings,
+    AutofixStatus,
+    CodingAgentStatus,
+)
 from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
@@ -124,22 +128,6 @@ class FileChange(BaseModel):
     path: str
     content: str | None = None
     is_deleted: bool = False
-
-
-class CodingAgentStatus(StrEnum):
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-
-    @classmethod
-    def from_cursor_status(cls, cursor_status: str) -> "CodingAgentStatus | None":
-        status_mapping = {
-            "FINISHED": cls.COMPLETED,
-            "ERROR": cls.FAILED,
-        }
-
-        return status_mapping.get(cursor_status.upper(), None)
 
 
 class CodingAgentResult(BaseModel):
@@ -259,9 +247,9 @@ def make_match_coding_agent_pr_request(
 class DelegatedAgentMatch(BaseModel):
     """A match resolved synchronously by ``/v1/pr-metrics/delegated-agent-match``.
 
-    Returned as a ``200`` body instead of the async ``202`` + ``record_pr_attribution``
-    RPC callback. ``match_path`` isn't consumed on the Sentry side today; it's kept
-    here to mirror the full wire contract.
+    Returned as a ``200`` body when a match is found. Seer returns ``202`` when
+    a match is not found. ``match_path`` isn't consumed on the Sentry side today;
+    it's kept here to mirror the full wire contract.
     """
 
     run_id: int

@@ -37,7 +37,6 @@ from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.seer.agent.client import (
     _trigger_explorer_indexes_if_needed,
     get_available_monitoring_providers,
-    get_monitoring_provider_connections,
 )
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
@@ -45,6 +44,7 @@ from sentry.seer.agent.client_utils import (
     make_agent_chat_request,
     make_feature_run_request,
 )
+from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
@@ -247,26 +247,27 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
 
     match run_type:
         case SeerRunType.EXPLORER:
-            # Add connected and available monitoring providers for runs with user context.
-            if run.user_id is not None:
-                try:
-                    organization = Organization.objects.get_from_cache(id=run.organization_id)
-                    monitoring_provider_connections = get_monitoring_provider_connections(
-                        organization, run.user_id
-                    )
-                    if monitoring_provider_connections:
-                        body["monitoring_providers"] = monitoring_provider_connections
+            try:
+                organization = Organization.objects.get_from_cache(id=run.organization_id)
+                monitoring_provider_connections = get_monitoring_provider_connections(
+                    organization, run.user_id
+                )
+                if monitoring_provider_connections:
+                    body["monitoring_providers"] = [
+                        connection.dict() for connection in monitoring_provider_connections
+                    ]
 
+                if run.user_id is not None:
                     available_monitoring_providers = get_available_monitoring_providers(
                         organization, run.user_id
                     )
                     if available_monitoring_providers:
                         body["available_monitoring_providers"] = available_monitoring_providers
-                except Organization.DoesNotExist:
-                    logger.warning(
-                        "seer_run_create.organization_dne",
-                        extra={"organization_id": run.organization_id, "run_id": run.id},
-                    )
+            except Organization.DoesNotExist:
+                logger.warning(
+                    "seer_run_create.organization_dne",
+                    extra={"organization_id": run.organization_id, "run_id": run.id},
+                )
             response = make_agent_chat_request(
                 cast(AgentChatRequest, body), viewer_context=viewer_context
             )
@@ -365,7 +366,8 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
                 )
         except IntegrityError:
             # Idempotency conflict; we treat this as a no-op.
-            pass
+            # Return to skip the trigger_group_log_processing call.
+            return
 
         # This receiver runs inside the outbox drain transaction
         # (process_shard → transaction.atomic), so the GALE is not yet committed.

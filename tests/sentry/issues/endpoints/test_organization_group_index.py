@@ -200,7 +200,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             data={"timestamp": before_now(hours=1).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         ).group
-        self.create_group_activity(group=group_2, type=ActivityType.SEER_RCA_COMPLETED.value)
+        self.create_group_derived_data(group=group_2, progress="diagnosed")
         self.login_as(user=self.user)
 
         # Without the flag, the sort falls back to the default (date) order.
@@ -209,6 +209,29 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         # With the flag, the diagnosed group is promoted above the more recently seen one.
         with self.feature("organizations:issue-stream-progress-sort"):
+            response = self.get_success_response(sort="progress", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
+
+    def test_sort_by_progress_over_cap_uses_native_ordering(self) -> None:
+        # End-to-end guard for the native (cap-free) progress path. Reproduces the prod request
+        # exactly: real endpoint (which always sends date_to=now) and over the candidate cap.
+        # Must rank by progress, not fall back to recency.
+        group_1 = self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        ).group
+        group_2 = self.store_event(
+            data={"timestamp": before_now(hours=1).isoformat(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        ).group
+        # group_2 is older (loses recency) but fix_applied (wins progress).
+        self.create_group_derived_data(group=group_2, progress="fix_applied")
+        self.login_as(user=self.user)
+
+        with (
+            self.options({"snuba.search.max-pre-snuba-candidates": 0}),
+            self.feature("organizations:issue-stream-progress-sort"),
+        ):
             response = self.get_success_response(sort="progress", query="is:unresolved")
         assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
 
@@ -536,24 +559,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(query=f"project:{project.slug}")
         assert len(response.data) == 1
 
-    def test_auto_resolved(self) -> None:
-        project = self.project
-        project.update_option("sentry:resolve_age", 1)
-        self.store_event(
-            data={"event_id": "a" * 32, "timestamp": before_now(seconds=1).isoformat()},
-            project_id=project.id,
-        )
-        event2 = self.store_event(
-            data={"event_id": "b" * 32, "timestamp": before_now(seconds=1).isoformat()},
-            project_id=project.id,
-        )
-        group2 = event2.group
-
-        self.login_as(user=self.user)
-        response = self.get_success_response()
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(group2.id)
-
     def test_perf_issue(self) -> None:
         event = self.store_event(
             data={
@@ -643,8 +648,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         }
 
     def test_lookup_by_event_id(self) -> None:
-        project = self.project
-        project.update_option("sentry:resolve_age", 1)
         event_id = "c" * 32
         event = self.store_event(
             data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
@@ -682,8 +685,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["matchingEventId"] == event_id
 
     def test_lookup_by_event_id_with_whitespace(self) -> None:
-        project = self.project
-        project.update_option("sentry:resolve_age", 1)
         event_id = "c" * 32
         event = self.store_event(
             data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
@@ -698,8 +699,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["matchingEventId"] == event_id
 
     def test_lookup_by_unknown_event_id(self) -> None:
-        project = self.project
-        project.update_option("sentry:resolve_age", 1)
         self.create_group()
         self.create_group()
 
@@ -4063,7 +4062,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not r4.exists()
 
     @patch("sentry.issues.merge.uuid4")
-    @patch("sentry.issues.merge.merge_groups")
+    @patch("sentry.issues.merge.start_merge_groups")
     @patch("sentry.eventstream.backend")
     def test_merge(
         self, mock_eventstream: MagicMock, merge_groups: MagicMock, mock_uuid4: MagicMock
@@ -4105,7 +4104,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
     @patch("sentry.issues.merge.uuid4")
-    @patch("sentry.issues.merge.merge_groups")
+    @patch("sentry.issues.merge.start_merge_groups")
     @patch("sentry.eventstream.backend")
     def test_merge_performance_issues(
         self, mock_eventstream: MagicMock, merge_groups: MagicMock, mock_uuid4: MagicMock

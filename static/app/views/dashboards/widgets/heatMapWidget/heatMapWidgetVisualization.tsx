@@ -29,6 +29,7 @@ import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItem
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
+import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {formatTooltipYAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatTooltipYAxisValue';
 import {formatTooltipZAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatTooltipZAxisValue';
 import {
@@ -144,7 +145,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   // The heat map's readable time/value axes sit at index 1; index 0 is the
   // hidden category axis that positions the cells.
-  const {onChartReady} = useChartBoxZoom({
+  const {onChartReady, isDraggingRef} = useChartBoxZoom({
     onZoom: onZoom ? handleZoom : undefined,
     xAxisIndex: 1,
     yAxisIndex: 1,
@@ -186,6 +187,12 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = params => {
+    // Skip the tooltip during a drag. This improves drag performance since the
+    // tooltip's `renderToString` is expensive.
+    if (isDraggingRef.current) {
+      return '';
+    }
+
     // Only show the tooltip of the current chart. Otherwise, all tooltips
     // in the chart group appear.
     if (!isChartHovered(chartRef?.current)) {
@@ -415,3 +422,4 @@ type HeatMapTooltipContext = HeatMapBucketBounds;
 export type HeatMapZoomContext = HeatMapBucketBounds;
 
 HeatMapWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;
+HeatMapWidgetVisualization.NoData = WidgetNoDataPanel;

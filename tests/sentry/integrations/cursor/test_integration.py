@@ -208,7 +208,8 @@ class CursorIntegrationTest(IntegrationTestCase):
         from datetime import datetime
 
         from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
-        from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentStatus
+        from sentry.seer.autofix.constants import CodingAgentStatus
+        from sentry.seer.autofix.utils import CodingAgentProviderType
         from sentry.seer.models import SeerRepoDefinition
 
         mock_response = MagicMock()

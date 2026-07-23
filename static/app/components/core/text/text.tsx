@@ -185,7 +185,7 @@ function getNativeDisplay(as: TextPrimitive | undefined): DisplayValue {
 
 /**
  * When no explicit `display` prop is set, the derived default is applied.
- * For a responsive prop we seed the base (`2xs`) slot when the consumer left it unset
+ * For a responsive prop we seed the base (`zero`) slot when the consumer left it unset
  * (with the derived default, or the element's native display when there is none)
  * so unspecified small breakpoints keep the sensible default instead of inheriting the value of
  * the smallest specified breakpoint (which `rc` would otherwise make the base).
@@ -208,8 +208,8 @@ function resolveDisplay(p: {
   }
 
   const value =
-    p.display['2xs'] === undefined
-      ? {'2xs': fallback ?? getNativeDisplay(p.as), ...p.display}
+    p.display.zero === undefined
+      ? {zero: fallback ?? getNativeDisplay(p.as), ...p.display}
       : p.display;
 
   return rc('display', value, p.theme);

@@ -441,8 +441,7 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
             [artifact], {artifact.id: metrics}, {}, {}, {}, project=self.project
         )
 
-        assert f"/settings/projects/{self.project.slug}/mobile-builds/" in result
-        assert "tab=snapshots" in result
+        assert f"/settings/projects/{self.project.slug}/snapshots/" in result
         assert f"{self.project.name} Snapshot Settings" in result
 
 
@@ -516,8 +515,7 @@ class FormatSoloPrCommentTest(SnapshotPrCommentTestBase):
         assert "My App" in result
         assert "Snapshot diffs will appear when we have a base upload to compare against" in result
         assert "main branch" in result
-        assert f"/settings/projects/{self.project.slug}/mobile-builds/" in result
-        assert "tab=snapshots" in result
+        assert f"/settings/projects/{self.project.slug}/snapshots/" in result
         assert f"{self.project.name} Snapshot Settings" in result
 
     def test_solo_empty_artifacts_raises(self) -> None:
@@ -554,7 +552,7 @@ class FormatSoloPrCommentTest(SnapshotPrCommentTestBase):
         assert "4 uploaded" in result
         assert "Waiting for base snapshots to finish uploading" in result
         assert "~10 minutes" in result
-        assert f"/settings/projects/{self.project.slug}/mobile-builds/" in result
+        assert f"/settings/projects/{self.project.slug}/snapshots/" in result
 
     def test_waiting_for_base_empty_artifacts_raises(self) -> None:
         with pytest.raises(ValueError, match="Cannot format PR comment for empty artifact list"):
@@ -571,8 +569,41 @@ class FormatSoloPrCommentTest(SnapshotPrCommentTestBase):
         assert "2 uploaded" in result
         assert "No base snapshots found to compare against" in result
         assert "main branch" in result
-        assert f"/settings/projects/{self.project.slug}/mobile-builds/" in result
+        assert f"/settings/projects/{self.project.slug}/snapshots/" in result
 
     def test_missing_base_empty_artifacts_raises(self) -> None:
         with pytest.raises(ValueError, match="Cannot format PR comment for empty artifact list"):
             format_missing_base_snapshot_pr_comment([], {}, project=self.project)
+
+
+@cell_silo_test
+class SnapshotNameCellEscapingTest(SnapshotPrCommentTestBase):
+    """Untrusted app name / id must be escaped in the snapshot comment name cell."""
+
+    def test_untrusted_name_is_escaped(self) -> None:
+        artifact, metrics = self._create_artifact_with_metrics(
+            app_id="com.example`x", app_name="App](https://sentry.io) ["
+        )
+
+        result = format_solo_snapshot_pr_comment(
+            [artifact], {artifact.id: metrics}, project=self.project
+        )
+
+        assert "App](" not in result
+        assert "App\\](https://sentry.io) \\[" in result
+        # app_id renders in a code span: the backtick is stripped so it can't
+        # close the span early.
+        assert "`com.example`x`" not in result
+        assert "`com.examplex`" in result
+
+    def test_benign_name_not_mangled(self) -> None:
+        artifact, metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My Cool App"
+        )
+
+        result = format_solo_snapshot_pr_comment(
+            [artifact], {artifact.id: metrics}, project=self.project
+        )
+
+        assert "[My Cool App](" in result
+        assert "`com.example.app`" in result

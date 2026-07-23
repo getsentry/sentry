@@ -1,4 +1,4 @@
-import {Children, useMemo} from 'react';
+import {Children, isValidElement, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {Item} from '@react-stately/collections';
@@ -86,8 +86,25 @@ function CompositeSelect({
   size = 'md',
   ...controlProps
 }: CompositeSelectProps) {
+  const items = useMemo(
+    () =>
+      Children.toArray(children).flatMap((child, regionIndex) => {
+        if (!isValidElement<CompositeSelectRegion<SelectKey>>(child)) {
+          return [];
+        }
+
+        const {options, isOptionDisabled} = child.props;
+        return getItemsWithKeys(options).map(option => ({
+          ...option,
+          key: `${regionIndex}-${String(option.key)}`,
+          disabled: option.disabled || isOptionDisabled?.(option),
+        }));
+      }),
+    [children]
+  );
+
   return (
-    <Control {...controlProps} mode={mode} size={size} disabled={disabled}>
+    <Control {...controlProps} mode={mode} size={size} disabled={disabled} items={items}>
       <FocusScope>
         <RegionsWrap>
           {Children.map(children, child => {

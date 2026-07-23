@@ -117,7 +117,7 @@ def parse_pull_request_number(url: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
-def _normalize_scm_provider(provider: str | None) -> str | None:
+def normalize_scm_provider(provider: str | None) -> str | None:
     """Normalize a reported SCM provider to Sentry's unprefixed form, or None if unusable.
 
     Returns None for the ``"unknown"`` sentinel (the source couldn't resolve the repo) and
@@ -189,7 +189,7 @@ class PullRequestManager(BaseManager["PullRequest"]):
         """
         from sentry.models.repository import Repository
 
-        normalized_provider = _normalize_scm_provider(provider)
+        normalized_provider = normalize_scm_provider(provider)
         provider_unmappable = (
             normalized_provider is not None and normalized_provider not in _KNOWN_SCM_PROVIDERS
         )
@@ -396,16 +396,17 @@ class PullRequestActivityType(models.TextChoices):
     CHECK_SUITE_COMPLETED = "check_suite_completed"
     CLOSED = "closed"
     COMMENT_CREATED = "comment_created"
-    COMMENT_DELETED = "comment_deleted"
     COMMENT_EDITED = "comment_edited"
     CONVERTED_TO_DRAFT = "converted_to_draft"
     DEQUEUED = "dequeued"
+    EDITED = "edited"
     ENQUEUED = "enqueued"
     LABELED = "labeled"
     LOCKED = "locked"
     MERGED = "merged"
     OPENED = "opened"
     READY_FOR_REVIEW = "ready_for_review"
+    REOPENED = "reopened"
     REVIEW_DISMISSED = "review_dismissed"
     REVIEW_REQUESTED = "review_requested"
     REVIEW_REQUEST_REMOVED = "review_request_removed"
@@ -440,6 +441,32 @@ class PullRequestActivity(DefaultFieldsModel):
         unique_together = (("pull_request", "webhook_id"),)
 
     __repr__ = sane_repr("pull_request_id", "event_type")
+
+
+@cell_silo_model
+class PullRequestActivityLog(DefaultFieldsModel):
+    """One reduced activity document per PR — the 1:1 replacement for the
+    per-webhook-event ``PullRequestActivity`` rows (see
+    ``sentry.pr_metrics.activity_doc`` for the document shape and reducer).
+
+    A dedicated 1:1 model rather than a field on ``PullRequestMetrics``: the doc
+    is swept at the terminal emit while the metrics row must survive, and
+    ``handle_metrics`` rewrites the metrics row on every ``pull_request`` webhook.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    pull_request = models.OneToOneField(
+        "sentry.PullRequest", on_delete=models.CASCADE, related_name="activity_log"
+    )
+    # Column is TOAST-compressed with lz4 (set in migration 1133).
+    data = models.JSONField(default=dict)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pullrequest_activity_log"
+
+    __repr__ = sane_repr("pull_request_id")
 
 
 @cell_silo_model

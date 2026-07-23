@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 
 export const sampleHTTPRequestTableData: TabularData = {

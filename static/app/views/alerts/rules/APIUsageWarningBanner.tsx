@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
 

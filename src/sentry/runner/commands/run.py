@@ -366,6 +366,12 @@ def run_taskworker(
     default=None,
 )
 @click.option(
+    "--application",
+    type=str,
+    help="Override the application field on generated task activations",
+    default=None,
+)
+@click.option(
     "--extra-arg-bytes",
     type=int,
     help="Generater random args of specified size in bytes",
@@ -381,6 +387,7 @@ def taskbroker_send_tasks(
     bootstrap_servers: str,
     kafka_topic: str,
     namespace: str,
+    application: str | None,
     extra_arg_bytes: int | None,
 ) -> None:
     from taskbroker_client.canary import CANARY_TASK_NAME
@@ -414,6 +421,9 @@ def taskbroker_send_tasks(
             [chr(ord("a") + random.randint(0, ord("z") - ord("a"))) for _ in range(extra_arg_bytes)]
         )
         task_args.append(extra_padding_arg)
+
+    if application is not None:
+        func.namespace.application = application
 
     if not infinite:
         checkmarks = {int(repeat * (i / 10)) for i in range(1, 10)}

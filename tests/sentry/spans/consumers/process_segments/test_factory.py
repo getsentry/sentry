@@ -33,6 +33,8 @@ def build_mock_message(data, topic=None):
     {
         "spans.process-segments.dedupe-ttl": 0,
         "spans.process-segments.dedupe-filter-enable": False,
+        "arroyo.producer.record_poll_metrics": [],
+        "arroyo.producer.poll_metric_frequency": 10,
     }
 )
 @mock.patch(
@@ -168,6 +170,17 @@ def test_process_segment_task_matches_consumer_output(
     headers = {k: v for k, v in payload.headers}
     assert headers["item_type"] == b"1"
     assert headers["project_id"] == b"1"
+
+
+@mock.patch("sentry.spans.consumers.process_segments.tasks._process_segment_bytes", return_value=[])
+def test_process_segment_task_does_not_start_new_transaction(
+    mock_process_segment_bytes: mock.MagicMock,
+) -> None:
+    segment_bytes = b"segment"
+
+    process_segment_task(segment_bytes)
+
+    mock_process_segment_bytes.assert_called_once_with(segment_bytes, start_new_transaction=False)
 
 
 class TestCheckSpanDuplicates:

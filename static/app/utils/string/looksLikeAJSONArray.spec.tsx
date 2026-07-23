@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {looksLikeAJSONArray} from './looksLikeAJSONArray';
 
 describe('looksLikeAJSONArray', () => {

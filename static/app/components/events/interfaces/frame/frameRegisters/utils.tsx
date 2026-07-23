@@ -10,40 +10,62 @@ import {
 } from './registers';
 
 function getRegisterMap(deviceArch: string) {
-  if (deviceArch.startsWith('x86_64')) {
+  const normalizedDeviceArch = deviceArch.trim().toLowerCase();
+
+  if (
+    normalizedDeviceArch.startsWith('x86_64') ||
+    normalizedDeviceArch.startsWith('amd64')
+  ) {
     return REGISTERS_X86_64;
   }
 
-  if (deviceArch.startsWith('x86')) {
+  if (
+    normalizedDeviceArch.startsWith('x86') ||
+    normalizedDeviceArch.startsWith('i386') ||
+    normalizedDeviceArch.startsWith('i686')
+  ) {
     return REGISTERS_X86;
   }
 
-  if (deviceArch.startsWith('arm64')) {
+  if (
+    normalizedDeviceArch.startsWith('arm64') ||
+    normalizedDeviceArch.startsWith('aarch64')
+  ) {
     return REGISTERS_ARM64;
   }
 
-  if (deviceArch.startsWith('arm')) {
+  if (normalizedDeviceArch.startsWith('arm')) {
     return REGISTERS_ARM;
   }
 
-  if (deviceArch.startsWith('mips')) {
+  if (normalizedDeviceArch.startsWith('mips')) {
     return REGISTERS_MIPS;
   }
 
-  if (deviceArch.startsWith('ppc')) {
+  if (normalizedDeviceArch.startsWith('ppc')) {
     return REGISTERS_PPC;
   }
 
   return;
 }
 
+function normalizeRegisterName(register: string) {
+  return register.startsWith('$') ? register.slice(1) : register;
+}
+
 function getRegisterIndex(register: string, registerMap: Record<string, number>) {
-  return registerMap[register[0] === '$' ? register.slice(1) : register] ?? -1;
+  return registerMap[normalizeRegisterName(register)];
+}
+
+function compareRegisterNames(a: string, b: string) {
+  return normalizeRegisterName(a).localeCompare(normalizeRegisterName(b), undefined, {
+    numeric: true,
+  });
 }
 
 export function getSortedRegisters(
   registers: NonNullable<StacktraceType['registers']>,
-  deviceArch?: string
+  deviceArch: string | undefined
 ) {
   const entries = Object.entries(registers);
   const registerMap = deviceArch ? getRegisterMap(deviceArch) : undefined;
@@ -54,20 +76,20 @@ export function getSortedRegisters(
       const indexB = getRegisterIndex(b[0], registerMap);
 
       // If both registers are in the map, sort by index
-      if (indexA !== -1 && indexB !== -1) {
-        return indexA - indexB;
+      if (indexA !== undefined && indexB !== undefined) {
+        return indexA - indexB || compareRegisterNames(a[0], b[0]);
       }
 
       // Mapped registers come before unmapped ones
-      if (indexA !== -1) {
+      if (indexA !== undefined) {
         return -1;
       }
-      if (indexB !== -1) {
+      if (indexB !== undefined) {
         return 1;
       }
     }
 
     // Fallback: natural sort (handles numeric suffixes correctly)
-    return a[0].localeCompare(b[0], undefined, {numeric: true});
+    return compareRegisterNames(a[0], b[0]);
   });
 }

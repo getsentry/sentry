@@ -8,7 +8,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {mockGetBoundingClientRect} from 'sentry/utils/fixtures/virtualization';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
@@ -26,7 +26,9 @@ function Component({traceSlug}: {traceSlug: string}) {
   );
 }
 
-beforeEach(mockGetBoundingClientRect);
+beforeEach(() => {
+  mockElementSize();
+});
 
 describe('TraceViewLogsSection', () => {
   beforeEach(() => {

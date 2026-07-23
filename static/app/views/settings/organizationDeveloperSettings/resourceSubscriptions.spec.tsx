@@ -32,7 +32,6 @@ describe('Resource Subscriptions', () => {
         {organization: org}
       );
 
-      expect(screen.getAllByRole('checkbox')).toHaveLength(5);
       expect(screen.getByRole('checkbox', {name: 'issue'})).toBeDisabled();
       expect(screen.getByRole('checkbox', {name: 'error'})).toBeDisabled();
       expect(screen.getByRole('checkbox', {name: 'comment'})).toBeDisabled();
@@ -52,9 +51,13 @@ describe('Resource Subscriptions', () => {
         </Form>
       );
 
-      expect(screen.getAllByRole('checkbox')).toHaveLength(4);
       expect(
         screen.queryByRole('checkbox', {name: 'preprod_artifact'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('checkbox', {
+          name: 'preprod_artifact.size_analysis_completed',
+        })
       ).not.toBeInTheDocument();
     });
 
@@ -72,10 +75,6 @@ describe('Resource Subscriptions', () => {
   });
 
   describe('granular event subscriptions', () => {
-    const organization = OrganizationFixture({
-      features: ['sentry-apps-granular-events'],
-    });
-
     function renderSubscriptions(
       events: WebhookSubscription[],
       permissions: Permissions = basePermissions
@@ -84,8 +83,7 @@ describe('Resource Subscriptions', () => {
       render(
         <Form>
           <Subscriptions events={events} permissions={permissions} onChange={onChange} />
-        </Form>,
-        {organization}
+        </Form>
       );
       return onChange;
     }

@@ -610,6 +610,10 @@ export enum GroupActivityType {
   SEER_ITERATION_STARTED = 'seer_iteration_started',
   SEER_ITERATION_COMPLETED = 'seer_iteration_completed',
   PULL_REQUEST_CLOSED = 'pull_request_closed',
+  PULL_REQUEST_REOPENED = 'pull_request_reopened',
+  PULL_REQUEST_MERGED = 'pull_request_merged',
+  PULL_REQUEST_UNLINKED = 'pull_request_unlinked',
+  TRIGGER_AUTOFIX = 'trigger_autofix',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -622,6 +626,7 @@ export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SEER_PR_CREATED,
   GroupActivityType.SEER_ITERATION_STARTED,
   GroupActivityType.SEER_ITERATION_COMPLETED,
+  GroupActivityType.TRIGGER_AUTOFIX,
 ]);
 
 interface GroupActivityBase {
@@ -796,6 +801,32 @@ export interface GroupActivityPullRequestClosed extends GroupActivityBase {
     pullRequest?: PullRequest | null;
   };
   type: GroupActivityType.PULL_REQUEST_CLOSED;
+}
+
+interface GroupActivityPullRequestReopened extends GroupActivityBase {
+  data: {
+    pullRequest?: PullRequest | null;
+  };
+  type: GroupActivityType.PULL_REQUEST_REOPENED;
+}
+
+interface GroupActivityPullRequestMerged extends GroupActivityBase {
+  data: {
+    pullRequest?: PullRequest | null;
+  };
+  type: GroupActivityType.PULL_REQUEST_MERGED;
+}
+
+interface GroupActivityPullRequestUnlinked extends GroupActivityBase {
+  data: {
+    pullRequest?: PullRequest | null;
+  };
+  type: GroupActivityType.PULL_REQUEST_UNLINKED;
+}
+
+interface GroupActivityTriggerAutofix extends GroupActivityBase {
+  data: Record<string, unknown>;
+  type: GroupActivityType.TRIGGER_AUTOFIX;
 }
 
 export interface GroupActivitySetIgnored extends GroupActivityBase {
@@ -1039,7 +1070,11 @@ export type GroupActivity =
   | GroupActivitySeerPrCreated
   | GroupActivitySeerIterationStarted
   | GroupActivitySeerIterationCompleted
-  | GroupActivityPullRequestClosed;
+  | GroupActivityPullRequestClosed
+  | GroupActivityPullRequestReopened
+  | GroupActivityPullRequestMerged
+  | GroupActivityPullRequestUnlinked
+  | GroupActivityTriggerAutofix;
 
 export type Activity = GroupActivity;
 
@@ -1074,7 +1109,6 @@ export interface IgnoredStatusDetails {
 }
 export interface ResolvedStatusDetails {
   actor?: AvatarUser;
-  autoResolved?: boolean;
   inCommit?: {
     commit?: string;
     dateCreated?: string;
@@ -1148,6 +1182,24 @@ export const enum FixabilityScoreThresholds {
   SUPER_LOW = 'super_low',
 }
 
+export enum ProgressState {
+  IDENTIFIED = 'identified',
+  ASSIGNED = 'assigned',
+  DIAGNOSED = 'diagnosed',
+  FIX_PROPOSED = 'fix_proposed',
+  FIX_APPLIED = 'fix_applied',
+}
+
+interface GroupDerivedData {
+  hasOpenFixPr: boolean;
+  hasRootCause: boolean;
+  isAssigned: boolean;
+  lastProgressedAt: string | null;
+  progress: ProgressState;
+  status: 'open' | 'closed';
+  viewCount: number;
+}
+
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
@@ -1182,6 +1234,7 @@ export interface BaseGroup {
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
+  derivedData?: GroupDerivedData;
   inbox?: InboxDetails | null | false;
   integrationIssues?: ExternalIssue[];
   latestEvent?: Event;

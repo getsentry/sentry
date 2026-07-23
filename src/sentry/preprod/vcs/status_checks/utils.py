@@ -6,6 +6,7 @@ from django.db import router, transaction
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.source_code_management.status_check import StatusCheckClient
@@ -47,45 +48,39 @@ def get_status_check_client(
         )
         return None, None
 
-    if not repository.integration_id:
-        logger.info(
-            "preprod.status_checks.create.no_integration_id",
-            extra={
-                "repository": repository.id,
-                "project_id": project.id,
-            },
-        )
+    client = _status_check_client_from_repository(project, repository)
+    if client is None:
         return None, None
+    return client, repository
 
-    integration: RpcIntegration | None = integration_service.get_integration(
-        integration_id=repository.integration_id, status=ObjectStatus.ACTIVE
+
+def get_status_check_client_for_repo(
+    project: Project, repo_name: str, provider: str
+) -> tuple[StatusCheckClient, Repository] | tuple[None, None]:
+    """Resolve a status check client from a repo name and provider.
+
+    Returns None on expected failures (missing or ambiguous active repository,
+    inactive integration).
+    """
+    repository, resolution = Repository.objects.resolve_active(
+        organization_id=project.organization_id,
+        name=repo_name,
+        normalized_provider=provider,
     )
-    if not integration:
+    if not repository:
         logger.info(
-            "preprod.status_checks.create.no_integration",
+            "preprod.status_checks.resolve.no_repository",
             extra={
-                "repository": repository.id,
-                "integration_id": repository.integration_id,
+                "provider": provider,
+                "resolution": resolution,
                 "project_id": project.id,
             },
         )
         return None, None
 
-    installation: IntegrationInstallation = integration.get_installation(
-        organization_id=project.organization_id
-    )
-    client = installation.get_client()
-
-    if not isinstance(client, StatusCheckClient):
-        logger.info(
-            "preprod.status_checks.create.not_status_check_client",
-            extra={
-                "repository": repository.id,
-                "project_id": project.id,
-            },
-        )
+    client = _status_check_client_from_repository(project, repository)
+    if client is None:
         return None, None
-
     return client, repository
 
 
@@ -150,3 +145,64 @@ def _get_error_type(error: Exception | None) -> StatusCheckErrorType:
     if isinstance(error, ApiError):
         return StatusCheckErrorType.API_ERROR
     return StatusCheckErrorType.UNKNOWN
+
+
+def _status_check_client_from_repository(
+    project: Project, repository: Repository
+) -> StatusCheckClient | None:
+    """Resolve a status check client from an already-looked-up repository.
+
+    Returns None for expected failure cases (missing/inactive integration, or an
+    integration whose client can't post status checks).
+    """
+    if not repository.integration_id:
+        logger.info(
+            "preprod.status_checks.create.no_integration_id",
+            extra={
+                "repository": repository.id,
+                "project_id": project.id,
+            },
+        )
+        return None
+
+    integration: RpcIntegration | None = integration_service.get_integration(
+        integration_id=repository.integration_id, status=ObjectStatus.ACTIVE
+    )
+    if not integration:
+        logger.info(
+            "preprod.status_checks.create.no_integration",
+            extra={
+                "repository": repository.id,
+                "integration_id": repository.integration_id,
+                "project_id": project.id,
+            },
+        )
+        return None
+
+    try:
+        installation: IntegrationInstallation = integration.get_installation(
+            organization_id=project.organization_id
+        )
+        client = installation.get_client()
+    except OrganizationIntegrationNotFound:
+        logger.info(
+            "preprod.status_checks.create.no_organization_integration",
+            extra={
+                "repository": repository.id,
+                "integration_id": repository.integration_id,
+                "project_id": project.id,
+            },
+        )
+        return None
+
+    if not isinstance(client, StatusCheckClient):
+        logger.info(
+            "preprod.status_checks.create.not_status_check_client",
+            extra={
+                "repository": repository.id,
+                "project_id": project.id,
+            },
+        )
+        return None
+
+    return client
