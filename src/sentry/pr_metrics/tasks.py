@@ -188,23 +188,14 @@ def reap_stuck_judge_verdicts_task() -> None:
 
 # Batch size for the per-candidate settle loop in detect_stale_pull_requests_task.
 _STALE_BATCH_SIZE = 100
-# Cap on how many candidates find_stale_pull_requests returns per run. Mirrors
-# reap_stuck_judge_verdicts's _REAP_BATCH_SIZE: no upper bound on staleness age,
-# so a first run (or one that fell behind) could otherwise match an arbitrarily
-# large historical backlog of ancient open PRs in one go. A capped, oldest-first
-# scan spreads a large backlog across runs instead of risking a timeout and a
-# flood of abandoned-verdict emissions in a single invocation — each settled PR
-# gets a non-NULL verdict, so it drops out of the candidate set and later runs
-# make steady progress through the rest.
+# Mirrors reap_stuck_judge_verdicts's _REAP_BATCH_SIZE: caps a first/backlogged
+# run so it can't pull an unbounded candidate set into memory at once.
 _STALE_SCAN_LIMIT = 500
-# How old PRs need no activity to be considered stale
 STALENESS_WINDOW = timedelta(weeks=4)
 
-# Event types that reset the stale clock in find_stale_pull_requests: any of
-# these within the detection window keeps a PR out of the candidate set.
-# Chosen for low bot-risk: all four require deliberate human action on the PR.
-# Narrower reviewer-only subset: REVIEWER_ENGAGEMENT_ACTIVITY_TYPES
-# (sentry.pr_metrics.activity_doc), used for the NO_REVIEWER_ENGAGEMENT label.
+# Resets the stale clock in find_stale_pull_requests. Narrower reviewer-only
+# subset: REVIEWER_ENGAGEMENT_ACTIVITY_TYPES (activity_doc), used for the
+# NO_REVIEWER_ENGAGEMENT label.
 ENGAGING_ACTIVITY_TYPES = frozenset(
     {
         PullRequestActivityType.SYNCHRONIZED,
@@ -216,54 +207,19 @@ ENGAGING_ACTIVITY_TYPES = frozenset(
 
 
 def find_stale_pull_requests(*, cutoff: datetime) -> list[int]:
-    """IDs of tracked open PRs with no engaging activity since ``cutoff``.
+    """IDs of tracked, open, unverdicted PRs opened before ``cutoff`` with no
+    engaging activity since then, from either activity store.
 
-    A PR is a staleness candidate when:
-    - It has ≥1 valid ``PullRequestAttribution`` row (tracked).
-    - Its ``PullRequestMetrics.verdict`` is ``NULL`` — not yet judged or closed.
-      ``JUDGE_IN_PROGRESS`` is non-NULL so those PRs are excluded naturally.
-    - It was opened before the cutoff time.
-    - It has no engaging activity (see ``ENGAGING_ACTIVITY_TYPES``) with
-      ``date_added >= cutoff``, read off legacy ``PullRequestActivity`` rows.
-    - Its ``PullRequestActivityLog`` document (if any) hasn't been written to
-      since ``cutoff`` either — see below.
+    Legacy ``PullRequestActivity`` rows are checked directly; a document-track
+    PR (see ``webhooks._use_activity_document``) never writes those rows, so
+    it's checked via ``PullRequestActivityLog.date_updated`` instead — coarser,
+    since any write (not just an engaging one) resets it, but a false negative
+    here only delays detection, whereas a false positive would wrongly abandon
+    an engaged PR.
 
-    Both activity checks are correlated ``Exists`` subqueries so the whole scan
-    stays in the DB — no Python-side iteration over candidates, and no per-PR
-    document fetch here. The legacy check only sees ``PullRequestActivity``
-    rows: a PR routed onto the reduced ``PullRequestActivityLog`` document (see
-    ``sentry.pr_metrics.webhooks._use_activity_document``) never writes those
-    rows, so on its own that check would always clear regardless of real
-    engagement — document-routed PRs are the *default* going forward, so this
-    can't be left as an approximation resolved later per batch (as it
-    previously was) without most stale scans effectively finding nothing else.
-    The second check closes that gap directly in SQL: a document-track PR only
-    counts as a candidate once its document has gone quiet for the same window
-    (``date_updated < cutoff``), and a PR with no document at all (never
-    routed onto it, or routed but not yet written) passes trivially since
-    there's no row to find.
-
-    This document check is coarser than the legacy one: ``date_updated`` is
-    bumped by *any* write (including a non-engaging one, e.g. a comment), not
-    only ``ENGAGING_ACTIVITY_TYPES`` writes — so a document-track PR with only
-    non-engaging activity is excluded here even though a legacy-track PR in
-    the same situation is correctly still a candidate (see
-    ``detect_stale_pull_requests_task``'s docstring for how the reviewer-
-    engagement diagnosis label separately corrects for this). Accepted here:
-    a false negative (skipping a PR that's actually stale) just delays
-    detection to a later run, whereas the false positive this check exists to
-    prevent (claiming a genuinely-engaged PR as abandoned) is irreversible.
-
-    Capped at ``_STALE_SCAN_LIMIT``, oldest-opened first: there's no upper
-    bound on staleness age, so an ancient backlog (first run, or one that fell
-    behind) could otherwise match an arbitrarily large candidate set in one
-    go. Each settled PR gets a non-NULL verdict and drops out of the
-    candidate set, so a backlog past the cap still gets worked down over
-    subsequent runs rather than all being pulled into memory — and settled —
-    at once. Mirrors ``reap_stuck_judge_verdicts``'s ``_REAP_BATCH_SIZE``.
-
-    Returns a list of ``PullRequest`` primary keys, not ORM instances, so the
-    caller can process them in batches without holding a large queryset open.
+    Capped at ``_STALE_SCAN_LIMIT``, oldest-opened first, so an unbounded
+    backlog can't be pulled into memory in one run; settled PRs drop out of
+    future scans as their verdict is written.
     """
     recent_engaging_activity = PullRequestActivity.objects.filter(
         pull_request=OuterRef("pk"),
@@ -297,33 +253,17 @@ def find_stale_pull_requests(*, cutoff: datetime) -> list[int]:
     silo_mode=SiloMode.CELL,
 )
 def detect_stale_pull_requests_task() -> None:
-    """Find and settle tracked PRs with no engaging activity since ``cutoff``.
+    """Claim each stale-candidate PR as ``abandoned`` and emit it directly —
+    the judge path requires ``closed_at`` and doesn't support open PRs.
 
-    Each candidate is claimed as ``abandoned`` and emitted directly. Diagnosis
-    labeling checks reviewer engagement across the PR's *whole* history, not
-    just the detection window: a document-track PR checks
-    ``has_reviewer_engagement`` on its document; a legacy-track PR (no
-    document) checks its full ``PullRequestActivity`` history for
-    ``REVIEWER_ENGAGEMENT_ACTIVITY_TYPES``, bulk-fetched per batch. The judge
-    path does not support open PRs (requires ``closed_at``), so all stale PRs
-    are settled here regardless.
+    ``NO_REVIEWER_ENGAGEMENT`` diagnosis checks each PR's full history, not
+    just the detection window: ``has_reviewer_engagement`` on the document, or
+    ``REVIEWER_ENGAGEMENT_ACTIVITY_TYPES`` against legacy rows otherwise —
+    fetched per batch since pulling every document at once isn't bounded.
 
-    ``find_stale_pull_requests`` already excludes a document-track PR whose
-    ``PullRequestActivityLog`` has been written to since ``cutoff`` — see its
-    docstring for why that has to happen in SQL rather than here. What's left
-    to do here is read each candidate's document *contents* (not just its
-    timestamp) for the reviewer-engagement diagnosis label below — bulked per
-    batch, since pulling every candidate's document into Python in one shot
-    would be less bounded than the per-batch reads, which is why the batch
-    size is kept modest rather than matching ``find_stale_pull_requests``'s
-    full scan.
-
-    Each candidate is guarded by a compare-and-set claim before any action, so
-    an overlapping run or redelivery won't double-process.
-
-    Feature-gated per organization by ``organizations:pr-metrics-emit`` and
-    ``organizations:pr-metrics-activity`` — both must be on. Without activity
-    tracking we can't distinguish an engaged PR from an untouched one.
+    Feature-gated per org by ``pr-metrics-emit`` and ``pr-metrics-activity``
+    (both required — without activity tracking we can't tell an engaged PR
+    from an untouched one).
     """
     # Imported here to avoid a circular import: webhooks imports this module.
     from sentry.pr_metrics.webhooks import _claim_terminal_event
@@ -340,7 +280,6 @@ def detect_stale_pull_requests_task() -> None:
         org_ids = {pr.organization_id for pr in pull_requests}
         orgs_by_id = {o.id: o for o in Organization.objects.filter(id__in=org_ids)}
 
-        # First pass: collect PRs that pass the feature-flag gate
         candidate_prs = []
         for pr in pull_requests:
             org = orgs_by_id.get(pr.organization_id)
@@ -354,23 +293,19 @@ def detect_stale_pull_requests_task() -> None:
             if not features.has("organizations:pr-metrics-emit", org):
                 continue
 
-            # Without activity tracking we can't distinguish an engaged PR from
-            # an untouched one, so we can't safely emit an abandoned verdict.
             if not features.has("organizations:pr-metrics-activity", org):
                 continue
 
             candidate_prs.append(pr)
 
-        # Bulk-fetch activity documents for all candidates
         doc_by_pr_id = dict(
             PullRequestActivityLog.objects.filter(
                 pull_request_id__in=[pr.id for pr in candidate_prs]
             ).values_list("pull_request_id", "data")
         )
 
-        # Bulk-fetch reviewer-engagement PR ids for legacy-track candidates (no
-        # document) in one query, rather than one Exists() per PR — mirrors the
-        # doc fetch above for the legacy track.
+        # One query for all legacy-track candidates rather than one Exists()
+        # per PR, mirroring the doc fetch above.
         legacy_candidate_ids = [pr.id for pr in candidate_prs if pr.id not in doc_by_pr_id]
         engaged_legacy_pr_ids = set(
             PullRequestActivity.objects.filter(
@@ -381,39 +316,27 @@ def detect_stale_pull_requests_task() -> None:
             .distinct()
         )
 
-        # Second pass: process candidates with document data
         for pr in candidate_prs:
-            # Ensure the metrics row exists before any compare-and-set claim.
-            # A stale PR may never have reached a close/merge webhook so the
-            # row may not exist yet.
+            # A stale PR may never have reached a close/merge webhook, so the
+            # metrics row may not exist yet.
             PullRequestMetrics.objects.get_or_create(pull_request=pr)
 
             if not _claim_terminal_event(pr, PullRequestVerdict.ABANDONED):
                 metrics.incr("pr_metrics.stale.skipped", tags={"reason": "already_claimed"})
                 continue
 
-            # NO_REVIEWER_ENGAGEMENT means no reviewer ever engaged with this PR,
-            # not just none in the detection window — so this checks each
-            # track's full activity history, not only what's within `cutoff`.
             diagnosis_labels = []
             doc = doc_by_pr_id.get(pr.id)
             if doc is not None:
                 if not has_reviewer_engagement(doc):
                     diagnosis_labels.append(NO_REVIEWER_ENGAGEMENT)
-            else:
-                # Legacy-track PR: no document exists, so check the full
-                # PullRequestActivity history instead of assuming no engagement.
-                if pr.id not in engaged_legacy_pr_ids:
-                    diagnosis_labels.append(NO_REVIEWER_ENGAGEMENT)
+            elif pr.id not in engaged_legacy_pr_ids:
+                diagnosis_labels.append(NO_REVIEWER_ENGAGEMENT)
 
-            # The claim above already stands regardless of what happens here — same
-            # trade-off as webhooks._claim_and_emit: emission is best-effort,
-            # async-batched telemetry, so a failure here forgoes this PR's row
-            # rather than being retried (retrying would mean re-claiming, which the
-            # NULL-verdict CAS above no longer allows). Guarded so one bad
-            # candidate (a DB blip, a downstream analytics error) can't abort the
-            # rest of the batch — and the whole run, since every remaining batch in
-            # this task would go unprocessed with it.
+            # The claim above stands regardless of what happens here, so a
+            # failed emission isn't retried — same trade-off as
+            # webhooks._claim_and_emit. Guarded so one bad candidate can't
+            # abort the rest of the batch.
             try:
                 if emit_pr_metrics_row(pull_request=pr, diagnosis_labels=diagnosis_labels):
                     emitted += 1

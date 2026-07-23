@@ -215,12 +215,7 @@ def select_fallback_verdict(pull_request: PullRequest) -> PullRequestVerdict:
 # the PR's own check-suite activity rather than a judge's opinion.
 CI_FAILING_AT_CLOSE = "ci_failing_at_close"
 
-# Diagnosis label for the stale-detection path, applied when a PR shows no
-# reviewer engagement across its whole lifetime, not just the detection
-# window. A document-track PR is checked via has_reviewer_engagement(doc); a
-# legacy-track PR (no PullRequestActivityLog document) is checked directly
-# against its full PullRequestActivity history for
-# REVIEWER_ENGAGEMENT_ACTIVITY_TYPES. See detect_stale_pull_requests_task.
+# Diagnosis label for the stale-detection path. See detect_stale_pull_requests_task.
 NO_REVIEWER_ENGAGEMENT = "no_reviewer_engagement"
 
 # Conclusions that unambiguously mean the check errored out, as opposed to
@@ -490,9 +485,8 @@ def build_pr_metrics_row(
     emitted row read the same query. A missing metrics row (a PR Sentry never saw
     active) coalesces every counter to its default.
 
-    For ``abandoned``, ``closed_at`` is set to the current UTC time (the
-    detection timestamp), since the PR is still open and the field is null on
-    the model. For close/merge, ``pull_request.closed_at`` is used.
+    ``abandoned`` PRs have null ``head_commit_sha``/``closed_at`` on the model
+    (still open); ``closed_at`` falls back to the detection timestamp.
 
     ``conversation_analysis`` is set on the judge path only: the conversation
     judge's result (semantic outputs become columns, its ``metadata`` is
@@ -510,7 +504,6 @@ def build_pr_metrics_row(
             )
 
     head_commit_sha = pull_request.head_commit_sha or "unknown"
-    # For abandoned PRs there's no `closed_at` value populated; fall back to now().
     effective_closed_at = pull_request.closed_at or dj_timezone.now()
 
     # A bare instance carries the model's zero/false field defaults, so a PR with

@@ -59,9 +59,8 @@ class PullRequestVerdict(models.TextChoices):
     MERGED_UNCHANGED = "merged_unchanged"
     MERGED_WITH_ITERATION = "merged_with_iteration"
     CLOSED_UNMERGED = "closed_unmerged"
-    # PR was still open but had no qualifying engagement (review, new commit,
-    # ready-for-review, or review request) for 4 weeks. Emitted by the stale-detection
-    # cron task, not the webhook.
+    # Open PR with no engagement for 4 weeks; emitted by the stale-detection
+    # cron, not the webhook.
     ABANDONED = "abandoned"
     # Transient, internal: a terminal event whose outcome a judge must decide has
     # been claimed and forwarded to Seer, but the judged verdict hasn't returned.

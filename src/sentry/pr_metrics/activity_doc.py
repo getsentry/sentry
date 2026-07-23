@@ -715,14 +715,11 @@ def timeline_events_from_doc(doc: ActivityDoc) -> list[dict[str, Any]]:
     return events
 
 
-# Event types that count as reviewer engagement for the NO_REVIEWER_ENGAGEMENT
-# diagnosis label — a review submission or a review request, both requiring a
-# human reviewer to act. Narrower than tasks.ENGAGING_ACTIVITY_TYPES (which
-# also resets the staleness clock on SYNCHRONIZED/READY_FOR_REVIEW, PR-author
-# actions with no reviewer involved). Shared by has_reviewer_engagement (reads
-# the document) and detect_stale_pull_requests_task's legacy-track check
-# (reads PullRequestActivity rows directly), so both tracks apply the label
-# under the same definition of "reviewer engagement".
+# Reviewer engagement for the NO_REVIEWER_ENGAGEMENT diagnosis label. Narrower
+# than tasks.ENGAGING_ACTIVITY_TYPES, which also counts PR-author actions with
+# no reviewer involved. Shared by has_reviewer_engagement (document) and
+# detect_stale_pull_requests_task's legacy-track check (PullRequestActivity
+# rows), so both tracks use the same definition.
 REVIEWER_ENGAGEMENT_ACTIVITY_TYPES = frozenset(
     {
         PullRequestActivityType.REVIEW_SUBMITTED,
@@ -734,16 +731,10 @@ REVIEWER_ENGAGEMENT_ACTIVITY_TYPES = frozenset(
 def has_reviewer_engagement(doc: Mapping[str, Any]) -> bool:
     """Whether ``doc`` records any reviewer engagement throughout the PR's lifetime.
 
-    Reviewer engagement includes review submissions and review requests (see
-    ``REVIEWER_ENGAGEMENT_ACTIVITY_TYPES``). Used to determine if
-    NO_REVIEWER_ENGAGEMENT label should be applied.
-
-    Conservative on the events cap: once ``events_dropped`` is nonzero, the
-    ``events`` list is no longer a complete lifecycle record, so we assume
-    there was engagement rather than risk incorrectly labeling a PR.
+    A capped ``events_dropped`` doc reads as engaged rather than risk a false
+    NO_REVIEWER_ENGAGEMENT label off an incomplete record.
     """
     if doc.get("events_dropped"):
-        # If events were dropped, we can't be sure there was no engagement
         return True
 
     for entry in doc.get("events") or ():

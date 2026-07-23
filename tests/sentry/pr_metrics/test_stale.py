@@ -86,9 +86,7 @@ class FindStalePullRequestsTest(TestCase):
             webhook_id=f"wh-{pr.id}-{event_type}-{weeks_ago}",
         )
         log = PullRequestActivityLog.objects.create(pull_request=pr, data=doc)
-        # date_updated is auto_now=True, so .save() always stamps "now" —
-        # bypass via .update() to backdate it, matching what a real write
-        # weeks_ago ago would have left behind.
+        # auto_now=True always stamps "now" on .save(); .update() backdates it.
         PullRequestActivityLog.objects.filter(id=log.id).update(date_updated=_ago(weeks_ago))
 
     # --- inclusion ---
@@ -165,42 +163,29 @@ class FindStalePullRequestsTest(TestCase):
         assert pr.id not in find_stale_pull_requests(cutoff=_ago(3))
 
     def test_excludes_document_track_pr_with_recent_engagement(self) -> None:
-        # A PR routed onto the PullRequestActivityLog document (see
-        # webhooks._use_activity_document) never writes legacy
-        # PullRequestActivity rows, so the ~Exists check above can't see its
-        # engagement on its own. The document date_updated check closes that
-        # gap directly in SQL: any write within the window (engaging or not,
-        # since date_updated doesn't distinguish event types) excludes the PR.
+        # Document-track PRs never write legacy PullRequestActivity rows, so
+        # this must be caught via PullRequestActivityLog.date_updated instead.
         pr = self._make_pr()
         self._track(pr)
         self._add_activity_log(pr, PullRequestActivityType.REVIEW_SUBMITTED, weeks_ago=1.0)
         assert pr.id not in find_stale_pull_requests(cutoff=_ago(3))
 
     def test_excludes_document_track_pr_with_only_non_engaging_activity(self) -> None:
-        # Known coarseness: the document check compares date_updated (bumped by
-        # any write) against cutoff, so it can't distinguish an engaging event
-        # from a non-engaging one (e.g. a comment) the way the legacy
-        # ~Exists check above can. A document-track PR with only non-engaging
-        # activity is thus also excluded here, unlike a legacy-track PR in the
-        # same situation (see test_includes_pr_with_only_non_engaging_recent_activity
-        # above, which correctly stays a candidate). Accepted: this just delays
-        # detection to a later run once the document goes quiet, rather than
-        # risking a false abandoned verdict now.
+        # Unlike the legacy track, date_updated can't distinguish engaging
+        # from non-engaging writes, so this is excluded too (see
+        # test_includes_pr_with_only_non_engaging_recent_activity above).
         pr = self._make_pr()
         self._track(pr)
         self._add_activity_log(pr, PullRequestActivityType.COMMENT_CREATED, weeks_ago=1.0)
         assert pr.id not in find_stale_pull_requests(cutoff=_ago(3))
 
     def test_includes_document_track_pr_whose_document_is_stale(self) -> None:
-        # A document-track PR is a candidate once its document has gone quiet
-        # for the whole staleness window, same as the legacy track.
         pr = self._make_pr()
         self._track(pr)
         self._add_activity_log(pr, PullRequestActivityType.REVIEW_SUBMITTED, weeks_ago=5.0)
         assert pr.id in find_stale_pull_requests(cutoff=_ago(3))
 
     def test_returns_distinct_ids_with_multiple_attributions(self) -> None:
-        # Multiple valid attributions on one PR must not produce duplicate ids.
         pr = self._make_pr()
         self._track(pr)
         PullRequestAttribution.objects.create(
@@ -213,11 +198,6 @@ class FindStalePullRequestsTest(TestCase):
         assert ids.count(pr.id) == 1
 
     def test_caps_result_at_scan_limit_oldest_first(self) -> None:
-        # Guards against an unbounded first-run (or backlog) scan pulling an
-        # arbitrarily large candidate set into memory in one call: the result
-        # is capped at _STALE_SCAN_LIMIT, oldest-opened first, so a capped-off
-        # backlog still gets worked down over subsequent runs rather than all
-        # being read (and settled) at once.
         prs = [self._make_pr(opened_weeks_ago=10.0 + i) for i in range(_STALE_SCAN_LIMIT + 5)]
         for pr in prs:
             self._track(pr)
@@ -225,7 +205,6 @@ class FindStalePullRequestsTest(TestCase):
         ids = find_stale_pull_requests(cutoff=_ago(3))
 
         assert len(ids) == _STALE_SCAN_LIMIT
-        # Oldest-opened (highest weeks_ago) PRs are returned first.
         expected_oldest_first = [pr.id for pr in sorted(prs, key=lambda pr: pr.date_added)]
         assert ids == expected_oldest_first[:_STALE_SCAN_LIMIT]
 
@@ -351,16 +330,10 @@ class DetectStalePullRequestsTaskTest(TestCase):
             webhook_id=f"wh-{pr.id}-{event_type}-{weeks_ago}",
         )
         log = PullRequestActivityLog.objects.create(pull_request=pr, data=doc)
-        # date_updated is auto_now=True, so .save() always stamps "now" —
-        # bypass via .update() to backdate it, matching what a real write
-        # weeks_ago ago would have left behind.
+        # auto_now=True always stamps "now" on .save(); .update() backdates it.
         PullRequestActivityLog.objects.filter(id=log.id).update(date_updated=_ago(weeks_ago))
 
     def test_skips_document_track_pr_with_recent_engagement(self) -> None:
-        # find_stale_pull_requests excludes this PR directly (see its
-        # test_excludes_document_track_pr_with_recent_engagement) — asserted
-        # again here end-to-end through the task, since a query never called
-        # would trivially "exclude" everything.
         pr = self._make_tracked_stale_pr()
         self._add_activity_log(pr, PullRequestActivityType.REVIEW_SUBMITTED, weeks_ago=1.0)
         with (
@@ -375,9 +348,6 @@ class DetectStalePullRequestsTaskTest(TestCase):
         ).exists()
 
     def test_skips_document_track_pr_with_only_non_engaging_activity(self) -> None:
-        # Known coarseness in find_stale_pull_requests's document check (see its
-        # test_excludes_document_track_pr_with_only_non_engaging_activity):
-        # asserted again here end-to-end through the task.
         pr = self._make_tracked_stale_pr()
         self._add_activity_log(pr, PullRequestActivityType.COMMENT_CREATED, weeks_ago=1.0)
         with (
@@ -418,10 +388,7 @@ class DetectStalePullRequestsTaskTest(TestCase):
 
     def test_emits_abandoned_when_pr_has_historical_activity(self) -> None:
         pr = self._make_tracked_stale_pr()
-        # A commit predating the staleness window: the PR is genuinely stale
-        # (no recent activity) but has commits in its history. The stale path
-        # always emits ABANDONED directly — the judge path requires closed_at
-        # and doesn't support open PRs.
+        # Activity predating the staleness window: stale, but not untouched.
         old_activity = PullRequestActivity.objects.create(
             pull_request=pr,
             event_type=PullRequestActivityType.SYNCHRONIZED,
@@ -466,9 +433,6 @@ class DetectStalePullRequestsTaskTest(TestCase):
         mock_emit.assert_not_called()
 
     def test_skips_when_activity_tracking_disabled(self) -> None:
-        # Without pr-metrics-activity we can't distinguish an engaged PR from an
-        # untouched one, so the task skips the org entirely rather than risking a
-        # false abandoned verdict.
         self._make_tracked_stale_pr()
         with patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit:
             detect_stale_pull_requests_task()
@@ -476,8 +440,6 @@ class DetectStalePullRequestsTaskTest(TestCase):
         mock_emit.assert_not_called()
 
     def test_continues_when_org_not_found(self) -> None:
-        # A PR whose organization row has been deleted should be skipped, but
-        # subsequent PRs in the same batch must still be processed.
         ghost_org = self.create_organization()
         ghost_repo = self.create_repo(
             self.project, name="getsentry/ghost", provider="integrations:github"
@@ -496,7 +458,6 @@ class DetectStalePullRequestsTaskTest(TestCase):
             is_valid=True,
         )
         good_pr = self._make_tracked_stale_pr()
-        # Delete the ghost org so the lookup returns None for ghost_pr.
         ghost_org.delete()
 
         with (
@@ -506,17 +467,11 @@ class DetectStalePullRequestsTaskTest(TestCase):
             mock_emit.return_value = True
             detect_stale_pull_requests_task()
 
-        # Only the good PR was emitted; the ghost was skipped.
         assert mock_emit.call_count == 1
         emitted_pr_id = mock_emit.call_args.kwargs["pull_request"].id
         assert emitted_pr_id == good_pr.id
 
     def test_continues_batch_when_emit_raises(self) -> None:
-        # emit_pr_metrics_row can raise (a DB blip, analytics.record's network
-        # call, cleanup_pr_activity_task.delay's broker call) — a PR is claimed
-        # ABANDONED before emission runs, so a failure here must not propagate
-        # and abort the rest of the batch (or the whole task, since every
-        # remaining batch would go unprocessed with it).
         failing_pr = self._make_tracked_stale_pr()
         good_pr = self._make_tracked_stale_pr()
 
@@ -533,8 +488,8 @@ class DetectStalePullRequestsTaskTest(TestCase):
             mock_emit.side_effect = _emit
             detect_stale_pull_requests_task()
 
-        # Both PRs were claimed before emission ran, so both are ABANDONED
-        # regardless of whether their emission succeeded.
+        # Both PRs were claimed before emission ran, so the failure doesn't
+        # roll back failing_pr's verdict or stop good_pr from being processed.
         assert (
             PullRequestMetrics.objects.get(pull_request=failing_pr).verdict
             == PullRequestVerdict.ABANDONED
@@ -543,6 +498,4 @@ class DetectStalePullRequestsTaskTest(TestCase):
             PullRequestMetrics.objects.get(pull_request=good_pr).verdict
             == PullRequestVerdict.ABANDONED
         )
-        # The task didn't crash: emit was attempted for both PRs, not just the
-        # one before the failure.
         assert mock_emit.call_count == 2
