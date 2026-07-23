@@ -7,6 +7,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -15,6 +16,7 @@ import {
   isVisualizeEquation,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
+import {getMetricAlertsUpsellTooltip} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 export function ChartContextMenu({
@@ -42,6 +44,8 @@ export function ChartContextMenu({
         ? projects[0]
         : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
+    const alertsUpsellTooltip = getMetricAlertsUpsellTooltip(organization);
+
     if (visualizeYAxes.length === 1) {
       const newAlertLabel = organization.features.includes('workflow-engine-ui')
         ? t('Create a Monitor')
@@ -52,7 +56,8 @@ export function ChartContextMenu({
         key: 'create-alert',
         textValue: newAlertLabel,
         label: newAlertLabel,
-        disabled: isVisualizeEquation(visualizeYAxes[0]!),
+        disabled: isVisualizeEquation(visualizeYAxes[0]!) || defined(alertsUpsellTooltip),
+        tooltip: alertsUpsellTooltip,
         to: getAlertsUrl({
           project,
           query,
@@ -99,11 +104,13 @@ export function ChartContextMenu({
         ? t('Create a Monitor for')
         : t('Create an Alert for');
 
+      const hasAccess = !defined(alertsUpsellTooltip);
       menuItems.push({
         key: 'create-alert',
         label: newAlertLabel,
-        children: alertsUrls ?? [],
-        disabled: !alertsUrls || alertsUrls.length === 0,
+        children: hasAccess ? alertsUrls : [],
+        disabled: !hasAccess || alertsUrls.length === 0,
+        tooltip: alertsUpsellTooltip,
         submenu: true,
       });
     }

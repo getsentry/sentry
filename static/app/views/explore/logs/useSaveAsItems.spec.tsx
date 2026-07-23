@@ -42,10 +42,10 @@ describe('useSaveAsItems', () => {
   let saveQueryMock: jest.Mock;
   ProjectsStore.loadInitialData([project]);
 
-  function createWrapper() {
+  function createWrapper(org = organization) {
     return function ({children}: {children?: React.ReactNode}) {
       return (
-        <OrganizationContext.Provider value={organization}>
+        <OrganizationContext.Provider value={org}>
           <QueryClientProvider client={queryClient}>
             <LogsQueryParamsProvider
               analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
@@ -212,6 +212,52 @@ describe('useSaveAsItems', () => {
 
     expect(saveAsItems.some(item => item.key === 'update-query')).toBe(false);
     expect(saveAsItems.some(item => item.key === 'save-query')).toBe(true);
+  });
+
+  it('disables the alert option with an upsell tooltip when metric alerts are unavailable', () => {
+    const {result} = renderHookWithProviders(
+      () =>
+        useSaveAsItems({
+          visualizes: [new VisualizeFunction('count()')],
+          groupBys: ['message.template'],
+          interval: '5m',
+          mode: Mode.AGGREGATE,
+          search: new MutableSearch('message:"test error"'),
+          sortBys: [{field: 'timestamp', kind: 'desc'}],
+        }),
+      {additionalWrapper: createWrapper()}
+    );
+
+    const alertItem = result.current.find(item => item.key === 'create-alert');
+
+    expect(alertItem?.disabled).toBe(true);
+    expect(alertItem?.tooltip).toBe('Alerts are not available on your current plan.');
+    expect(alertItem?.children).toEqual([]);
+  });
+
+  it('enables the alert option when the org has metric alerts', () => {
+    const orgWithAlerts = OrganizationFixture({
+      features: ['ourlogs-enabled', 'incidents'],
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useSaveAsItems({
+          visualizes: [new VisualizeFunction('count()')],
+          groupBys: ['message.template'],
+          interval: '5m',
+          mode: Mode.AGGREGATE,
+          search: new MutableSearch('message:"test error"'),
+          sortBys: [{field: 'timestamp', kind: 'desc'}],
+        }),
+      {additionalWrapper: createWrapper(orgWithAlerts)}
+    );
+
+    const alertItem = result.current.find(item => item.key === 'create-alert');
+
+    expect(alertItem?.disabled).toBe(false);
+    expect(alertItem?.tooltip).toBeUndefined();
+    expect(alertItem?.children).toHaveLength(1);
   });
 
   it('preserves the chart type when adding a dashboard widget', () => {

@@ -36,7 +36,7 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('ExploreToolbar', () => {
   const organization = OrganizationFixture({
-    features: ['dashboards-edit'],
+    features: ['dashboards-edit', 'incidents'],
   });
 
   beforeEach(() => {
@@ -1040,6 +1040,39 @@ describe('ExploreToolbar', () => {
       query: '',
       statsPeriod: '7d',
     });
+  });
+
+  it('disables the alert option when the org lacks metric alerts', async () => {
+    const orgWithoutAlerts = OrganizationFixture({features: ['dashboards-edit']});
+    function Component() {
+      return <ExploreToolbar />;
+    }
+    render(
+      <Wrapper>
+        <Component />
+      </Wrapper>,
+      {
+        organization: orgWithoutAlerts,
+        initialRouterConfig: {
+          location: {
+            pathname: '/traces/',
+            query: {
+              visualize: encodeURIComponent(
+                '{"chartType":1,"yAxes":["avg(span.duration)"]}'
+              ),
+            },
+          },
+        },
+      }
+    );
+
+    const section = screen.getByTestId('section-save-as');
+
+    await userEvent.click(within(section).getByRole('button', {name: /save as/i}));
+
+    expect(
+      within(section).getByRole('menuitemradio', {name: 'Alert for'})
+    ).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('add to dashboard options correctly', async () => {

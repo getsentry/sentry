@@ -39,16 +39,16 @@ const mockHandleAddMultipleQueriesToDashboard = jest.mocked(
 
 describe('useSaveAsMetricItems', () => {
   const organization = OrganizationFixture({
-    features: ['tracemetrics-enabled'],
+    features: ['tracemetrics-enabled', 'incidents'],
   });
   const project = ProjectFixture({id: '1'});
   const queryClient = makeTestQueryClient();
   ProjectsStore.loadInitialData([project]);
 
-  function createWrapper() {
+  function createWrapper(org = organization) {
     return function ({children}: {children?: React.ReactNode}) {
       return (
-        <OrganizationContext.Provider value={organization}>
+        <OrganizationContext.Provider value={org}>
           <QueryClientProvider client={queryClient}>
             <MockMetricQueryParamsContext>{children}</MockMetricQueryParamsContext>
           </QueryClientProvider>
@@ -303,6 +303,45 @@ describe('useSaveAsMetricItems', () => {
         ]),
       })
     );
+  });
+
+  it('disables the alert option with an upsell tooltip when metric alerts are unavailable', () => {
+    const orgWithoutAlerts = OrganizationFixture({features: ['tracemetrics-enabled']});
+
+    const encodedMetricQuery = encodeMetricQueryParams({
+      metric: {name: 'metric.a', type: 'counter'},
+      queryParams: new ReadableQueryParams({
+        extrapolate: true,
+        mode: Mode.AGGREGATE,
+        query: 'release:1.2.3',
+        aggregateCursor: '',
+        aggregateFields: [new VisualizeFunction('sum(value,metric.a,counter,none)')],
+        aggregateSortBys: [{field: 'sum(value,metric.a,counter,none)', kind: 'desc'}],
+        cursor: '',
+        fields: [],
+        sortBys: [],
+      }),
+    });
+
+    mockedUseLocation.mockReturnValue(
+      LocationFixture({
+        query: {
+          interval: '5m',
+          metric: [encodedMetricQuery],
+        },
+      })
+    );
+
+    const {result} = renderHook(useSaveAsMetricItems, {
+      wrapper: createWrapper(orgWithoutAlerts),
+      initialProps: {interval: '5m'},
+    });
+
+    const alertItem = result.current.find(item => item.key === 'create-alert');
+
+    expect(alertItem?.disabled).toBe(true);
+    expect(alertItem?.tooltip).toBe('Alerts are not available on your current plan.');
+    expect(alertItem?.children).toEqual([]);
   });
 
   it('formats alerts submenu labels for equations', () => {

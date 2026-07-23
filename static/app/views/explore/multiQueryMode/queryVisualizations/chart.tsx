@@ -33,6 +33,7 @@ import {
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
+import {getMetricAlertsUpsellTooltip} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -104,10 +105,13 @@ export function MultiQueryModeChart({
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
   if (defined(yAxes[0])) {
+    const alertsUpsellTooltip = getMetricAlertsUpsellTooltip(organization);
     items.push({
       key: 'create-alert',
       textValue: t('Create an Alert'),
       label: t('Create an Alert'),
+      disabled: defined(alertsUpsellTooltip),
+      tooltip: alertsUpsellTooltip,
       to: getAlertsUrl({
         project,
         query: queryParts.query,
