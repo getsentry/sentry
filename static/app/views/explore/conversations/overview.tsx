@@ -76,7 +76,12 @@ function ConversationsOverviewPage() {
   const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
-      onSearch: (newQuery: string) => {
+      onSearch: (newQuery, {queryIsValid}) => {
+        // The conversations API can't express negation (and other invalid
+        // syntax), so don't apply a query the builder has flagged as invalid.
+        if (!queryIsValid) {
+          return;
+        }
         setSearchQuery(newQuery);
         unsetCursor();
       },
