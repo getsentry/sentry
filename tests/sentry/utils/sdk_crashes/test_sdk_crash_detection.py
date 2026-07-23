@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
+from fixtures.sdk_crash_detection.crash_event_android import get_crash_event as get_android_crash_event
 from fixtures.sdk_crash_detection.crash_event_cocoa import get_crash_event
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.services.eventstore.models import Event
@@ -255,6 +256,71 @@ def test_flutter_sdk_version_attributed_without_replacing_native_version(
         "is_anr_or_apphang": "false",
         "hybrid_sdk_name": "sentry.dart.flutter",
         "hybrid_sdk_version": "9.24.0",
+    }
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.sdk_event",
+        tags=metric_tags,
+    )
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.detecting_sdk_crash",
+        tags=metric_tags,
+    )
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.sdk_crash_detected",
+        tags=metric_tags,
+    )
+
+
+@django_db_all
+@pytest.mark.snuba
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+@patch("sentry.utils.metrics.incr")
+@pytest.mark.parametrize(
+    ("sdk_name", "event_factory"),
+    [
+        ("sentry.cocoa.react-native", get_crash_event),
+        ("sentry.java.android.react-native", get_android_crash_event),
+    ],
+)
+def test_react_native_sdk_version_attributed_without_replacing_native_version(
+    incr: MagicMock,
+    mock_sdk_crash_reporter: MagicMock,
+    store_event: Callable[[dict[str, Collection[str]]], Event],
+    sdk_name: str,
+    event_factory: Callable[[], dict[str, object]],
+) -> None:
+    event_data = event_factory()
+    set_path(event_data, "sdk", "name", value=sdk_name)
+    set_path(
+        event_data,
+        "sdk",
+        "packages",
+        value=[
+            {"name": "npm:@sentry/react-native", "version": "8.19.0"},
+            {"name": "untrusted-package", "version": "1.0.0"},
+        ],
+    )
+    event = store_event(event_data)
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=build_sdk_configs())
+
+    native_sdk_version = get_path(event_data, "sdk", "version")
+    reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
+    assert reported_event_data["sdk"] == {
+        "name": sdk_name,
+        "version": native_sdk_version,
+    }
+    assert reported_event_data["tags"] == [
+        ("hybrid_sdk_name", "sentry.javascript.react-native"),
+        ("hybrid_sdk_version", "8.19.0"),
+    ]
+    assert reported_event_data["release"] == native_sdk_version
+    metric_tags = {
+        "sdk_name": sdk_name,
+        "sdk_version": native_sdk_version,
+        "is_anr_or_apphang": "false",
+        "hybrid_sdk_name": "sentry.javascript.react-native",
+        "hybrid_sdk_version": "8.19.0",
     }
     incr.assert_any_call(
         "post_process.sdk_crash_monitoring.sdk_event",
