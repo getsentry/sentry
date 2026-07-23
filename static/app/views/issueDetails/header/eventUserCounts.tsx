@@ -18,8 +18,8 @@ interface EventUserCountsProps {
 }
 
 /**
- * Compact event + affected-user counts for the issue preview status line, e.g.
- * a stack icon with "2.6k" events and a user icon with "11" users.
+ * Compact affected-user + event counts for the issue preview status line, e.g.
+ * a user icon with "11" users and a stack icon with "2.6k" events.
  */
 export function EventUserCounts({group, project}: EventUserCountsProps) {
   if (!getConfigForIssueType(group, project).eventAndUserCounts.enabled) {
@@ -38,19 +38,19 @@ export function EventUserCounts({group, project}: EventUserCountsProps) {
     <Fragment>
       <Divider />
       <Flex align="center" gap="md">
-        <Tooltip title={eventLabel} skipWrapper>
-          <Flex align="center" gap="xs" aria-label={eventLabel}>
-            <IconStack size="xs" />
-            <Text size="sm" variant="muted" aria-hidden>
-              <Count value={eventCount} />
-            </Text>
-          </Flex>
-        </Tooltip>
         <Tooltip title={userLabel} skipWrapper>
           <Flex align="center" gap="xs" aria-label={userLabel}>
             <IconUser size="xs" />
             <Text size="sm" variant="muted" aria-hidden>
               <Count value={userCount} />
+            </Text>
+          </Flex>
+        </Tooltip>
+        <Tooltip title={eventLabel} skipWrapper>
+          <Flex align="center" gap="xs" aria-label={eventLabel}>
+            <IconStack size="xs" />
+            <Text size="sm" variant="muted" aria-hidden>
+              <Count value={eventCount} />
             </Text>
           </Flex>
         </Tooltip>
