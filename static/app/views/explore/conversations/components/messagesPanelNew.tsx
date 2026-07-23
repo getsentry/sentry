@@ -51,9 +51,7 @@ interface MessagesPanelNewProps {
 }
 
 /**
- * Seer Explorer-styled conversation transcript, gated behind
- * `gen-ai-conversations-redesign`. The legacy `MessagesPanel` is the flag-off
- * path.
+ * Seer Explorer-styled conversation transcript.
  */
 export function MessagesPanelNew({
   nodes,
