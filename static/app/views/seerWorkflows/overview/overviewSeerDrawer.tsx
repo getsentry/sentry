@@ -55,12 +55,6 @@ function OverviewSeerDrawer({groupId, projectSlug}: OverviewSeerDrawerProps) {
   return <SeerDrawer key={groupId} group={groupQuery.data} project={projectQuery.data} />;
 }
 
-/**
- * Opens the autofix run drawer (the same SeerDrawer the issue page shows) in
- * place on the overview, fetching the full Group and Project the drawer needs
- * from the lightweight overview row. Reuses the issue page's drawer key so both
- * surfaces open the same drawer slot.
- */
 export function useOpenOverviewSeerDrawer() {
   const {openDrawer} = useDrawer();
   const location = useLocation();

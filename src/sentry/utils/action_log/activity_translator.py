@@ -57,6 +57,9 @@ ACTIVITY_TYPES_WITH_NO_ACTION: frozenset[int] = frozenset(
     (
         ActivityType.FIRST_SEEN.value,
         ActivityType.RELEASE.value,
+        # Internal signal that drives smart-assignment scoring/auto-assign off a
+        # workflow activity handler; not a user-facing group action.
+        ActivityType.SMART_ASSIGNMENT_COMPLETED.value,
     )
 )
 
