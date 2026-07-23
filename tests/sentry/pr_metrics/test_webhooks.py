@@ -1011,6 +1011,55 @@ class DeferredEmissionReconcilesSeerRunAttributionTest(TestCase):
             == 1
         )
 
+    def test_webhook_signal_already_carrying_run_id_is_not_reconciled(self) -> None:
+        # The webhook-time check already resolved run_id/group_id (the common
+        # case, when SeerRunPullRequest landed before the close webhook) -- there
+        # is nothing to salvage, so the lookup shouldn't run at all.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).update(
+            signal_details={
+                "pr_url": "https://github.com/getsentry/sentry/pull/42",
+                "group_ids": [],
+                "run_id": 999,
+            }
+        )
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        self.create_seer_run_pull_request(run=run, pull_request=self.pull_request)
+
+        self._run_deferred_emission()
+
+        # Only the original webhook_data row exists -- no seer_data row was added.
+        assert PullRequestAttribution.objects.filter(pull_request=self.pull_request).count() == 1
+
+    def test_already_reconciled_sentry_app_seer_data_is_not_re_reconciled(self) -> None:
+        # A prior reconciliation (or the Seer-native pr_created flow) already
+        # backfilled a SENTRY_APP:seer_data row with a run_id -- nothing left to
+        # salvage, even though the webhook_data row itself has no run_id.
+        PullRequestAttribution.objects.create(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+            is_valid=True,
+            signal_details={
+                "pr_url": "https://github.com/getsentry/sentry/pull/42",
+                "group_ids": [],
+                "run_id": 123,
+            },
+        )
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        self.create_seer_run_pull_request(run=run, pull_request=self.pull_request)
+
+        self._run_deferred_emission()
+
+        seer_data_attr = PullRequestAttribution.objects.get(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+        )
+        # Untouched -- still points at the originally-recorded run, not the
+        # (different) run linked above.
+        assert seer_data_attr.signal_details is not None
+        assert seer_data_attr.signal_details["run_id"] == 123
+
 
 @with_feature("organizations:pr-metrics-emit")
 @cell_silo_test

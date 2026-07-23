@@ -25,6 +25,7 @@ import orjson
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, router, transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from pydantic import ValidationError
@@ -387,6 +388,46 @@ def _claim_cooldown(pr: PullRequest) -> bool:
     return bool(claimed)
 
 
+def _needs_seer_run_reconciliation(pr: PullRequest) -> bool:
+    """Whether this PR's ``SENTRY_APP:webhook_data`` attribution is still missing
+    a ``run_id`` and hasn't already been backfilled by a prior reconciliation.
+
+    True when both hold:
+    1. A valid ``SENTRY_APP:webhook_data`` row exists without a ``run_id`` in its
+       ``signal_details`` (covers a JSON ``null`` value, a missing ``run_id`` key,
+       and a wholly-``None`` ``signal_details`` column).
+    2. No valid ``SENTRY_APP:seer_data`` row already carries a ``run_id`` -- once
+       one does, a prior reconciliation (or the Seer-native ``pr_created`` flow)
+       already backfilled it, so there's nothing left to salvage.
+    """
+    # A JSONField's ``run_id`` reads as missing under both a JSON `null` value
+    # and a genuinely absent key, and Django's ``isnull`` lookup only catches
+    # the latter -- OR both to cover a wholly-None ``signal_details`` column too.
+    missing_run_id = Q(signal_details__run_id__isnull=True) | Q(signal_details__run_id=None)
+
+    has_unresolved_webhook_signal = PullRequestAttribution.objects.filter(
+        missing_run_id,
+        pull_request=pr,
+        is_valid=True,
+        signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+        source=PullRequestAttributionSource.WEBHOOK_DATA,
+    ).exists()
+    if not has_unresolved_webhook_signal:
+        return False
+
+    has_resolved_seer_data_signal = (
+        PullRequestAttribution.objects.filter(
+            pull_request=pr,
+            is_valid=True,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+        )
+        .exclude(missing_run_id)
+        .exists()
+    )
+    return not has_resolved_seer_data_signal
+
+
 def _reconcile_seer_run_attribution(pr: PullRequest, organization: Organization) -> None:
     """Sharpen a naive ``SENTRY_APP:webhook_data`` attribution using the local
     ``SeerRunPullRequest`` link, if one has since landed.
@@ -402,12 +443,14 @@ def _reconcile_seer_run_attribution(pr: PullRequest, organization: Organization)
     coding-agent handoff. Backfilling it here closes races where the webhook's
     "closed" re-check (``handle_attribution``) fired before that link existed.
 
-    Only runs for PRs that already carry a valid ``SENTRY_APP:webhook_data``
-    signal -- other attribution rows are left alone, and other signal types
-    (e.g. MCP) aren't naive webhook attributions this needs to correct.
-    ``record_attribution_signal`` is keyed on ``(pull_request, signal_type,
-    source)``, so writing a different signal_type/source here never clobbers
-    the existing row; it only adds to or refines the PR's attribution set.
+    Only runs for PRs whose ``SENTRY_APP:webhook_data`` signal is still missing a
+    ``run_id`` and hasn't already been backfilled (see
+    ``_needs_seer_run_reconciliation``) -- other attribution rows are left
+    alone, and other signal types (e.g. MCP) aren't naive webhook attributions
+    this needs to correct. ``record_attribution_signal`` is keyed on
+    ``(pull_request, signal_type, source)``, so writing a different
+    signal_type/source here never clobbers the existing row; it only adds to or
+    refines the PR's attribution set.
 
     Gated on ``pr-metrics-attribution``, matching every other attribution
     writer.
@@ -415,12 +458,7 @@ def _reconcile_seer_run_attribution(pr: PullRequest, organization: Organization)
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
 
-    if not PullRequestAttribution.objects.filter(
-        pull_request=pr,
-        is_valid=True,
-        signal_type=PullRequestAttributionSignalType.SENTRY_APP,
-        source=PullRequestAttributionSource.WEBHOOK_DATA,
-    ).exists():
+    if not _needs_seer_run_reconciliation(pr):
         return
 
     link = seer_run_pull_request_link(pr)
