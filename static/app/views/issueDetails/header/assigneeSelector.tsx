@@ -35,6 +35,11 @@ interface GroupHeaderAssigneeSelectorProps {
   event: Event | null;
   group: Group;
   project: Project;
+  /**
+   * Show the assignee name next to the avatar. On by default; disable for compact
+   * surfaces (e.g. the issue preview) that want an avatar-only control.
+   */
+  showLabel?: boolean;
 }
 
 function getCurrentAssignmentActivity(group: Group): GroupActivityAssigned | undefined {
@@ -97,6 +102,7 @@ export function GroupHeaderAssigneeSelector({
   group,
   project,
   event,
+  showLabel = true,
 }: GroupHeaderAssigneeSelectorProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -129,7 +135,7 @@ export function GroupHeaderAssigneeSelector({
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={handleAssigneeChange}
       assignmentDetails={assignmentDetails}
-      showLabel
+      showLabel={showLabel}
       useOwnerAssignmentDetails={false}
       additionalMenuFooterItems={
         <MenuComponents.CTAButton
