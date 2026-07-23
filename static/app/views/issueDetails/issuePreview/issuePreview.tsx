@@ -37,6 +37,7 @@ import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
+import {IssueProgressTag} from 'sentry/views/issueList/utils/progress';
 
 interface IssuePreviewProps {
   groupId: string;
@@ -44,7 +45,7 @@ interface IssuePreviewProps {
 
 export function IssuePreview({groupId}: IssuePreviewProps) {
   const organization = useOrganization();
-  const {data: group, isPending, isError} = useGroup({groupId, expandDerivedData: true});
+  const {data: group, isPending, isError} = useGroup({groupId});
   const {projects} = useProjects();
   const project = projects.find(p => p.id === group?.project.id) ?? group?.project;
 
@@ -116,7 +117,12 @@ function IssuePreviewContent() {
               type={group.type}
             />
           </Container>
-          <GroupStatusSubtitle group={group} project={project} showProgress />
+          <Flex justify="between" align="center" gap="md">
+            <GroupStatusSubtitle group={group} project={project} />
+            {group.derivedData?.progress && (
+              <IssueProgressTag state={group.derivedData.progress} />
+            )}
+          </Flex>
         </Stack>
       </Container>
       <Flex

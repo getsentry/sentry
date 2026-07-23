@@ -40,8 +40,6 @@ export function groupQueryKey(params: GroupQueryKeyParameters) {
 
 interface UseGroupOptions {
   groupId: string;
-  /** Request the `derivedData` expand (issue progress, etc.). Off by default. */
-  expandDerivedData?: boolean;
   options?: {
     enabled?: boolean;
   };
@@ -51,7 +49,7 @@ interface UseGroupOptions {
  * Used to fetch group details for issue details.
  * Data is still synced with the GroupStore for legacy reasons.
  */
-export function useGroup({groupId, expandDerivedData, options}: UseGroupOptions) {
+export function useGroup({groupId, options}: UseGroupOptions) {
   const organization = useOrganization();
   const environments = useEnvironmentsFromUrl();
 
@@ -60,7 +58,7 @@ export function useGroup({groupId, expandDerivedData, options}: UseGroupOptions)
       organizationSlug: organization.slug,
       groupId,
       environments,
-      expandDerivedData,
+      expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
     }),
     gcTime: 30_000,
     retry: false,
