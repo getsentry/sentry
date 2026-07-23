@@ -5,6 +5,9 @@ import type {PlatformEventParameters} from './platformAnalyticsEvents';
 import {platformEventMap} from './platformAnalyticsEvents';
 
 export type IntegrationView = {
+  // `view` identifies the flow or surface; `variant` identifies whether that flow
+  // uses the SCM or legacy experience.
+  variant?: 'scm' | 'legacy';
   view?:
     | MessagingIntegrationAnalyticsView
     | 'external_install'
@@ -16,7 +19,6 @@ export type IntegrationView = {
     | 'stacktrace_issue_details'
     | 'integration_configuration_detail'
     | 'onboarding'
-    | 'onboarding_scm'
     | 'project_creation'
     | 'developer_settings'
     | 'new_integration_modal'

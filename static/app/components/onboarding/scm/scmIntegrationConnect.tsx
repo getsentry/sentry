@@ -219,7 +219,11 @@ export function ScmIntegrationConnect({
     </Stack>
   ) : (
     <Stack key="without-integration" gap="2xl" width="100%" maxWidth={maxWidth}>
-      <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
+      <ScmProviderPills
+        analyticsFlow={analyticsFlow}
+        providers={scmProviders}
+        onInstall={handleInstall}
+      />
     </Stack>
   );
 }
