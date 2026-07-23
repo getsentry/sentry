@@ -43,6 +43,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
 from sentry.objectstore import get_debug_files_session
+from sentry.objectstore.metrics import measure_storage_operation
 from sentry.utils import json, metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.zip import safe_extract_zip
@@ -271,7 +272,8 @@ class ProjectDebugFile(Model):
                 logger.exception("Failed to read debug file from Objectstore")
                 raise
         if self.file is not None:
-            return self.file.getfile()
+            with measure_storage_operation("get", "debug_files", self.get_file_size()):
+                return self.file.getfile()
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def save_to(self, path: str) -> None:
@@ -576,7 +578,7 @@ def create_dif_from_id(
     metrics.distribution(
         "storage.put.size",
         file.size,
-        tags={"usecase": "debug-files", "compression": "none"},
+        tags={"usecase": "debug_files", "compression": "none"},
         unit="byte",
     )
 
