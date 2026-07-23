@@ -1,12 +1,17 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import AutofixOverview from 'sentry/views/seerWorkflows/overview';
 import {RUN_QUESTIONS} from 'sentry/views/seerWorkflows/overview/runQuestions';
 
@@ -150,6 +155,21 @@ describe('AutofixOverview', () => {
     });
   }
 
+  function mockAssigneeSections(assignee: string, reviewIssues: unknown[] = [issue]) {
+    const reviewRequest = mockSection(
+      `${SECTION_QUERIES.review_pr} assigned:${assignee}`,
+      {
+        body: reviewIssues,
+        hits: String(reviewIssues.length),
+      }
+    );
+    mockSection(`${SECTION_QUERIES.code_changes_ready} assigned:${assignee}`);
+    mockSection(`${SECTION_QUERIES.solution_ready} assigned:${assignee}`);
+    mockSection(`${SECTION_QUERIES.needs_investigation} assigned:${assignee}`);
+    mockSection(`${SECTION_QUERIES.merged} assigned:${assignee}`);
+    return reviewRequest;
+  }
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     // Collapsed status groups persist to localStorage; keep tests isolated.
@@ -160,6 +180,8 @@ describe('AutofixOverview', () => {
     // gated off.
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     ProjectsStore.loadInitialData([ProjectFixture()]);
+    OrganizationStore.onUpdate(organization, {replace: true});
+    TeamStore.reset();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [ProjectFixture()],
@@ -172,6 +194,22 @@ describe('AutofixOverview', () => {
     mockSection(SECTION_QUERIES.solution_ready);
     mockSection(SECTION_QUERIES.needs_investigation);
     mockSection(SECTION_QUERIES.merged);
+
+    // The assignee filter loads org members for its dropdown; teams come from
+    // the (empty here) TeamStore. Neither is needed for the default view.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
 
     // Per-card content: the IntersectionObserver override above reports every
     // card as in view, so these fire once per rendered card.
@@ -279,9 +317,9 @@ describe('AutofixOverview', () => {
     // night_shift source maps to the Workflow trigger badge.
     expect(screen.getByText('Workflow')).toBeInTheDocument();
 
-    // An opened PR reads as needing review and links out to the PR; the PR
-    // number lives in the tooltip, not the label.
-    expect(screen.getByRole('button', {name: 'Review PR'})).toHaveAttribute(
+    // An opened PR reads as needing review, carries its number in the
+    // label, and links out to the PR.
+    expect(screen.getByRole('button', {name: 'Review PR #123'})).toHaveAttribute(
       'href',
       'https://github.com/getsentry/sentry/pull/123'
     );
@@ -291,9 +329,8 @@ describe('AutofixOverview', () => {
     expect(screen.getByText('+42')).toBeInTheDocument();
     expect(screen.getByText('−7')).toBeInTheDocument();
 
-    // This diff fails the inline-differ gates twice over (49 changed lines
-    // is past the cap, and its hunks are empty), so the file path lives only
-    // in the pill's hover tooltip — no diff header on the card.
+    // The card never renders the diff itself; the file path lives only in
+    // the pill's hover tooltip.
     expect(screen.queryByText('src/cart.py')).not.toBeInTheDocument();
 
     // Hovering the diff pill lists the changed files.
@@ -318,8 +355,16 @@ describe('AutofixOverview', () => {
       rootCause.compareDocumentPosition(proposedFix) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
 
-    // The timestamp is labeled as run activity.
-    expect(screen.getByText(/^updated/)).toBeInTheDocument();
+    // Issue recency and Seer activity are two distinct timestamps: the
+    // issue's own lastSeen, then the newest Seer-side signal (here the
+    // state's updated_at) — never lastSeen again.
+    expect(
+      screen.getAllByRole('time').map(element => element.getAttribute('datetime'))
+    ).toEqual(['2019-04-11T01:08:59.000Z', '2026-07-14T10:00:00.000Z']);
+
+    expect(
+      screen.getByRole('button', {name: 'Modify issue assignee'})
+    ).toBeInTheDocument();
 
     // Identity sits in the tail: short id + exactly one level marker.
     expect(screen.getByText('PROJ-1')).toBeVisible();
@@ -343,8 +388,9 @@ describe('AutofixOverview', () => {
     // The full analysis is card-only; the table row is the scannable summary.
     expect(screen.queryByText('Root cause')).not.toBeInTheDocument();
     expect(screen.getByText('PROJ-1')).toBeVisible();
-    expect(screen.getByText(/100 events · 5 users/)).toBeVisible();
-    expect(screen.getByRole('button', {name: 'Review PR'})).toHaveAttribute(
+    expect(screen.getByText('100 events')).toBeVisible();
+    expect(screen.getByText('5 users')).toBeVisible();
+    expect(screen.getByRole('button', {name: 'Review PR #123'})).toHaveAttribute(
       'href',
       'https://github.com/getsentry/sentry/pull/123'
     );
@@ -393,7 +439,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     // The review action wins, linking to the open PR from the run state.
-    expect(await screen.findByRole('button', {name: 'Review PR'})).toHaveAttribute(
+    expect(await screen.findByRole('button', {name: 'Review PR #123'})).toHaveAttribute(
       'href',
       'https://github.com/getsentry/sentry/pull/123'
     );
@@ -507,112 +553,38 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
   });
 
-  it('scopes the section requests to the selected projects', async () => {
+  it('scopes section and member requests to the selected project', async () => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [2]}));
     const reviewRequest = mockSection(SECTION_QUERIES.review_pr, {
       body: [issue],
       hits: '3',
     });
+    const membersRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
 
     renderPage();
 
     expect(
-      await screen.findByRole('link', {
-        name: 'Proxy requests fail without Authorization header',
-      })
+      await screen.findByRole('button', {name: 'Modify issue assignee'})
     ).toBeInTheDocument();
-    // The selector's trigger reflects the selection (the card's project badge
-    // is a link, so the button role isolates the filter)…
-    expect(screen.getByRole('button', {name: 'project-slug'})).toBeInTheDocument();
-    // …and the section request carries it.
     expect(reviewRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/issues/`,
       expect.objectContaining({
         query: expect.objectContaining({project: [2]}),
       })
     );
+    expect(membersRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/users/`,
+      expect.objectContaining({
+        query: expect.objectContaining({project: ['2']}),
+      })
+    );
+    expect(membersRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('renders an inline differ for small diffs, collapsed to a file header', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/2/autofix/`,
-      body: {
-        autofix: makeAutofixState({
-          blocks: [
-            makeBlock('code_changes', {
-              merged_file_patches: [
-                {
-                  repo_name: 'getsentry/sentry',
-                  diff: '--- a/src/cart.py\n+++ b/src/cart.py',
-                  patch: {
-                    path: 'src/cart.py',
-                    source_file: 'src/cart.py',
-                    target_file: 'src/cart.py',
-                    type: 'M',
-                    added: 2,
-                    removed: 1,
-                    hunks: [
-                      {
-                        section_header: 'def add_to_cart',
-                        source_start: 10,
-                        source_length: 3,
-                        target_start: 10,
-                        target_length: 4,
-                        lines: [
-                          {
-                            value: 'def add_to_cart(item):',
-                            line_type: ' ',
-                            source_line_no: 10,
-                            target_line_no: 10,
-                            diff_line_no: 1,
-                          },
-                          {
-                            value: '    total = None',
-                            line_type: '-',
-                            source_line_no: 11,
-                            target_line_no: null,
-                            diff_line_no: 2,
-                          },
-                          {
-                            value: '    total = 0',
-                            line_type: '+',
-                            source_line_no: null,
-                            target_line_no: 11,
-                            diff_line_no: 3,
-                          },
-                          {
-                            value: '    return total',
-                            line_type: '+',
-                            source_line_no: null,
-                            target_line_no: 12,
-                            diff_line_no: 4,
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                },
-              ],
-            }),
-          ],
-          repo_pr_states: {},
-        }),
-      },
-    });
-
-    renderPage();
-
-    // The differ's file header shows on the card without any interaction…
-    const fileHeader = await screen.findByText('src/cart.py');
-    // …but the diff body starts collapsed.
-    expect(screen.queryByText(/@@ -10,3 \+10,4 @@/)).not.toBeInTheDocument();
-
-    await userEvent.click(fileHeader);
-
-    expect(screen.getByText(/@@ -10,3 \+10,4 @@/)).toBeInTheDocument();
-  });
-
-  it('focuses a single fully-expanded card when id is present', async () => {
+  it('focuses a single card when id is present', async () => {
     // The focus fetch pins the exact group id (and the endpoint ignores the
     // section filters in that mode).
     const groupRequest = MockApiClient.addMockResponse({
@@ -666,11 +638,9 @@ describe('AutofixOverview', () => {
 
     renderPage({id: '2'});
 
-    // The full analysis renders expanded without any interaction…
+    // The full analysis renders without any interaction.
     expect(await screen.findByText('Root cause')).toBeVisible();
     expect(screen.getByText('PROJ-1')).toBeVisible();
-    // …and so does the inline diff.
-    expect(screen.getByText(/@@ -5,1 \+5,2 @@/)).toBeInTheDocument();
     expect(groupRequest).toHaveBeenCalled();
 
     // Focus mode hides the section list and offers the way back, keeping the
@@ -829,6 +799,217 @@ describe('AutofixOverview', () => {
 
     expect(
       await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
+  });
+
+  it('selects a remote member, writes it to the URL, and filters sections', async () => {
+    const remoteUser = UserFixture({
+      id: '42',
+      name: 'Remote Member',
+      email: 'remote.member@example.com',
+      username: 'Jane Doe',
+    });
+    const remoteRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      match: [MockApiClient.matchQuery({query: remoteUser.username})],
+      body: [MemberFixture({id: '42', user: remoteUser})],
+    });
+    const reviewRequest = mockAssigneeSections('"Jane Doe"');
+    const {router} = renderPage();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Assignee None'}));
+    await userEvent.type(
+      screen.getByPlaceholderText('Search assignees…'),
+      remoteUser.username
+    );
+    await userEvent.click(await screen.findByRole('option', {name: remoteUser.name}));
+
+    expect(remoteRequest).toHaveBeenCalled();
+    expect(router.location.query.assignee).toBe(remoteUser.username);
+    await waitFor(() =>
+      expect(reviewRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/issues/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: `${SECTION_QUERIES.review_pr} assigned:"Jane Doe"`,
+          }),
+        })
+      )
+    );
+  });
+
+  it('finds remote teams by slug and writes the selected team to the URL', async () => {
+    const remoteTeam = TeamFixture({
+      id: '42',
+      name: 'Remote Team',
+      slug: 'remote-team',
+    });
+    const remoteRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      match: [MockApiClient.matchQuery({query: 'remote-team'})],
+      body: [remoteTeam],
+    });
+    mockAssigneeSections(`#${remoteTeam.slug}`);
+    const {router} = renderPage();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Assignee None'}));
+    await userEvent.type(
+      screen.getByPlaceholderText('Search assignees…'),
+      `#${remoteTeam.slug}`
+    );
+    await userEvent.click(
+      await screen.findByRole('option', {name: `#${remoteTeam.slug}`})
+    );
+
+    expect(remoteRequest).toHaveBeenCalled();
+    expect(router.location.query.assignee).toBe(`#${remoteTeam.slug}`);
+  });
+
+  it('refetches filtered sections after reassignment', async () => {
+    const nextAssignee = UserFixture({
+      id: '42',
+      name: 'Next Assignee',
+      email: 'next.assignee@example.com',
+    });
+    mockAssigneeSections('me');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [
+        MemberFixture({
+          id: '42',
+          projects: [issue.project.slug],
+          user: nextAssignee,
+        }),
+      ],
+    });
+    const assignRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${issue.id}/`,
+      method: 'PUT',
+      body: {
+        ...issue,
+        assignedTo: {id: nextAssignee.id, name: nextAssignee.name, type: 'user'},
+      },
+    });
+
+    renderPage({assignee: 'me'});
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Modify issue assignee'})
+    );
+
+    // The mutation's success callback immediately refetches all sections, so
+    // replace their responses before selecting the new assignee.
+    mockAssigneeSections('me', []);
+    await userEvent.click(await screen.findByRole('option', {name: /Next Assignee/}));
+
+    await waitFor(() => expect(assignRequest).toHaveBeenCalled());
+    expect(
+      await screen.findByText('No autofix runs match your filters.')
+    ).toBeInTheDocument();
+  });
+
+  it('refetches unfiltered sections after reassignment', async () => {
+    const nextAssignee = UserFixture({
+      id: '42',
+      name: 'Next Assignee',
+      email: 'next.assignee@example.com',
+    });
+    const reviewRequest = mockSection(SECTION_QUERIES.review_pr, {
+      body: [issue],
+      hits: '3',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [
+        MemberFixture({
+          id: '42',
+          projects: [issue.project.slug],
+          user: nextAssignee,
+        }),
+      ],
+    });
+    const assignRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${issue.id}/`,
+      method: 'PUT',
+      body: {
+        ...issue,
+        assignedTo: {id: nextAssignee.id, name: nextAssignee.name, type: 'user'},
+      },
+    });
+
+    renderPage();
+
+    await waitFor(() => expect(reviewRequest).toHaveBeenCalledTimes(1));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Modify issue assignee'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: /Next Assignee/}));
+
+    await waitFor(() => expect(assignRequest).toHaveBeenCalled());
+    await waitFor(() => expect(reviewRequest).toHaveBeenCalledTimes(2));
+  });
+
+  it('invalidates cached filtered sections after reassignment in focus mode', async () => {
+    const nextAssignee = UserFixture({
+      id: '42',
+      name: 'Next Assignee',
+      email: 'next.assignee@example.com',
+    });
+    mockAssigneeSections('me');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      match: [MockApiClient.matchQuery({group: [issue.id]})],
+      body: [issue],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [
+        MemberFixture({
+          id: nextAssignee.id,
+          projects: [issue.project.slug],
+          user: nextAssignee,
+        }),
+      ],
+    });
+    const assignRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${issue.id}/`,
+      method: 'PUT',
+      body: {
+        ...issue,
+        assignedTo: {id: nextAssignee.id, name: nextAssignee.name, type: 'user'},
+      },
+    });
+    const {router} = renderPage({assignee: 'me'});
+
+    expect(
+      await screen.findByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).toBeInTheDocument();
+    router.navigate(`${basePath}?assignee=me&id=${issue.id}`);
+    expect(await screen.findByRole('button', {name: 'All issues'})).toBeInTheDocument();
+
+    mockAssigneeSections('me', []);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      match: [MockApiClient.matchQuery({group: [issue.id]})],
+      body: [
+        {
+          ...issue,
+          assignedTo: {id: nextAssignee.id, name: nextAssignee.name, type: 'user'},
+        },
+      ],
+    });
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Modify issue assignee'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: /Next Assignee/}));
+    await waitFor(() => expect(assignRequest).toHaveBeenCalled());
+
+    await userEvent.click(screen.getByRole('button', {name: 'All issues'}));
+
+    expect(
+      await screen.findByText('No autofix runs match your filters.')
     ).toBeInTheDocument();
   });
 });
