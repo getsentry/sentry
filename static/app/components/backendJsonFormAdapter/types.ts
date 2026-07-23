@@ -82,6 +82,12 @@ interface JsonFormAdapterChoiceMapperFlat extends JsonFormAdapterChoiceMapperBas
 interface JsonFormAdapterChoiceMapperPerItem extends JsonFormAdapterChoiceMapperBase {
   perItemMapping: true;
   mappedSelectors?: Record<string, Record<string, ChoiceMapperSelector>>;
+  /**
+   * URL to fetch per-item selector choices on demand (e.g. Jira project statuses).
+   * When set and a row's selectors are not in `mappedSelectors`, the component
+   * fetches choices from `GET {statusUrl}?field=status&project={itemKey}`.
+   */
+  statusUrl?: string;
 }
 
 type JsonFormAdapterChoiceMapper =
