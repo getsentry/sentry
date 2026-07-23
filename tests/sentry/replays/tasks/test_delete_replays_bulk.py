@@ -5,6 +5,8 @@ import uuid
 from collections.abc import Generator
 from unittest.mock import MagicMock, Mock, patch
 
+import pytest
+
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.replays.tasks import run_bulk_replay_delete_job
 from sentry.replays.testutils import mock_replay
@@ -14,6 +16,7 @@ from sentry.replays.usecases.delete import (
 )
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
+from sentry.utils.snuba import RateLimitExceeded, SnubaError
 
 
 class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
@@ -306,6 +309,52 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             "organization_id": self.job.organization_id,
             "project_id": self.job.project_id,
         }
+
+    @patch("sentry.utils.retries.time.sleep")
+    @patch("sentry.replays.usecases.delete.execute_query")
+    def test_fetch_rows_matching_pattern_retries_snuba_errors(
+        self, mock_execute_query: MagicMock, mock_sleep: MagicMock
+    ) -> None:
+        """Transient Snuba errors are retried; the query succeeds on a later attempt."""
+        mock_execute_query.side_effect = [
+            SnubaError("read timed out"),
+            RateLimitExceeded("rate limited"),
+            {"data": []},
+        ]
+
+        result = fetch_rows_matching_pattern(
+            self.project.id,
+            self.range_start,
+            self.range_end,
+            query="",
+            environment=["prod"],
+            limit=50,
+            offset=0,
+        )
+
+        assert result == {"has_more": False, "rows": []}
+        assert mock_execute_query.call_count == 3
+
+    @patch("sentry.utils.retries.time.sleep")
+    @patch("sentry.replays.usecases.delete.execute_query")
+    def test_fetch_rows_matching_pattern_retries_exhausted(
+        self, mock_execute_query: MagicMock, mock_sleep: MagicMock
+    ) -> None:
+        """After the maximum number of attempts the error is raised to the caller."""
+        mock_execute_query.side_effect = SnubaError("read timed out")
+
+        with pytest.raises(SnubaError):
+            fetch_rows_matching_pattern(
+                self.project.id,
+                self.range_start,
+                self.range_end,
+                query="",
+                environment=["prod"],
+                limit=50,
+                offset=0,
+            )
+
+        assert mock_execute_query.call_count == 5
 
     @patch("requests.post")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")

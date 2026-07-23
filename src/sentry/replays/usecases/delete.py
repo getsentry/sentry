@@ -160,7 +160,7 @@ def fetch_rows_matching_pattern(
     # because our most likely failure is rate limit related. Blasting Snuba with more queries will
     # increase the chance of failure not reduce it.
     policy = ConditionalRetryPolicy(
-        test_function=lambda a, e: a < 5 and e in SNUBA_RETRY_EXCEPTIONS,
+        test_function=lambda a, e: a < 5 and isinstance(e, SNUBA_RETRY_EXCEPTIONS),
         delay_function=exponential_delay(1.0),
     )
     response = policy(
