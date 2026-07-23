@@ -12,6 +12,8 @@ from collections.abc import Sequence
 from enum import Enum
 from typing import Any, cast
 
+from django.db.models import Count, Q
+
 from sentry import analytics
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.commit import Commit
@@ -249,22 +251,11 @@ def reviews_requested_count(pull_request: PullRequest) -> int:
     if doc is not None:
         return activity_doc.reviews_requested_count_from_doc(doc)
 
-    rows = list(
-        PullRequestActivity.objects.filter(
-            pull_request=pull_request,
-            event_type__in=(
-                PullRequestActivityType.REVIEW_REQUESTED,
-                PullRequestActivityType.REVIEW_REQUEST_REMOVED,
-            ),
-        ).values_list("event_type", flat=True)
+    counts = PullRequestActivity.objects.filter(pull_request=pull_request).aggregate(
+        requested=Count("id", filter=Q(event_type=PullRequestActivityType.REVIEW_REQUESTED)),
+        removed=Count("id", filter=Q(event_type=PullRequestActivityType.REVIEW_REQUEST_REMOVED)),
     )
-    requested = sum(
-        1 for event_type in rows if event_type == PullRequestActivityType.REVIEW_REQUESTED
-    )
-    removed = sum(
-        1 for event_type in rows if event_type == PullRequestActivityType.REVIEW_REQUEST_REMOVED
-    )
-    return max(requested - removed, 0)
+    return max(counts["requested"] - counts["removed"], 0)
 
 
 def calculate_deterministic_diagnosis_labels(
