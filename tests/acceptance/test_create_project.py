@@ -118,7 +118,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             '[contains(., "Django")]'
         )
 
-    def create_project(self, sdk_name: str, platform: str) -> Project:
+    def create_scm_project(self, sdk_name: str, platform: str) -> Project:
         self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
         self.browser.click(xpath='//button[contains(., "Create project")]')
         self.browser.wait_until(xpath=f'//h2[text()="Configure {sdk_name} SDK"]')
@@ -219,7 +219,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
 
             self.browser.wait_until(xpath='//button[contains(., "getsentry")]')
             self.select_repository()
-            self.create_project("Django", "python-django")
+            self.create_scm_project("Django", "python-django")
 
     def test_create_without_repository(self) -> None:
         with self.feature(
@@ -242,7 +242,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             self.browser.wait_until(
                 xpath='//*[@role="checkbox" and @aria-checked="true"][.//*[text()="Tracing"]]'
             )
-            self.create_project("React", "javascript-react")
+            self.create_scm_project("React", "javascript-react")
 
     def test_create_with_existing_integration(self) -> None:
         self.create_github_integration()
@@ -275,4 +275,4 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             self.browser.wait_until('input[aria-autocomplete="list"]')
 
             self.select_repository()
-            self.create_project("Django", "python-django")
+            self.create_scm_project("Django", "python-django")
