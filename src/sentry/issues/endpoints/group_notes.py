@@ -93,7 +93,7 @@ class GroupNotesEndpoint(GroupEndpoint):
                 for entry in comment_entries:
                     if entry.id in latest_edit_text_by_comment:
                         entry.data = {
-                            **entry.data,
+                            **(entry.data or {}),
                             "text": latest_edit_text_by_comment[entry.id],
                         }
                 serialized = serialize(comment_entries, request.user)
