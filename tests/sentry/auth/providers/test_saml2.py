@@ -10,7 +10,12 @@ from PIL import Image
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.saml2.forms import AttributeMappingForm
-from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider, _validate_saml_avatar
+from sentry.auth.providers.saml2.provider import (
+    Attributes,
+    SAML2Provider,
+    _extract_saml_avatar,
+    _validate_saml_avatar,
+)
 from sentry.auth.view import AuthView
 from sentry.testutils.silo import control_silo_test
 
@@ -112,7 +117,9 @@ class SAML2ProviderTest(TestCase):
         assert identity["name"] == "Morty"
 
     def test_build_identity_with_avatar(self) -> None:
-        avatar = _png_b64()
+        # The avatar is validated + re-encoded at ACS time and bound under the
+        # dedicated ``saml_avatar`` state key; build_identity just reads it.
+        avatar = _validate_saml_avatar(_png_b64())
         self.provider.config = dummy_provider_config_with_avatar
         state = {
             "auth_attributes": {
@@ -120,25 +127,20 @@ class SAML2ProviderTest(TestCase):
                 "email": ["valid@example.com"],
                 "first": ["Morty"],
                 "last": ["Smith"],
-                "photo": [avatar],
-            }
+            },
+            "saml_avatar": avatar,
         }
 
         identity = self.provider.build_identity(state)
 
-        # The avatar is re-encoded on validation, so it decodes back to a valid
-        # PNG rather than matching the source bytes verbatim.
-        assert identity["avatar"] == _validate_saml_avatar(avatar)
-        with Image.open(BytesIO(b64decode(identity["avatar"]))) as image:
-            assert image.format == "PNG"
+        assert identity["avatar"] == avatar
 
-    def test_build_identity_with_invalid_avatar_is_omitted(self) -> None:
+    def test_build_identity_without_avatar_state_is_omitted(self) -> None:
         self.provider.config = dummy_provider_config_with_avatar
         state = {
             "auth_attributes": {
                 "id": ["123"],
                 "email": ["valid@example.com"],
-                "photo": ["not-a-real-image"],
             }
         }
 
@@ -235,6 +237,33 @@ class ValidateSamlAvatarTest(TestCase):
             side_effect=Image.DecompressionBombError("boom"),
         ):
             assert _validate_saml_avatar(avatar) is None
+
+
+class ExtractSamlAvatarTest(TestCase):
+    def test_validates_and_pops_mapped_avatar(self) -> None:
+        attributes = {"id": ["123"], "photo": [_png_b64()]}
+
+        result = _extract_saml_avatar(dummy_provider_config_with_avatar, attributes)
+
+        assert result == _validate_saml_avatar(_png_b64())
+        # Raw payload is removed so it never lands in the pipeline state.
+        assert "photo" not in attributes
+
+    def test_invalid_avatar_returns_none_but_still_pops(self) -> None:
+        attributes = {"photo": ["not-a-real-image"]}
+
+        assert _extract_saml_avatar(dummy_provider_config_with_avatar, attributes) is None
+        assert "photo" not in attributes
+
+    def test_returns_none_when_unmapped(self) -> None:
+        attributes = {"photo": [_png_b64()]}
+
+        assert _extract_saml_avatar(dummy_provider_config, attributes) is None
+        # Untouched when the avatar attribute isn't mapped.
+        assert "photo" in attributes
+
+    def test_returns_none_when_attribute_absent(self) -> None:
+        assert _extract_saml_avatar(dummy_provider_config_with_avatar, {"id": ["123"]}) is None
 
 
 class AttributeMappingFormTest(TestCase):

@@ -161,7 +161,14 @@ class SAML2ACSView(AuthView):
         if auth.get_errors():
             return pipeline.error(ERR_SAML_FAILED.format(reason=auth.get_last_error_reason()))
 
-        pipeline.bind_state("auth_attributes", auth.get_attributes())
+        # Pull the (potentially multi-megabyte) avatar out of the attributes and
+        # validate it down to a small image before binding, so the raw payload
+        # never lands in the pipeline's Redis state.
+        attributes = auth.get_attributes()
+        avatar = _extract_saml_avatar(provider.config, attributes)
+        pipeline.bind_state("auth_attributes", attributes)
+        if avatar:
+            pipeline.bind_state("saml_avatar", avatar)
 
         # Extract the provider key from the RelayState parameter.
         # This was encoded when the SAML flow started (in SAML2LoginView) and survives
@@ -230,14 +237,22 @@ class Attributes:
     AVATAR = "avatar"
 
 
+_ALLOWED_AVATAR_FORMATS = ["PNG", "JPEG", "GIF"]
+
+
 class _SamlAvatarField(AvatarField):
     """
     Reuse the avatar upload validation (base64 decode, size limit, and format
     allowlist) so SAML avatar handling stays consistent with the rest of Sentry.
     Identity providers send photos at arbitrary sizes and stored avatars are
     resized on read, so the square/min/max dimension checks are intentionally
-    skipped here.
+    skipped here. The decode is restricted to the allowed formats so hostile
+    assertion bytes can't engage an unexpected Pillow decoder.
     """
+
+    def __init__(self, **kwargs: Any) -> None:
+        kwargs.setdefault("formats", _ALLOWED_AVATAR_FORMATS)
+        super().__init__(**kwargs)
 
     def is_valid_size(self, width: int, height: int) -> bool:
         return True
@@ -278,7 +293,7 @@ def _validate_saml_avatar(value: str | None) -> str | None:
     try:
         # Restrict the decoders to the allowed formats so Pillow can't be steered
         # into loading a different one.
-        with Image.open(decoded, formats=["PNG", "JPEG", "GIF"]) as image:
+        with Image.open(decoded, formats=_ALLOWED_AVATAR_FORMATS) as image:
             image_format = image.format or "PNG"
 
             # Bake in any EXIF orientation before the metadata is dropped below,
@@ -306,6 +321,29 @@ def _validate_saml_avatar(value: str | None) -> str | None:
         return None
 
     return b64encode(buffer.getvalue()).decode()
+
+
+def _extract_saml_avatar(
+    config: Mapping[str, Any], attributes: dict[str, list[str]]
+) -> str | None:
+    """
+    Pop the mapped avatar attribute out of ``attributes`` and return the
+    validated, re-encoded avatar (or ``None`` when unmapped, absent, or invalid).
+
+    Extracting and validating this at assertion time keeps the raw base64 payload
+    — which identity providers can send as several megabytes — out of the
+    pipeline's Redis state, which is rewritten on every ``bind_state`` call. Only
+    the small, re-encoded result is retained.
+    """
+    avatar_key = config.get("attribute_mapping", {}).get(Attributes.AVATAR)
+    if not avatar_key:
+        return None
+
+    raw_avatar = attributes.pop(avatar_key, None)
+    if not raw_avatar:
+        return None
+
+    return _validate_saml_avatar(raw_avatar[0])
 
 
 class SAML2Provider(Provider, abc.ABC):
@@ -419,11 +457,11 @@ class SAML2Provider(Provider, abc.ABC):
             "name": name,
         }
 
-        # Optionally sync the user's profile picture from the assertion. This is
-        # opt-in: it only applies when the provider's attribute mapping maps the
-        # `avatar` attribute to a SAML attribute carrying base64 image data.
-        avatar = _validate_saml_avatar(attributes.get(Attributes.AVATAR))
-        if avatar is not None:
+        # Optionally sync the user's profile picture. It is extracted, validated,
+        # and re-encoded at assertion time (see SAML2ACSView) and stored under a
+        # dedicated state key so the raw payload never bloats the pipeline state.
+        avatar = state.get("saml_avatar")
+        if avatar:
             identity["avatar"] = avatar
 
         return identity

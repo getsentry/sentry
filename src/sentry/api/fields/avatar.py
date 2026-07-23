@@ -27,6 +27,7 @@ class AvatarField(serializers.Field):
         min_dimension=MIN_DIMENSION,
         max_dimension=MAX_DIMENSION,
         is_sentry_app=None,
+        formats=None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -34,6 +35,9 @@ class AvatarField(serializers.Field):
         self.min_dimension = min_dimension
         self.max_dimension = max_dimension
         self.is_sentry_app = is_sentry_app
+        # Restrict which Pillow decoders may be engaged on the (untrusted) input.
+        # None keeps Pillow's default of trying every registered format.
+        self.formats = formats
 
     def to_representation(self, value):
         if not value:
@@ -47,7 +51,7 @@ class AvatarField(serializers.Field):
         if len(data) > self.max_size:
             raise ImageTooLarge()
 
-        with Image.open(BytesIO(data)) as img:
+        with Image.open(BytesIO(data), formats=self.formats) as img:
             if self.is_sentry_app and (
                 img.format is None or Image.MIME[img.format] not in SENTRY_APP_ALLOWED_MIMETYPES
             ):
