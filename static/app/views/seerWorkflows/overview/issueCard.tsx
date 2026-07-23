@@ -106,9 +106,11 @@ function MetaItem({
   tooltip?: React.ReactNode;
 }) {
   return (
-    // minWidth 0 + ellipsis let the item truncate inside a tight rail column
-    // instead of pushing the layout wider.
-    <Flex gap="xs" align="center" minWidth="0">
+    // Shrink-to-fit rows keep tooltip anchors hugging the text, but need
+    // maxWidth 100% as the cross-axis bound in the non-stretching vitals
+    // stack — with minWidth 0 + ellipsis, long content truncates instead of
+    // overflowing the rail.
+    <Flex gap="xs" align="center" minWidth="0" maxWidth="100%">
       {icon}
       {tooltip ? (
         // Capped width keeps the bubble proportional to these small items —
@@ -405,7 +407,9 @@ export function IssueCard({
               align="start"
               minWidth="0"
             >
-              <Flex gap="xs" align="center" minWidth="0">
+              {/* maxWidth bounds the shrink-to-fit row so a long shortId
+                  truncates instead of overflowing the rail */}
+              <Flex gap="xs" align="center" minWidth="0" maxWidth="100%">
                 <Tooltip title={t('View project')} skipWrapper>
                   <ProjectBadge project={row.project} avatarSize={14} hideName />
                 </Tooltip>
