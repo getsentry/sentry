@@ -317,8 +317,22 @@ function GithubAvatar({item}: {item: IterationFeedback}) {
     item.sourceType === 'github-pr-review-comment'
       ? item.githubUsername
       : undefined;
-  // Synthetic avatar user: we only have the GitHub login, no Sentry user record.
-  const user = login ? ({username: login, name: login} as AvatarUser) : null;
+  // We only get the GitHub login on the wire (no Sentry user, no avatar URL), so
+  // point the avatar at GitHub's per-login image (`github.com/<login>.png`).
+  // UserAvatar falls back to a letter avatar from the login if it fails to load.
+  const user = login
+    ? ({
+        // GitHub's noreply email for the login. `email` must be present so
+        // UserAvatar's `isActor` check (`email === undefined`) treats this as an
+        // AvatarUser and honors the `avatar` field — an Actor is forced to a
+        // letter avatar. (The exact `ID+login@...` form needs the numeric GitHub
+        // user id, which isn't on the wire, so we use the id-less variant.)
+        email: `${login}@users.noreply.github.com`,
+        username: login,
+        name: login,
+        avatar: {avatarType: 'upload', avatarUrl: `https://github.com/${login}.png`},
+      } as AvatarUser)
+    : null;
   return (
     <AuthorAvatar
       user={user}
