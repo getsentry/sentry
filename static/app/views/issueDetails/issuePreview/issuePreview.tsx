@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -135,18 +135,13 @@ function IssuePreviewContent() {
           event={null}
         />
         <Flex align="center" wrap="wrap" gap="lg">
-          <Flex align="center" gap="xs">
-            <Text size="sm" variant="muted">
-              {t('Priority')}
-            </Text>
-            <GroupPriority group={group} />
-          </Flex>
-          <Flex align="center" gap="xs">
-            <Text size="sm" variant="muted">
-              {t('Assignee')}
-            </Text>
-            <GroupHeaderAssigneeSelector group={group} project={project} event={null} />
-          </Flex>
+          <GroupPriority group={group} />
+          <GroupHeaderAssigneeSelector
+            group={group}
+            project={project}
+            event={null}
+            showLabel={false}
+          />
         </Flex>
       </Flex>
       <Container paddingTop="md">
