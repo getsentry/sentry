@@ -1,9 +1,20 @@
+from __future__ import annotations
+
 from typing import TypedDict
+from urllib.parse import urlencode
 
 import orjson
 from django.template.defaultfilters import pluralize
 from sentry_relay.processing import parse_release
 
+from sentry.models.commit import Commit
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.deploy import Deploy
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.repository import Repository
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.utils import format_datetime
 from sentry.notifications.platform.types import (
@@ -22,6 +33,7 @@ from sentry.notifications.platform.types import (
     ParagraphSection,
     PlainTextBlock,
 )
+from sentry.users.services.user.service import user_service
 
 TEXT_DELIMITER = " · "
 MAX_SUBJECT_PROJECTS = 2
@@ -42,7 +54,6 @@ class DeployReleaseProject(TypedDict):
 
 class DeployReleaseData(NotificationData):
     source: NotificationSource = NotificationSource.DEPLOY_RELEASE
-    notification_uuid: str
     # If this notification was triggered by an alert (Workflow)...
     alert_name: str | None = None
     alert_url: str | None = None
@@ -181,7 +192,6 @@ class DeployReleaseTemplate(NotificationTemplate[DeployReleaseData]):
     category = NotificationCategory.DEPLOY
     example_data = DeployReleaseData(
         source=NotificationSource.DEPLOY_RELEASE,
-        notification_uuid="1234567890",
         user_settings_url="https://sentry.io/settings/account/notifications/deploy/",
         alert_name="Notify #feed-deploys via Slack",
         alert_url="https://sentry.io/organizations/acme/monitors/alerts/1/",
@@ -243,3 +253,108 @@ class DeployReleaseTemplate(NotificationTemplate[DeployReleaseData]):
             actions=build_deploy_actions(data=data),
             footer=build_deploy_footer(data=data),
         )
+
+
+class DeployReleaseDataResult(TypedDict):
+    data: DeployReleaseData
+    # These are attached here because they're also used in the strategy, saving duplicate queries
+    committer_user_ids: set[int]
+    projects: set[Project]
+
+
+def build_deploy_release_data(deploy: Deploy, release: Release) -> DeployReleaseDataResult:
+    from sentry.notifications.utils import get_environment_for_deploy, get_group_counts_by_project
+
+    organization = release.organization
+    projects = set(release.projects.all())
+    commit_list = list(Commit.objects.get_for_release(release))
+    email_list = {c.author.email for c in commit_list if c.author}
+    users = user_service.get_many_by_email(
+        emails=list(email_list),
+        organization_id=organization.id,
+        is_verified=True,
+    )
+    users_by_email = {u.email: u for u in users}
+
+    environment = get_environment_for_deploy(deploy)
+    group_counts_by_project = get_group_counts_by_project(release, projects)
+
+    release_projects: list[DeployReleaseProject] = []
+    for project in sorted(projects, key=lambda p: p.slug):
+        release_url = organization.absolute_url(
+            f"/organizations/{organization.slug}/releases/{release.version}/",
+            query=urlencode({"project": project.id}),
+        )
+        release_projects.append(
+            DeployReleaseProject(
+                project_slug=project.slug,
+                release_url=release_url,
+                resolved_issue_count=group_counts_by_project.get(project.id, 0),
+            )
+        )
+
+    repo_name_to_commits: dict[str, list[DeployReleaseCommit]] = {}
+
+    repositories_by_id = {
+        repo_id: repo_name
+        for repo_id, repo_name in Repository.objects.filter(
+            organization_id=organization.id,
+            id__in={c.repository_id for c in commit_list},
+        ).values_list("id", "name")
+    }
+    for commit in commit_list:
+        repo_name = repositories_by_id.get(commit.repository_id, "unknown")
+        author_name = ""
+        if commit.author:
+            user_option = users_by_email.get(commit.author.email)
+            author_name = (
+                user_option.get_display_name() if user_option else commit.author.name or ""
+            )
+        repo_name_to_commits.setdefault(repo_name, []).append(
+            DeployReleaseCommit(
+                author_name=author_name,
+                date=commit.date_added.isoformat() if commit.date_added else "",
+                sha=commit.short_id,
+                message=commit.title,
+            )
+        )
+
+    data = DeployReleaseData(
+        date=deploy.date_finished.isoformat() if deploy.date_finished else "",
+        author_count=len(email_list),
+        commit_count=len(commit_list),
+        file_count=CommitFileChange.objects.get_count_for_commits(commit_list),
+        release_projects=release_projects,
+        repo_name_to_commits=repo_name_to_commits,
+        repo_setup_link=organization.absolute_url(f"/organizations/{organization.slug}/repos/"),
+        version=release.version,
+        environment_name=environment,
+    )
+
+    return DeployReleaseDataResult(
+        data=data,
+        committer_user_ids={u.id for u in users},
+        projects=projects,
+    )
+
+
+def filter_deploy_data(
+    *,
+    data: DeployReleaseData,
+    organization: Organization,
+    user_id: int | None,
+) -> DeployReleaseData:
+    if user_id is None or organization.flags.allow_joinleave:
+        return data
+
+    user_team_ids = OrganizationMember.objects.get_teams_by_user(organization).get(user_id, [])
+    user_project_slugs = (
+        set(Project.objects.get_for_team_ids(user_team_ids).values_list("slug", flat=True))
+        if user_team_ids
+        else set()
+    )
+    filtered_release_projects = [
+        rp for rp in data.release_projects if rp["project_slug"] in user_project_slugs
+    ]
+
+    return data.copy(update={"release_projects": filtered_release_projects})

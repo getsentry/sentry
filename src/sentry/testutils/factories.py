@@ -108,6 +108,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.organizationmapping import OrganizationMapping
@@ -139,6 +140,7 @@ from sentry.notifications.models.notificationaction import (
     ActionTrigger,
     NotificationAction,
 )
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.preprod.models import (
@@ -1305,6 +1307,12 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_subscription(group, **kwargs):
+        kwargs.setdefault("project", group.project)
+        return GroupSubscription.objects.create(group=group, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_group_owner(
         group,
         type=GroupOwnerType.OWNERSHIP_RULE.value,
@@ -2215,6 +2223,11 @@ class Factories:
         action.save()
 
         return action
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_notification_setting_option(*args, **kwargs) -> NotificationSettingOption:
+        return NotificationSettingOption.objects.create(*args, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)

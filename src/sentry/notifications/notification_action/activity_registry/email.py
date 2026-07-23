@@ -2,7 +2,6 @@ from sentry.models.activity import Activity
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.activity_registry.base import (
     NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES,
-    build_activity_notification_data,
     require_config,
     send_activity_notification,
 )
@@ -13,8 +12,9 @@ from sentry.notifications.platform.strategies.issue_owners import (
     IssueOwnersActivityAlertStrategy,
 )
 from sentry.notifications.platform.target import GenericNotificationTarget
-from sentry.notifications.platform.templates.activity import (
+from sentry.notifications.platform.templates.activity.base import (
     ActivityNotificationData,
+    build_activity_notification_data,
 )
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
@@ -36,7 +36,7 @@ class EmailActivityHandler(ActivityHandler):
         if group is None:
             raise ValueError(f"Activity {activity.id} has no associated group")
         strategy = IssueOwnersActivityAlertStrategy(group=group)
-        data = build_activity_notification_data(invocation, activity)
+        data = build_activity_notification_data(activity, workflow_id=invocation.workflow_id)
         NotificationService[ActivityNotificationData](data=data).notify_sync(strategy=strategy)
 
     @classmethod
