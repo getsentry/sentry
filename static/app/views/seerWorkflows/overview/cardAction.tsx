@@ -64,7 +64,7 @@ const ACTION_META: Record<
   },
   needs_investigation: {
     Icon: IconSearch,
-    label: t('Approve Root Cause'),
+    label: t('Create Plan'),
     variant: 'secondary',
     description: t(
       'Seer stopped at a diagnosis. Review the root cause and approve it to continue.'

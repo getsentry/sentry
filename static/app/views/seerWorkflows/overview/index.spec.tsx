@@ -247,26 +247,24 @@ describe('AutofixOverview', () => {
     // cards with a real PR behind them (here 1, despite X-Hits 3); the other
     // buckets show their X-Hits count.
     const reviewHeader = await screen.findByRole('button', {
-      name: 'Awaiting your review 1',
+      name: 'Review Open PRs 1',
     });
+    expect(screen.getByRole('button', {name: 'Create PR 0'})).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'Code changes ready 0'})
+      screen.getByRole('button', {name: 'Generate code changes 0'})
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'Ready to generate code 0'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Needs investigation 0'})
+      screen.getByRole('button', {name: 'Confirm Root Cause 0'})
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Merged 0'})).toBeInTheDocument();
 
     // The headers render in pipeline (SECTION_ORDER) order; reordering the
     // PIPELINE table reorders these and fails here.
     const orderedHeaders = [
-      /Awaiting your review/,
-      /Code changes ready/,
-      /Ready to generate code/,
-      /Needs investigation/,
+      /Review Open PRs/,
+      /Create PR/,
+      /Generate code changes/,
+      /Confirm Root Cause/,
       /Merged/,
     ].map(name => screen.getByRole('button', {name}));
     for (let index = 0; index < orderedHeaders.length - 1; index++) {
@@ -281,7 +279,7 @@ describe('AutofixOverview', () => {
     const titleLink = await screen.findByRole('link', {
       name: 'Proxy requests fail without Authorization header',
     });
-    const codeHeader = screen.getByRole('button', {name: 'Code changes ready 0'});
+    const codeHeader = screen.getByRole('button', {name: 'Create PR 0'});
     expect(
       reviewHeader.compareDocumentPosition(titleLink) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
@@ -458,7 +456,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     const reviewHeader = await screen.findByRole('button', {
-      name: 'Awaiting your review 1',
+      name: 'Review Open PRs 1',
     });
     expect(
       await screen.findByRole('link', {
@@ -514,7 +512,7 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    await screen.findByRole('button', {name: 'Awaiting your review 30'});
+    await screen.findByRole('button', {name: 'Review Open PRs 30'});
     expect(screen.getAllByRole('link', {name: /Bulk issue/})).toHaveLength(30);
     expect(
       screen.queryByRole('button', {name: /Show \d+ more issue/})
@@ -529,7 +527,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('button', {name: 'Code changes ready 100+'})
+      await screen.findByRole('button', {name: 'Create PR 100+'})
     ).toBeInTheDocument();
   });
 
@@ -548,7 +546,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('button', {name: 'Awaiting your review 1'})
+      await screen.findByRole('button', {name: 'Review Open PRs 1'})
     ).toBeInTheDocument();
     expect(
       await screen.findByRole('link', {
@@ -679,7 +677,7 @@ describe('AutofixOverview', () => {
     // Focus mode hides the section list and offers the way back, keeping the
     // other params.
     expect(
-      screen.queryByRole('button', {name: /Awaiting your review/})
+      screen.queryByRole('button', {name: /Review Open PRs/})
     ).not.toBeInTheDocument();
     const backLink = screen.getByRole('button', {name: 'All issues'});
     expect(backLink).toHaveAttribute('href', expect.not.stringContaining('id=2'));
@@ -700,7 +698,7 @@ describe('AutofixOverview', () => {
     expect(await screen.findByText('No completed autofix runs yet.')).toBeInTheDocument();
     // The section list is replaced entirely by the empty state.
     expect(
-      screen.queryByRole('button', {name: /Awaiting your review/})
+      screen.queryByRole('button', {name: /Review Open PRs/})
     ).not.toBeInTheDocument();
   });
 
@@ -736,9 +734,7 @@ describe('AutofixOverview', () => {
       await screen.findByText('There was an error loading data.')
     ).toBeInTheDocument();
     expect(screen.queryByText('No completed autofix runs yet.')).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: /Awaiting your review/})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /Review Open PRs/})).toBeInTheDocument();
   });
 
   it('surfaces a per-section error while other sections still load', async () => {
@@ -804,7 +800,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('button', {name: 'Awaiting your review 1'})
+      await screen.findByRole('button', {name: 'Review Open PRs 1'})
     ).toBeInTheDocument();
   });
 
