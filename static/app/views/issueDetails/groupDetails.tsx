@@ -225,7 +225,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
         );
       }
     }, undefined) as () => void;
-  }, [groupId, incomingEnvs, organization.slug, queryClient]);
+  }, [groupId, incomingEnvs, organization, queryClient]);
 }
 
 function useFetchGroupDetails(): FetchGroupDetailsState {
