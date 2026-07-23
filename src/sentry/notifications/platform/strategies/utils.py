@@ -168,14 +168,14 @@ def _get_slack_team_targets(
     team_ids: set[int],
     organization_id: int,
 ) -> list[NotificationTarget]:
+    if not team_ids:
+        return []
+
     org_integrations = integration_service.get_organization_integrations(
         status=ObjectStatus.ACTIVE,
         organization_id=organization_id,
         providers=[ExternalProviderEnum.SLACK.value],
     )
-
-    if not team_ids:
-        return []
 
     external_actors = ExternalActor.objects.filter(
         provider=ExternalProviders.SLACK.value,
