@@ -8,8 +8,6 @@ interface SaveAsAlertMenuItemOptions {
   organization: Organization;
 }
 
-// Spans, logs, and metrics alerts all route through the metric alert flow,
-// which is gated by the `incidents` feature (absent on the developer plan).
 export function getMetricAlertsUpsellTooltip(
   organization: Organization
 ): string | undefined {

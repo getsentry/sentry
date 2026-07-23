@@ -7,7 +7,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -56,7 +55,7 @@ export function ChartContextMenu({
         key: 'create-alert',
         textValue: newAlertLabel,
         label: newAlertLabel,
-        disabled: isVisualizeEquation(visualizeYAxes[0]!) || defined(alertsUpsellTooltip),
+        disabled: isVisualizeEquation(visualizeYAxes[0]!) || !!alertsUpsellTooltip,
         tooltip: alertsUpsellTooltip,
         to: getAlertsUrl({
           project,
@@ -104,7 +103,7 @@ export function ChartContextMenu({
         ? t('Create a Monitor for')
         : t('Create an Alert for');
 
-      const hasAccess = !defined(alertsUpsellTooltip);
+      const hasAccess = !alertsUpsellTooltip;
       menuItems.push({
         key: 'create-alert',
         label: newAlertLabel,
