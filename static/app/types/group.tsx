@@ -828,7 +828,7 @@ interface GroupActivityPullRequestUnlinked extends GroupActivityBase {
  * Mirrors `sentry.seer.autofix.constants.AutofixReferrer` on the backend.
  * Keep these values in sync when the backend enum changes.
  */
-export type AutofixReferrer =
+type AutofixReferrer =
   | 'api.cli'
   | 'api.group_ai_autofix'
   | 'api.linear_agent'
