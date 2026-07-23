@@ -929,9 +929,13 @@ export function getTransactionsDeprecation(organization: Organization) {
   return organization.features.includes('discover-saved-queries-deprecation');
 }
 
+export function getDiscoverDeprecationEnabled(organization: Organization) {
+  return organization.features.includes('deprecate-discover');
+}
+
 export function getDiscoverDeprecation(organization: Organization) {
   return (
-    organization.features.includes('deprecate-discover') &&
+    getDiscoverDeprecationEnabled(organization) &&
     getTransactionsDeprecation(organization)
   );
 }

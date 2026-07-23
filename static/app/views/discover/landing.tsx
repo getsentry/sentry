@@ -261,14 +261,18 @@ function DiscoverLanding() {
                         )}
                       </Alert>
                     ) : (
-                      <Alert variant="info">
-                        {tct(
-                          'Your saved transactions queries are also available in the new Explore UI. Try them out in [exploreLink:Explore] instead.',
-                          {
-                            exploreLink: <Link to="/explore/saved-queries/" />,
-                          }
-                        )}
-                      </Alert>
+                      organization.features.includes(
+                        'expose-migrated-discover-queries'
+                      ) && (
+                        <Alert variant="info">
+                          {tct(
+                            'Your saved transactions queries are also available in the new Explore UI. Try them out in [exploreLink:Explore] instead.',
+                            {
+                              exploreLink: <Link to="/explore/saved-queries/" />,
+                            }
+                          )}
+                        </Alert>
+                      )
                     ))}
                   <QueryList
                     pageLinks={savedQueriesPageLinks ?? ''}
