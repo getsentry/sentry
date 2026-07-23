@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {SpanFields} from 'sentry/views/insights/types';
 
-import {MessagesPanelNew} from './messagesPanelNew';
+import {MessagesPanel} from './messagesPanel';
 
 function createMockNode(overrides: {
   id: string;
@@ -87,7 +87,7 @@ function createNodesWithToolCalls(
   return [firstGeneration, ...toolNodes, secondGeneration];
 }
 
-describe('MessagesPanelNew', () => {
+describe('MessagesPanel', () => {
   const mockOnSelectNode = jest.fn();
 
   beforeEach(() => {
@@ -98,7 +98,7 @@ describe('MessagesPanelNew', () => {
     const toolNode = createMockToolNode({id: 'tool-1', toolName: 'search'});
 
     render(
-      <MessagesPanelNew
+      <MessagesPanel
         nodes={[toolNode] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
@@ -116,7 +116,7 @@ describe('MessagesPanelNew', () => {
     const toolNode = createMockToolNode({id: 'tool-1', toolName: 'search'});
 
     render(
-      <MessagesPanelNew
+      <MessagesPanel
         nodes={[toolNode] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
@@ -133,7 +133,7 @@ describe('MessagesPanelNew', () => {
     const node = createMockNode({id: 'span-1'});
 
     render(
-      <MessagesPanelNew
+      <MessagesPanel
         nodes={[node] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
@@ -160,7 +160,7 @@ describe('MessagesPanelNew', () => {
     });
 
     render(
-      <MessagesPanelNew
+      <MessagesPanel
         nodes={[node] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
@@ -185,7 +185,7 @@ describe('MessagesPanelNew', () => {
     });
 
     render(
-      <MessagesPanelNew
+      <MessagesPanel
         nodes={[node] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
@@ -211,7 +211,7 @@ describe('MessagesPanelNew', () => {
     });
 
     render(
-      <MessagesPanelNew
+      <MessagesPanel
         nodes={[node] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
@@ -246,7 +246,7 @@ describe('MessagesPanelNew', () => {
     });
 
     render(
-      <MessagesPanelNew
+      <MessagesPanel
         nodes={[generationNode1, toolNode1, generationNode2] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
@@ -258,7 +258,7 @@ describe('MessagesPanelNew', () => {
 
   it('renders a short run of tool calls inline without a summary', () => {
     render(
-      <MessagesPanelNew
+      <MessagesPanel
         nodes={createNodesWithToolCalls(['alpha', 'beta', 'gamma']) as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
@@ -272,7 +272,7 @@ describe('MessagesPanelNew', () => {
 
   it('collapses a long run of tool calls behind a summary and expands on click', async () => {
     render(
-      <MessagesPanelNew
+      <MessagesPanel
         nodes={createNodesWithToolCalls(['t1', 't2', 't3', 't4', 't5']) as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
@@ -294,7 +294,7 @@ describe('MessagesPanelNew', () => {
 
   it('shows the error count in the tool call summary', () => {
     render(
-      <MessagesPanelNew
+      <MessagesPanel
         nodes={
           createNodesWithToolCalls(['t1', 't2', 't3', 't4', 't5'], {
             errorToolNames: ['t2', 't4'],
@@ -311,7 +311,7 @@ describe('MessagesPanelNew', () => {
 
   it('expands the tool call group when one of its calls is selected', () => {
     render(
-      <MessagesPanelNew
+      <MessagesPanel
         nodes={createNodesWithToolCalls(['t1', 't2', 't3', 't4', 't5']) as any}
         selectedNodeId="tool-1"
         onSelectNode={mockOnSelectNode}
@@ -334,7 +334,7 @@ describe('MessagesPanelNew', () => {
     });
 
     render(
-      <MessagesPanelNew
+      <MessagesPanel
         nodes={[node] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
@@ -374,7 +374,7 @@ describe('MessagesPanelNew', () => {
     });
 
     render(
-      <MessagesPanelNew
+      <MessagesPanel
         nodes={[node] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}

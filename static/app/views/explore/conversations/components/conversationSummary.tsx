@@ -25,7 +25,7 @@ import {
   getUserDisplayName,
   normalizeUserField,
   UserNotInstrumentedTooltip,
-} from 'sentry/views/explore/conversations/components/conversationsTableNew';
+} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -43,7 +43,7 @@ import {
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
-interface ConversationSummaryNewProps {
+interface ConversationSummaryProps {
   conversationId: string;
   nodes: AITraceSpanNode[];
   isLoading?: boolean;
@@ -52,12 +52,12 @@ interface ConversationSummaryNewProps {
 
 const VISIBLE_TOOL_COUNT = 6;
 
-export function ConversationSummaryNew({
+export function ConversationSummary({
   nodes,
   conversationId,
   isLoading,
   nodeTraceMap,
-}: ConversationSummaryNewProps) {
+}: ConversationSummaryProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
