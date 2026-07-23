@@ -85,7 +85,11 @@ class FindStalePullRequestsTest(TestCase):
             ts=_ago(weeks_ago).isoformat(),
             webhook_id=f"wh-{pr.id}-{event_type}-{weeks_ago}",
         )
-        PullRequestActivityLog.objects.create(pull_request=pr, data=doc)
+        log = PullRequestActivityLog.objects.create(pull_request=pr, data=doc)
+        # date_updated is auto_now=True, so .save() always stamps "now" —
+        # bypass via .update() to backdate it, matching what a real write
+        # weeks_ago ago would have left behind.
+        PullRequestActivityLog.objects.filter(id=log.id).update(date_updated=_ago(weeks_ago))
 
     # --- inclusion ---
 
@@ -160,15 +164,39 @@ class FindStalePullRequestsTest(TestCase):
         self._track(pr)
         assert pr.id not in find_stale_pull_requests(cutoff=_ago(3))
 
-    def test_includes_document_track_pr_with_recent_engagement(self) -> None:
-        # find_stale_pull_requests only reads legacy PullRequestActivity rows.
+    def test_excludes_document_track_pr_with_recent_engagement(self) -> None:
         # A PR routed onto the PullRequestActivityLog document (see
-        # webhooks._use_activity_document) never writes those rows, so this
-        # scan can't see its engagement — detect_stale_pull_requests_task is
-        # responsible for cross-checking the document before settling it.
+        # webhooks._use_activity_document) never writes legacy
+        # PullRequestActivity rows, so the ~Exists check above can't see its
+        # engagement on its own. The document date_updated check closes that
+        # gap directly in SQL: any write within the window (engaging or not,
+        # since date_updated doesn't distinguish event types) excludes the PR.
         pr = self._make_pr()
         self._track(pr)
         self._add_activity_log(pr, PullRequestActivityType.REVIEW_SUBMITTED, weeks_ago=1.0)
+        assert pr.id not in find_stale_pull_requests(cutoff=_ago(3))
+
+    def test_excludes_document_track_pr_with_only_non_engaging_activity(self) -> None:
+        # Known coarseness: the document check compares date_updated (bumped by
+        # any write) against cutoff, so it can't distinguish an engaging event
+        # from a non-engaging one (e.g. a comment) the way the legacy
+        # ~Exists check above can. A document-track PR with only non-engaging
+        # activity is thus also excluded here, unlike a legacy-track PR in the
+        # same situation (see test_includes_pr_with_only_non_engaging_recent_activity
+        # above, which correctly stays a candidate). Accepted: this just delays
+        # detection to a later run once the document goes quiet, rather than
+        # risking a false abandoned verdict now.
+        pr = self._make_pr()
+        self._track(pr)
+        self._add_activity_log(pr, PullRequestActivityType.COMMENT_CREATED, weeks_ago=1.0)
+        assert pr.id not in find_stale_pull_requests(cutoff=_ago(3))
+
+    def test_includes_document_track_pr_whose_document_is_stale(self) -> None:
+        # A document-track PR is a candidate once its document has gone quiet
+        # for the whole staleness window, same as the legacy track.
+        pr = self._make_pr()
+        self._track(pr)
+        self._add_activity_log(pr, PullRequestActivityType.REVIEW_SUBMITTED, weeks_ago=5.0)
         assert pr.id in find_stale_pull_requests(cutoff=_ago(3))
 
     def test_returns_distinct_ids_with_multiple_attributions(self) -> None:
@@ -322,13 +350,17 @@ class DetectStalePullRequestsTaskTest(TestCase):
             ts=_ago(weeks_ago).isoformat(),
             webhook_id=f"wh-{pr.id}-{event_type}-{weeks_ago}",
         )
-        PullRequestActivityLog.objects.create(pull_request=pr, data=doc)
+        log = PullRequestActivityLog.objects.create(pull_request=pr, data=doc)
+        # date_updated is auto_now=True, so .save() always stamps "now" —
+        # bypass via .update() to backdate it, matching what a real write
+        # weeks_ago ago would have left behind.
+        PullRequestActivityLog.objects.filter(id=log.id).update(date_updated=_ago(weeks_ago))
 
     def test_skips_document_track_pr_with_recent_engagement(self) -> None:
-        # find_stale_pull_requests can't see engagement recorded in the
-        # PullRequestActivityLog document (it only reads legacy
-        # PullRequestActivity rows), so this candidate must be cross-checked
-        # and skipped here rather than incorrectly claimed as abandoned.
+        # find_stale_pull_requests excludes this PR directly (see its
+        # test_excludes_document_track_pr_with_recent_engagement) — asserted
+        # again here end-to-end through the task, since a query never called
+        # would trivially "exclude" everything.
         pr = self._make_tracked_stale_pr()
         self._add_activity_log(pr, PullRequestActivityType.REVIEW_SUBMITTED, weeks_ago=1.0)
         with (
@@ -343,13 +375,9 @@ class DetectStalePullRequestsTaskTest(TestCase):
         ).exists()
 
     def test_skips_document_track_pr_with_only_non_engaging_activity(self) -> None:
-        # Known limitation: the document cross-check only compares
-        # PullRequestActivityLog.date_updated (auto_now) against the cutoff —
-        # it can't distinguish an engaging event from a non-engaging one (e.g.
-        # a comment) recorded in the document. So a document-track PR with only
-        # non-engaging activity is *also* skipped here, unlike a legacy-track
-        # PR in the same situation (see test_includes_pr_with_only_non_engaging_recent_activity
-        # in FindStalePullRequestsTest, which correctly stays a candidate).
+        # Known coarseness in find_stale_pull_requests's document check (see its
+        # test_excludes_document_track_pr_with_only_non_engaging_activity):
+        # asserted again here end-to-end through the task.
         pr = self._make_tracked_stale_pr()
         self._add_activity_log(pr, PullRequestActivityType.COMMENT_CREATED, weeks_ago=1.0)
         with (

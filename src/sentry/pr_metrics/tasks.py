@@ -225,17 +225,34 @@ def find_stale_pull_requests(*, cutoff: datetime) -> list[int]:
     - It was opened before the cutoff time.
     - It has no engaging activity (see ``ENGAGING_ACTIVITY_TYPES``) with
       ``date_added >= cutoff``, read off legacy ``PullRequestActivity`` rows.
+    - Its ``PullRequestActivityLog`` document (if any) hasn't been written to
+      since ``cutoff`` either — see below.
 
-    The activity check is a correlated ``Exists`` subquery so the whole scan
-    stays in the DB — no Python-side iteration over candidates. It only sees
-    legacy ``PullRequestActivity`` rows, though: a PR routed onto the reduced
-    ``PullRequestActivityLog`` document (see
+    Both activity checks are correlated ``Exists`` subqueries so the whole scan
+    stays in the DB — no Python-side iteration over candidates, and no per-PR
+    document fetch here. The legacy check only sees ``PullRequestActivity``
+    rows: a PR routed onto the reduced ``PullRequestActivityLog`` document (see
     ``sentry.pr_metrics.webhooks._use_activity_document``) never writes those
-    rows, so it always clears this filter regardless of real engagement. That
-    false-positive is deliberately left uncorrected here — the caller
-    (``detect_stale_pull_requests_task``) cross-checks each candidate's
-    document before settling it, since doing so here would mean pulling every
-    candidate's document into this one unbounded scan instead of per batch.
+    rows, so on its own that check would always clear regardless of real
+    engagement — document-routed PRs are the *default* going forward, so this
+    can't be left as an approximation resolved later per batch (as it
+    previously was) without most stale scans effectively finding nothing else.
+    The second check closes that gap directly in SQL: a document-track PR only
+    counts as a candidate once its document has gone quiet for the same window
+    (``date_updated < cutoff``), and a PR with no document at all (never
+    routed onto it, or routed but not yet written) passes trivially since
+    there's no row to find.
+
+    This document check is coarser than the legacy one: ``date_updated`` is
+    bumped by *any* write (including a non-engaging one, e.g. a comment), not
+    only ``ENGAGING_ACTIVITY_TYPES`` writes — so a document-track PR with only
+    non-engaging activity is excluded here even though a legacy-track PR in
+    the same situation is correctly still a candidate (see
+    ``detect_stale_pull_requests_task``'s docstring for how the reviewer-
+    engagement diagnosis label separately corrects for this). Accepted here:
+    a false negative (skipping a PR that's actually stale) just delays
+    detection to a later run, whereas the false positive this check exists to
+    prevent (claiming a genuinely-engaged PR as abandoned) is irreversible.
 
     Capped at ``_STALE_SCAN_LIMIT``, oldest-opened first: there's no upper
     bound on staleness age, so an ancient backlog (first run, or one that fell
@@ -253,6 +270,10 @@ def find_stale_pull_requests(*, cutoff: datetime) -> list[int]:
         event_type__in=ENGAGING_ACTIVITY_TYPES,
         date_added__gte=cutoff,
     )
+    recently_updated_activity_log = PullRequestActivityLog.objects.filter(
+        pull_request=OuterRef("pk"),
+        date_updated__gte=cutoff,
+    )
 
     qs = (
         PullRequest.objects.filter(
@@ -262,6 +283,7 @@ def find_stale_pull_requests(*, cutoff: datetime) -> list[int]:
             metrics__verdict__isnull=True,
         )
         .filter(~Exists(recent_engaging_activity))
+        .filter(~Exists(recently_updated_activity_log))
         .order_by("date_added")
         .values_list("id", flat=True)
         .distinct()[:_STALE_SCAN_LIMIT]
@@ -286,19 +308,15 @@ def detect_stale_pull_requests_task() -> None:
     path does not support open PRs (requires ``closed_at``), so all stale PRs
     are settled here regardless.
 
-    ``find_stale_pull_requests`` only sees legacy ``PullRequestActivity`` rows,
-    so a candidate routed onto the reduced ``PullRequestActivityLog`` document
-    (see ``sentry.pr_metrics.webhooks._use_activity_document``) may actually be
-    engaged — that store never writes those rows. Each batch bulk-fetches each
-    candidate's document ``date_updated`` and skips any updated at or after
-    ``cutoff``. Coarser than the legacy check: any document write (including a
-    non-engaging one, e.g. a comment) resets this clock, since ``date_updated``
-    doesn't distinguish event types — a document-track PR with only
-    non-engaging activity is skipped here even though a legacy-track PR in the
-    same situation is correctly still a candidate. Less efficient than the
-    pure-SQL legacy path too (documents are pulled into Python one batch at a
-    time), which is why the batch size is kept modest rather than matching
-    ``find_stale_pull_requests``'s full scan.
+    ``find_stale_pull_requests`` already excludes a document-track PR whose
+    ``PullRequestActivityLog`` has been written to since ``cutoff`` — see its
+    docstring for why that has to happen in SQL rather than here. What's left
+    to do here is read each candidate's document *contents* (not just its
+    timestamp) for the reviewer-engagement diagnosis label below — bulked per
+    batch, since pulling every candidate's document into Python in one shot
+    would be less bounded than the per-batch reads, which is why the batch
+    size is kept modest rather than matching ``find_stale_pull_requests``'s
+    full scan.
 
     Each candidate is guarded by a compare-and-set claim before any action, so
     an overlapping run or redelivery won't double-process.
@@ -321,16 +339,8 @@ def detect_stale_pull_requests_task() -> None:
         pull_requests = list(PullRequest.objects.filter(id__in=batch))
         org_ids = {pr.organization_id for pr in pull_requests}
         orgs_by_id = {o.id: o for o in Organization.objects.filter(id__in=org_ids)}
-        # Bulk-fetch this batch's last updated timestamps once, rather than a query per PR —
-        # most candidates will have none (legacy-track PRs), so this is a
-        # small lookup scoped to the batch, not the full candidate list.
-        updated_at_by_pr_id = dict(
-            PullRequestActivityLog.objects.filter(pull_request_id__in=batch).values_list(
-                "pull_request_id", "date_updated"
-            )
-        )
 
-        # First pass: collect PRs that pass initial filters and timestamp checks
+        # First pass: collect PRs that pass the feature-flag gate
         candidate_prs = []
         for pr in pull_requests:
             org = orgs_by_id.get(pr.organization_id)
@@ -347,13 +357,6 @@ def detect_stale_pull_requests_task() -> None:
             # Without activity tracking we can't distinguish an engaged PR from
             # an untouched one, so we can't safely emit an abandoned verdict.
             if not features.has("organizations:pr-metrics-activity", org):
-                continue
-
-            last_updated = updated_at_by_pr_id.get(pr.id)
-            if last_updated is not None and last_updated >= cutoff:
-                # The legacy-only SQL scan couldn't see this PR's document, so
-                # it fell through as a false candidate — it's actually engaged.
-                metrics.incr("pr_metrics.stale.skipped", tags={"reason": "doc_engaged"})
                 continue
 
             candidate_prs.append(pr)
