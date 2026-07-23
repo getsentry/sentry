@@ -12,7 +12,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
+import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -44,10 +44,7 @@ export default function AutofixOverview() {
   // the first fetch doesn't race it with an all-projects query.
   const {selection, isReady: pageFiltersReady} = usePageFilters();
 
-  const needsSeerSetup =
-    showNewSeer(organization) &&
-    !organization.features.includes('seat-based-seer-enabled') &&
-    !organization.hideAiFeatures;
+  const needsSeerSetup = orgNeedsSeerTrial(organization);
 
   const [collapsedGroups, setCollapsedGroups] = useLocalStorageState<StatusGroupKey[]>(
     'seer-autofix-overview:collapsed-groups',
