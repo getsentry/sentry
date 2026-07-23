@@ -9,6 +9,7 @@ import pytest
 from PIL import Image
 
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.providers.saml2.forms import AttributeMappingForm
 from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider, _validate_saml_avatar
 from sentry.auth.view import AuthView
 from sentry.testutils.silo import control_silo_test
@@ -234,3 +235,27 @@ class ValidateSamlAvatarTest(TestCase):
             side_effect=Image.DecompressionBombError("boom"),
         ):
             assert _validate_saml_avatar(avatar) is None
+
+
+class AttributeMappingFormTest(TestCase):
+    def test_exposes_and_preserves_avatar_mapping(self) -> None:
+        # The configure view saves attribute_mapping straight from cleaned_data,
+        # so the avatar key must be a form field or it gets dropped on save.
+        form = AttributeMappingForm(
+            {
+                "identifier": "user_id",
+                "user_email": "email",
+                "first_name": "first",
+                "last_name": "last",
+                "avatar": "photo",
+            }
+        )
+
+        assert form.is_valid(), form.errors
+        assert form.cleaned_data[Attributes.AVATAR] == "photo"
+
+    def test_avatar_mapping_is_optional(self) -> None:
+        form = AttributeMappingForm({"identifier": "user_id", "user_email": "email"})
+
+        assert form.is_valid(), form.errors
+        assert form.cleaned_data[Attributes.AVATAR] == ""

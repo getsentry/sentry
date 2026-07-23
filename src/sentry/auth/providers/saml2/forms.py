@@ -131,3 +131,12 @@ class AttributeMappingForm(forms.Form):
     )
     first_name = forms.CharField(label="First Name", required=False)
     last_name = forms.CharField(label="Last Name", required=False)
+    avatar = forms.CharField(
+        label="Avatar",
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "eg. user.photo"}),
+        help_text=_(
+            "Optional. The IdPs attribute key carrying a base64-encoded profile "
+            "picture to sync to the user's avatar on each login."
+        ),
+    )
