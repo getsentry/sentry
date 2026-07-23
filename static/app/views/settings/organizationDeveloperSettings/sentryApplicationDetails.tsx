@@ -97,71 +97,85 @@ const AVATAR_STYLES = {
   },
 };
 
-const sentryAppFormSchema = z
-  .object({
-    name: z.string(),
-    author: z.string(),
-    webhookUrl: z.string(),
-    webhookHeaders: z.string(),
-    redirectUrl: z.string(),
-    verifyInstall: z.boolean(),
-    isAlertable: z.boolean(),
-    schema: z.string(),
-    overview: z.string(),
-    allowedOrigins: z.string(),
-    organization: z.string(),
-    isInternal: z.boolean(),
-    scopes: z.array(z.enum(ALLOWED_SCOPES)),
-    events: z.array(
-      z.union([z.enum(EVENT_CHOICES), z.enum(WEBHOOK_GRANULAR_EVENT_CHOICES)])
-    ),
-  })
-  .superRefine((data, ctx) => {
-    if (!data.name.trim()) {
+const sentryAppBaseSchema = z.object({
+  name: z.string(),
+  author: z.string(),
+  webhookUrl: z.string(),
+  webhookHeaders: z.string(),
+  redirectUrl: z.string(),
+  verifyInstall: z.boolean(),
+  isAlertable: z.boolean(),
+  schema: z.string(),
+  overview: z.string(),
+  allowedOrigins: z.string(),
+  organization: z.string(),
+  isInternal: z.boolean(),
+  scopes: z.array(z.enum(ALLOWED_SCOPES)),
+  events: z.array(
+    z.union([z.enum(EVENT_CHOICES), z.enum(WEBHOOK_GRANULAR_EVENT_CHOICES)])
+  ),
+});
+
+type SentryAppFormValues = z.infer<typeof sentryAppBaseSchema>;
+
+function requireField(ctx: z.RefinementCtx, value: string, field: string) {
+  if (!value.trim()) {
+    ctx.addIssue({
+      code: 'custom',
+      message: t('This field is required'),
+      path: [field],
+    });
+  }
+}
+
+// Mirrors the backend's events-require-a-webhook-URL rule.
+function requireWebhookUrlForEvents(ctx: z.RefinementCtx, data: SentryAppFormValues) {
+  if (!data.webhookUrl.trim() && data.events.length > 0) {
+    ctx.addIssue({
+      code: 'custom',
+      message: t('This field is required when webhook events are enabled'),
+      path: ['webhookUrl'],
+    });
+  }
+}
+
+function requireValidSchemaJson(ctx: z.RefinementCtx, data: SentryAppFormValues) {
+  if (data.schema.trim()) {
+    try {
+      JSON.parse(data.schema);
+    } catch {
       ctx.addIssue({
         code: 'custom',
-        message: t('This field is required'),
-        path: ['name'],
+        message: t('Invalid JSON'),
+        path: ['schema'],
       });
     }
+  }
+}
 
-    if (!data.isInternal && !data.author.trim()) {
-      ctx.addIssue({
-        code: 'custom',
-        message: t('This field is required'),
-        path: ['author'],
-      });
-    }
+const internalCreationSchema = sentryAppBaseSchema.superRefine((data, ctx) => {
+  requireField(ctx, data.name, 'name');
+  requireWebhookUrlForEvents(ctx, data);
+  requireValidSchemaJson(ctx, data);
+});
 
-    if (!data.webhookUrl.trim()) {
-      if (!data.isInternal) {
-        ctx.addIssue({
-          code: 'custom',
-          message: t('This field is required'),
-          path: ['webhookUrl'],
-        });
-      } else if (data.events.length > 0) {
-        // Mirrors the backend's events-require-a-webhook-URL rule.
-        ctx.addIssue({
-          code: 'custom',
-          message: t('This field is required when webhook events are enabled'),
-          path: ['webhookUrl'],
-        });
-      }
-    }
+const publicCreationSchema = sentryAppBaseSchema.superRefine((data, ctx) => {
+  requireField(ctx, data.name, 'name');
+  requireField(ctx, data.author, 'author');
+  requireField(ctx, data.webhookUrl, 'webhookUrl');
+  requireValidSchemaJson(ctx, data);
+});
 
-    if (data.schema.trim()) {
-      try {
-        JSON.parse(data.schema);
-      } catch {
-        ctx.addIssue({
-          code: 'custom',
-          message: t('Invalid JSON'),
-          path: ['schema'],
-        });
-      }
-    }
-  });
+const sentryAppFormSchema = sentryAppBaseSchema.superRefine((data, ctx) => {
+  requireField(ctx, data.name, 'name');
+  if (data.isInternal) {
+    requireWebhookUrlForEvents(ctx, data);
+  } else {
+    requireField(ctx, data.author, 'author');
+    requireField(ctx, data.webhookUrl, 'webhookUrl');
+  }
+  requireValidSchemaJson(ctx, data);
+});
 
 function getResourceFromScope(scope: string): PermissionResource | undefined {
   for (const permObj of SENTRY_APP_PERMISSIONS) {
@@ -211,8 +225,6 @@ function mapScopeErrors(scopeErrors: unknown): ScopeErrors {
   }
   return result;
 }
-
-type SentryAppFormValues = z.infer<typeof sentryAppFormSchema>;
 
 type SaveSentryAppPayload = {
   allowedOrigins: string[];
@@ -269,6 +281,28 @@ function buildSentryAppPayload(value: SentryAppFormValues): SaveSentryAppPayload
     // The author parser doesn't allow_blank, so send null for empty
     // (covers internal apps with no author).
     author: value.author || null,
+  };
+}
+
+function emptySentryAppValues(
+  organizationSlug: string,
+  isInternal: boolean
+): SentryAppFormValues {
+  return {
+    name: '',
+    author: '',
+    webhookUrl: '',
+    webhookHeaders: '',
+    redirectUrl: '',
+    verifyInstall: !isInternal,
+    isAlertable: false,
+    schema: '',
+    overview: '',
+    allowedOrigins: '',
+    organization: organizationSlug,
+    isInternal,
+    scopes: [],
+    events: [],
   };
 }
 
@@ -380,6 +414,7 @@ export default function SentryApplicationDetails() {
   const queryClient = useQueryClient();
 
   const isInternalRoute = location.pathname.endsWith('new-internal/');
+  const isPublicRoute = location.pathname.endsWith('new-public/');
 
   const sentryAppQueryOptions = sentryAppApiOptions({appSlug: appSlug ?? null});
 
@@ -421,6 +456,10 @@ export default function SentryApplicationDetails() {
         <LoadingIndicator />
       ) : isError ? (
         <LoadingError onRetry={refetch} />
+      ) : isInternalRoute ? (
+        <InternalSentryAppCreationForm />
+      ) : isPublicRoute ? (
+        <PublicSentryAppCreationForm />
       ) : (
         <SentryApplicationForm
           app={app}
@@ -430,6 +469,137 @@ export default function SentryApplicationDetails() {
         />
       )}
     </div>
+  );
+}
+
+function InternalSentryAppCreationForm() {
+  const organization = useOrganization();
+  const {handleSaveError, saveSentryAppMutation, scopeErrors} = useSaveSentryApp({
+    app: undefined,
+    isInternal: true,
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: emptySentryAppValues(organization.slug, true),
+    validators: {
+      onDynamic: internalCreationSchema,
+    },
+    onSubmit: ({value, formApi}) =>
+      saveSentryAppMutation
+        .mutateAsync(buildSentryAppPayload(value))
+        .catch(error => handleSaveError(error, formApi)),
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.FieldGroup title={t('Internal Integration Details')}>
+        <NameField form={form} fields={{name: 'name'}} />
+
+        <WebhookUrlField
+          form={form}
+          fields={{webhookUrl: 'webhookUrl'}}
+          onValueChange={value => {
+            if (!value && form.getFieldValue('isAlertable')) {
+              form.setFieldValue('isAlertable', false);
+            }
+          }}
+        />
+
+        <WebhookHeadersField form={form} fields={{webhookHeaders: 'webhookHeaders'}} />
+
+        <AlertableField
+          form={form}
+          fields={{isAlertable: 'isAlertable', webhookUrl: 'webhookUrl'}}
+          requireWebhookUrl
+        />
+
+        <SchemaField form={form} fields={{schema: 'schema'}} />
+
+        <OverviewField form={form} fields={{overview: 'overview'}} />
+
+        <AllowedOriginsField form={form} fields={{allowedOrigins: 'allowedOrigins'}} />
+      </form.FieldGroup>
+
+      <PermissionsObserver
+        appPublished={false}
+        scopes={[]}
+        events={[]}
+        newApp
+        permissionErrors={scopeErrors.permissions}
+        continuousIntegrationError={scopeErrors.continuousIntegration}
+        onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
+        onEventsChange={events => form.setFieldValue('events', events)}
+      />
+
+      <Flex justify="end" paddingTop="xl">
+        <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
+      </Flex>
+    </form.AppForm>
+  );
+}
+
+function PublicSentryAppCreationForm() {
+  const organization = useOrganization();
+  const {handleSaveError, saveSentryAppMutation, scopeErrors} = useSaveSentryApp({
+    app: undefined,
+    isInternal: false,
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: emptySentryAppValues(organization.slug, false),
+    validators: {
+      onDynamic: publicCreationSchema,
+    },
+    onSubmit: ({value, formApi}) =>
+      saveSentryAppMutation
+        .mutateAsync(buildSentryAppPayload(value))
+        .catch(error => handleSaveError(error, formApi)),
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.FieldGroup title={t('Public Integration Details')}>
+        <NameField form={form} fields={{name: 'name'}} />
+
+        <AuthorField form={form} fields={{author: 'author'}} />
+
+        <WebhookUrlField form={form} fields={{webhookUrl: 'webhookUrl'}} required />
+
+        <WebhookHeadersField form={form} fields={{webhookHeaders: 'webhookHeaders'}} />
+
+        <RedirectUrlField form={form} fields={{redirectUrl: 'redirectUrl'}} />
+
+        <VerifyInstallField form={form} fields={{verifyInstall: 'verifyInstall'}} />
+
+        <AlertableField
+          form={form}
+          fields={{isAlertable: 'isAlertable', webhookUrl: 'webhookUrl'}}
+        />
+
+        <SchemaField form={form} fields={{schema: 'schema'}} />
+
+        <OverviewField form={form} fields={{overview: 'overview'}} />
+
+        <AllowedOriginsField form={form} fields={{allowedOrigins: 'allowedOrigins'}} />
+      </form.FieldGroup>
+
+      <PermissionsObserver
+        appPublished={false}
+        scopes={[]}
+        events={[]}
+        newApp
+        permissionErrors={scopeErrors.permissions}
+        continuousIntegrationError={scopeErrors.continuousIntegration}
+        onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
+        onEventsChange={events => form.setFieldValue('events', events)}
+      />
+
+      <Flex justify="end" paddingTop="xl">
+        <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
+      </Flex>
+    </form.AppForm>
   );
 }
 

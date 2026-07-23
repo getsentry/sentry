@@ -202,6 +202,21 @@ describe('Sentry Application Details', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('disables the alert action switch until a webhook URL is set', async () => {
+      renderComponent();
+
+      expect(screen.getByRole('checkbox', {name: 'Alert Action'})).toBeDisabled();
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Webhook URL'}),
+        'https://example.com'
+      );
+      expect(screen.getByRole('checkbox', {name: 'Alert Action'})).toBeEnabled();
+
+      await userEvent.clear(screen.getByRole('textbox', {name: 'Webhook URL'}));
+      expect(screen.getByRole('checkbox', {name: 'Alert Action'})).toBeDisabled();
+    });
+
     it('requires a webhook URL to save enabled subscriptions', async () => {
       createAppRequest = MockApiClient.addMockResponse({
         url: '/sentry-apps/',
