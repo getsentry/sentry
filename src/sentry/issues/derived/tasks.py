@@ -5,11 +5,12 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
-from django.db.models import Exists, OuterRef, Q, QuerySet
+from django.db.models import Exists, OuterRef, Q
 
 from sentry.silo.base import SiloMode
 
 if TYPE_CHECKING:
+    from sentry.db.models.manager.base_query_set import BaseQuerySet
     from sentry.models.group import Group
 
 from sentry.tasks.base import instrumented_task
@@ -31,7 +32,7 @@ _MAX_GENERATION_RUNS = 20
 _MAX_PROJECT_GROUPS = 10_000
 
 
-def _stale_pipeline_filter(qs: QuerySet[Group], pipeline_hash: str) -> QuerySet[Group]:
+def _stale_pipeline_filter(qs: BaseQuerySet[Group], pipeline_hash: str) -> BaseQuerySet[Group]:
     """Filter a Group queryset to only groups with a stale or NULL pipeline_hash."""
     from sentry.issues.models.groupderiveddata import GroupDerivedData
 
