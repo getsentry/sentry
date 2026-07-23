@@ -389,7 +389,7 @@ export function IssueTableRow({
         </Flex>
       </Stack>
       <Flex align="center" flexShrink={0}>
-        <IssuePrimaryAction action={cardAction} row={row} runUrl={runUrl} />
+        <IssuePrimaryAction action={cardAction} row={row} runUrl={runUrl} size="xs" />
       </Flex>
     </Flex>
   );
