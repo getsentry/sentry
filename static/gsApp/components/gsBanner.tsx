@@ -12,7 +12,6 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {batchedPromptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
@@ -28,14 +27,13 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {withApi} from 'sentry/utils/withApi';
 
-import {openForcedTrialModal, openTrialEndingModal} from 'getsentry/actionCreators/modal';
+import {openTrialEndingModal} from 'getsentry/actionCreators/modal';
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import {ProductTrialAlert} from 'getsentry/components/productTrial/productTrialAlert';
 import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
-import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
   type BilledDataCategoryInfo,
   type Promotion,
@@ -44,7 +42,6 @@ import {
 } from 'getsentry/types';
 import {
   getProductTrial,
-  hasPerformance,
   isBusinessTrial,
   trialPromptIsDismissed,
 } from 'getsentry/utils/billing';
@@ -52,7 +49,6 @@ import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {getPendoAccountFields} from 'getsentry/utils/pendo';
 import {claimAvailablePromotion} from 'getsentry/utils/promotionUtils';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 import {withPromotions} from 'getsentry/utils/withPromotions';
 
 enum ModalType {
@@ -271,8 +267,6 @@ class GSBanner extends Component<Props, State> {
       this.tryTriggerTrialEndingModal();
       this.tryTriggerSuspendedModal();
       this.tryTriggerNoticeModal();
-      this.tryTriggerForcedTrial();
-      this.tryTriggerForcedTrialModal();
     }
     await this.checkPrompts();
   }
@@ -439,59 +433,6 @@ class GSBanner extends Component<Props, State> {
       ),
       {onClose}
     );
-  }
-
-  async tryTriggerForcedTrial() {
-    const {organization, subscription, api} = this.props;
-    const user = ConfigStore.get('user');
-
-    // check for required conditions of triggering a forced trial of any type
-    const considerTrigger =
-      subscription.canSelfServe && // must be self serve
-      subscription.isFree && // must be on Developer plan
-      !subscription.isTrial && // don't trigger if already on a trial
-      hasPerformance(subscription.planDetails) &&
-      !subscription.isExemptFromForcedTrial && // orgs who ever did enterprise trials are exempt
-      !user?.isSuperuser; // never trigger for superusers
-
-    if (!considerTrigger) {
-      return;
-    }
-
-    // only trigger if member limit is 1 and we have multiple licenses used
-    if (!(subscription.totalLicenses === 1 && subscription.usedLicenses > 1)) {
-      return;
-    }
-    const endpoint = `/organizations/${organization.slug}/over-member-limit-trial/`;
-
-    try {
-      await api.requestPromise(endpoint, {
-        method: 'POST',
-      });
-
-      trackMarketingEvent('Start Trial');
-
-      // Refresh organization and subscription state
-      // do not mark the trial since we have this modal
-      SubscriptionStore.loadData(organization.slug, null);
-      fetchOrganizationDetails(api, organization.slug);
-
-      openForcedTrialModal({organization});
-    } catch (error) {
-      // let check fail but capture exception
-      Sentry.captureException(error);
-    }
-  }
-
-  tryTriggerForcedTrialModal() {
-    const {subscription, organization} = this.props;
-    if (
-      subscription.isTrial &&
-      subscription.isForcedTrial &&
-      !subscription.hasDismissedForcedTrialNotice
-    ) {
-      openForcedTrialModal({organization});
-    }
   }
 
   async checkPrompts() {
