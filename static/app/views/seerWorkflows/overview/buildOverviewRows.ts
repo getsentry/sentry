@@ -229,6 +229,7 @@ export function buildOverviewRow(
     project: issue.project,
     assignedTo: issue.assignedTo ?? null,
     owners: issue.owners,
+    priority: issue.priority,
     eventCount: Number.isFinite(eventCount) ? eventCount : 0,
     userCount: issue.userCount,
     statsPeriod,

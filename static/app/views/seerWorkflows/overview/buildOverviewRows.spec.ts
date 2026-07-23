@@ -1,4 +1,5 @@
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {PriorityLevel} from 'sentry/types/group';
 import {
   buildAnalysis,
   buildOverviewRow,
@@ -85,6 +86,7 @@ function makeIssue(overrides: Partial<OverviewIssue> = {}): OverviewIssue {
     id: '2',
     lastSeen: '2026-07-20T12:00:00Z',
     level: 'error',
+    priority: PriorityLevel.MEDIUM,
     project: {id: '1', slug: 'proj'},
     seerAutofixLastTriggered: null,
     shortId: 'PROJ-1',

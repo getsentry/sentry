@@ -1,5 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {PriorityLevel} from 'sentry/types/group';
 import {
   deriveCardAction,
   IssuePrimaryAction,
@@ -20,6 +21,7 @@ function makeRow(overrides: Partial<OverviewRow> = {}): OverviewRow {
     lastActivityAt: '2026-07-14T10:00:00Z',
     lastSeen: '2026-07-14T09:00:00Z',
     level: 'error',
+    priority: PriorityLevel.MEDIUM,
     project: {id: '2', slug: 'proj'},
     runStatus: null,
     shortId: 'PROJ-1',

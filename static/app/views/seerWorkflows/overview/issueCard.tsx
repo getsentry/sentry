@@ -28,6 +28,7 @@ import {ellipsize} from 'sentry/utils/string/ellipsize';
 
 import {deriveCardAction, IssuePrimaryAction} from './cardAction';
 import {OverviewIssueAssignee} from './overviewIssueAssignee';
+import {OverviewIssuePriority} from './overviewIssuePriority';
 import {useOpenOverviewSeerDrawer} from './overviewSeerDrawer';
 import {periodWindowLabel} from './periods';
 import {TriggerBadge} from './triggerBadge';
@@ -460,6 +461,11 @@ export function IssueCard({
                     </Container>
                   </Tooltip>
                 )}
+                <OverviewIssuePriority
+                  groupId={row.id}
+                  projectId={row.project.id}
+                  priority={row.priority}
+                />
                 <OverviewIssueAssignee
                   groupId={row.id}
                   projectId={row.project.id}
