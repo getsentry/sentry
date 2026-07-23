@@ -1,55 +1,55 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import type {Group} from 'sentry/types/group';
-import {PriorityLevel} from 'sentry/types/group';
+import {PriorityLevel, type Group} from 'sentry/types/group';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 
+export type OverviewIssuePriorityGroup = Pick<
+  Group,
+  | 'assignedTo'
+  | 'count'
+  | 'id'
+  | 'issueCategory'
+  | 'issueType'
+  | 'lastSeen'
+  | 'level'
+  | 'owners'
+  | 'priorityLockedAt'
+> & {
+  priority: PriorityLevel | null;
+  project: Pick<Group['project'], 'id'>;
+};
+
 interface OverviewIssuePriorityProps {
-  groupId: string;
-  projectId: string;
-  priority?: PriorityLevel;
+  group: OverviewIssuePriorityGroup;
 }
 
-export function OverviewIssuePriority({
-  groupId,
-  projectId,
-  priority,
-}: OverviewIssuePriorityProps) {
+export function OverviewIssuePriority({group}: OverviewIssuePriorityProps) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const issueIndexUrl = getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
     path: {organizationIdOrSlug: organization.slug},
   });
   const [priorityOverride, setPriorityOverride] = useState<{
-    groupId: OverviewIssuePriorityProps['groupId'];
+    groupId: OverviewIssuePriorityGroup['id'];
     priority: PriorityLevel;
   } | null>(null);
 
   const currentPriority =
-    priorityOverride?.groupId === groupId
+    priorityOverride?.groupId === group.id
       ? priorityOverride.priority
-      : (priority ?? PriorityLevel.MEDIUM);
-
-  const group = useMemo(
-    () =>
-      ({
-        id: groupId,
-        priority: currentPriority,
-        project: {id: projectId},
-      }) as Group,
-    [currentPriority, groupId, projectId]
-  );
+      : (group.priority ?? PriorityLevel.MEDIUM);
+  const currentGroup = {...group, priority: currentPriority} as Group;
 
   const handleSuccess = useCallback(
     (nextPriority: PriorityLevel) => {
-      setPriorityOverride({groupId, priority: nextPriority});
+      setPriorityOverride({groupId: group.id, priority: nextPriority});
       void queryClient.invalidateQueries({queryKey: [issueIndexUrl]});
     },
-    [groupId, issueIndexUrl, queryClient]
+    [group.id, issueIndexUrl, queryClient]
   );
 
-  return <GroupPriority group={group} onChange={handleSuccess} />;
+  return <GroupPriority group={currentGroup} onChange={handleSuccess} />;
 }

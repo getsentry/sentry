@@ -478,9 +478,19 @@ export function IssueCard({
         </Flex>
         <Flex gap="xs" align="center" justify="end">
           <OverviewIssuePriority
-            groupId={row.id}
-            projectId={row.project.id}
-            priority={row.priority}
+            group={{
+              assignedTo: row.assignedTo,
+              count: String(row.eventCount),
+              id: row.id,
+              issueCategory: row.issueCategory,
+              issueType: row.issueType,
+              lastSeen: row.lastSeen,
+              level: row.level,
+              owners: row.owners,
+              priority: row.priority,
+              priorityLockedAt: row.priorityLockedAt,
+              project: {id: row.project.id},
+            }}
           />
           <OverviewIssueAssignee
             groupId={row.id}
