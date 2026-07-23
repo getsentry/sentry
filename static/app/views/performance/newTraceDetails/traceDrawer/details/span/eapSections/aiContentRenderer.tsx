@@ -5,7 +5,6 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
-import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {
   detectAIContentType,
@@ -123,6 +122,7 @@ export function AIContentRenderer({
 
   switch (detection.type) {
     case 'json':
+    case 'fixed-json':
     case 'python-dict':
       return (
         <TraceDrawerComponents.MultilineJSON
@@ -131,21 +131,6 @@ export function AIContentRenderer({
           autoCollapseLimit={autoCollapseLimit}
           clip={clipJson}
         />
-      );
-
-    case 'fixed-json':
-      return (
-        <Fragment>
-          <TraceDrawerComponents.MultilineJSON
-            value={detection.parsedData}
-            maxDefaultDepth={maxJsonDepth}
-            autoCollapseLimit={autoCollapseLimit}
-            clip={clipJson}
-          />
-          <Text size="xs" variant="muted">
-            {t('Truncated')}
-          </Text>
-        </Fragment>
       );
 
     case 'markdown-with-xml':
