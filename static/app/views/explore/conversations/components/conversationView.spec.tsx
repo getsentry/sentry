@@ -4,7 +4,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 
-import {ConversationViewContentNew} from './conversationViewNew';
+import {ConversationViewContent} from './conversationView';
 
 const CONVERSATION_ID = 'conv-1';
 
@@ -54,10 +54,10 @@ function mockConversation() {
 }
 
 function renderView(
-  props: Partial<React.ComponentProps<typeof ConversationViewContentNew>> = {}
+  props: Partial<React.ComponentProps<typeof ConversationViewContent>> = {}
 ) {
   return render(
-    <ConversationViewContentNew
+    <ConversationViewContent
       conversation={{conversationId: CONVERSATION_ID}}
       activeTab="transcript"
       {...props}
@@ -71,7 +71,7 @@ function detailPane() {
   return screen.queryByRole('button', {name: 'Close'});
 }
 
-describe('ConversationViewContentNew', () => {
+describe('ConversationViewContent', () => {
   beforeEach(() => {
     // jsdom doesn't implement Element.scrollTo, which the detail pane calls.
     Element.prototype.scrollTo = jest.fn();

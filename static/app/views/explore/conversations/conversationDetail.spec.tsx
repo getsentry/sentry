@@ -5,7 +5,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-import {ConversationDetailPageNew} from './conversationDetailNew';
+import ConversationDetailPage from './conversationDetail';
 
 const CONVERSATION_ID = 'conv-1';
 
@@ -59,7 +59,7 @@ function mockApis() {
 function renderPage() {
   return render(
     <TopBar.Slot.Provider>
-      <ConversationDetailPageNew />
+      <ConversationDetailPage />
     </TopBar.Slot.Provider>,
     {
       organization: OrganizationFixture(),
@@ -77,7 +77,7 @@ function detailPane() {
   return screen.queryByRole('button', {name: 'Close'});
 }
 
-describe('ConversationDetailPageNew span default selection', () => {
+describe('ConversationDetailPage span default selection', () => {
   beforeEach(() => {
     Element.prototype.scrollTo = jest.fn();
     MockApiClient.clearMockResponses();

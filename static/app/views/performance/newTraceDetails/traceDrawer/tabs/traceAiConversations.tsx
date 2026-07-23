@@ -18,11 +18,11 @@ import {
   ConversationSpanDetail,
   type DetailTab,
 } from 'sentry/views/explore/conversations/components/conversationSpanDetail';
-import {ConversationAggregatesBar} from 'sentry/views/explore/conversations/components/conversationSummaryNew';
+import {ConversationAggregatesBar} from 'sentry/views/explore/conversations/components/conversationSummary';
 import {
-  MessagesPanelNew,
+  MessagesPanel,
   MessagesPanelSkeleton,
-} from 'sentry/views/explore/conversations/components/messagesPanelNew';
+} from 'sentry/views/explore/conversations/components/messagesPanel';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
@@ -232,7 +232,7 @@ function TraceConversationTranscript({
         left={
           <ConversationLeftPanel>
             <Flex flex="1" minHeight="0" overflowY="auto">
-              <MessagesPanelNew
+              <MessagesPanel
                 nodes={nodes}
                 selectedNodeId={selectedNode?.id ?? null}
                 onSelectNode={handleSelectNode}

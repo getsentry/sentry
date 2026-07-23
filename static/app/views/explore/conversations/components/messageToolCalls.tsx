@@ -17,7 +17,7 @@ import {getToolInputPreview} from 'sentry/views/insights/pages/agents/utils/aiTr
 import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
-interface MessageToolCallsNewProps {
+interface MessageToolCallsProps {
   nodeMap: Map<string, AITraceSpanNode>;
   onSelectNode: (node: AITraceSpanNode) => void;
   /**
@@ -43,12 +43,12 @@ const COLLAPSE_THRESHOLD = 5;
  * at the message width, with the duration right-aligned. Selection shows an
  * outline.
  */
-export function MessageToolCallsNew({
+export function MessageToolCalls({
   toolCalls,
   selectedToolCallId,
   nodeMap,
   onSelectNode,
-}: MessageToolCallsNewProps) {
+}: MessageToolCallsProps) {
   const organization = useOrganization();
 
   const rows = (

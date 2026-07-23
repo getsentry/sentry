@@ -9,7 +9,7 @@ import {
   CONVERSATION_SPAN_DETAIL_TABS,
   ConversationSpanDetail,
 } from 'sentry/views/explore/conversations/components/conversationSpanDetail';
-import {MessagesPanelNew} from 'sentry/views/explore/conversations/components/messagesPanelNew';
+import {MessagesPanel} from 'sentry/views/explore/conversations/components/messagesPanel';
 import {
   useConversation,
   type UseConversationsOptions,
@@ -28,7 +28,7 @@ export const CONVERSATION_VIEW_TABS: readonly ConversationViewTab[] = [
   'timeline',
 ];
 
-interface ConversationViewContentNewProps {
+interface ConversationViewContentProps {
   activeTab: ConversationViewTab;
   conversation: UseConversationsOptions;
   focusedTool?: string | null;
@@ -38,7 +38,7 @@ interface ConversationViewContentNewProps {
   selectedSpanId?: string | null;
 }
 
-export function ConversationViewContentNew({
+export function ConversationViewContent({
   conversation,
   activeTab,
   selectedSpanId,
@@ -46,7 +46,7 @@ export function ConversationViewContentNew({
   onDeselectSpan,
   onViewTimeline,
   focusedTool,
-}: ConversationViewContentNewProps) {
+}: ConversationViewContentProps) {
   const isTimeline = activeTab === 'timeline';
 
   const {nodes, nodeTraceMap, isLoading, error} = useConversation(conversation);
@@ -132,7 +132,7 @@ export function ConversationViewContentNew({
         leftPadding={isTranscript ? '0' : 'md'}
         left={
           isTranscript ? (
-            <MessagesPanelNew
+            <MessagesPanel
               isLoading={isLoading}
               nodes={nodes}
               selectedNodeId={displayedNode?.id ?? null}
