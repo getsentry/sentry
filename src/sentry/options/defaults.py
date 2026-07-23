@@ -2180,12 +2180,6 @@ register(
     30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Number of large transactions to retrieve from Snuba for transaction re-balancing.
-register(
-    "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions",
-    0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Toggles emitting the smallest-transaction sampling-factor bucket metric during transaction rebalancing.
 register(
     "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
