@@ -33,15 +33,9 @@ export function StatusBanner({group, project, resolvedCopy}: StatusBannerProps) 
   }
 
   const useActivityBanner = organization.features.includes('issue-activity-feed-v2');
-  const showProgressIndicator = organization.features.includes('issue-activity-progress');
 
   return useActivityBanner ? (
-    <ActivityStatusBanner
-      group={group}
-      project={project}
-      resolvedCopy={resolvedCopy}
-      showProgressIndicator={showProgressIndicator}
-    />
+    <ActivityStatusBanner group={group} project={project} resolvedCopy={resolvedCopy} />
   ) : (
     <DefaultStatusBanner group={group} project={project} resolvedCopy={resolvedCopy} />
   );
@@ -51,10 +45,8 @@ function ActivityStatusBanner({
   group,
   project,
   resolvedCopy,
-  showProgressIndicator,
 }: StatusBannerProps & {
   group: StatusGroup;
-  showProgressIndicator: boolean;
 }) {
   const isResolved = group.status === GroupStatus.RESOLVED;
 
@@ -62,7 +54,6 @@ function ActivityStatusBanner({
     <StatusBannerFrame
       markerLabel={isResolved ? undefined : t('Archived')}
       markerState={isResolved ? ProgressState.FIX_APPLIED : ProgressState.ASSIGNED}
-      showProgressIndicator={showProgressIndicator}
       title={isResolved ? resolvedCopy || t('Resolved') : t('Archived')}
     >
       {isResolved ? (
@@ -81,7 +72,6 @@ function ActivityStatusBanner({
 interface StatusBannerFrameProps {
   children: React.ReactNode;
   markerState: ProgressState;
-  showProgressIndicator: boolean;
   title: React.ReactNode;
   markerLabel?: string;
 }
@@ -90,14 +80,11 @@ export function StatusBannerFrame({
   children,
   markerLabel,
   markerState,
-  showProgressIndicator,
   title,
 }: StatusBannerFrameProps) {
   return (
     <Flex align="center" gap="sm">
-      {showProgressIndicator ? (
-        <ActivityProgressMarker label={markerLabel} state={markerState} />
-      ) : null}
+      <ActivityProgressMarker label={markerLabel} state={markerState} />
       <Stack gap="0">
         <Text as="div" bold density="compressed" size="lg">
           {title}
