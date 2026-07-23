@@ -28,11 +28,13 @@ export function useAutofixSections({
   projects,
   sort,
   statsPeriod,
+  assignee,
 }: {
   enabled: boolean;
   projects: number[];
   sort: 'date' | 'freq';
   statsPeriod: string;
+  assignee?: string;
 }) {
   const organization = useOrganization();
 
@@ -43,11 +45,14 @@ export function useAutofixSections({
         {
           path: {organizationIdOrSlug: organization.slug},
           query: {
-            query: `${REQUIRED_ISSUE_FILTER} issue.autofix_state:${key}`,
+            query: `${REQUIRED_ISSUE_FILTER} issue.autofix_state:${key}${
+              assignee ? ` assigned:${assignee}` : ''
+            }`,
             project: projects,
             statsPeriod,
             sort,
             limit: SECTION_LIMIT,
+            expand: ['owners'],
           },
           staleTime: QUERY_STALE_TIME,
         }
