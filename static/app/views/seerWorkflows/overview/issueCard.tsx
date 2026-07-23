@@ -461,20 +461,6 @@ export function IssueCard({
                     </Container>
                   </Tooltip>
                 )}
-                <OverviewIssuePriority
-                  groupId={row.id}
-                  projectId={row.project.id}
-                  priority={row.priority}
-                />
-                <OverviewIssueAssignee
-                  groupId={row.id}
-                  projectId={row.project.id}
-                  projectSlug={row.project.slug}
-                  assignedTo={row.assignedTo ?? undefined}
-                  memberList={memberList}
-                  memberListLoading={memberListLoading}
-                  owners={row.owners ?? undefined}
-                />
               </Flex>
               {row.prUrl && cardAction.type !== 'review_pr' && (
                 <LinkButton
@@ -489,6 +475,22 @@ export function IssueCard({
               )}
             </Stack>
           </Grid>
+        </Flex>
+        <Flex gap="xs" align="center" justify="end">
+          <OverviewIssuePriority
+            groupId={row.id}
+            projectId={row.project.id}
+            priority={row.priority}
+          />
+          <OverviewIssueAssignee
+            groupId={row.id}
+            projectId={row.project.id}
+            projectSlug={row.project.slug}
+            assignedTo={row.assignedTo ?? undefined}
+            memberList={memberList}
+            memberListLoading={memberListLoading}
+            owners={row.owners ?? undefined}
+          />
         </Flex>
       </Stack>
     </Container>
