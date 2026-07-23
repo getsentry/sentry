@@ -107,8 +107,6 @@ function MetaItem({
   tooltip?: React.ReactNode;
 }) {
   return (
-    // maxWidth is the cross-axis bound in the non-stretching vitals stack:
-    // long content truncates instead of overflowing the rail.
     <Flex gap="xs" align="center" minWidth="0" maxWidth="100%">
       {icon}
       {tooltip ? (
@@ -397,9 +395,6 @@ export function IssueCard({
             flexShrink={0}
             width={{xs: '100%', sm: '380px'}}
           >
-            {/* align start (not stretch): stretched rows would stretch the
-                ellipsis-Texts (width: 100%) with them, detaching the tooltip
-                anchors from the words. */}
             <Stack
               gap={{xs: 'md', sm: 'xs'}}
               direction={{xs: 'row', sm: 'column'}}

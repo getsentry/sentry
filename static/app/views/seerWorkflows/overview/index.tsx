@@ -24,9 +24,6 @@ import {SectionList} from './sectionList';
 import type {StatusGroupKey} from './statusGroups';
 import {type OverviewView, SECTION_ORDER} from './types';
 
-// The card timestamps read in the viewer's wall-clock time: the profile
-// timezone setting defaults to UTC, which makes the absolute-time tooltips
-// read as gibberish for anyone who never changed it.
 const BROWSER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export default function AutofixOverview() {
