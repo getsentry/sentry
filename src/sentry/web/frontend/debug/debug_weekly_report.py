@@ -6,8 +6,6 @@ from typing import Any
 from django.utils.decorators import method_decorator
 from django.utils.text import slugify
 
-from sentry.charts import backend as charts
-from sentry.charts.types import ChartType
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
     GroupType,
@@ -27,6 +25,7 @@ from sentry.tasks.summaries.utils import (
 from sentry.tasks.summaries.weekly_reports import (
     CHART_PALETTE,
     _pct_change,
+    _top_spans_chart_url,
     get_group_display,
     render_template_context,
 )
@@ -272,20 +271,9 @@ class DebugWeeklyReportView(MailPreviewView):
                 }
                 for i, span in enumerate(ctx.top_spans)
             ]
-            if charts.is_enabled() and ctx.top_spans:
-                chart_data: dict[str, Any] = {"stats": {}}
-                for i, span in enumerate(ctx.top_spans):
-                    ts_data = ctx.top_spans_timeseries.get(span["name"], {})
-                    data_points = [[ts, [{"count": p95}]] for ts, p95 in sorted(ts_data.items())]
-                    chart_data["stats"][span["name"]] = {"data": data_points, "order": i}
-                try:
-                    context["spans_chart_url"] = charts.generate_chart(
-                        ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE,
-                        chart_data,
-                        size={"width": 600, "height": 200},
-                    )
-                except Exception:
-                    pass
+            chart_url = _top_spans_chart_url(context["top_spans_table"], ctx, None)
+            if chart_url:
+                context["spans_chart_url"] = chart_url
             past_issues: list[dict[str, Any]] = []
             for project_ctx in ctx.projects_context_map.values():
                 for group, count, has_link in project_ctx.past_resolved_issues:

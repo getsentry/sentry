@@ -31,6 +31,7 @@ from sentry.tasks.summaries.organization_report_context_factory import (
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
     SIX_HOURS,
+    TOP_SPANS_LIMIT,
     OrganizationReportContext,
     ProjectContext,
     _project_key_performance_issues_eap,
@@ -42,12 +43,14 @@ from sentry.tasks.summaries.utils import (
     user_project_ownership,
 )
 from sentry.tasks.summaries.weekly_reports import (
+    CHART_PALETTE,
     OrganizationReportBatch,
     _pct_change,
     date_format,
     group_status_to_color,
     prepare_organization_report,
     prepare_template_context,
+    project_breakdown_colors,
     render_template_context,
     schedule_organizations,
 )
@@ -2455,3 +2458,9 @@ class WeeklyReportsTest(
         template_ctx = render_template_context(ctx, self.user.id)
         assert template_ctx is not None
         assert template_ctx["spans_chart_url"] is None
+
+    def test_chart_palette_equals_top_spans_limit(self):
+        assert len(CHART_PALETTE) == TOP_SPANS_LIMIT
+
+    def test_project_breakdown_equals_covers_project_limit(self):
+        assert len(project_breakdown_colors) == TOP_SPANS_LIMIT
