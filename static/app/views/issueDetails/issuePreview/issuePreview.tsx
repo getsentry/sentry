@@ -55,7 +55,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
 
   return (
     <Fragment>
-      <Container padding="md" borderBottom="muted">
+      <Container padding="md 2xl" borderBottom="muted">
         <Flex justify="between" align="center" flex="1" gap="md">
           {group && project && <IssueIdBreadcrumb group={group} project={project} />}
           <Flex justify="end" flex="1">
@@ -65,7 +65,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
           </Flex>
         </Flex>
       </Container>
-      <Container flexGrow={1} minHeight={0} overflowY="auto" padding="lg">
+      <Container flexGrow={1} minHeight={0} overflowY="auto" padding="lg 2xl">
         {isPending && <LoadingIndicator />}
         {isError && <LoadingError />}
         {group && project && (
@@ -162,7 +162,7 @@ function IssuePreviewContent() {
           </Container>
           <TabPanels>
             <TabPanels.Item key="activity">
-              <Container paddingTop="md" paddingLeft="md" paddingRight="md">
+              <Container paddingTop="md">
                 <IssueDetailsContextProvider>
                   {event && (
                     <ErrorBoundary mini>
