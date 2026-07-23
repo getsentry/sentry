@@ -4,7 +4,9 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from fixtures.sdk_crash_detection.crash_event_android import get_crash_event as get_android_crash_event
+from fixtures.sdk_crash_detection.crash_event_android import (
+    get_crash_event as get_android_crash_event,
+)
 from fixtures.sdk_crash_detection.crash_event_cocoa import get_crash_event
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.services.eventstore.models import Event
