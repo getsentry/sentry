@@ -242,7 +242,7 @@ def build_activity_notification_data(
 
         case ActivityType.ASSIGNED.value:
             assignee_label = get_assignee_str(activity=activity, organization=organization)
-            assignee_email = activity.data.get("assigneeEmail")
+            assignee_email = activity.data.get("assigneeEmail") if activity.data else None
             assignee_url = None
             # TODO(Leander): If a team is assigned, maybe link to the team page?
             if assignee_email:
