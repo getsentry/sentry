@@ -135,17 +135,9 @@ function ReviewPrButton({
   const meta = ACTION_META.review_pr;
   return (
     <Tooltip title={meta.description} skipWrapper>
-      <LinkButton
-        size={size}
-        variant={meta.variant}
-        icon={<meta.Icon />}
-        href={prUrl}
-        external
-      >
+      <LinkButton size={size} variant={meta.variant} href={prUrl} external>
         {/* The PR number breaks up a section of otherwise-identical buttons;
-            the trailing IconOpen marks the jump out to the code host. The
-            button only auto-spaces its leading icon slot, so the trailing
-            icon needs its own flex gap. */}
+            the trailing IconOpen marks the jump out to the code host. */}
         <Flex as="span" gap="xs" align="center">
           {prNumber ? t('Review PR #%s', prNumber) : meta.label}
           <IconOpen size="xs" />
