@@ -19,7 +19,13 @@ from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import action_context_scope, resolve_action_source
-from sentry.issues.action_log.types import GroupActionActor, GroupActionType
+from sentry.issues.action_log.types import (
+    CommentAction,
+    CommentDeleteAction,
+    CommentEditAction,
+    GroupActionActor,
+    GroupActionType,
+)
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
@@ -63,20 +69,18 @@ class GroupNotesEndpoint(GroupEndpoint):
             # text per comment.
             latest_edit_text_by_comment: dict[int, str | None] = {}
             for edit in edit_entries:
-                original_comment_id = edit.data.get("comment_id")
-                if original_comment_id is not None:
-                    latest_edit_text_by_comment.setdefault(
-                        original_comment_id, edit.data.get("text")
-                    )
+                action = edit.action
+                if isinstance(action, CommentEditAction):
+                    latest_edit_text_by_comment.setdefault(action.comment_id, action.text)
 
             # A COMMENT_DELETE points at the GALE id of the COMMENT it removes;
             # GALE is append-only, so exclude those so deleted notes drop out.
             deleted_comment_ids = {
-                comment_id
+                action.comment_id
                 for entry in GroupActionLogEntry.objects.filter(
                     group_id=group.id, type=GroupActionType.COMMENT_DELETE.value
                 )
-                if (comment_id := entry.data.get("comment_id")) is not None
+                if isinstance(action := entry.action, CommentDeleteAction)
             }
 
             entries = GroupActionLogEntry.objects.filter(
@@ -96,9 +100,9 @@ class GroupNotesEndpoint(GroupEndpoint):
                 # Return the Activity id (in comment_id) as `id`, matching the
                 # flag-off contract so clients can still edit/delete via note_id.
                 for entry, item in zip(comment_entries, serialized):
-                    comment_id = entry.data.get("comment_id")
-                    if comment_id is not None:
-                        item["id"] = str(comment_id)
+                    action = entry.action
+                    if isinstance(action, CommentAction):
+                        item["id"] = str(action.comment_id)
                 return serialized
 
             return self.paginate(
