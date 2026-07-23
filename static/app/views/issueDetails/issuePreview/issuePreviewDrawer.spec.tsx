@@ -88,6 +88,10 @@ describe('IssuePreviewDrawer', () => {
     expect(
       screen.getByRole('heading', {name: 'ReferenceError: foo is not defined'})
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Issue'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/123/'
+    );
   });
 
   it('builds badge links from the group context, not the route param', async () => {

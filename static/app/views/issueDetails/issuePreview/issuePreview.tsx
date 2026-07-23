@@ -10,6 +10,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getMessage, getTitle} from 'sentry/utils/events';
@@ -68,25 +69,15 @@ export function IssuePreview({
   renderHeader = renderDefaultHeader,
   renderBody = renderDefaultBody,
 }: IssuePreviewProps) {
-  const organization = useOrganization();
   const {data: group, isPending, isError} = useGroup({groupId});
   const {projects} = useProjects();
   const project = projects.find(p => p.id === group?.project.id) ?? group?.project;
 
-  const issueDetailsUrl = normalizeUrl(
-    `/organizations/${organization.slug}/issues/${groupId}/`
-  );
-
   return (
     <Fragment>
       {renderHeader(
-        <Flex justify="between" align="center" flex="1" gap="md">
+        <Flex align="center" flex="1" gap="md">
           {group && project && <IssueIdBreadcrumb group={group} project={project} />}
-          <Flex justify="end" flex="1">
-            <LinkButton to={issueDetailsUrl} size="xs" icon={<IconOpen />}>
-              {t('Open Issue')}
-            </LinkButton>
-          </Flex>
         </Flex>
       )}
       {renderBody(
@@ -107,6 +98,7 @@ export function IssuePreview({
 }
 
 function IssuePreviewContent() {
+  const organization = useOrganization();
   const {group, project} = useGroupData();
   const {hasAutofix} = useAiConfig(group, project);
   const {data: event} = useGroupEvent({
@@ -121,28 +113,58 @@ function IssuePreviewContent() {
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(getGroupReprocessingStatus(group));
 
+  const issueDetailsUrl = normalizeUrl(
+    `/organizations/${organization.slug}/issues/${group.id}/`
+  );
+
   return (
     <Fragment>
       <Container paddingBottom="lg" borderBottom="muted">
         <Stack gap="xs">
-          <Container>
-            <Tooltip
-              title={primaryTitle}
-              skipWrapper
-              isHoverable
-              showOnlyOnOverflow
-              delay={1000}
-            >
-              <Heading as="h3" size="lg" ellipsis>
-                {primaryTitle}
-              </Heading>
-            </Tooltip>
-            <EventMessage
-              level={group.level}
-              message={secondaryTitle}
-              type={group.type}
-            />
-          </Container>
+          <Flex align="start" justify="between" gap="md">
+            <Flex align="center" gap="xs" minWidth={0}>
+              <Tooltip
+                title={primaryTitle}
+                skipWrapper
+                isHoverable
+                showOnlyOnOverflow
+                delay={1000}
+              >
+                <Heading as="h3" size="lg" ellipsis>
+                  {primaryTitle}
+                </Heading>
+              </Tooltip>
+              <LinkButton
+                to={issueDetailsUrl}
+                size="zero"
+                variant="transparent"
+                icon={<IconOpen />}
+                aria-label={t('Open Issue')}
+              />
+            </Flex>
+            <Flex align="center" gap="xs" wrap="nowrap">
+              <TimeSince
+                date={group.lastSeen}
+                suffix=""
+                unitStyle="extraShort"
+                tooltipPrefix={t('Last Seen')}
+                variant="muted"
+              />
+              <Text variant="muted">|</Text>
+              <TimeSince
+                date={group.firstSeen}
+                suffix=""
+                unitStyle="extraShort"
+                tooltipPrefix={t('First Seen')}
+                variant="muted"
+              />
+            </Flex>
+          </Flex>
+          <EventMessage
+            level={group.level}
+            message={secondaryTitle}
+            type={group.type}
+          />
           <GroupStatusSubtitle group={group} project={project} />
         </Stack>
       </Container>
