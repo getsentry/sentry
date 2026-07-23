@@ -121,15 +121,21 @@ def generate_group_derived_data(
     namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
 )
-def process_project_derived_data(project_id: int, **kwargs: object) -> None:
+def process_project_derived_data(
+    project_id: int, *, use_pipeline_hash: bool = False, **kwargs: object
+) -> None:
     """Build derived data for all unprocessed groups in a project.
 
     Finds groups without a GroupDerivedData row, partitions them into
     ID ranges, and fans out a batch task for each range.
+
+    When *use_pipeline_hash* is True, also includes groups whose
+    GroupDerivedData has a stale pipeline_hash.
     """
-    from django.db.models import Exists, OuterRef
+    from django.db.models import Exists, OuterRef, Q
 
     from sentry import options
+    from sentry.issues.derived.processing import PIPELINE
     from sentry.issues.models.groupderiveddata import GroupDerivedData
     from sentry.models.group import Group
 
@@ -137,9 +143,21 @@ def process_project_derived_data(project_id: int, **kwargs: object) -> None:
     max_tasks = options.get("issues.derived.project-max-tasks")
 
     # TODO: support very large projects via paginated iteration
+    no_derived = ~Exists(GroupDerivedData.objects.filter(group_id=OuterRef("id")))
+    if use_pipeline_hash:
+        stale_hash = Exists(
+            GroupDerivedData.objects.filter(
+                group_id=OuterRef("id"),
+            ).exclude(
+                pipeline_hash=PIPELINE.pipeline_hash,
+            )
+        )
+        condition = Q(no_derived) | Q(stale_hash)
+    else:
+        condition = Q(no_derived)
+
     group_ids = list(
-        Group.objects.filter(project_id=project_id)
-        .exclude(Exists(GroupDerivedData.objects.filter(group_id=OuterRef("id"))))
+        Group.objects.filter(condition, project_id=project_id)
         .order_by("id")
         .values_list("id", flat=True)[:_MAX_PROJECT_GROUPS]
     )
@@ -180,6 +198,7 @@ def process_project_derived_data(project_id: int, **kwargs: object) -> None:
             project_id=project_id,
             group_id_start=start,
             group_id_end=end,
+            use_pipeline_hash=use_pipeline_hash,
         )
 
     logger.info(
@@ -202,15 +221,21 @@ def process_project_derived_data_batch(
     project_id: int,
     group_id_start: int,
     group_id_end: int,
+    *,
+    use_pipeline_hash: bool = False,
     **kwargs: object,
 ) -> None:
     """Process derived data for groups in the ID range [group_id_start, group_id_end).
 
     Reschedules itself with the remaining range if the timeout is reached.
+
+    When *use_pipeline_hash* is True, deletes any GroupDerivedData row with
+    a stale pipeline_hash before processing, forcing a full rebuild.
     """
     from taskbroker_client.state import current_task
 
-    from sentry.issues.derived.processing import GroupLogTimeout, process_group_log
+    from sentry.issues.derived.processing import PIPELINE, GroupLogTimeout, process_group_log
+    from sentry.issues.models.groupderiveddata import GroupDerivedData
     from sentry.models.group import Group
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 
@@ -237,6 +262,11 @@ def process_project_derived_data_batch(
         .values_list("id", flat=True)
     )
 
+    if use_pipeline_hash:
+        GroupDerivedData.objects.filter(group_id__in=group_ids).exclude(
+            pipeline_hash=PIPELINE.pipeline_hash
+        ).delete()
+
     processed = 0
     rescheduled = False
 
@@ -261,6 +291,7 @@ def process_project_derived_data_batch(
                 project_id=project_id,
                 group_id_start=group_id,
                 group_id_end=group_id_end,
+                use_pipeline_hash=use_pipeline_hash,
             )
             if activation_id:
                 mark_spawned(_BATCH_TASK_KEY, activation_id)
@@ -277,6 +308,7 @@ def process_project_derived_data_batch(
                 project_id=project_id,
                 group_id_start=group_id + 1,
                 group_id_end=group_id_end,
+                use_pipeline_hash=use_pipeline_hash,
             )
             if activation_id:
                 mark_spawned(_BATCH_TASK_KEY, activation_id)
@@ -514,5 +546,55 @@ def generate_project_derived_data_batch(
             "total": len(group_ids),
             "rescheduled": rescheduled,
             "elapsed": time.monotonic() - start,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Self-healing: discover and reprocess stale pipeline hashes
+# ---------------------------------------------------------------------------
+
+
+@instrumented_task(
+    name="sentry.issues.derived.tasks.heal_stale_derived_data",
+    namespace=issues_tasks,
+    silo_mode=SiloMode.CELL,
+)
+def heal_stale_derived_data(**kwargs: object) -> None:
+    """Find projects with stale GroupDerivedData and trigger reprocessing.
+
+    Queries for distinct project_ids that have at least one GroupDerivedData
+    row with a pipeline_hash that doesn't match the current pipeline, then
+    schedules process_project_derived_data for up to N of them.
+    """
+    from sentry import options
+    from sentry.issues.derived.processing import PIPELINE
+    from sentry.issues.models.groupderiveddata import GroupDerivedData
+
+    if not options.get("issues.derived.heal-enabled"):
+        logger.info("heal_stale_derived_data.disabled")
+        return
+
+    limit = options.get("issues.derived.heal-project-limit")
+    current_hash = PIPELINE.pipeline_hash
+
+    project_ids = list(
+        GroupDerivedData.objects.exclude(pipeline_hash=current_hash)
+        .values_list("group__project_id", flat=True)
+        .distinct()[:limit]
+    )
+
+    if not project_ids:
+        logger.info("heal_stale_derived_data.nothing_to_heal")
+        return
+
+    for project_id in project_ids:
+        process_project_derived_data.delay(project_id=project_id, use_pipeline_hash=True)
+
+    logger.info(
+        "heal_stale_derived_data.scheduled",
+        extra={
+            "project_count": len(project_ids),
+            "pipeline_hash": current_hash,
         },
     )

@@ -3987,3 +3987,17 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Number of projects to schedule for reprocessing per heal_stale_derived_data invocation.
+register(
+    "issues.derived.heal-project-limit",
+    default=3,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Kill switch for heal_stale_derived_data task.
+register(
+    "issues.derived.heal-enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
