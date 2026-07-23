@@ -14,7 +14,6 @@ import type {Project} from 'sentry/types/project';
 import {getTitle} from 'sentry/utils/events';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {AttachmentsBadge} from 'sentry/views/issueDetails/header/attachmentsBadge';
-import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {ReplayBadge} from 'sentry/views/issueDetails/header/replayBadge';
 import {SeerBadge} from 'sentry/views/issueDetails/header/seerBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/header/userFeedbackBadge';
@@ -22,19 +21,9 @@ import {UserFeedbackBadge} from 'sentry/views/issueDetails/header/userFeedbackBa
 interface GroupStatusSubtitleProps {
   group: Group;
   project: Project;
-  /**
-   * Show compact event + affected-user counts in the status line. Off by default
-   * so this only appears where opted in (e.g. the issue preview); the full issue
-   * details header renders its own counts elsewhere.
-   */
-  showCounts?: boolean;
 }
 
-export function GroupStatusSubtitle({
-  group,
-  project,
-  showCounts = false,
-}: GroupStatusSubtitleProps) {
+export function GroupStatusSubtitle({group, project}: GroupStatusSubtitleProps) {
   const {subtitle} = getTitle(group);
   const statusProps = getBadgeProperties(group.status, group.substatus);
 
@@ -73,7 +62,6 @@ export function GroupStatusSubtitle({
           </Tooltip>
         </Fragment>
       )}
-      {showCounts && <EventUserCounts group={group} project={project} />}
       <ErrorBoundary customComponent={null}>
         <AttachmentsBadge group={group} />
         <UserFeedbackBadge group={group} project={project} />

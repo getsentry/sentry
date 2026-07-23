@@ -627,6 +627,13 @@ class SeerAgentClient:
         ):
             opts["enable_streaming"] = True
 
+        if features.has(
+            "organizations:agentic-triage-sort",
+            self.organization,
+            actor=self.user,
+        ):
+            opts["is_agentic_triage_sort"] = True
+
         return opts
 
     def continue_run(

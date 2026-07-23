@@ -65,6 +65,7 @@ class OrganizationReportContext:
         self.top_spans_timeseries: dict[str, dict[int, float]] = {}  # {span_name: {timestamp: p95}}
         self.top_spans_projects: dict[str, int] = {}  # {span_name: project_id}
         self.spans_count_by_project: dict[int, int] = {}  # {project_id: count}
+        self.prev_week_spans_count_by_project: dict[int, int] = {}  # {project_id: count}
 
     def __repr__(self) -> str:
         return self.projects_context_map.__repr__()
@@ -474,6 +475,9 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
     return data
 
 
+ISSUE_SUMMARY_BATCH_SIZE = 50
+
+
 def organization_project_issue_summaries(
     start: datetime, end: datetime, ctx: OrganizationReportContext
 ) -> list[dict[str, Any]]:
@@ -481,17 +485,22 @@ def organization_project_issue_summaries(
 
     Returns raw rows; callers roll up by substatus or by day as needed.
     """
-    return list(
-        Group.objects.filter(
-            project_id__in=list(ctx.projects_context_map.keys()),
-            last_seen__gte=start,
-            last_seen__lt=end,
-            status=GroupStatus.UNRESOLVED,
+    project_ids = list(ctx.projects_context_map.keys())
+    results: list[dict[str, Any]] = []
+    for i in range(0, len(project_ids), ISSUE_SUMMARY_BATCH_SIZE):
+        batch = project_ids[i : i + ISSUE_SUMMARY_BATCH_SIZE]
+        results.extend(
+            Group.objects.filter(
+                project_id__in=batch,
+                last_seen__gte=start,
+                last_seen__lt=end,
+                status=GroupStatus.UNRESOLVED,
+            )
+            .annotate(day=TruncDay("last_seen"))
+            .values("project_id", "substatus", "day")
+            .annotate(total=Count("id"))
         )
-        .annotate(day=TruncDay("last_seen"))
-        .values("project_id", "substatus", "day")
-        .annotate(total=Count("id"))
-    )
+    return results
 
 
 PAST_ISSUES_CANDIDATE_LIMIT = 50
@@ -702,6 +711,39 @@ def _get_transaction_projects(ctx: OrganizationReportContext) -> list[Project]:
     ]
 
 
+def spans_count_by_project(
+    projects: Sequence[Project],
+    organization: Organization,
+    start: datetime,
+    end: datetime,
+    referrer: str,
+) -> dict[int, int]:
+    snuba_params = SnubaParams(
+        start=start,
+        end=end,
+        projects=projects,
+        organization=organization,
+    )
+    config = SearchResolverConfig(auto_fields=True)
+    result = Spans.run_table_query(
+        params=snuba_params,
+        query_string="is_transaction:1",
+        selected_columns=["project.id", "count()"],
+        orderby=None,
+        offset=0,
+        limit=len(projects),
+        referrer=referrer,
+        config=config,
+        sampling_mode=None,
+    )
+    counts: dict[int, int] = {}
+    for row in result.get("data", []):
+        project_id = row.get("project.id")
+        if project_id:
+            counts[int(project_id)] = row.get("count()") or 0
+    return counts
+
+
 def organization_top_spans(
     ctx: OrganizationReportContext,
     referrer: str,
@@ -752,22 +794,9 @@ def organization_top_spans(
         op="weekly_reports.spans_count_by_project",
         name="weekly_reports.spans_count_by_project",
     ):
-        count_by_project_result = Spans.run_table_query(
-            params=snuba_params,
-            query_string="is_transaction:1",
-            selected_columns=["project.id", "count()"],
-            orderby=None,
-            offset=0,
-            limit=len(projects),
-            referrer=referrer,
-            config=config,
-            sampling_mode=None,
+        ctx.spans_count_by_project = spans_count_by_project(
+            projects, ctx.organization, ctx.start, ctx.end, referrer
         )
-
-    for row in count_by_project_result.get("data", []):
-        project_id = row.get("project.id")
-        if project_id:
-            ctx.spans_count_by_project[int(project_id)] = row.get("count()", 0)
 
     for row in result.get("data", []):
         span_name = row.get("span.name", "")

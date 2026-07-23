@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -10,7 +8,6 @@ import {tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {Divider} from 'sentry/views/issueDetails/divider';
 
 interface EventUserCountsProps {
   group: Group;
@@ -35,26 +32,23 @@ export function EventUserCounts({group, project}: EventUserCountsProps) {
   const userLabel = tn('%s affected user', '%s affected users', userCount);
 
   return (
-    <Fragment>
-      <Divider />
-      <Flex align="center" gap="md">
-        <Tooltip title={userLabel} skipWrapper>
-          <Flex align="center" gap="xs" aria-label={userLabel}>
-            <IconUser size="xs" />
-            <Text size="sm" variant="muted" aria-hidden>
-              <Count value={userCount} />
-            </Text>
-          </Flex>
-        </Tooltip>
-        <Tooltip title={eventLabel} skipWrapper>
-          <Flex align="center" gap="xs" aria-label={eventLabel}>
-            <IconStack size="xs" />
-            <Text size="sm" variant="muted" aria-hidden>
-              <Count value={eventCount} />
-            </Text>
-          </Flex>
-        </Tooltip>
-      </Flex>
-    </Fragment>
+    <Flex align="center" gap="md">
+      <Tooltip title={userLabel} skipWrapper>
+        <Flex align="center" gap="xs" aria-label={userLabel}>
+          <IconUser size="xs" />
+          <Text size="sm" variant="muted" aria-hidden>
+            <Count value={userCount} />
+          </Text>
+        </Flex>
+      </Tooltip>
+      <Tooltip title={eventLabel} skipWrapper>
+        <Flex align="center" gap="xs" aria-label={eventLabel}>
+          <IconStack size="xs" />
+          <Text size="sm" variant="muted" aria-hidden>
+            <Count value={eventCount} />
+          </Text>
+        </Flex>
+      </Tooltip>
+    </Flex>
   );
 }
