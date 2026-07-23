@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from django.db import IntegrityError, router, transaction
@@ -8,15 +8,21 @@ from django.db.models.query import QuerySet
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.ai_monitoring.models import AIConversationMetadata
-from sentry.ai_monitoring.tasks import generate_ai_conversation_title
+from sentry.ai_monitoring.tasks import (
+    generate_ai_conversation_title,
+    spawn_conversation_title_generation,
+)
 from sentry.ai_monitoring.utils import (
+    MAX_USER_MESSAGE_CHARS,
     clamp_conversation_id_for_storage,
     clamp_user_message,
+    conversation_id_from_span,
     conversation_id_hash,
     fallback_title_from_message,
+    first_user_message_from_span,
     generate_conversation_title,
     generate_title_with_seer,
-    parse_conversation_title_span,
+    span_source_timestamp,
 )
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.testutils.cases import TestCase
@@ -95,17 +101,25 @@ class TitleHelpersTest(TestCase):
         # Hash stays on the full id; storage clamp must not change the hash input.
         assert conversation_id_hash(long_id) != conversation_id_hash(clamped)
 
-    def test_parse_span_success(self) -> None:
-        data = parse_conversation_title_span(
-            make_gen_ai_span(project_id=1, conversation_id="  abc  ", start_timestamp=TS + 0.5)
+    def test_conversation_id_from_span(self) -> None:
+        assert (
+            conversation_id_from_span(make_gen_ai_span(project_id=1, conversation_id="  abc  "))
+            == "abc"
         )
-        assert data is not None
-        assert data.project_id == 1
-        assert data.conversation_id == "abc"
-        assert data.source_timestamp == _ts(0.5)
-        assert data.first_user_message == "How do I reset my password?"
+        assert (
+            conversation_id_from_span(make_gen_ai_span(project_id=1, omit_conversation_id=True))
+            is None
+        )
+        assert (
+            conversation_id_from_span(make_gen_ai_span(project_id=1, conversation_id="  ")) is None
+        )
 
-    def test_parse_span_prefers_input_messages(self) -> None:
+    def test_span_source_timestamp(self) -> None:
+        assert span_source_timestamp(
+            make_gen_ai_span(project_id=1, start_timestamp=TS + 0.5)
+        ) == _ts(0.5)
+
+    def test_first_user_message_prefers_input_messages(self) -> None:
         span = make_gen_ai_span(
             project_id=1,
             messages=json.dumps(
@@ -118,38 +132,32 @@ class TitleHelpersTest(TestCase):
         span["attributes"][ATTRIBUTE_NAMES.GEN_AI_REQUEST_MESSAGES] = _attr(
             json.dumps([{"role": "user", "content": "from request"}])
         )
-        data = parse_conversation_title_span(span)
-        assert data is not None
-        assert data.first_user_message == "from input"
+        assert first_user_message_from_span(span) == "from input"
 
-    def test_parse_span_falls_back_to_request_messages(self) -> None:
-        data = parse_conversation_title_span(
-            make_gen_ai_span(
-                project_id=1,
-                messages=json.dumps([{"role": "user", "content": "from request"}]),
-                use_request_messages=True,
+    def test_first_user_message_falls_back_to_request_messages(self) -> None:
+        assert (
+            first_user_message_from_span(
+                make_gen_ai_span(
+                    project_id=1,
+                    messages=json.dumps([{"role": "user", "content": "from request"}]),
+                    use_request_messages=True,
+                )
             )
-        )
-        assert data is not None
-        assert data.first_user_message == "from request"
-
-    def test_parse_span_missing_fields(self) -> None:
-        assert (
-            parse_conversation_title_span(make_gen_ai_span(project_id=1, omit_conversation_id=True))
-            is None
-        )
-        assert (
-            parse_conversation_title_span(make_gen_ai_span(project_id=1, omit_messages=True))
-            is None
+            == "from request"
         )
 
-    def test_parse_span_skips_privacy_filtered_messages(self) -> None:
+    def test_first_user_message_missing(self) -> None:
         assert (
-            parse_conversation_title_span(make_gen_ai_span(project_id=1, messages="[Filtered]"))
+            first_user_message_from_span(make_gen_ai_span(project_id=1, omit_messages=True)) is None
+        )
+
+    def test_first_user_message_skips_privacy_filtered(self) -> None:
+        assert (
+            first_user_message_from_span(make_gen_ai_span(project_id=1, messages="[Filtered]"))
             is None
         )
         assert (
-            parse_conversation_title_span(
+            first_user_message_from_span(
                 make_gen_ai_span(
                     project_id=1,
                     messages=json.dumps([{"role": "user", "content": "[Filtered]"}]),
@@ -231,9 +239,15 @@ class GenerateAIConversationTitleTaskTest(TestCase):
         super().setUp()
         self.project = self.create_project()
 
-    def _span(self, **kwargs: Any) -> dict[str, Any]:
-        kwargs.setdefault("project_id", self.project.id)
-        return make_gen_ai_span(**kwargs)
+    def _task_kwargs(self, **kwargs: Any) -> dict[str, Any]:
+        """Defaults for generate_ai_conversation_title; override per test."""
+        return {
+            "project_id": self.project.id,
+            "conversation_id": "conv-1",
+            "first_user_message": "How do I reset my password?",
+            "source_timestamp": TS,
+            **kwargs,
+        }
 
     def _create_metadata(
         self,
@@ -258,7 +272,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
 
     @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="AI Title")
     def test_creates_metadata_row(self, mock_generate: MagicMock) -> None:
-        generate_ai_conversation_title(self._span(start_timestamp=TS))
+        generate_ai_conversation_title(**self._task_kwargs())
 
         row = self._row()
         assert row.conversation_id == "conv-1"
@@ -273,7 +287,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
     @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="AI Title")
     def test_stores_clamped_conversation_id_and_hashes_full(self, mock_generate: MagicMock) -> None:
         long_id = "c" * 3000
-        generate_ai_conversation_title(self._span(conversation_id=long_id, start_timestamp=TS))
+        generate_ai_conversation_title(**self._task_kwargs(conversation_id=long_id))
 
         row = self._row(long_id)
         assert row.conversation_id == "c" * 2040 + "..."
@@ -285,7 +299,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
         earlier = _ts()
         self._create_metadata(title="Earlier Title", source_timestamp=earlier)
 
-        generate_ai_conversation_title(self._span(start_timestamp=TS + 60))
+        generate_ai_conversation_title(**self._task_kwargs(source_timestamp=TS + 60))
 
         row = self._row()
         assert row.title == "Earlier Title"
@@ -296,7 +310,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
     def test_equal_timestamp_keeps_existing(self, mock_generate: MagicMock) -> None:
         self._create_metadata(title="Original", source_timestamp=_ts())
 
-        generate_ai_conversation_title(self._span(start_timestamp=TS))
+        generate_ai_conversation_title(**self._task_kwargs())
         assert self._row().title == "Original"
         mock_generate.assert_not_called()
 
@@ -304,7 +318,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
     def test_supersedes_when_source_is_strictly_earlier(self, mock_generate: MagicMock) -> None:
         self._create_metadata(title="Later Turn Title", source_timestamp=_ts(60))
 
-        generate_ai_conversation_title(self._span(start_timestamp=TS))
+        generate_ai_conversation_title(**self._task_kwargs())
 
         row = self._row()
         assert row.title == "Earlier Title"
@@ -324,7 +338,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
             return "My Title"
 
         mock_generate.side_effect = seer_side_effect
-        generate_ai_conversation_title(self._span(start_timestamp=TS))
+        generate_ai_conversation_title(**self._task_kwargs())
 
         row = self._row()
         assert row.title == "Concurrent Earlier"
@@ -350,7 +364,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
             return real_update(self, **kwargs)
 
         with patch.object(QuerySet, "update", fake_update):
-            generate_ai_conversation_title(self._span(start_timestamp=TS))
+            generate_ai_conversation_title(**self._task_kwargs())
 
         row = self._row()
         assert row.title == "New Title"
@@ -358,34 +372,22 @@ class GenerateAIConversationTitleTaskTest(TestCase):
         assert AIConversationMetadata.objects.filter(project=self.project).count() == 1
 
     @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="Unused")
-    def test_skips_missing_conversation_id(self, mock_generate: MagicMock) -> None:
-        generate_ai_conversation_title(self._span(omit_conversation_id=True))
-        assert AIConversationMetadata.objects.count() == 0
-        mock_generate.assert_not_called()
-
-    @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="Unused")
-    def test_skips_missing_user_message(self, mock_generate: MagicMock) -> None:
-        generate_ai_conversation_title(self._span(omit_messages=True))
-        assert AIConversationMetadata.objects.count() == 0
-        mock_generate.assert_not_called()
-
-    @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="Unused")
     def test_skips_missing_project(self, mock_generate: MagicMock) -> None:
-        generate_ai_conversation_title(self._span(project_id=999999999))
+        generate_ai_conversation_title(**self._task_kwargs(project_id=999999999))
         assert AIConversationMetadata.objects.count() == 0
         mock_generate.assert_not_called()
 
     @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="Unused")
     def test_skips_when_hide_ai_features(self, mock_generate: MagicMock) -> None:
         self.organization.update_option("sentry:hide_ai_features", True)
-        generate_ai_conversation_title(self._span())
+        generate_ai_conversation_title(**self._task_kwargs())
         assert AIConversationMetadata.objects.count() == 0
         mock_generate.assert_not_called()
 
     @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="Unused")
     def test_skips_when_feature_disabled(self, mock_generate: MagicMock) -> None:
         with self.feature({"organizations:gen-ai-conversation-title-generation": False}):
-            generate_ai_conversation_title(self._span())
+            generate_ai_conversation_title(**self._task_kwargs())
         assert AIConversationMetadata.objects.count() == 0
         mock_generate.assert_not_called()
 
@@ -393,10 +395,9 @@ class GenerateAIConversationTitleTaskTest(TestCase):
     def test_end_to_end_with_mocked_seer(self, mock_request: MagicMock) -> None:
         mock_request.return_value = _mock_seer_success("Password Reset Guidance")
         generate_ai_conversation_title(
-            self._span(
+            **self._task_kwargs(
                 conversation_id="e2e-conv",
-                messages=json.dumps([{"role": "user", "content": "How do I reset my password?"}]),
-                start_timestamp=TS,
+                first_user_message="How do I reset my password?",
             )
         )
 
@@ -408,9 +409,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
     @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
     def test_end_to_end_seer_failure_uses_fallback(self, mock_request: MagicMock) -> None:
         mock_request.side_effect = Exception("network down")
-        generate_ai_conversation_title(
-            self._span(messages=json.dumps([{"role": "user", "content": "Short question"}]))
-        )
+        generate_ai_conversation_title(**self._task_kwargs(first_user_message="Short question"))
         assert self._row().title == "Short question"
 
     def test_unique_constraint_project_conversation_hash(self) -> None:
@@ -429,3 +428,163 @@ class GenerateAIConversationTitleTaskTest(TestCase):
                 title="Two",
                 title_source_timestamp=datetime.now(UTC) + timedelta(seconds=1),
             )
+
+
+DELAY = "sentry.ai_monitoring.tasks.generate_ai_conversation_title.delay"
+
+
+def _user_messages(content: str) -> str:
+    return json.dumps([{"role": "user", "content": content}])
+
+
+@with_feature("organizations:gen-ai-conversation-title-generation")
+class SpawnConversationTitleGenerationTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project()
+
+    @patch(DELAY)
+    def test_enqueues_earliest_span_per_conversation(self, mock_delay: MagicMock) -> None:
+        # Many spans share one conversation in a segment; only the earliest is enqueued.
+        spawn_conversation_title_generation(
+            [
+                make_gen_ai_span(
+                    project_id=self.project.id,
+                    start_timestamp=TS + 60,
+                    messages=_user_messages("later"),
+                ),
+                make_gen_ai_span(
+                    project_id=self.project.id,
+                    start_timestamp=TS,
+                    messages=_user_messages("earliest"),
+                ),
+                make_gen_ai_span(
+                    project_id=self.project.id,
+                    start_timestamp=TS + 30,
+                    messages=_user_messages("middle"),
+                ),
+            ],
+        )
+
+        mock_delay.assert_called_once_with(
+            project_id=self.project.id,
+            conversation_id="conv-1",
+            first_user_message="earliest",
+            source_timestamp=TS,
+        )
+
+    @patch(DELAY)
+    def test_enqueues_once_per_conversation(self, mock_delay: MagicMock) -> None:
+        spawn_conversation_title_generation(
+            [
+                make_gen_ai_span(project_id=self.project.id, conversation_id="a"),
+                make_gen_ai_span(project_id=self.project.id, conversation_id="b"),
+            ],
+        )
+
+        assert mock_delay.call_count == 2
+        assert {c.kwargs["conversation_id"] for c in mock_delay.call_args_list} == {"a", "b"}
+
+    @patch(DELAY)
+    def test_skips_spans_without_conversation_or_message(self, mock_delay: MagicMock) -> None:
+        spawn_conversation_title_generation(
+            [
+                make_gen_ai_span(project_id=self.project.id, omit_conversation_id=True),
+                make_gen_ai_span(project_id=self.project.id, omit_messages=True),
+                make_gen_ai_span(project_id=self.project.id, messages="[Filtered]"),
+            ],
+        )
+        mock_delay.assert_not_called()
+
+    @patch(DELAY)
+    def test_clamps_user_message_before_enqueue(self, mock_delay: MagicMock) -> None:
+        spawn_conversation_title_generation(
+            [
+                make_gen_ai_span(
+                    project_id=self.project.id,
+                    messages=_user_messages("a" * (MAX_USER_MESSAGE_CHARS + 100)),
+                )
+            ],
+        )
+        assert len(mock_delay.call_args.kwargs["first_user_message"]) == MAX_USER_MESSAGE_CHARS
+
+    @patch(DELAY)
+    def test_resolves_project_from_span(self, mock_delay: MagicMock) -> None:
+        spawn_conversation_title_generation([make_gen_ai_span(project_id=self.project.id)])
+        mock_delay.assert_called_once()
+        assert mock_delay.call_args.kwargs["project_id"] == self.project.id
+
+    @patch(DELAY)
+    def test_no_enqueue_when_project_not_found(self, mock_delay: MagicMock) -> None:
+        spawn_conversation_title_generation([make_gen_ai_span(project_id=2**31 - 1)])
+        mock_delay.assert_not_called()
+
+    @patch(DELAY)
+    def test_no_enqueue_when_hide_ai_features(self, mock_delay: MagicMock) -> None:
+        self.organization.update_option("sentry:hide_ai_features", True)
+        spawn_conversation_title_generation([make_gen_ai_span(project_id=self.project.id)])
+        mock_delay.assert_not_called()
+
+    @patch(DELAY)
+    @patch("sentry.ai_monitoring.tasks.metrics.incr")
+    def test_emits_conversation_count_metric(
+        self, mock_incr: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        metric = "spans.consumers.process_segments.gen_ai_conversation"
+        spawn_conversation_title_generation(
+            [
+                make_gen_ai_span(project_id=self.project.id, conversation_id="a"),
+                # A conversation without a usable message still counts as "seen".
+                make_gen_ai_span(
+                    project_id=self.project.id, conversation_id="b", omit_messages=True
+                ),
+                make_gen_ai_span(project_id=self.project.id, omit_conversation_id=True),
+            ],
+        )
+        assert sum(1 for c in mock_incr.call_args_list if c == call(metric, 2)) == 1
+        # Only the conversation with a message is enqueued.
+        mock_delay.assert_called_once()
+        assert mock_delay.call_args.kwargs["conversation_id"] == "a"
+
+    @patch(DELAY)
+    @patch("sentry.ai_monitoring.tasks.metrics.incr")
+    def test_no_presence_metric_without_conversation_spans(
+        self, mock_incr: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        metric = "spans.consumers.process_segments.gen_ai_conversation"
+        spawn_conversation_title_generation(
+            [make_gen_ai_span(project_id=self.project.id, omit_conversation_id=True)],
+        )
+        assert not any(c.args[:1] == (metric,) for c in mock_incr.call_args_list)
+
+    @patch(DELAY)
+    @patch(
+        "sentry.ai_monitoring.tasks.first_user_message_from_span",
+        wraps=first_user_message_from_span,
+    )
+    def test_skips_message_extraction_for_later_spans(
+        self, mock_extract: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        # Earliest span arrives first; later same-conversation spans must not pay
+        # the message-extraction cost.
+        spawn_conversation_title_generation(
+            [
+                make_gen_ai_span(
+                    project_id=self.project.id,
+                    start_timestamp=TS,
+                    messages=_user_messages("earliest"),
+                ),
+                make_gen_ai_span(project_id=self.project.id, start_timestamp=TS + 30),
+                make_gen_ai_span(project_id=self.project.id, start_timestamp=TS + 60),
+            ],
+        )
+        assert mock_extract.call_count == 1
+        mock_delay.assert_called_once()
+
+
+class SpawnConversationTitleGenerationFeatureDisabledTest(TestCase):
+    @patch(DELAY)
+    def test_no_enqueue_when_feature_disabled(self, mock_delay: MagicMock) -> None:
+        project = self.create_project()
+        spawn_conversation_title_generation([make_gen_ai_span(project_id=project.id)])
+        mock_delay.assert_not_called()
