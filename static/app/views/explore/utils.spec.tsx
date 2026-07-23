@@ -414,7 +414,7 @@ describe('removeHiddenKeys', () => {
       project_id: {key: 'project_id', name: 'project_id', kind: FieldKind.TAG},
     };
 
-    expect(removeHiddenKeys(tags, ['project_id'])).toEqual({
+    expect(removeHiddenKeys(tags, new Set(['project_id']))).toEqual({
       'log.field': {key: 'log.field', name: 'log.field', kind: FieldKind.TAG},
     });
   });
@@ -435,7 +435,7 @@ describe('removeHiddenKeys', () => {
       },
     };
 
-    expect(removeHiddenKeys(tags, ['project_id'])).toEqual({
+    expect(removeHiddenKeys(tags, new Set(['project_id']))).toEqual({
       'log.duration': {
         key: 'log.duration',
         name: 'log.duration',
@@ -458,7 +458,7 @@ describe('removeHiddenKeys', () => {
       },
     };
 
-    expect(removeHiddenKeys(tags, ['project_id'])).toEqual(tags);
+    expect(removeHiddenKeys(tags, new Set(['project_id']))).toEqual(tags);
   });
 
   it('keeps user-sent attributes whose name collides with a hidden key', () => {
@@ -471,7 +471,7 @@ describe('removeHiddenKeys', () => {
       },
     };
 
-    expect(removeHiddenKeys(tags, ['organization.id'])).toEqual(tags);
+    expect(removeHiddenKeys(tags, new Set(['organization.id']))).toEqual(tags);
   });
 
   it('still hides Sentry-sourced attributes that match a hidden key', () => {
@@ -484,7 +484,7 @@ describe('removeHiddenKeys', () => {
       },
     };
 
-    expect(removeHiddenKeys(tags, ['organization.id'])).toEqual({});
+    expect(removeHiddenKeys(tags, new Set(['organization.id']))).toEqual({});
   });
 });
 

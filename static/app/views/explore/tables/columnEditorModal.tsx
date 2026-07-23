@@ -17,7 +17,12 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
-import {classifyTagKey, FieldKind, FieldValueType} from 'sentry/utils/fields';
+import {
+  classifyTagKey,
+  FieldKind,
+  FieldValueType,
+  prettifyTagKey,
+} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
 import {
@@ -400,13 +405,15 @@ function buildColumnOptions({
   traceItemType,
   validatedFieldTypes,
 }: BuildColumnOptionsParams) {
-  const hidden = hiddenKeys ?? [];
+  const hidden = new Set(hiddenKeys);
   return buildAttributeOptions({
     numberTags: removeHiddenKeys(numberTags, hidden),
     stringTags: removeHiddenKeys(stringTags, hidden),
     booleanTags: removeHiddenKeys(booleanTags, hidden),
     traceItemType,
-    extraColumns: columns,
+    extraColumns: columns.filter(
+      column => !hidden.has(column) && !hidden.has(prettifyTagKey(column))
+    ),
     extraColumnKind: column =>
       fieldKindFromFieldType(validatedFieldTypes?.[column]) ?? classifyTagKey(column),
   }).toSorted((a, b) => sortKnownAttributes(a, b, traceItemType));

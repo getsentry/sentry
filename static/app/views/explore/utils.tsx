@@ -656,16 +656,15 @@ export const isHiddenAttribute = (tag: Tag, hiddenKeys: Set<string>): boolean =>
 
 export const removeHiddenKeys = (
   tagCollection: TagCollection,
-  hiddenKeys: string[]
+  hiddenKeys: Set<string>
 ): TagCollection => {
-  const hiddenKeySet = new Set(hiddenKeys);
   const result: TagCollection = {};
   for (const key in tagCollection) {
     const tag = tagCollection[key];
     if (!key || !tag) {
       continue;
     }
-    if (isHiddenAttribute(tag, hiddenKeySet)) {
+    if (isHiddenAttribute(tag, hiddenKeys)) {
       continue;
     }
     result[key] = tag;
