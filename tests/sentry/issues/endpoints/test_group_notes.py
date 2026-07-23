@@ -109,7 +109,7 @@ class GroupNoteTest(APITestCase):
     def test_reads_from_gale(self) -> None:
         group = self.group
 
-        entry = self.create_group_action_log_entry(
+        self.create_group_action_log_entry(
             group=group,
             type=GroupActionType.COMMENT,
             actor_type=GroupActorType.USER,
@@ -123,7 +123,8 @@ class GroupNoteTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(entry.id)
+        # `id` is the Activity id (comment_id), matching the flag-off contract
+        assert response.data[0]["id"] == "123"
         assert response.data[0]["type"] == "note"
         assert response.data[0]["user"]["id"] == str(self.user.id)
         assert response.data[0]["data"]["text"] == "hello world"
@@ -171,14 +172,17 @@ class GroupNoteTest(APITestCase):
 
         # edits collapse into the original comment, so there is one row per comment
         assert len(response.data) == 2
+        # `id` is the Activity id (comment_id), matching the flag-off contract
+        unedited_id = str(unedited.data["comment_id"])
+        edited_id = str(edited.data["comment_id"])
         rows_by_id = {row["id"]: row for row in response.data}
-        assert set(rows_by_id) == {str(unedited.id), str(edited.id)}
+        assert set(rows_by_id) == {unedited_id, edited_id}
 
         # the edited comment keeps type "note" and shows the latest edit text
-        assert rows_by_id[str(edited.id)]["type"] == "note"
-        assert rows_by_id[str(edited.id)]["data"]["text"] == "latest edit"
+        assert rows_by_id[edited_id]["type"] == "note"
+        assert rows_by_id[edited_id]["data"]["text"] == "latest edit"
         # the unedited comment is unaffected
-        assert rows_by_id[str(unedited.id)]["data"]["text"] == "unedited comment"
+        assert rows_by_id[unedited_id]["data"]["text"] == "unedited comment"
 
 
 class GroupNoteCreateTest(APITestCase):
@@ -216,11 +220,10 @@ class GroupNoteCreateTest(APITestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.NOTE.value, user_id=self.user.id
         )
-        entry = GroupActionLogEntry.objects.get(
-            group_id=group.id, type=GroupActionType.COMMENT.value
-        )
+        GroupActionLogEntry.objects.get(group_id=group.id, type=GroupActionType.COMMENT.value)
 
-        assert response.data["id"] == str(entry.id)
+        # `id` is the Activity id (comment_id), matching the flag-off contract
+        assert response.data["id"] == str(activity.id)
         assert response.data["type"] == "note"
         assert response.data["user"]["id"] == str(self.user.id)
         assert response.data["data"]["text"] == "hello world"

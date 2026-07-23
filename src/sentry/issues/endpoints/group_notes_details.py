@@ -201,9 +201,11 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                         **original_comment_log_action.data,
                         "text": note.data.get("text"),
                     }
-                    return Response(
-                        serialize(original_comment_log_action, request.user), status=200
-                    )
+                    serialized = serialize(original_comment_log_action, request.user)
+                    # Return the Activity id as `id`, matching the flag-off
+                    # contract so clients can edit/delete via note_id.
+                    serialized["id"] = str(note.id)
+                    return Response(serialized, status=200)
 
             return Response(serialize(note, request.user), status=200)
 

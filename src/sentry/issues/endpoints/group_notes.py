@@ -69,9 +69,19 @@ class GroupNotesEndpoint(GroupEndpoint):
                         original_comment_id, edit.data.get("text")
                     )
 
+            # A COMMENT_DELETE points at the GALE id of the COMMENT it removes;
+            # GALE is append-only, so exclude those so deleted notes drop out.
+            deleted_comment_ids = {
+                comment_id
+                for entry in GroupActionLogEntry.objects.filter(
+                    group_id=group.id, type=GroupActionType.COMMENT_DELETE.value
+                )
+                if (comment_id := entry.data.get("comment_id")) is not None
+            }
+
             entries = GroupActionLogEntry.objects.filter(
                 group_id=group.id, type=GroupActionType.COMMENT.value
-            )
+            ).exclude(id__in=deleted_comment_ids)
 
             def serialize_with_edits(comment_entries: list[GroupActionLogEntry]) -> list[object]:
                 # An edit doesn't mutate the original COMMENT entry, so re-derive
@@ -82,7 +92,14 @@ class GroupNotesEndpoint(GroupEndpoint):
                             **entry.data,
                             "text": latest_edit_text_by_comment[entry.id],
                         }
-                return serialize(comment_entries, request.user)
+                serialized = serialize(comment_entries, request.user)
+                # Return the Activity id (in comment_id) as `id`, matching the
+                # flag-off contract so clients can still edit/delete via note_id.
+                for entry, item in zip(comment_entries, serialized):
+                    comment_id = entry.data.get("comment_id")
+                    if comment_id is not None:
+                        item["id"] = str(comment_id)
+                return serialized
 
             return self.paginate(
                 request=request,
@@ -180,7 +197,11 @@ class GroupNotesEndpoint(GroupEndpoint):
                 idempotency_key=activity_action_idempotency_key(activity),
             ).first()
             if entry:
-                return Response(serialize(entry, request.user), status=201)
+                serialized = serialize(entry, request.user)
+                # Return the Activity id as `id`, matching the flag-off contract
+                # so clients can edit/delete via note_id.
+                serialized["id"] = str(activity.id)
+                return Response(serialized, status=201)
             logger.info("group_notes.groupactionlogentry.not_found", extra={"group_id": group.id})
 
         return Response(serialize(activity, request.user), status=201)

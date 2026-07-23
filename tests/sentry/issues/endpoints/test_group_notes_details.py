@@ -208,12 +208,13 @@ class GroupNotesDetailsTest(APITestCase):
         response = self.client.put(put_url, format="json", data={"text": "updated text"})
         assert response.status_code == 200, response.content
 
-        entry = GroupActionLogEntry.objects.get(
+        GroupActionLogEntry.objects.get(
             group_id=group.id,
             type=GroupActionType.COMMENT.value,
             data__comment_id=activity_id,
         )
-        assert response.data["id"] == str(entry.id)
+        # `id` is the Activity id (comment_id), matching the flag-off contract
+        assert response.data["id"] == str(activity_id)
         assert response.data["type"] == "note"
         assert response.data["user"]["id"] == str(self.user.id)
         # the fresh text is re-derived from the edited activity, not the stale GALE entry
