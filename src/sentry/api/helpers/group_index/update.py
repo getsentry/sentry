@@ -787,7 +787,7 @@ def prepare_response(
                     "projects:issue-action-log-activity", group.project, actor=acting_user
                 ):
                     action_log = GroupActionLogEntry.objects.get_actions_for_group(
-                        group, ACTIVITIES_COUNT
+                        group, ACTIVITIES_COUNT - 1
                     )
                     if action_log:
                         result["activity"] = [
