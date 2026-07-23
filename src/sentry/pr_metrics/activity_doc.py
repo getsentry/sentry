@@ -601,6 +601,20 @@ def _synthesized_check_suite_payload(group: CheckGroup) -> dict[str, Any]:
             name for name, run in runs.items() if is_failing_conclusion(run.get("conclusion"))
         ),
         "first_failure_at": group.get("first_failure_at"),
+        # Every check that has EVER failed in this group, with its current
+        # conclusion and failure count. `failing_check_names` above is the
+        # currently-failing subset; the rest are checks that went red and came back
+        # green at the same SHA — flaky CI, which the collapse would otherwise
+        # destroy (the group reads plain "success"). `completed_at` is deliberately
+        # not forwarded: the judge orders by the group's own timestamp and has no
+        # use for per-run times.
+        "check_runs": {
+            name: {
+                "conclusion": run.get("conclusion") or "",
+                "failed_attempts": run.get("failed_attempts", 0),
+            }
+            for name, run in runs.items()
+        },
     }
 
 
