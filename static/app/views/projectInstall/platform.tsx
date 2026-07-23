@@ -98,6 +98,7 @@ export function ProjectInstallPlatform({project, platform}: Props) {
           project={project}
           activeProductSelection={products}
           onProductSelectionSync={onProductSelectionSync}
+          docsFlow="project-creation"
         />
       )}
       <div>

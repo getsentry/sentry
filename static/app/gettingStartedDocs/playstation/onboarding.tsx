@@ -11,6 +11,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
+import {docsFlowGamingOrigin} from 'sentry/components/onboarding/gettingStartedDoc/docsFlowAnalytics';
 import {
   type DocsParams,
   type OnboardingConfig,
@@ -57,7 +58,7 @@ const onboardingRetail: OnboardingConfig = {
           content: (
             <AddCredentialsButton
               project={params.project}
-              origin={params.newOrg ? 'onboarding' : 'project-creation'}
+              origin={docsFlowGamingOrigin(params.docsFlow)}
             />
           ),
         },
@@ -274,7 +275,7 @@ export const onboarding: OnboardingConfig = {
               gamingPlatform="playstation"
               organization={params.organization}
               projectId={params.project.id}
-              origin={params.newOrg ? 'onboarding' : 'project-creation'}
+              origin={docsFlowGamingOrigin(params.docsFlow)}
             />
           ),
         },
