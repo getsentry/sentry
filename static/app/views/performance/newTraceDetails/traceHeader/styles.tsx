@@ -3,35 +3,29 @@ import styled from '@emotion/styled';
 import {
   Container,
   type ContainerProps,
+  Flex,
+  type FlexProps,
   Stack,
   type StackProps,
 } from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
 
-const HeaderLayout = styled((props: ContainerProps) => {
+function HeaderLayout(props: ContainerProps) {
+  return <Container padding="lg xl" borderBottom="primary" flexShrink={0} {...props} />;
+}
+
+function HeaderRow(props: FlexProps) {
   return (
-    <Container
-      as="div"
-      padding="lg xl"
-      borderBottom="primary"
-      flexShrink={0}
+    <Flex
+      justify="between"
+      align="center"
+      direction={{zero: 'column', xl: 'row'}}
+      gap={{zero: 'md', xl: 'xl'}}
       {...props}
     />
   );
-})``;
-
-const HeaderRow = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.xl};
-  align-items: center;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    gap: ${p => p.theme.space.md};
-    flex-direction: column;
-  }
-`;
+}
 
 function HeaderContent(props: StackProps) {
   return <Stack {...props} />;

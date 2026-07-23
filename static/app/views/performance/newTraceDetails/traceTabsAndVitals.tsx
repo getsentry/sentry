@@ -1,5 +1,3 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
-
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
@@ -54,47 +52,6 @@ export function TraceTabsAndVitals({
   tree,
 }: TraceTabsAndVitalsProps) {
   const {tabOptions, currentTab, onTabChange} = tabsConfig;
-  const containerRef = useRef<HTMLDivElement>(null);
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
-  const [containerWidth, setContainerWidth] = useState<number>();
-
-  const onResize = useCallback(() => {
-    if (containerRef.current) {
-      setContainerWidth(containerRef.current.clientWidth);
-    }
-  }, []);
-
-  const setRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      // Clean up old observer if it exists
-      if (resizeObserverRef.current && containerRef.current) {
-        resizeObserverRef.current.unobserve(containerRef.current);
-      }
-
-      containerRef.current = node;
-
-      if (node) {
-        resizeObserverRef.current = new ResizeObserver(() => {
-          onResize();
-        });
-        resizeObserverRef.current.observe(node);
-
-        // Trigger on load
-        onResize();
-      }
-    },
-    [onResize]
-  );
-
-  useEffect(() => {
-    return () => {
-      // Clean up resize observer on unmount
-      if (resizeObserverRef.current && containerRef.current) {
-        resizeObserverRef.current.unobserve(containerRef.current);
-        resizeObserverRef.current.disconnect();
-      }
-    };
-  }, []);
 
   if (rootEventResults.isLoading || tree.type === 'loading') {
     return <Placeholder />;
@@ -105,7 +62,7 @@ export function TraceTabsAndVitals({
   }
 
   return (
-    <Flex ref={setRef} justify="between" minHeight={`${CONTAINER_MIN_HEIGHT}px`}>
+    <Flex justify="between" align="center" minHeight={`${CONTAINER_MIN_HEIGHT}px`}>
       <Tabs value={currentTab} onChange={onTabChange}>
         <TabList variant="floating">
           {tabOptions.map(tab => (
@@ -113,11 +70,7 @@ export function TraceTabsAndVitals({
           ))}
         </TabList>
       </Tabs>
-      <TraceContextVitals
-        rootEventResults={rootEventResults}
-        tree={tree}
-        containerWidth={containerWidth}
-      />
+      <TraceContextVitals rootEventResults={rootEventResults} tree={tree} />
     </Flex>
   );
 }
