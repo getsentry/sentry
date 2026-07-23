@@ -64,13 +64,13 @@ def generate_ai_conversation_title(
         return
 
     conv_hash = conversation_id_hash(conversation_id)
-    rows = AIConversationMetadata.objects.filter(
+    qs = AIConversationMetadata.objects.filter(
         project_id=project_id,
         conversation_id_hash=conv_hash,
     )
 
     # Skip Seer if we already have a title from an earlier-or-equal span.
-    existing = rows.first()
+    existing = qs.first()
     if (
         existing is not None
         and existing.title_source_timestamp is not None
@@ -85,7 +85,7 @@ def generate_ai_conversation_title(
     stored_conversation_id = clamp_conversation_id_for_storage(conversation_id)
 
     # Update an existing row only if this span is still the earliest.
-    if rows.filter(_supersedable(source_ts)).update(
+    if qs.filter(_supersedable(source_ts)).update(
         title=title,
         conversation_id=stored_conversation_id,
         title_source_timestamp=source_ts,
@@ -105,7 +105,7 @@ def generate_ai_conversation_title(
             )
     except IntegrityError:
         # Another task created the row first; keep our title only if it's earlier.
-        if rows.filter(_supersedable(source_ts)).update(
+        if qs.filter(_supersedable(source_ts)).update(
             title=title,
             title_source_timestamp=source_ts,
         ):
