@@ -47,10 +47,7 @@ const PROGRESS_STATE_TAG_VARIANTS: Record<ProgressState, TagVariant> = {
   [ProgressState.FIX_APPLIED]: 'success',
 };
 
-/**
- * Renders an issue's progress state as a colored tag with a leading progress
- * icon (e.g. a green "Fix Proposed"). Returns null when the state is unknown.
- */
+/** Progress state as a colored tag with a leading icon (e.g. a green "Fix Proposed"). */
 export function IssueProgressTag({state}: {state: ProgressState | null}) {
   if (!state) {
     return null;

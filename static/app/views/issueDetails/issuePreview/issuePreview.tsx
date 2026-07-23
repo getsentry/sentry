@@ -69,12 +69,7 @@ export function IssuePreview({
   renderBody = renderDefaultBody,
 }: IssuePreviewProps) {
   const organization = useOrganization();
-  const hasProgress = organization.features.includes('issue-stream-progress-ui');
-  const {
-    data: group,
-    isPending,
-    isError,
-  } = useGroup({groupId, expandDerivedData: hasProgress});
+  const {data: group, isPending, isError} = useGroup({groupId, expandDerivedData: true});
   const {projects} = useProjects();
   const project = projects.find(p => p.id === group?.project.id) ?? group?.project;
 
@@ -112,10 +107,8 @@ export function IssuePreview({
 }
 
 function IssuePreviewContent() {
-  const organization = useOrganization();
   const {group, project} = useGroupData();
   const {hasAutofix} = useAiConfig(group, project);
-  const showProgress = organization.features.includes('issue-stream-progress-ui');
   const {data: event} = useGroupEvent({
     groupId: group.id,
     eventId: 'recommended',
@@ -150,11 +143,7 @@ function IssuePreviewContent() {
               type={group.type}
             />
           </Container>
-          <GroupStatusSubtitle
-            group={group}
-            project={project}
-            showProgress={showProgress}
-          />
+          <GroupStatusSubtitle group={group} project={project} showProgress />
         </Stack>
       </Container>
       <Flex

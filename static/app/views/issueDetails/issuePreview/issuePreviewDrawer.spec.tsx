@@ -431,8 +431,7 @@ describe('IssuePreviewDrawer', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the progress tag when progress UI is enabled', async () => {
-    const organization = OrganizationFixture({features: ['issue-stream-progress-ui']});
+  it('shows the progress tag', async () => {
     const project = ProjectFixture();
     const group = GroupFixture({
       id: '123',
@@ -452,11 +451,11 @@ describe('IssuePreviewDrawer', () => {
     ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      url: `/organizations/org-slug/issues/${group.id}/`,
       body: group,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
       body: {
         integration: {ok: false, reason: null},
         billing: {hasAutofixQuota: false},
@@ -464,7 +463,7 @@ describe('IssuePreviewDrawer', () => {
       },
     });
 
-    render(<IssuePreviewDrawer groupId={group.id} />, {organization});
+    render(<IssuePreviewDrawer groupId={group.id} />);
 
     expect(await screen.findByText('Fix Proposed')).toBeInTheDocument();
   });

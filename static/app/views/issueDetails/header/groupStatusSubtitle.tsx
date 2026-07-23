@@ -22,10 +22,7 @@ import {IssueProgressTag} from 'sentry/views/issueList/utils/progress';
 interface GroupStatusSubtitleProps {
   group: Group;
   project: Project;
-  /**
-   * Show the issue's progress state as a tag in the status line. Off by default
-   * so this only appears where opted in (e.g. the issue preview).
-   */
+  /** Show the progress state as a tag (only used in the issue preview). */
   showProgress?: boolean;
 }
 

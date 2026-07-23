@@ -40,10 +40,7 @@ export function groupQueryKey(params: GroupQueryKeyParameters) {
 
 interface UseGroupOptions {
   groupId: string;
-  /**
-   * Request the `derivedData` expand (issue progress, root cause, etc.).
-   * Off by default to avoid the extra bulk query for consumers that don't need it.
-   */
+  /** Request the `derivedData` expand (issue progress, etc.). Off by default. */
   expandDerivedData?: boolean;
   options?: {
     enabled?: boolean;
