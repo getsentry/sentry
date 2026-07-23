@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -106,22 +107,19 @@ function MetaItem({
   icon: React.ReactNode;
   tooltip?: React.ReactNode;
 }) {
-  const item = (
-    // minWidth 0 + ellipsis let the item truncate inside a tight rail column
-    // instead of pushing the layout wider.
-    <Flex gap="xs" align="center" minWidth="0">
+  return (
+    <Flex gap="xs" align="center" minWidth="0" maxWidth="100%">
       {icon}
-      <Text size="sm" variant="muted" ellipsis>
-        {children}
-      </Text>
+      {tooltip ? (
+        <InfoText title={tooltip} maxWidth={220} size="sm" variant="muted" ellipsis>
+          {children}
+        </InfoText>
+      ) : (
+        <Text size="sm" variant="muted" ellipsis>
+          {children}
+        </Text>
+      )}
     </Flex>
-  );
-  return tooltip ? (
-    <Tooltip title={tooltip} skipWrapper>
-      {item}
-    </Tooltip>
-  ) : (
-    item
   );
 }
 
@@ -406,9 +404,10 @@ export function IssueCard({
               gap={{xs: 'md', sm: 'xs'}}
               direction={{xs: 'row', sm: 'column'}}
               wrap="wrap"
+              align="start"
               minWidth="0"
             >
-              <Flex gap="xs" align="center" minWidth="0">
+              <Flex gap="xs" align="center" minWidth="0" maxWidth="100%">
                 <Tooltip title={t('View project')} skipWrapper>
                   <ProjectBadge project={row.project} avatarSize={14} hideName />
                 </Tooltip>

@@ -9,6 +9,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {TimezoneProvider} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -22,6 +23,8 @@ import {DEFAULT_STATS_PERIOD} from './periods';
 import {SectionList} from './sectionList';
 import type {StatusGroupKey} from './statusGroups';
 import {type OverviewView, SECTION_ORDER} from './types';
+
+const BROWSER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export default function AutofixOverview() {
   const organization = useOrganization();
@@ -81,36 +84,38 @@ export default function AutofixOverview() {
               )}
             />
           </Layout.Title>
-          <Stack gap="lg" padding="lg xl">
-            {selectedId ? (
-              <FocusedIssue id={selectedId} period={period} />
-            ) : (
-              <Fragment>
-                <OverviewFilters
-                  period={period}
-                  sort={sort}
-                  assignee={assignee}
-                  view={view}
-                  allCollapsed={allGroupsCollapsed}
-                  onUpdateQuery={updateQuery}
-                  onViewChange={setView}
-                  onToggleAll={() =>
-                    setCollapsedGroups(allGroupsCollapsed ? [] : [...SECTION_ORDER])
-                  }
-                />
-                <SectionList
-                  enabled={pageFiltersReady}
-                  projects={selection.projects}
-                  sort={sort}
-                  period={period}
-                  assignee={assignee}
-                  view={view}
-                  collapsedGroups={collapsedGroups}
-                  onToggleGroup={toggleGroup}
-                />
-              </Fragment>
-            )}
-          </Stack>
+          <TimezoneProvider timezone={BROWSER_TIMEZONE}>
+            <Stack gap="lg" padding="lg xl">
+              {selectedId ? (
+                <FocusedIssue id={selectedId} period={period} />
+              ) : (
+                <Fragment>
+                  <OverviewFilters
+                    period={period}
+                    sort={sort}
+                    assignee={assignee}
+                    view={view}
+                    allCollapsed={allGroupsCollapsed}
+                    onUpdateQuery={updateQuery}
+                    onViewChange={setView}
+                    onToggleAll={() =>
+                      setCollapsedGroups(allGroupsCollapsed ? [] : [...SECTION_ORDER])
+                    }
+                  />
+                  <SectionList
+                    enabled={pageFiltersReady}
+                    projects={selection.projects}
+                    sort={sort}
+                    period={period}
+                    assignee={assignee}
+                    view={view}
+                    collapsedGroups={collapsedGroups}
+                    onToggleGroup={toggleGroup}
+                  />
+                </Fragment>
+              )}
+            </Stack>
+          </TimezoneProvider>
         </SentryDocumentTitle>
       </PageFiltersContainer>
     </Feature>
