@@ -103,13 +103,8 @@ def smart_assignment_trigger_handler(
     activity: Activity,
     detector_id: DetectorId | None = None,
 ) -> None:
-    """Trigger the smart assignment feature off Seer AI-step starts, assignment, and
-    resolution.
-
-    Invoked unconditionally for every group activity (via
-    invoke_workflow_activity_handlers), so it self-filters to the activities we care
-    about and delegates gating, dispatch (deduped to one run per group), and
-    ground-truth capture to trigger_smart_assignment.
+    """Trigger the smart assignment feature off Seer RCA/PR start, issue assignment, and
+    issue resolution.
     """
     try:
         activity_type = ActivityType(activity.type)
@@ -132,11 +127,10 @@ def smart_assignment_completed_handler(
 ) -> None:
     """Act on a delivered smart-assignment verdict.
 
-    Fires off the SMART_ASSIGNMENT_COMPLETED activity that delivery records when Seer
-    returns a result (the activity references the originating Seer run). Invoked
-    unconditionally for every group activity, so it self-filters and delegates scoring
-    and auto-assignment to process_smart_assignment_completion -- decoupled from the
-    dispatch/ground-truth path that reacts to the *triggering* activities.
+    Responds to the SMART_ASSIGNMENT_COMPLETED activity created when when Seer
+    returns a result. Records the prediction, maybe-scores it against ground truth
+    (if we have it), creates a GroupOwner indicating a suggested owner, and promotes
+    the suggestion to an assignment iff the project auto-assigns to owners.
     """
     try:
         activity_type = ActivityType(activity.type)
