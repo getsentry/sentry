@@ -482,3 +482,39 @@ class DetectStalePullRequestsTaskTest(TestCase):
         assert mock_emit.call_count == 1
         emitted_pr_id = mock_emit.call_args.kwargs["pull_request"].id
         assert emitted_pr_id == good_pr.id
+
+    def test_continues_batch_when_emit_raises(self) -> None:
+        # emit_pr_metrics_row can raise (a DB blip, analytics.record's network
+        # call, cleanup_pr_activity_task.delay's broker call) — a PR is claimed
+        # ABANDONED before emission runs, so a failure here must not propagate
+        # and abort the rest of the batch (or the whole task, since every
+        # remaining batch would go unprocessed with it).
+        failing_pr = self._make_tracked_stale_pr()
+        good_pr = self._make_tracked_stale_pr()
+
+        with (
+            self.feature({"organizations:pr-metrics-activity": True}),
+            patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit,
+        ):
+
+            def _emit(*, pull_request: Any, diagnosis_labels: Any) -> bool:
+                if pull_request.id == failing_pr.id:
+                    raise RuntimeError("boom")
+                return True
+
+            mock_emit.side_effect = _emit
+            detect_stale_pull_requests_task()
+
+        # Both PRs were claimed before emission ran, so both are ABANDONED
+        # regardless of whether their emission succeeded.
+        assert (
+            PullRequestMetrics.objects.get(pull_request=failing_pr).verdict
+            == PullRequestVerdict.ABANDONED
+        )
+        assert (
+            PullRequestMetrics.objects.get(pull_request=good_pr).verdict
+            == PullRequestVerdict.ABANDONED
+        )
+        # The task didn't crash: emit was attempted for both PRs, not just the
+        # one before the failure.
+        assert mock_emit.call_count == 2

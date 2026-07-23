@@ -403,8 +403,20 @@ def detect_stale_pull_requests_task() -> None:
                 if pr.id not in engaged_legacy_pr_ids:
                     diagnosis_labels.append(NO_REVIEWER_ENGAGEMENT)
 
-            if emit_pr_metrics_row(pull_request=pr, diagnosis_labels=diagnosis_labels):
-                emitted += 1
+            # The claim above already stands regardless of what happens here — same
+            # trade-off as webhooks._claim_and_emit: emission is best-effort,
+            # async-batched telemetry, so a failure here forgoes this PR's row
+            # rather than being retried (retrying would mean re-claiming, which the
+            # NULL-verdict CAS above no longer allows). Guarded so one bad
+            # candidate (a DB blip, a downstream analytics error) can't abort the
+            # rest of the batch — and the whole run, since every remaining batch in
+            # this task would go unprocessed with it.
+            try:
+                if emit_pr_metrics_row(pull_request=pr, diagnosis_labels=diagnosis_labels):
+                    emitted += 1
+            except Exception:
+                logger.exception("pr_metrics.stale.emit_failed", extra={"pull_request_id": pr.id})
+                metrics.incr("pr_metrics.stale.emit_failed")
 
     metrics.incr("pr_metrics.stale.emitted", amount=emitted)
     logger.info("pr_metrics.stale.emitted", extra={"count": emitted})
