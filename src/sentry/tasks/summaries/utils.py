@@ -739,7 +739,7 @@ def spans_count_by_project(
     for row in result.get("data", []):
         project_id = row.get("project.id")
         if project_id:
-            counts[int(project_id)] = row.get("count()", 0)
+            counts[int(project_id)] = row.get("count()") or 0
     return counts
 
 
