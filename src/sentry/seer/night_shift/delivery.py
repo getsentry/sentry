@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from typing import Any
+from uuid import UUID
 
 import sentry_sdk
 
@@ -40,7 +41,7 @@ REASON_MAX_CHARS = 2048
 
 def deliver_night_shift_result(
     organization_id: int,
-    run_uuid: str,
+    run_uuid: UUID,
     status: FeatureRunStatus,
     result: dict[str, Any] | None,
     error: str | None,

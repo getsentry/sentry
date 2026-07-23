@@ -1,5 +1,6 @@
 from typing import Any
 from unittest.mock import patch
+from uuid import UUID
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -32,10 +33,10 @@ class TestDeliverNightShiftResult(TestCase):
         )
         return run
 
-    def _run_uuid(self, run: SeerNightShiftRun) -> str:
+    def _run_uuid(self, run: SeerNightShiftRun) -> UUID:
         seer_run = run.shards.get().seer_run
         assert seer_run is not None
-        return str(seer_run.uuid)
+        return seer_run.uuid
 
     def test_missing_run_logs_warning(self) -> None:
         """When run_uuid doesn't match any SeerNightShiftRun, log and return."""
@@ -44,7 +45,7 @@ class TestDeliverNightShiftResult(TestCase):
         with patch("sentry.seer.night_shift.delivery.logger") as mock_logger:
             deliver_night_shift_result(
                 organization_id=org.id,
-                run_uuid="00000000-0000-0000-0000-000000000000",
+                run_uuid=UUID("00000000-0000-0000-0000-000000000000"),
                 status="completed",
                 result={"verdicts": []},
                 error=None,
@@ -87,7 +88,7 @@ class TestDeliverNightShiftResult(TestCase):
 
         deliver_night_shift_result(
             organization_id=org.id,
-            run_uuid=str(failed_seer_run.uuid),
+            run_uuid=failed_seer_run.uuid,
             status="error",
             result=None,
             error="shard failed",
@@ -95,7 +96,7 @@ class TestDeliverNightShiftResult(TestCase):
         with patch("sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=1):
             deliver_night_shift_result(
                 organization_id=org.id,
-                run_uuid=str(ok_seer_run.uuid),
+                run_uuid=ok_seer_run.uuid,
                 status="completed",
                 result={
                     "verdicts": [

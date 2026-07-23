@@ -829,7 +829,12 @@ def deliver_feature_result(
         )
         return
 
-    handler(organization_id, run_uuid, status, result, error)
+    try:
+        parsed_run_uuid = uuid.UUID(run_uuid)
+    except (TypeError, ValueError):
+        raise ParseError("Invalid run uuid")
+
+    handler(organization_id, parsed_run_uuid, status, result, error)
 
 
 def get_monitoring_provider_connections(
