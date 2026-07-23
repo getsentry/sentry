@@ -11,17 +11,14 @@ import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  ConversationDetailPanel,
   ConversationLeftPanel,
   ConversationSplitLayout,
-  ConversationViewSkeleton,
 } from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
   ConversationSpanDetail,
   type DetailTab,
 } from 'sentry/views/explore/conversations/components/conversationSpanDetail';
-import {ConversationAggregatesBar} from 'sentry/views/explore/conversations/components/conversationSummary';
-import {MessagesPanel} from 'sentry/views/explore/conversations/components/messagesPanel';
+import {ConversationAggregatesBar} from 'sentry/views/explore/conversations/components/conversationSummaryNew';
 import {
   MessagesPanelNew,
   MessagesPanelSkeleton,
@@ -29,7 +26,6 @@ import {
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
-import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {AiSpansSplitView} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
@@ -48,7 +44,6 @@ export function TraceAiConversations({
   traceSlug,
 }: TraceAiConversationsProps) {
   const organization = useOrganization();
-  const hasRedesign = hasGenAiConversationsRedesignFeature(organization);
   const [activeSubTab, setActiveSubTab] = useState('spans');
   const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
 
@@ -89,23 +84,20 @@ export function TraceAiConversations({
   }> => {
     const spansTab = {
       key: 'spans',
-      label: hasRedesign ? t('Timeline') : t('Spans'),
+      label: t('Timeline'),
       conversationId: null,
     };
     const conversationTabs = conversationIds.map(id => ({
       key: `chat-${id}`,
-      label: hasRedesign
-        ? conversationIds.length === 1
+      label:
+        conversationIds.length === 1
           ? t('Transcript')
-          : t('Transcript %s', id.slice(0, 8))
-        : conversationIds.length === 1
-          ? t('Chat')
-          : t('Chat %s', id.slice(0, 8)),
+          : t('Transcript %s', id.slice(0, 8)),
       conversationId: id,
     }));
 
     return [spansTab, ...conversationTabs];
-  }, [conversationIds, hasRedesign]);
+  }, [conversationIds]);
 
   const linkConversationId = activeConversationId ?? conversationIds[0] ?? null;
   const conversationUrl = linkConversationId
@@ -150,25 +142,14 @@ export function TraceAiConversations({
             {tabItems.map(item =>
               item.conversationId ? (
                 <TabPanels.Item key={item.key}>
-                  {hasRedesign ? (
-                    <TraceConversationTranscript
-                      nodes={traceNodes}
-                      nodeTraceMap={nodeTraceMap}
-                      isLoading={isLoading}
-                      error={error}
-                      selectedSpanId={selectedSpanId}
-                      onSelectSpan={handleSelectSpan}
-                    />
-                  ) : (
-                    <TraceConversationChat
-                      nodes={traceNodes}
-                      nodeTraceMap={nodeTraceMap}
-                      isLoading={isLoading}
-                      error={error}
-                      selectedSpanId={selectedSpanId}
-                      onSelectSpan={handleSelectSpan}
-                    />
-                  )}
+                  <TraceConversationTranscript
+                    nodes={traceNodes}
+                    nodeTraceMap={nodeTraceMap}
+                    isLoading={isLoading}
+                    error={error}
+                    selectedSpanId={selectedSpanId}
+                    onSelectSpan={handleSelectSpan}
+                  />
                 </TabPanels.Item>
               ) : (
                 <TabPanels.Item key={item.key}>
@@ -200,70 +181,6 @@ function TraceConversationHeader({
         isLoading={isLoading}
       />
     </Container>
-  );
-}
-
-function TraceConversationChat({
-  nodes,
-  nodeTraceMap,
-  isLoading,
-  error,
-  selectedSpanId,
-  onSelectSpan,
-}: {
-  error: boolean;
-  isLoading: boolean;
-  nodeTraceMap: Map<string, string>;
-  nodes: AITraceSpanNode[];
-  onSelectSpan: (spanId: string) => void;
-  selectedSpanId: string | null;
-}) {
-  const {selectedNode, handleSelectNode} = useConversationSelection({
-    nodes,
-    selectedSpanId,
-    onSelectSpan,
-    isLoading,
-  });
-
-  if (isLoading) {
-    return <ConversationViewSkeleton />;
-  }
-
-  if (error) {
-    return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
-  }
-
-  if (nodes.length === 0) {
-    return (
-      <EmptyMessage>
-        {t('No chat messages in this portion of the conversation')}
-      </EmptyMessage>
-    );
-  }
-
-  return (
-    <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-      <ConversationSplitLayout
-        sizeStorageKey="trace-conversation-split-size"
-        left={
-          <ConversationLeftPanel>
-            <Flex flex="1" minHeight="0" width="100%" overflowX="hidden" overflowY="auto">
-              <MessagesPanel
-                nodes={nodes}
-                selectedNodeId={selectedNode?.id ?? null}
-                onSelectNode={handleSelectNode}
-              />
-            </Flex>
-          </ConversationLeftPanel>
-        }
-        right={
-          <ConversationDetailPanel
-            selectedNode={selectedNode}
-            nodeTraceMap={nodeTraceMap}
-          />
-        }
-      />
-    </TraceStateProvider>
   );
 }
 
