@@ -27,6 +27,8 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
     {
         "issues.sdk_crash_detection.cocoa.project_id": 1234,
         "issues.sdk_crash_detection.cocoa.sample_rate": 1.0,
+        "issues.sdk_crash_detection.java.project_id": 3,
+        "issues.sdk_crash_detection.java.sample_rate": 1.0,
         "issues.sdk_crash_detection.react-native.project_id": 2,
     }
 )
