@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 import abc
-import binascii
 import logging
-from base64 import b64decode
+from base64 import b64encode
 from collections.abc import Mapping
 from io import BytesIO
 from typing import Any, NotRequired, TypedDict, _TypedDict
 from urllib.parse import urlparse
 
 import sentry_sdk
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.http import HttpResponse, HttpResponseServerError
@@ -26,6 +24,7 @@ from PIL import Image
 from rest_framework.request import Request
 
 from sentry import features, options
+from sentry.api.fields.avatar import AvatarField
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.helper import AuthHelper
 from sentry.auth.provider import Provider
@@ -45,10 +44,6 @@ ERR_NO_SAML_SSO = _("The organization does not exist or does not have SAML SSO e
 ERR_SAML_FAILED = _("SAML SSO failed, {reason}")
 
 logger = logging.getLogger("sentry.auth.saml")
-
-# Mirrors sentry.api.fields.avatar.ALLOWED_MIMETYPES. Inlined to avoid importing the
-# API layer from an auth provider that is loaded early during app initialization.
-ALLOWED_AVATAR_MIMETYPES = ("image/gif", "image/jpeg", "image/png")
 
 
 def get_provider(organization_slug: str) -> SAML2Provider | None:
@@ -235,6 +230,19 @@ class Attributes:
     AVATAR = "avatar"
 
 
+class _SamlAvatarField(AvatarField):
+    """
+    Reuse the avatar upload validation (base64 decode, size limit, and format
+    allowlist) so SAML avatar handling stays consistent with the rest of Sentry.
+    Identity providers send photos at arbitrary sizes and stored avatars are
+    resized on read, so the square/min/max dimension checks are intentionally
+    skipped here.
+    """
+
+    def is_valid_size(self, width: int, height: int) -> bool:
+        return True
+
+
 def _validate_saml_avatar(value: str | None) -> str | None:
     """
     Validate a base64-encoded image carried by a SAML assertion, returning the
@@ -242,9 +250,9 @@ def _validate_saml_avatar(value: str | None) -> str | None:
     invalid.
 
     This never raises: a malformed profile picture must not block SSO login. An
-    optional ``data:<mimetype>;base64,`` prefix is stripped. We check the format
-    and size but not dimensions, since identity providers send photos of varying
-    sizes and stored avatars are resized on read.
+    optional ``data:<mimetype>;base64,`` prefix is stripped, the size and format
+    are validated via :class:`AvatarField`, and the image is re-encoded to strip
+    EXIF/metadata before storage.
     """
     if not value:
         return None
@@ -253,26 +261,30 @@ def _validate_saml_avatar(value: str | None) -> str | None:
         value = value.split("base64,", 1)[1]
 
     try:
-        decoded = b64decode(value)
-    except (binascii.Error, ValueError):
+        # AvatarField.to_internal_value decodes the base64 payload and validates
+        # its size and format, raising on anything malformed or oversized.
+        decoded = _SamlAvatarField().to_internal_value(value)
+    except Exception:
+        # AvatarField and Pillow raise a variety of errors (ValidationError,
+        # ImageTooLarge, OSError, DecompressionBombError, etc.) on malformed or
+        # hostile image data; never let a bad profile picture block SSO login.
         return None
 
-    if not decoded or len(decoded) > settings.SENTRY_MAX_AVATAR_SIZE:
+    if decoded is None:
         return None
 
     try:
-        with Image.open(BytesIO(decoded)) as image:
-            image_format = image.format
+        # Re-encode the image to strip EXIF and any other metadata. Restricting
+        # the decoders to the allowed formats keeps Pillow from being steered
+        # into loading a different one; Pillow drops metadata on save unless it
+        # is passed back explicitly, so a plain round-trip is enough.
+        with Image.open(decoded, formats=["PNG", "JPEG", "GIF"]) as image:
+            buffer = BytesIO()
+            image.save(buffer, format=image.format)
     except Exception:
-        # Pillow can raise a variety of errors (OSError, DecompressionBombError,
-        # etc.) on malformed or hostile image data; never let a bad profile
-        # picture block SSO login.
         return None
 
-    if image_format is None or Image.MIME.get(image_format) not in ALLOWED_AVATAR_MIMETYPES:
-        return None
-
-    return value
+    return b64encode(buffer.getvalue()).decode()
 
 
 class SAML2Provider(Provider, abc.ABC):

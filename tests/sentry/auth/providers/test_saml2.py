@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from base64 import b64encode
+from base64 import b64decode, b64encode
 from io import BytesIO
 from typing import Any
 from unittest import TestCase, mock
@@ -125,7 +125,11 @@ class SAML2ProviderTest(TestCase):
 
         identity = self.provider.build_identity(state)
 
-        assert identity["avatar"] == avatar
+        # The avatar is re-encoded on validation, so it decodes back to a valid
+        # PNG rather than matching the source bytes verbatim.
+        assert identity["avatar"] == _validate_saml_avatar(avatar)
+        with Image.open(BytesIO(b64decode(identity["avatar"]))) as image:
+            assert image.format == "PNG"
 
     def test_build_identity_with_invalid_avatar_is_omitted(self) -> None:
         self.provider.config = dummy_provider_config_with_avatar
@@ -152,12 +156,32 @@ class SAML2ProviderTest(TestCase):
 
 class ValidateSamlAvatarTest(TestCase):
     def test_valid_png(self) -> None:
-        avatar = _png_b64()
-        assert _validate_saml_avatar(avatar) == avatar
+        result = _validate_saml_avatar(_png_b64())
+
+        assert result is not None
+        with Image.open(BytesIO(b64decode(result))) as image:
+            assert image.format == "PNG"
 
     def test_strips_data_uri_prefix(self) -> None:
         avatar = _png_b64()
-        assert _validate_saml_avatar(f"data:image/png;base64,{avatar}") == avatar
+
+        # The re-encoded output is deterministic, so the prefixed and bare inputs
+        # must validate to the same stored payload.
+        assert _validate_saml_avatar(f"data:image/png;base64,{avatar}") == _validate_saml_avatar(
+            avatar
+        )
+
+    def test_strips_exif_metadata(self) -> None:
+        exif = Image.Exif()
+        exif[0x010E] = "sensitive description"  # ImageDescription tag
+        buffer = BytesIO()
+        Image.new("RGB", (10, 10), "blue").save(buffer, format="JPEG", exif=exif)
+
+        result = _validate_saml_avatar(b64encode(buffer.getvalue()).decode())
+
+        assert result is not None
+        with Image.open(BytesIO(b64decode(result))) as image:
+            assert not dict(image.getexif())
 
     def test_rejects_non_image(self) -> None:
         assert _validate_saml_avatar(b64encode(b"this is not an image").decode()) is None
