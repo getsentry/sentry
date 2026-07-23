@@ -869,6 +869,10 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # a different pool the catch-all, e.g. `taskworker-push` in s4s2.
 TASKWORKER_DEFAULT_TOPIC = os.getenv("TASKWORKER_DEFAULT_TOPIC")
 
+# Identifies if the running Sentry deployment is a taskworker.
+# See sentry.utils.producer.
+IS_TASKWORKER: bool = env("IS_TASKWORKER", False)
+
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
