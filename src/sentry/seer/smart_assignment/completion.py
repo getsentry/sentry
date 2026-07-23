@@ -49,12 +49,20 @@ def _apply_prediction(
     top_user_id = predicted_assignee_user_ids[0] if predicted_assignee_user_ids else None
     if top_user_id is None:
         # Agent abstained or named someone we couldn't map to an org user.
-        metrics.incr("smart_assignment.apply_prediction", tags={"outcome": "no_candidate"})
+        metrics.incr(
+            "smart_assignment.apply_prediction",
+            tags={"outcome": "no_candidate"},
+            sample_rate=1.0,
+        )
         return
 
     if user_service.get_user(user_id=top_user_id) is None:
         # The top pick doesn't resolve to an org user.
-        metrics.incr("smart_assignment.apply_prediction", tags={"outcome": "user_missing"})
+        metrics.incr(
+            "smart_assignment.apply_prediction",
+            tags={"outcome": "user_missing"},
+            sample_rate=1.0,
+        )
         return
 
     # Persist the pick as a suggested owner (idempotent upsert).
@@ -76,7 +84,7 @@ def _apply_prediction(
     # ground-truth capture skips our own assignment (see scoring.record_ground_truth).
     ProjectOwnership.handle_auto_assignment(project_id=group.project_id, group=group)
 
-    metrics.incr("smart_assignment.apply_prediction", tags={"outcome": "applied"})
+    metrics.incr("smart_assignment.apply_prediction", tags={"outcome": "applied"}, sample_rate=1.0)
     logger.info(
         "smart_assignment.apply_prediction.applied",
         extra={"group_id": group.id, "user_id": top_user_id},
