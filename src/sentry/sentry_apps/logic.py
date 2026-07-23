@@ -40,10 +40,10 @@ from sentry.sentry_apps.metrics import (
 )
 from sentry.sentry_apps.models.sentry_app import (
     MASKED_VALUE,
-    REQUIRED_EVENT_PERMISSIONS,
     UUID_CHARS_IN_SLUG,
     SentryApp,
     default_uuid,
+    required_scope_for_subscription,
 )
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -206,7 +206,7 @@ class SentryAppUpdater:
     def _update_events(self) -> None:
         if self.events is not None:
             for event in self.events:
-                needed_scope = REQUIRED_EVENT_PERMISSIONS[event]
+                needed_scope = required_scope_for_subscription(event)
                 if needed_scope not in self.sentry_app.scope_list:
                     raise ParseError(
                         detail=f"{event} webhooks require the {needed_scope} permission."

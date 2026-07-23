@@ -53,21 +53,42 @@ export enum TraceDrawerActionKind {
   LESS_THAN = 'less_than',
 }
 
+// TODO(constantinius): Hoist literal-value handling into MutableSearch so UI-added
+// filter values cannot be interpreted as search syntax by default.
+function escapeSearchQuotedValue(value: string) {
+  return value.replace(/"/g, '\\"');
+}
+
+function formatSearchFilterValue(value: string | null) {
+  if (value === null) {
+    return '';
+  }
+
+  if (
+    (value.startsWith('[') && value.endsWith(']')) ||
+    (value.startsWith('"') && value.endsWith('"'))
+  ) {
+    return `"${escapeSearchQuotedValue(value)}"`;
+  }
+  return value;
+}
+
 export function getSearchInExploreTarget(
   organization: Organization,
   location: Location,
   projectIds: string | string[] | undefined,
   key: string,
-  value: string,
+  value: string | null,
   kind: TraceDrawerActionKind
 ) {
   const {start, end, statsPeriod} = normalizeDateTimeParams(location.query);
   const search = new MutableSearch('');
+  const filterValue = formatSearchFilterValue(value);
 
   if (kind === TraceDrawerActionKind.INCLUDE) {
-    search.setFilterValues(key, [value]);
+    search.setFilterValues(key, [filterValue]);
   } else if (kind === TraceDrawerActionKind.EXCLUDE) {
-    search.setFilterValues(`!${key}`, [value]);
+    search.setFilterValues(`!${key}`, [filterValue]);
   } else if (kind === TraceDrawerActionKind.GREATER_THAN) {
     search.setFilterValues(key, [`>${value}`]);
   } else {
@@ -115,7 +136,10 @@ export function sortAttributes(attributes: TraceItemResponseAttribute[]) {
 
 export function getAttributeFilterSearch(rowKey: string, rowValue: string | number) {
   const search = new MutableSearch('');
-  search.addFilterValue(rowKey, rowValue.toString());
+  search.addFilterValue(
+    rowKey,
+    typeof rowValue === 'number' ? rowValue.toString() : formatSearchFilterValue(rowValue)
+  );
   return search.formatString();
 }
 

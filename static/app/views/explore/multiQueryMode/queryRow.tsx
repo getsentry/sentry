@@ -94,7 +94,6 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             timeseriesResult={timeseriesResult}
           />
           <MultiQueryTable
-            confidences={[]}
             mode={mode}
             query={queryParts}
             index={index}

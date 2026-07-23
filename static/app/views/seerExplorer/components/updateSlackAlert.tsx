@@ -65,7 +65,7 @@ export function UpdateSlackAlert({num_configurations}: UpdateSlackAlertProps) {
         }
       >
         {t(
-          'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the slack app to get started.'
+          'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app to get started.'
         )}
       </Alert>
     </Container>

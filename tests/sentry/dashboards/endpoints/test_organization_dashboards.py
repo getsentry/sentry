@@ -305,6 +305,31 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         # sorted by title by default
         assert values == ["Dashboard 3", "Dashboard 4", "Dashboard 5"]
 
+    def test_get_only_favorites_ordered_by_position(self) -> None:
+        d_a = Dashboard.objects.create(
+            title="Alpha", created_by_id=self.user.id, organization=self.organization
+        )
+        d_b = Dashboard.objects.create(
+            title="Bravo", created_by_id=self.user.id, organization=self.organization
+        )
+        d_c = Dashboard.objects.create(
+            title="Charlie", created_by_id=self.user.id, organization=self.organization
+        )
+        d_a.favorited_by = [self.user.id]
+        d_b.favorited_by = [self.user.id]
+        d_c.favorited_by = [self.user.id]
+        # Reorder so position order is Charlie, Alpha, Bravo (not title order)
+        DashboardFavoriteUser.objects.reorder_favorite_dashboards(
+            organization=self.organization,
+            user_id=self.user.id,
+            new_dashboard_positions=[d_c.id, d_a.id, d_b.id],
+        )
+        self.login_as(self.user)
+        with self.feature("organizations:dashboards-starred"):
+            response = self.client.get(self.url, data={"filter": "onlyFavorites"})
+        assert response.status_code == 200, response.content
+        assert [row["title"] for row in response.data] == ["Charlie", "Alpha", "Bravo"]
+
     def test_get_only_favorites_with_sort(self) -> None:
         user_1 = self.create_user(username="user_1")
         self.create_member(organization=self.organization, user=user_1)
@@ -355,6 +380,34 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         values = [row["title"] for row in response.data]
         assert values == ["Dashboard 4", "Dashboard 3", "Dashboard 5"]
+
+    def test_get_only_favorites_explicit_sort_overrides_position_with_flag(self) -> None:
+        d_a = Dashboard.objects.create(
+            title="Alpha", created_by_id=self.user.id, organization=self.organization
+        )
+        d_b = Dashboard.objects.create(
+            title="Bravo", created_by_id=self.user.id, organization=self.organization
+        )
+        d_c = Dashboard.objects.create(
+            title="Charlie", created_by_id=self.user.id, organization=self.organization
+        )
+        d_a.favorited_by = [self.user.id]
+        d_b.favorited_by = [self.user.id]
+        d_c.favorited_by = [self.user.id]
+        # Reorder positions to the reverse of dateCreated order
+        DashboardFavoriteUser.objects.reorder_favorite_dashboards(
+            organization=self.organization,
+            user_id=self.user.id,
+            new_dashboard_positions=[d_c.id, d_b.id, d_a.id],
+        )
+        self.login_as(self.user)
+        with self.feature("organizations:dashboards-starred"):
+            response = self.client.get(
+                self.url, data={"filter": "onlyFavorites", "sort": "dateCreated"}
+            )
+        assert response.status_code == 200, response.content
+        # Explicit sort wins over per-user position order even with the flag on
+        assert [row["title"] for row in response.data] == ["Alpha", "Bravo", "Charlie"]
 
     def test_get_exclude_favorites_with_no_sort(self) -> None:
         user_1 = self.create_user(username="user_1")
@@ -2124,6 +2177,151 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             if d.get("prebuiltId") == PrebuiltDashboardId.NODE_RUNTIME_METRICS
         ]
         assert len(prebuilt_in_response) == 1
+
+    def test_endpoint_creates_pre_favorited_prebuilt_dashboards(self) -> None:
+        assert (
+            DashboardFavoriteUser.objects.filter(
+                organization=self.organization, user_id=self.user.id
+            ).count()
+            == 0
+        )
+
+        pre_favorited_prebuilt_ids = {
+            d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("pre_favorited")
+        }
+
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                "organizations:dashboards-starred",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        favorites = DashboardFavoriteUser.objects.filter(
+            organization=self.organization, user_id=self.user.id
+        )
+        favorited_prebuilt_ids = set(
+            Dashboard.objects.filter(
+                id__in=favorites.values_list("dashboard_id", flat=True)
+            ).values_list("prebuilt_id", flat=True)
+        )
+        assert favorited_prebuilt_ids == pre_favorited_prebuilt_ids
+
+    def test_endpoint_does_not_create_favorites_without_starred_flag(self) -> None:
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        assert (
+            DashboardFavoriteUser.objects.filter(
+                organization=self.organization, user_id=self.user.id
+            ).count()
+            == 0
+        )
+
+    def test_endpoint_does_not_re_favorite_unstarred_prebuilt_dashboards(self) -> None:
+        pre_favorited_prebuilt_ids = {
+            d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("pre_favorited")
+        }
+
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                "organizations:dashboards-starred",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+            assert response.status_code == 200
+
+            # The user deliberately unstars one of the pre-favorited prebuilt dashboards.
+            unstarred_prebuilt_id = next(iter(pre_favorited_prebuilt_ids))
+            unstarred_dashboard = Dashboard.objects.get(
+                organization=self.organization, prebuilt_id=unstarred_prebuilt_id
+            )
+            DashboardFavoriteUser.objects.unfavorite_dashboard(
+                organization=self.organization,
+                user_id=self.user.id,
+                dashboard=unstarred_dashboard,
+            )
+
+            # A subsequent load must not silently re-star it.
+            response = self.do_request("get", self.url)
+            assert response.status_code == 200
+
+        favorites = DashboardFavoriteUser.objects.filter(
+            organization=self.organization, user_id=self.user.id, favorited=True
+        )
+        favorited_prebuilt_ids = set(
+            Dashboard.objects.filter(
+                id__in=favorites.values_list("dashboard_id", flat=True)
+            ).values_list("prebuilt_id", flat=True)
+        )
+        assert favorited_prebuilt_ids == pre_favorited_prebuilt_ids - {unstarred_prebuilt_id}
+
+    def test_endpoint_preserves_existing_stars_and_appends_prebuilts(self) -> None:
+        # User already has a starred (non-prebuilt) dashboard before rollout.
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization,
+            user_id=self.user.id,
+            dashboard=self.dashboard_2,
+        )
+
+        pre_favorited_prebuilt_ids = {
+            d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("pre_favorited")
+        }
+
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                "organizations:dashboards-starred",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        favorites = list(
+            DashboardFavoriteUser.objects.filter(
+                organization=self.organization, user_id=self.user.id, favorited=True
+            ).order_by("position")
+        )
+        # Existing star is retained and kept at the front; prebuilts appended after.
+        assert favorites[0].dashboard_id == self.dashboard_2.id
+        assert favorites[0].position == 0
+
+        favorited_prebuilt_ids = set(
+            Dashboard.objects.filter(
+                id__in=[f.dashboard_id for f in favorites],
+                prebuilt_id__isnull=False,
+            ).values_list("prebuilt_id", flat=True)
+        )
+        assert favorited_prebuilt_ids == pre_favorited_prebuilt_ids
+
+    def test_endpoint_auto_stars_prebuilts_in_alphabetical_order(self) -> None:
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                "organizations:dashboards-starred",
+            ]
+        ):
+            response = self.do_request("get", self.url, {"filter": "onlyFavorites"})
+        assert response.status_code == 200
+
+        # The sidebar (onlyFavorites) returns auto-starred prebuilts by position, and the
+        # auto-star inserts them alphabetically, mirroring Explore.
+        titles = [row["title"] for row in response.data]
+        assert titles == sorted(titles)
+        assert titles == ["AI Agents Overview", "Backend Overview", "Web Vitals"]
 
     def test_post_with_text_widget(self) -> None:
         data = {

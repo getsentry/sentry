@@ -101,14 +101,8 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
             f"[{self.issue_stream_detector.name}]:"
         )
 
-    @mock.patch(
-        "sentry.notifications.notification_action.action_handler_registry.plugin_handler.send_legacy_webhooks_for_invocation"
-    )
-    def test_plugin_notify_event_action(
-        self,
-        mock_send: mock.MagicMock,
-    ) -> None:
-        """Test a Plugin action (NotifyEventAction)"""
+    def test_plugin_action_rejected_as_deprecated(self) -> None:
+        """Test that Plugin actions are rejected as deprecated"""
         action_data = [
             {
                 "type": Action.Type.PLUGIN.value,
@@ -117,9 +111,8 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
             }
         ]
 
-        response = self.get_success_response(self.organization.slug, actions=action_data)
-        assert response.status_code == 200
-        assert mock_send.called
+        response = self.get_error_response(self.organization.slug, actions=action_data)
+        assert response.status_code == 400
 
     @mock.patch.object(JiraIntegration, "create_issue")
     @mock.patch.object(sentry_sdk, "capture_exception")
@@ -201,9 +194,9 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
 
         action_data = [
             {
-                "type": Action.Type.PLUGIN.value,
+                "type": Action.Type.EMAIL.value,
                 "data": {},
-                "config": {},
+                "config": {"target_type": "issue_owners"},
             }
         ]
 
@@ -228,9 +221,9 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
 
         action_data = [
             {
-                "type": Action.Type.PLUGIN.value,
+                "type": Action.Type.EMAIL.value,
                 "data": {},
-                "config": {},
+                "config": {"target_type": "issue_owners"},
             }
         ]
 
@@ -250,9 +243,9 @@ class TestFireActionsEndpointTest(APITestCase, BaseWorkflowTest):
         """Test that an invalid project_slug returns with a 400 error"""
         action_data = [
             {
-                "type": Action.Type.PLUGIN.value,
+                "type": Action.Type.EMAIL.value,
                 "data": {},
-                "config": {},
+                "config": {"target_type": "issue_owners"},
             }
         ]
 

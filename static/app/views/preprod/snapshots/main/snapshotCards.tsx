@@ -10,14 +10,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  IconFile,
-  IconInfo,
-  IconLightning,
-  IconLink,
-  IconMoon,
-  IconWarning,
-} from 'sentry/icons';
+import {IconFile, IconInfo, IconLink, IconMoon, IconSun, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -368,7 +361,7 @@ export const CardHeader = memo(function CardHeader({
           <IconButton
             aria-label={isDark ? t('Light preview') : t('Dark preview')}
             tooltip={isDark ? t('Light preview') : t('Dark preview')}
-            icon={isDark ? <IconLightning size="sm" /> : <IconMoon size="sm" />}
+            icon={isDark ? <IconSun size="sm" /> : <IconMoon size="sm" />}
             onClick={onToggleDark}
           />
           <IconButton

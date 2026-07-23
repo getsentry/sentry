@@ -44,7 +44,11 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.wait_until(xpath="//h2[text()='Configure Laravel SDK']")
         project1 = Project.objects.get(organization=self.org, slug="php-laravel")
         self.browser.click('[aria-label="Back to Platform Selection"]')
-        self.browser.click("[data-test-id='platform-javascript-nextjs']")
+        self.browser.wait_until("[data-test-id='platform-javascript-nextjs']")
+        self.browser.driver.execute_script(
+            "arguments[0].click()",
+            self.browser.element("[data-test-id='platform-javascript-nextjs']"),
+        )
         self.browser.click('[data-test-id="create-project"]')
         self.browser.wait_until(xpath="//h2[text()='Configure Next.js SDK']")
         project2 = Project.objects.get(organization=self.org, slug="javascript-nextjs")

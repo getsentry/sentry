@@ -15,7 +15,7 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
     NotificationTextBlock,
     NotificationTextBlockType,
-    ParagraphBlock,
+    ParagraphSection,
     PlainTextBlock,
 )
 from sentry.testutils.cases import TestCase
@@ -108,7 +108,7 @@ class EmailRendererTest(TestCase):
         xss_template = NotificationRenderedTemplate(
             subject="Test XSS",
             body=[
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(text="<script>alert('xss')</script>"),
                         BoldTextBlock(text="<img src=x onerror=alert('xss')>"),
@@ -137,7 +137,7 @@ class EmailRendererTest(TestCase):
         xss_template = NotificationRenderedTemplate(
             subject="Test XSS Link",
             body=[
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         LinkTextBlock(
                             text='<script>alert("xss")</script>',

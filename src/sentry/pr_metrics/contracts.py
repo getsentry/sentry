@@ -109,3 +109,10 @@ class PrCloseJudgeRequest(BaseModel):
     # actors that the end-state counters above flatten away: who pushed the
     # post-open commits (Bot vs human), review outcomes, labels, draft transitions.
     activity: list[PrActivityEvent]
+    # Non-zero means the timeline above is incomplete, and specifically missing its
+    # NEWEST events: capture drops lifecycle entries once the stored document hits
+    # its entry cap, so the close/merge and final reviews — the events a verdict
+    # leans on hardest — are the ones absent. The judge must not read a capped
+    # timeline as the PR's full history. Defaulted so a Seer that predates the
+    # field, or a replayed older request body, still validates.
+    activity_events_dropped: int = 0

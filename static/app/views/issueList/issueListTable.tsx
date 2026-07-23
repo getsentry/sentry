@@ -41,7 +41,6 @@ interface IssueListTableProps {
   query: string;
   queryCount: number;
   refetchGroups: (fetchAllCounts?: boolean) => void;
-  selectedProjectIds: number[];
   selection: PageFilters;
   statsLoading: boolean;
   statsPeriod: string;

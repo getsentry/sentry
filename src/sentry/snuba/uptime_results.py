@@ -2,7 +2,6 @@ import logging
 from datetime import timedelta
 from typing import Any
 
-import sentry_sdk
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 
 from sentry.search.eap.resolver import SearchResolver
@@ -11,6 +10,7 @@ from sentry.search.eap.uptime_results.definitions import UPTIME_RESULT_DEFINITIO
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.utils.snuba import SnubaTSResult
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.snuba.uptime_results")
 
@@ -19,7 +19,7 @@ class UptimeResults(rpc_dataset_common.RPCBase):
     DEFINITIONS = UPTIME_RESULT_DEFINITIONS
 
     @classmethod
-    @sentry_sdk.trace
+    @trace
     def run_table_query(
         cls,
         *,
@@ -73,7 +73,7 @@ class UptimeResults(rpc_dataset_common.RPCBase):
         raise NotImplementedError()
 
     @classmethod
-    @sentry_sdk.trace
+    @trace
     def run_top_events_timeseries_query(
         cls,
         *,

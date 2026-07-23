@@ -1,15 +1,17 @@
 from datetime import datetime
 from typing import Any, TypedDict
 
+from sentry.models.release_threshold.constants import ThresholdTypeName, TriggerTypeName
+
 
 class SerializedThreshold(TypedDict, total=False):
     id: str
-    date: datetime
+    date_added: datetime
     environment: dict[str, Any] | None
     project: dict[str, Any]
     release: str
-    threshold_type: int
-    trigger_type: str
+    threshold_type: ThresholdTypeName
+    trigger_type: TriggerTypeName
     value: int
     window_in_seconds: int
 

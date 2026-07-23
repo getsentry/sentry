@@ -397,10 +397,13 @@ def build_sentry_attribute_context(
 ) -> TraceItemAttributeContext | None:
     """
     Build context for a Sentry-defined (non-convention) attribute from its
-    definition's ``context``. When ``attribute_type`` is given, context only
-    attaches if it matches, so a user tag sharing a public alias isn't mislabeled.
+    definition's ``context``. Falls back to virtual column definitions (e.g.
+    ``project``) so their briefs surface too. When ``attribute_type`` is given,
+    context only attaches if it matches, so a user tag sharing a public alias
+    isn't mislabeled.
     """
-    column = get_column_definitions(item_type).columns.get(public_name)
+    definitions = get_column_definitions(item_type)
+    column = definitions.columns.get(public_name) or definitions.contexts.get(public_name)
     context = getattr(column, "context", None)
     if column is None or context is None or column.secondary_alias:
         return None
@@ -411,16 +414,34 @@ def build_sentry_attribute_context(
     ):
         return None
 
+    # Virtual column definitions don't carry deprecation metadata.
+    replacement = getattr(column, "replacement", None)
+    deprecation_status = getattr(column, "deprecation_status", None)
+
     result: TraceItemAttributeContext = {
         "isConvention": False,
         "brief": context.brief,
-        "isDeprecated": bool(column.deprecation_status or column.replacement),
+        "isDeprecated": bool(deprecation_status or replacement),
     }
     if context.examples:
         result["examples"] = list(context.examples)
-    if column.replacement:
-        result["replacementAttribute"] = column.replacement
+    if replacement:
+        result["replacementAttribute"] = replacement
     return result
+
+
+def is_known_attribute(name: str, definitions: ColumnDefinitions) -> bool:
+    """
+    Whether ``name`` is an attribute Sentry defines — a column public/secondary
+    alias, a virtual context, a column internal name, or a sentry-conventions
+    entry (keyed by either public or internal name). Custom names resolve to
+    none of these and return False.
+    """
+    if name in definitions.columns or name in definitions.contexts:
+        return True
+    if name in {column.internal_name for column in definitions.columns.values()}:
+        return True
+    return ATTRIBUTE_METADATA.get(name) is not None
 
 
 def as_attribute_key(

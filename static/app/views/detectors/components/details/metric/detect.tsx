@@ -188,7 +188,7 @@ export function MetricDetectorDetailsDetect({detector}: {detector: MetricDetecto
 
   return (
     <Container>
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         <Flex gap="xs" align="baseline">
           <Heading as="h4">{t('Dataset:')}</Heading>
           <Value>{datasetConfig.name}</Value>
@@ -231,7 +231,7 @@ export function MetricDetectorDetailsDetect({detector}: {detector: MetricDetecto
           <Value>{getDetectorTypeLabel(detector)}</Value>
         </Flex>
         <DetectorPriorities detector={detector} />
-      </Flex>
+      </Stack>
     </Container>
   );
 }

@@ -9,9 +9,9 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.sentry_apps.logic import consolidate_events
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.sentry_apps.tasks.sentry_apps import build_comment_webhook, workflow_notification
+from sentry.sentry_apps.utils.webhooks import is_subscribed
 from sentry.signals import (
     comment_created,
     comment_deleted,
@@ -118,7 +118,7 @@ def send_comment_webhooks(organization, issue, user, event, data=None):
     if "timestamp" in data:
         data["timestamp"] = data["timestamp"].isoformat()
 
-    for install in installations_to_notify(organization, "comment"):
+    for install in installations_to_notify(organization, event):
         build_comment_webhook.delay(
             installation_id=install.id,
             issue_id=issue.id,
@@ -136,9 +136,7 @@ def send_workflow_webhooks(
     data: Mapping[str, Any] | None = None,
 ) -> None:
     data = data or {}
-    for install in installations_to_notify(
-        organization=organization, resource_type=event.split(".")[0]
-    ):
+    for install in installations_to_notify(organization, event):
         event_type = backwards_compatible_event_name(install=install, event=event).split(".")[-1]
         workflow_notification.delay(
             installation_id=install.id,
@@ -150,13 +148,10 @@ def send_workflow_webhooks(
 
 
 def installations_to_notify(
-    organization: Organization, resource_type: str
+    organization: Organization, event: str
 ) -> list[RpcSentryAppInstallation]:
     installations = app_service.installations_for_organization(organization_id=organization.id)
-    # All issue webhooks are under one subscription, so if an intallation is subscribed to any issue
-    # events it should get notified for all the issue events
-    # TODO: Refactor sentry_app model so it doesn't store event, instead it stores subscription
-    return [i for i in installations if resource_type in consolidate_events(i.sentry_app.events)]
+    return [i for i in installations if is_subscribed(i.sentry_app.events, event)]
 
 
 def backwards_compatible_event_name(install: RpcSentryAppInstallation, event: str) -> str:

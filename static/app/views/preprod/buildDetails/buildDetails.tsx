@@ -23,6 +23,7 @@ import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAlert';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 import {
+  getBuildNumber,
   isSizeInfoPendingOrProcessing,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -124,7 +125,7 @@ export default function BuildDetails() {
   const buildDetails = buildDetailsQuery.data;
   const projectSlug = buildDetails?.project_slug;
   const version = buildDetails?.app_info?.version;
-  const buildNumber = buildDetails?.app_info?.build_number;
+  const buildNumber = getBuildNumber(buildDetails?.app_info);
   const project = ProjectsStore.getBySlug(projectSlug);
   const projectType = project?.platform ?? null;
 

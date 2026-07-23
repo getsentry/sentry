@@ -1,7 +1,6 @@
 import {Fragment, useCallback} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
-import {isMac} from '@react-aria/utils';
 
 import {ListBox} from '@sentry/scraps/compactSelect';
 import type {SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
@@ -51,6 +50,17 @@ function constrainAndAlignListBox({
     popoverRef.current.style.left = `${newX}px`;
   } else {
     popoverRef.current.style.left = 'auto';
+
+    // Defer horizontal position to the popper, then pull the menu back inside
+    // the viewport if a far-right anchor (e.g. a long, scrolled list of chips)
+    // pushed it off the right edge.
+    const viewportMargin = 8;
+    const rect = popoverRef.current.getBoundingClientRect();
+    const rightOverflow =
+      rect.right - (document.documentElement.clientWidth - viewportMargin);
+    if (rightOverflow > 0) {
+      popoverRef.current.style.left = `-${rightOverflow}px`;
+    }
   }
 }
 
@@ -97,9 +107,7 @@ function Footer({
 
   return (
     <FooterContainer>
-      {isMultiSelect ? (
-        <Label>{t('Hold %s to select multiple', isMac() ? '⌘' : 'Ctrl')}</Label>
-      ) : null}
+      {isMultiSelect ? <Label>{t('Use the checkboxes to select multiple')}</Label> : null}
       <WildcardFooter canUseWildcard={canUseWildcard} token={token} />
     </FooterContainer>
   );

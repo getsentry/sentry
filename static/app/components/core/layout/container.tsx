@@ -18,10 +18,11 @@ import {
   getRadius,
   getSpacing,
   rc,
-  type Margin,
   type Responsive,
   type Shorthand,
 } from './styles';
+
+type Margin = SpaceSize | 'auto' | '0';
 
 /* eslint-disable typescript-sort-keys/interface */
 interface ContainerLayoutProps {
@@ -117,28 +118,23 @@ interface ContainerLayoutProps {
   >;
 
   /**
-   * Prefer using Flex or Grid gap as opposed to margin.
-   * @deprecated
+   * @deprecated Use the `gap` prop on `Flex` or `Grid` instead.
    */
   margin?: Responsive<Shorthand<Margin, 4>>;
   /**
-   * Prefer using Flex or Grid gap as opposed to margin.
-   * @deprecated
+   * @deprecated Use the `gap` prop on `Flex` or `Grid` instead.
    */
   marginTop?: Responsive<Margin>;
   /**
-   * Prefer using Flex or Grid gap as opposed to margin.
-   * @deprecated
+   * @deprecated Use the `gap` prop on `Flex` or `Grid` instead.
    */
   marginBottom?: Responsive<Margin>;
   /**
-   * Prefer using Flex or Grid gap as opposed to margin.
-   * @deprecated
+   * @deprecated Use the `gap` prop on `Flex` or `Grid` instead.
    */
   marginLeft?: Responsive<Margin>;
   /**
-   * Prefer using Flex or Grid gap as opposed to margin.
-   * @deprecated
+   * @deprecated Use the `gap` prop on `Flex` or `Grid` instead.
    */
   marginRight?: Responsive<Margin>;
 }

@@ -2,7 +2,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
-import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {Container} from 'sentry/views/explore/components/chart/chartFooter';
 import {
@@ -33,7 +32,6 @@ export function ConfidenceFooter({
         isLoading={isLoading}
         hasUserQuery={hasUserQuery}
         rawMetricCounts={rawMetricCounts}
-        confidence={chartInfo.confidence}
         dataScanned={chartInfo.dataScanned}
         isSampled={chartInfo.isSampled}
         sampleCount={chartInfo.sampleCount}
@@ -48,7 +46,6 @@ interface ConfidenceMessageProps {
   hasUserQuery: boolean;
   isLoading: boolean;
   rawMetricCounts: RawCounts;
-  confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   disabled?: boolean;
   isSampled?: boolean | null;
@@ -60,7 +57,6 @@ function ConfidenceMessage({
   rawMetricCounts,
   sampleCount,
   dataScanned,
-  confidence: _confidence,
   disabled,
   topEvents,
   hasUserQuery,

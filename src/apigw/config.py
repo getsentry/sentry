@@ -41,6 +41,8 @@ def _patch_sentry_init() -> None:
 def load_config(app: App) -> None:
     _patch_sentry_init()
 
+    app.config.handle_static = False
+
     app.config.internal_hostname = os.environ.get("APIGW_INTERNAL_HOSTNAME", "localhost")
     app.config.internal_port = os.environ.get("APIGW_INTERNAL_PORT", "8000")
     app.config.internal_fqdn = f"{app.config.internal_hostname}:{app.config.internal_port}"

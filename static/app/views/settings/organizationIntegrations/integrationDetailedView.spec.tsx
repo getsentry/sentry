@@ -185,8 +185,7 @@ describe('IntegrationDetailedView', () => {
           domainName: 'outdated.slack.com',
           provider: slackProvider,
           status: 'active',
-          // Missing app_mentions:read -> outdated install.
-          scopes: ['commands', 'chat:write'],
+          outOfDate: true,
         },
         {
           id: '11',
@@ -194,7 +193,7 @@ describe('IntegrationDetailedView', () => {
           domainName: 'current.slack.com',
           provider: slackProvider,
           status: 'active',
-          scopes: ['commands', 'chat:write', 'app_mentions:read'],
+          outOfDate: false,
         },
       ],
     });
@@ -229,8 +228,7 @@ describe('IntegrationDetailedView', () => {
       domainName: 'outdated.slack.com',
       provider: slackProvider,
       status: 'active',
-      // Missing app_mentions:read -> outdated install.
-      scopes: ['commands', 'chat:write'],
+      outOfDate: true,
     };
 
     it('renders the reinstall button for a single outdated workspace with access', async () => {

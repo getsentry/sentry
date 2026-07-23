@@ -234,12 +234,13 @@ export const SnapshotListView = memo(function SnapshotListView({
   }, []);
 
   const groups = useMemo(() => buildGroups(items, contentWidth), [items, contentWidth]);
+  const getItemKey = useCallback((index: number) => groups[index]!.id, [groups]);
 
   const virtualizer = useVirtualizer({
     count: groups.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: i => groups[i]!.estimatedHeight,
-    getItemKey: i => groups[i]!.id,
+    getItemKey,
     overscan: 5,
     scrollPaddingEnd: 8,
   });
@@ -714,7 +715,7 @@ const ScrollContainer = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) and (max-width: ${p =>
-      p.theme.breakpoints.md}) {
+    p.theme.breakpoints.md}) {
     padding-left: ${p => p.theme.space.xl};
   }
   background: ${p => p.theme.tokens.background.secondary};

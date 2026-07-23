@@ -4,6 +4,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
@@ -43,7 +44,6 @@ import type {
   PermissionResource,
   SentryApp,
   SentryAppAvatar,
-  WebhookEvent,
 } from 'sentry/types/integrations';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
@@ -59,7 +59,12 @@ import {useParams} from 'sentry/utils/useParams';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import {EVENT_CHOICES} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import type {WebhookSubscription} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import {
+  EVENT_CHOICES,
+  granularWebhookEvents,
+  WEBHOOK_GRANULAR_EVENT_CHOICES,
+} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 const AVATAR_STYLES = {
@@ -81,6 +86,11 @@ const AVATAR_STYLES = {
   },
 };
 
+// Mirrors CLAUDE_ROUTINE_URL_RE in src/sentry/utils/sentry_apps/webhooks.py;
+// payloads sent to matching URLs get a plain-text prompt added.
+const CLAUDE_ROUTINE_URL_REGEX =
+  /^https:\/\/api\.anthropic\.com\/v1\/claude_code\/routines\/[^/?#]+\/fire\/?$/;
+
 const sentryAppFormSchema = z
   .object({
     name: z.string(),
@@ -96,7 +106,9 @@ const sentryAppFormSchema = z
     organization: z.string(),
     isInternal: z.boolean(),
     scopes: z.array(z.enum(ALLOWED_SCOPES)),
-    events: z.array(z.enum(EVENT_CHOICES)),
+    events: z.array(
+      z.union([z.enum(EVENT_CHOICES), z.enum(WEBHOOK_GRANULAR_EVENT_CHOICES)])
+    ),
   })
   .superRefine((data, ctx) => {
     if (!data.name.trim()) {
@@ -115,12 +127,21 @@ const sentryAppFormSchema = z
       });
     }
 
-    if (!data.isInternal && !data.webhookUrl.trim()) {
-      ctx.addIssue({
-        code: 'custom',
-        message: t('This field is required'),
-        path: ['webhookUrl'],
-      });
+    if (!data.webhookUrl.trim()) {
+      if (!data.isInternal) {
+        ctx.addIssue({
+          code: 'custom',
+          message: t('This field is required'),
+          path: ['webhookUrl'],
+        });
+      } else if (data.events.length > 0) {
+        // Mirrors the backend's events-require-a-webhook-URL rule.
+        ctx.addIssue({
+          code: 'custom',
+          message: t('This field is required when webhook events are enabled'),
+          path: ['webhookUrl'],
+        });
+      }
     }
 
     if (data.schema.trim()) {
@@ -342,14 +363,10 @@ function SentryApplicationForm({
       }),
   });
 
-  // Events may come from the API as "issue.created" when we just want "issue" here.
-  const normalize = (events: WebhookEvent[]) => {
-    if (events.length === 0) {
-      return events;
-    }
-
-    return events.map(event => event.split('.').shift() as WebhookEvent);
-  };
+  // Older API responses only send the consolidated resource list
+  const initialEvents: WebhookSubscription[] = app
+    ? granularWebhookEvents(app.webhookEvents ?? app.events)
+    : [];
 
   const hasTokenAccess = () => {
     return organization.access.includes('org:write');
@@ -522,7 +539,7 @@ function SentryApplicationForm({
     organization: organization.slug,
     isInternal,
     scopes: app ? [...app.scopes] : [],
-    events: app ? normalize(app.events) : [],
+    events: initialEvents,
   };
 
   const saveSentryAppMutation = useMutation({
@@ -690,30 +707,40 @@ function SentryApplicationForm({
                 value={field.state.value}
                 onChange={field.handleChange}
                 placeholder={t('e.g. https://example.com/sentry/webhook/')}
+                trailingItems={
+                  organization.features.includes('sentry-apps-claude-routine-webhooks') &&
+                  CLAUDE_ROUTINE_URL_REGEX.test(field.state.value) ? (
+                    <Tooltip
+                      title={t(
+                        'Sentry will automatically format your webhook payloads to be compatible with Claude Routines.'
+                      )}
+                    >
+                      <Tag variant="info">{t('Claude routine')}</Tag>
+                    </Tooltip>
+                  ) : null
+                }
               />
             </field.Layout.Row>
           )}
         </form.AppField>
 
-        {organization.features.includes('sentry-apps-custom-webhook-headers') && (
-          <form.AppField name="webhookHeaders">
-            {field => (
-              <field.Layout.Row
-                label={t('Webhook Headers')}
-                hintText={t(
-                  'Custom headers to include with every webhook request. Only certain headers are allowed, such as Authorization or X-* custom headers. Enter one header per line in the format: Header-Name: value. Saved header values are masked.'
-                )}
-              >
-                <field.TextArea
-                  autosize
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  placeholder={'Authorization: Bearer <token>\nX-Custom-Header: value'}
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-        )}
+        <form.AppField name="webhookHeaders">
+          {field => (
+            <field.Layout.Row
+              label={t('Webhook Headers')}
+              hintText={t(
+                'Custom headers to include with every webhook request. Only certain headers are allowed, such as Authorization or X-* custom headers. Enter one header per line in the format: Header-Name: value. Saved header values are masked.'
+              )}
+            >
+              <field.TextArea
+                autosize
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder={'Authorization: Bearer <token>\nX-Custom-Header: value'}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
 
         {!isInternal && (
           <form.AppField name="redirectUrl">
@@ -750,9 +777,9 @@ function SentryApplicationForm({
         <form.AppField name="isAlertable">
           {field => (
             <field.Layout.Row
-              label={t('Alert Rule Action')}
+              label={t('Alert Action')}
               hintText={tct(
-                'If enabled, this integration will be available in Issue Alert rules and Metric Alert rules in Sentry. The notification destination is the Webhook URL specified above. More on actions [learnMore:here].',
+                'If enabled, this integration will be available as an action in alerts in Sentry. The notification destination is the Webhook URL specified above. More on actions [learnMore:here].',
                 {
                   learnMore: (
                     <ExternalLink href="https://docs.sentry.io/product/alerts-notifications/notifications/" />
@@ -767,7 +794,7 @@ function SentryApplicationForm({
                     onChange={field.handleChange}
                     disabled={
                       webhookDisabled
-                        ? t('Cannot enable alert rule action without a webhook url')
+                        ? t('Cannot enable alert action without a webhook url')
                         : false
                     }
                   />
@@ -834,21 +861,16 @@ function SentryApplicationForm({
       {getAvatarChooser(true)}
       {getAvatarChooser(false)}
 
-      <form.Subscribe selector={state => isInternal && !state.values.webhookUrl}>
-        {webhookDisabled => (
-          <PermissionsObserver
-            webhookDisabled={webhookDisabled}
-            appPublished={app ? app.status === 'published' : false}
-            scopes={app ? [...app.scopes] : []}
-            events={app ? normalize(app.events) : []}
-            newApp={!app}
-            permissionErrors={scopeErrors.permissions}
-            continuousIntegrationError={scopeErrors.continuousIntegration}
-            onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
-            onEventsChange={events => form.setFieldValue('events', events)}
-          />
-        )}
-      </form.Subscribe>
+      <PermissionsObserver
+        appPublished={app ? app.status === 'published' : false}
+        scopes={app ? [...app.scopes] : []}
+        events={initialEvents}
+        newApp={!app}
+        permissionErrors={scopeErrors.permissions}
+        continuousIntegrationError={scopeErrors.continuousIntegration}
+        onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
+        onEventsChange={events => form.setFieldValue('events', events)}
+      />
 
       {app?.status === 'internal' && (
         <PanelTable

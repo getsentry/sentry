@@ -32,7 +32,7 @@ from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.apiscopes import HasApiScopes
-from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION
+from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION, resource_of
 from sentry.types.cell import find_all_cell_names, find_cells_for_sentry_app
 from sentry.utils import metrics
 
@@ -52,6 +52,13 @@ REQUIRED_EVENT_PERMISSIONS = {
 # EVENT_EXPANSION above. This list is likely a subset of all valid ServiceHook
 # events.
 VALID_EVENTS = tuple(itertools.chain(*EVENT_EXPANSION.values()))
+
+
+def required_scope_for_subscription(subscription: str) -> str:
+    """The API scope a subscription (a resource or one of its events) requires."""
+    resource = resource_of(subscription) or subscription
+    return REQUIRED_EVENT_PERMISSIONS[resource]
+
 
 MASKED_VALUE = "*" * 64
 

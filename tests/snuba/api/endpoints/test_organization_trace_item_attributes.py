@@ -591,6 +591,18 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert attributes["span.description"]["attributeSource"]["source_type"] == "sentry"
         assert attributes["span.description"]["context"]["isConvention"] is False
         assert attributes["span.description"]["context"]["brief"]
+        # `project` is served as a virtual column (VirtualColumnDefinition), not a
+        # ResolvedAttribute. Its brief still surfaces via the virtual-context
+        # fallback, marked isConvention=False with a `sentry` source.
+        assert attributes["project"]["attributeSource"]["source_type"] == "sentry"
+        assert attributes["project"]["context"] == {
+            "isConvention": False,
+            "brief": (
+                "The name of the project. In some pages of sentry.io, you can also "
+                "filter on project using a dropdown."
+            ),
+            "isDeprecated": False,
+        }
 
     def test_expand_context_user_attribute_matching_secondary_alias(self) -> None:
         # `message` is a secondary alias of `span.description` on spans and carries

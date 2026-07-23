@@ -2,6 +2,7 @@ import {Fragment, memo, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -13,7 +14,7 @@ import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
-  getFirstToolInputValue,
+  getToolInputPreview,
   getGenAiOpType,
   getIsAiAgentNode,
   getNumberAttr,
@@ -260,18 +261,20 @@ const TraceListItem = memo(function TraceListItem({
       <Stack gap="xs" flex="1" minWidth="0">
         <Flex align="center" gap="xs">
           <Container maxWidth="40%" flexShrink={0}>
-            <Tooltip title={title} showOnlyOnOverflow skipWrapper>
-              <Text bold size="sm" ellipsis>
-                {title}
-              </Text>
-            </Tooltip>
+            <InfoText title={title} mode="overflowOnly" bold size="sm">
+              {title}
+            </InfoText>
           </Container>
           {subtitle && (
-            <Tooltip title={subtitle} showOnlyOnOverflow skipWrapper maxWidth={500}>
-              <Text size="sm" variant="muted" ellipsis>
-                - {subtitle}
-              </Text>
-            </Tooltip>
+            <InfoText
+              title={subtitle}
+              mode="overflowOnly"
+              maxWidth={500}
+              size="sm"
+              variant="muted"
+            >
+              - {subtitle}
+            </InfoText>
           )}
           <Container flex={1} />
           <Text size="xs" variant="muted">
@@ -500,12 +503,12 @@ function getSpanPresentation(
     }
     case GenAiOperationType.TOOL: {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
-      const firstInputValue = getFirstToolInputValue(node);
+      const inputPreview = getToolInputPreview(node);
       return {
         icon: <IconFix size="md" />,
         color,
         title: toolName || op,
-        subtitle: firstInputValue || (toolName ? op : ''),
+        subtitle: inputPreview || (toolName ? op : ''),
       };
     }
     case GenAiOperationType.HANDOFF:

@@ -4,7 +4,10 @@ from functools import partial
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaProducer
+from redis.exceptions import TimeoutError as RedisTimeoutError
 from taskbroker_client.constants import CompressionType
+from taskbroker_client.retry import Retry
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.silo.base import SiloMode
@@ -36,10 +39,11 @@ _snuba_items_topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_t
 @instrumented_task(
     name="sentry.spans.process_segments.process_segment",
     namespace=spans_process_segments_tasks,
-    at_most_once=True,
+    processing_deadline_duration=65,
+    retry=Retry(times=3, delay=5, on=(ProcessingDeadlineExceeded, RedisTimeoutError)),
     compression_type=CompressionType.ZSTD,
     silo_mode=SiloMode.CELL,
 )
 def process_segment_task(segment_bytes: bytes) -> None:
-    for payload in _process_segment_bytes(segment_bytes):
+    for payload in _process_segment_bytes(segment_bytes, start_new_transaction=False):
         _snuba_items_task_producer.produce(_snuba_items_topic, payload)

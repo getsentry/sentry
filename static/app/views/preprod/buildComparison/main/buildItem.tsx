@@ -1,11 +1,11 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {InfoText} from '@sentry/scraps/info';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {TimeSince} from 'sentry/components/timeSince';
 import {
@@ -19,6 +19,7 @@ import {
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {
+  getBuildNumber,
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -98,13 +99,13 @@ function BuildItemDetails({
   const dateAdded = build.app_info?.date_added;
   const sizeInfo = build.size_info;
   const version = build.app_info?.version;
-  const buildNumber = build.app_info?.build_number;
+  const buildNumber = getBuildNumber(build.app_info);
 
   const hasGitInfo = Boolean(prNumber || branchName || commitHash);
   const versionInfo = formatVersionInfo(version, buildNumber);
 
   return (
-    <Flex direction="column" gap="sm" flex={1}>
+    <Stack gap="sm" flex={1}>
       {(hasGitInfo || versionInfo) && (
         <Flex align="center" gap="md">
           {(prNumber || branchName) && <IconBranch size="xs" variant="muted" />}
@@ -139,9 +140,9 @@ function BuildItemDetails({
         {build.app_info?.build_configuration && (
           <Flex align="center" gap="sm">
             <IconMobile size="xs" variant="muted" />
-            <Tooltip title={t('Build configuration')}>
-              <Text monospace>{build.app_info.build_configuration}</Text>
-            </Tooltip>
+            <InfoText title={t('Build configuration')} monospace>
+              {build.app_info.build_configuration}
+            </InfoText>
           </Flex>
         )}
         {isSizeInfoCompleted(sizeInfo) && (
@@ -159,7 +160,7 @@ function BuildItemDetails({
           </Flex>
         )}
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 

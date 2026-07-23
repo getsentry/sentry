@@ -8,9 +8,7 @@ from sentry.issues.action_log import (
     SYSTEM_ACTOR,
     ActionSource,
     action_context_scope,
-    publish_action_from_context,
 )
-from sentry.issues.action_log.types import SetPriorityAction
 from sentry.models.activity import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.project import Project
@@ -79,12 +77,6 @@ def update_priority(
     )
 
     record_group_history(group, status=PRIORITY_TO_GROUP_HISTORY_STATUS[priority], actor=actor)
-
-    publish_action_from_context(
-        SetPriorityAction(priority=priority.to_str()),
-        group_id=group.id,
-        project=group.project,
-    )
 
     # TODO (aci cleanup): if the group corresponds to a metric issue, then update its incident activity
     # we will remove this once we've fully deprecated the Incident model

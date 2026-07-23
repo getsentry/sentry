@@ -1,9 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Form} from 'sentry/components/forms/form';
 import type {Permissions} from 'sentry/types/integrations';
+import type {WebhookSubscription} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import {RESOURCE_EVENTS} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {Subscriptions} from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
 const basePermissions: Permissions = {
@@ -30,7 +32,6 @@ describe('Resource Subscriptions', () => {
         {organization: org}
       );
 
-      expect(screen.getAllByRole('checkbox')).toHaveLength(5);
       expect(screen.getByRole('checkbox', {name: 'issue'})).toBeDisabled();
       expect(screen.getByRole('checkbox', {name: 'error'})).toBeDisabled();
       expect(screen.getByRole('checkbox', {name: 'comment'})).toBeDisabled();
@@ -50,9 +51,13 @@ describe('Resource Subscriptions', () => {
         </Form>
       );
 
-      expect(screen.getAllByRole('checkbox')).toHaveLength(4);
       expect(
         screen.queryByRole('checkbox', {name: 'preprod_artifact'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('checkbox', {
+          name: 'preprod_artifact.size_analysis_completed',
+        })
       ).not.toBeInTheDocument();
     });
 
@@ -66,6 +71,68 @@ describe('Resource Subscriptions', () => {
       expect(screen.getByRole('checkbox', {name: 'issue'})).toBeEnabled();
       expect(screen.getByRole('checkbox', {name: 'error'})).toBeDisabled();
       expect(screen.getByRole('checkbox', {name: 'comment'})).toBeEnabled();
+    });
+  });
+
+  describe('granular event subscriptions', () => {
+    function renderSubscriptions(
+      events: WebhookSubscription[],
+      permissions: Permissions = basePermissions
+    ) {
+      const onChange = jest.fn();
+      render(
+        <Form>
+          <Subscriptions events={events} permissions={permissions} onChange={onChange} />
+        </Form>
+      );
+      return onChange;
+    }
+
+    it('describes webhook delivery and links the docs', () => {
+      renderSubscriptions([]);
+
+      expect(
+        screen.getByRole('link', {name: 'webhook documentation'})
+      ).toBeInTheDocument();
+    });
+
+    it('marks a partially subscribed resource as mixed', () => {
+      renderSubscriptions(['issue.created']);
+
+      expect(screen.getByRole('checkbox', {name: 'issue'})).toBePartiallyChecked();
+      expect(screen.getByRole('checkbox', {name: 'issue.created'})).toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'issue.resolved'})).not.toBeChecked();
+    });
+
+    it('toggles a single event', async () => {
+      const onChange = renderSubscriptions(['issue.created']);
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'issue.resolved'}));
+      expect(onChange).toHaveBeenCalledWith(['issue.created', 'issue.resolved']);
+    });
+
+    it('selects every event when checking the resource', async () => {
+      const onChange = renderSubscriptions(['issue.created']);
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
+      expect(onChange).toHaveBeenCalledWith([...RESOURCE_EVENTS.issue]);
+    });
+
+    it('clears every event when unchecking the resource', async () => {
+      const onChange = renderSubscriptions([...RESOURCE_EVENTS.issue, 'comment.created']);
+
+      expect(screen.getByRole('checkbox', {name: 'issue'})).toBeChecked();
+      await userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
+      expect(onChange).toHaveBeenCalledWith(['comment.created']);
+    });
+
+    it('strips events whose permission is revoked', () => {
+      const onChange = renderSubscriptions(
+        ['issue.created', 'preprod_artifact.size_analysis_completed'],
+        {...basePermissions, Event: 'no-access'}
+      );
+
+      expect(onChange).toHaveBeenCalledWith(['preprod_artifact.size_analysis_completed']);
     });
   });
 
