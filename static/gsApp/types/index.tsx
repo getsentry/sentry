@@ -33,9 +33,6 @@ declare global {
   }
 
   namespace React {
-    // The type parameter name must match React's own DOMAttributes<T> for
-    // declaration merging to work, so it can't be renamed or prefixed with `_`.
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     interface DOMAttributes<T> {
       'data-test-id'?: string;
     }
