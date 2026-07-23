@@ -44,7 +44,7 @@ const ACTION_META: Record<
   review_pr: {
     Icon: IconPullRequest,
     label: t('Review PR'),
-    variant: 'warning',
+    variant: 'primary',
     description: t('Autofix opened a pull request. Review and merge it.'),
   },
   code_changes_ready: {
@@ -186,7 +186,7 @@ function ReviewPrButton({
     >
       <LinkButton
         size={size}
-        variant="warning"
+        variant={meta.variant}
         icon={<IconPullRequest />}
         href={prUrl}
         external
