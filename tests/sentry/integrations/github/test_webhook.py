@@ -29,6 +29,7 @@ from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
     InstallationRepositoriesEventWebhook,
     _track_contributor_action_processor,
+    get_github_external_id,
 )
 from sentry.integrations.github.webhook_types import (
     GithubWebhookType,
@@ -725,6 +726,38 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
                     "sender": {"id": 1, "login": "octocat"},
                 },
             )
+        )
+
+        mock_apply_async.assert_not_called()
+
+    @patch(
+        "sentry.integrations.github.tasks.sync_repos_on_install_change.sync_repos_on_install_change.apply_async"
+    )
+    def test_handler_skips_when_installation_is_null_with_host(
+        self, mock_apply_async: MagicMock
+    ) -> None:
+        """GitHub Enterprise: ``installation: null`` with a host set must still return early.
+
+        Without the ``if external_id is None: return None`` guard in
+        ``get_github_external_id``, the function would return the truthy string
+        ``"ghe.example.com:None"`` instead of ``None``, causing the early-exit
+        check in the handler to be bypassed."""
+        handler = InstallationRepositoriesEventWebhook()
+        handler(
+            event=cast(
+                InstallationRepositoriesEvent,
+                {
+                    "installation": None,
+                    "action": "removed",
+                    "repositories_added": [],
+                    "repositories_removed": [
+                        {"id": 20, "full_name": "getsentry/old-repo", "private": False}
+                    ],
+                    "repository_selection": "selected",
+                    "sender": {"id": 1, "login": "octocat"},
+                },
+            ),
+            host="ghe.example.com",
         )
 
         mock_apply_async.assert_not_called()
@@ -2237,3 +2270,25 @@ class TrackContributorActionProcessorTest(TestCase):
         )
 
         mock_record.assert_not_called()
+
+
+class GetGithubExternalIdTest(TestCase):
+    """Unit tests for the get_github_external_id helper."""
+
+    def test_returns_id_when_installation_present(self) -> None:
+        assert get_github_external_id({"installation": {"id": 42}}) == 42
+
+    def test_returns_none_when_installation_is_null(self) -> None:
+        assert get_github_external_id({"installation": None}) is None
+
+    def test_returns_none_when_installation_is_null_with_host(self) -> None:
+        # GitHub Enterprise path: must not return the truthy string "ghe.example.com:None"
+        assert get_github_external_id({"installation": None}, host="ghe.example.com") is None
+
+    def test_returns_prefixed_id_for_ghe(self) -> None:
+        result = get_github_external_id({"installation": {"id": 7}}, host="ghe.example.com")
+        assert result == "ghe.example.com:7"
+
+    def test_returns_id_without_prefix_when_no_host(self) -> None:
+        result = get_github_external_id({"installation": {"id": 7}})
+        assert result == 7

@@ -126,6 +126,8 @@ class WebhookProcessor(Protocol):
 
 def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str | None:
     external_id: str | None = (event.get("installation") or {}).get("id")
+    if external_id is None:
+        return None
     return f"{host}:{external_id}" if host else external_id
 
 
