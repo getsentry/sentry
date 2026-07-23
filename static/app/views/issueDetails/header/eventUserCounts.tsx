@@ -1,9 +1,9 @@
+import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {IconStack, IconUser} from 'sentry/icons';
+import {IconFile, IconUser} from 'sentry/icons';
 import {tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -14,10 +14,6 @@ interface EventUserCountsProps {
   project: Project;
 }
 
-/**
- * Compact affected-user + event counts for the issue preview status line, e.g.
- * a user icon with "11" users and a stack icon with "2.6k" events.
- */
 export function EventUserCounts({group, project}: EventUserCountsProps) {
   if (!getConfigForIssueType(group, project).eventAndUserCounts.enabled) {
     return null;
@@ -26,28 +22,20 @@ export function EventUserCounts({group, project}: EventUserCountsProps) {
   const eventCount = Number(group.count);
   const {userCount} = group;
 
-  // Use the full numbers in the tooltip/accessible label so the exact counts
-  // are available even though the visible value is abbreviated (e.g. "2.6K").
   const eventLabel = tn('%s event', '%s events', eventCount);
   const userLabel = tn('%s affected user', '%s affected users', userCount);
 
   return (
-    <Flex align="center" gap="md">
+    <Flex align="center" gap="xs">
       <Tooltip title={userLabel} skipWrapper>
-        <Flex align="center" gap="xs" aria-label={userLabel}>
-          <IconUser size="xs" />
-          <Text size="sm" variant="muted" aria-hidden>
-            <Count value={userCount} />
-          </Text>
-        </Flex>
+        <Tag variant="muted" icon={<IconUser />} aria-label={userLabel}>
+          <Count value={userCount} />
+        </Tag>
       </Tooltip>
       <Tooltip title={eventLabel} skipWrapper>
-        <Flex align="center" gap="xs" aria-label={eventLabel}>
-          <IconStack size="xs" />
-          <Text size="sm" variant="muted" aria-hidden>
-            <Count value={eventCount} />
-          </Text>
-        </Flex>
+        <Tag variant="muted" icon={<IconFile />} aria-label={eventLabel}>
+          <Count value={eventCount} />
+        </Tag>
       </Tooltip>
     </Flex>
   );
