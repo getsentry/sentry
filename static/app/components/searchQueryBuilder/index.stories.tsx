@@ -627,6 +627,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
       'disallowFreeText',
       'disallowLogicalOperators',
       'disallowWildcard',
+      'disallowNegation',
       'disallowUnsupportedFilters',
     ];
 
@@ -657,7 +658,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
           ))}
         </MultipleCheckbox>
         <SearchQueryBuilder
-          initialQuery="(unsupported_key:value OR browser.name:Internet*) TypeError"
+          initialQuery="(!browser.name:Firefox OR browser.name:Internet*) unsupported_key:value TypeError"
           filterKeySections={FILTER_KEY_SECTIONS}
           filterKeys={FILTER_KEYS}
           getTagValues={getTagValues}
