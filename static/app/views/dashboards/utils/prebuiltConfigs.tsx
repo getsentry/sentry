@@ -12,6 +12,7 @@ import {MCP_PROMPTS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuil
 import {MCP_RESOURCES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/mcpResources';
 import {MCP_TOOLS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/mcpTools';
 import {BACKEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
+import {BFCACHE_METRICS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/bfcache';
 import {CACHES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/caches/caches';
 import {FRONTEND_ASSETS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssets';
 import {FRONTEND_ASSETS_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssetsDetails';
@@ -65,6 +66,7 @@ export enum PrebuiltDashboardId {
   BACKEND_QUEUE_SUMMARY = 27,
   BACKEND_CACHES = 28,
   NODE_RUNTIME_METRICS = 29,
+  BFCACHE_METRICS = 30,
 }
 
 /** Boolean flags on Project that indicate whether telemetry data has been received. */
@@ -81,7 +83,11 @@ type OnboardingConfig =
       requiredProjectFlags?: ProjectTelemetryFlag[];
     }
   | {
-      componentId: 'agent-monitoring' | 'mcp' | 'node-runtime-metrics';
+      componentId:
+        | 'agent-monitoring'
+        | 'mcp'
+        | 'node-runtime-metrics'
+        | 'bfcache-metrics';
       requiredProjectFlags: ProjectTelemetryFlag[];
       // Custom onboarding component (AI Agents, MCP, Node.js Runtime Metrics)
       type: 'custom';
@@ -148,4 +154,5 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
   [PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY]: QUEUE_DETAILS_PREBUILT_CONFIG,
   [PrebuiltDashboardId.BACKEND_CACHES]: CACHES_PREBUILT_CONFIG,
   [PrebuiltDashboardId.NODE_RUNTIME_METRICS]: NODE_RUNTIME_METRICS_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.BFCACHE_METRICS]: BFCACHE_METRICS_PREBUILT_CONFIG,
 };

@@ -14,6 +14,7 @@ import {NodeRuntimeMetricsOnboarding} from 'sentry/views/insights/pages/nodeRunt
 import {ModuleName} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
+import {BfcacheMetricsOnboarding} from './bfcacheMetricsOnboarding';
 import {GenericOnboarding} from './genericOnboarding';
 
 interface PrebuiltDashboardOnboardingGateProps {
@@ -87,6 +88,10 @@ export function PrebuiltDashboardOnboardingGate({
 
     if (onboarding.componentId === 'node-runtime-metrics') {
       return <NodeRuntimeMetricsOnboarding />;
+    }
+
+    if (onboarding.componentId === 'bfcache-metrics') {
+      return <BfcacheMetricsOnboarding />;
     }
 
     return <MCPOnboarding />;
