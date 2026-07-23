@@ -179,7 +179,10 @@ export function generateTitle({
 
 export function getPrebuiltQueries(organization: Organization) {
   const views = [...getAllViews(organization)];
-  if (organization.features.includes('performance-view')) {
+  if (
+    organization.features.includes('performance-view') &&
+    !getDiscoverDeprecation(organization)
+  ) {
     // insert transactions queries at index 2
     views.splice(2, 0, ...getTransactionViews(organization));
     views.push(...getWebVitalsViews(organization));
@@ -928,9 +931,13 @@ export function getTransactionsDeprecation(organization: Organization) {
   return organization.features.includes('discover-saved-queries-deprecation');
 }
 
+export function getDiscoverDeprecationEnabled(organization: Organization) {
+  return organization.features.includes('deprecate-discover');
+}
+
 export function getDiscoverDeprecation(organization: Organization) {
   return (
-    organization.features.includes('deprecate-discover') &&
+    getDiscoverDeprecationEnabled(organization) &&
     getTransactionsDeprecation(organization)
   );
 }

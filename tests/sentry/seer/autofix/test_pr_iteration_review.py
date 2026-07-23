@@ -200,7 +200,12 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_make_scm.return_value = MagicMock(spec=_ScmStub)
         self.mock_actions.get_review_comments.return_value = self._paginated([])
         self.mock_actions.get_pull_request_review.return_value = self._review_result(
-            {"id": "500", "html_url": "https://x/500", "body": "overall summary"}
+            {
+                "id": "500",
+                "html_url": "https://x/500",
+                "body": "overall summary",
+                "state": "changes_requested",
+            }
         )
         # Default the author to a repo collaborator with write access; tests that
         # exercise the gate override this.
@@ -303,6 +308,11 @@ class TriggerPrIterationFromReviewTest(TestCase):
         assert len(comment_sources) == 2
         assert len(body_sources) == 1
         assert body_sources[0].body == "overall summary"
+        # The shared review id lands on every item from the review — both inline
+        # comments and the body — so the UI can group them under one review. The
+        # review's state lives on the body source (the review's representation).
+        assert all(s.review_id == 500 for s in sources)
+        assert body_sources[0].review_state == "changes_requested"
         # The SCM ``url`` maps onto the source's ``html_url``; the UI drops
         # comments without it, so this is what surfaces the feedback.
         assert {s.comment.html_url for s in comment_sources} == {
@@ -391,6 +401,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
         assert isinstance(source, GithubPrReviewBodyFeedbackSource)
         assert source.body == "overall summary"
         assert source.review_id == 500
+        assert source.review_state == "changes_requested"
 
         # A body-only review has no inline comment to react to.
         self.mock_actions.create_review_comment_reaction.assert_not_called()
@@ -455,6 +466,9 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_enqueue.assert_called_once()
         source = self.mock_enqueue.call_args.kwargs["feedback"].source
         assert isinstance(source, GithubPrReviewCommentFeedbackSource)
+        # The review 404'd, but the inline comment still flows through, tagged with
+        # its review id for grouping (no body source is emitted to carry state).
+        assert source.review_id == 500
 
     def test_skips_when_no_agent_state(self) -> None:
         self.mock_get_state.return_value = None

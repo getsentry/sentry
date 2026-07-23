@@ -22,7 +22,11 @@ from sentry.tasks.summaries.utils import (
     OrganizationReportContext,
     ProjectContext,
 )
-from sentry.tasks.summaries.weekly_reports import get_group_display, render_template_context
+from sentry.tasks.summaries.weekly_reports import (
+    _pct_change,
+    get_group_display,
+    render_template_context,
+)
 from sentry.types.group import GroupSubStatus
 from sentry.utils import loremipsum
 from sentry.utils.auth import AuthenticatedHttpRequest
@@ -228,6 +232,10 @@ class DebugWeeklyReportView(MailPreviewView):
         ctx.spans_count_by_project = {
             pid: random.randint(100000, 1500000) for pid in all_project_ids
         }
+        ctx.prev_week_spans_count_by_project = {
+            pid: int(ctx.spans_count_by_project[pid] * random.uniform(0.5, 1.5))
+            for pid in all_project_ids
+        }
         intervals = 28
         for name in span_names:
             ctx.top_spans_timeseries[name] = {
@@ -243,7 +251,10 @@ class DebugWeeklyReportView(MailPreviewView):
                 request.GET.get("show_week_over_week_metric", "1") != "0"
             )
             context["show_past_issues"] = True
-            context["total_spans_count"] = sum(ctx.spans_count_by_project.values())
+            total_spans = sum(ctx.spans_count_by_project.values())
+            prev_total_spans = sum(ctx.prev_week_spans_count_by_project.values())
+            context["total_spans_count"] = total_spans
+            context["spans_pct_change"] = _pct_change(total_spans, prev_total_spans)
             project_by_id = {pid: pctx.project for pid, pctx in ctx.projects_context_map.items()}
             context["top_spans_table"] = [
                 {

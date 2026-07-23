@@ -62,7 +62,6 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
-import {useIssuePreviewDrawer} from './pages/useIssuePreviewDrawer';
 import {IssueListFilters} from './filters';
 import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
 import {
@@ -84,12 +83,6 @@ const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 const MAX_ISSUES_COUNT = 100;
 
 interface Props {
-  /**
-   * Controls what happens when an issue row is clicked.
-   * - 'navigate' (default): navigates to the issue details page.
-   * - 'preview': opens a lightweight issue preview drawer.
-   */
-  clickBehavior?: 'navigate' | 'preview';
   headerActions?: ReactNode;
   initialQuery?: string;
   initialSort?: IssueSortOptions;
@@ -146,15 +139,12 @@ function IssueListOverviewInner({
   title = t('Issues'),
   titleDescription,
   headerActions,
-  clickBehavior = 'navigate',
   withColumns,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const isPreviewMode = clickBehavior === 'preview';
-  const {openIssuePreview} = useIssuePreviewDrawer({enabled: isPreviewMode});
   const api = useApi();
   const urlParams = useParams<{viewId?: string}>();
   const {data: groupSearchView} = useSelectedGroupSearchView();
@@ -1012,7 +1002,6 @@ function IssueListOverviewInner({
               supergroupLookup={supergroupLookup}
               error={error}
               refetchGroups={fetchData}
-              onGroupClick={isPreviewMode ? openIssuePreview : undefined}
               withColumns={withColumns}
               paginationCaption={
                 !issuesLoading && modifiedQueryCount > 0
