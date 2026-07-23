@@ -134,6 +134,32 @@ def get_arroyo_producer(
     )
 
 
+class _FutureTrackingProducer(FutureTrackingProducer):
+    """
+    HACK(bmckerry): We can't read options during module import (since there's no option cache yet),
+    so this class overrides FutureTrackingProducer's `_backpressure` attribute to be read from the option at
+    runtime. This will be deleted once FTP backpressure is enabled everywhere.
+    """
+
+    _resolved_backpressure: bool | None = None
+
+    @property
+    def _backpressure(self) -> bool:
+        """
+        This makes the `self._backpressure` check during produce() read the option.
+        """
+        if self._resolved_backpressure is None:
+            self._resolved_backpressure = options.get("arroyo.ftp.backpressure")
+        return self._resolved_backpressure
+
+    @_backpressure.setter
+    def _backpressure(self, value: bool) -> None:
+        """
+        This overrides when FTP assigns `self._backpressure` during __init__ to be a no-op.
+        """
+        pass
+
+
 def get_producer(
     producer_name: str,
     producer_factory: Callable[[], CloseableProducerProtocol],
@@ -143,9 +169,8 @@ def get_producer(
     correctly set (depending on if we're in taskworker or not).
     """
 
-    return FutureTrackingProducer(
+    return _FutureTrackingProducer(
         name=producer_name,
         producer_factory=producer_factory,
         should_track_futures=IS_TASKWORKER,
-        should_backpressure=options.get("arroyo.ftp.backpressure"),
     )
