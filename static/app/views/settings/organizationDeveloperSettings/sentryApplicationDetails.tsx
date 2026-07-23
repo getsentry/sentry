@@ -212,6 +212,8 @@ function mapScopeErrors(scopeErrors: unknown): ScopeErrors {
   return result;
 }
 
+type SentryAppFormValues = z.infer<typeof sentryAppFormSchema>;
+
 type SaveSentryAppPayload = {
   allowedOrigins: string[];
   events: string[];
@@ -244,6 +246,131 @@ const makeSentryAppApiTokensQueryKey = (appSlug: string): ApiQueryKey => {
 function getSchemaFieldValue(schema: SentryApp['schema'] | null | undefined) {
   const formattedSchema = JSON.stringify(schema ?? {}, null, 2);
   return formattedSchema === '{}' ? '' : formattedSchema;
+}
+
+function buildSentryAppPayload(value: SentryAppFormValues): SaveSentryAppPayload {
+  return {
+    name: value.name,
+    organization: value.organization,
+    // Clearable fields are submitted as '' (not null) because the
+    // backend updater treats null as "field not provided" and skips
+    // the write — sending '' lets the user actually clear the value.
+    webhookUrl: value.webhookUrl,
+    redirectUrl: value.redirectUrl,
+    overview: value.overview,
+    isAlertable: value.isAlertable,
+    isInternal: value.isInternal,
+    verifyInstall: value.verifyInstall,
+    scopes: value.scopes,
+    events: value.events,
+    allowedOrigins: extractMultilineFields(value.allowedOrigins),
+    webhookHeaders: extractMultilineFields(value.webhookHeaders),
+    schema: value.schema.trim() === '' ? {} : JSON.parse(value.schema),
+    // The author parser doesn't allow_blank, so send null for empty
+    // (covers internal apps with no author).
+    author: value.author || null,
+  };
+}
+
+function useSaveSentryApp({
+  app,
+  isInternal,
+}: {
+  app: SentryApp | undefined;
+  isInternal: boolean;
+}) {
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [scopeErrors, setScopeErrors] = useState<ScopeErrors>({permissions: {}});
+
+  const handleSaveError = (
+    error: unknown,
+    formApi: Parameters<typeof setFieldErrors>[0]
+  ) => {
+    if (!(error instanceof RequestError)) {
+      addErrorMessage(t('Unknown Error'));
+      return;
+    }
+    const responseJSON = error.responseJSON ?? {};
+
+    const mappedScopeErrors = mapScopeErrors(responseJSON.scopes);
+    setScopeErrors(mappedScopeErrors);
+    const hadScopeErrors =
+      Object.keys(mappedScopeErrors.permissions).length > 0 ||
+      mappedScopeErrors.continuousIntegration !== undefined;
+
+    // setFieldErrors targets the scopes/events fields too, but nothing renders
+    // them inline — the toasts below cover what the form can't show.
+    const fieldErrorsApplied = setFieldErrors(formApi, error);
+
+    if (
+      Array.isArray(responseJSON.events) &&
+      typeof responseJSON.events[0] === 'string'
+    ) {
+      addErrorMessage(responseJSON.events[0]);
+      return;
+    }
+
+    // Unmapped scope errors have no inline UI — surface the first one as a toast.
+    if (
+      !hadScopeErrors &&
+      Array.isArray(responseJSON.scopes) &&
+      typeof responseJSON.scopes[0] === 'string'
+    ) {
+      addErrorMessage(responseJSON.scopes[0]);
+      return;
+    }
+
+    if (hadScopeErrors || fieldErrorsApplied) {
+      return;
+    }
+
+    const detail =
+      typeof responseJSON.detail === 'string' ? responseJSON.detail : t('Unknown Error');
+    addErrorMessage(detail);
+  };
+
+  const saveSentryAppMutation = useMutation({
+    mutationFn: (data: SaveSentryAppPayload) =>
+      fetchMutation<SentryApp>({
+        url: app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/',
+        method: app ? 'PUT' : 'POST',
+        data,
+      }),
+    onMutate: () => setScopeErrors({permissions: {}}),
+    onSuccess: data => {
+      const type = isInternal ? 'internal' : 'public';
+      const baseUrl = `/settings/${organization.slug}/developer-settings/`;
+      const url = app ? `${baseUrl}?type=${type}` : `${baseUrl}${data.slug}/`;
+
+      if (app) {
+        addSuccessMessage(t('%s successfully saved.', data.name));
+
+        // Patch the index cache so the list doesn't flash the stale name
+        // on the way back to the index page.
+        queryClient.setQueryData(
+          sentryAppsApiOptions({orgSlug: organization.slug}).queryKey,
+          old =>
+            old && {
+              ...old,
+              json: old.json.map(item => (item.slug === data.slug ? data : item)),
+            }
+        );
+
+        queryClient.invalidateQueries({
+          queryKey: sentryAppApiOptions({appSlug: app.slug}).queryKey,
+        });
+      } else {
+        addSuccessMessage(t('%s successfully created.', data.name));
+      }
+
+      navigate(normalizeUrl(url));
+    },
+  });
+
+  return {handleSaveError, saveSentryAppMutation, scopeErrors};
 }
 
 export default function SentryApplicationDetails() {
@@ -318,14 +445,16 @@ function SentryApplicationForm({
   tokens: InternalAppApiToken[];
 }) {
   const {openModal} = useModal();
-  const navigate = useNavigate();
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
   const sentryAppQueryOptions = sentryAppApiOptions({appSlug: appSlug ?? null});
 
   const [newTokens, setNewTokens] = useState<NewInternalAppApiToken[]>([]);
-  const [scopeErrors, setScopeErrors] = useState<ScopeErrors>({permissions: {}});
+  const {handleSaveError, saveSentryAppMutation, scopeErrors} = useSaveSentryApp({
+    app,
+    isInternal,
+  });
 
   const addTokenMutation = useMutation({
     mutationFn: (sentryAppSlug: string) =>
@@ -379,33 +508,6 @@ function SentryApplicationForm({
   };
 
   const showAuthInfo = () => !(app?.clientSecret?.[0] === '*');
-
-  const handleSubmitSuccess = (data: SentryApp) => {
-    const type = isInternal ? 'internal' : 'public';
-    const baseUrl = `/settings/${organization.slug}/developer-settings/`;
-    const url = app ? `${baseUrl}?type=${type}` : `${baseUrl}${data.slug}/`;
-
-    if (app) {
-      addSuccessMessage(t('%s successfully saved.', data.name));
-
-      // Patch the index cache so the list doesn't flash the stale name
-      // on the way back to the index page.
-      queryClient.setQueryData(
-        sentryAppsApiOptions({orgSlug: organization.slug}).queryKey,
-        old =>
-          old && {
-            ...old,
-            json: old.json.map(item => (item.slug === data.slug ? data : item)),
-          }
-      );
-
-      queryClient.invalidateQueries({queryKey: sentryAppQueryOptions.queryKey});
-    } else {
-      addSuccessMessage(t('%s successfully created.', data.name));
-    }
-
-    navigate(normalizeUrl(url));
-  };
 
   const onAddToken = async (event: MouseEvent<HTMLButtonElement>): Promise<void> => {
     event.preventDefault();
@@ -548,98 +650,16 @@ function SentryApplicationForm({
     events: initialEvents,
   };
 
-  const saveSentryAppMutation = useMutation({
-    mutationFn: (data: SaveSentryAppPayload) =>
-      fetchMutation<SentryApp>({
-        url: app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/',
-        method: app ? 'PUT' : 'POST',
-        data,
-      }),
-    onSuccess: handleSubmitSuccess,
-  });
-
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues,
     validators: {
       onDynamic: sentryAppFormSchema,
     },
-    onSubmit: ({value, formApi}) => {
-      setScopeErrors({permissions: {}});
-      const payload: SaveSentryAppPayload = {
-        name: value.name,
-        organization: value.organization,
-        // Clearable fields are submitted as '' (not null) because the
-        // backend updater treats null as "field not provided" and skips
-        // the write — sending '' lets the user actually clear the value.
-        webhookUrl: value.webhookUrl,
-        redirectUrl: value.redirectUrl,
-        overview: value.overview,
-        isAlertable: value.isAlertable,
-        isInternal: value.isInternal,
-        verifyInstall: value.verifyInstall,
-        scopes: value.scopes,
-        events: value.events,
-        allowedOrigins: extractMultilineFields(value.allowedOrigins),
-        webhookHeaders: extractMultilineFields(value.webhookHeaders),
-        schema: value.schema.trim() === '' ? {} : JSON.parse(value.schema),
-        // The author parser doesn't allow_blank, so send null for empty
-        // (covers internal apps with no author).
-        author: value.author || null,
-      };
-
-      return saveSentryAppMutation.mutateAsync(payload).catch(error => {
-        if (!(error instanceof RequestError)) {
-          addErrorMessage(t('Unknown Error'));
-          return;
-        }
-        const responseJSON = error.responseJSON ?? {};
-
-        // Render scope errors inline under each matching control.
-        const mappedScopeErrors = mapScopeErrors(responseJSON.scopes);
-        setScopeErrors(mappedScopeErrors);
-        const hadScopeErrors =
-          Object.keys(mappedScopeErrors.permissions).length > 0 ||
-          mappedScopeErrors.continuousIntegration !== undefined;
-
-        // Attach the rest to their form fields. setFieldErrors also writes
-        // the scopes/events values to those form fields, but no UI reads
-        // them — scopes render inline above and events surface via toast
-        // below.
-        const fieldErrorsApplied = setFieldErrors(formApi, error);
-
-        // Events errors have no inline UI yet, surface via toast.
-        if (
-          Array.isArray(responseJSON.events) &&
-          typeof responseJSON.events[0] === 'string'
-        ) {
-          addErrorMessage(responseJSON.events[0]);
-          return;
-        }
-
-        // Scope errors that didn't map to a permission row also have no
-        // inline UI — surface the first one via toast so the user sees
-        // something instead of a silent failure.
-        if (
-          !hadScopeErrors &&
-          Array.isArray(responseJSON.scopes) &&
-          typeof responseJSON.scopes[0] === 'string'
-        ) {
-          addErrorMessage(responseJSON.scopes[0]);
-          return;
-        }
-
-        if (hadScopeErrors || fieldErrorsApplied) {
-          return;
-        }
-
-        const detail =
-          typeof responseJSON.detail === 'string'
-            ? responseJSON.detail
-            : t('Unknown Error');
-        addErrorMessage(detail);
-      });
-    },
+    onSubmit: ({value, formApi}) =>
+      saveSentryAppMutation
+        .mutateAsync(buildSentryAppPayload(value))
+        .catch(error => handleSaveError(error, formApi)),
   });
 
   return (
