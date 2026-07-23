@@ -8,7 +8,10 @@ from django.db.models.query import QuerySet
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.ai_monitoring.models import AIConversationMetadata
-from sentry.ai_monitoring.tasks import enqueue_conversation_titles, generate_ai_conversation_title
+from sentry.ai_monitoring.tasks import (
+    generate_ai_conversation_title,
+    spawn_conversation_title_generation,
+)
 from sentry.ai_monitoring.utils import (
     MAX_USER_MESSAGE_CHARS,
     clamp_conversation_id_for_storage,
@@ -435,7 +438,7 @@ def _user_messages(content: str) -> str:
 
 
 @with_feature("organizations:gen-ai-conversation-title-generation")
-class EnqueueConversationTitlesTest(TestCase):
+class SpawnConversationTitleGenerationTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
@@ -443,7 +446,7 @@ class EnqueueConversationTitlesTest(TestCase):
     @patch(DELAY)
     def test_enqueues_earliest_span_per_conversation(self, mock_delay: MagicMock) -> None:
         # Many spans share one conversation in a segment; only the earliest is enqueued.
-        enqueue_conversation_titles(
+        spawn_conversation_title_generation(
             [
                 make_gen_ai_span(
                     project_id=self.project.id,
@@ -472,7 +475,7 @@ class EnqueueConversationTitlesTest(TestCase):
 
     @patch(DELAY)
     def test_enqueues_once_per_conversation(self, mock_delay: MagicMock) -> None:
-        enqueue_conversation_titles(
+        spawn_conversation_title_generation(
             [
                 make_gen_ai_span(project_id=self.project.id, conversation_id="a"),
                 make_gen_ai_span(project_id=self.project.id, conversation_id="b"),
@@ -484,7 +487,7 @@ class EnqueueConversationTitlesTest(TestCase):
 
     @patch(DELAY)
     def test_skips_spans_without_conversation_or_message(self, mock_delay: MagicMock) -> None:
-        enqueue_conversation_titles(
+        spawn_conversation_title_generation(
             [
                 make_gen_ai_span(project_id=self.project.id, omit_conversation_id=True),
                 make_gen_ai_span(project_id=self.project.id, omit_messages=True),
@@ -495,7 +498,7 @@ class EnqueueConversationTitlesTest(TestCase):
 
     @patch(DELAY)
     def test_clamps_user_message_before_enqueue(self, mock_delay: MagicMock) -> None:
-        enqueue_conversation_titles(
+        spawn_conversation_title_generation(
             [
                 make_gen_ai_span(
                     project_id=self.project.id,
@@ -507,19 +510,19 @@ class EnqueueConversationTitlesTest(TestCase):
 
     @patch(DELAY)
     def test_resolves_project_from_span(self, mock_delay: MagicMock) -> None:
-        enqueue_conversation_titles([make_gen_ai_span(project_id=self.project.id)])
+        spawn_conversation_title_generation([make_gen_ai_span(project_id=self.project.id)])
         mock_delay.assert_called_once()
         assert mock_delay.call_args.kwargs["project_id"] == self.project.id
 
     @patch(DELAY)
     def test_no_enqueue_when_project_not_found(self, mock_delay: MagicMock) -> None:
-        enqueue_conversation_titles([make_gen_ai_span(project_id=2**31 - 1)])
+        spawn_conversation_title_generation([make_gen_ai_span(project_id=2**31 - 1)])
         mock_delay.assert_not_called()
 
     @patch(DELAY)
     def test_no_enqueue_when_hide_ai_features(self, mock_delay: MagicMock) -> None:
         self.organization.update_option("sentry:hide_ai_features", True)
-        enqueue_conversation_titles([make_gen_ai_span(project_id=self.project.id)])
+        spawn_conversation_title_generation([make_gen_ai_span(project_id=self.project.id)])
         mock_delay.assert_not_called()
 
     @patch(DELAY)
@@ -528,7 +531,7 @@ class EnqueueConversationTitlesTest(TestCase):
         self, mock_incr: MagicMock, mock_delay: MagicMock
     ) -> None:
         metric = "spans.consumers.process_segments.gen_ai_conversation"
-        enqueue_conversation_titles(
+        spawn_conversation_title_generation(
             [
                 make_gen_ai_span(project_id=self.project.id, conversation_id="a"),
                 # A conversation without a usable message still counts as "seen".
@@ -549,7 +552,7 @@ class EnqueueConversationTitlesTest(TestCase):
         self, mock_incr: MagicMock, mock_delay: MagicMock
     ) -> None:
         metric = "spans.consumers.process_segments.gen_ai_conversation"
-        enqueue_conversation_titles(
+        spawn_conversation_title_generation(
             [make_gen_ai_span(project_id=self.project.id, omit_conversation_id=True)],
         )
         assert not any(c.args[:1] == (metric,) for c in mock_incr.call_args_list)
@@ -564,7 +567,7 @@ class EnqueueConversationTitlesTest(TestCase):
     ) -> None:
         # Earliest span arrives first; later same-conversation spans must not pay
         # the message-extraction cost.
-        enqueue_conversation_titles(
+        spawn_conversation_title_generation(
             [
                 make_gen_ai_span(
                     project_id=self.project.id,
@@ -579,9 +582,9 @@ class EnqueueConversationTitlesTest(TestCase):
         mock_delay.assert_called_once()
 
 
-class EnqueueConversationTitlesFeatureDisabledTest(TestCase):
+class SpawnConversationTitleGenerationFeatureDisabledTest(TestCase):
     @patch(DELAY)
     def test_no_enqueue_when_feature_disabled(self, mock_delay: MagicMock) -> None:
         project = self.create_project()
-        enqueue_conversation_titles([make_gen_ai_span(project_id=project.id)])
+        spawn_conversation_title_generation([make_gen_ai_span(project_id=project.id)])
         mock_delay.assert_not_called()

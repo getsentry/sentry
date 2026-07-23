@@ -121,10 +121,10 @@ def generate_ai_conversation_title(
     metrics.incr("ai_monitoring.conversation_title.written", tags={"result": "created"})
 
 
-def enqueue_conversation_titles(spans: Sequence[Mapping[str, Any]]) -> None:
+def spawn_conversation_title_generation(spans: Sequence[Mapping[str, Any]]) -> None:
     """
-    Enqueues one task per conversation, using the earliest spans
-    that has a user message.
+    Entrypoint that spawns one title-generation task per conversation,
+    using the earliest span that has a user message.
     """
     earliest_by_conversation: dict[str, ConversationTitleSpanData] = {}
     seen_conversation_ids: set[str] = set()
