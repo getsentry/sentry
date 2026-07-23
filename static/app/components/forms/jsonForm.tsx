@@ -1,5 +1,4 @@
 import {Fragment, useEffect} from 'react';
-import * as Sentry from '@sentry/react';
 
 import {defined} from 'sentry/utils/defined';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
@@ -49,21 +48,23 @@ function JsonForm({
 }: JsonFormProps) {
   const location = useLocation();
 
-  const scrollToHash = (toHash?: string): void => {
-    // location.hash is optional because of tests.
-    const hash = toHash || location?.hash;
-
+  const scrollToHash = (hash?: string): void => {
     if (!hash) {
       return;
     }
 
-    try {
-      document
-        .querySelector(sanitizeQuerySelector(decodeURIComponent(hash)))
-        ?.scrollIntoView({behavior: 'smooth', block: 'center'});
-    } catch (err) {
-      Sentry.captureException(err);
+    const element = document.getElementById(
+      sanitizeQuerySelector(decodeURIComponent(hash.slice(1)))
+    );
+    if (!element) {
+      return;
     }
+
+    const {top, height} = element.getBoundingClientRect();
+    window.scrollTo({
+      behavior: 'smooth',
+      top: window.scrollY + top - (window.innerHeight - height) / 2 - 100,
+    });
   };
 
   useEffect(() => {
@@ -73,7 +74,6 @@ function JsonForm({
     });
 
     return () => window.cancelAnimationFrame(animationFrame);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.hash]);
 
   const shouldDisplayForm = (fieldList: FieldObject[]): boolean => {
