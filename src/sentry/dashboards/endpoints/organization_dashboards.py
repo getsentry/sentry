@@ -92,6 +92,7 @@ class PrebuiltDashboardId(IntEnum):
     BACKEND_QUEUE_SUMMARY = 27
     BACKEND_CACHES = 28
     NODE_RUNTIME_METRICS = 29
+    BFCACHE_METRICS = 30
 
 
 class PrebuiltDashboard(TypedDict, total=False):
@@ -235,6 +236,10 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.NODE_RUNTIME_METRICS,
         "title": "Node.js Runtime Metrics",
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.BFCACHE_METRICS,
+        "title": "BFCache Metrics",
     },
 ]
 
