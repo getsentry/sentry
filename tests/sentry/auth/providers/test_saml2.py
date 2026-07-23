@@ -278,6 +278,23 @@ class ExtractSamlAvatarTest(TestCase):
     def test_returns_none_when_attribute_absent(self) -> None:
         assert _extract_saml_avatar(dummy_provider_config_with_avatar, {"id": ["123"]}) is None
 
+    def test_does_not_pop_key_shared_with_required_claim(self) -> None:
+        # If the avatar maps to the same IdP key as a required claim, popping it
+        # would blank that claim and break login, so the key must be retained.
+        config = {
+            "attribute_mapping": {
+                Attributes.IDENTIFIER: "shared",
+                Attributes.USER_EMAIL: "email",
+                Attributes.AVATAR: "shared",
+            }
+        }
+        attributes = {"shared": [_png_b64()], "email": ["user@example.com"]}
+
+        result = _extract_saml_avatar(config, attributes)
+
+        assert result == _validate_saml_avatar(_png_b64())
+        assert "shared" in attributes
+
 
 class AttributeMappingFormTest(TestCase):
     def test_exposes_and_preserves_avatar_mapping(self) -> None:

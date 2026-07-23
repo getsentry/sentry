@@ -333,7 +333,7 @@ def _validate_saml_avatar(value: str | None) -> str | None:
 
 def _extract_saml_avatar(config: Mapping[str, Any], attributes: dict[str, list[str]]) -> str | None:
     """
-    Pop the mapped avatar attribute out of ``attributes`` and return the
+    Pull the mapped avatar attribute out of ``attributes`` and return the
     validated, re-encoded avatar (or ``None`` when unmapped, absent, or invalid).
 
     Extracting and validating this at assertion time keeps the raw base64 payload
@@ -341,11 +341,19 @@ def _extract_saml_avatar(config: Mapping[str, Any], attributes: dict[str, list[s
     pipeline's Redis state, which is rewritten on every ``bind_state`` call. Only
     the small, re-encoded result is retained.
     """
-    avatar_key = config.get("attribute_mapping", {}).get(Attributes.AVATAR)
+    mapping = config.get("attribute_mapping", {})
+    avatar_key = mapping.get(Attributes.AVATAR)
     if not avatar_key:
         return None
 
-    raw_avatar = attributes.pop(avatar_key, None)
+    # Only remove the attribute from the pipeline state when it is exclusively the
+    # avatar source. If another (required) claim such as identifier or user_email
+    # reads the same key, popping it would blank that claim out and break login.
+    shared = any(
+        key != Attributes.AVATAR and provider_key == avatar_key
+        for key, provider_key in mapping.items()
+    )
+    raw_avatar = attributes.get(avatar_key) if shared else attributes.pop(avatar_key, None)
     if not raw_avatar:
         return None
 
