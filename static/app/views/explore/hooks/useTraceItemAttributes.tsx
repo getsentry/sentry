@@ -111,7 +111,10 @@ function useTraceItemAttributeConfig({
   }, [data?.booleanAttributes, traceItemType]);
 
   const allNumberAttributes = useMemo(() => {
-    const shouldRemove = booleanBaseKeys.size > 0;
+    // Trace metrics can expose a numeric field and an unrelated boolean tag
+    // sharing a base key (e.g. `value` and `tags[value,boolean]`); keep both.
+    const shouldRemove =
+      traceItemType !== TraceItemDataset.TRACEMETRICS && booleanBaseKeys.size > 0;
     const attributes: TagCollection = {};
     const secondaryAliases: TagCollection = {};
 

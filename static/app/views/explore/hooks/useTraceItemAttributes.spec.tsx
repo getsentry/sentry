@@ -250,4 +250,38 @@ describe('useTraceItemAttributes number filtering', () => {
     expect('custom_metric' in result.current.attributes).toBe(true);
     expect('another_metric' in result.current.attributes).toBe(true);
   });
+
+  it('keeps both a numeric metric and a boolean tag that share a base key for trace metrics', async () => {
+    const organization = OrganizationFixture();
+
+    // Numeric metric and an unrelated boolean tag sharing a base key.
+    addAttributeMock([
+      {attributeType: 'number', key: 'value', name: 'value'},
+      {attributeType: 'boolean', key: 'tags[value,boolean]', name: 'value'},
+    ]);
+
+    const {result} = renderHookWithProviders(
+      () => ({
+        number: useTraceItemAttributes(
+          {traceItemType: TraceItemDataset.TRACEMETRICS, enabled: true},
+          'number'
+        ),
+        boolean: useTraceItemAttributes(
+          {traceItemType: TraceItemDataset.TRACEMETRICS, enabled: true},
+          'boolean'
+        ),
+      }),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.number.isLoading).toBe(false);
+      expect(result.current.boolean.isLoading).toBe(false);
+    });
+
+    // The numeric metric survives the dedup instead of being dropped...
+    expect('value' in result.current.number.attributes).toBe(true);
+    // ...and the boolean tag is still present too.
+    expect('tags[value,boolean]' in result.current.boolean.attributes).toBe(true);
+  });
 });
