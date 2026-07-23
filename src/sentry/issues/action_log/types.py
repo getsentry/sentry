@@ -373,6 +373,7 @@ class MarkReviewedAction(GroupAction):
 
 class TriggerAutofixAction(GroupAction):
     user_visible = True
+    referrer: Optional[str] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:

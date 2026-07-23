@@ -24,7 +24,7 @@ from sentry.issues.grouptype import (
     get_group_type_by_slug,
 )
 from sentry.issues.grouptype import registry as GROUP_TYPE_REGISTRY
-from sentry.issues.progress import IssueProgressState
+from sentry.issues.progress_state import IssueProgressState
 from sentry.models.environment import Environment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES
 from sentry.models.organization import Organization

@@ -1,0 +1,236 @@
+import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
+
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {
+  IconCode,
+  IconCommit,
+  IconMerge,
+  IconPullRequest,
+  IconRefresh,
+  IconSearch,
+  IconUser,
+} from 'sentry/icons';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import {t} from 'sentry/locale';
+
+import type {AutofixStateKey, CardAction, OverviewRow} from './types';
+
+type LinkButtonVariant = React.ComponentProps<typeof LinkButton>['variant'];
+
+// Stage actions are keyed by section; the two extras (awaiting_input, errored)
+// are the transient live-status overlays. Strings are translated product copy.
+type ActionKey =
+  | 'review_pr'
+  | 'code_changes_ready'
+  | 'solution_ready'
+  | 'needs_investigation'
+  | 'awaiting_input'
+  | 'errored';
+
+const ACTION_META: Record<
+  ActionKey,
+  {
+    Icon: React.ComponentType<SVGIconProps>;
+    description: string;
+    label: string;
+    variant: LinkButtonVariant;
+  }
+> = {
+  review_pr: {
+    Icon: IconPullRequest,
+    label: t('Review PR'),
+    variant: 'warning',
+    description: t('Autofix opened a pull request. Review and merge it.'),
+  },
+  code_changes_ready: {
+    Icon: IconCommit,
+    label: t('Open PR'),
+    variant: 'secondary',
+    description: t('Autofix wrote a diff. Review it and open a pull request.'),
+  },
+  solution_ready: {
+    Icon: IconCode,
+    label: t('Generate code'),
+    variant: 'secondary',
+    description: t(
+      'Autofix proposed a fix. Continue the pipeline to generate code changes.'
+    ),
+  },
+  needs_investigation: {
+    Icon: IconSearch,
+    label: t('Investigate'),
+    variant: 'secondary',
+    description: t(
+      'Seer stopped at a diagnosis. Open the run to investigate the root cause.'
+    ),
+  },
+  awaiting_input: {
+    Icon: IconUser,
+    label: t('Add context'),
+    variant: 'primary',
+    description: t(
+      'Autofix paused and is asking for more information before it can proceed.'
+    ),
+  },
+  errored: {
+    Icon: IconRefresh,
+    label: t('Retry'),
+    variant: 'secondary',
+    description: t('Autofix run errored. Open it to investigate or retry.'),
+  },
+};
+
+export function deriveCardAction(
+  sectionKey: AutofixStateKey,
+  row: OverviewRow
+): CardAction {
+  if (sectionKey === 'review_pr') {
+    return {type: 'review_pr', prUrl: row.prUrl, prNumber: row.prNumber};
+  }
+  return {type: sectionKey};
+}
+
+const AccentLinkButton = styled(LinkButton)`
+  background: ${p => p.theme.tokens.background.accent};
+  border-color: ${p => p.theme.tokens.border.accent};
+  color: ${p => p.theme.tokens.content.accent};
+  &:hover {
+    color: ${p => p.theme.tokens.content.accent};
+  }
+`;
+
+const SuccessLinkButton = styled(LinkButton)`
+  background: ${p => p.theme.tokens.background.success};
+  border-color: ${p => p.theme.tokens.border.success};
+  color: ${p => p.theme.tokens.content.success};
+  &:hover {
+    color: ${p => p.theme.tokens.content.success};
+  }
+`;
+
+const MutedLinkButton = styled(LinkButton)`
+  background: transparent;
+  border-color: ${p => p.theme.tokens.border.neutral};
+  color: ${p => p.theme.tokens.content.secondary};
+`;
+
+function ActionButton({actionKey, to}: {actionKey: ActionKey; to: LocationDescriptor}) {
+  const meta = ACTION_META[actionKey];
+  if (actionKey === 'code_changes_ready') {
+    return (
+      <Tooltip title={meta.description} skipWrapper>
+        <AccentLinkButton size="sm" icon={<meta.Icon />} to={to}>
+          {meta.label}
+        </AccentLinkButton>
+      </Tooltip>
+    );
+  }
+  if (actionKey === 'solution_ready') {
+    return (
+      <Tooltip title={meta.description} skipWrapper>
+        <SuccessLinkButton size="sm" icon={<meta.Icon />} to={to}>
+          {meta.label}
+        </SuccessLinkButton>
+      </Tooltip>
+    );
+  }
+  if (actionKey === 'errored') {
+    return (
+      <Tooltip title={meta.description} skipWrapper>
+        <MutedLinkButton size="sm" icon={<meta.Icon />} to={to}>
+          {meta.label}
+        </MutedLinkButton>
+      </Tooltip>
+    );
+  }
+  return (
+    <Tooltip title={meta.description} skipWrapper>
+      <LinkButton size="sm" variant={meta.variant} icon={<meta.Icon />} to={to}>
+        {meta.label}
+      </LinkButton>
+    </Tooltip>
+  );
+}
+
+function ReviewPrButton({
+  prUrl,
+  prNumber,
+}: {
+  prNumber: number | undefined;
+  prUrl: string;
+}) {
+  const meta = ACTION_META.review_pr;
+  return (
+    <Tooltip
+      title={
+        prNumber
+          ? t('Autofix opened pull request #%s. Review and merge it.', prNumber)
+          : meta.description
+      }
+      skipWrapper
+    >
+      <LinkButton
+        size="sm"
+        variant="warning"
+        icon={<IconPullRequest />}
+        href={prUrl}
+        external
+      >
+        {meta.label}
+      </LinkButton>
+    </Tooltip>
+  );
+}
+
+/**
+ * The card's primary action. The section (via `action`) is the anchor; the live
+ * run status only paints transient overlays over it — the loading placeholder,
+ * the Running tag, and the Retry / Add-context prompts for a paused or errored
+ * run — none of which reclassify the card.
+ */
+export function IssuePrimaryAction({
+  action,
+  row,
+  runUrl,
+}: {
+  action: CardAction;
+  row: OverviewRow;
+  runUrl: LocationDescriptor;
+}) {
+  if (row.statePending) {
+    return <Text variant="muted">{'…'}</Text>;
+  }
+  if (row.runStatus === 'processing') {
+    return <Tag variant="info">{t('Running')}</Tag>;
+  }
+  if (row.runStatus === 'error') {
+    return <ActionButton actionKey="errored" to={runUrl} />;
+  }
+  if (row.runStatus === 'awaiting_user_input') {
+    return <ActionButton actionKey="awaiting_input" to={runUrl} />;
+  }
+
+  switch (action.type) {
+    case 'merged':
+      return (
+        <Tooltip title={t('The pull request for this fix was merged.')}>
+          <Tag variant="success" icon={<IconMerge />}>
+            {t('Merged')}
+          </Tag>
+        </Tooltip>
+      );
+    case 'review_pr':
+      return action.prUrl ? (
+        <ReviewPrButton prUrl={action.prUrl} prNumber={action.prNumber} />
+      ) : (
+        <ActionButton actionKey="review_pr" to={runUrl} />
+      );
+    default:
+      return <ActionButton actionKey={action.type} to={runUrl} />;
+  }
+}

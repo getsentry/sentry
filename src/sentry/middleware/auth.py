@@ -11,6 +11,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 
 from sentry.api.authentication import (
+    AgentTokenAuthentication,
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
@@ -65,6 +66,7 @@ class AuthenticationMiddleware(MiddlewareMixin):
             for authenticator_class in (
                 UserAuthTokenAuthentication,
                 OrgAuthTokenAuthentication,
+                AgentTokenAuthentication,
                 ApiKeyAuthentication,
             ):
                 authenticator = authenticator_class()
