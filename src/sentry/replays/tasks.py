@@ -6,6 +6,7 @@ from typing import Any
 from google.cloud.exceptions import NotFound
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
 
 from sentry.replays.consumers.recording import commit_message, process_message
 from sentry.replays.lib.kafka import PROCESS_REPLAY_RECORDING_TASK_NAME, publish_replay_event
@@ -247,8 +248,13 @@ def run_bulk_replay_delete_job(
     except Exception:
         logger.exception("Bulk delete replays failed.")
 
-        job.status = DeletionJobStatus.FAILED
-        job.save()
+        # Marking the job failed makes every subsequent run a no-op (see the status guard
+        # above), so only do it once the task has no retries left. Otherwise re-raise and
+        # let the worker retry from the same offset.
+        task_state = current_task()
+        if task_state is None or not task_state.retries_remaining:
+            job.status = DeletionJobStatus.FAILED
+            job.save()
         raise
 
     # Compute the next offset to start from. If no further processing is required then this serves

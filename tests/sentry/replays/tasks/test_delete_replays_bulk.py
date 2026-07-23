@@ -310,6 +310,52 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             "project_id": self.job.project_id,
         }
 
+    @patch("sentry.replays.tasks.current_task")
+    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
+    def test_run_bulk_replay_delete_job_error_with_retries_remaining(
+        self, mock_fetch_rows: MagicMock, mock_current_task: MagicMock
+    ) -> None:
+        """An error on a non-terminal attempt re-raises without failing the job."""
+        mock_fetch_rows.side_effect = SnubaError("read timed out")
+        mock_current_task.return_value = Mock(retries_remaining=True)
+
+        with pytest.raises(SnubaError):
+            run_bulk_replay_delete_job(self.job.id, offset=0)
+
+        # The job is still runnable so the worker's retry is not a no-op.
+        self.job.refresh_from_db()
+        assert self.job.status == DeletionJobStatus.IN_PROGRESS
+
+    @patch("sentry.replays.tasks.current_task")
+    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
+    def test_run_bulk_replay_delete_job_error_on_final_attempt(
+        self, mock_fetch_rows: MagicMock, mock_current_task: MagicMock
+    ) -> None:
+        """An error on the terminal attempt marks the job failed."""
+        mock_fetch_rows.side_effect = SnubaError("read timed out")
+        mock_current_task.return_value = Mock(retries_remaining=False)
+
+        with pytest.raises(SnubaError):
+            run_bulk_replay_delete_job(self.job.id, offset=0)
+
+        self.job.refresh_from_db()
+        assert self.job.status == DeletionJobStatus.FAILED
+
+    @patch("sentry.replays.tasks.current_task")
+    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
+    def test_run_bulk_replay_delete_job_error_without_task_context(
+        self, mock_fetch_rows: MagicMock, mock_current_task: MagicMock
+    ) -> None:
+        """An error with no task context (direct call) marks the job failed."""
+        mock_fetch_rows.side_effect = SnubaError("read timed out")
+        mock_current_task.return_value = None
+
+        with pytest.raises(SnubaError):
+            run_bulk_replay_delete_job(self.job.id, offset=0)
+
+        self.job.refresh_from_db()
+        assert self.job.status == DeletionJobStatus.FAILED
+
     @patch("sentry.utils.retries.time.sleep")
     @patch("sentry.replays.usecases.delete.execute_query")
     def test_fetch_rows_matching_pattern_retries_snuba_errors(
