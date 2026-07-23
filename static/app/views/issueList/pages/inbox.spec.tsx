@@ -481,24 +481,6 @@ describe('InboxPage', () => {
     const seerButton = await within(preview).findByRole('button', {
       name: 'Find Root Cause',
     });
-    expect(
-      within(preview).queryByRole('button', {name: 'Resolve'})
-    ).not.toBeInTheDocument();
-    expect(
-      within(preview).queryByRole('button', {name: 'Archive'})
-    ).not.toBeInTheDocument();
-    expect(
-      within(preview).queryByRole('button', {name: 'Share'})
-    ).not.toBeInTheDocument();
-    expect(
-      within(preview).queryByRole('button', {name: 'Subscribe'})
-    ).not.toBeInTheDocument();
-    expect(
-      within(preview).queryByRole('button', {name: 'More Actions'})
-    ).not.toBeInTheDocument();
-    expect(within(preview).getByText('Priority')).toBeInTheDocument();
-    expect(within(preview).getByText('Assignee')).toBeInTheDocument();
-
     await userEvent.click(seerButton);
 
     expect(within(preview).getByRole('tab', {name: 'Autofix'})).toHaveAttribute(

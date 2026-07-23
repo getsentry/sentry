@@ -82,6 +82,19 @@ function getAutofixPrimaryAction(
     };
   }
 
+  // The run is paused waiting on the user
+  // For now open the autofix tab, but in the future open an explorer side panel
+  if (runState.status === 'awaiting_user_input') {
+    return {
+      ...AUTOFIX_ANALYTICS.view,
+      kind: 'view_autofix',
+      label:
+        runState.pending_user_input?.input_type === 'file_change_approval'
+          ? t('Review Changes')
+          : t('Continue in Seer'),
+    };
+  }
+
   const pullRequests = Object.values(runState.repo_pr_states ?? {});
   const completedPullRequest = pullRequests.find(
     pullRequest =>
@@ -118,19 +131,6 @@ function getAutofixPrimaryAction(
       label: t('Retry PR in %s', failedPullRequest.repo_name),
       repoName: failedPullRequest.repo_name,
       tooltip: failedPullRequest.pr_creation_error,
-    };
-  }
-
-  // The run is paused waiting on the user
-  // For now open the autofix tab, but in the future open an explorer side panel
-  if (runState.status === 'awaiting_user_input') {
-    return {
-      ...AUTOFIX_ANALYTICS.view,
-      kind: 'view_autofix',
-      label:
-        runState.pending_user_input?.input_type === 'file_change_approval'
-          ? t('Review Changes')
-          : t('Continue in Seer'),
     };
   }
 
