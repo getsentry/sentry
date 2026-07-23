@@ -1172,7 +1172,20 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
 
 
 def get_debug_file_id(profile: Profile) -> str | None:
-    debug_file_id = profile.get("build_id")
+    # Only the android trace formats (legacy transaction profiles and
+    # android-trace chunks) carry a top-level `build_id`. Sample v2 chunks
+    # reference their proguard mapping as a debug_meta image, like events do.
+    if is_android_trace_format(profile):
+        debug_file_id = profile.get("build_id")
+    else:
+        debug_file_id = next(
+            (
+                image.get("uuid")
+                for image in (profile.get("debug_meta") or {}).get("images") or ()
+                if image.get("type") == "proguard"
+            ),
+            None,
+        )
 
     if debug_file_id is None or debug_file_id == "":
         return None

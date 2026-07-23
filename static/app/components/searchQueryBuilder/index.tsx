@@ -104,6 +104,11 @@ export interface SearchQueryBuilderProps {
    */
   disallowLogicalOperators?: boolean;
   /**
+   * When true, negation operators (e.g. "is not", "does not contain") are
+   * removed from the operator suggestions so only positive filters can be built.
+   */
+  disallowNegation?: boolean;
+  /**
    * When true, unsupported filter keys will be highlighted as invalid.
    */
   disallowUnsupportedFilters?: boolean;
