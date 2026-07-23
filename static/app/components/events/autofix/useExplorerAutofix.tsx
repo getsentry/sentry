@@ -160,17 +160,15 @@ interface GithubPrReviewBodyFeedbackSource {
   type: 'github-pr-review-body';
   // The review's summary body is its own feedback item, keyed by `review_id` and
   // labelled by `review_state` (approved / changes_requested / commented / …).
-  html_url?: string;
-  review_id?: number;
-  review_state?: string;
-}
-
-interface GithubPrReviewBodyFeedbackSource {
-  type: 'github-pr-review-body';
   author_is_bot?: boolean;
   body?: string;
   html_url?: string;
   review_id?: number;
+  review_state?: string;
+  // The review author, carried the same way an inline comment carries its author
+  // on `comment.user`, so the UI can render the reviewer's avatar on the review
+  // header. Absent on feedback serialized before the backend began emitting it.
+  user?: {login?: string};
 }
 
 interface CheckSuiteFeedbackSource {

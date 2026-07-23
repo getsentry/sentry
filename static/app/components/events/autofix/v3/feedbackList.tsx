@@ -64,6 +64,9 @@ interface GithubPrCommentFeedback extends ParsedBaseFeedback {
 // comments. `text` may be empty (a review can have inline comments but no body).
 interface GithubPrReviewBodyFeedback extends ParsedBaseFeedback {
   sourceType: 'github-pr-review-body';
+  // The review author's GitHub login, used to render their avatar on the review
+  // header. Absent on feedback serialized before the backend emitted it, in
+  // which case the header falls back to the source glyph.
   githubUsername?: string;
   reviewId?: number;
   reviewState?: string;
@@ -123,6 +126,7 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
       return {
         ...base,
         sourceType: 'github-pr-review-body',
+        githubUsername: source.user?.login,
         reviewId: source.review_id,
         reviewState: source.review_state,
         reviewUrl: source.html_url,
@@ -463,31 +467,36 @@ function UserUiAvatar({item}: {item: IterationFeedback}) {
   );
 }
 
+// Builds an `AvatarUser` from a bare GitHub login. We only get the login on the
+// wire (no Sentry user, no avatar URL), so point the avatar at GitHub's per-login
+// image (`github.com/<login>.png`). UserAvatar falls back to a letter avatar from
+// the login if the image fails to load. Returns null when there's no login.
+function githubAvatarUser(login: string | undefined): AvatarUser | null {
+  if (!login) {
+    return null;
+  }
+  return {
+    // GitHub's noreply email for the login. `email` must be present so
+    // UserAvatar's `isActor` check (`email === undefined`) treats this as an
+    // AvatarUser and honors the `avatar` field — an Actor is forced to a letter
+    // avatar. (The exact `ID+login@...` form needs the numeric GitHub user id,
+    // which isn't on the wire, so we use the id-less variant.)
+    email: `${login}@users.noreply.github.com`,
+    username: login,
+    name: login,
+    avatar: {avatarType: 'upload', avatarUrl: `https://github.com/${login}.png`},
+  } as AvatarUser;
+}
+
 function GithubAvatar({item}: {item: IterationFeedback}) {
   const login =
     item.sourceType === 'github-pr-comment' ||
     item.sourceType === 'github-pr-review-comment'
       ? item.githubUsername
       : undefined;
-  // We only get the GitHub login on the wire (no Sentry user, no avatar URL), so
-  // point the avatar at GitHub's per-login image (`github.com/<login>.png`).
-  // UserAvatar falls back to a letter avatar from the login if it fails to load.
-  const user = login
-    ? ({
-        // GitHub's noreply email for the login. `email` must be present so
-        // UserAvatar's `isActor` check (`email === undefined`) treats this as an
-        // AvatarUser and honors the `avatar` field — an Actor is forced to a
-        // letter avatar. (The exact `ID+login@...` form needs the numeric GitHub
-        // user id, which isn't on the wire, so we use the id-less variant.)
-        email: `${login}@users.noreply.github.com`,
-        username: login,
-        name: login,
-        avatar: {avatarType: 'upload', avatarUrl: `https://github.com/${login}.png`},
-      } as AvatarUser)
-    : null;
   return (
     <AuthorAvatar
-      user={user}
+      user={githubAvatarUser(login)}
       Icon={IconGithub}
       tooltip={postedOnLabel(login ?? null, t('GitHub'))}
     />
@@ -546,11 +555,19 @@ function GithubComment({item}: {item: IterationFeedback}) {
   return <CommentBody text={item.text} externalUrl={url} />;
 }
 
-// The review body has no author login on the wire, so it can't render an
-// authored avatar. Use GitHub as the primary glyph — the review's author is
-// already surfaced on its inline comments' avatars beneath the header.
-function GithubReviewBodyAvatar() {
-  return <PrimaryIconAvatar Icon={IconGithub} tooltip={t('Review on GitHub')} />;
+// The review header shows the reviewer's avatar, matching the inline comments
+// beneath it. Older feedback serialized before the login was on the wire has no
+// `githubUsername`; `AuthorAvatar` falls back to the GitHub glyph in that case.
+function GithubReviewBodyAvatar({item}: {item: IterationFeedback}) {
+  const login =
+    item.sourceType === 'github-pr-review-body' ? item.githubUsername : undefined;
+  return (
+    <AuthorAvatar
+      user={githubAvatarUser(login)}
+      Icon={IconGithub}
+      tooltip={postedOnLabel(login ?? null, t('GitHub'))}
+    />
+  );
 }
 
 // Maps a GitHub review state to a Tag variant + human label. Unknown/other
