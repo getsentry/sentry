@@ -381,6 +381,11 @@ class Fixtures:
         if group is None:
             group = self.group
         return Factories.create_group_resolution(group, **kwargs)
+      
+    def create_group_subscription(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_subscription(group, **kwargs)
 
     def create_group_owner(self, group=None, **kwargs):
         if group is None:
@@ -544,6 +549,9 @@ class Fixtures:
         return Factories.create_notification_action(
             organization=organization, projects=projects, **kwargs
         )
+
+    def create_notification_setting_option(self, *args, **kwargs):
+        return Factories.create_notification_setting_option(*args, **kwargs)
 
     def create_notification_settings_provider(self, *args, **kwargs):
         return Factories.create_notification_settings_provider(*args, **kwargs)
@@ -1269,6 +1277,13 @@ class Fixtures:
         if organization is None:
             organization = self.organization
         return Factories.create_seer_run(organization=organization, **kwargs)
+
+    def create_seer_agent_write_grant(self, organization=None, user=None, **kwargs):
+        return Factories.create_seer_agent_write_grant(
+            organization=organization or self.organization,
+            user=user or self.user,
+            **kwargs,
+        )
 
     def create_seer_agent_run(self, run, **kwargs):
         return Factories.create_seer_agent_run(run=run, **kwargs)

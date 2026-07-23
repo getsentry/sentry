@@ -170,7 +170,7 @@ class DatadogIntegration(IntegrationInstallation):
 
 class DatadogIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.DATADOG.value
-    name = "Datadog"
+    name = "Datadog (Seer)"
     metadata = metadata
     integration_cls = DatadogIntegration
     features = frozenset([IntegrationFeatures.MONITORING])
@@ -222,7 +222,7 @@ class DatadogOrgMonitoringProvider(OrgMonitoringProvider):
 
     def build_connection(
         self, organization: Organization
-    ) -> MonitoringProviderConnectionData | None:
+    ) -> list[MonitoringProviderConnectionData] | None:
         ctx = integration_service.organization_context(
             organization_id=organization.id, provider=self.provider_key
         )
@@ -255,14 +255,16 @@ class DatadogOrgMonitoringProvider(OrgMonitoringProvider):
         if not (encrypted_api_key and encrypted_app_key):
             return None
 
-        return MonitoringProviderConnectionData(
-            provider_key=self.provider_key,
-            url=f"{base_url}{MCP_ENDPOINT_PATH}",
-            encrypted_auth_headers={
-                "DD-API-KEY": encrypted_api_key,
-                "DD-APPLICATION-KEY": encrypted_app_key,
-            },
-            identity_id=None,
-            auth_method="api_key",
-            refreshable=False,
-        )
+        return [
+            MonitoringProviderConnectionData(
+                provider_key=self.provider_key,
+                url=f"{base_url}{MCP_ENDPOINT_PATH}",
+                encrypted_auth_headers={
+                    "DD-API-KEY": encrypted_api_key,
+                    "DD-APPLICATION-KEY": encrypted_app_key,
+                },
+                identity_id=None,
+                auth_method="api_key",
+                refreshable=False,
+            )
+        ]

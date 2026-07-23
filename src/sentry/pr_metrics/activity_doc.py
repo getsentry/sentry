@@ -112,6 +112,31 @@ def is_failing_conclusion(conclusion: str | None) -> bool:
     return conclusion not in NON_FAILING_CONCLUSIONS and conclusion not in ABORTED_CONCLUSIONS
 
 
+def has_verdict(conclusion: str | None) -> bool:
+    """Whether a conclusion reports an outcome at all — a pass or a failure.
+
+    ``cancelled``/``stale`` and an empty conclusion are the *absence* of a result,
+    not a result: the run was abandoned before CI decided anything.
+    """
+    return bool(conclusion) and conclusion not in ABORTED_CONCLUSIONS
+
+
+def _wins_conclusion(candidate: str | None, current: str | None) -> bool:
+    """Whether a newer conclusion may replace the stored one.
+
+    Latest-wins is the right rule only between verdicts. A rerun that was cancelled
+    reports nothing, so it must not erase what CI already decided: a check that
+    failed and whose rerun was then cancelled is still failing, and letting the
+    cancellation win drops it from ``failing_check_names`` — and, where the app
+    emits no suite event, flips the whole group to ``success``.
+
+    A no-verdict conclusion is still recorded when there is nothing to erase, so a
+    run that only ever aborted (a PR closed mid-CI) reads as aborted rather than
+    silently deriving a pass.
+    """
+    return has_verdict(candidate) or not has_verdict(current)
+
+
 def new_document() -> ActivityDoc:
     """An empty activity document at the current version."""
     return {
@@ -291,15 +316,18 @@ def _apply_check_suite(
 ) -> None:
     """Fold a completed ``check_suite`` into its ``(head_sha, app_slug)`` group.
 
-    The suite carries the aggregate conclusion (latest wins on ``updated_at``) and
-    the run count (``max`` of ``latest_check_runs_count``). A failing suite also
-    lowers ``first_failure_at`` so the signal survives even for CI apps that only
-    emit suite events.
+    The suite carries the aggregate conclusion (latest verdict wins on
+    ``updated_at`` — see :func:`_wins_conclusion` for why an aborted suite does not
+    count) and the run count (``max`` of ``latest_check_runs_count``). A failing
+    suite also lowers ``first_failure_at`` so the signal survives even for CI apps
+    that only emit suite events.
     """
     group = _get_or_create_group(doc, payload)
 
     conclusion = payload.get("conclusion") or ""
-    if _is_newer(suite_updated_at, group.get("suite_updated_at")):
+    if _is_newer(suite_updated_at, group.get("suite_updated_at")) and _wins_conclusion(
+        conclusion, group.get("suite_conclusion")
+    ):
         group["suite_conclusion"] = conclusion
         group["suite_updated_at"] = suite_updated_at
     group["check_runs_count"] = max(
@@ -319,7 +347,9 @@ def _apply_check_run(
     its entry (``failed_attempts`` += 1) and lowers ``first_failure_at``; a
     non-failing run updates an existing (previously-failing) entry in place so a
     fail→rerun-green at the same head reads as recovered rather than vanishing.
-    Latest-wins on ``completed_at`` keeps out-of-order deliveries convergent.
+    Latest-*verdict*-wins on ``completed_at`` keeps out-of-order deliveries
+    convergent while leaving a stored result intact when a rerun aborts without
+    reaching one (see :func:`_wins_conclusion`).
     Redelivery-safe without ``webhook_id`` dedup: a redelivered failing event
     double counts only the magnitude signal, which is accepted.
     """
@@ -338,7 +368,9 @@ def _apply_check_run(
     if entry is not None:
         if failing:
             entry["failed_attempts"] = entry.get("failed_attempts", 0) + 1
-        if _is_newer(completed_at, entry.get("completed_at")):
+        if _is_newer(completed_at, entry.get("completed_at")) and _wins_conclusion(
+            conclusion, entry.get("conclusion")
+        ):
             entry["conclusion"] = conclusion
             entry["completed_at"] = completed_at
     elif failing:
@@ -466,6 +498,60 @@ def _bot_human_counts(
     return counts
 
 
+def reviews_requested_count_from_doc(doc: ActivityDoc) -> int:
+    """Net outstanding review requests: ``REVIEW_REQUESTED`` minus
+    ``REVIEW_REQUEST_REMOVED``, floored at 0.
+
+    Not part of ``derived_metrics_from_doc``'s persisted-counters dict — unlike
+    ``reviews_count`` and friends, nothing downstream re-reads this off
+    ``PullRequestMetrics`` after emission, so it's read straight from the doc at
+    emit time (see ``emit.review_activity``) rather than written through
+    to the model.
+
+    Both counts come from ``counts`` (not the ``events`` list) so the total
+    survives the events cap the same way ``reviews_count`` does. Floored
+    because a removal can't be matched to which earlier request it revoked —
+    e.g. a second reviewer's request outliving the first's removal — so the
+    net can't go negative; 0 just means "no request outstanding", not "one too
+    many removals".
+    """
+    counts = doc.get("counts", {})
+    requested = counts.get(PullRequestActivityType.REVIEW_REQUESTED, 0)
+    removed = counts.get(PullRequestActivityType.REVIEW_REQUEST_REMOVED, 0)
+    return max(requested - removed, 0)
+
+
+# GitHub's review-submission vocabulary — mirrors emit.REVIEW_STATES. Duplicated
+# rather than imported to avoid a circular import (emit.py imports this module).
+_REVIEW_STATES = ("approved", "changes_requested", "commented")
+
+
+def review_activity_from_doc(doc: ActivityDoc) -> dict[str, Any]:
+    """Review-submission facts, projected from the document: the same shape as
+    ``emit.review_activity``, returned as a plain dict for that function to
+    wrap into its ``ReviewActivity`` NamedTuple.
+
+    ``requested_count`` reuses ``reviews_requested_count_from_doc`` (from
+    ``counts``, cap-surviving). ``results`` tallies each ``REVIEW_SUBMITTED``
+    entry's ``review_state`` from the stored entries — like the bot/human
+    splits in ``derived_metrics_from_doc``, this is *not* cap-surviving (no
+    per-state totals are kept in ``counts``), so a PR past the events cap
+    undercounts here the same way it already does for
+    ``reviews_bot_count``/``reviews_human_count``.
+    """
+    results: Counter[str] = Counter()
+    for event in doc.get("events", []):
+        if event["event_type"] != PullRequestActivityType.REVIEW_SUBMITTED:
+            continue
+        review_state = (event.get("payload") or {}).get("review_state")
+        if review_state in _REVIEW_STATES:
+            results[review_state] += 1
+    return {
+        "requested_count": reviews_requested_count_from_doc(doc),
+        "results": {state: results[state] for state in _REVIEW_STATES},
+    }
+
+
 def derived_metrics_from_doc(doc: ActivityDoc) -> dict[str, Any]:
     """The activity-derived counters, projected from the document.
 
@@ -569,6 +655,20 @@ def _synthesized_check_suite_payload(group: CheckGroup) -> dict[str, Any]:
             name for name, run in runs.items() if is_failing_conclusion(run.get("conclusion"))
         ),
         "first_failure_at": group.get("first_failure_at"),
+        # Every check that has EVER failed in this group, with its current
+        # conclusion and failure count. `failing_check_names` above is the
+        # currently-failing subset; the rest are checks that went red and came back
+        # green at the same SHA — flaky CI, which the collapse would otherwise
+        # destroy (the group reads plain "success"). `completed_at` is deliberately
+        # not forwarded: the judge orders by the group's own timestamp and has no
+        # use for per-run times.
+        "check_runs": {
+            name: {
+                "conclusion": run.get("conclusion") or "",
+                "failed_attempts": run.get("failed_attempts", 0),
+            }
+            for name, run in runs.items()
+        },
     }
 
 

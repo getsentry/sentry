@@ -27,9 +27,8 @@ from sentry.workflow_engine.handlers.detector.stateful import (
     StatefulDetectorHandler,
 )
 from sentry.workflow_engine.models import DataPacket, DetectorState
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
@@ -177,7 +176,7 @@ class ProcessingErrorDetectorHandler(
         parent's batched state manager approach.
         """
         data_value = self.extract_value(data_packet)
-        results: dict[DetectorGroupKey, DetectorEvaluationResult] = {}
+        results: dict[DetectorGroupKey, DetectorEvaluation] = {}
 
         detector_trigger_evaluations, evaluated_priority = self._evaluation_detector_conditions(
             data_value

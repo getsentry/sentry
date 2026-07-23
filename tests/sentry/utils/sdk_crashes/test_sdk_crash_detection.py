@@ -13,7 +13,10 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.store_transaction import store_transaction
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
-from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
+from sentry.utils.sdk_crashes.sdk_crash_detection import (
+    get_hybrid_sdk,
+    sdk_crash_detection,
+)
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
     SDKCrashDetectionConfig,
     build_sdk_crash_detection_configs,
@@ -29,6 +32,45 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
 )
 def build_sdk_configs() -> Sequence[SDKCrashDetectionConfig]:
     return build_sdk_crash_detection_configs()
+
+
+@pytest.mark.parametrize("sdk_name", ["sentry.cocoa.flutter", "sentry.java.android.flutter"])
+def test_get_hybrid_sdk(sdk_name: str) -> None:
+    packages = [
+        {"name": "cocoapods:Sentry", "version": "8.2.0"},
+        {"name": "pub:sentry_flutter", "version": "9.24.0"},
+    ]
+    hybrid_sdk_packages = {
+        sdk_name: ("sentry.dart.flutter", "pub:sentry_flutter"),
+    }
+
+    assert get_hybrid_sdk(sdk_name, packages, hybrid_sdk_packages) == (
+        "sentry.dart.flutter",
+        "9.24.0",
+    )
+
+
+@pytest.mark.parametrize(
+    "packages",
+    [
+        None,
+        [],
+        [
+            {"name": "pub:sentry_flutter", "version": "9.23.0"},
+            {"name": "pub:sentry_flutter", "version": "9.24.0"},
+        ],
+    ],
+)
+def test_get_hybrid_sdk_rejects_ambiguous_versions(packages: object) -> None:
+    hybrid_sdk_packages = {
+        "sentry.cocoa.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
+    }
+
+    assert get_hybrid_sdk("sentry.cocoa.flutter", packages, hybrid_sdk_packages) is None
+
+
+def test_get_hybrid_sdk_exits_early_without_configured_packages() -> None:
+    assert get_hybrid_sdk("sentry.cocoa.flutter", object(), {}) is None
 
 
 class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
@@ -140,6 +182,62 @@ def test_sdks_detected(
         assert mock_sdk_crash_reporter.report.call_count == 1
     else:
         assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@django_db_all
+@pytest.mark.snuba
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+@patch("sentry.utils.metrics.incr")
+def test_flutter_sdk_version_attributed_without_replacing_native_version(
+    incr: MagicMock,
+    mock_sdk_crash_reporter: MagicMock,
+    store_event: Callable[[dict[str, Collection[str]]], Event],
+) -> None:
+    event_data = get_crash_event()
+    set_path(event_data, "sdk", "name", value="sentry.cocoa.flutter")
+    set_path(
+        event_data,
+        "sdk",
+        "packages",
+        value=[
+            {"name": "cocoapods:Sentry", "version": "8.2.0"},
+            {"name": "pub:sentry_flutter", "version": "9.24.0"},
+            {"name": "untrusted-package", "version": "1.0.0"},
+        ],
+    )
+    event = store_event(event_data)
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=build_sdk_configs())
+
+    reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
+    assert reported_event_data["sdk"] == {
+        "name": "sentry.cocoa.flutter",
+        "version": "8.2.0",
+    }
+    assert reported_event_data["tags"] == [
+        ("hybrid_sdk_name", "sentry.dart.flutter"),
+        ("hybrid_sdk_version", "9.24.0"),
+    ]
+    assert reported_event_data["release"] == "8.2.0"
+    metric_tags = {
+        "sdk_name": "sentry.cocoa.flutter",
+        "sdk_version": "8.2.0",
+        "is_anr_or_apphang": "false",
+        "hybrid_sdk_name": "sentry.dart.flutter",
+        "hybrid_sdk_version": "9.24.0",
+    }
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.sdk_event",
+        tags=metric_tags,
+    )
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.detecting_sdk_crash",
+        tags=metric_tags,
+    )
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.sdk_crash_detected",
+        tags=metric_tags,
+    )
 
 
 class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):

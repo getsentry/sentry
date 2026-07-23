@@ -204,8 +204,10 @@ def test_flusher_produces_flushed_segments_to_process_segment_task() -> None:
     producer_manager.produce.assert_not_called()
     mock_apply_async_with_future.assert_called_once()
     task_args = mock_apply_async_with_future.call_args.kwargs["args"]
+    task_headers = mock_apply_async_with_future.call_args.kwargs["headers"]
     assert len(task_args) == 1
     assert orjson.loads(task_args[0])["spans"][0]["span_id"] == span_id
+    assert task_headers == {"sentry-propagate-traces": False}
     task_future.result.assert_called_once_with()
     assert buffer.client.zscore(queue_key, segment_key) is None
 

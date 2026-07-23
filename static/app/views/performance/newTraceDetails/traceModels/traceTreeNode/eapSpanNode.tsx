@@ -3,7 +3,6 @@ import type {Theme} from '@emotion/react';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import type {Measurement} from 'sentry/types/event';
-import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {isBrowserRequestNode} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
@@ -338,7 +337,7 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   renderDetails<T extends BaseNode>(
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
-    if (getIsAiNode(this) && hasGenAiConversationsRedesignFeature(props.organization)) {
+    if (getIsAiNode(this)) {
       return <AiSpanDetails node={this} traceId={props.traceId} />;
     }
     return <EAPSpanNodeDetails {...props} node={this} />;

@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useState} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 import {mutationOptions} from '@tanstack/react-query';
 
@@ -6,6 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {
   SearchQueryBuilderProvider,
@@ -280,6 +281,39 @@ describe('AskSeerComboBox', () => {
 
     const filter = await screen.findByText('Filter');
     expect(filter).toBeInTheDocument();
+    expect(screen.getByText('Do any of these look right to you?')).toBeInTheDocument();
+    expect(screen.queryByText('Time Range')).not.toBeInTheDocument();
+  });
+
+  it('hides the feedback option when the rework is enabled', async () => {
+    const {organization: reworkedOrganization} = initializeOrg({
+      organization: {
+        features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+        hideAiFeatures: false,
+      },
+    });
+
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
+      </SearchQueryBuilderProvider>,
+      {organization: reworkedOrganization}
+    );
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.type(input, 'test{Enter}');
+
+    expect(await screen.findByText('Filter')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Do any of these look right to you?')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'None of these'})).not.toBeInTheDocument();
   });
 
   it('applies the query to the route query params when selected via keyboard', async () => {
@@ -311,6 +345,49 @@ describe('AskSeerComboBox', () => {
         query: 'span.duration:>30s',
       })
     );
+    expect(input).not.toHaveFocus();
+  });
+
+  it('does not autofocus the query builder after applying a selected query', async () => {
+    function TestComponent() {
+      const [query, setQuery] = useState('');
+      const {displayAskSeer, setDisplayAskSeer} = useSearchQueryBuilderAI();
+
+      useEffect(() => {
+        setDisplayAskSeer(true);
+      }, [setDisplayAskSeer]);
+
+      if (displayAskSeer) {
+        return (
+          <AskSeerComboBox
+            initialQuery={query}
+            askSeerMutationOptions={askSeerMutationOptions}
+            applySeerSearchQuery={item => setQuery(item.query ?? '')}
+          />
+        );
+      }
+
+      return <SearchQueryBuilder {...defaultProps} autoFocus initialQuery={query} />;
+    }
+
+    render(
+      <SearchQueryBuilderProvider {...defaultProps} initialQuery="">
+        <TestComponent />
+      </SearchQueryBuilderProvider>,
+      {organization}
+    );
+
+    const askSeerInput = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.type(askSeerInput, 'test{Enter}');
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+
+    const queryBuilderInputs = await screen.findAllByRole('combobox', {
+      name: 'Add a search term',
+    });
+    expect(queryBuilderInputs).not.toContain(document.activeElement);
+    expect(screen.getByRole('grid')).not.toHaveFocus();
   });
 
   it('renders an error message when the Seer search fails', async () => {

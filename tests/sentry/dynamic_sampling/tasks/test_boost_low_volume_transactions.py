@@ -104,26 +104,9 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         orgs = self.org_ids
 
         expected_names = {"tm3", "tl5", "tl4"}
-        for idx, p_tran in enumerate(FetchProjectTransactionVolumes(orgs, True, 3)):
+        for idx, p_tran in enumerate(FetchProjectTransactionVolumes(orgs, 3)):
             if p_tran is not None:
                 assert len(p_tran["transaction_counts"]) == 3
-                for name, count in p_tran["transaction_counts"]:
-                    assert name in expected_names
-                    assert count == self.get_count_for_transaction(idx, name)
-
-    def test_fetch_transactions_with_total_volumes_small(self) -> None:
-        """
-        Create some transactions in some orgs and project and verify
-        that they are correctly returned by fetch_transactions_with_total_volumes
-        """
-
-        # get the transaction counts from snuba and check that they match what we put in
-        orgs = self.org_ids
-
-        expected_names = {"ts1", "ts2"}
-        for idx, p_tran in enumerate(FetchProjectTransactionVolumes(orgs, False, 2)):
-            assert len(p_tran["transaction_counts"]) == 2
-            if p_tran is not None:
                 for name, count in p_tran["transaction_counts"]:
                     assert name in expected_names
                     assert count == self.get_count_for_transaction(idx, name)
@@ -161,7 +144,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         with is_segment tag by default (measure=SEGMENTS).
         """
         orgs = self.org_ids
-        fetcher = FetchProjectTransactionVolumes(orgs, large_transactions=True, max_transactions=3)
+        fetcher = FetchProjectTransactionVolumes(orgs, max_transactions=3)
 
         expected_metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
         assert fetcher.metric_id == expected_metric_id
@@ -188,7 +171,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         """
         orgs = self.org_ids
         fetcher = FetchProjectTransactionVolumes(
-            orgs, large_transactions=True, max_transactions=3, measure=SamplingMeasure.SEGMENTS
+            orgs, max_transactions=3, measure=SamplingMeasure.SEGMENTS
         )
 
         expected_metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
@@ -232,7 +215,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
 
         orgs = self.org_ids
         fetcher = FetchProjectTransactionVolumes(
-            orgs, large_transactions=True, max_transactions=3, measure=SamplingMeasure.SEGMENTS
+            orgs, max_transactions=3, measure=SamplingMeasure.SEGMENTS
         )
         try:
             next(fetcher)
@@ -249,18 +232,11 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert "'true'" in query_str
 
 
-def test_merge_transactions_full() -> None:
+def test_merge_transactions_with_totals() -> None:
     t1: ProjectTransactions = {
         "project_id": 1,
         "org_id": 2,
         "transaction_counts": [("ts1", 10), ("tm2", 100)],
-        "total_num_transactions": None,
-        "total_num_classes": None,
-    }
-    t2: ProjectTransactions = {
-        "project_id": 1,
-        "org_id": 2,
-        "transaction_counts": [("tm2", 100), ("tl3", 1000)],
         "total_num_transactions": None,
         "total_num_classes": None,
     }
@@ -270,12 +246,12 @@ def test_merge_transactions_full() -> None:
         "total_num_transactions": 5555,
         "total_num_classes": 20,
     }
-    actual = merge_transactions(t1, t2, counts)
+    actual = merge_transactions(t1, counts)
 
-    expected = {
+    expected: ProjectTransactions = {
         "project_id": 1,
         "org_id": 2,
-        "transaction_counts": [("ts1", 10), ("tm2", 100), ("tl3", 1000)],
+        "transaction_counts": [("ts1", 10), ("tm2", 100)],
         "total_num_transactions": 5555,
         "total_num_classes": 20,
     }
@@ -291,70 +267,26 @@ def test_merge_transactions_missing_totals() -> None:
         "total_num_transactions": None,
         "total_num_classes": None,
     }
-    t2: ProjectTransactions = {
-        "project_id": 1,
-        "org_id": 2,
-        "transaction_counts": [("tm2", 100), ("tl3", 1000)],
-        "total_num_transactions": None,
-        "total_num_classes": None,
-    }
 
-    actual = merge_transactions(t1, t2, None)
-
-    expected: ProjectTransactions = {
-        "project_id": 1,
-        "org_id": 2,
-        "transaction_counts": [("ts1", 10), ("tm2", 100), ("tl3", 1000)],
-        "total_num_transactions": None,
-        "total_num_classes": None,
-    }
-
-    assert actual == expected
-
-
-def test_merge_transactions_missing_right() -> None:
-    t1: ProjectTransactions = {
-        "project_id": 1,
-        "org_id": 2,
-        "transaction_counts": [("ts1", 10), ("tm2", 100)],
-        "total_num_transactions": None,
-        "total_num_classes": None,
-    }
-    counts: ProjectTransactionsTotals = {
-        "project_id": 1,
-        "org_id": 2,
-        "total_num_transactions": 5555,
-        "total_num_classes": 20,
-    }
-    actual = merge_transactions(t1, None, counts)
+    actual = merge_transactions(t1, None)
 
     expected: ProjectTransactions = {
         "project_id": 1,
         "org_id": 2,
         "transaction_counts": [("ts1", 10), ("tm2", 100)],
-        "total_num_transactions": 5555,
-        "total_num_classes": 20,
+        "total_num_transactions": None,
+        "total_num_classes": None,
     }
 
     assert actual == expected
 
 
 def test_transactions_zip() -> None:
-    high = 1
-    low = 2
-    both = 3
-
-    def pt(org_id: int, proj_id: int, what: int, add_totals: bool = False):
-        if what == high:
-            transaction_counts = [("tm2", 100), ("tl3", 1000)]
-        elif what == low:
-            transaction_counts = [("ts1", 10), ("tm2", 100)]
-        else:  # what == both
-            transaction_counts = [("ts1", 10), ("tm2", 100), ("tl3", 1000)]
+    def pt(org_id: int, proj_id: int, add_totals: bool = False):
         return {
             "project_id": proj_id,
             "org_id": org_id,
-            "transaction_counts": transaction_counts,
+            "transaction_counts": [("tm2", 100), ("tl3", 1000)],
             "total_num_transactions": 5000 if add_totals else None,
             "total_num_classes": 5 if add_totals else None,
         }
@@ -367,24 +299,18 @@ def test_transactions_zip() -> None:
             "total_num_classes": 5,
         }
 
-    trans_low = [pt(1, 1, low), pt(1, 2, low), pt(2, 1, low), pt(2, 3, low), pt(3, 2, low)]
-    trans_high = [pt(2, 1, high), (pt(2, 2, high)), pt(3, 1, high), pt(3, 2, high), pt(3, 3, high)]
-    totals = [tot(1, 0), tot(1, 2), tot(1, 3), tot(2, 1), tot(2, 4), tot(3, 1), tot(3, 3)]
+    trans = [pt(1, 1), pt(1, 2), pt(2, 1), pt(2, 3), pt(3, 2)]
+    totals = [tot(1, 0), tot(1, 2), tot(1, 3), tot(2, 1), tot(2, 4), tot(3, 2)]
 
     expected = [
-        pt(1, 1, low),
-        pt(1, 2, low, True),
-        pt(2, 1, both, True),
-        pt(2, 2, high),
-        pt(2, 3, low),
-        pt(3, 1, high, True),
-        pt(3, 2, both),
-        pt(3, 3, high, True),
+        pt(1, 1),
+        pt(1, 2, True),
+        pt(2, 1, True),
+        pt(2, 3),
+        pt(3, 2, True),
     ]
 
-    actual = list(
-        transactions_zip((x for x in totals), (x for x in trans_low), (x for x in trans_high))
-    )
+    actual = list(transactions_zip((x for x in totals), (x for x in trans)))
 
     assert actual == expected
 

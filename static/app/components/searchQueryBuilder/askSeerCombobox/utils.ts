@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {
   AskSeerSearchItems,
   NoneOfTheseItem,
@@ -18,8 +19,11 @@ import {
   WildcardOperators,
 } from 'sentry/components/searchSyntax/parser';
 import type {Project} from 'sentry/types/project';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 
 function extractErrorReason(err: Error): string {
   if (err instanceof RequestError) {
@@ -194,6 +198,39 @@ export function resolveSeerProjectSelection(
   return {
     projectIds: expandedProjectIds?.length ? expandedProjectIds : undefined,
     query,
+  };
+}
+
+export function getCrossEventFilterQuery(crossEvent: CrossEvent): string {
+  if (crossEvent.type !== 'metrics') {
+    return crossEvent.query;
+  }
+
+  return [
+    `${TraceMetricKnownFieldKey.METRIC_NAME}:${crossEvent.metric.name}`,
+    crossEvent.query,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+export function normalizeSeerDateTimeParams({
+  start,
+  end,
+  statsPeriod,
+}: Pick<QueryTokensProps, 'start' | 'end' | 'statsPeriod'>): Pick<
+  QueryTokensProps,
+  'start' | 'end' | 'statsPeriod'
+> {
+  const normalized = normalizeDateTimeParams(
+    {start, end, statsPeriod},
+    {allowEmptyPeriod: true}
+  );
+
+  return {
+    start: normalized.start,
+    end: normalized.end,
+    statsPeriod: normalized.statsPeriod ?? undefined,
   };
 }
 
@@ -551,6 +588,7 @@ export function generateQueryTokensString(
   projects: Project[] = []
 ): string {
   const parts = [];
+  const {start, end, statsPeriod} = normalizeSeerDateTimeParams(args);
 
   // Mirror the visual QueryTokens: pull the project out of the filter text and
   // announce it as a separate projects clause so screen readers don't read a
@@ -568,7 +606,9 @@ export function generateQueryTokensString(
 
   if (args?.visualizations && args.visualizations.length > 0) {
     const vizParts = args.visualizations.flatMap(visualization =>
-      visualization.yAxes.map(yAxis => yAxis)
+      visualization.yAxes.map(yAxis =>
+        isEquation(yAxis) ? stripEquationPrefix(yAxis) : yAxis
+      )
     );
     if (vizParts.length > 0) {
       const vizText = vizParts.length === 1 ? vizParts[0] : vizParts.join(', ');
@@ -586,17 +626,19 @@ export function generateQueryTokensString(
     parts.push(`groupBys are '${groupByText}'`);
   }
 
-  // Prefer absolute date range over statsPeriod
-  if (args?.start && args?.end) {
-    parts.push(`time range is '${formatDateRange(args.start, args.end)}'`);
-  } else if (args?.statsPeriod && args.statsPeriod.length > 0) {
-    parts.push(`time range is '${args?.statsPeriod}'`);
+  if (start && end) {
+    parts.push(`time range is '${formatDateRange(start, end)}'`);
+  } else if (statsPeriod) {
+    parts.push(`time range is '${statsPeriod}'`);
   }
 
   if (args?.sort && args.sort.length > 0) {
-    const sortText =
-      args?.sort[0] === '-' ? `${args?.sort.slice(1)} Desc` : `${args?.sort} Asc`;
-    parts.push(`sort is '${sortText}'`);
+    const descending = args?.sort[0] === '-';
+    let rawSort = descending ? args?.sort.slice(1) : args?.sort;
+    rawSort = isEquation(rawSort) ? stripEquationPrefix(rawSort) : rawSort;
+    const formattedSort = descending ? `${rawSort} Desc` : `${rawSort} Asc`;
+
+    parts.push(`sort is '${formattedSort}'`);
   }
 
   if (projectIds && projectIds.length > 0) {

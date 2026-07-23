@@ -46,6 +46,7 @@ import type {
   Release,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
+import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
@@ -664,6 +665,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         <BaseChart
           ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
           autoHeightResize
+          renderer="canvas"
           series={allSeries}
           grid={{
             // NOTE: Adding a few pixels of left padding prevents ECharts from
@@ -763,3 +765,4 @@ const HIDDEN_AXIS = {
 } satisfies XAXisComponentOption | YAXisComponentOption;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;
+TimeSeriesWidgetVisualization.NoData = WidgetNoDataPanel;

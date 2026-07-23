@@ -62,16 +62,15 @@ export function OverrideOrDefault<H extends OverrideName>({
     return defaultComponent;
   }
 
-  function OverrideOrDefaultComponent(props: Props) {
-    // Defining the props here is unnecessary and slow for typescript
-    const OverrideComponent: React.ComponentType<any> =
-      getOverride(overrideName)?.() ?? getDefaultComponent();
+  const ResolvedComponent: React.ComponentType<any> | undefined =
+    getOverride(overrideName)?.() ?? getDefaultComponent();
 
-    if (!OverrideComponent) {
+  function OverrideOrDefaultComponent(props: Props) {
+    if (!ResolvedComponent) {
       return null;
     }
 
-    return <OverrideComponent {...props} />;
+    return <ResolvedComponent {...props} />;
   }
 
   OverrideOrDefaultComponent.displayName = `OverrideOrDefaultComponent(${overrideName})`;

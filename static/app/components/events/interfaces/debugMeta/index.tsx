@@ -253,7 +253,11 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             </Flex>
             <Flex
               align="center"
-              display={{'screen:2xs': 'none', 'screen:xs': 'none'}}
+              display={{
+                'screen:2xs': 'none',
+                'screen:xs': 'none',
+                'screen:sm': 'flex',
+              }}
               minWidth="0"
               paddingTop="md"
               paddingBottom="md"
