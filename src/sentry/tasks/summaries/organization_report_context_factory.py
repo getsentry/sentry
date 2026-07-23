@@ -131,9 +131,13 @@ class OrganizationReportContextFactory:
                     project_ctx.prev_week_accepted_error_count += data["total"]
 
             if issue_missed_project_ids:
-                issue_data = organization_project_issue_summaries(
-                    start=prev_start, end=prev_end, ctx=ctx
-                )
+                try:
+                    issue_data = organization_project_issue_summaries(
+                        start=prev_start, end=prev_end, ctx=ctx
+                    )
+                except Exception:
+                    sentry_sdk.capture_exception()
+                    issue_data = []
                 for item in issue_data:
                     project_id = item["project_id"]
                     if project_id not in issue_missed_project_ids:
