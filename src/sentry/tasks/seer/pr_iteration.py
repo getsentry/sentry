@@ -11,12 +11,19 @@ from scm.manager import SourceCodeManager
 from scm.types import (
     CreatePullRequestCommentReactionProtocol,
     CreateReviewCommentReactionProtocol,
+    DeletePullRequestCommentReactionProtocol,
+    DeleteReviewCommentReactionProtocol,
     DiffLine,
+    GetAuthenticatedActorProtocol,
+    GetPullRequestCommentReactionsProtocol,
     GetPullRequestReviewProtocol,
     GetRepositoryUserPermissionProtocol,
+    GetReviewCommentReactionsProtocol,
     GetReviewCommentsProtocol,
     PaginationParams,
     Reaction,
+    ReactionResult,
+    ResourceId,
     Review,
     ReviewComment,
 )
@@ -294,6 +301,69 @@ def _add_comment_reaction(
             )
     except Exception as e:
         sentry_sdk.capture_exception(e)
+
+
+def _delete_own_comment_eyes_reaction(
+    scm: SourceCodeManager,
+    *,
+    source_type: GithubPrCommentFeedbackType,
+    pr_number: int,
+    comment_id: int,
+) -> None:
+    """Remove the :eyes: we added at trigger time, completing the :eyes:->:tada: swap.
+
+    Both top-level PR comments and inline review comments get the trigger-time
+    :eyes:, so both are cleaned up here. GitHub keeps issue-comment and
+    review-comment reactions in separate namespaces, so the get/delete calls are
+    dispatched off ``source_type``.
+    """
+    if not isinstance(scm, GetAuthenticatedActorProtocol):
+        logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
+        return
+
+    def _own_eyes_reaction_ids(reactions: list[ReactionResult], actor_id: ResourceId) -> list[str]:
+        return [
+            str(reaction["id"])
+            for reaction in reactions
+            if reaction["content"] == "eyes"
+            and (author := reaction.get("author")) is not None
+            and author["id"] == actor_id
+        ]
+
+    try:
+        actor = scm_actions.get_authenticated_actor(scm)
+        actor_id = actor["data"]["id"]
+
+        # GitHub keeps issue-comment and review-comment reactions in separate
+        # namespaces, so the get/delete calls are dispatched off ``source_type``.
+        if source_type == "github-pr-review-comment":
+            if not (
+                isinstance(scm, GetReviewCommentReactionsProtocol)
+                and isinstance(scm, DeleteReviewCommentReactionProtocol)
+            ):
+                logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
+                return
+            result = scm_actions.get_review_comment_reactions(scm, str(pr_number), str(comment_id))
+            for reaction_id in _own_eyes_reaction_ids(result["data"], actor_id):
+                scm_actions.delete_review_comment_reaction(
+                    scm, str(pr_number), str(comment_id), reaction_id
+                )
+        else:
+            if not (
+                isinstance(scm, GetPullRequestCommentReactionsProtocol)
+                and isinstance(scm, DeletePullRequestCommentReactionProtocol)
+            ):
+                logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
+                return
+            result = scm_actions.get_pull_request_comment_reactions(
+                scm, str(pr_number), str(comment_id)
+            )
+            for reaction_id in _own_eyes_reaction_ids(result["data"], actor_id):
+                scm_actions.delete_pull_request_comment_reaction(
+                    scm, str(pr_number), str(comment_id), reaction_id
+                )
+    except Exception:
+        logger.exception("autofix.pr_iteration.completion_reaction.delete_eyes_failed")
 
 
 def _comment_pr_iteration_ineligible(

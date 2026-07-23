@@ -12,6 +12,7 @@ from sentry.analytics.events.autofix_events import (
     AiAutofixIntrospectionEvent,
     AiAutofixPrCreatedCompletedEvent,
 )
+from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -47,6 +48,7 @@ from sentry.seer.autofix.introspection import (
 from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
+    GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -63,6 +65,7 @@ from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organiza
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.tasks.seer.pr_iteration import (
     _add_comment_reaction,
+    _delete_own_comment_eyes_reaction,
     consume_queued_autofix_feedback,
 )
 from sentry.utils import metrics
@@ -212,12 +215,15 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     def _repo_name_for_feedback(
         cls,
         state: SeerRunState,
-        source: GithubPrCommentFeedbackSource,
+        source: GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource,
         run_id: int,
         organization_id: int,
     ) -> str | None:
-        if source.repo_name is not None:
-            return source.repo_name
+        # Only top-level PR comments capture ``repo_name`` at trigger time; review
+        # comments fall back to the sole repo when the run touches exactly one.
+        repo_name = getattr(source, "repo_name", None)
+        if repo_name is not None:
+            return repo_name
         if len(state.repo_pr_states) == 1:
             # Backward-compat path for feedback serialized before repo_name was
             # captured at trigger time; unambiguous only with a single repo.
@@ -239,10 +245,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         run_id: int,
         state: SeerRunState,
     ) -> None:
-        """React :tada: on the top-level PR comment(s) that triggered a completed iteration.
+        """React :tada: on the comment(s) that triggered a completed iteration and
+        remove the trigger-time :eyes:.
 
-        Only top-level ``@sentry`` PR comments are acked. Inline review comments are
-        resolvable threads handled separately (CW-1688), so they are left untouched.
+        Only top-level ``@sentry`` PR comments are acked with :tada: — inline review
+        comments are resolvable threads acked separately (CW-1688). The trigger-time
+        :eyes: is removed from both, since both received it, completing the
+        :eyes:->:tada: swap on top-level comments and clearing the lingering :eyes:
+        on inline ones.
         """
         if not features.has("organizations:autofix-pr-iteration", organization=organization):
             return
@@ -269,13 +279,19 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             _record_completion_reaction("no_feedback")
             return
 
-        sources: list[GithubPrCommentFeedbackSource] = []
+        sources: list[GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource] = []
         for feedback in parse_feedback(raw):
-            if isinstance(feedback.source, GithubPrCommentFeedbackSource):
+            if isinstance(
+                feedback.source,
+                (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource),
+            ):
                 sources.append(feedback.source)
         if not sources:
             _record_completion_reaction("no_pr_comment_sources")
             return
+
+        # Rate-limit-sensitive orgs skip the extra reaction-delete API calls.
+        delete_eyes = not is_github_rate_limit_sensitive(organization.slug)
 
         scm_by_repo: dict[str, SourceCodeManager] = {}
         for source in sources:
@@ -326,14 +342,26 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 _record_completion_reaction("no_pr_number")
                 continue
             pr_number = pr_state.pr_number
-            _add_comment_reaction(
-                scm,
-                source_type="github-pr-comment",
-                pr_number=pr_number,
-                comment_id=comment_id,
-                reaction="hooray",
-            )
-            _record_completion_reaction("reacted")
+
+            source_type = source.type
+            # Inline review comments are acked by resolving the thread (CW-1688),
+            # not with :tada:; only top-level PR comments get the :tada:.
+            if source_type == "github-pr-comment":
+                _add_comment_reaction(
+                    scm,
+                    source_type=source_type,
+                    pr_number=pr_number,
+                    comment_id=comment_id,
+                    reaction="hooray",
+                )
+                _record_completion_reaction("reacted")
+            if delete_eyes:
+                _delete_own_comment_eyes_reaction(
+                    scm,
+                    source_type=source_type,
+                    pr_number=pr_number,
+                    comment_id=comment_id,
+                )
 
     @classmethod
     def find_latest_artifact_for_step(cls, state: SeerRunState, key: str) -> Artifact | None:
