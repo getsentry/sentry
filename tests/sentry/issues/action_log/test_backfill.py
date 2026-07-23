@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -6,9 +6,11 @@ from django.utils import timezone
 
 from sentry.issues.action_log.backfill import (
     BACKFILL_ACTIVITY_SOURCE,
+    BACKFILL_PR_LIFECYCLE_SOURCE,
     BackfillEntry,
     backfill_actions,
     backfill_group_activities,
+    backfill_group_pr_lifecycle,
 )
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
@@ -17,9 +19,15 @@ from sentry.issues.action_log.types import (
     GroupActionType,
     GroupActorType,
     ResolveAction,
+    ResolvedInPullRequestAction,
     ViewAction,
 )
+from sentry.issues.derived.processing import process_group_log
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.progress_state import IssueProgressState
+from sentry.models.group import Group
+from sentry.models.grouplink import GroupLink
+from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 
@@ -294,3 +302,229 @@ class BackfillGroupActivitiesTest(TestCase):
         backfill_group_activities(group_id=self.group.id, project_id=self.project.id)
         entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
         assert entry.date_added == ts
+
+
+class BackfillGroupPullRequestLifecycleTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+        self.repository = self.create_repo(project=self.project)
+        self.now = timezone.now()
+
+    def _create_linked_pull_request(
+        self,
+        *,
+        state: str | None,
+        group: Group | None = None,
+        relationship: int = GroupLink.Relationship.resolves,
+        closed_at: datetime | None = None,
+        merged_at: datetime | None = None,
+    ) -> PullRequest:
+        group = group or self.group
+        pull_request = self.create_pull_request(
+            repository_id=self.repository.id,
+            organization_id=self.organization.id,
+        )
+        PullRequest.objects.filter(id=pull_request.id).update(
+            state=state,
+            closed_at=closed_at,
+            merged_at=merged_at,
+        )
+        pull_request.refresh_from_db()
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=relationship,
+            linked_id=pull_request.id,
+        )
+        return pull_request
+
+    def _backfill_resolved_action(self, pull_request: PullRequest) -> None:
+        backfill_actions(
+            entries=[
+                BackfillEntry(
+                    action=ResolvedInPullRequestAction(pull_request=pull_request.id),
+                    actor=SYSTEM_ACTOR,
+                    source="test",
+                    date_added=self.now - timedelta(minutes=2),
+                    idempotency_key=f"test-resolved-pr:{pull_request.id}",
+                )
+            ],
+            group_id=self.group.id,
+            project_id=self.project.id,
+        )
+
+    def test_backfills_merged_pull_request(self) -> None:
+        merged_at = self.now - timedelta(minutes=1)
+        pull_request = self._create_linked_pull_request(
+            state=PullRequestLifecycleState.MERGED,
+            merged_at=merged_at,
+        )
+
+        assert (
+            backfill_group_pr_lifecycle(
+                group_id=self.group.id,
+                project_id=self.project.id,
+            )
+            == 1
+        )
+
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.type == GroupActionType.PULL_REQUEST_MERGED
+        assert entry.data == {
+            "pull_request": pull_request.id,
+            "has_other_open_prs": False,
+        }
+        assert entry.date_added == merged_at
+        assert entry.actor_type == GroupActorType.SYSTEM
+        assert entry.actor_id == SYSTEM_ACTOR.actor_id
+        assert entry.source == BACKFILL_PR_LIFECYCLE_SOURCE
+        assert entry.idempotency_key == (
+            f"pr-lifecycle:{pull_request.id}:{GroupActionType.PULL_REQUEST_MERGED.value}"
+        )
+
+    def test_backfills_closed_and_superseded_pull_requests(self) -> None:
+        closed_at = self.now - timedelta(minutes=1)
+        closed_pull_request = self._create_linked_pull_request(
+            state=PullRequestLifecycleState.CLOSED,
+            closed_at=closed_at,
+        )
+        superseded_pull_request = self._create_linked_pull_request(
+            state=PullRequestLifecycleState.SUPERSEDED,
+            closed_at=closed_at,
+        )
+
+        assert (
+            backfill_group_pr_lifecycle(
+                group_id=self.group.id,
+                project_id=self.project.id,
+            )
+            == 2
+        )
+
+        entries = list(GroupActionLogEntry.objects.filter(group_id=self.group.id))
+        assert {entry.type for entry in entries} == {GroupActionType.PULL_REQUEST_CLOSED}
+        assert {entry.data["pull_request"] for entry in entries} == {
+            closed_pull_request.id,
+            superseded_pull_request.id,
+        }
+        assert {entry.date_added for entry in entries} == {closed_at}
+
+    def test_skips_open_pull_requests(self) -> None:
+        self._create_linked_pull_request(state=None)
+        self._create_linked_pull_request(state=PullRequestLifecycleState.OPEN)
+        self._create_linked_pull_request(state=PullRequestLifecycleState.LOCKED)
+
+        assert (
+            backfill_group_pr_lifecycle(
+                group_id=self.group.id,
+                project_id=self.project.id,
+            )
+            == 0
+        )
+        assert not GroupActionLogEntry.objects.filter(group_id=self.group.id).exists()
+
+    def test_open_sibling_keeps_fix_pr_open(self) -> None:
+        closed_pull_request = self._create_linked_pull_request(
+            state=PullRequestLifecycleState.CLOSED,
+            closed_at=self.now - timedelta(minutes=1),
+        )
+        self._create_linked_pull_request(state=PullRequestLifecycleState.OPEN)
+        self._backfill_resolved_action(closed_pull_request)
+
+        backfill_group_pr_lifecycle(
+            group_id=self.group.id,
+            project_id=self.project.id,
+        )
+        derived = process_group_log(self.group.id)
+
+        closed_entry = GroupActionLogEntry.objects.get(
+            group_id=self.group.id,
+            type=GroupActionType.PULL_REQUEST_CLOSED,
+        )
+        assert closed_entry.data["has_other_open_prs"] is True
+        assert derived.data["has_open_fix_pr"] is True
+        assert derived.progress == IssueProgressState.FIX_PROPOSED
+
+    def test_all_terminal_pull_requests_clear_fix_proposed(self) -> None:
+        pull_request = self._create_linked_pull_request(
+            state=PullRequestLifecycleState.MERGED,
+            merged_at=self.now - timedelta(minutes=1),
+        )
+        self._backfill_resolved_action(pull_request)
+
+        backfill_group_pr_lifecycle(
+            group_id=self.group.id,
+            project_id=self.project.id,
+        )
+        derived = process_group_log(self.group.id)
+
+        assert derived.data["has_open_fix_pr"] is False
+        assert derived.progress != IssueProgressState.FIX_PROPOSED
+
+    def test_skips_terminal_pull_request_without_timestamp(self) -> None:
+        self._create_linked_pull_request(state=PullRequestLifecycleState.MERGED)
+
+        assert (
+            backfill_group_pr_lifecycle(
+                group_id=self.group.id,
+                project_id=self.project.id,
+            )
+            == 0
+        )
+        assert not GroupActionLogEntry.objects.filter(group_id=self.group.id).exists()
+
+    def test_skips_pull_request_with_existing_lifecycle_entry(self) -> None:
+        pull_request = self._create_linked_pull_request(
+            state=PullRequestLifecycleState.CLOSED,
+            closed_at=self.now - timedelta(minutes=1),
+        )
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.PULL_REQUEST_REOPENED,
+            data={"pull_request": str(pull_request.id)},
+        )
+
+        assert (
+            backfill_group_pr_lifecycle(
+                group_id=self.group.id,
+                project_id=self.project.id,
+            )
+            == 0
+        )
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+
+    def test_idempotent_on_rerun(self) -> None:
+        self._create_linked_pull_request(
+            state=PullRequestLifecycleState.MERGED,
+            merged_at=self.now - timedelta(minutes=1),
+        )
+
+        first_count = backfill_group_pr_lifecycle(
+            group_id=self.group.id,
+            project_id=self.project.id,
+        )
+        second_count = backfill_group_pr_lifecycle(
+            group_id=self.group.id,
+            project_id=self.project.id,
+        )
+
+        assert first_count == 1
+        assert second_count == 0
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+
+    def test_skips_non_resolving_pull_request_link(self) -> None:
+        self._create_linked_pull_request(
+            state=PullRequestLifecycleState.MERGED,
+            relationship=GroupLink.Relationship.references,
+            merged_at=self.now - timedelta(minutes=1),
+        )
+
+        assert (
+            backfill_group_pr_lifecycle(
+                group_id=self.group.id,
+                project_id=self.project.id,
+            )
+            == 0
+        )

@@ -20,16 +20,33 @@ from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
     GroupAction,
     GroupActionActor,
+    GroupActionType,
+    PullRequestClosedAction,
+    PullRequestMergedAction,
 )
 from sentry.issues.derived.processing import invalidate_group_derived_data
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
+from sentry.models.grouplink import GroupLink
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestLifecycleState,
+    is_open_pull_request_state,
+)
 from sentry.utils import json, metrics
 from sentry.utils.action_log.activity_translator import activity_to_action
 
 logger = logging.getLogger(__name__)
 
 BACKFILL_ACTIVITY_SOURCE = "backfill:activity"
+BACKFILL_PR_LIFECYCLE_SOURCE = "backfill:pr-lifecycle"
+
+_PR_LIFECYCLE_ACTION_TYPES = (
+    GroupActionType.PULL_REQUEST_CLOSED,
+    GroupActionType.PULL_REQUEST_REOPENED,
+    GroupActionType.PULL_REQUEST_MERGED,
+    GroupActionType.PULL_REQUEST_UNLINKED,
+)
 
 
 @dataclass(frozen=True)
@@ -203,3 +220,100 @@ def backfill_group_activities(
         )
 
     return total_created
+
+
+def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
+    """Backfill terminal lifecycle actions for pull requests that resolve a group.
+
+    Only current terminal states with reliable timestamps can be reconstructed. A
+    pull request with any existing lifecycle action is skipped so this backfill
+    does not duplicate actions emitted by the live signal path.
+    """
+    pull_request_ids = list(
+        GroupLink.objects.filter(
+            group_id=group_id,
+            project_id=project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+        ).values_list("linked_id", flat=True)
+    )
+    if not pull_request_ids:
+        return 0
+
+    pull_requests = list(
+        PullRequest.objects.filter(id__in=pull_request_ids).values_list(
+            "id", "state", "closed_at", "merged_at"
+        )
+    )
+    open_pull_request_ids = {
+        pull_request_id
+        for pull_request_id, state, _, _ in pull_requests
+        if is_open_pull_request_state(state)
+    }
+
+    already_logged_pull_request_ids: set[int] = set()
+    existing_data = GroupActionLogEntry.objects.filter(
+        group_id=group_id,
+        project_id=project_id,
+        type__in=_PR_LIFECYCLE_ACTION_TYPES,
+    ).values_list("data", flat=True)
+    for data in existing_data:
+        if not isinstance(data, dict):
+            continue
+        try:
+            already_logged_pull_request_ids.add(int(data["pull_request"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+
+    entries: list[BackfillEntry] = []
+    for pull_request_id, state, closed_at, merged_at in pull_requests:
+        if pull_request_id in already_logged_pull_request_ids:
+            continue
+
+        action: PullRequestClosedAction | PullRequestMergedAction
+        date_added: datetime | None
+        has_other_open_prs = bool(open_pull_request_ids - {pull_request_id})
+        match state:
+            case PullRequestLifecycleState.MERGED:
+                action = PullRequestMergedAction(
+                    pull_request=pull_request_id,
+                    has_other_open_prs=has_other_open_prs,
+                )
+                date_added = merged_at
+            case PullRequestLifecycleState.CLOSED | PullRequestLifecycleState.SUPERSEDED:
+                action = PullRequestClosedAction(
+                    pull_request=pull_request_id,
+                    has_other_open_prs=has_other_open_prs,
+                )
+                date_added = closed_at
+            case _:
+                continue
+
+        if date_added is None:
+            logger.info(
+                "backfill_group_pr_lifecycle.missing_timestamp",
+                extra={
+                    "group_id": group_id,
+                    "project_id": project_id,
+                    "pull_request_id": pull_request_id,
+                    "state": state,
+                },
+            )
+            metrics.incr(
+                "issues.action_log.backfill_pr_lifecycle.skipped",
+                tags={"reason": "missing_timestamp"},
+            )
+            continue
+
+        entries.append(
+            BackfillEntry(
+                action=action,
+                actor=SYSTEM_ACTOR,
+                source=BACKFILL_PR_LIFECYCLE_SOURCE,
+                date_added=date_added,
+                idempotency_key=f"pr-lifecycle:{pull_request_id}:{action.get_type().value}",
+            )
+        )
+
+    entries.sort(key=lambda entry: entry.date_added)
+    return backfill_actions(entries=entries, group_id=group_id, project_id=project_id)
