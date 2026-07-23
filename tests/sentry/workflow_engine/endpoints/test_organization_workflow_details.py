@@ -363,9 +363,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert workflow.when_condition_group is not None
         assert workflow.when_condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
         assert workflow.when_condition_group.conditions.count() == 3
-        assert set(
-            workflow.when_condition_group.conditions.values_list("type", flat=True)
-        ) == {
+        assert set(workflow.when_condition_group.conditions.values_list("type", flat=True)) == {
             Condition.FIRST_SEEN_EVENT,
             Condition.ISSUE_RESOLVED_TRIGGER,
             Condition.REAPPEARED_EVENT,

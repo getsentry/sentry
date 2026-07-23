@@ -826,9 +826,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert workflow.when_condition_group is not None
         assert workflow.when_condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
         assert workflow.when_condition_group.conditions.count() == 1
-        assert (
-            workflow.when_condition_group.conditions.get().type == Condition.FIRST_SEEN_EVENT
-        )
+        assert workflow.when_condition_group.conditions.get().type == Condition.FIRST_SEEN_EVENT
 
     def test_update__hack_attempt_to_override_different_trigger_condition(
         self, mock_action_validator: mock.MagicMock
