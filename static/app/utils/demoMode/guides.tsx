@@ -6,6 +6,8 @@ import {
   type OnboardingTaskStatus,
   type UpdatedTask,
 } from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 const DEMO_MODE_WALKTHROUGH_TASKS_KEY = 'demo-mode:walkthrough-tasks';
 
@@ -67,7 +69,7 @@ export function getDemoGuides() {
   return [{guide: 'sidebar_v2', seen: false}];
 }
 
-export function getDemoModeGuides(): GuidesContent {
+export function getDemoModeGuides(organization: Organization | null): GuidesContent {
   return [
     {
       guide: 'sidebar_v2',
@@ -104,7 +106,11 @@ export function getDemoModeGuides(): GuidesContent {
           ),
         },
         {
-          title: t('Discover'),
+          title: organization
+            ? getDiscoverDeprecation(organization)
+              ? t('Errors')
+              : t('Discover')
+            : t('Discover'),
           target: 'discover',
           description: t(
             'Query and unlock insights into the health of your entire system and get answers to critical business questions all in one place.'
