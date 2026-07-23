@@ -102,6 +102,10 @@ type ReplayOnboardingCTAProps = {
 };
 type ProductUnavailableCTAProps = {organization: Organization};
 
+/**
+ * Compatibility props for rendering the legacy access-category override inside a
+ * Scraps form. They remain optional for consumers backed by the legacy FormModel.
+ */
 export type SuperuserAccessCategoryProps = {
   accessCategory?: string;
   accessCategoryError?: string;

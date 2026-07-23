@@ -235,6 +235,9 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
             {accessCategoryField => (
               <form.AppField name="superuserReason">
                 {reasonField => (
+                  // TODO(scraps-forms): This override is shared with sudoModal, which
+                  // still uses the legacy FormModel. Keep Scraps as the source of truth
+                  // and bridge values and errors until both consumers migrate together.
                   <Override
                     name="component:superuser-access-category"
                     accessCategory={accessCategoryField.state.value}
