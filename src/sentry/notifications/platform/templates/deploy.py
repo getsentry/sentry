@@ -257,8 +257,9 @@ class DeployReleaseTemplate(NotificationTemplate[DeployReleaseData]):
 
 class DeployReleaseDataResult(TypedDict):
     data: DeployReleaseData
-    # We're attaching these here because they're also used in the strategy, saving a step
+    # These are attached here because they're also used in the strategy, saving duplicate queries
     committer_user_ids: set[int]
+    projects: set[Project]
 
 
 def build_deploy_release_data(deploy: Deploy, release: Release) -> DeployReleaseDataResult:
@@ -333,6 +334,7 @@ def build_deploy_release_data(deploy: Deploy, release: Release) -> DeployRelease
     return DeployReleaseDataResult(
         data=data,
         committer_user_ids={u.id for u in users},
+        projects=projects,
     )
 
 

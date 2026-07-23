@@ -47,7 +47,7 @@ def _send_deploy_activity_notification(activity: Activity, organization: Organiz
 
     result = build_deploy_release_data(deploy=deploy, release=release)
     strategy = DeployReleaseStrategy(
-        projects=frozenset(release.projects.all()),
+        projects=frozenset(result["projects"]),
         organization=organization,
         committer_user_ids=frozenset(result["committer_user_ids"]),
     )
