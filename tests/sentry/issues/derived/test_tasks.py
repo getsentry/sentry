@@ -6,6 +6,8 @@ from sentry.issues.derived import processing
 from sentry.issues.derived.processing import PIPELINE, GroupLogTimeout, process_group_log
 from sentry.issues.derived.tasks import (
     BATCH_RETRIGGER_TIMEOUT,
+    generate_project_derived_data,
+    generate_project_derived_data_batch,
     heal_stale_derived_data,
     process_project_derived_data,
     process_project_derived_data_batch,
@@ -302,6 +304,73 @@ class ProcessProjectDerivedDataBatchWithPipelineHashTest(DerivedDataTaskTestBase
 
 
 @with_feature("projects:issue-action-log-write-to-db")
+class GenerateProjectDerivedDataStaleOnlyTest(DerivedDataTaskTestBase):
+    def test_only_includes_stale_groups(self) -> None:
+        groups = self.create_unprocessed_groups(3)
+        group_ids = sorted(g.id for g in groups)
+
+        for gid in group_ids:
+            process_group_log(gid)
+
+        # Make one group stale
+        GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash="stale")
+
+        with patch.object(generate_project_derived_data_batch, "delay") as mock_delay:
+            generate_project_derived_data(project_id=self.project.id, stale_only=True)
+
+        mock_delay.assert_called_once()
+        assert mock_delay.call_args[1]["group_id_start"] == group_ids[0]
+        assert mock_delay.call_args[1]["group_id_end"] == group_ids[0] + 1
+
+    def test_includes_null_hash_groups(self) -> None:
+        groups = self.create_unprocessed_groups(2)
+        group_ids = sorted(g.id for g in groups)
+
+        for gid in group_ids:
+            process_group_log(gid)
+
+        GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash=None)
+
+        with patch.object(generate_project_derived_data_batch, "delay") as mock_delay:
+            generate_project_derived_data(project_id=self.project.id, stale_only=True)
+
+        mock_delay.assert_called_once()
+        assert mock_delay.call_args[1]["group_id_start"] == group_ids[0]
+
+    def test_excludes_current_hash_groups(self) -> None:
+        groups = self.create_unprocessed_groups(2)
+        group_ids = sorted(g.id for g in groups)
+
+        for gid in group_ids:
+            process_group_log(gid)
+
+        # All groups have the current hash — nothing to do
+        with patch.object(generate_project_derived_data_batch, "delay") as mock_delay:
+            generate_project_derived_data(project_id=self.project.id, stale_only=True)
+
+        mock_delay.assert_not_called()
+
+    def test_excludes_groups_without_gdd(self) -> None:
+        groups = self.create_unprocessed_groups(3)
+        group_ids = sorted(g.id for g in groups)
+
+        # Only process two groups — group_ids[2] has no GDD at all
+        process_group_log(group_ids[0])
+        process_group_log(group_ids[1])
+
+        # Make one stale
+        GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash="stale")
+
+        with patch.object(generate_project_derived_data_batch, "delay") as mock_delay:
+            generate_project_derived_data(project_id=self.project.id, stale_only=True)
+
+        # Only the stale group should be included, not the one missing GDD
+        mock_delay.assert_called_once()
+        assert mock_delay.call_args[1]["group_id_start"] == group_ids[0]
+        assert mock_delay.call_args[1]["group_id_end"] == group_ids[0] + 1
+
+
+@with_feature("projects:issue-action-log-write-to-db")
 class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
     def test_finds_stale_projects_and_schedules(self) -> None:
         groups = self.create_unprocessed_groups(2)
@@ -313,17 +382,17 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         # Make one group stale
         GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash="stale")
 
-        with patch.object(process_project_derived_data, "delay") as mock_delay:
+        with patch.object(generate_project_derived_data, "delay") as mock_delay:
             heal_stale_derived_data()
 
-        mock_delay.assert_called_once_with(project_id=self.project.id, use_pipeline_hash=True)
+        mock_delay.assert_called_once_with(project_id=self.project.id, stale_only=True)
 
     def test_no_stale_data(self) -> None:
         groups = self.create_unprocessed_groups(2)
         for g in groups:
             process_group_log(g.id)
 
-        with patch.object(process_project_derived_data, "delay") as mock_delay:
+        with patch.object(generate_project_derived_data, "delay") as mock_delay:
             heal_stale_derived_data()
 
         mock_delay.assert_not_called()
@@ -335,7 +404,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
 
         with (
             override_options({"issues.derived.heal-enabled": False}),
-            patch.object(process_project_derived_data, "delay") as mock_delay,
+            patch.object(generate_project_derived_data, "delay") as mock_delay,
         ):
             heal_stale_derived_data()
 
@@ -358,7 +427,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
 
         with (
             override_options({"issues.derived.heal-project-limit": 2}),
-            patch.object(process_project_derived_data, "delay") as mock_delay,
+            patch.object(generate_project_derived_data, "delay") as mock_delay,
         ):
             heal_stale_derived_data()
 
@@ -369,7 +438,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         process_group_log(groups[0].id)
         GroupDerivedData.objects.filter(group_id=groups[0].id).update(pipeline_hash=None)
 
-        with patch.object(process_project_derived_data, "delay") as mock_delay:
+        with patch.object(generate_project_derived_data, "delay") as mock_delay:
             heal_stale_derived_data()
 
-        mock_delay.assert_called_once_with(project_id=self.project.id, use_pipeline_hash=True)
+        mock_delay.assert_called_once_with(project_id=self.project.id, stale_only=True)
