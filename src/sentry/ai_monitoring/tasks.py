@@ -46,17 +46,7 @@ def generate_ai_conversation_title(
     first_user_message: str,
     source_timestamp: float,
 ) -> None:
-    """
-    Generate and persist the title for a single gen_ai conversation.
-
-    The caller (ingest) has already extracted and size-capped these fields from
-    the earliest span it saw, so this task never touches raw spans.
-
-    Concurrency: the earliest source span wins. Equal timestamps keep whatever
-    is stored (retry-stable). Seer is called between two short, lock-free
-    windows — a cheap precheck and a conditional write — never while we hold a
-    row, so we don't pin a connection across a network call.
-    """
+    """Generate and persist the title for a single gen_ai conversation (earliest span wins)."""
     source_ts = datetime.fromtimestamp(source_timestamp, tz=UTC)
 
     try:
@@ -79,7 +69,7 @@ def generate_ai_conversation_title(
         conversation_id_hash=conv_hash,
     )
 
-    # Precheck: don't pay for Seer if an earlier-or-equal title already exists.
+    # Skip Seer if we already have a title from an earlier-or-equal span.
     existing = rows.first()
     if (
         existing is not None
@@ -94,7 +84,7 @@ def generate_ai_conversation_title(
     )
     stored_conversation_id = clamp_conversation_id_for_storage(conversation_id)
 
-    # Overwrite an existing row only while this source is still the earliest.
+    # Update an existing row only if this span is still the earliest.
     if rows.filter(_supersedable(source_ts)).update(
         title=title,
         conversation_id=stored_conversation_id,
@@ -104,7 +94,7 @@ def generate_ai_conversation_title(
         return
 
     try:
-        # Savepoint so a lost insert race can't poison an enclosing transaction.
+        # Savepoint so a failed insert doesn't break an enclosing transaction.
         with transaction.atomic(router.db_for_write(AIConversationMetadata)):
             AIConversationMetadata.objects.create(
                 project_id=project_id,
@@ -114,7 +104,7 @@ def generate_ai_conversation_title(
                 title_source_timestamp=source_ts,
             )
     except IntegrityError:
-        # A concurrent task created the row first; keep our title only if earlier.
+        # Another task created the row first; keep our title only if it's earlier.
         if rows.filter(_supersedable(source_ts)).update(
             title=title,
             title_source_timestamp=source_ts,
@@ -133,22 +123,8 @@ def generate_ai_conversation_title(
 
 def enqueue_conversation_titles(spans: Sequence[Mapping[str, Any]]) -> None:
     """
-    Fan out title generation for the gen_ai conversations in a segment.
-
-    Runs early in the ingest path so titles are still generated for segments
-    that skip enrichment. It resolves the project itself (from the first span)
-    rather than depending on the enriched segment, which means the project may
-    be fetched again later in the pipeline — an acceptable cost for keeping the
-    ingest code untouched.
-
-    Single pass over the spans:
-      - Detect gen_ai conversation spans via the (cheap) conversation-id
-        attribute, tracking distinct ids so we can report how many gen_ai
-        conversations the segment carried.
-      - Keep only the earliest span per ``conversation_id``. The costly message
-        extraction runs only for a span that could still become the earliest,
-        so replayed later-turn spans (same conversation, same history) don't pay
-        for it. A conversation therefore costs at most one Seer call.
+    Enqueues one task per conversation, using the earliest spans
+    that has a user message.
     """
     earliest_by_conversation: dict[str, ConversationTitleSpanData] = {}
     seen_conversation_ids: set[str] = set()
@@ -163,9 +139,9 @@ def enqueue_conversation_titles(spans: Sequence[Mapping[str, Any]]) -> None:
         if source_timestamp is None:
             continue
 
+        # A later-or-equal span can't win; skip the costly message extraction.
         current = earliest_by_conversation.get(conversation_id)
         if current is not None and source_timestamp >= current.source_timestamp:
-            # A later-or-equal span can never win; skip the costly message parse.
             continue
 
         first_user_message = first_user_message_from_span(span)
