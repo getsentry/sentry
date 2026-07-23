@@ -117,7 +117,10 @@ def get_repos(
 
 def get_environment_for_deploy(deploy: Deploy | None) -> str:
     if deploy:
-        environment = Environment.objects.get(id=deploy.environment_id)
+        try:
+            environment = Environment.objects.get(id=deploy.environment_id)
+        except Environment.DoesNotExist:
+            return "Default Environment"
         if environment and environment.name:
             return str(environment.name)
     return "Default Environment"
