@@ -149,6 +149,20 @@ interface GithubPrCommentFeedbackSource {
 interface GithubPrReviewCommentFeedbackSource {
   type: 'github-pr-review-comment';
   comment?: {html_url?: string; user?: {login: string}};
+  // The review this inline comment was submitted as part of. Shared with the
+  // review body's `review_id` so the UI can group a review's body and its inline
+  // comments under one parent. Optional: absent on feedback serialized before
+  // the backend began emitting it, and on comments left outside a review.
+  review_id?: number;
+}
+
+interface GithubPrReviewBodyFeedbackSource {
+  type: 'github-pr-review-body';
+  // The review's summary body is its own feedback item, keyed by `review_id` and
+  // labelled by `review_state` (approved / changes_requested / commented / …).
+  html_url?: string;
+  review_id?: number;
+  review_state?: string;
 }
 
 interface GithubPrReviewBodyFeedbackSource {

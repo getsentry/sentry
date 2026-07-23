@@ -3,7 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LetterAvatar, UserAvatar} from '@sentry/scraps/avatar';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -51,6 +52,22 @@ interface GithubPrCommentFeedback extends ParsedBaseFeedback {
   commentUrl: string;
   sourceType: 'github-pr-comment' | 'github-pr-review-comment';
   githubUsername?: string;
+  // The review this inline comment belongs to, shared with the review body's
+  // `reviewId`. Present only for `github-pr-review-comment`; used to group a
+  // review's items under one header.
+  reviewId?: number;
+}
+
+// The summary body of a submitted PR review — the review's own representation,
+// so it carries the review-level `reviewState` (approved / changes_requested /
+// …). Rendered as the header of a group whose children are the review's inline
+// comments. `text` may be empty (a review can have inline comments but no body).
+interface GithubPrReviewBodyFeedback extends ParsedBaseFeedback {
+  sourceType: 'github-pr-review-body';
+  githubUsername?: string;
+  reviewId?: number;
+  reviewState?: string;
+  reviewUrl?: string;
 }
 
 interface CheckSuiteFeedback extends ParsedBaseFeedback {
@@ -66,6 +83,7 @@ interface OtherFeedback extends ParsedBaseFeedback {
 type ParsedFeedback =
   | UserUiFeedback
   | GithubPrCommentFeedback
+  | GithubPrReviewBodyFeedback
   | CheckSuiteFeedback
   | OtherFeedback;
 
@@ -97,8 +115,18 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
         sourceType: source.type,
         githubUsername: source.comment?.user?.login,
         commentUrl,
+        reviewId:
+          source.type === 'github-pr-review-comment' ? source.review_id : undefined,
       };
     }
+    case 'github-pr-review-body':
+      return {
+        ...base,
+        sourceType: 'github-pr-review-body',
+        reviewId: source.review_id,
+        reviewState: source.review_state,
+        reviewUrl: source.html_url,
+      };
     case 'check-suite': {
       const {head_sha: headSha, id: checkSuiteId} = source.event.check_suite;
       const repoUrl = source.event.repository.html_url;
@@ -215,20 +243,140 @@ export function usePrIterationFeedback(
   return {feedback, latestIterationIndex};
 }
 
+// A rendered row is either a standalone feedback item or a review group: a
+// review-body header with its inline comments nested beneath.
+type FeedbackNode =
+  | {item: IterationFeedback; type: 'item'}
+  | {
+      body: GithubPrReviewBodyFeedback & IterationFeedback;
+      comments: IterationFeedback[];
+      type: 'review';
+    };
+
+// Group a review's body with its inline comments under one node, keying on
+// `(iterationIndex, reviewId)` — `reviewId` is unique per PR, and a review drives
+// exactly one iteration, so the pair can't collide across replays.
+//
+// A group forms only when a review *body* is present: the body carries the
+// review's state (the header badge) and is the review's representation. A
+// comment-only review (GitHub's "Add single comment", no body) therefore has no
+// header — its comments stay flat, as before. Comments whose body is in the same
+// batch are pulled into the group; everything else passes through in order.
+//
+// Order-independent: the caller renders newest-first (comments can precede their
+// body), so grouped comments are identified up front by reference and the group
+// is anchored at the body's position, rather than assuming the body comes first.
+function groupFeedback(items: IterationFeedback[]): FeedbackNode[] {
+  const key = (iterationIndex: number, reviewId: number) =>
+    `${iterationIndex}:${reviewId}`;
+
+  const bodies = new Map<string, GithubPrReviewBodyFeedback & IterationFeedback>();
+  for (const item of items) {
+    if (item.sourceType === 'github-pr-review-body' && item.reviewId !== undefined) {
+      bodies.set(key(item.iterationIndex, item.reviewId), item);
+    }
+  }
+
+  // Bucket each grouped comment under its body, tracking the comments to skip by
+  // reference so the flat pass drops them regardless of where they sit.
+  const commentsByReview = new Map<string, IterationFeedback[]>();
+  const groupedComments = new Set<IterationFeedback>();
+  for (const item of items) {
+    if (item.sourceType !== 'github-pr-review-comment' || item.reviewId === undefined) {
+      continue;
+    }
+    const k = key(item.iterationIndex, item.reviewId);
+    if (!bodies.has(k)) {
+      continue;
+    }
+    const bucket = commentsByReview.get(k) ?? [];
+    bucket.push(item);
+    commentsByReview.set(k, bucket);
+    groupedComments.add(item);
+  }
+
+  const nodes: FeedbackNode[] = [];
+  for (const item of items) {
+    if (item.sourceType === 'github-pr-review-body' && item.reviewId !== undefined) {
+      // The body anchors the group at its own position in the list.
+      const k = key(item.iterationIndex, item.reviewId);
+      nodes.push({
+        type: 'review',
+        body: bodies.get(k)!,
+        comments: commentsByReview.get(k) ?? [],
+      });
+      continue;
+    }
+    if (groupedComments.has(item)) {
+      // Rendered under its group header; drop the flat row.
+      continue;
+    }
+    nodes.push({type: 'item', item});
+  }
+  return nodes;
+}
+
 export function FeedbackList({items}: {items: IterationFeedback[]}) {
   if (items.length === 0) {
     return null;
   }
 
+  const nodes = groupFeedback(items);
+
   return (
     <ArtifactDetails>
       <Text bold>{t('Feedback')}</Text>
-      {items.map((item, index) => (
-        <FeedbackItem key={`${item.iterationIndex}-${index}`} item={item} />
-      ))}
+      {nodes.map((node, index) =>
+        node.type === 'review' ? (
+          <ReviewGroup
+            key={`review-${node.body.iterationIndex}-${node.body.reviewId}-${index}`}
+            body={node.body}
+            comments={node.comments}
+          />
+        ) : (
+          <FeedbackItem key={`${node.item.iterationIndex}-${index}`} item={node.item} />
+        )
+      )}
     </ArtifactDetails>
   );
 }
+
+// A submitted review: the body row as a header (author avatar, state badge,
+// link, body text) with its inline comments indented beneath. The header row
+// reuses the standard `FeedbackItem` shell; the state badge rides in its comment
+// cell via `GithubReviewBodyComment`.
+function ReviewGroup({
+  body,
+  comments,
+}: {
+  body: GithubPrReviewBodyFeedback & IterationFeedback;
+  comments: IterationFeedback[];
+}) {
+  return (
+    <Stack gap="md">
+      <FeedbackItem item={body} />
+      {comments.length > 0 && (
+        <ReviewChildren>
+          {comments.map((comment, index) => (
+            <FeedbackItem key={`${comment.iterationIndex}-${index}`} item={comment} />
+          ))}
+        </ReviewChildren>
+      )}
+    </Stack>
+  );
+}
+
+// Inline comments are indented under their review header and separated by a rule
+// on the left, so the group reads as one review. The indent aligns roughly under
+// the header's comment text (past the avatar column).
+const ReviewChildren = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.md};
+  margin-left: ${AVATAR_SIZE / 2}px;
+  padding-left: ${p => p.theme.space.xl};
+  border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+`;
 
 // Each source type owns an `Avatar` and a `Comment` cell. `FeedbackItem` renders
 // the shared grid shell (avatar · comment · timestamp · status) and dispatches
@@ -243,6 +391,10 @@ const SOURCE: Record<
   'user-ui': {Avatar: UserUiAvatar, Comment: UserUiComment},
   'github-pr-comment': {Avatar: GithubAvatar, Comment: GithubComment},
   'github-pr-review-comment': {Avatar: GithubAvatar, Comment: GithubComment},
+  'github-pr-review-body': {
+    Avatar: GithubReviewBodyAvatar,
+    Comment: GithubReviewBodyComment,
+  },
   'check-suite': {Avatar: CheckSuiteAvatar, Comment: CheckSuiteComment},
   other: {Avatar: UnknownAvatarCell, Comment: OtherComment},
 };
@@ -392,6 +544,55 @@ function GithubComment({item}: {item: IterationFeedback}) {
       : undefined;
   // The comment text is plain; a trailing arrow links out to the PR comment.
   return <CommentBody text={item.text} externalUrl={url} />;
+}
+
+// The review body has no author login on the wire, so it can't render an
+// authored avatar. Use GitHub as the primary glyph — the review's author is
+// already surfaced on its inline comments' avatars beneath the header.
+function GithubReviewBodyAvatar() {
+  return <PrimaryIconAvatar Icon={IconGithub} tooltip={t('Review on GitHub')} />;
+}
+
+// Maps a GitHub review state to a Tag variant + human label. Unknown/other
+// states (dismissed, pending, or anything a future provider adds) fall back to
+// muted so the badge never crashes on an unmapped value.
+function reviewStateTag(
+  state: string | undefined
+): {label: string; variant: TagProps['variant']} | null {
+  switch (state) {
+    case 'approved':
+      return {label: t('Approved'), variant: 'success'};
+    case 'changes_requested':
+      return {label: t('Changes requested'), variant: 'danger'};
+    case 'commented':
+      return {label: t('Commented'), variant: 'muted'};
+    default:
+      return null;
+  }
+}
+
+// The review-body header cell: a state badge (when known) followed by the body
+// text, with a trailing link out to the review. Body text may be empty for a
+// bare state change, in which case only the badge shows.
+function GithubReviewBodyComment({item}: {item: IterationFeedback}) {
+  if (item.sourceType !== 'github-pr-review-body') {
+    return null;
+  }
+  const tag = reviewStateTag(item.reviewState);
+  return (
+    <Flex align="center" gap="sm" wrap="wrap">
+      {tag && <Tag variant={tag.variant}>{tag.label}</Tag>}
+      {item.text ? (
+        <CommentBody text={item.text} externalUrl={item.reviewUrl} />
+      ) : (
+        item.reviewUrl && (
+          <ExternalLink href={item.reviewUrl} aria-label={t('Open in GitHub')}>
+            <InlineOpenIcon size="xs" />
+          </ExternalLink>
+        )
+      )}
+    </Flex>
+  );
 }
 
 function CheckSuiteComment({item}: {item: IterationFeedback}) {
