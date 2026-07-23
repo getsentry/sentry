@@ -6,11 +6,13 @@ import {Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -22,6 +24,10 @@ import {DEFAULT_STATS_PERIOD} from './periods';
 import {SectionList} from './sectionList';
 import type {StatusGroupKey} from './statusGroups';
 import {type OverviewView, SECTION_ORDER} from './types';
+
+const SeerTrialCTA = OverrideOrDefault({
+  overrideName: 'component:seer-trial-cta',
+});
 
 export default function AutofixOverview() {
   const organization = useOrganization();
@@ -37,6 +43,8 @@ export default function AutofixOverview() {
   // section requests are gated until the persisted selection is restored so
   // the first fetch doesn't race it with an all-projects query.
   const {selection, isReady: pageFiltersReady} = usePageFilters();
+
+  const needsSeerSetup = orgNeedsSeerTrial(organization);
 
   const [collapsedGroups, setCollapsedGroups] = useLocalStorageState<StatusGroupKey[]>(
     'seer-autofix-overview:collapsed-groups',
@@ -81,7 +89,9 @@ export default function AutofixOverview() {
             />
           </Layout.Title>
           <Stack gap="lg" padding="lg xl">
-            {selectedId ? (
+            {needsSeerSetup ? (
+              <SeerTrialCTA />
+            ) : selectedId ? (
               <FocusedIssue id={selectedId} period={period} />
             ) : (
               <Fragment>
