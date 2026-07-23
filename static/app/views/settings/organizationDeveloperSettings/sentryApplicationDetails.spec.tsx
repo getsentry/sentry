@@ -354,6 +354,8 @@ describe('Sentry Application Details', () => {
     beforeEach(() => {
       sentryApp = SentryAppFixture({
         status: 'internal',
+        // Internal integrations are created without an author.
+        author: null,
       });
       token = SentryAppTokenFixture();
       sentryApp.events = ['issue'];
@@ -366,6 +368,28 @@ describe('Sentry Application Details', () => {
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         body: [token],
+      });
+    });
+
+    it('saves without an author', async () => {
+      editAppRequest = MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        method: 'PUT',
+        body: [],
+      });
+
+      renderComponent();
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Save Changes'}));
+
+      await waitFor(() => {
+        expect(editAppRequest).toHaveBeenCalledWith(
+          `/sentry-apps/${sentryApp.slug}/`,
+          expect.objectContaining({
+            method: 'PUT',
+            data: expect.objectContaining({author: null}),
+          })
+        );
       });
     });
 

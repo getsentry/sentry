@@ -153,27 +153,16 @@ function requireValidSchemaJson(ctx: z.RefinementCtx, data: SentryAppFormValues)
   }
 }
 
-const internalCreationSchema = sentryAppBaseSchema.superRefine((data, ctx) => {
+const internalSentryAppSchema = sentryAppBaseSchema.superRefine((data, ctx) => {
   requireField(ctx, data.name, 'name');
   requireWebhookUrlForEvents(ctx, data);
   requireValidSchemaJson(ctx, data);
 });
 
-const publicCreationSchema = sentryAppBaseSchema.superRefine((data, ctx) => {
+const publicSentryAppSchema = sentryAppBaseSchema.superRefine((data, ctx) => {
   requireField(ctx, data.name, 'name');
   requireField(ctx, data.author, 'author');
   requireField(ctx, data.webhookUrl, 'webhookUrl');
-  requireValidSchemaJson(ctx, data);
-});
-
-const sentryAppFormSchema = sentryAppBaseSchema.superRefine((data, ctx) => {
-  requireField(ctx, data.name, 'name');
-  if (data.isInternal) {
-    requireWebhookUrlForEvents(ctx, data);
-  } else {
-    requireField(ctx, data.author, 'author');
-    requireField(ctx, data.webhookUrl, 'webhookUrl');
-  }
   requireValidSchemaJson(ctx, data);
 });
 
@@ -446,8 +435,6 @@ export default function SentryApplicationDetails() {
     {staleTime: 30_000, enabled: !!appSlug}
   );
 
-  const isInternal = app ? app.status === 'internal' : isInternalRoute;
-
   return (
     <div>
       <BreadcrumbTitle title={appSlug ? (app?.name ?? '') : t('New')} />
@@ -460,13 +447,10 @@ export default function SentryApplicationDetails() {
         <InternalSentryAppCreationForm />
       ) : isPublicRoute ? (
         <PublicSentryAppCreationForm />
+      ) : app ? (
+        <SentryAppEditForm app={app} tokens={tokens} />
       ) : (
-        <SentryApplicationForm
-          app={app}
-          appSlug={appSlug}
-          tokens={tokens}
-          isInternal={isInternal}
-        />
+        <LoadingError onRetry={refetch} />
       )}
     </div>
   );
@@ -483,7 +467,7 @@ function InternalSentryAppCreationForm() {
     ...defaultFormOptions,
     defaultValues: emptySentryAppValues(organization.slug, true),
     validators: {
-      onDynamic: internalCreationSchema,
+      onDynamic: internalSentryAppSchema,
     },
     onSubmit: ({value, formApi}) =>
       saveSentryAppMutation
@@ -550,7 +534,7 @@ function PublicSentryAppCreationForm() {
     ...defaultFormOptions,
     defaultValues: emptySentryAppValues(organization.slug, false),
     validators: {
-      onDynamic: publicCreationSchema,
+      onDynamic: publicSentryAppSchema,
     },
     onSubmit: ({value, formApi}) =>
       saveSentryAppMutation
@@ -603,22 +587,19 @@ function PublicSentryAppCreationForm() {
   );
 }
 
-function SentryApplicationForm({
+function SentryAppEditForm({
   app,
-  appSlug,
   tokens,
-  isInternal,
 }: {
-  app: SentryApp | undefined;
-  appSlug: string | undefined;
-  isInternal: boolean;
+  app: SentryApp;
   tokens: InternalAppApiToken[];
 }) {
   const {openModal} = useModal();
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const sentryAppQueryOptions = sentryAppApiOptions({appSlug: appSlug ?? null});
+  const isInternal = app.status === 'internal';
+  const sentryAppQueryOptions = sentryAppApiOptions({appSlug: app.slug});
 
   const [newTokens, setNewTokens] = useState<NewInternalAppApiToken[]>([]);
   const {handleSaveError, saveSentryAppMutation, scopeErrors} = useSaveSentryApp({
@@ -669,22 +650,18 @@ function SentryApplicationForm({
   });
 
   // Older API responses only send the consolidated resource list
-  const initialEvents: WebhookSubscription[] = app
-    ? granularWebhookEvents(app.webhookEvents ?? app.events)
-    : [];
+  const initialEvents: WebhookSubscription[] = granularWebhookEvents(
+    app.webhookEvents ?? app.events
+  );
 
   const hasTokenAccess = () => {
     return organization.access.includes('org:write');
   };
 
-  const showAuthInfo = () => !(app?.clientSecret?.[0] === '*');
+  const showAuthInfo = () => !(app.clientSecret?.[0] === '*');
 
   const onAddToken = async (event: MouseEvent<HTMLButtonElement>): Promise<void> => {
     event.preventDefault();
-    if (!app) {
-      return;
-    }
-
     const token = await addTokenMutation.mutateAsync(app.slug);
     const updatedNewTokens = newTokens.concat(token);
     setNewTokens(updatedNewTokens);
@@ -694,26 +671,14 @@ function SentryApplicationForm({
   const handleFinishNewToken = (newToken: NewInternalAppApiToken) => {
     const updatedNewTokens = newTokens.filter(token => token.id !== newToken.id);
     const updatedTokens = tokens.concat(newToken);
-    setApiQueryData(
-      queryClient,
-      makeSentryAppApiTokensQueryKey(appSlug ?? ''),
-      updatedTokens
-    );
+    setApiQueryData(queryClient, makeSentryAppApiTokensQueryKey(app.slug), updatedTokens);
     setNewTokens(updatedNewTokens);
   };
 
   const onRemoveToken = async (token: InternalAppApiToken) => {
-    if (!app) {
-      return;
-    }
-
     const updatedTokens = tokens.filter(tok => tok.id !== token.id);
     await removeTokenMutation.mutateAsync({sentryAppSlug: app.slug, tokenId: token.id});
-    setApiQueryData(
-      queryClient,
-      makeSentryAppApiTokensQueryKey(appSlug ?? ''),
-      updatedTokens
-    );
+    setApiQueryData(queryClient, makeSentryAppApiTokensQueryKey(app.slug), updatedTokens);
   };
 
   const renderTokens = () => {
@@ -738,10 +703,6 @@ function SentryApplicationForm({
   };
 
   const rotateClientSecret = async () => {
-    if (!app) {
-      return;
-    }
-
     const rotateResponse = await rotateClientSecretMutation.mutateAsync(app.slug);
 
     requestAnimationFrame(() => {
@@ -764,7 +725,7 @@ function SentryApplicationForm({
   };
 
   const addAvatar = ({avatar}: {avatar?: Avatar}) => {
-    if (app && avatar) {
+    if (avatar) {
       const avatars =
         app.avatars?.filter(prevAvatar => prevAvatar.color !== avatar.color) ?? [];
 
@@ -777,10 +738,6 @@ function SentryApplicationForm({
   };
 
   const getAvatarChooser = (isColor: boolean) => {
-    if (!app) {
-      return null;
-    }
-
     const avatarStyle = isColor ? 'color' : 'simple';
     const styleProps = AVATAR_STYLES[avatarStyle];
 
@@ -802,21 +759,21 @@ function SentryApplicationForm({
   };
 
   const defaultValues = {
-    name: app?.name ?? '',
-    author: app?.author ?? '',
-    webhookUrl: app?.webhookUrl ?? '',
-    redirectUrl: app?.redirectUrl ?? '',
-    verifyInstall: isInternal ? false : (app?.verifyInstall ?? true),
-    isAlertable: app?.isAlertable ?? false,
-    schema: getSchemaFieldValue(app?.schema),
-    overview: app?.overview ?? '',
-    allowedOrigins: convertMultilineFieldValue(app?.allowedOrigins ?? []),
+    name: app.name,
+    author: app.author ?? '',
+    webhookUrl: app.webhookUrl ?? '',
+    redirectUrl: app.redirectUrl ?? '',
+    verifyInstall: isInternal ? false : app.verifyInstall,
+    isAlertable: app.isAlertable,
+    schema: getSchemaFieldValue(app.schema),
+    overview: app.overview ?? '',
+    allowedOrigins: convertMultilineFieldValue(app.allowedOrigins ?? []),
     // Masked values (Header-Name: ***) round-trip safely: the backend preserves
     // the stored value for any entry resubmitted with the mask sentinel.
-    webhookHeaders: convertMultilineFieldValue(app?.webhookHeaders ?? []),
+    webhookHeaders: convertMultilineFieldValue(app.webhookHeaders ?? []),
     organization: organization.slug,
     isInternal,
-    scopes: app ? [...app.scopes] : [],
+    scopes: [...app.scopes],
     events: initialEvents,
   };
 
@@ -824,7 +781,7 @@ function SentryApplicationForm({
     ...defaultFormOptions,
     defaultValues,
     validators: {
-      onDynamic: sentryAppFormSchema,
+      onDynamic: isInternal ? internalSentryAppSchema : publicSentryAppSchema,
     },
     onSubmit: ({value, formApi}) =>
       saveSentryAppMutation
@@ -881,17 +838,17 @@ function SentryApplicationForm({
       {getAvatarChooser(false)}
 
       <PermissionsObserver
-        appPublished={app ? app.status === 'published' : false}
-        scopes={app ? [...app.scopes] : []}
+        appPublished={app.status === 'published'}
+        scopes={[...app.scopes]}
         events={initialEvents}
-        newApp={!app}
+        newApp={false}
         permissionErrors={scopeErrors.permissions}
         continuousIntegrationError={scopeErrors.continuousIntegration}
         onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
         onEventsChange={events => form.setFieldValue('events', events)}
       />
 
-      {app?.status === 'internal' && (
+      {isInternal && (
         <PanelTable
           headers={[
             t('Token'),
@@ -923,56 +880,54 @@ function SentryApplicationForm({
         </PanelTable>
       )}
 
-      {app && (
-        <Panel>
-          <PanelHeader>{t('Credentials')}</PanelHeader>
-          <PanelBody>
-            {app.status !== 'internal' && (
-              <FormField name="clientId" label="Client ID">
-                {({id}: {id: string}) => (
-                  <TextCopyInput id={id}>{app.clientId ?? ''}</TextCopyInput>
-                )}
-              </FormField>
-            )}
-            <FormField
-              name="clientSecret"
-              label="Client Secret"
-              help={t(`Your secret is only available briefly after integration creation. Make
-                sure to save this value!`)}
-            >
-              {({id}: {id: string}) =>
-                app.clientSecret ? (
-                  <Tooltip
-                    disabled={showAuthInfo()}
-                    position="right"
-                    containerDisplayMode="inline"
-                    title={t(
-                      'Only Manager or Owner can view these credentials, or the permissions for this integration exceed those of your role.'
-                    )}
-                  >
-                    <TextCopyInput id={id}>{app.clientSecret}</TextCopyInput>
-                  </Tooltip>
-                ) : (
-                  <ClientSecret>
-                    <HiddenSecret>{t('hidden')}</HiddenSecret>
-                    {hasTokenAccess() ? (
-                      <Confirm
-                        onConfirm={rotateClientSecret}
-                        message={t(
-                          'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
-                        )}
-                        errorMessage={t('Error rotating secret')}
-                      >
-                        <Button variant="danger">{t('Rotate client secret')}</Button>
-                      </Confirm>
-                    ) : undefined}
-                  </ClientSecret>
-                )
-              }
+      <Panel>
+        <PanelHeader>{t('Credentials')}</PanelHeader>
+        <PanelBody>
+          {!isInternal && (
+            <FormField name="clientId" label="Client ID">
+              {({id}: {id: string}) => (
+                <TextCopyInput id={id}>{app.clientId ?? ''}</TextCopyInput>
+              )}
             </FormField>
-          </PanelBody>
-        </Panel>
-      )}
+          )}
+          <FormField
+            name="clientSecret"
+            label="Client Secret"
+            help={t(`Your secret is only available briefly after integration creation. Make
+                sure to save this value!`)}
+          >
+            {({id}: {id: string}) =>
+              app.clientSecret ? (
+                <Tooltip
+                  disabled={showAuthInfo()}
+                  position="right"
+                  containerDisplayMode="inline"
+                  title={t(
+                    'Only Manager or Owner can view these credentials, or the permissions for this integration exceed those of your role.'
+                  )}
+                >
+                  <TextCopyInput id={id}>{app.clientSecret}</TextCopyInput>
+                </Tooltip>
+              ) : (
+                <ClientSecret>
+                  <HiddenSecret>{t('hidden')}</HiddenSecret>
+                  {hasTokenAccess() ? (
+                    <Confirm
+                      onConfirm={rotateClientSecret}
+                      message={t(
+                        'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
+                      )}
+                      errorMessage={t('Error rotating secret')}
+                    >
+                      <Button variant="danger">{t('Rotate client secret')}</Button>
+                    </Confirm>
+                  ) : undefined}
+                </ClientSecret>
+              )
+            }
+          </FormField>
+        </PanelBody>
+      </Panel>
 
       <Flex justify="end" paddingTop="xl">
         <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
