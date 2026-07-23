@@ -38,6 +38,7 @@ export default function AutofixOverview() {
   const period = decodeScalar(location.query.period) ?? DEFAULT_STATS_PERIOD;
   // Unknown or legacy sort values fall back to the default.
   const sort = decodeScalar(location.query.sort) === 'events' ? 'events' : 'activity';
+  const assignee = decodeScalar(location.query.assignee);
 
   // Project scoping comes from the canonical page-filters selection; the
   // section requests are gated until the persisted selection is restored so
@@ -95,6 +96,7 @@ export default function AutofixOverview() {
                   <OverviewFilters
                     period={period}
                     sort={sort}
+                    assignee={assignee}
                     view={view}
                     allCollapsed={allGroupsCollapsed}
                     onUpdateQuery={updateQuery}
@@ -108,6 +110,7 @@ export default function AutofixOverview() {
                     projects={selection.projects}
                     sort={sort}
                     period={period}
+                    assignee={assignee}
                     view={view}
                     collapsedGroups={collapsedGroups}
                     onToggleGroup={toggleGroup}

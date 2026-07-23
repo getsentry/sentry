@@ -32,7 +32,6 @@ type GroupListBodyProps = {
   query: string;
   refetchGroups: () => void;
   selectedProjectIds: number[];
-  onGroupClick?: (group: Group) => void;
   supergroupLookup?: SupergroupLookup;
   withColumns?: GroupListColumn[];
 };
@@ -44,7 +43,6 @@ type GroupListProps = {
   memberList: IndexedMembersByProject | undefined;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   query: string;
-  onGroupClick?: (group: Group) => void;
   supergroupLookup?: SupergroupLookup;
   withColumns?: GroupListColumn[];
 };
@@ -98,7 +96,6 @@ export function GroupListBody({
   selectedProjectIds,
   pageSize,
   onActionTaken,
-  onGroupClick,
   supergroupLookup,
   withColumns,
 }: GroupListBodyProps) {
@@ -138,7 +135,6 @@ export function GroupListBody({
       displayReprocessingLayout={displayReprocessingLayout}
       groupStatsPeriod={groupStatsPeriod}
       onActionTaken={onActionTaken}
-      onGroupClick={onGroupClick}
       supergroupLookup={supergroupLookup}
       withColumns={columns}
     />
@@ -183,7 +179,6 @@ function GroupList({
   displayReprocessingLayout,
   groupStatsPeriod,
   onActionTaken,
-  onGroupClick,
   supergroupLookup,
   withColumns = DEFAULT_COLUMNS,
 }: GroupListProps) {
@@ -228,7 +223,6 @@ function GroupList({
         useFilteredStats
         canSelect={!selectDisabled}
         onPriorityChange={priority => onActionTaken([id], {priority})}
-        onGroupClick={onGroupClick}
         withColumns={columns}
         progressState={showProgress ? (group.derivedData?.progress ?? null) : undefined}
       />
