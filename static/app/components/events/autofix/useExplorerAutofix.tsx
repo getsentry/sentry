@@ -205,7 +205,7 @@ export interface ExplorerAutofixState {
 /**
  * Response from the autofix endpoint.
  */
-interface ExplorerAutofixResponse {
+export interface ExplorerAutofixResponse {
   autofix: ExplorerAutofixState | null;
 }
 
