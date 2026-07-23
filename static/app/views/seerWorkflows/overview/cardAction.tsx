@@ -119,12 +119,20 @@ const MutedLinkButton = styled(LinkButton)`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-function ActionButton({actionKey, to}: {actionKey: ActionKey; to: LocationDescriptor}) {
+function ActionButton({
+  actionKey,
+  size,
+  to,
+}: {
+  actionKey: ActionKey;
+  size: 'sm' | 'xs';
+  to: LocationDescriptor;
+}) {
   const meta = ACTION_META[actionKey];
   if (actionKey === 'code_changes_ready') {
     return (
       <Tooltip title={meta.description} skipWrapper>
-        <AccentLinkButton size="sm" icon={<meta.Icon />} to={to}>
+        <AccentLinkButton size={size} icon={<meta.Icon />} to={to}>
           {meta.label}
         </AccentLinkButton>
       </Tooltip>
@@ -133,7 +141,7 @@ function ActionButton({actionKey, to}: {actionKey: ActionKey; to: LocationDescri
   if (actionKey === 'solution_ready') {
     return (
       <Tooltip title={meta.description} skipWrapper>
-        <SuccessLinkButton size="sm" icon={<meta.Icon />} to={to}>
+        <SuccessLinkButton size={size} icon={<meta.Icon />} to={to}>
           {meta.label}
         </SuccessLinkButton>
       </Tooltip>
@@ -142,7 +150,7 @@ function ActionButton({actionKey, to}: {actionKey: ActionKey; to: LocationDescri
   if (actionKey === 'errored') {
     return (
       <Tooltip title={meta.description} skipWrapper>
-        <MutedLinkButton size="sm" icon={<meta.Icon />} to={to}>
+        <MutedLinkButton size={size} icon={<meta.Icon />} to={to}>
           {meta.label}
         </MutedLinkButton>
       </Tooltip>
@@ -150,7 +158,7 @@ function ActionButton({actionKey, to}: {actionKey: ActionKey; to: LocationDescri
   }
   return (
     <Tooltip title={meta.description} skipWrapper>
-      <LinkButton size="sm" variant={meta.variant} icon={<meta.Icon />} to={to}>
+      <LinkButton size={size} variant={meta.variant} icon={<meta.Icon />} to={to}>
         {meta.label}
       </LinkButton>
     </Tooltip>
@@ -160,9 +168,11 @@ function ActionButton({actionKey, to}: {actionKey: ActionKey; to: LocationDescri
 function ReviewPrButton({
   prUrl,
   prNumber,
+  size,
 }: {
   prNumber: number | undefined;
   prUrl: string;
+  size: 'sm' | 'xs';
 }) {
   const meta = ACTION_META.review_pr;
   return (
@@ -175,7 +185,7 @@ function ReviewPrButton({
       skipWrapper
     >
       <LinkButton
-        size="sm"
+        size={size}
         variant="warning"
         icon={<IconPullRequest />}
         href={prUrl}
@@ -197,10 +207,12 @@ export function IssuePrimaryAction({
   action,
   row,
   runUrl,
+  size = 'sm',
 }: {
   action: CardAction;
   row: OverviewRow;
   runUrl: LocationDescriptor;
+  size?: 'sm' | 'xs';
 }) {
   if (row.statePending) {
     return <Text variant="muted">{'…'}</Text>;
@@ -209,10 +221,10 @@ export function IssuePrimaryAction({
     return <Tag variant="info">{t('Running')}</Tag>;
   }
   if (row.runStatus === 'error') {
-    return <ActionButton actionKey="errored" to={runUrl} />;
+    return <ActionButton actionKey="errored" size={size} to={runUrl} />;
   }
   if (row.runStatus === 'awaiting_user_input') {
-    return <ActionButton actionKey="awaiting_input" to={runUrl} />;
+    return <ActionButton actionKey="awaiting_input" size={size} to={runUrl} />;
   }
 
   switch (action.type) {
@@ -226,11 +238,11 @@ export function IssuePrimaryAction({
       );
     case 'review_pr':
       return action.prUrl ? (
-        <ReviewPrButton prUrl={action.prUrl} prNumber={action.prNumber} />
+        <ReviewPrButton prUrl={action.prUrl} prNumber={action.prNumber} size={size} />
       ) : (
-        <ActionButton actionKey="review_pr" to={runUrl} />
+        <ActionButton actionKey="review_pr" size={size} to={runUrl} />
       );
     default:
-      return <ActionButton actionKey={action.type} to={runUrl} />;
+      return <ActionButton actionKey={action.type} size={size} to={runUrl} />;
   }
 }
