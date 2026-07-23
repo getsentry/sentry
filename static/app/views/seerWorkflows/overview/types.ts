@@ -1,4 +1,3 @@
-import type {FilePatch} from 'sentry/components/events/autofix/types';
 import type {Level} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 
@@ -143,9 +142,13 @@ export interface OverviewRow {
   analysis: RunAnalysisEntry[];
   eventCount: number;
   id: string;
-  // Most recent activity on the run (state update, trigger, or issue-level
-  // last-trigger timestamp); labels the card's "updated" TimeSince.
-  lastActivityAt: string;
+  // Most recent Seer activity on the run (state update, trigger, or
+  // issue-level last-trigger timestamp); null when the run has no Seer-side
+  // timestamp, which hides the card's Seer-activity TimeSince.
+  lastActivityAt: string | null;
+  // When the issue's most recent event occurred; labels the card's
+  // "last seen" TimeSince.
+  lastSeen: string;
   level: Level;
   project: {slug: string; platform?: PlatformKey};
   // Live run status, mirrored straight from the state payload; drives the
@@ -162,10 +165,6 @@ export interface OverviewRow {
   // Plain-language title from the run's root-cause answer (see runQuestions).
   // Falls back to the raw issue title.
   headline?: string;
-  // Structured patches for the on-card differ; present only when the diff is
-  // small enough to render inline (see the INLINE_DIFF_* limits in
-  // buildOverviewRows).
-  inlinePatches?: Array<{patch: FilePatch; repoName?: string}>;
   patchStats?: PatchStats;
   // The question autofix paused on, when status is NEED_MORE_INFORMATION and
   // the pending input payload carries readable text.

@@ -21,7 +21,7 @@ export const STATUS_GROUP_META: Record<StatusGroupKey, StatusGroupMeta> = {
   review_pr: {Icon: IconPullRequest, label: t('Awaiting your review')},
   code_changes_ready: {Icon: IconCommit, label: t('Code changes ready')},
   solution_ready: {Icon: IconCode, label: t('Ready to generate code')},
-  // Same magnifier as the card's Investigate action: these runs stopped at a
+  // Same magnifier as the card's Approve-Root-Cause action: these runs stopped at a
   // root cause, and their next steps are manual verify/decide work.
   needs_investigation: {Icon: IconSearch, label: t('Needs investigation')},
   merged: {Icon: IconMerge, label: t('Merged')},

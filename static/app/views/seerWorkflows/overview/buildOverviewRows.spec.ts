@@ -1,16 +1,15 @@
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   buildAnalysis,
+  buildOverviewRow,
   deriveSectionKey,
   extractPatchInfo,
   extractPendingQuestion,
-  INLINE_DIFF_MAX_CHANGED_LINES,
-  INLINE_DIFF_MAX_FILES,
   mostRecentTimestamp,
   normalizeBulletList,
   parseRootCause,
 } from 'sentry/views/seerWorkflows/overview/buildOverviewRows';
-import type {SeerRun} from 'sentry/views/seerWorkflows/overview/types';
+import type {OverviewIssue, SeerRun} from 'sentry/views/seerWorkflows/overview/types';
 
 function makeBlock(step: string) {
   return {message: {role: 'assistant', content: step, metadata: {step}}};
@@ -21,10 +20,8 @@ function makePatch({
   path = 'src/cart.py',
   added = 1,
   removed = 0,
-  lines = 1,
 }: {
   added?: number;
-  lines?: number;
   path?: string;
   removed?: number;
   repo?: string;
@@ -39,22 +36,8 @@ function makePatch({
       type: 'M',
       added,
       removed,
-      hunks: [
-        {
-          section_header: '',
-          source_start: 1,
-          source_length: lines,
-          target_start: 1,
-          target_length: lines,
-          lines: Array.from({length: lines}, (_, index) => ({
-            value: `line ${index}`,
-            line_type: '+',
-            source_line_no: null,
-            target_line_no: index + 1,
-            diff_line_no: index + 1,
-          })),
-        },
-      ],
+      // extractPatchInfo only reads the counts; hunk content is irrelevant.
+      hunks: [],
     },
   };
 }
@@ -94,6 +77,43 @@ function makeRun(overrides: Partial<SeerRun> = {}): SeerRun {
     ...overrides,
   };
 }
+
+function makeIssue(overrides: Partial<OverviewIssue> = {}): OverviewIssue {
+  return {
+    count: '100',
+    id: '2',
+    lastSeen: '2026-07-20T12:00:00Z',
+    level: 'error',
+    project: {slug: 'proj'},
+    seerAutofixLastTriggered: null,
+    shortId: 'PROJ-1',
+    title: 'Boom',
+    userCount: 5,
+    ...overrides,
+  };
+}
+
+describe('buildOverviewRow', () => {
+  it('derives lastActivityAt from Seer-side timestamps, ignoring lastSeen', () => {
+    // The issue fired after every Seer signal — the activity time must still
+    // be the newest Seer timestamp, or it would duplicate the last-seen time
+    // on every actively-erroring issue.
+    const row = buildOverviewRow(
+      makeIssue({seerAutofixLastTriggered: '2026-07-14T08:00:00Z'}),
+      makeRun({lastTriggeredAt: '2026-07-14T09:00:00Z'}),
+      makeState({updated_at: '2026-07-14T10:00:00Z'}),
+      false,
+      '90d'
+    );
+    expect(row.lastActivityAt).toBe('2026-07-14T10:00:00Z');
+    expect(row.lastSeen).toBe('2026-07-20T12:00:00Z');
+  });
+
+  it('nulls lastActivityAt when the run has no Seer-side timestamp', () => {
+    const row = buildOverviewRow(makeIssue(), null, null, true, '90d');
+    expect(row.lastActivityAt).toBeNull();
+  });
+});
 
 describe('parseRootCause', () => {
   it('splits a headline from the root cause on the first pipe', () => {
@@ -207,55 +227,31 @@ describe('buildAnalysis', () => {
 });
 
 describe('extractPatchInfo', () => {
-  it('renders inline at exactly the changed-line limit', () => {
-    const {inlinePatches, patchStats} = extractPatchInfo(
+  it('aggregates counts across files and sorts the list by churn', () => {
+    const {patchStats} = extractPatchInfo(
       makeCodeChangesState([
-        makePatch({added: INLINE_DIFF_MAX_CHANGED_LINES, removed: 0, lines: 3}),
+        makePatch({path: 'src/small.py', added: 1, removed: 0}),
+        makePatch({path: 'src/big.py', added: 10, removed: 3}),
       ])
     );
-    expect(patchStats?.added).toBe(INLINE_DIFF_MAX_CHANGED_LINES);
-    expect(inlinePatches).toHaveLength(1);
-  });
-
-  it('falls back to a pill one line over the changed-line limit', () => {
-    const {inlinePatches, patchStats} = extractPatchInfo(
-      makeCodeChangesState([
-        makePatch({added: INLINE_DIFF_MAX_CHANGED_LINES + 1, removed: 0, lines: 3}),
-      ])
-    );
-    expect(patchStats?.added).toBe(INLINE_DIFF_MAX_CHANGED_LINES + 1);
-    expect(inlinePatches).toBeUndefined();
-  });
-
-  it('renders inline at exactly the file limit', () => {
-    const patches = Array.from({length: INLINE_DIFF_MAX_FILES}, (_, index) =>
-      makePatch({path: `src/file${index}.py`, added: 1, removed: 0, lines: 1})
-    );
-    const {inlinePatches} = extractPatchInfo(makeCodeChangesState(patches));
-    expect(inlinePatches).toHaveLength(INLINE_DIFF_MAX_FILES);
-  });
-
-  it('falls back to a pill one file over the file limit', () => {
-    const patches = Array.from({length: INLINE_DIFF_MAX_FILES + 1}, (_, index) =>
-      makePatch({path: `src/file${index}.py`, added: 1, removed: 0, lines: 1})
-    );
-    const {inlinePatches, patchStats} = extractPatchInfo(makeCodeChangesState(patches));
-    expect(inlinePatches).toBeUndefined();
-    expect(patchStats?.files).toBe(INLINE_DIFF_MAX_FILES + 1);
+    expect(patchStats).toMatchObject({files: 2, added: 11, removed: 3});
+    expect(patchStats?.fileList.map(file => file.path)).toEqual([
+      'src/big.py',
+      'src/small.py',
+    ]);
   });
 
   it('prefixes file paths with the repo when the diff spans repos', () => {
-    const {inlinePatches, patchStats} = extractPatchInfo(
+    const {patchStats} = extractPatchInfo(
       makeCodeChangesState([
-        makePatch({repo: 'getsentry/sentry', path: 'src/a.py', added: 1, lines: 1}),
-        makePatch({repo: 'getsentry/getsentry', path: 'src/b.py', added: 1, lines: 1}),
+        makePatch({repo: 'getsentry/sentry', path: 'src/a.py', added: 1}),
+        makePatch({repo: 'getsentry/getsentry', path: 'src/b.py', added: 1}),
       ])
     );
     expect(patchStats?.fileList.map(file => file.path).sort()).toEqual([
       'getsentry/getsentry:src/b.py',
       'getsentry/sentry:src/a.py',
     ]);
-    expect(inlinePatches?.every(patch => patch.repoName !== undefined)).toBe(true);
   });
 });
 

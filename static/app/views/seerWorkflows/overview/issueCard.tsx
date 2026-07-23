@@ -1,8 +1,8 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -11,11 +11,19 @@ import {ErrorLevel} from 'sentry/components/events/errorLevel';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconArrow, IconCommit, IconFocus, IconPullRequest} from 'sentry/icons';
+import {
+  IconArrow,
+  IconClock,
+  IconCommit,
+  IconFocus,
+  IconGraph,
+  IconPullRequest,
+  IconSeer,
+  IconUser,
+} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
-import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
 import {deriveCardAction, IssuePrimaryAction} from './cardAction';
 import {periodWindowLabel} from './periods';
@@ -28,6 +36,13 @@ const TitleLink = styled(Link)`
     color: inherit;
     text-decoration: underline;
   }
+`;
+
+// ErrorLevel's colored line stretched from its 1em inline size into an accent
+// bar spanning the full title block (its grid cell stretches it).
+const LevelBar = styled(ErrorLevel)`
+  height: auto;
+  width: 4px;
 `;
 
 // The most-changed files shown on hover before collapsing into "+N more".
@@ -76,29 +91,137 @@ function PatchFilesTooltip({stats}: {stats: PatchStats}) {
   );
 }
 
-function issueCountLabels(row: OverviewRow) {
-  return {
-    eventCountLabel:
-      row.eventCount === 1
-        ? t('1 event')
-        : t('%s events', formatAbbreviatedNumber(row.eventCount)),
-    userCountLabel:
-      row.userCount === 1
-        ? t('1 user')
-        : t('%s users', formatAbbreviatedNumber(row.userCount)),
-  };
+// One icon-prefixed item in the metadata subline. The icon stands in for a
+// text label, so each item needs a tooltip carrying its meaning — TimeSince
+// children bring their own.
+function MetaItem({
+  children,
+  icon,
+  tooltip,
+}: {
+  children: React.ReactNode;
+  icon: React.ReactNode;
+  tooltip?: React.ReactNode;
+}) {
+  const item = (
+    // minWidth 0 + ellipsis let the item truncate inside a tight rail column
+    // instead of pushing the layout wider.
+    <Flex gap="xs" align="center" minWidth="0">
+      {icon}
+      <Text size="sm" variant="muted" ellipsis>
+        {children}
+      </Text>
+    </Flex>
+  );
+  return tooltip ? (
+    <Tooltip title={tooltip} skipWrapper>
+      {item}
+    </Tooltip>
+  ) : (
+    item
+  );
 }
 
-function IssueTitleLink({row, to, size}: {row: OverviewRow; to: string; size?: 'lg'}) {
-  // The ellipsis Text is the shrinking flex item (overflow:hidden resolves its
-  // min-width to 0); the Link must nest inside it or the anchor refuses to
-  // shrink and the title overflows the card. When Seer produced a
-  // plain-language headline it replaces the raw issue title, which stays
-  // reachable via the tooltip and the expanded details.
+// The issue/run vitals shared by the card's rail and the table subline:
+// counts, then issue recency (when it last fired), then Seer recency (when
+// Seer last touched the run). Renders a Fragment, so the parent decides the
+// axis — stacked in the card rail, inline in the table row.
+function IssueVitals({row}: {row: OverviewRow}) {
+  const eventCountLabel =
+    row.eventCount === 1
+      ? t('1 event')
+      : t('%s events', formatAbbreviatedNumber(row.eventCount));
+  const userCountLabel =
+    row.userCount === 1
+      ? t('1 user')
+      : t('%s users', formatAbbreviatedNumber(row.userCount));
+  return (
+    <Fragment>
+      <MetaItem
+        icon={<IconGraph size="xs" variant="muted" aria-hidden />}
+        tooltip={t(
+          '%s events %s',
+          row.eventCount.toLocaleString(),
+          periodWindowLabel(row.statsPeriod)
+        )}
+      >
+        {eventCountLabel}
+      </MetaItem>
+      {row.userCount > 0 && (
+        <MetaItem
+          icon={<IconUser size="xs" variant="muted" aria-hidden />}
+          tooltip={t(
+            '%s affected users %s',
+            row.userCount.toLocaleString(),
+            periodWindowLabel(row.statsPeriod)
+          )}
+        >
+          {userCountLabel}
+        </MetaItem>
+      )}
+      <MetaItem icon={<IconClock size="xs" variant="muted" aria-hidden />}>
+        <TimeSince
+          date={row.lastSeen}
+          tooltipPrefix={t('The most recent event in this issue occurred')}
+        />
+      </MetaItem>
+      {row.lastActivityAt && (
+        <MetaItem icon={<IconSeer size="xs" variant="muted" aria-hidden />}>
+          <TimeSince
+            date={row.lastActivityAt}
+            tooltipPrefix={t('Last activity on this Seer run')}
+          />
+        </MetaItem>
+      )}
+    </Fragment>
+  );
+}
+
+function IssueTitleLink({
+  row,
+  to,
+  size,
+  ellipsis = true,
+}: {
+  row: OverviewRow;
+  to: string;
+  // Table rows truncate for density; cards pass false so titles always wrap
+  // instead of getting cut off.
+  ellipsis?: boolean;
+  size?: React.ComponentProps<typeof Text>['size'];
+}) {
+  // Card mode: the headline wraps freely (explicit block display — a
+  // non-ellipsis Text is otherwise a native inline span whose line boxes
+  // escape the title row's geometry), and the raw issue title reads as a
+  // quiet single-line subheader beneath it instead of hiding in a tooltip.
+  if (!ellipsis) {
+    return (
+      <Stack gap="2xs" minWidth="0">
+        <Text bold display="block" textWrap="pretty" size={size}>
+          <TitleLink to={to}>{row.headline ?? row.title}</TitleLink>
+        </Text>
+        {row.headline && (
+          // The raw title is provenance, not reading material: one muted
+          // truncated line — the full string lives on the issue page.
+          <Text size="sm" variant="muted" ellipsis title={row.title}>
+            {row.title}
+          </Text>
+        )}
+      </Stack>
+    );
+  }
+
+  // Table mode: one truncated line for density (overflow:hidden resolves the
+  // Text's flex min-width to 0; the Link must nest inside it or the anchor
+  // refuses to shrink and the title overflows the row). The raw title stays
+  // in a tooltip here — there's no room for a subheader. skipWrapper is
+  // load-bearing: the default tooltip wrapper is an inline-block, an atomic
+  // inline whose baseline anchors to its LAST line and breaks truncation.
   return (
     <Text bold ellipsis size={size}>
       {row.headline ? (
         <Tooltip
+          skipWrapper
           maxWidth={480}
           title={
             <Stack gap="2xs">
@@ -124,15 +247,11 @@ export function IssueCard({
   orgSlug,
   row,
   sectionKey,
-  defaultExpanded = false,
   minHeight,
 }: {
   orgSlug: string;
   row: OverviewRow;
   sectionKey: AutofixStateKey;
-  // Open the inline diffs on mount — the overview's ?id= focus mode wants
-  // the whole card readable at once.
-  defaultExpanded?: boolean;
   minHeight?: string;
 }) {
   const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
@@ -170,162 +289,173 @@ export function IssueCard({
       answer: nextSteps.answer,
     },
   ].filter(section => !!section);
-  const {eventCountLabel, userCountLabel} = issueCountLabels(row);
 
   return (
+    // inline-size makes the card a query container: the bare responsive keys
+    // below reflow on the CARD's width (sidebar, split windows), not the
+    // viewport's.
     <Container
       background="primary"
       border="primary"
       radius="md"
-      padding="lg"
+      padding="xl"
       minHeight={minHeight}
+      containerType="inline-size"
     >
       <Stack gap="lg">
-        {/* Header: title over metadata subline, diff size pinned right */}
-        <Flex justify="between" align="start" gap="md">
-          <Stack gap="2xs" minWidth="0" flex="1">
-            {/* lg matches the issues feed's row titles */}
-            <IssueTitleLink row={row} to={issueUrl} size="lg" />
-            {/* Only non-default triggers get a badge; "manual" is the default. */}
-            <Flex gap="sm" align="center" wrap="wrap">
-              <InfoText
-                title={
-                  row.userCount > 0
-                    ? t(
-                        '%s events and %s affected users %s',
-                        row.eventCount.toLocaleString(),
-                        row.userCount.toLocaleString(),
-                        periodWindowLabel(row.statsPeriod)
-                      )
-                    : t(
-                        '%s events %s',
-                        row.eventCount.toLocaleString(),
-                        periodWindowLabel(row.statsPeriod)
-                      )
-                }
-                size="sm"
-                variant="muted"
-              >
-                {eventCountLabel}
-                {row.userCount > 0 && ` · ${userCountLabel}`}
-              </InfoText>
-              <Text size="sm" variant="muted" aria-hidden>
-                {'·'}
+        {/* Two-column region: the narrative on the left, an identity + action
+            rail on the right. Narrow cards stack, rail first — it holds the
+            identity and the action, which lead on wide cards too. */}
+        {/* align: start is vertical in row mode, but horizontal once the card
+            stacks — there it must be stretch or the children shrink to
+            content width and long code tokens push past the card edge. */}
+        {/* 3xl gutter: the narrative gives up width so the prose never
+            crowds the rail; xs keeps the tighter vertical gap when the
+            regions stack. */}
+        <Flex
+          gap={{xs: 'xl', sm: '3xl'}}
+          align={{xs: 'stretch', sm: 'start'}}
+          justify="between"
+          direction={{xs: 'column-reverse', sm: 'row'}}
+        >
+          {/* Left: what broke → what Seer changed → what the human does next.
+              The fixed rail pins the right edge; the grid below decides how
+              the prose uses the rest. */}
+          <Stack gap="lg" minWidth="0" flex="1">
+            {/* Grid, not flex: grid items stretch by default, so the level
+                bar spans every wrapped title line and the text cell can't
+                escape the row */}
+            <Grid columns="max-content minmax(0, 1fr)" gap="sm">
+              <LevelBar level={row.level} />
+              {/* lg matches the issues feed's row titles */}
+              <IssueTitleLink row={row} to={issueUrl} size="lg" ellipsis={false} />
+            </Grid>
+
+            {/* The question autofix is blocked on, surfaced right on the card */}
+            {row.pendingQuestion && (
+              <Text size="md" variant="accent">
+                {t('Seer asked: %s', row.pendingQuestion)}
               </Text>
-              <Text size="sm" variant="muted" wrap="nowrap">
-                <TimeSince
-                  date={row.lastActivityAt}
-                  prefix={t('updated')}
-                  tooltipPrefix={t('Last activity on this Seer run')}
-                />
-              </Text>
+            )}
+
+            {/* The analysis sections, one shared voice (eyebrow icon +
+                uppercase label + prose), in thought order — side by side when
+                the card is wide enough for two readable columns */}
+            <Grid
+              columns={
+                // Two-up only when the card is genuinely wide — two cramped
+                // columns read worse than one full-width stack.
+                sections.length > 1 ? {xs: '1fr', xl: 'repeat(2, minmax(0, 1fr))'} : '1fr'
+              }
+              gap="lg 2xl"
+              align="start"
+            >
+              {sections.map(section => (
+                <Stack key={section.key} gap="xs" maxWidth="70ch">
+                  <Flex gap="xs" align="center">
+                    {section.icon}
+                    <Text size="xs" bold uppercase variant={section.variant}>
+                      {section.label}
+                    </Text>
+                  </Flex>
+                  {/* break-word keeps unbreakable code tokens (long file
+                      paths) from forcing the column wider than the card */}
+                  <Text
+                    size={{xs: 'md', lg: 'lg'}}
+                    density="comfortable"
+                    wordBreak="break-word"
+                    as="div"
+                  >
+                    <SeerMarkdown raw={section.answer} />
+                  </Text>
+                </Stack>
+              ))}
+            </Grid>
+          </Stack>
+
+          {/* Right rail: issue identity and vitals, then the action column.
+              The rail width is FIXED so every card's rail — and therefore
+              every card's narrative width and analysis columns — starts at
+              the same x. Inside, a grid gives the action column its natural
+              size and lets the vitals column shrink (minmax(0,1fr)) with
+              truncating text, so oversized content can never push past the
+              card edge. Full-width band above the narrative on narrow
+              cards. */}
+          {/* 380px: a full-width Review PR button (~210px) + gap still
+              leaves the vitals column ~130px, enough for the longest
+              shortIds before the ellipsis kicks in. */}
+          <Grid
+            columns="minmax(0, 1fr) auto"
+            gap="xl"
+            align="start"
+            flexShrink={0}
+            width={{xs: '100%', sm: '380px'}}
+          >
+            <Stack
+              gap={{xs: 'md', sm: 'xs'}}
+              direction={{xs: 'row', sm: 'column'}}
+              wrap="wrap"
+              minWidth="0"
+            >
+              <Flex gap="xs" align="center" minWidth="0">
+                <Tooltip title={t('View project')} skipWrapper>
+                  <ProjectBadge project={row.project} avatarSize={14} hideName />
+                </Tooltip>
+                <Text size="sm" monospace variant="muted" ellipsis>
+                  {row.shortId}
+                </Text>
+              </Flex>
+              <IssueVitals row={row} />
+              {/* Only non-default triggers get a badge; "manual" is the default. */}
               {row.trigger !== 'manual' && (
                 <TriggerBadge trigger={row.trigger} rawSource={row.rawSource} />
               )}
-            </Flex>
-          </Stack>
-          {/* Right cluster: just the diff-size fact — the action lives in
-              the card's tail, the pipeline story on the group header */}
-          <Flex gap="sm" align="center" flexShrink={0}>
-            {row.patchStats && (
-              <Tooltip
-                title={<PatchFilesTooltip stats={row.patchStats} />}
-                maxWidth={480}
-                skipWrapper
-              >
-                <Container
-                  tabIndex={0}
-                  aria-label={tn(
-                    '%s file changed',
-                    '%s files changed',
-                    row.patchStats.files
-                  )}
-                  border="muted"
-                  radius="sm"
-                  background="secondary"
-                  padding="2xs sm"
+            </Stack>
+            <Stack gap="xs" align="end">
+              <IssuePrimaryAction action={cardAction} row={row} runUrl={runUrl} />
+              {row.patchStats && (
+                <Tooltip
+                  title={<PatchFilesTooltip stats={row.patchStats} />}
+                  maxWidth={480}
+                  skipWrapper
                 >
-                  <Text size="xs" variant="muted" monospace wrap="nowrap">
-                    {tn('%s file', '%s files', row.patchStats.files)}{' '}
-                    <Text size="xs" variant="success">
-                      +{row.patchStats.added}
-                    </Text>{' '}
-                    <Text size="xs" variant="danger">
-                      −{row.patchStats.removed}
+                  <Container
+                    tabIndex={0}
+                    aria-label={tn(
+                      '%s file changed',
+                      '%s files changed',
+                      row.patchStats.files
+                    )}
+                    border="muted"
+                    radius="sm"
+                    background="secondary"
+                    padding="2xs sm"
+                  >
+                    <Text size="xs" variant="muted" monospace wrap="nowrap">
+                      {tn('%s file', '%s files', row.patchStats.files)}{' '}
+                      <Text size="xs" variant="success">
+                        +{row.patchStats.added}
+                      </Text>{' '}
+                      <Text size="xs" variant="danger">
+                        −{row.patchStats.removed}
+                      </Text>
                     </Text>
-                  </Text>
-                </Container>
-              </Tooltip>
-            )}
-          </Flex>
-        </Flex>
-
-        {/* The question autofix is blocked on, surfaced right on the card */}
-        {row.pendingQuestion && (
-          <Text size="md" variant="accent">
-            {t('Seer asked: %s', row.pendingQuestion)}
-          </Text>
-        )}
-
-        {/* The analysis sections, one shared voice (eyebrow icon +
-            uppercase label + prose), in thought order */}
-        {sections.map(section => (
-          <Stack key={section.key} gap="xs">
-            <Flex gap="xs" align="center">
-              {section.icon}
-              <Text size="xs" bold uppercase variant={section.variant}>
-                {section.label}
-              </Text>
-            </Flex>
-            <Text size="md" density="comfortable" as="div">
-              <SeerMarkdown raw={section.answer} />
-            </Text>
-          </Stack>
-        ))}
-
-        {/* The drafted diff itself, but only when it's small enough to read
-            on a card (see the INLINE_DIFF_* limits): collapsed file headers
-            that expand in place, aligned with the body's text column */}
-        {row.inlinePatches && (
-          <Stack gap="xs">
-            {row.inlinePatches.map(({patch, repoName}) => (
-              <FileDiffViewer
-                key={`${repoName ?? ''}:${patch.path}`}
-                patch={patch}
-                repoName={repoName}
-                collapsible
-                defaultExpanded={defaultExpanded}
-                showBorder
-              />
-            ))}
-          </Stack>
-        )}
-
-        {/* Tail: primary action left, issue identity right */}
-        <Flex justify="between" align="center" gap="md">
-          <Flex gap="sm" align="center">
-            <IssuePrimaryAction action={cardAction} row={row} runUrl={runUrl} />
-            {row.prUrl && cardAction.type !== 'review_pr' && (
-              <LinkButton
-                size="sm"
-                variant="link"
-                icon={<IconPullRequest />}
-                href={row.prUrl}
-                external
-              >
-                {row.prNumber ? `#${row.prNumber}` : t('PR')}
-              </LinkButton>
-            )}
-          </Flex>
-          <Flex gap="sm" align="center" flexShrink={0}>
-            <ErrorLevel level={row.level} />
-            <Text size="xs" monospace variant="muted">
-              {row.shortId}
-            </Text>
-            <Tooltip title={t('View project')} skipWrapper>
-              <ProjectBadge project={row.project} avatarSize={14} />
-            </Tooltip>
-          </Flex>
+                  </Container>
+                </Tooltip>
+              )}
+              {row.prUrl && cardAction.type !== 'review_pr' && (
+                <LinkButton
+                  size="sm"
+                  variant="link"
+                  icon={<IconPullRequest />}
+                  href={row.prUrl}
+                  external
+                >
+                  {row.prNumber ? `#${row.prNumber}` : t('PR')}
+                </LinkButton>
+              )}
+            </Stack>
+          </Grid>
         </Flex>
       </Stack>
     </Container>
@@ -351,7 +481,6 @@ export function IssueTableRow({
   const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
   const runUrl = {pathname: issueUrl, query: {seerDrawer: 'true'}};
   const cardAction = deriveCardAction(sectionKey, row);
-  const {eventCountLabel, userCountLabel} = issueCountLabels(row);
 
   return (
     <Flex
@@ -364,28 +493,14 @@ export function IssueTableRow({
     >
       <Stack gap="2xs" minWidth="0" flex="1">
         <IssueTitleLink row={row} to={issueUrl} />
-        <Flex gap="xs" align="center" wrap="wrap">
-          <ProjectBadge project={row.project} avatarSize={14} hideName />
-          <Text size="sm" variant="muted" monospace wrap="nowrap">
-            {row.shortId}
-          </Text>
-          <Text size="sm" variant="muted" aria-hidden>
-            {'·'}
-          </Text>
-          <Text size="sm" variant="muted" wrap="nowrap">
-            {eventCountLabel}
-            {row.userCount > 0 && ` · ${userCountLabel}`}
-          </Text>
-          <Text size="sm" variant="muted" aria-hidden>
-            {'·'}
-          </Text>
-          <Text size="sm" variant="muted" wrap="nowrap">
-            <TimeSince
-              date={row.lastActivityAt}
-              prefix={t('updated')}
-              tooltipPrefix={t('Last activity on this Seer run')}
-            />
-          </Text>
+        <Flex gap="md" align="center" wrap="wrap">
+          <Flex gap="xs" align="center">
+            <ProjectBadge project={row.project} avatarSize={14} hideName />
+            <Text size="sm" variant="muted" monospace wrap="nowrap">
+              {row.shortId}
+            </Text>
+          </Flex>
+          <IssueVitals row={row} />
         </Flex>
       </Stack>
       <Flex align="center" flexShrink={0}>
