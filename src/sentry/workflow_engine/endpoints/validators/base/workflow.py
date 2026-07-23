@@ -319,6 +319,11 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             # Update the Workflow.when_condition_group
             triggers = validated_data.pop("triggers", None)
             if triggers is not None:
+                if instance.when_condition_group_id is None and triggers.get("id") is not None:
+                    raise serializers.ValidationError(
+                        f"Invalid Condition Group ID {triggers.get('id')}"
+                    )
+
                 condition_group = self.update_or_create_data_condition_group(
                     triggers, instance.when_condition_group
                 )

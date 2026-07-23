@@ -360,10 +360,11 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert len(response.data["triggers"]["conditions"]) == 3
 
         workflow.refresh_from_db()
-        assert workflow.when_condition_group is not None
-        assert workflow.when_condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
-        assert workflow.when_condition_group.conditions.count() == 3
-        assert set(workflow.when_condition_group.conditions.values_list("type", flat=True)) == {
+        condition_group = workflow.when_condition_group
+        assert condition_group is not None
+        assert condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        assert condition_group.conditions.count() == 3
+        assert set(condition_group.conditions.values_list("type", flat=True)) == {
             Condition.FIRST_SEEN_EVENT,
             Condition.ISSUE_RESOLVED_TRIGGER,
             Condition.REAPPEARED_EVENT,
