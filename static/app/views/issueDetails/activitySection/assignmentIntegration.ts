@@ -15,6 +15,8 @@ export function getAssignmentIntegrationName(integration: AssignmentIntegration)
       return t('Codeowners Rule');
     case 'suspectCommitter':
       return t('Suspect Commit');
+    case 'seerSuggested':
+      return t('Seer Suggestion');
     default:
       return null;
   }
@@ -24,6 +26,7 @@ export function isAutoAssignmentIntegration(integration: AssignmentIntegration) 
   return (
     integration === 'projectOwnership' ||
     integration === 'codeowners' ||
-    integration === 'suspectCommitter'
+    integration === 'suspectCommitter' ||
+    integration === 'seerSuggested'
   );
 }

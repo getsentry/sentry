@@ -68,6 +68,7 @@ function getAssignmentSource(
     case 'projectOwnership':
     case 'codeowners':
     case 'suspectCommitter':
+    case 'seerSuggested':
       return activity.data.integration;
     default:
       return undefined;
