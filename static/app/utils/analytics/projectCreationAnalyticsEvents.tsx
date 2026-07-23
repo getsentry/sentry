@@ -49,6 +49,9 @@ export type ProjectCreationEventParameters = {
     project_id: string;
     variant?: ProjectCreationVariant;
   };
+  'project_creation.manage_providers_clicked': {
+    variant?: ProjectCreationVariant;
+  };
   'project_creation.next_step_clicked': {
     newOrg: boolean;
     platform: string;
@@ -162,6 +165,8 @@ export const projectCreationEventMap: Record<
     'Project Creation: Source Maps Wizard Selected and Copied',
   'project_creation.dsn_copied': 'Project Creation: DSN Copied',
   'project_creation.next_step_clicked': 'Project Creation: Next Step Clicked',
+  'project_creation.manage_providers_clicked':
+    'Project Creation: Manage Providers Clicked',
   'project_creation.js_loader_npm_docs_shown':
     'Project Creation: JS Loader Switch to npm Instructions',
   'project_creation.setup_loader_docs_rendered':

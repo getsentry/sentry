@@ -379,6 +379,7 @@ export function IssueAlertNotificationOptions(
       {shouldRenderSetupButton && (
         <SetupMessagingIntegrationButton
           analyticsView={MessagingIntegrationAnalyticsView.PROJECT_CREATION}
+          variant="legacy"
         />
       )}
     </Fragment>
