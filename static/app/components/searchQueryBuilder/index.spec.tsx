@@ -6014,6 +6014,97 @@ describe('SearchQueryBuilder', () => {
     });
   });
 
+  describe('disallowNegation', () => {
+    it('removes negation operators from string filter options', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowNegation
+          initialQuery="browser.name:firefox"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+      );
+
+      // Positive operators remain available
+      expect(await screen.findByRole('option', {name: 'is'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'contains'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'starts with'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'ends with'})).toBeInTheDocument();
+
+      // Negation operators are hidden
+      expect(screen.queryByRole('option', {name: 'is not'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not contain'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not start with'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not end with'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('removes "does not have" from has filter options', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} disallowNegation initialQuery="has:key" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: has'})
+      );
+
+      expect(await screen.findByRole('option', {name: 'has'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not have'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('marks a negated filter invalid (e.g. when pasted)', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowNegation
+          initialQuery="!browser.name:firefox"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: '!browser.name:firefox'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        await screen.findByText('Negation is not allowed in this search.')
+      ).toBeInTheDocument();
+    });
+
+    it('marks operator-based negation invalid (e.g. pasted "!=")', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowNegation
+          initialQuery="timesSeen:!=5"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'timesSeen:!=5'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        await screen.findByText('Negation is not allowed in this search.')
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('highlightUnsupportedFilters', () => {
     it('should mark unsupported filters as invalid', async () => {
       render(
