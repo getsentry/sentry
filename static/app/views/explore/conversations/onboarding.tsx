@@ -472,7 +472,6 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     },
     platformOptions: selectedPlatformOptions,
     docsLocation: DocsPageLocation.PROFILING_PAGE,
-    newOrg: false,
     urlPrefix,
     isSelfHosted,
   };

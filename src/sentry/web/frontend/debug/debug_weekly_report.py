@@ -207,7 +207,14 @@ class DebugWeeklyReportView(MailPreviewView):
                         substatus=GroupSubStatus.NEW,
                     ),
                     random.randint(100, 5000),
-                    random.choice([True, False]),
+                    random.choice(
+                        [
+                            "Resolved",
+                            "Resolved in PR",
+                            "Resolved in release",
+                            "Resolved in next release",
+                        ]
+                    ),
                 )
                 for group_index in range(3)
             ]
@@ -276,7 +283,7 @@ class DebugWeeklyReportView(MailPreviewView):
                 context["spans_chart_url"] = chart_url
             past_issues: list[dict[str, Any]] = []
             for project_ctx in ctx.projects_context_map.values():
-                for group, count, has_link in project_ctx.past_resolved_issues:
+                for group, count, resolution_label in project_ctx.past_resolved_issues:
                     display = get_group_display(group)
                     past_issues.append(
                         {
@@ -284,7 +291,7 @@ class DebugWeeklyReportView(MailPreviewView):
                             "group": group,
                             "title": display["title"],
                             "message": display["message"],
-                            "has_linked_pr_or_commit": has_link,
+                            "resolution_label": resolution_label,
                         }
                     )
             past_issues.sort(key=lambda x: x["count"], reverse=True)

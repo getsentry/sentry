@@ -1,3 +1,11 @@
+/**
+ * Project-creation-flow variant. Encodes SCM vs legacy in a param instead of the
+ * event name so both variants keep incrementing the same `project_creation.*`
+ * counter (preserving absolute dashboard totals) while staying segmentable. See
+ * the setup-docs events below and the SCM cores that emit it.
+ */
+export type ProjectCreationVariant = 'scm' | 'legacy';
+
 export type ProjectCreationEventParameters = {
   'project_creation.back_button_clicked': Record<string, unknown>;
   'project_creation.data_removal_modal_confirm_button_clicked': {
@@ -10,6 +18,28 @@ export type ProjectCreationEventParameters = {
     date_created: string;
     platform: string;
     project_id: string;
+  };
+  // Setup-docs (getting-started) page events, mirroring onboarding.* /
+  // onboarding.scm_*. The non-scm_ keys fix a pollution bug where project
+  // creation previously emitted onboarding.* for these interactions. The
+  // optional `variant` splits SCM vs legacy project creation without a separate
+  // event name (see docsFlowAnalytics.ts / docsFlowVariantParams).
+  'project_creation.dsn_copied': {
+    platform: string;
+    variant?: ProjectCreationVariant;
+  };
+  'project_creation.js_loader_npm_docs_shown': {
+    platform: string;
+    project_id: string;
+    variant?: ProjectCreationVariant;
+  };
+  'project_creation.next_step_clicked': {
+    newOrg: boolean;
+    platform: string;
+    products: string[];
+    project_id: string;
+    step: string;
+    variant?: ProjectCreationVariant;
   };
   // SCM-first project creation flow (mirrors onboarding.scm_*)
   'project_creation.scm_connect_integration_selected': {
@@ -63,13 +93,20 @@ export type ProjectCreationEventParameters = {
   'project_creation.select_framework_modal_skip_button_clicked': {
     platform: string;
   };
+  'project_creation.setup_loader_docs_rendered': {
+    platform: string;
+    project_id: string;
+    variant?: ProjectCreationVariant;
+  };
   'project_creation.source_maps_wizard_button_copy_clicked': {
     platform: string;
     project_id: string;
+    variant?: ProjectCreationVariant;
   };
   'project_creation.source_maps_wizard_selected_and_copied': {
     platform: string;
     project_id: string;
+    variant?: ProjectCreationVariant;
   };
 };
 
@@ -122,4 +159,10 @@ export const projectCreationEventMap: Record<
     'Project Creation: Source Maps Wizard Button Copy Clicked',
   'project_creation.source_maps_wizard_selected_and_copied':
     'Project Creation: Source Maps Wizard Selected and Copied',
+  'project_creation.dsn_copied': 'Project Creation: DSN Copied',
+  'project_creation.next_step_clicked': 'Project Creation: Next Step Clicked',
+  'project_creation.js_loader_npm_docs_shown':
+    'Project Creation: JS Loader Switch to npm Instructions',
+  'project_creation.setup_loader_docs_rendered':
+    'Project Creation: Setup Loader Docs Rendered',
 };

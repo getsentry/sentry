@@ -25,7 +25,6 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
-import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {ProgressState, type Group} from 'sentry/types/group';
@@ -38,6 +37,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
+import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 
@@ -374,23 +374,7 @@ function InboxIssueCard({
           </Flex>
         </Stack>
         <Stack align="end" justify="between" gap="sm">
-          <Flex align="center" gap="xs" wrap="nowrap">
-            <TimeSince
-              date={group.lastSeen}
-              suffix=""
-              unitStyle="extraShort"
-              tooltipPrefix={t('Last Seen')}
-              variant="muted"
-            />
-            <Text variant="muted">|</Text>
-            <TimeSince
-              date={group.firstSeen}
-              suffix=""
-              unitStyle="extraShort"
-              tooltipPrefix={t('First Seen')}
-              variant="muted"
-            />
-          </Flex>
+          <IssueSeenTimes group={group} />
           {group.assignedTo &&
             (group.assignedTo.type === 'user' ? (
               <UserAvatar
