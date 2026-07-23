@@ -140,6 +140,7 @@ function IssuePreviewContent() {
                 variant="transparent"
                 icon={<IconOpen />}
                 aria-label={t('Open Issue')}
+                tooltipProps={{title: t('Open Issue')}}
               />
             </Flex>
             <Flex align="center" gap="xs" wrap="nowrap">
