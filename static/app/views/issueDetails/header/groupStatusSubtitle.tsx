@@ -73,18 +73,17 @@ export function GroupStatusSubtitle({
           </Tooltip>
         </Fragment>
       )}
-      {showProgress && progress && (
-        <Fragment>
-          <Divider />
-          <IssueProgressTag state={progress} />
-        </Fragment>
-      )}
       <ErrorBoundary customComponent={null}>
         <AttachmentsBadge group={group} />
         <UserFeedbackBadge group={group} project={project} />
         <ReplayBadge group={group} project={project} />
         <SeerBadge group={group} />
       </ErrorBoundary>
+      {showProgress && progress && (
+        <Flex align="center" marginLeft="auto">
+          <IssueProgressTag state={progress} />
+        </Flex>
+      )}
     </Flex>
   );
 }
