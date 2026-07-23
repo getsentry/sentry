@@ -11,7 +11,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
-import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
+import {type ScmAnalyticsFlow, scmFlowVariantParams} from './scmAnalyticsFlow';
 import {ScmIntegrationSelect} from './scmIntegrationSelect';
 import {ScmProviderPills} from './scmProviderPills';
 import {ScmRepoSelector} from './scmRepoSelector';
@@ -20,7 +20,7 @@ import {useScmProviders} from './useScmProviders';
 
 const INTEGRATION_SELECTED_EVENT = {
   onboarding: 'onboarding.scm_connect_integration_selected',
-  'project-creation': 'project_creation.scm_connect_integration_selected',
+  'project-creation': 'project_creation.connect_integration_selected',
 } as const;
 
 interface ScmIntegrationConnectProps {
@@ -114,6 +114,7 @@ export function ScmIntegrationConnect({
       organization,
       provider: effectiveIntegration.provider.key,
       source: 'default',
+      ...scmFlowVariantParams(analyticsFlow),
     });
   }, [
     allowIntegrationSwitching,
@@ -149,6 +150,7 @@ export function ScmIntegrationConnect({
         organization,
         provider: integration.provider.key,
         source: 'manual',
+        ...scmFlowVariantParams(analyticsFlow),
       });
     },
     [

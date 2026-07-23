@@ -18,7 +18,7 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
+import {type ScmAnalyticsFlow, scmFlowVariantParams} from './scmAnalyticsFlow';
 import {ScmFeatureInfoCards} from './scmFeatureInfoCards';
 import {ScmFeatureSelectionCards} from './scmFeatureSelectionCards';
 import {
@@ -31,7 +31,7 @@ import {useScmResolvedPlatform} from './useScmResolvedPlatform';
 
 const FEATURE_TOGGLED_EVENT = {
   onboarding: 'onboarding.scm_platform_feature_toggled',
-  'project-creation': 'project_creation.scm_platform_feature_toggled',
+  'project-creation': 'project_creation.platform_feature_toggled',
 } as const;
 
 interface ScmFeatureSelectionPanelProps {
@@ -154,6 +154,7 @@ export function ScmFeatureSelectionPanel({
         feature,
         enabled: !wasEnabled,
         platform: currentPlatformKey ?? '',
+        ...scmFlowVariantParams(analyticsFlow),
       });
     },
     [

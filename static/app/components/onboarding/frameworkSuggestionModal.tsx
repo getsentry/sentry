@@ -15,7 +15,10 @@ import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
-import type {ScmAnalyticsFlow} from 'sentry/components/onboarding/scm/scmAnalyticsFlow';
+import {
+  type ScmAnalyticsFlow,
+  scmFlowVariantParams,
+} from 'sentry/components/onboarding/scm/scmAnalyticsFlow';
 import {
   useCreateProjectAndRulesError,
   useIsCreatingProjectAndRules,
@@ -45,11 +48,11 @@ export enum SupportedLanguages {
 // the active flow (new-org onboarding vs SCM-first project creation).
 const SCM_FRAMEWORK_MODAL_RENDERED_EVENT = {
   onboarding: 'onboarding.scm_select_framework_modal_rendered',
-  'project-creation': 'project_creation.scm_select_framework_modal_rendered',
+  'project-creation': 'project_creation.select_framework_modal_rendered',
 } as const;
 const SCM_PLATFORM_SELECTED_EVENT = {
   onboarding: 'onboarding.scm_platform_selected',
-  'project-creation': 'project_creation.scm_platform_selected',
+  'project-creation': 'project_creation.platform_selected',
 } as const;
 
 const topGoFrameworks: PlatformKey[] = [
@@ -213,17 +216,28 @@ export function FrameworkSuggestionModal({
   });
 
   useEffect(() => {
-    trackAnalytics(
-      hasScmOnboarding
-        ? SCM_FRAMEWORK_MODAL_RENDERED_EVENT[analyticsFlow]
-        : newOrg
-          ? 'onboarding.select_framework_modal_rendered'
-          : 'project_creation.select_framework_modal_rendered',
-      {
+    if (hasScmOnboarding) {
+      trackAnalytics(SCM_FRAMEWORK_MODAL_RENDERED_EVENT[analyticsFlow], {
         platform: selectedPlatform.key,
         organization,
-      }
-    );
+        ...scmFlowVariantParams(analyticsFlow),
+      });
+    } else if (newOrg) {
+      trackAnalytics('onboarding.select_framework_modal_rendered', {
+        platform: selectedPlatform.key,
+        organization,
+      });
+    } else {
+      // Legacy project-creation variant shares the base
+      // project_creation.select_framework_modal_rendered name with the SCM
+      // variant above; stamp variant:'legacy' so it isn't dropped from
+      // variant-filtered queries.
+      trackAnalytics('project_creation.select_framework_modal_rendered', {
+        platform: selectedPlatform.key,
+        organization,
+        variant: 'legacy',
+      });
+    }
   }, [selectedPlatform.key, organization, newOrg, hasScmOnboarding, analyticsFlow]);
 
   const handleConfigure = useCallback(() => {
@@ -236,6 +250,7 @@ export function FrameworkSuggestionModal({
         organization,
         platform: selectedFramework.key,
         source: 'manual',
+        ...scmFlowVariantParams(analyticsFlow),
       });
     } else {
       trackAnalytics(
@@ -267,6 +282,7 @@ export function FrameworkSuggestionModal({
         organization,
         platform: selectedPlatform.key,
         source: 'manual',
+        ...scmFlowVariantParams(analyticsFlow),
       });
     } else {
       trackAnalytics(

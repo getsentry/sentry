@@ -32,6 +32,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {slugify} from 'sentry/utils/slugify';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -274,6 +275,7 @@ export function CreateProject() {
     'project_creation_page.viewed',
     'Project Create: Creation page viewed'
   );
+  useRouteAnalyticsParams({variant: 'legacy'});
 
   const configurePlatform = useCallback(
     async ({
@@ -308,6 +310,7 @@ export function CreateProject() {
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
           notification_rule_created: !!notificationRule,
+          variant: 'legacy',
         });
 
         addSuccessMessage(

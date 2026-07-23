@@ -4,7 +4,10 @@ import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
-import type {ScmAnalyticsFlow} from 'sentry/components/onboarding/scm/scmAnalyticsFlow';
+import {
+  type ScmAnalyticsFlow,
+  scmFlowVariantParams,
+} from 'sentry/components/onboarding/scm/scmAnalyticsFlow';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
@@ -32,32 +35,36 @@ import {
 } from 'sentry/views/projectInstall/issueAlertOptions';
 
 // The project-details analytics events, routed by the active flow (new-org
-// onboarding vs SCM-first project creation). The project_creation.* events are
-// registered in projectCreationAnalyticsEvents.tsx. STEP_VIEWED is fired by the
-// presentational component when the step is rendered, not here.
+// onboarding vs SCM-first project creation). Onboarding keeps its distinct
+// `onboarding.scm_*` names; the project-creation arm fires the base
+// `project_creation.*` name and carries the SCM/legacy split in a `variant`
+// param (see scmFlowVariantParams) so it shares the counter with the legacy
+// flow. STEP_VIEWED is fired by the presentational component when the step is
+// rendered, not here.
 const NAME_EDITED_EVENT = {
   onboarding: 'onboarding.scm_project_details_name_edited',
-  'project-creation': 'project_creation.scm_project_details_name_edited',
+  'project-creation': 'project_creation.project_details_name_edited',
 } as const;
 const TEAM_SELECTED_EVENT = {
   onboarding: 'onboarding.scm_project_details_team_selected',
-  'project-creation': 'project_creation.scm_project_details_team_selected',
+  'project-creation': 'project_creation.project_details_team_selected',
 } as const;
 const ALERT_SELECTED_EVENT = {
   onboarding: 'onboarding.scm_project_details_alert_selected',
-  'project-creation': 'project_creation.scm_project_details_alert_selected',
+  'project-creation': 'project_creation.project_details_alert_selected',
 } as const;
 const CREATE_CLICKED_EVENT = {
   onboarding: 'onboarding.scm_project_details_create_clicked',
-  'project-creation': 'project_creation.scm_project_details_create_clicked',
+  'project-creation': 'project_creation.project_details_create_clicked',
 } as const;
-const CREATE_SUCCEEDED_EVENT = {
-  onboarding: 'onboarding.scm_project_details_create_succeeded',
-  'project-creation': 'project_creation.scm_project_details_create_succeeded',
-} as const;
+// Create-succeeded diverges by flow (different payloads), so it is fired via an
+// explicit branch in `submit` rather than a routing map: onboarding keeps
+// `onboarding.scm_project_details_create_succeeded` ({project_slug}); the
+// project-creation arm reuses the legacy `project_creation_page.created` counter
+// ({project_id, platform, variant:'scm'}) so absolute creation counts stay whole.
 const CREATE_FAILED_EVENT = {
   onboarding: 'onboarding.scm_project_details_create_failed',
-  'project-creation': 'project_creation.scm_project_details_create_failed',
+  'project-creation': 'project_creation.project_details_create_failed',
 } as const;
 
 export function getSubmitTooltipText({
@@ -235,6 +242,7 @@ export function useScmProjectDetails({
       trackAnalytics(NAME_EDITED_EVENT[analyticsFlow], {
         organization,
         custom: projectDetailsForm.projectName !== defaultName,
+        ...scmFlowVariantParams(analyticsFlow),
       });
     }
   }, [projectDetailsForm?.projectName, defaultName, organization, analyticsFlow]);
@@ -242,7 +250,11 @@ export function useScmProjectDetails({
   const onTeamChange = useCallback(
     ({value}: {value: string}) => {
       onProjectDetailsFormChange({...projectDetailsForm, teamSlug: value});
-      trackAnalytics(TEAM_SELECTED_EVENT[analyticsFlow], {organization, team: value});
+      trackAnalytics(TEAM_SELECTED_EVENT[analyticsFlow], {
+        organization,
+        team: value,
+        ...scmFlowVariantParams(analyticsFlow),
+      });
     },
     [onProjectDetailsFormChange, projectDetailsForm, organization, analyticsFlow]
   );
@@ -262,6 +274,7 @@ export function useScmProjectDetails({
         trackAnalytics(ALERT_SELECTED_EVENT[analyticsFlow], {
           organization,
           option: optionMap[value as number] ?? String(value),
+          ...scmFlowVariantParams(analyticsFlow),
         });
       }
     },
@@ -375,7 +388,10 @@ export function useScmProjectDetails({
     isCompletingRef.current = true;
     setIsCompleting(true);
 
-    trackAnalytics(CREATE_CLICKED_EVENT[analyticsFlow], {organization});
+    trackAnalytics(CREATE_CLICKED_EVENT[analyticsFlow], {
+      organization,
+      ...scmFlowVariantParams(analyticsFlow),
+    });
 
     const notificationAction = hasNotificationAction
       ? buildIntegrationAction(notificationProps)
@@ -386,27 +402,53 @@ export function useScmProjectDetails({
       alertRuleConfig,
       notificationAction,
     };
+    // Mirror the legacy project_creation_page.created `issue_alert` breakdown
+    // (see createProject.tsx): Custom > Default > No Rule, derived from the
+    // configured alert setting.
+    const issueAlert =
+      alertRuleConfig.alertSetting === RuleAction.CUSTOMIZED_ALERTS
+        ? 'Custom'
+        : alertRuleConfig.alertSetting === RuleAction.CREATE_ALERT_LATER
+          ? 'No Rule'
+          : 'Default';
 
     try {
       // User navigated back and clicked Create without changing anything; skip
       // to completion without creating a duplicate. Any actual change abandons
       // the previous project and creates a new one, matching legacy onboarding.
       if (existingProject && nothingChanged) {
-        trackAnalytics(CREATE_SUCCEEDED_EVENT[analyticsFlow], {
-          organization,
-          project_slug: existingProject.slug,
-        });
+        if (analyticsFlow === 'onboarding') {
+          trackAnalytics('onboarding.scm_project_details_create_succeeded', {
+            organization,
+            project_slug: existingProject.slug,
+          });
+        } else {
+          // Back-nav "nothing changed" path: no project or rules were created
+          // this pass, so the rule breakdown reflects "nothing new created now"
+          // while issue_alert echoes the configured setting (matches legacy
+          // payload shape; variant discriminates SCM).
+          trackAnalytics('project_creation_page.created', {
+            organization,
+            project_id: existingProject.id,
+            platform: selectedPlatform.key,
+            issue_alert: issueAlert,
+            notification_rule_created: false,
+            rule_ids: [],
+            variant: 'scm',
+          });
+        }
         onComplete({project: existingProject, projectDetailsForm: submittedForm});
         return;
       }
 
-      const {project} = await createProjectAndRules.mutateAsync({
-        projectName: projectNameResolved,
-        platform: selectedPlatform,
-        team: isOrgMemberWithNoAccess ? undefined : teamSlugResolved,
-        alertRuleConfig: getRequestDataFragment(alertRuleConfig),
-        createNotificationAction,
-      });
+      const {project, ruleIds, notificationRule} =
+        await createProjectAndRules.mutateAsync({
+          projectName: projectNameResolved,
+          platform: selectedPlatform,
+          team: isOrgMemberWithNoAccess ? undefined : teamSlugResolved,
+          alertRuleConfig: getRequestDataFragment(alertRuleConfig),
+          createNotificationAction,
+        });
 
       if (selectedRepository?.id) {
         try {
@@ -420,14 +462,29 @@ export function useScmProjectDetails({
         }
       }
 
-      trackAnalytics(CREATE_SUCCEEDED_EVENT[analyticsFlow], {
-        organization,
-        project_slug: project.slug,
-      });
+      if (analyticsFlow === 'onboarding') {
+        trackAnalytics('onboarding.scm_project_details_create_succeeded', {
+          organization,
+          project_slug: project.slug,
+        });
+      } else {
+        trackAnalytics('project_creation_page.created', {
+          organization,
+          project_id: project.id,
+          platform: selectedPlatform.key,
+          issue_alert: issueAlert,
+          notification_rule_created: !!notificationRule,
+          rule_ids: ruleIds,
+          variant: 'scm',
+        });
+      }
 
       onComplete({project, projectDetailsForm: submittedForm});
     } catch (error) {
-      trackAnalytics(CREATE_FAILED_EVENT[analyticsFlow], {organization});
+      trackAnalytics(CREATE_FAILED_EVENT[analyticsFlow], {
+        organization,
+        ...scmFlowVariantParams(analyticsFlow),
+      });
       addErrorMessage(t('Failed to create project'));
       Sentry.captureException(error);
     } finally {
