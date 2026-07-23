@@ -66,7 +66,6 @@ _MESSAGE_ATTRS = (
 
 @dataclass(frozen=True, slots=True)
 class ConversationTitleSpanData:
-    project_id: int
     conversation_id: str
     source_timestamp: datetime
     first_user_message: str
@@ -98,7 +97,16 @@ def _extract_first_user_message(messages: Any) -> str | None:
     return None
 
 
-def _first_user_message(span: Mapping[str, Any]) -> str | None:
+def conversation_id_from_span(span: Mapping[str, Any]) -> str | None:
+    """Cheap check: the gen_ai conversation id, if this span carries one."""
+    raw = attribute_value(span, ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID)
+    if raw is None:
+        return None
+    conversation_id = str(raw).strip()
+    return conversation_id or None
+
+
+def first_user_message_from_span(span: Mapping[str, Any]) -> str | None:
     for key in _MESSAGE_ATTRS:
         messages = attribute_value(span, key)
         if not messages:
@@ -130,41 +138,8 @@ def _parse_timestamp(raw: Any) -> datetime | None:
     return None
 
 
-def parse_conversation_title_span(
-    span: Mapping[str, Any],
-) -> ConversationTitleSpanData | None:
-    """
-    Pull everything needed for title generation out of a Kafka span.
-
-    Top-level fields (project_id, start_timestamp) live on the span root.
-    Gen-AI fields live under attributes[key].value — that's the wire format,
-    not two competing access styles at the call sites.
-    """
-    project_id = span.get("project_id")
-    if not isinstance(project_id, int):
-        return None
-
-    conversation_id_raw = attribute_value(span, ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID)
-    if conversation_id_raw is None:
-        return None
-    conversation_id = str(conversation_id_raw).strip()
-    if not conversation_id:
-        return None
-
-    source_timestamp = _parse_timestamp(span.get("start_timestamp"))
-    if source_timestamp is None:
-        return None
-
-    first_user_message = _first_user_message(span)
-    if not first_user_message:
-        return None
-
-    return ConversationTitleSpanData(
-        project_id=project_id,
-        conversation_id=conversation_id,
-        source_timestamp=source_timestamp,
-        first_user_message=first_user_message,
-    )
+def span_source_timestamp(span: Mapping[str, Any]) -> datetime | None:
+    return _parse_timestamp(span.get("start_timestamp"))
 
 
 def clamp_user_message(message: str) -> str:

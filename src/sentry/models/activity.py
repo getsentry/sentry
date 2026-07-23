@@ -28,7 +28,12 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.action_log import publish_action_from_context, publish_actions_from_context_bulk
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.tasks import activity
-from sentry.types.activity import CHOICES, STATUS_CHANGE_ACTIVITY_TYPES, ActivityType
+from sentry.types.activity import (
+    CHOICES,
+    HIDDEN_ACTIVITY_TYPES,
+    STATUS_CHANGE_ACTIVITY_TYPES,
+    ActivityType,
+)
 from sentry.types.group import PriorityLevel
 from sentry.utils.action_log.activity_translator import (
     activity_action_idempotency_key,
@@ -50,7 +55,13 @@ _default_logger = logging.getLogger(__name__)
 class ActivityManager(BaseManager["Activity"]):
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Activity]:
         activities = []
-        activity_qs = self.filter(group=group).order_by("-datetime")
+        # Internal-signal activities (e.g. SMART_ASSIGNMENT_COMPLETED) exist only to drive
+        # workflow handlers; they have no frontend rendering and must be kept out of the feed.
+        activity_qs = (
+            self.filter(group=group)
+            .exclude(type__in=[t.value for t in HIDDEN_ACTIVITY_TYPES])
+            .order_by("-datetime")
+        )
 
         initial_priority_value = group.get_event_metadata().get("initial_priority")
         initial_priority = (
