@@ -1,4 +1,4 @@
-import {Fragment, type ReactNode} from 'react';
+import {Fragment} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -38,35 +38,11 @@ import {
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 
-type ChromeRenderer = (children: ReactNode) => ReactNode;
-
 interface IssuePreviewProps {
   groupId: string;
-  renderBody?: ChromeRenderer;
-  renderHeader?: ChromeRenderer;
 }
 
-function renderDefaultHeader(children: ReactNode) {
-  return (
-    <Container padding="md" borderBottom="muted">
-      {children}
-    </Container>
-  );
-}
-
-function renderDefaultBody(children: ReactNode) {
-  return (
-    <Container flexGrow={1} minHeight={0} overflowY="auto" padding="lg">
-      {children}
-    </Container>
-  );
-}
-
-export function IssuePreview({
-  groupId,
-  renderHeader = renderDefaultHeader,
-  renderBody = renderDefaultBody,
-}: IssuePreviewProps) {
+export function IssuePreview({groupId}: IssuePreviewProps) {
   const organization = useOrganization();
   const {data: group, isPending, isError} = useGroup({groupId});
   const {projects} = useProjects();
@@ -78,7 +54,7 @@ export function IssuePreview({
 
   return (
     <Fragment>
-      {renderHeader(
+      <Container padding="md" borderBottom="muted">
         <Flex justify="between" align="center" flex="1" gap="md">
           {group && project && <IssueIdBreadcrumb group={group} project={project} />}
           <Flex justify="end" flex="1">
@@ -87,20 +63,18 @@ export function IssuePreview({
             </LinkButton>
           </Flex>
         </Flex>
-      )}
-      {renderBody(
-        <Fragment>
-          {isPending && <LoadingIndicator />}
-          {isError && <LoadingError />}
-          {group && project && (
-            <GroupDataContextProvider group={group} project={project}>
-              <ErrorBoundary mini>
-                <IssuePreviewContent />
-              </ErrorBoundary>
-            </GroupDataContextProvider>
-          )}
-        </Fragment>
-      )}
+      </Container>
+      <Container flexGrow={1} minHeight={0} overflowY="auto" padding="lg">
+        {isPending && <LoadingIndicator />}
+        {isError && <LoadingError />}
+        {group && project && (
+          <GroupDataContextProvider group={group} project={project}>
+            <ErrorBoundary mini>
+              <IssuePreviewContent />
+            </ErrorBoundary>
+          </GroupDataContextProvider>
+        )}
+      </Container>
     </Fragment>
   );
 }

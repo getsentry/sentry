@@ -159,30 +159,6 @@ describe('StreamGroup', () => {
     });
   });
 
-  it('calls onGroupClick instead of navigating when the row is clicked', async () => {
-    const onGroupClick = jest.fn();
-    const {router} = render(
-      <StreamGroup group={group1} query="is:unresolved" onGroupClick={onGroupClick} />
-    );
-
-    await userEvent.click(await screen.findByTestId('group'));
-
-    expect(onGroupClick).toHaveBeenCalledWith(group1);
-    expect(router.location.pathname).not.toBe('/organizations/org-slug/issues/1337/');
-  });
-
-  it('calls onGroupClick on a plain left-click of the title', async () => {
-    const onGroupClick = jest.fn();
-    const {router} = render(
-      <StreamGroup group={group1} query="is:unresolved" onGroupClick={onGroupClick} />
-    );
-
-    await userEvent.click(screen.getByText('RequestError'), {skipHover: true});
-
-    expect(onGroupClick).toHaveBeenCalledWith(group1);
-    expect(router.location.pathname).not.toBe('/organizations/org-slug/issues/1337/');
-  });
-
   it('displays unread indicator when issue is unread', async () => {
     const unreadGroup = GroupFixture({id: '1337', hasSeen: false});
 
