@@ -24,6 +24,7 @@ from sentry.issues.grouptype import (
 from sentry.models.group import DEFAULT_TYPE_ID, Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -98,8 +99,8 @@ class ProjectContext:
         self.key_error_issues: list[tuple[Group, int]] = []
         # Array of (Group, count)
         self.key_performance_issues = []
-        # Array of (Group, event_count, has_linked_pr_or_commit)
-        self.past_resolved_issues: list[tuple[Group, int, bool]] = []
+        # Array of (Group, event_count, resolution_label)
+        self.past_resolved_issues: list[tuple[Group, int, str]] = []
 
         self.key_replay_events = []
 
@@ -509,7 +510,7 @@ PAST_ISSUES_LINK_BOOST = 2
 
 def project_past_resolved_issues(
     ctx: OrganizationReportContext, project: Project, referrer: str
-) -> list[tuple[Group, int, bool]]:
+) -> list[tuple[Group, int, str]]:
     if not project.first_event:
         return []
 
@@ -574,13 +575,13 @@ def project_past_resolved_issues(
             )
             event_counts.update(performance_counts)
 
-        # has_link is initially False; updated by fetch_past_resolved_issue_links at org level
+        # resolution_label defaults to "Resolved"; enriched by fetch_past_resolved_issue_links at org level
         scored = []
         for group_id, count in event_counts.items():
             group = group_id_to_group.get(group_id)
             if group is None:
                 continue
-            scored.append((group, count, False))
+            scored.append((group, count, "Resolved"))
 
         scored.sort(key=lambda x: x[1], reverse=True)
         return scored
@@ -664,31 +665,44 @@ def _past_resolved_performance_counts(
 def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
     all_group_ids: list[int] = []
     for project_ctx in ctx.projects_context_map.values():
-        all_group_ids.extend(
-            group.id for group, _count, _has_link in project_ctx.past_resolved_issues
-        )
+        all_group_ids.extend(group.id for group, _count, _label in project_ctx.past_resolved_issues)
 
     if not all_group_ids:
         return
 
-    groups_with_links = set(
+    resolution_labels: dict[int, str] = {}
+
+    groups_with_pr = set(
         GroupLink.objects.filter(
             group_id__in=all_group_ids,
-            linked_type__in=[GroupLink.LinkedType.commit, GroupLink.LinkedType.pull_request],
+            linked_type=GroupLink.LinkedType.pull_request,
             relationship=GroupLink.Relationship.resolves,
         ).values_list("group_id", flat=True)
     )
+    for gid in groups_with_pr:
+        resolution_labels[gid] = "Resolved in PR"
+
+    for gr in GroupResolution.objects.filter(group_id__in=all_group_ids):
+        if gr.group_id in resolution_labels:
+            continue
+        if gr.current_release_version or gr.type in (
+            None,
+            GroupResolution.Type.in_next_release,
+        ):
+            resolution_labels[gr.group_id] = "Resolved in next release"
+        else:
+            resolution_labels[gr.group_id] = "Resolved in release"
 
     for project_ctx in ctx.projects_context_map.values():
         project_ctx.past_resolved_issues = [
-            (group, count, group.id in groups_with_links)
-            for group, count, _has_link in project_ctx.past_resolved_issues
+            (group, count, resolution_labels.get(group.id, "Resolved"))
+            for group, count, _label in project_ctx.past_resolved_issues
         ]
 
     # Re-sort with link boost applied, then truncate to top 3
     for project_ctx in ctx.projects_context_map.values():
         project_ctx.past_resolved_issues.sort(
-            key=lambda x: x[1] * (PAST_ISSUES_LINK_BOOST if x[2] else 1),
+            key=lambda x: x[1] * (PAST_ISSUES_LINK_BOOST if x[2] != "Resolved" else 1),
             reverse=True,
         )
         project_ctx.past_resolved_issues = project_ctx.past_resolved_issues[:3]
