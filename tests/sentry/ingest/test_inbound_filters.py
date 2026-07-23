@@ -3,9 +3,9 @@ from django.test import override_settings
 from sentry_relay.processing import is_glob_match
 
 from sentry.ingest.inbound_filters import (
-    _chunk_load_error_filter,
-    _custom_error_filter,
     _error_message_condition,
+    chunk_load_error_filter,
+    configured_error_filter,
     get_generic_filters,
 )
 from sentry.models.project import Project
@@ -49,19 +49,22 @@ def test_custom_error_filter_empty() -> None:
     # With no custom values configured, the filter is a no-op and must be omitted from
     # the Relay config entirely rather than emitting an empty condition.
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[]):
-        condition = _custom_error_filter()
+        filter = configured_error_filter()
 
-    assert condition is None
+    assert filter is None
     assert not exception_matches_filters("MyError", "Something went wrong in checkout", [])
 
 
 def test_custom_error_filter_builds_one_rule_per_pattern() -> None:
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS):
-        condition = _custom_error_filter()
+        filter = configured_error_filter()
 
+    assert filter is not None
+    assert filter["id"] == "custom-error"
+    assert filter["isEnabled"] is True
     # The custom filter matches exceptions AND messages: the exception branch iterates
     # over event.exception.values, while type-less patterns also glob the logentry message.
-    assert condition == {
+    assert filter["condition"] == {
         "op": "or",
         "inner": [
             {
@@ -100,9 +103,10 @@ def test_custom_error_filter_exception_only_patterns_omit_logentry_branch() -> N
     with override_settings(
         SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[("MyError", "Something went wrong *")]
     ):
-        condition = _custom_error_filter()
+        filter = configured_error_filter()
 
-    assert condition == {
+    assert filter is not None
+    assert filter["condition"] == {
         "op": "any",
         "name": "event.exception.values",
         "inner": {
@@ -122,7 +126,7 @@ def test_custom_error_filter_exception_only_patterns_omit_logentry_branch() -> N
 
 def test_chunk_load_filter_unchanged_by_logentry_matching() -> None:
     # Built-in filters must not gain message matching: they keep the exception-only shape.
-    condition = _chunk_load_error_filter()
+    condition = chunk_load_error_filter()["condition"]
 
     # An "any" top level (rather than the "or" wrapper) means there is no logentry branch.
     assert condition["op"] == "any"
@@ -183,7 +187,7 @@ def test_custom_error_filter_matches_concrete_messages(
     exc_type: str, exc_message: str, expected: bool
 ) -> None:
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS):
-        _custom_error_filter()
+        configured_error_filter()
 
     assert exception_matches_filters(exc_type, exc_message, CUSTOM_PATTERNS) is expected
 
@@ -202,6 +206,6 @@ def test_custom_error_filter_matches_concrete_messages_via_logentry(
     message: str, expected: bool
 ) -> None:
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS):
-        _custom_error_filter()
+        configured_error_filter()
 
     assert message_matches_filters(message, CUSTOM_PATTERNS) is expected

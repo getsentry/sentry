@@ -1,9 +1,9 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from typing import cast
 
 from django.conf import settings
 
-from sentry.relay.types import RuleCondition
+from sentry.relay.types import GenericFilter, RuleCondition
 
 
 def _error_message_condition(
@@ -69,7 +69,7 @@ def _error_message_condition(
     )
 
 
-def _chunk_load_error_filter() -> RuleCondition:
+def chunk_load_error_filter() -> GenericFilter:
     """
     Filters out chunk load errors.
 
@@ -87,20 +87,27 @@ def _chunk_load_error_filter() -> RuleCondition:
         # Promise rejections
         ("Error", "Uncaught (in promise): ChunkLoadError*"),
     ]
+    return {
+        "id": "chunk-load-error",
+        "isEnabled": True,
+        "condition": _error_message_condition(values),
+    }
 
-    return _error_message_condition(values)
 
-
-def _custom_error_filter() -> RuleCondition | None:
+def configured_error_filter() -> GenericFilter | None:
     values = settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES
     # The filter is enabled by default for all projects, but is a no-op unless custom
     # values are configured. Return None so it is omitted from the Relay config entirely.
     if not values:
         return None
-    return _error_message_condition(values, match_logentry=True)
+    return {
+        "id": "custom-error",
+        "isEnabled": True,
+        "condition": _error_message_condition(values, match_logentry=True),
+    }
 
 
-def _hydration_error_filter() -> RuleCondition:
+def hydration_error_filter() -> GenericFilter:
     """
     Filters out hydration errors.
 
@@ -120,12 +127,8 @@ def _hydration_error_filter() -> RuleCondition:
         (None, "*https://react.dev/errors/{418,419,421,422,423,425}*"),
     ]
 
-    return _error_message_condition(values)
-
-
-# List of all active generic filters that Sentry currently sends to Relay.
-ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], RuleCondition | None]]] = [
-    ("chunk-load-error", _chunk_load_error_filter),
-    ("react-hydration-errors", _hydration_error_filter),
-    ("custom-error", _custom_error_filter),
-]
+    return {
+        "id": "react-hydration-errors",
+        "isEnabled": True,
+        "condition": _error_message_condition(values),
+    }

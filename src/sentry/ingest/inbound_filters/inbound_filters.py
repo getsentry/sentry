@@ -1,6 +1,8 @@
 from collections.abc import Mapping
 from typing import Any
 
+from sentry import features
+from sentry.ingest.inbound_filters.constants import FilterTypes
 from sentry.ingest.inbound_filters.default_filters import (
     Filter,
     browser_extensions_filter,
@@ -9,7 +11,11 @@ from sentry.ingest.inbound_filters.default_filters import (
     localhost_filter,
     web_crawlers_filter,
 )
-from sentry.ingest.inbound_filters.filter_conditions import ACTIVE_GENERIC_FILTERS
+from sentry.ingest.inbound_filters.filter_conditions import (
+    chunk_load_error_filter,
+    configured_error_filter,
+    hydration_error_filter,
+)
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.relay.types import GenericFilter, GenericFiltersConfig
@@ -23,10 +29,6 @@ class FilterNotRegistered(Exception):
     pass
 
 
-def get_filter_key(filter: Filter) -> str:
-    return to_camel_case_name(filter.config_name.replace("-", "_"))
-
-
 ALL_FILTERS: dict[str, Filter] = {
     localhost_filter.id: localhost_filter,
     browser_extensions_filter.id: browser_extensions_filter,
@@ -34,6 +36,10 @@ ALL_FILTERS: dict[str, Filter] = {
     web_crawlers_filter.id: web_crawlers_filter,
     healthcheck_filter.id: healthcheck_filter,
 }
+
+
+def get_filter_key(filter: Filter) -> str:
+    return to_camel_case_name(filter.config_name.replace("-", "_"))
 
 
 def get_all_filter_specs() -> list[Filter]:
@@ -112,9 +118,66 @@ def get_filter_state(filter_id: str, project: Project) -> bool | list[str]:
     return filter_state == "1"
 
 
-def get_generic_filters(
-    project: Project, base_generic_filters: list[GenericFilter] | None = None
-) -> GenericFiltersConfig | None:
+def get_log_filter(project: Project) -> list[GenericFilter]:
+    log_messages = project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}")
+
+    if not log_messages:
+        return []
+
+    return [
+        {
+            "id": "log-message",
+            "isEnabled": True,
+            "condition": {
+                "op": "glob",
+                "name": "log.body",
+                "value": log_messages,
+            },
+        }
+    ]
+
+
+def get_metric_filter(project: Project) -> list[GenericFilter]:
+    trace_metric_names = project.get_option(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}")
+    if not trace_metric_names:
+        return []
+
+    return [
+        {
+            "id": "trace-metric-name",
+            "isEnabled": True,
+            "condition": {
+                "op": "glob",
+                "name": "trace_metric.name",
+                "value": trace_metric_names,
+            },
+        }
+    ]
+
+
+def get_sentry_defined_filters(project: Project) -> list[GenericFilter]:
+    """
+    Filters whose conditions are defined by Sentry; projects can only toggle them on or off.
+
+    This is in contrast to the log/metric/error-message filters, whose patterns are
+    defined by the user.
+    """
+    filters = [
+        chunk_load_error_filter(),
+        hydration_error_filter(),
+        configured_error_filter(),
+    ]
+    return [f for f in filters if f is not None and _is_toggled_on(project, f)]
+
+
+def _is_toggled_on(project: Project, filter: GenericFilter) -> bool:
+    # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
+    # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
+    # why the value true is determined by either `1` or `True`.
+    return project.get_option(f"filters:{filter['id']}") in ("1", True)
+
+
+def get_generic_filters(project: Project) -> GenericFiltersConfig | None:
     """
     Computes the generic inbound filters configuration for inbound filters.
 
@@ -122,61 +185,20 @@ def get_generic_filters(
     Relay's `RuleCondition` DSL. They differ from static inbound filters which filter events based on a
     hardcoded set of rules, specific to each type.
     """
-    generic_filters: list[GenericFilter] = []
-    if base_generic_filters:
-        generic_filters.extend(base_generic_filters)
+    filters: list[GenericFilter] = []
 
-    for generic_filter_id, generic_filter_fn in ACTIVE_GENERIC_FILTERS:
-        # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
-        # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
-        # why the value true is determined by either `1` or `True`.
-        if project.get_option(f"filters:{generic_filter_id}") not in ("1", True):
-            continue
+    if features.has("projects:custom-inbound-filters", project):
+        if features.has("organizations:ourlogs-ingestion", project.organization):
+            filters.extend(get_log_filter(project))
+        if features.has("organizations:tracemetrics-ingestion", project.organization):
+            filters.extend(get_metric_filter(project))
 
-        condition = generic_filter_fn()
-        if condition is not None:
-            generic_filters.append(
-                {
-                    "id": generic_filter_id,
-                    "isEnabled": True,
-                    "condition": condition,
-                }
-            )
+    filters.extend(get_sentry_defined_filters(project))
 
-    if not generic_filters:
+    if not filters:
         return None
 
     return {
         "version": GENERIC_FILTERS_VERSION,
-        "filters": generic_filters,
-    }
-
-
-def get_log_messages_generic_filter(log_messages: list[str]) -> GenericFilter | None:
-    if not log_messages:
-        return None
-
-    return {
-        "id": "log-message",
-        "isEnabled": True,
-        "condition": {
-            "op": "glob",
-            "name": "log.body",
-            "value": log_messages,
-        },
-    }
-
-
-def get_trace_metric_names_generic_filter(trace_metric_names: list[str]) -> GenericFilter | None:
-    if not trace_metric_names:
-        return None
-
-    return {
-        "id": "trace-metric-name",
-        "isEnabled": True,
-        "condition": {
-            "op": "glob",
-            "name": "trace_metric.name",
-            "value": trace_metric_names,
-        },
+        "filters": filters,
     }
