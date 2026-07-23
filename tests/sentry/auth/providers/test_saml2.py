@@ -210,25 +210,27 @@ class ValidateSamlAvatarTest(TestCase):
             assert image.size == (MAX_DIMENSION, MAX_DIMENSION)
 
     def test_applies_exif_orientation(self) -> None:
-        # A 2x2 image with distinct corners and Orientation=6 (rotate 90 CW on
-        # display). Validation must bake the rotation into the pixels and drop
-        # the now-meaningless orientation tag.
-        source = Image.new("RGB", (2, 2))
-        source.putpixel((0, 0), (255, 0, 0))  # top-left, red
-        source.putpixel((1, 0), (0, 255, 0))  # top-right, green
-        source.putpixel((0, 1), (0, 0, 255))  # bottom-left, blue
-        source.putpixel((1, 1), (255, 255, 0))  # bottom-right, yellow
+        # A 64x64 image split into 4 solid quadrants with Orientation=6 (rotate
+        # 90 CW on display), stored as JPEG (universal EXIF orientation support).
+        # Validation must bake the rotation into the pixels and drop the tag.
+        source = Image.new("RGB", (64, 64))
+        source.paste((255, 0, 0), (0, 0, 32, 32))  # top-left, red
+        source.paste((0, 255, 0), (32, 0, 64, 32))  # top-right, green
+        source.paste((0, 0, 255), (0, 32, 32, 64))  # bottom-left, blue
+        source.paste((255, 255, 0), (32, 32, 64, 64))  # bottom-right, yellow
         exif = source.getexif()
         exif[0x0112] = 6  # Orientation
         buffer = BytesIO()
-        source.save(buffer, format="PNG", exif=exif)
+        source.save(buffer, format="JPEG", exif=exif.tobytes())
 
         result = _validate_saml_avatar(b64encode(buffer.getvalue()).decode())
 
         assert result is not None
         with Image.open(BytesIO(b64decode(result))) as image:
-            # After a 90 CW rotation the original top-left pixel lands top-right.
-            assert image.getpixel((1, 0)) == (255, 0, 0)
+            # After a 90 CW rotation the original top-left quadrant lands
+            # top-right; sample its interior (tolerant of JPEG artifacts).
+            r, g, b = image.convert("RGB").getpixel((48, 16))
+            assert r > 200 and g < 60 and b < 60
             assert not image.getexif().get(0x0112)
 
     def test_rejects_non_image(self) -> None:
