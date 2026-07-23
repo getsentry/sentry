@@ -369,8 +369,12 @@ export function IssueCard({
           </Stack>
 
           {/* Right rail: issue identity and vitals, then the action column.
-              Fixed width so the rail (and everything in it) lines up across
-              cards; full-width band above the narrative on narrow cards. */}
+              min-width (not a fixed width) keeps the rail lined up across
+              cards while letting a wide button (long PR number) GROW the
+              rail instead of overflowing the card — flex children can't
+              shrink below their content, so a hard width would push the
+              action past the card edge. Full-width band above the narrative
+              on narrow cards. */}
           {/* 3xl separates the vitals column from the action column — the
               button shouldn't sit on top of the timestamps */}
           <Flex
@@ -378,7 +382,8 @@ export function IssueCard({
             align="start"
             justify="between"
             flexShrink={0}
-            width={{xs: '100%', sm: '320px'}}
+            width={{xs: '100%', sm: 'auto'}}
+            minWidth={{xs: '0', sm: '320px'}}
           >
             <Stack
               gap={{xs: 'md', sm: 'xs'}}
