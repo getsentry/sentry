@@ -102,6 +102,13 @@ class SAML2AcceptACSView(BaseView):
 
         # SP initiated authentication, request helper is provided
         if pipeline:
+            # When an IdP POSTs a SAMLResponse, strip op — it's not part of
+            # the SAML spec and only comes from Sentry's own confirmation form.
+            if "SAMLResponse" in request.POST and "op" in request.POST:
+                post = request.POST.copy()
+                del post["op"]
+                request.POST = post  # type: ignore[assignment]
+
             from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 
             sso_login = AuthProviderLoginView()
@@ -138,6 +145,13 @@ class SAML2AcceptACSView(BaseView):
 class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
+        # When an IdP POSTs a SAMLResponse, strip op — it's not part of
+        # the SAML spec and only comes from Sentry's own confirmation form.
+        if "SAMLResponse" in request.POST and "op" in request.POST:
+            post = request.POST.copy()
+            del post["op"]
+            request.POST = post  # type: ignore[assignment]
+
         provider = pipeline.provider
 
         # If we're authenticating during the setup pipeline the provider will
