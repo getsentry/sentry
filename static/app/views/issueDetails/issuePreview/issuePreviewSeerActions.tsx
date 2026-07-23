@@ -66,7 +66,7 @@ const AUTOFIX_ANALYTICS = {
   },
 } as const;
 
-export function getAutofixPrimaryAction(
+function getAutofixPrimaryAction(
   runState: ExplorerAutofixState | null
 ): SeerAction | null {
   const sections = getOrderedAutofixSections(runState);
