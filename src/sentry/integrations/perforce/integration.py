@@ -802,7 +802,12 @@ class PerforceInstallationApiStep:
                 f"Failed to connect to Perforce server: {e}. Please verify your server address and SSL fingerprint."
             )
         except Exception as e:
-            logger.exception(
+            # Network timeouts and similar transient errors are expected when
+            # users enter an unreachable server address.  The error is already
+            # surfaced to the user via the PipelineStepResult below, so logging
+            # at WARNING avoids generating a noisy Sentry error event for a
+            # routine user-facing failure.
+            logger.warning(
                 "perforce.setup.connection-verification-failed",
                 extra={
                     "p4port": validated_data.get("p4port"),

@@ -1090,6 +1090,48 @@ class PerforceApiPipelineTest(APITestCase):
         assert "Failed to connect" in resp.data["data"]["detail"]
 
     @responses.activate
+    @patch(
+        "sentry.integrations.perforce.integration.PerforceClient.get_depots",
+        side_effect=TimeoutError("timed out"),
+    )
+    def test_timeout_returns_error_and_logs_warning(self, mock_get_depots) -> None:
+        """
+        A network timeout is an expected user-facing failure (bad server address,
+        unreachable host).  handle_post() must return an error response without
+        raising a Sentry error event — i.e. it must log at WARNING, not exception.
+        """
+        pipeline = self._init_pipeline_in_session()
+        pipeline.set_api_mode()
+        url = self._get_pipeline_url()
+
+        with self.assertLogs(
+            "sentry.integrations.perforce.integration", level="WARNING"
+        ) as log_ctx:
+            resp = self.client.post(
+                url,
+                data={
+                    "p4port": "ssl:unreachable.example.com:1666",
+                    "user": "user",
+                    "authType": "password",
+                    "password": "pass",
+                    "sslFingerprint": "AB:CD:EF:01:23:45:67:89:AB:CD:EF:01:23:45:67:89:AB:CD:EF:01",
+                },
+                format="json",
+            )
+
+        assert resp.status_code == 400
+        assert "Unexpected error" in resp.data["data"]["detail"]
+
+        # Must be a WARNING record, not ERROR/CRITICAL (which would trigger a
+        # Sentry event via the logging SDK integration).
+        assert any(
+            r.levelname == "WARNING"
+            and "perforce.setup.connection-verification-failed" in r.getMessage()
+            for r in log_ctx.records
+        )
+        assert not any(r.levelname in ("ERROR", "CRITICAL") for r in log_ctx.records)
+
+    @responses.activate
     def test_missing_required_fields(self) -> None:
         pipeline = self._init_pipeline_in_session()
         pipeline.set_api_mode()
