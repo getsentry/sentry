@@ -229,6 +229,20 @@ NO_CI_EVENTS = "no_ci_events"
 _FAILING_CHECK_CONCLUSIONS = frozenset({"failure", "timed_out", "startup_failure"})
 
 
+class _Unfetched:
+    """Sentinel distinguishing "caller didn't pass a doc" from "doc is None".
+
+    ``None`` is itself a meaningful ``doc`` value (the PR is on the legacy
+    store), so a plain ``doc: ... | None = None`` default can't tell "go load
+    it yourself" apart from "I checked, there's no document" — which would make
+    a caller that already confirmed the legacy-store case pay for a redundant
+    ``load_activity_document`` call anyway.
+    """
+
+
+_UNFETCHED = _Unfetched()
+
+
 def _any_group_failing(groups: Iterable[activity_doc.CheckGroup]) -> bool:
     """Whether any check-suite group's latest conclusion is a failure.
 
@@ -254,7 +268,9 @@ def _any_app_failing(rows: Iterable[tuple[str, str]]) -> bool:
     )
 
 
-def ci_failing_at_close(pull_request: PullRequest) -> bool:
+def ci_failing_at_close(
+    pull_request: PullRequest, *, doc: activity_doc.ActivityDoc | None | _Unfetched = _UNFETCHED
+) -> bool:
     """Whether any CI provider's check suite was failing when the PR closed.
 
     Reads ``CHECK_SUITE_COMPLETED`` activity — the aggregate "was CI green or
@@ -265,8 +281,14 @@ def ci_failing_at_close(pull_request: PullRequest) -> bool:
     outcome: that path is reached only when there were no commits after open, so
     every recorded check row necessarily belongs to the PR's one and only head
     commit — there's no other commit's CI status to accidentally mix in.
+
+    ``doc`` lets a caller that already loaded the activity document (e.g.
+    ``calculate_deterministic_diagnosis_labels``, which calls this alongside
+    ``ci_failed_at_open``/``no_ci_events`` for the same PR) pass it in instead of
+    triggering another identical query. Left unset, this loads it itself.
     """
-    doc = load_activity_document(pull_request)
+    if isinstance(doc, _Unfetched):
+        doc = load_activity_document(pull_request)
     if doc is not None:
         # Same narrow failing vocabulary and suite-only read as the legacy path
         # (a check_run-only app has no suite conclusion and doesn't count).
@@ -298,7 +320,9 @@ def _opened_head_sha_from_doc(doc: activity_doc.ActivityDoc) -> str | None:
     return None
 
 
-def ci_failed_at_open(pull_request: PullRequest) -> bool:
+def ci_failed_at_open(
+    pull_request: PullRequest, *, doc: activity_doc.ActivityDoc | None | _Unfetched = _UNFETCHED
+) -> bool:
     """Whether any CI provider's check suite was already failing at the PR's
     *opening* head — unlike ``ci_failing_at_close``, meaningful for every
     verdict (merged or closed, iterated or not), since it only ever looks at
@@ -315,8 +339,11 @@ def ci_failed_at_open(pull_request: PullRequest) -> bool:
     PR's first ``SYNCHRONIZED`` row (or all of them, if the PR never had a
     later push) — everything recorded before the first push can only belong to
     the one head the PR opened with.
+
+    ``doc``: see ``ci_failing_at_close``.
     """
-    doc = load_activity_document(pull_request)
+    if isinstance(doc, _Unfetched):
+        doc = load_activity_document(pull_request)
     if doc is not None:
         open_head_sha = _opened_head_sha_from_doc(doc)
         if open_head_sha is None:
@@ -347,7 +374,9 @@ def ci_failed_at_open(pull_request: PullRequest) -> bool:
     return _any_app_failing(rows)
 
 
-def no_ci_events(pull_request: PullRequest) -> bool:
+def no_ci_events(
+    pull_request: PullRequest, *, doc: activity_doc.ActivityDoc | None | _Unfetched = _UNFETCHED
+) -> bool:
     """Whether the PR has no recorded CI check activity at all, of any kind.
 
     A distinct signal from a CI failure: there's nothing to diagnose because CI
@@ -357,8 +386,11 @@ def no_ci_events(pull_request: PullRequest) -> bool:
     recorded check to say anything. Scoped to the whole PR (any head), not just
     the opening head, so a PR whose CI only ever reported against a later push
     still counts as having CI activity.
+
+    ``doc``: see ``ci_failing_at_close``.
     """
-    doc = load_activity_document(pull_request)
+    if isinstance(doc, _Unfetched):
+        doc = load_activity_document(pull_request)
     if doc is not None:
         return not doc.get("checks")
     return not PullRequestActivity.objects.filter(
@@ -424,12 +456,16 @@ def calculate_deterministic_diagnosis_labels(
     - ``NO_CI_EVENTS``: every verdict, independent of the other two — a PR can
       lack CI activity entirely no matter how it was settled.
     """
+    # Loaded once and threaded through to each check: all three read the same
+    # PR's activity, so without this every call below would re-issue an
+    # identical load_activity_document query.
+    doc = load_activity_document(pull_request)
     labels = []
-    if verdict == PullRequestVerdict.CLOSED_UNMERGED and ci_failing_at_close(pull_request):
+    if verdict == PullRequestVerdict.CLOSED_UNMERGED and ci_failing_at_close(pull_request, doc=doc):
         labels.append(CI_FAILING_AT_CLOSE)
-    if ci_failed_at_open(pull_request):
+    if ci_failed_at_open(pull_request, doc=doc):
         labels.append(CI_FAILED_AT_OPEN)
-    if no_ci_events(pull_request):
+    if no_ci_events(pull_request, doc=doc):
         labels.append(NO_CI_EVENTS)
     return labels or None
 
