@@ -833,16 +833,21 @@ class TestWorkflowValidatorUpdate(TestCase):
         self, mock_action_validator: mock.MagicMock
     ) -> None:
         workflow = self.create_workflow(organization=self.organization, when_condition_group=None)
-        other_workflow = self.create_workflow(organization=self.organization)
-        assert other_workflow.when_condition_group is not None
-        original_logic_type = other_workflow.when_condition_group.logic_type
+        other_condition_group = self.create_data_condition_group(
+            organization=self.organization,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        self.create_workflow(
+            organization=self.organization, when_condition_group=other_condition_group
+        )
+        original_logic_type = other_condition_group.logic_type
 
         data = {
             "name": workflow.name,
             "enabled": True,
             "config": {},
             "triggers": {
-                "id": str(other_workflow.when_condition_group.id),
+                "id": str(other_condition_group.id),
                 "logicType": "any-short",
                 "conditions": [],
             },
@@ -856,9 +861,9 @@ class TestWorkflowValidatorUpdate(TestCase):
             validator.update(workflow, validator.validated_data)
 
         workflow.refresh_from_db()
-        other_workflow.when_condition_group.refresh_from_db()
+        other_condition_group.refresh_from_db()
         assert workflow.when_condition_group is None
-        assert other_workflow.when_condition_group.logic_type == original_logic_type
+        assert other_condition_group.logic_type == original_logic_type
 
     def test_update__hack_attempt_to_override_different_trigger_condition(
         self, mock_action_validator: mock.MagicMock
