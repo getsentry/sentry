@@ -1,9 +1,9 @@
-import {Fragment, type ReactNode} from 'react';
+import {Fragment} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -30,7 +30,6 @@ import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusS
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {IssuePreviewAutofix} from 'sentry/views/issueDetails/issuePreview/issuePreviewAutofix';
-import {IssuePreviewDetails} from 'sentry/views/issueDetails/issuePreview/issuePreviewDetails';
 import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/sidebar/externalIssueSidebarList';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -39,35 +38,11 @@ import {
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 
-type ChromeRenderer = (children: ReactNode) => ReactNode;
-
 interface IssuePreviewProps {
   groupId: string;
-  renderBody?: ChromeRenderer;
-  renderHeader?: ChromeRenderer;
 }
 
-function renderDefaultHeader(children: ReactNode) {
-  return (
-    <Container padding="md" borderBottom="muted">
-      {children}
-    </Container>
-  );
-}
-
-function renderDefaultBody(children: ReactNode) {
-  return (
-    <Container flexGrow={1} minHeight={0} overflowY="auto" padding="lg">
-      {children}
-    </Container>
-  );
-}
-
-export function IssuePreview({
-  groupId,
-  renderHeader = renderDefaultHeader,
-  renderBody = renderDefaultBody,
-}: IssuePreviewProps) {
+export function IssuePreview({groupId}: IssuePreviewProps) {
   const organization = useOrganization();
   const {data: group, isPending, isError} = useGroup({groupId});
   const {projects} = useProjects();
@@ -79,7 +54,7 @@ export function IssuePreview({
 
   return (
     <Fragment>
-      {renderHeader(
+      <Container padding="md" borderBottom="muted">
         <Flex justify="between" align="center" flex="1" gap="md">
           {group && project && <IssueIdBreadcrumb group={group} project={project} />}
           <Flex justify="end" flex="1">
@@ -88,20 +63,18 @@ export function IssuePreview({
             </LinkButton>
           </Flex>
         </Flex>
-      )}
-      {renderBody(
-        <Fragment>
-          {isPending && <LoadingIndicator />}
-          {isError && <LoadingError />}
-          {group && project && (
-            <GroupDataContextProvider group={group} project={project}>
-              <ErrorBoundary mini>
-                <IssuePreviewContent />
-              </ErrorBoundary>
-            </GroupDataContextProvider>
-          )}
-        </Fragment>
-      )}
+      </Container>
+      <Container flexGrow={1} minHeight={0} overflowY="auto" padding="lg">
+        {isPending && <LoadingIndicator />}
+        {isError && <LoadingError />}
+        {group && project && (
+          <GroupDataContextProvider group={group} project={project}>
+            <ErrorBoundary mini>
+              <IssuePreviewContent />
+            </ErrorBoundary>
+          </GroupDataContextProvider>
+        )}
+      </Container>
     </Fragment>
   );
 }
@@ -162,18 +135,13 @@ function IssuePreviewContent() {
           event={null}
         />
         <Flex align="center" wrap="wrap" gap="lg">
-          <Flex align="center" gap="xs">
-            <Text size="sm" variant="muted">
-              {t('Priority')}
-            </Text>
-            <GroupPriority group={group} />
-          </Flex>
-          <Flex align="center" gap="xs">
-            <Text size="sm" variant="muted">
-              {t('Assignee')}
-            </Text>
-            <GroupHeaderAssigneeSelector group={group} project={project} event={null} />
-          </Flex>
+          <GroupPriority group={group} />
+          <GroupHeaderAssigneeSelector
+            group={group}
+            project={project}
+            event={null}
+            showLabel={false}
+          />
         </Flex>
       </Flex>
       <Container paddingTop="md">
@@ -184,10 +152,6 @@ function IssuePreviewContent() {
               {hasAutofix ? (
                 <TabList.Item key="autofix">{t('Autofix')}</TabList.Item>
               ) : null}
-              <TabList.Item key="details">{t('Details')}</TabList.Item>
-              <TabList.Item key="events" disabled>
-                {t('Events')}
-              </TabList.Item>
             </TabList>
           </Container>
           <TabPanels>
@@ -228,16 +192,6 @@ function IssuePreviewContent() {
                 </Container>
               </TabPanels.Item>
             ) : null}
-            <TabPanels.Item key="details">
-              <Container paddingTop="md">
-                <IssueDetailsContextProvider>
-                  <IssuePreviewDetails group={group} project={project} />
-                </IssueDetailsContextProvider>
-              </Container>
-            </TabPanels.Item>
-            <TabPanels.Item key="events">
-              <Container />
-            </TabPanels.Item>
           </TabPanels>
         </Tabs>
       </Container>

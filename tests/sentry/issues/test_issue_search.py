@@ -25,7 +25,7 @@ from sentry.issues.issue_search import (
     parse_search_query,
     value_converters,
 )
-from sentry.issues.progress import IssueProgressState
+from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
 from sentry.models.release import ReleaseStatus
 from sentry.search.utils import get_teams_for_users

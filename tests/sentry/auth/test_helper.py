@@ -683,6 +683,22 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert auth_identity.user_id == session_user.id
 
     @mock.patch("sentry.auth.helper.messages")
+    def test_saml_response_in_post_ignores_op(self, mock_messages: mock.MagicMock) -> None:
+        """When SAMLResponse is in POST, op from the POST body should be
+        ignored — op is only valid from Sentry's own confirmation form."""
+        session_user = self.create_user(email="session@example.com")
+        self.request.user = session_user
+        # No org membership — user is authenticated but not a member of this org.
+
+        self.request.POST = {"op": "confirm", "SAMLResponse": "fake-saml-data"}
+        response = self.handler.handle_unknown_identity(self.state)
+
+        assert not AuthIdentity.objects.filter(
+            auth_provider=self.auth_provider_inst, ident=self.identity["id"]
+        ).exists()
+        assert response.status_code == 200
+
+    @mock.patch("sentry.auth.helper.messages")
     @mock.patch("sentry.auth.helper.auth")
     def test_is_account_verified_auto_links_unauthenticated_user(
         self, mock_auth: mock.MagicMock, mock_messages: mock.MagicMock

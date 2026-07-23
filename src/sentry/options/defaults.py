@@ -2181,12 +2181,6 @@ register(
     30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Number of large transactions to retrieve from Snuba for transaction re-balancing.
-register(
-    "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions",
-    0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Toggles emitting the smallest-transaction sampling-factor bucket metric during transaction rebalancing.
 register(
     "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
@@ -3992,5 +3986,19 @@ register(
     "issues.derived.project-max-tasks",
     default=1000,
     type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Number of projects to schedule for reprocessing per heal_stale_derived_data invocation.
+register(
+    "issues.derived.heal-project-limit",
+    default=3,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Kill switch for heal_stale_derived_data task.
+register(
+    "issues.derived.heal-enabled",
+    default=True,
+    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -85,6 +85,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-ai-generate-edit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables starred dashboards functionality
     manager.add("organizations:dashboards-starred", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enables per-user "last visited" tracking and sorting for dashboards
+    manager.add("organizations:dashboards-user-last-visited", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy v2 (with Break the Glass feature)
@@ -181,6 +183,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:onboarding-scm", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Experiment: SCM onboarding A/B test measuring conversion impact
     manager.add("organizations:onboarding-scm-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable SCM-first project creation flow
+    manager.add("organizations:onboarding-scm-project-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Experiment: SCM onboarding project details A/B test
     manager.add("organizations:onboarding-scm-project-details-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Experiment: SCM-first project creation wizard A/B test (project creation flow, not new-org onboarding)
@@ -284,6 +288,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-agent-source-code-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable code mode tools (sentry_api_search/execute) in Seer Agent
     manager.add("organizations:seer-explorer-code-mode-tools", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Gate Seer agent writes behind short-lived, scope-bound capability tokens + user-approved grants
+    manager.add("organizations:seer-agent-token-flow", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable code mode tools for Slack-initiated Explorer sessions
     manager.add("organizations:seer-slack-code-mode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the thinking blocks toggle in the Seer Agent top bar
@@ -358,9 +364,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-stream-recommended-sort-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the "progress" sort option (by issue fix-cycle progress) in the issue stream
     manager.add("organizations:issue-stream-progress-sort", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Use GroupDerivedData as the source for issue progress instead of activity-based heuristics
-    manager.add("projects:issue-stream-derived-progress", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-
     # Lets organizations manage grouping configs
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable SAML2 Single-logout
@@ -449,6 +452,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tracemetrics-pii-scrubbing-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace waterfall time compression
     manager.add("organizations:trace-waterfall-time-compression", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the informational message re: moving the trace waterfall data source from transaction events to EAP spans
+    manager.add("organizations:trace-waterfall-version-message", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Conversation focused views in AI Insights
     manager.add("organizations:gen-ai-conversations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable selectable/filterable columns for the AI Conversations table

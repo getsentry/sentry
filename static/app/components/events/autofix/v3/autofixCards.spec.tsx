@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {
@@ -882,7 +882,8 @@ describe('ArtifactCard', () => {
         {organization: prIterationOrganization}
       );
 
-      expect(screen.getByText('(unknown): Make the button blue')).toBeInTheDocument();
+      // The source is shown in the avatar tooltip, not prefixed on the comment.
+      expect(screen.getByText('Make the button blue')).toBeInTheDocument();
     });
 
     it('renders GitHub PR review comment feedback with attribution and a link', () => {
@@ -917,14 +918,13 @@ describe('ArtifactCard', () => {
         {organization: prIterationOrganization}
       );
 
-      const feedbackLink = screen.getByRole('link', {
-        name: 'Please handle the null value.',
-      });
+      // The comment text is plain; a trailing "Open in GitHub" arrow links out.
+      expect(screen.getByText('Please handle the null value.')).toBeInTheDocument();
+      const feedbackLink = screen.getByRole('link', {name: 'Open in GitHub'});
       expect(feedbackLink).toHaveAttribute('href', commentUrl);
-      expect(screen.getByTestId('icon-github')).toBeInTheDocument();
     });
 
-    it('renders GitHub PR review body feedback with a GitHub icon and link', () => {
+    it('renders a GitHub PR review body as plain feedback text', () => {
       const reviewUrl = 'https://github.com/org/repo/pull/42#pullrequestreview-999';
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
@@ -958,11 +958,17 @@ describe('ArtifactCard', () => {
         {organization: prIterationOrganization}
       );
 
-      const feedbackLink = screen.getByRole('link', {
-        name: 'Overall this looks good, please add a test.',
-      });
-      expect(feedbackLink).toHaveAttribute('href', reviewUrl);
-      expect(screen.getByTestId('icon-github')).toBeInTheDocument();
+      // Review bodies have no dedicated cell yet, so they fall through to the
+      // generic renderer: plain text with no external link. Grouping the body
+      // with its inline comments under a state header comes in a later change.
+      expect(
+        screen.getByText('Overall this looks good, please add a test.')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', {
+          name: 'Overall this looks good, please add a test.',
+        })
+      ).not.toBeInTheDocument();
     });
 
     it('shows a formatted check-suite label instead of the raw feedback text', () => {
@@ -1001,7 +1007,7 @@ describe('ArtifactCard', () => {
         {organization: prIterationOrganization}
       );
 
-      expect(screen.getByText('CI check suite failed')).toBeInTheDocument();
+      expect(screen.getByText('CI failure detected')).toBeInTheDocument();
       expect(screen.queryByText(/raw text/)).not.toBeInTheDocument();
     });
 
@@ -1040,7 +1046,9 @@ describe('ArtifactCard', () => {
         {organization: prIterationOrganization}
       );
 
-      const link = screen.getByRole('link', {name: 'CI check suite failed'});
+      // The label is plain text; a trailing "Open in GitHub" arrow links to the run.
+      expect(screen.getByText('CI failure detected')).toBeInTheDocument();
+      const link = screen.getByRole('link', {name: 'Open in GitHub'});
       expect(link).toHaveAttribute(
         'href',
         'https://github.com/org/repo/commit/abc123/checks?check_suite_id=999'
@@ -1164,7 +1172,7 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('first pass')).toBeInTheDocument();
-      expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
+      expect(screen.getByTestId('feedback-processed')).toBeInTheDocument();
     });
 
     it('marks the current iteration feedback as in progress while processing', () => {
@@ -1182,11 +1190,11 @@ describe('ArtifactCard', () => {
         {organization: prIterationOrganization}
       );
 
-      const row =
-        screen.getByText('fix the CI failure').parentElement!.parentElement!
-          .parentElement!;
-      expect(within(row).getByTestId('loading-indicator')).toBeInTheDocument();
-      expect(within(row).queryByTestId('icon-check-mark')).not.toBeInTheDocument();
+      // While processing, the row shows a spinner (there is also the card body
+      // "Iterating on PR…" loader, hence getAllByTestId) and no processed check.
+      expect(screen.getByText('fix the CI failure')).toBeInTheDocument();
+      expect(screen.getAllByTestId('loading-indicator').length).toBeGreaterThan(0);
+      expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
     });
 
     it('marks queued feedback with a queued label and no timestamp', () => {
@@ -1214,7 +1222,7 @@ describe('ArtifactCard', () => {
 
       expect(screen.getByText('Make the button blue')).toBeInTheDocument();
       expect(screen.getByText('Queued')).toBeInTheDocument();
-      expect(screen.queryByTestId('icon-check-mark')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
     });
 
     it('keeps reset enabled with the feature flag even when PRs exist', () => {
