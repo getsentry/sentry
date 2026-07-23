@@ -41,6 +41,7 @@ def _send_deploy_activity_notification(activity: Activity, organization: Organiz
     release = get_release(activity, organization)
 
     if not deploy or not release:
+        _send_legacy_activity_notification(activity=activity)
         return
 
     result = build_deploy_release_data(deploy=deploy, release=release)

@@ -28,7 +28,6 @@ from sentry.notifications.platform.types import (
     ParagraphSection,
     PlainTextBlock,
 )
-from sentry.notifications.utils import get_environment_for_deploy, get_group_counts_by_project
 from sentry.users.services.user.service import user_service
 
 TEXT_DELIMITER = " · "
@@ -258,6 +257,8 @@ class DeployReleaseDataResult(TypedDict):
 
 
 def build_deploy_release_data(deploy: Deploy, release: Release) -> DeployReleaseDataResult:
+    from sentry.notifications.utils import get_environment_for_deploy, get_group_counts_by_project
+
     organization = release.organization
     projects = set(release.projects.all())
     commit_list = list(Commit.objects.get_for_release(release))
@@ -307,8 +308,8 @@ def build_deploy_release_data(deploy: Deploy, release: Release) -> DeployRelease
             DeployReleaseCommit(
                 author_name=author_name,
                 date=commit.date_added.isoformat() if commit.date_added else "",
-                sha=commit.key[:7],
-                message=commit.message or "",
+                sha=commit.short_id,
+                message=commit.title,
             )
         )
 
