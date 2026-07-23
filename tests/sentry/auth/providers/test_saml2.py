@@ -8,6 +8,7 @@ from unittest import TestCase, mock
 import pytest
 from PIL import Image
 
+from sentry.api.fields.avatar import MAX_DIMENSION
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.saml2.forms import AttributeMappingForm
 from sentry.auth.providers.saml2.provider import (
@@ -174,7 +175,7 @@ class ValidateSamlAvatarTest(TestCase):
             avatar
         )
 
-    def test_strips_exif_metadata(self) -> None:
+    def test_reencodes_jpeg_to_png_and_strips_metadata(self) -> None:
         exif = Image.Exif()
         exif[0x010E] = "sensitive description"  # ImageDescription tag
         buffer = BytesIO()
@@ -184,6 +185,8 @@ class ValidateSamlAvatarTest(TestCase):
 
         assert result is not None
         with Image.open(BytesIO(b64decode(result))) as image:
+            # Always stored as PNG to match the served filename/content type.
+            assert image.format == "PNG"
             assert not dict(image.getexif())
 
     def test_crops_non_square_to_square(self) -> None:
@@ -195,6 +198,16 @@ class ValidateSamlAvatarTest(TestCase):
         assert result is not None
         with Image.open(BytesIO(b64decode(result))) as image:
             assert image.size == (10, 10)
+
+    def test_downscales_oversized_image(self) -> None:
+        buffer = BytesIO()
+        Image.new("RGB", (2000, 2000), "blue").save(buffer, format="PNG")
+
+        result = _validate_saml_avatar(b64encode(buffer.getvalue()).decode())
+
+        assert result is not None
+        with Image.open(BytesIO(b64decode(result))) as image:
+            assert image.size == (MAX_DIMENSION, MAX_DIMENSION)
 
     def test_applies_exif_orientation(self) -> None:
         # A 2x2 image with distinct corners and Orientation=6 (rotate 90 CW on

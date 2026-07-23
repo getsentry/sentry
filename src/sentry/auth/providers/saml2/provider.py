@@ -295,12 +295,15 @@ def _validate_saml_avatar(value: str | None) -> str | None:
         # Restrict the decoders to the allowed formats so Pillow can't be steered
         # into loading a different one.
         with Image.open(decoded, formats=_ALLOWED_AVATAR_FORMATS) as image:
-            image_format = image.format or "PNG"
-
             # Bake in any EXIF orientation before the metadata is dropped below,
             # otherwise portrait photos that rely on the orientation tag would be
             # stored (and shown) rotated.
             oriented = ImageOps.exif_transpose(image) or image
+
+            # Normalize to a PNG-friendly mode. IdP photos can be palette, CMYK,
+            # grayscale, etc.; keep an alpha channel only when one is present.
+            has_alpha = "A" in oriented.getbands() or "transparency" in oriented.info
+            oriented = oriented.convert("RGBA" if has_alpha else "RGB")
 
             # Avatars are served resized to a forced square (see
             # BaseAvatar.get_cached_photo), so center-crop non-square
@@ -312,12 +315,16 @@ def _validate_saml_avatar(value: str | None) -> str | None:
                 top = (height - side) // 2
                 oriented = oriented.crop((left, top, left + side, top + side))
 
-            # Re-encode to strip EXIF and any other metadata; Pillow drops it on
-            # save unless it is passed back explicitly. JPEG is re-encoded at high
-            # quality since the goal is metadata removal, not shrinking the image.
-            save_kwargs: dict[str, Any] = {"quality": 95} if image_format == "JPEG" else {}
+            # Bound the stored resolution so multi-thousand-pixel IdP photos aren't
+            # stored (and re-stored on every login) at full size.
+            if oriented.width > MAX_DIMENSION:
+                oriented = oriented.resize((MAX_DIMENSION, MAX_DIMENSION), Image.LANCZOS)
+
+            # Always store PNG: it matches the `{user_id}.png` filename and the
+            # `image/png` content type the avatar view serves, and re-encoding
+            # strips EXIF/metadata (Pillow drops it unless passed back explicitly).
             buffer = BytesIO()
-            oriented.save(buffer, format=image_format, **save_kwargs)
+            oriented.save(buffer, format="PNG")
     except Exception:
         return None
 
