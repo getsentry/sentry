@@ -150,21 +150,26 @@ class OrganizationReportContextFactory:
                             project_id
                         ].prev_week_total_substatus_count += item["total"]
 
-            if spans_missed_project_ids:
-                tx_projects = [
-                    pctx.project
-                    for pid, pctx in ctx.projects_context_map.items()
-                    if pid in spans_missed_project_ids and pctx.project.flags.has_transactions
-                ]
-                if tx_projects:
-                    fallback = spans_count_by_project(
-                        tx_projects,
-                        ctx.organization,
-                        prev_start,
-                        prev_end,
-                        Referrer.REPORTS_TOP_SPANS.value,
-                    )
-                    ctx.prev_week_spans_count_by_project.update(fallback)
+            if spans_missed_project_ids and features.has(
+                "organizations:weekly-report-spans-chart", ctx.organization
+            ):
+                try:
+                    tx_projects = [
+                        pctx.project
+                        for pid, pctx in ctx.projects_context_map.items()
+                        if pid in spans_missed_project_ids and pctx.project.flags.has_transactions
+                    ]
+                    if tx_projects:
+                        fallback = spans_count_by_project(
+                            tx_projects,
+                            ctx.organization,
+                            prev_start,
+                            prev_end,
+                            Referrer.REPORTS_TOP_SPANS.value,
+                        )
+                        ctx.prev_week_spans_count_by_project.update(fallback)
+                except Exception:
+                    sentry_sdk.capture_exception()
 
     @metrics.wraps("weekly_report.create_context.issue_summaries")
     def _append_organization_project_issue_summaries(self, ctx: OrganizationReportContext) -> None:

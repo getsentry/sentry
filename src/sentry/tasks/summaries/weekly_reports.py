@@ -262,8 +262,8 @@ def prepare_organization_report(
                         "e": project_ctx.accepted_error_count,
                         "i": project_ctx.total_substatus_count,
                     }
-                    if project_id in ctx.spans_count_by_project:
-                        values["s"] = ctx.spans_count_by_project[project_id]
+                    if ctx.spans_count_by_project:
+                        values["s"] = ctx.spans_count_by_project.get(project_id, 0)
                     project_metrics[project_id] = values
                 if project_metrics:
                     cache_project_metrics(organization_id, project_metrics)
