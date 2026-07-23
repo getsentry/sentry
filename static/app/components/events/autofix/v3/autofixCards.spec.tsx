@@ -1,72 +1,70 @@
-import { OrganizationFixture } from "sentry-fixture/organization";
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import { render, screen, userEvent } from "sentry-test/reactTestingLibrary";
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import { CodingAgentProvider } from "sentry/components/events/autofix/types";
+import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {
   AutofixArtifact,
   AutofixSection,
   RootCauseArtifact,
   SolutionArtifact,
   useExplorerAutofix,
-} from "sentry/components/events/autofix/useExplorerAutofix";
-import { CodeChangesCard } from "sentry/components/events/autofix/v3/codeChangesCard";
-import { CodingAgentsCard } from "sentry/components/events/autofix/v3/codingAgentsCard";
-import { PullRequestsCard } from "sentry/components/events/autofix/v3/pullRequestsCard";
-import { RootCauseCard } from "sentry/components/events/autofix/v3/rootCauseCard";
-import { SolutionCard } from "sentry/components/events/autofix/v3/solutionCard";
+} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
+import {CodingAgentsCard} from 'sentry/components/events/autofix/v3/codingAgentsCard';
+import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
+import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
+import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import type {
   ExplorerCodingAgentState,
   ExplorerFilePatch,
   RepoPRState,
-} from "sentry/views/seerExplorer/types";
+} from 'sentry/views/seerExplorer/types';
 
-jest.mock("sentry/views/seerExplorer/components/fileDiffViewer", () => ({
+jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
   FileDiffViewer: () => <div data-testid="file-diff-viewer" />,
 }));
 
 const prIterationOrganization = OrganizationFixture({
-  features: ["autofix-pr-iteration"],
+  features: ['autofix-pr-iteration'],
 });
 
 function makeSection(
   step: string,
-  status: AutofixSection["status"],
+  status: AutofixSection['status'],
   artifacts: AutofixArtifact[],
-  blocks: AutofixSection["blocks"] = [],
+  blocks: AutofixSection['blocks'] = []
 ): AutofixSection {
-  return { step, artifacts, blocks, status };
+  return {step, artifacts, blocks, status};
 }
 
-function makeAssistantBlock(
-  content: string | null,
-): AutofixSection["blocks"][number] {
+function makeAssistantBlock(content: string | null): AutofixSection['blocks'][number] {
   return {
-    id: "block-1",
-    timestamp: "2026-01-01T00:00:00Z",
-    message: { role: "assistant", content },
+    id: 'block-1',
+    timestamp: '2026-01-01T00:00:00Z',
+    message: {role: 'assistant', content},
   };
 }
 
 function makePrIterationBlock(
   iterationIndex: number,
-  feedback: { text: string; timestamp?: string; user?: any },
-): AutofixSection["blocks"][number] {
+  feedback: {text: string; timestamp?: string; user?: any}
+): AutofixSection['blocks'][number] {
   return {
     id: `block-pr-${iterationIndex}`,
-    timestamp: "2026-01-01T00:00:00Z",
+    timestamp: '2026-01-01T00:00:00Z',
     message: {
-      role: "user",
+      role: 'user',
       content: null,
       metadata: {
-        step: "pr_iteration",
+        step: 'pr_iteration',
         iteration_index: String(iterationIndex),
         feedback: JSON.stringify({
           text: feedback.text,
           timestamp: feedback.timestamp,
           source: feedback.user
-            ? { type: "user-ui", user: feedback.user }
-            : { type: "user-ui" },
+            ? {type: 'user-ui', user: feedback.user}
+            : {type: 'user-ui'},
         }),
       },
     },
@@ -76,7 +74,7 @@ function makePrIterationBlock(
 function makePatch(repoName: string, path: string): ExplorerFilePatch {
   return {
     repo_name: repoName,
-    diff: "",
+    diff: '',
     patch: {
       path,
       added: 1,
@@ -84,22 +82,22 @@ function makePatch(repoName: string, path: string): ExplorerFilePatch {
       hunks: [],
       source_file: path,
       target_file: path,
-      type: "M",
+      type: 'M',
     },
   } as ExplorerFilePatch;
 }
 
 function makePR(overrides: Partial<RepoPRState> = {}): RepoPRState {
   return {
-    repo_name: "org/repo",
+    repo_name: 'org/repo',
     pr_number: 42,
-    pr_url: "https://github.com/org/repo/pull/42",
-    branch_name: "fix/issue",
-    commit_sha: "abc123",
+    pr_url: 'https://github.com/org/repo/pull/42',
+    branch_name: 'fix/issue',
+    commit_sha: 'abc123',
     pr_creation_error: null,
-    pr_creation_status: "completed",
+    pr_creation_status: 'completed',
     pr_id: 1,
-    title: "Fix issue",
+    title: 'Fix issue',
     ...overrides,
   };
 }
@@ -122,124 +120,120 @@ const mockAutofixWithRunState: ReturnType<typeof useExplorerAutofix> = {
   runState: {
     run_id: 123,
     blocks: [],
-    status: "completed" as const,
-    updated_at: "2026-01-01T00:00:00Z",
+    status: 'completed' as const,
+    updated_at: '2026-01-01T00:00:00Z',
   },
 };
 
 function makeRootCauseArtifact(data: RootCauseArtifact | null) {
   return {
-    key: "root-cause",
-    reason: "Found root cause",
+    key: 'root-cause',
+    reason: 'Found root cause',
     data,
   };
 }
 
 function makeSolutionArtifact(data: SolutionArtifact | null) {
   return {
-    key: "solution",
-    reason: "Found solution",
+    key: 'solution',
+    reason: 'Found solution',
     data,
   };
 }
 
-describe("ArtifactCard", () => {
+describe('ArtifactCard', () => {
   beforeEach(() => {
     userEvent.setup();
-    jest.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
+    jest.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  describe("RootCauseCard", () => {
-    it("renders title and one_line_description summary", () => {
+  describe('RootCauseCard', () => {
+    it('renders title and one_line_description summary', () => {
       const artifact = makeRootCauseArtifact({
-        one_line_description: "Null pointer in user handler",
-        five_whys: ["why1", "why2"],
-        reproduction_steps: ["step1"],
+        one_line_description: 'Null pointer in user handler',
+        five_whys: ['why1', 'why2'],
+        reproduction_steps: ['step1'],
       });
 
       render(
         <RootCauseCard
           autofix={mockAutofix}
           groupId="1"
-          section={makeSection("root_cause", "completed", [artifact])}
-        />,
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
       );
 
-      expect(screen.getByText("Root Cause")).toBeInTheDocument();
-      expect(
-        screen.getByText("Null pointer in user handler"),
-      ).toBeInTheDocument();
+      expect(screen.getByText('Root Cause')).toBeInTheDocument();
+      expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
     });
 
-    it("renders five_whys list items and heading", () => {
+    it('renders five_whys list items and heading', () => {
       const artifact = makeRootCauseArtifact({
-        one_line_description: "Bug",
-        five_whys: ["First why", "Second why", "Third why"],
+        one_line_description: 'Bug',
+        five_whys: ['First why', 'Second why', 'Third why'],
       });
 
       render(
         <RootCauseCard
           autofix={mockAutofix}
           groupId="1"
-          section={makeSection("root_cause", "completed", [artifact])}
-        />,
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
       );
 
-      expect(screen.getByText("Why did this happen?")).toBeInTheDocument();
-      expect(screen.getByText("First why")).toBeInTheDocument();
-      expect(screen.getByText("Second why")).toBeInTheDocument();
-      expect(screen.getByText("Third why")).toBeInTheDocument();
+      expect(screen.getByText('Why did this happen?')).toBeInTheDocument();
+      expect(screen.getByText('First why')).toBeInTheDocument();
+      expect(screen.getByText('Second why')).toBeInTheDocument();
+      expect(screen.getByText('Third why')).toBeInTheDocument();
     });
 
-    it("renders reproduction_steps when present", () => {
+    it('renders reproduction_steps when present', () => {
       const artifact = makeRootCauseArtifact({
-        one_line_description: "Bug",
-        five_whys: ["why1"],
-        reproduction_steps: ["Open the page", "Click button"],
+        one_line_description: 'Bug',
+        five_whys: ['why1'],
+        reproduction_steps: ['Open the page', 'Click button'],
       });
 
       render(
         <RootCauseCard
           autofix={mockAutofix}
           groupId="1"
-          section={makeSection("root_cause", "completed", [artifact])}
-        />,
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
       );
 
-      expect(screen.getByText("Reproduction Steps")).toBeInTheDocument();
-      expect(screen.getByText("Open the page")).toBeInTheDocument();
-      expect(screen.getByText("Click button")).toBeInTheDocument();
+      expect(screen.getByText('Reproduction Steps')).toBeInTheDocument();
+      expect(screen.getByText('Open the page')).toBeInTheDocument();
+      expect(screen.getByText('Click button')).toBeInTheDocument();
     });
 
-    it("renders card shell when artifact data is null", () => {
+    it('renders card shell when artifact data is null', () => {
       const artifact = makeRootCauseArtifact(null);
 
       render(
         <RootCauseCard
           autofix={mockAutofix}
           groupId="1"
-          section={makeSection("root_cause", "completed", [artifact])}
-        />,
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
       );
 
-      expect(screen.getByText("Root Cause")).toBeInTheDocument();
+      expect(screen.getByText('Root Cause')).toBeInTheDocument();
       expect(
         screen.getByText(
-          "Seer failed to generate a root cause. This one is on us. Try running it again.",
-        ),
+          'Seer failed to generate a root cause. This one is on us. Try running it again.'
+        )
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "Re-run" }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
     });
 
-    it("handles empty five_whys with placeholder", () => {
+    it('handles empty five_whys with placeholder', () => {
       const artifact = makeRootCauseArtifact({
-        one_line_description: "Bug",
+        one_line_description: 'Bug',
         five_whys: [],
       });
 
@@ -247,297 +241,277 @@ describe("ArtifactCard", () => {
         <RootCauseCard
           autofix={mockAutofix}
           groupId="1"
-          section={makeSection("root_cause", "completed", [artifact])}
-        />,
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
       );
 
-      expect(screen.getByText("Root Cause")).toBeInTheDocument();
-      expect(
-        screen.queryByText("Why did this happen?"),
-      ).not.toBeInTheDocument();
+      expect(screen.getByText('Root Cause')).toBeInTheDocument();
+      expect(screen.queryByText('Why did this happen?')).not.toBeInTheDocument();
     });
 
-    it("copies markdown when copy button is clicked", async () => {
+    it('copies markdown when copy button is clicked', async () => {
       const artifact = makeRootCauseArtifact({
-        one_line_description: "Null pointer in user handler",
-        five_whys: ["Missing null check"],
-        reproduction_steps: ["Open page"],
+        one_line_description: 'Null pointer in user handler',
+        five_whys: ['Missing null check'],
+        reproduction_steps: ['Open page'],
       });
 
       render(
         <RootCauseCard
           autofix={mockAutofix}
           groupId="1"
-          section={makeSection("root_cause", "completed", [artifact])}
-        />,
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
       );
 
-      await userEvent.click(
-        screen.getByRole("button", { name: "Copy as Markdown" }),
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        expect.stringContaining("Null pointer in user handler"),
+        expect.stringContaining('Null pointer in user handler')
       );
     });
 
-    it("does not show copy button when artifact data is null", () => {
+    it('does not show copy button when artifact data is null', () => {
       const artifact = makeRootCauseArtifact(null);
 
       render(
         <RootCauseCard
           autofix={mockAutofix}
           groupId="1"
-          section={makeSection("root_cause", "completed", [artifact])}
-        />,
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
       );
 
-      expect(
-        screen.queryByRole("button", { name: "Copy as Markdown" }),
-      ).toBeDisabled();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
     });
   });
 
-  describe("SolutionCard", () => {
-    it("renders title and one_line_summary", () => {
+  describe('SolutionCard', () => {
+    it('renders title and one_line_summary', () => {
       const artifact = makeSolutionArtifact({
-        one_line_summary: "Add null check before accessing user",
-        steps: [{ title: "Step 1", description: "Add guard" }],
+        one_line_summary: 'Add null check before accessing user',
+        steps: [{title: 'Step 1', description: 'Add guard'}],
       });
 
       render(
         <SolutionCard
           autofix={mockAutofix}
-          section={makeSection("solution", "completed", [artifact])}
-        />,
+          section={makeSection('solution', 'completed', [artifact])}
+        />
       );
 
-      expect(screen.getByText("Plan")).toBeInTheDocument();
+      expect(screen.getByText('Plan')).toBeInTheDocument();
       expect(
-        screen.getByText("Add null check before accessing user"),
+        screen.getByText('Add null check before accessing user')
       ).toBeInTheDocument();
     });
 
-    it("renders steps with title and description", () => {
+    it('renders steps with title and description', () => {
       const artifact = makeSolutionArtifact({
-        one_line_summary: "Fix the bug",
+        one_line_summary: 'Fix the bug',
         steps: [
-          { title: "Add validation", description: "Check input is not null" },
-          { title: "Update handler", description: "Handle edge case" },
+          {title: 'Add validation', description: 'Check input is not null'},
+          {title: 'Update handler', description: 'Handle edge case'},
         ],
       });
 
       render(
         <SolutionCard
           autofix={mockAutofix}
-          section={makeSection("solution", "completed", [artifact])}
-        />,
+          section={makeSection('solution', 'completed', [artifact])}
+        />
       );
 
-      expect(screen.getByText("Steps to Resolve")).toBeInTheDocument();
-      expect(screen.getByText("Add validation")).toBeInTheDocument();
-      expect(screen.getByText("Check input is not null")).toBeInTheDocument();
-      expect(screen.getByText("Update handler")).toBeInTheDocument();
-      expect(screen.getByText("Handle edge case")).toBeInTheDocument();
+      expect(screen.getByText('Steps to Resolve')).toBeInTheDocument();
+      expect(screen.getByText('Add validation')).toBeInTheDocument();
+      expect(screen.getByText('Check input is not null')).toBeInTheDocument();
+      expect(screen.getByText('Update handler')).toBeInTheDocument();
+      expect(screen.getByText('Handle edge case')).toBeInTheDocument();
     });
 
-    it("renders card shell when artifact data is null", () => {
+    it('renders card shell when artifact data is null', () => {
       const artifact = makeSolutionArtifact(null);
 
       render(
         <SolutionCard
           autofix={mockAutofix}
-          section={makeSection("solution", "completed", [artifact])}
-        />,
+          section={makeSection('solution', 'completed', [artifact])}
+        />
       );
 
-      expect(screen.getByText("Plan")).toBeInTheDocument();
+      expect(screen.getByText('Plan')).toBeInTheDocument();
       expect(
         screen.getByText(
-          "Seer failed to generate a plan. This one is on us. Try running it again.",
-        ),
+          'Seer failed to generate a plan. This one is on us. Try running it again.'
+        )
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "Re-run" }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
     });
 
-    it("copies markdown when copy button is clicked", async () => {
+    it('copies markdown when copy button is clicked', async () => {
       const artifact = makeSolutionArtifact({
-        one_line_summary: "Add null check before accessing user",
-        steps: [{ title: "Add guard", description: "Check input" }],
+        one_line_summary: 'Add null check before accessing user',
+        steps: [{title: 'Add guard', description: 'Check input'}],
       });
 
       render(
         <SolutionCard
           autofix={mockAutofix}
-          section={makeSection("solution", "completed", [artifact])}
-        />,
+          section={makeSection('solution', 'completed', [artifact])}
+        />
       );
 
-      await userEvent.click(
-        screen.getByRole("button", { name: "Copy as Markdown" }),
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        expect.stringContaining("Add null check before accessing user"),
+        expect.stringContaining('Add null check before accessing user')
       );
     });
 
-    it("does not show copy button when artifact data is null", () => {
+    it('does not show copy button when artifact data is null', () => {
       const artifact = makeSolutionArtifact(null);
 
       render(
         <SolutionCard
           autofix={mockAutofix}
-          section={makeSection("solution", "completed", [artifact])}
-        />,
+          section={makeSection('solution', 'completed', [artifact])}
+        />
       );
 
-      expect(
-        screen.queryByRole("button", { name: "Copy as Markdown" }),
-      ).toBeDisabled();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
     });
   });
 
-  describe("CodeChangesCard", () => {
-    it("renders single file in single repo", () => {
+  describe('CodeChangesCard', () => {
+    it('renders single file in single repo', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
+        />
       );
 
-      expect(screen.getByText("Code Changes")).toBeInTheDocument();
-      expect(screen.getByText("1 file changed in 1 repo")).toBeInTheDocument();
+      expect(screen.getByText('Code Changes')).toBeInTheDocument();
+      expect(screen.getByText('1 file changed in 1 repo')).toBeInTheDocument();
     });
 
-    it("renders multiple files in single repo", () => {
+    it('renders multiple files in single repo', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
-          section={makeSection("code_changes", "completed", [
+          section={makeSection('code_changes', 'completed', [
             [
-              makePatch("org/repo", "src/app.py"),
-              makePatch("org/repo", "src/utils.py"),
-              makePatch("org/repo", "src/models.py"),
+              makePatch('org/repo', 'src/app.py'),
+              makePatch('org/repo', 'src/utils.py'),
+              makePatch('org/repo', 'src/models.py'),
             ],
           ])}
-        />,
+        />
       );
 
-      expect(screen.getByText("3 files changed in 1 repo")).toBeInTheDocument();
+      expect(screen.getByText('3 files changed in 1 repo')).toBeInTheDocument();
     });
 
-    it("renders multiple files in multiple repos", () => {
+    it('renders multiple files in multiple repos', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
-          section={makeSection("code_changes", "completed", [
+          section={makeSection('code_changes', 'completed', [
             [
-              makePatch("org/repo-a", "src/app.py"),
-              makePatch("org/repo-a", "src/utils.py"),
-              makePatch("org/repo-b", "src/index.ts"),
+              makePatch('org/repo-a', 'src/app.py'),
+              makePatch('org/repo-a', 'src/utils.py'),
+              makePatch('org/repo-b', 'src/index.ts'),
             ],
           ])}
-        />,
+        />
       );
 
-      expect(
-        screen.getByText("3 files changed in 2 repos"),
-      ).toBeInTheDocument();
+      expect(screen.getByText('3 files changed in 2 repos')).toBeInTheDocument();
     });
 
-    it("renders repository name labels", () => {
+    it('renders repository name labels', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
-          section={makeSection("code_changes", "completed", [
+          section={makeSection('code_changes', 'completed', [
             [
-              makePatch("org/repo-a", "src/app.py"),
-              makePatch("org/repo-b", "src/index.ts"),
+              makePatch('org/repo-a', 'src/app.py'),
+              makePatch('org/repo-b', 'src/index.ts'),
             ],
           ])}
-        />,
+        />
       );
 
-      expect(screen.getByText("org/repo-a")).toBeInTheDocument();
-      expect(screen.getByText("org/repo-b")).toBeInTheDocument();
+      expect(screen.getByText('org/repo-a')).toBeInTheDocument();
+      expect(screen.getByText('org/repo-b')).toBeInTheDocument();
     });
 
-    it("renders card shell when no code changes artifact found", () => {
+    it('renders card shell when no code changes artifact found', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
-          section={makeSection("code_changes", "completed", [])}
-        />,
+          section={makeSection('code_changes', 'completed', [])}
+        />
       );
 
-      expect(screen.getByText("Code Changes")).toBeInTheDocument();
+      expect(screen.getByText('Code Changes')).toBeInTheDocument();
       expect(
         screen.getByText(
-          "Seer failed to generate a code change. This one is on us. Try running it again.",
-        ),
+          'Seer failed to generate a code change. This one is on us. Try running it again.'
+        )
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "Re-run" }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
     });
 
-    it("copies markdown when copy button is clicked", async () => {
+    it('copies markdown when copy button is clicked', async () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
+        />
       );
 
-      await userEvent.click(
-        screen.getByRole("button", { name: "Copy as Markdown" }),
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        expect.stringContaining("Code Changes"),
+        expect.stringContaining('Code Changes')
       );
     });
 
-    it("does not show copy button when no patches", () => {
+    it('does not show copy button when no patches', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
-          section={makeSection("code_changes", "completed", [])}
-        />,
+          section={makeSection('code_changes', 'completed', [])}
+        />
       );
 
-      expect(
-        screen.queryByRole("button", { name: "Copy as Markdown" }),
-      ).toBeDisabled();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
     });
 
-    it("renders error state when all patches have no changes", () => {
+    it('renders error state when all patches have no changes', () => {
       const emptyPatch = {
-        repo_name: "org/repo",
-        diff: "",
+        repo_name: 'org/repo',
+        diff: '',
         patch: {
-          path: "src/app.py",
+          path: 'src/app.py',
           added: 0,
           removed: 0,
           hunks: [],
-          source_file: "src/app.py",
-          target_file: "src/app.py",
-          type: "M",
+          source_file: 'src/app.py',
+          target_file: 'src/app.py',
+          type: 'M',
         },
       } as ExplorerFilePatch;
 
@@ -545,21 +519,19 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
-          section={makeSection("code_changes", "completed", [[emptyPatch]])}
-        />,
+          section={makeSection('code_changes', 'completed', [[emptyPatch]])}
+        />
       );
 
       expect(
         screen.getByText(
-          "Seer failed to generate a code change. This one is on us. Try running it again.",
-        ),
+          'Seer failed to generate a code change. This one is on us. Try running it again.'
+        )
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "Re-run" }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
     });
 
-    it("calls startStep when re-run button is clicked in error state", async () => {
+    it('calls startStep when re-run button is clicked in error state', async () => {
       const startStepMock = jest.fn();
       const autofixWithRunState = {
         ...mockAutofix,
@@ -567,8 +539,8 @@ describe("ArtifactCard", () => {
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed" as const,
-          updated_at: "2026-01-01T00:00:00Z",
+          status: 'completed' as const,
+          updated_at: '2026-01-01T00:00:00Z',
         },
       };
 
@@ -576,116 +548,106 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofixWithRunState}
-          section={makeSection("code_changes", "completed", [])}
-        />,
+          section={makeSection('code_changes', 'completed', [])}
+        />
       );
 
-      await userEvent.click(screen.getByRole("button", { name: "Re-run" }));
+      await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
       expect(startStepMock).toHaveBeenCalledWith(
-        "code_changes",
-        expect.objectContaining({ runId: 123 }),
+        'code_changes',
+        expect.objectContaining({runId: 123})
       );
     });
 
-    it("renders loading state when processing, not error", () => {
+    it('renders loading state when processing, not error', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
-          section={makeSection("code_changes", "processing", [])}
-        />,
+          section={makeSection('code_changes', 'processing', [])}
+        />
       );
 
-      expect(screen.getByText("Implementing changes…")).toBeInTheDocument();
+      expect(screen.getByText('Implementing changes…')).toBeInTheDocument();
       expect(
         screen.queryByText(
-          "Seer failed to generate a code change. This one is on us. Try running it again.",
-        ),
+          'Seer failed to generate a code change. This one is on us. Try running it again.'
+        )
       ).not.toBeInTheDocument();
     });
 
-    it("does not render file diff viewers in error state", () => {
+    it('does not render file diff viewers in error state', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
-          section={makeSection("code_changes", "completed", [])}
-        />,
+          section={makeSection('code_changes', 'completed', [])}
+        />
       );
 
-      expect(screen.queryByTestId("file-diff-viewer")).not.toBeInTheDocument();
+      expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
     });
 
-    it("surfaces the agent explanation when no patches but a final message exists", () => {
+    it('surfaces the agent explanation when no patches but a final message exists', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofixWithRunState}
           section={makeSection(
-            "code_changes",
-            "completed",
+            'code_changes',
+            'completed',
             [],
             [
               makeAssistantBlock(
-                "This fix requires a database migration, not a code change.",
+                'This fix requires a database migration, not a code change.'
               ),
-            ],
+            ]
           )}
-        />,
+        />
       );
 
       expect(
-        screen.getByText(
-          "Seer proposed a fix but couldn't apply it automatically",
-        ),
+        screen.getByText("Seer proposed a fix but couldn't apply it automatically")
       ).toBeInTheDocument();
       expect(
-        screen.getByText(
-          "This fix requires a database migration, not a code change.",
-        ),
+        screen.getByText('This fix requires a database migration, not a code change.')
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Add context & retry" }),
+        screen.getByRole('button', {name: 'Add context & retry'})
       ).toBeInTheDocument();
       // The generic "this one is on us" copy should not appear here.
       expect(
         screen.queryByText(
-          "Seer failed to generate a code change. This one is on us. Try running it again.",
-        ),
+          'Seer failed to generate a code change. This one is on us. Try running it again.'
+        )
       ).not.toBeInTheDocument();
     });
 
-    it("opens the context prompt from the explanation state", async () => {
+    it('opens the context prompt from the explanation state', async () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofixWithRunState}
           section={makeSection(
-            "code_changes",
-            "completed",
+            'code_changes',
+            'completed',
             [],
-            [
-              makeAssistantBlock(
-                "The relevant files are not in the connected repo.",
-              ),
-            ],
+            [makeAssistantBlock('The relevant files are not in the connected repo.')]
           )}
-        />,
+        />
       );
 
-      await userEvent.click(
-        screen.getByRole("button", { name: "Add context & retry" }),
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Add context & retry'}));
 
       expect(
-        screen.getByText("What additional context should Seer use?"),
+        screen.getByText('What additional context should Seer use?')
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole("button", { name: "Add context & retry" }),
+        screen.queryByRole('button', {name: 'Add context & retry'})
       ).not.toBeInTheDocument();
     });
 
-    it("opens PR iteration feedback from explanation state when a PR exists", async () => {
+    it('opens PR iteration feedback from explanation state when a PR exists', async () => {
       const startStepMock = jest.fn();
       const autofixWithPR: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofixWithRunState,
@@ -693,9 +655,9 @@ describe("ArtifactCard", () => {
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed",
-          updated_at: "2026-01-01T00:00:00Z",
-          repo_pr_states: { "org/repo": makePR() },
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
         },
       };
 
@@ -704,78 +666,70 @@ describe("ArtifactCard", () => {
           groupId="1"
           autofix={autofixWithPR}
           section={makeSection(
-            "code_changes",
-            "completed",
+            'code_changes',
+            'completed',
             [],
-            [
-              makeAssistantBlock(
-                "The relevant files are not in the connected repo.",
-              ),
-            ],
+            [makeAssistantBlock('The relevant files are not in the connected repo.')]
           )}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
-      await userEvent.click(
-        screen.getByRole("button", { name: "Add context & retry" }),
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Add context & retry'}));
 
       expect(
-        screen.getByText("Anything else you want to see on your PR?"),
+        screen.getByText('Anything else you want to see on your PR?')
       ).toBeInTheDocument();
       expect(
-        screen.queryByText("What additional context should Seer use?"),
+        screen.queryByText('What additional context should Seer use?')
       ).not.toBeInTheDocument();
 
-      await userEvent.type(screen.getByRole("textbox"), "Try the other repo");
-      await userEvent.click(screen.getByRole("button", { name: "Submit" }));
+      await userEvent.type(screen.getByRole('textbox'), 'Try the other repo');
+      await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
-      expect(startStepMock).toHaveBeenCalledWith("pr_iteration", {
+      expect(startStepMock).toHaveBeenCalledWith('pr_iteration', {
         runId: 123,
-        userContext: "Try the other repo",
+        userContext: 'Try the other repo',
       });
     });
 
-    it("falls back to the generic failure copy when there is no explanation", () => {
+    it('falls back to the generic failure copy when there is no explanation', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
           section={makeSection(
-            "code_changes",
-            "completed",
+            'code_changes',
+            'completed',
             [],
-            [makeAssistantBlock("   ")],
+            [makeAssistantBlock('   ')]
           )}
-        />,
+        />
       );
 
       expect(
         screen.getByText(
-          "Seer failed to generate a code change. This one is on us. Try running it again.",
-        ),
+          'Seer failed to generate a code change. This one is on us. Try running it again.'
+        )
       ).toBeInTheDocument();
       expect(
-        screen.queryByText(
-          "Seer proposed a fix but couldn't apply it automatically",
-        ),
+        screen.queryByText("Seer proposed a fix but couldn't apply it automatically")
       ).not.toBeInTheDocument();
     });
 
-    it("silently ignores pr_iteration blocks with an unrecognized source type", () => {
-      const block: AutofixSection["blocks"][number] = {
-        id: "block-unknown",
-        timestamp: "2026-01-01T00:00:00Z",
+    it('silently ignores pr_iteration blocks with an unrecognized source type', () => {
+      const block: AutofixSection['blocks'][number] = {
+        id: 'block-unknown',
+        timestamp: '2026-01-01T00:00:00Z',
         message: {
-          role: "user",
+          role: 'user',
           content: null,
           metadata: {
-            step: "pr_iteration",
-            iteration_index: "0",
+            step: 'pr_iteration',
+            iteration_index: '0',
             feedback: JSON.stringify({
-              text: "ignored",
-              source: { type: "mystery" },
+              text: 'ignored',
+              source: {type: 'mystery'},
             }),
           },
         },
@@ -785,47 +739,45 @@ describe("ArtifactCard", () => {
           groupId="1"
           autofix={mockAutofix}
           section={makeSection(
-            "code_changes",
-            "completed",
-            [[makePatch("org/repo", "src/app.py")]],
-            [block],
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [block]
           )}
-        />,
+        />
       );
 
-      expect(screen.queryByText("Feedback")).not.toBeInTheDocument();
+      expect(screen.queryByText('Feedback')).not.toBeInTheDocument();
     });
 
-    it("renders feedback from pr_iteration blocks", () => {
+    it('renders feedback from pr_iteration blocks', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
           section={makeSection(
-            "code_changes",
-            "completed",
-            [[makePatch("org/repo", "src/app.py")]],
-            [makePrIterationBlock(1, { text: "Add a test for this" })],
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(1, {text: 'Add a test for this'})]
           )}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
-      expect(screen.getByText("Feedback")).toBeInTheDocument();
-      expect(screen.getByText("Add a test for this")).toBeInTheDocument();
+      expect(screen.getByText('Feedback')).toBeInTheDocument();
+      expect(screen.getByText('Add a test for this')).toBeInTheDocument();
     });
 
-    it("renders the latest feedback at the top of the list", () => {
+    it('renders the latest feedback at the top of the list', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed",
-          updated_at: "2026-01-01T00:00:00Z",
-          queued_feedback: [
-            { text: "newest queued", source: { type: "user-ui" } },
-          ],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: 'newest queued', source: {type: 'user-ui'}}],
         },
       };
 
@@ -834,37 +786,35 @@ describe("ArtifactCard", () => {
           groupId="1"
           autofix={autofixWithQueued}
           section={makeSection(
-            "code_changes",
-            "completed",
-            [[makePatch("org/repo", "src/app.py")]],
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
             [
-              makePrIterationBlock(0, { text: "first pass" }),
-              makePrIterationBlock(1, { text: "second pass" }),
-            ],
+              makePrIterationBlock(0, {text: 'first pass'}),
+              makePrIterationBlock(1, {text: 'second pass'}),
+            ]
           )}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
       const items = screen.getAllByText(/first pass|second pass|newest queued/);
-      expect(items.map((item) => item.textContent)).toEqual([
-        "newest queued",
-        "second pass",
-        "first pass",
+      expect(items.map(item => item.textContent)).toEqual([
+        'newest queued',
+        'second pass',
+        'first pass',
       ]);
     });
 
-    it("shows the code changes, not the loader, when feedback is only queued", () => {
+    it('shows the code changes, not the loader, when feedback is only queued', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed",
-          updated_at: "2026-01-01T00:00:00Z",
-          queued_feedback: [
-            { text: "Make the button blue", source: { type: "user-ui" } },
-          ],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: 'Make the button blue', source: {type: 'user-ui'}}],
         },
       };
 
@@ -873,33 +823,29 @@ describe("ArtifactCard", () => {
           groupId="1"
           autofix={autofixWithQueued}
           section={makeSection(
-            "code_changes",
-            "completed",
-            [[makePatch("org/repo", "src/app.py")]],
-            [makePrIterationBlock(0, { text: "first pass" })],
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(0, {text: 'first pass'})]
           )}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
-      expect(screen.getByText("1 file changed in 1 repo")).toBeInTheDocument();
-      expect(screen.queryByText("Iterating on PR…")).not.toBeInTheDocument();
-      expect(
-        screen.queryByText("Implementing changes…"),
-      ).not.toBeInTheDocument();
+      expect(screen.getByText('1 file changed in 1 repo')).toBeInTheDocument();
+      expect(screen.queryByText('Iterating on PR…')).not.toBeInTheDocument();
+      expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
     });
 
-    it("renders queued feedback as a feedback item", () => {
+    it('renders queued feedback as a feedback item', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed",
-          updated_at: "2026-01-01T00:00:00Z",
-          queued_feedback: [
-            { text: "Make the button blue", source: { type: "user-ui" } },
-          ],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: 'Make the button blue', source: {type: 'user-ui'}}],
         },
       };
 
@@ -907,26 +853,26 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofixWithQueued}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
-      expect(screen.getByText("Feedback")).toBeInTheDocument();
-      expect(screen.getByText("Make the button blue")).toBeInTheDocument();
+      expect(screen.getByText('Feedback')).toBeInTheDocument();
+      expect(screen.getByText('Make the button blue')).toBeInTheDocument();
     });
 
-    it("renders queued feedback with missing source attribution", () => {
+    it('renders queued feedback with missing source attribution', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed",
-          updated_at: "2026-01-01T00:00:00Z",
-          queued_feedback: [{ text: "Make the button blue" }],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: 'Make the button blue'}],
         },
       };
 
@@ -934,32 +880,32 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofixWithQueued}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
       // The source is shown in the avatar tooltip, not prefixed on the comment.
-      expect(screen.getByText("Make the button blue")).toBeInTheDocument();
+      expect(screen.getByText('Make the button blue')).toBeInTheDocument();
     });
 
-    it("renders GitHub PR review comment feedback with attribution and a link", () => {
-      const commentUrl = "https://github.com/org/repo/pull/42#discussion_r123";
+    it('renders GitHub PR review comment feedback with attribution and a link', () => {
+      const commentUrl = 'https://github.com/org/repo/pull/42#discussion_r123';
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed",
-          updated_at: "2026-01-01T00:00:00Z",
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
           queued_feedback: [
             {
-              text: "Please handle the null value.",
+              text: 'Please handle the null value.',
               source: {
-                type: "github-pr-review-comment",
-                comment: { html_url: commentUrl, user: { login: "octocat" } },
+                type: 'github-pr-review-comment',
+                comment: {html_url: commentUrl, user: {login: 'octocat'}},
               },
             },
           ],
@@ -970,60 +916,57 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofixWithQueued}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
       // The comment text is plain; a trailing "Open in GitHub" arrow links out.
-      expect(
-        screen.getByText("Please handle the null value."),
-      ).toBeInTheDocument();
-      const feedbackLink = screen.getByRole("link", { name: "Open in GitHub" });
-      expect(feedbackLink).toHaveAttribute("href", commentUrl);
+      expect(screen.getByText('Please handle the null value.')).toBeInTheDocument();
+      const feedbackLink = screen.getByRole('link', {name: 'Open in GitHub'});
+      expect(feedbackLink).toHaveAttribute('href', commentUrl);
     });
 
-    it("groups a review body with its inline comments under a state header", () => {
-      const reviewUrl =
-        "https://github.com/org/repo/pull/42#pullrequestreview-999";
+    it('groups a review body with its inline comments under a state header', () => {
+      const reviewUrl = 'https://github.com/org/repo/pull/42#pullrequestreview-999';
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed",
-          updated_at: "2026-01-01T00:00:00Z",
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
           queued_feedback: [
             {
-              text: "Overall this needs work.",
+              text: 'Overall this needs work.',
               source: {
-                type: "github-pr-review-body",
+                type: 'github-pr-review-body',
                 html_url: reviewUrl,
                 review_id: 7,
-                review_state: "changes_requested",
+                review_state: 'changes_requested',
               },
             },
             {
-              text: "Handle the null value here.",
+              text: 'Handle the null value here.',
               source: {
-                type: "github-pr-review-comment",
+                type: 'github-pr-review-comment',
                 review_id: 7,
                 comment: {
-                  html_url: "https://github.com/org/repo/pull/42#r1",
-                  user: { login: "octocat" },
+                  html_url: 'https://github.com/org/repo/pull/42#r1',
+                  user: {login: 'octocat'},
                 },
               },
             },
             {
-              text: "And rename this variable.",
+              text: 'And rename this variable.',
               source: {
-                type: "github-pr-review-comment",
+                type: 'github-pr-review-comment',
                 review_id: 7,
                 comment: {
-                  html_url: "https://github.com/org/repo/pull/42#r2",
-                  user: { login: "octocat" },
+                  html_url: 'https://github.com/org/repo/pull/42#r2',
+                  user: {login: 'octocat'},
                 },
               },
             },
@@ -1035,38 +978,36 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofixWithQueued}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
       // The review state renders as a single header badge…
-      expect(screen.getByText("Changes requested")).toBeInTheDocument();
+      expect(screen.getByText('Changes requested')).toBeInTheDocument();
       // …with the body text and both inline comments beneath it.
-      expect(screen.getByText("Overall this needs work.")).toBeInTheDocument();
-      expect(
-        screen.getByText("Handle the null value here."),
-      ).toBeInTheDocument();
-      expect(screen.getByText("And rename this variable.")).toBeInTheDocument();
+      expect(screen.getByText('Overall this needs work.')).toBeInTheDocument();
+      expect(screen.getByText('Handle the null value here.')).toBeInTheDocument();
+      expect(screen.getByText('And rename this variable.')).toBeInTheDocument();
     });
 
-    it("shows a state badge for a body-only review", () => {
+    it('shows a state badge for a body-only review', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed",
-          updated_at: "2026-01-01T00:00:00Z",
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
           queued_feedback: [
             {
-              text: "Looks good to me.",
+              text: 'Looks good to me.',
               source: {
-                type: "github-pr-review-body",
+                type: 'github-pr-review-body',
                 review_id: 8,
-                review_state: "approved",
+                review_state: 'approved',
               },
             },
           ],
@@ -1077,18 +1018,18 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofixWithQueued}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
-      expect(screen.getByText("Approved")).toBeInTheDocument();
-      expect(screen.getByText("Looks good to me.")).toBeInTheDocument();
+      expect(screen.getByText('Approved')).toBeInTheDocument();
+      expect(screen.getByText('Looks good to me.')).toBeInTheDocument();
     });
 
-    it("leaves a comment-only review (no body) ungrouped", () => {
+    it('leaves a comment-only review (no body) ungrouped', () => {
       // GitHub's "Add single comment" fires a review with no summary body, so no
       // header is synthesized — the inline comment renders flat, with no badge.
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
@@ -1096,17 +1037,17 @@ describe("ArtifactCard", () => {
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed",
-          updated_at: "2026-01-01T00:00:00Z",
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
           queued_feedback: [
             {
-              text: "One quick nit.",
+              text: 'One quick nit.',
               source: {
-                type: "github-pr-review-comment",
+                type: 'github-pr-review-comment',
                 review_id: 9,
                 comment: {
-                  html_url: "https://github.com/org/repo/pull/42#r3",
-                  user: { login: "octocat" },
+                  html_url: 'https://github.com/org/repo/pull/42#r3',
+                  user: {login: 'octocat'},
                 },
               },
             },
@@ -1118,38 +1059,38 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofixWithQueued}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
-      expect(screen.getByText("One quick nit.")).toBeInTheDocument();
+      expect(screen.getByText('One quick nit.')).toBeInTheDocument();
       // No review-state badge without a body source to carry the state.
-      expect(screen.queryByText("Changes requested")).not.toBeInTheDocument();
-      expect(screen.queryByText("Approved")).not.toBeInTheDocument();
-      expect(screen.queryByText("Commented")).not.toBeInTheDocument();
+      expect(screen.queryByText('Changes requested')).not.toBeInTheDocument();
+      expect(screen.queryByText('Approved')).not.toBeInTheDocument();
+      expect(screen.queryByText('Commented')).not.toBeInTheDocument();
     });
 
-    it("shows a formatted check-suite label instead of the raw feedback text", () => {
+    it('shows a formatted check-suite label instead of the raw feedback text', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed",
-          updated_at: "2026-01-01T00:00:00Z",
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
           queued_feedback: [
             {
-              text: "raw text",
-              ui_text: "check suite for app CI failed",
+              text: 'raw text',
+              ui_text: 'check suite for app CI failed',
               source: {
-                type: "check-suite",
-                app_name: "CI",
+                type: 'check-suite',
+                app_name: 'CI',
                 event: {
-                  check_suite: { id: 999, head_sha: "abc123" },
-                  repository: { html_url: "https://github.com/org/repo" },
+                  check_suite: {id: 999, head_sha: 'abc123'},
+                  repository: {html_url: 'https://github.com/org/repo'},
                 },
               },
             },
@@ -1161,34 +1102,34 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofixWithQueued}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
-      expect(screen.getByText("CI failure detected")).toBeInTheDocument();
+      expect(screen.getByText('CI failure detected')).toBeInTheDocument();
       expect(screen.queryByText(/raw text/)).not.toBeInTheDocument();
     });
 
-    it("links check-suite feedback to the failing check suite", () => {
+    it('links check-suite feedback to the failing check suite', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed",
-          updated_at: "2026-01-01T00:00:00Z",
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
           queued_feedback: [
             {
-              text: "raw text",
+              text: 'raw text',
               source: {
-                type: "check-suite",
-                app_name: "CI",
+                type: 'check-suite',
+                app_name: 'CI',
                 event: {
-                  check_suite: { id: 999, head_sha: "abc123" },
-                  repository: { html_url: "https://github.com/org/repo" },
+                  check_suite: {id: 999, head_sha: 'abc123'},
+                  repository: {html_url: 'https://github.com/org/repo'},
                 },
               },
             },
@@ -1200,33 +1141,31 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofixWithQueued}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
       // The label is plain text; a trailing "Open in GitHub" arrow links to the run.
-      expect(screen.getByText("CI failure detected")).toBeInTheDocument();
-      const link = screen.getByRole("link", { name: "Open in GitHub" });
+      expect(screen.getByText('CI failure detected')).toBeInTheDocument();
+      const link = screen.getByRole('link', {name: 'Open in GitHub'});
       expect(link).toHaveAttribute(
-        "href",
-        "https://github.com/org/repo/commit/abc123/checks?check_suite_id=999",
+        'href',
+        'https://github.com/org/repo/commit/abc123/checks?check_suite_id=999'
       );
     });
 
-    it("shows the code changes for queued feedback without the feature flag", () => {
+    it('shows the code changes for queued feedback without the feature flag', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed",
-          updated_at: "2026-01-01T00:00:00Z",
-          queued_feedback: [
-            { text: "Make the button blue", source: { type: "user-ui" } },
-          ],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: 'Make the button blue', source: {type: 'user-ui'}}],
         },
       };
 
@@ -1234,151 +1173,141 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofixWithQueued}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
+        />
       );
 
-      expect(screen.getByText("1 file changed in 1 repo")).toBeInTheDocument();
-      expect(
-        screen.queryByText("Implementing changes…"),
-      ).not.toBeInTheDocument();
-      expect(screen.queryByText("Iterating on PR…")).not.toBeInTheDocument();
+      expect(screen.getByText('1 file changed in 1 repo')).toBeInTheDocument();
+      expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
+      expect(screen.queryByText('Iterating on PR…')).not.toBeInTheDocument();
     });
 
-    it("does not render iteration feedback without the feature flag", () => {
+    it('does not render iteration feedback without the feature flag', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
           section={makeSection(
-            "code_changes",
-            "completed",
-            [[makePatch("org/repo", "src/app.py")]],
-            [makePrIterationBlock(1, { text: "Add a test for this" })],
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(1, {text: 'Add a test for this'})]
           )}
-        />,
+        />
       );
 
-      expect(screen.queryByText("Feedback")).not.toBeInTheDocument();
-      expect(screen.queryByText("Add a test for this")).not.toBeInTheDocument();
+      expect(screen.queryByText('Feedback')).not.toBeInTheDocument();
+      expect(screen.queryByText('Add a test for this')).not.toBeInTheDocument();
       expect(screen.queryByText(/- Latest/)).not.toBeInTheDocument();
     });
 
-    it("renders a one-based version tag for the latest iteration", () => {
+    it('renders a one-based version tag for the latest iteration', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
           section={makeSection(
-            "code_changes",
-            "completed",
-            [[makePatch("org/repo", "src/app.py")]],
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
             [
-              makePrIterationBlock(0, { text: "first pass" }),
-              makePrIterationBlock(1, { text: "second pass" }),
-            ],
+              makePrIterationBlock(0, {text: 'first pass'}),
+              makePrIterationBlock(1, {text: 'second pass'}),
+            ]
           )}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
       // iteration_index is zero-based; the latest (1) renders as v2.
-      expect(screen.getByText("v2 - Latest")).toBeInTheDocument();
+      expect(screen.getByText('v2 - Latest')).toBeInTheDocument();
     });
 
-    it("does not render a version tag without iterations", () => {
+    it('does not render a version tag without iterations', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
+        />
       );
 
       expect(screen.queryByText(/- Latest/)).not.toBeInTheDocument();
     });
 
-    it("shows the iterating loading message when processing a pr_iteration", () => {
+    it('shows the iterating loading message when processing a pr_iteration', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
           section={makeSection(
-            "code_changes",
-            "processing",
+            'code_changes',
+            'processing',
             [],
-            [makePrIterationBlock(0, { text: "fix the CI failure" })],
+            [makePrIterationBlock(0, {text: 'fix the CI failure'})]
           )}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
-      expect(screen.getByText("Iterating on PR…")).toBeInTheDocument();
-      expect(
-        screen.queryByText("Implementing changes…"),
-      ).not.toBeInTheDocument();
+      expect(screen.getByText('Iterating on PR…')).toBeInTheDocument();
+      expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
     });
 
-    it("marks block feedback as processed when the section is not processing", () => {
+    it('marks block feedback as processed when the section is not processing', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
           section={makeSection(
-            "code_changes",
-            "completed",
-            [[makePatch("org/repo", "src/app.py")]],
-            [makePrIterationBlock(0, { text: "first pass" })],
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(0, {text: 'first pass'})]
           )}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
-      expect(screen.getByText("first pass")).toBeInTheDocument();
-      expect(screen.getByTestId("feedback-processed")).toBeInTheDocument();
+      expect(screen.getByText('first pass')).toBeInTheDocument();
+      expect(screen.getByTestId('feedback-processed')).toBeInTheDocument();
     });
 
-    it("marks the current iteration feedback as in progress while processing", () => {
+    it('marks the current iteration feedback as in progress while processing', () => {
       render(
         <CodeChangesCard
           groupId="1"
           autofix={mockAutofix}
           section={makeSection(
-            "code_changes",
-            "processing",
+            'code_changes',
+            'processing',
             [],
-            [makePrIterationBlock(0, { text: "fix the CI failure" })],
+            [makePrIterationBlock(0, {text: 'fix the CI failure'})]
           )}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
       // While processing, the row shows a spinner (there is also the card body
       // "Iterating on PR…" loader, hence getAllByTestId) and no processed check.
-      expect(screen.getByText("fix the CI failure")).toBeInTheDocument();
-      expect(screen.getAllByTestId("loading-indicator").length).toBeGreaterThan(
-        0,
-      );
-      expect(
-        screen.queryByTestId("feedback-processed"),
-      ).not.toBeInTheDocument();
+      expect(screen.getByText('fix the CI failure')).toBeInTheDocument();
+      expect(screen.getAllByTestId('loading-indicator').length).toBeGreaterThan(0);
+      expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
     });
 
-    it("marks queued feedback with a queued label and no timestamp", () => {
+    it('marks queued feedback with a queued label and no timestamp', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed",
-          updated_at: "2026-01-01T00:00:00Z",
-          queued_feedback: [
-            { text: "Make the button blue", source: { type: "user-ui" } },
-          ],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: 'Make the button blue', source: {type: 'user-ui'}}],
         },
       };
 
@@ -1386,29 +1315,27 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofixWithQueued}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
-      expect(screen.getByText("Make the button blue")).toBeInTheDocument();
-      expect(screen.getByText("Queued")).toBeInTheDocument();
-      expect(
-        screen.queryByTestId("feedback-processed"),
-      ).not.toBeInTheDocument();
+      expect(screen.getByText('Make the button blue')).toBeInTheDocument();
+      expect(screen.getByText('Queued')).toBeInTheDocument();
+      expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
     });
 
-    it("keeps reset enabled with the feature flag even when PRs exist", () => {
+    it('keeps reset enabled with the feature flag even when PRs exist', () => {
       const autofix: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed",
-          updated_at: "2026-01-01T00:00:00Z",
-          repo_pr_states: { "org/repo": makePR() },
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
         },
       };
 
@@ -1416,24 +1343,24 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofix}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
-      expect(screen.getByRole("button", { name: "Re-run step" })).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeEnabled();
     });
 
-    it("disables reset with the feature flag while processing before any PR exists", () => {
+    it('disables reset with the feature flag while processing before any PR exists', () => {
       const autofix: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "processing",
-          updated_at: "2026-01-01T00:00:00Z",
+          status: 'processing',
+          updated_at: '2026-01-01T00:00:00Z',
           repo_pr_states: {},
         },
       };
@@ -1442,27 +1369,25 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofix}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
-      expect(
-        screen.getByRole("button", { name: "Re-run step" }),
-      ).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
     });
 
-    it("keeps reset enabled with the feature flag while processing once a PR exists", () => {
+    it('keeps reset enabled with the feature flag while processing once a PR exists', () => {
       const autofix: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "processing",
-          updated_at: "2026-01-01T00:00:00Z",
-          repo_pr_states: { "org/repo": makePR() },
+          status: 'processing',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
         },
       };
 
@@ -1470,25 +1395,25 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofix}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
-      expect(screen.getByRole("button", { name: "Re-run step" })).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeEnabled();
     });
 
-    it("disables reset without the feature flag when PRs exist", () => {
+    it('disables reset without the feature flag when PRs exist', () => {
       const autofix: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed",
-          updated_at: "2026-01-01T00:00:00Z",
-          repo_pr_states: { "org/repo": makePR() },
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
         },
       };
 
@@ -1496,26 +1421,24 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofix}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
+        />
       );
 
-      expect(
-        screen.getByRole("button", { name: "Re-run step" }),
-      ).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
     });
 
-    it("disables reset while a coding agent is active", () => {
+    it('disables reset while a coding agent is active', () => {
       const autofix: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "completed",
-          updated_at: "2026-01-01T00:00:00Z",
-          coding_agents: { a: {} as any },
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          coding_agents: {a: {} as any},
         },
       };
 
@@ -1523,27 +1446,25 @@ describe("ArtifactCard", () => {
         <CodeChangesCard
           groupId="1"
           autofix={autofix}
-          section={makeSection("code_changes", "completed", [
-            [makePatch("org/repo", "src/app.py")],
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
           ])}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
-      expect(
-        screen.getByRole("button", { name: "Re-run step" }),
-      ).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
     });
 
-    it("shows the PR iteration form mid-run when reset is requested", async () => {
+    it('shows the PR iteration form mid-run when reset is requested', async () => {
       const autofix: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
           run_id: 123,
           blocks: [],
-          status: "processing",
-          updated_at: "2026-01-01T00:00:00Z",
-          repo_pr_states: { "org/repo": makePR() },
+          status: 'processing',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
         },
       };
 
@@ -1552,376 +1473,363 @@ describe("ArtifactCard", () => {
           groupId="1"
           autofix={autofix}
           section={makeSection(
-            "code_changes",
-            "processing",
+            'code_changes',
+            'processing',
             [],
-            [makePrIterationBlock(0, { text: "fix the CI failure" })],
+            [makePrIterationBlock(0, {text: 'fix the CI failure'})]
           )}
         />,
-        { organization: prIterationOrganization },
+        {organization: prIterationOrganization}
       );
 
-      await userEvent.click(
-        screen.getByRole("button", { name: "Re-run step" }),
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Re-run step'}));
       expect(
-        screen.getByText("Anything else you want to see on your PR?"),
+        screen.getByText('Anything else you want to see on your PR?')
       ).toBeInTheDocument();
     });
   });
 
-  describe("PullRequestsCard", () => {
-    it("renders PR link buttons with correct text and href", () => {
+  describe('PullRequestsCard', () => {
+    it('renders PR link buttons with correct text and href', () => {
       render(
         <PullRequestsCard
           autofix={mockAutofixWithRunState}
-          section={makeSection("pull_request", "completed", [[makePR()]])}
-        />,
+          section={makeSection('pull_request', 'completed', [[makePR()]])}
+        />
       );
 
-      expect(screen.getByText("Pull Requests")).toBeInTheDocument();
-      const button = screen.getByRole("button", {
-        name: "View org/repo#42",
+      expect(screen.getByText('Pull Requests')).toBeInTheDocument();
+      const button = screen.getByRole('button', {
+        name: 'View org/repo#42',
       });
-      expect(button).toHaveAttribute(
-        "href",
-        "https://github.com/org/repo/pull/42",
-      );
+      expect(button).toHaveAttribute('href', 'https://github.com/org/repo/pull/42');
     });
 
-    it("renders multiple PR buttons", () => {
+    it('renders multiple PR buttons', () => {
       render(
         <PullRequestsCard
           autofix={mockAutofixWithRunState}
-          section={makeSection("pull_request", "completed", [
+          section={makeSection('pull_request', 'completed', [
             [
               makePR({
-                repo_name: "org/repo-a",
+                repo_name: 'org/repo-a',
                 pr_number: 10,
-                pr_url: "https://pr/10",
+                pr_url: 'https://pr/10',
               }),
               makePR({
-                repo_name: "org/repo-b",
+                repo_name: 'org/repo-b',
                 pr_number: 20,
-                pr_url: "https://pr/20",
+                pr_url: 'https://pr/20',
               }),
             ],
           ])}
-        />,
+        />
       );
 
       expect(
-        screen.getByRole("button", { name: "View org/repo-a#10" }),
+        screen.getByRole('button', {name: 'View org/repo-a#10'})
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "View org/repo-b#20" }),
+        screen.getByRole('button', {name: 'View org/repo-b#20'})
       ).toBeInTheDocument();
     });
 
-    it("skips PRs with missing pr_url or pr_number", () => {
+    it('skips PRs with missing pr_url or pr_number', () => {
       render(
         <PullRequestsCard
           autofix={mockAutofixWithRunState}
-          section={makeSection("pull_request", "completed", [
+          section={makeSection('pull_request', 'completed', [
             [
-              makePR({ repo_name: "org/repo-a", pr_url: null }),
-              makePR({ repo_name: "org/repo-b", pr_number: null }),
+              makePR({repo_name: 'org/repo-a', pr_url: null}),
+              makePR({repo_name: 'org/repo-b', pr_number: null}),
               makePR({
-                repo_name: "org/valid",
+                repo_name: 'org/valid',
                 pr_number: 55,
-                pr_url: "https://pr/55",
+                pr_url: 'https://pr/55',
               }),
             ],
           ])}
-        />,
+        />
       );
 
-      expect(
-        screen.getByRole("button", { name: /View org\/valid#55/ }),
-      ).toHaveAttribute("href", "https://pr/55");
+      expect(screen.getByRole('button', {name: /View org\/valid#55/})).toHaveAttribute(
+        'href',
+        'https://pr/55'
+      );
     });
 
-    it("copies markdown when copy button is clicked", async () => {
+    it('copies markdown when copy button is clicked', async () => {
       render(
         <PullRequestsCard
           autofix={mockAutofixWithRunState}
-          section={makeSection("pull_request", "completed", [[makePR()]])}
-        />,
+          section={makeSection('pull_request', 'completed', [[makePR()]])}
+        />
       );
 
-      await userEvent.click(
-        screen.getByRole("button", { name: "Copy as Markdown" }),
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        expect.stringContaining("Pull Requests"),
+        expect.stringContaining('Pull Requests')
       );
     });
   });
 
-  describe("ArtifactCard expand/collapse", () => {
-    it("children are visible by default", () => {
+  describe('ArtifactCard expand/collapse', () => {
+    it('children are visible by default', () => {
       const artifact = makeRootCauseArtifact({
-        one_line_description: "Bug",
-        five_whys: ["Visible why"],
+        one_line_description: 'Bug',
+        five_whys: ['Visible why'],
       });
 
       render(
         <RootCauseCard
           autofix={mockAutofix}
           groupId="1"
-          section={makeSection("root_cause", "completed", [artifact])}
-        />,
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
       );
 
-      expect(screen.getByText("Visible why")).toBeInTheDocument();
+      expect(screen.getByText('Visible why')).toBeInTheDocument();
     });
 
-    it("clicking collapse button hides children", async () => {
+    it('clicking collapse button hides children', async () => {
       const artifact = makeRootCauseArtifact({
-        one_line_description: "Bug",
-        five_whys: ["Hidden why"],
+        one_line_description: 'Bug',
+        five_whys: ['Hidden why'],
       });
 
       render(
         <RootCauseCard
           autofix={mockAutofix}
           groupId="1"
-          section={makeSection("root_cause", "completed", [artifact])}
-        />,
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
       );
 
-      await userEvent.click(screen.getByRole("button", { name: "Root Cause" }));
+      await userEvent.click(screen.getByRole('button', {name: 'Root Cause'}));
 
-      expect(screen.queryByText("Bug")).not.toBeVisible();
-      expect(screen.queryByText("Hidden why")).not.toBeVisible();
+      expect(screen.queryByText('Bug')).not.toBeVisible();
+      expect(screen.queryByText('Hidden why')).not.toBeVisible();
     });
 
-    it("clicking again re-shows children", async () => {
+    it('clicking again re-shows children', async () => {
       const artifact = makeRootCauseArtifact({
-        one_line_description: "Bug",
-        five_whys: ["Toggle why"],
+        one_line_description: 'Bug',
+        five_whys: ['Toggle why'],
       });
 
       render(
         <RootCauseCard
           autofix={mockAutofix}
           groupId="1"
-          section={makeSection("root_cause", "completed", [artifact])}
-        />,
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
       );
 
-      expect(screen.getByText("Bug")).toBeVisible();
-      expect(screen.getByText("Toggle why")).toBeVisible();
+      expect(screen.getByText('Bug')).toBeVisible();
+      expect(screen.getByText('Toggle why')).toBeVisible();
 
-      await userEvent.click(screen.getByRole("button", { name: "Root Cause" }));
-      expect(screen.queryByText("Bug")).not.toBeVisible();
-      expect(screen.queryByText("Toggle why")).not.toBeVisible();
+      await userEvent.click(screen.getByRole('button', {name: 'Root Cause'}));
+      expect(screen.queryByText('Bug')).not.toBeVisible();
+      expect(screen.queryByText('Toggle why')).not.toBeVisible();
 
-      await userEvent.click(screen.getByRole("button", { name: "Root Cause" }));
-      expect(screen.getByText("Bug")).toBeVisible();
-      expect(screen.getByText("Toggle why")).toBeVisible();
+      await userEvent.click(screen.getByRole('button', {name: 'Root Cause'}));
+      expect(screen.getByText('Bug')).toBeVisible();
+      expect(screen.getByText('Toggle why')).toBeVisible();
     });
   });
 
   function makeCodingAgent(
-    overrides: Partial<ExplorerCodingAgentState> = {},
+    overrides: Partial<ExplorerCodingAgentState> = {}
   ): ExplorerCodingAgentState {
     return {
-      id: "agent-1",
-      name: "My Agent Task",
+      id: 'agent-1',
+      name: 'My Agent Task',
       provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-      started_at: "2026-01-01T00:00:00Z",
-      status: "running",
+      started_at: '2026-01-01T00:00:00Z',
+      status: 'running',
       ...overrides,
     };
   }
 
-  describe("CodingAgentsCard", () => {
-    it("renders agent name based on Cursor provider", () => {
+  describe('CodingAgentsCard', () => {
+    it('renders agent name based on Cursor provider', () => {
       render(
         <CodingAgentsCard
           autofix={mockAutofix}
-          section={makeSection("coding_agents", "completed", [
+          section={makeSection('coding_agents', 'completed', [
             [
               makeCodingAgent({
                 provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
               }),
             ],
           ])}
-        />,
+        />
       );
 
-      expect(screen.getByText("Cursor Cloud Agent")).toBeInTheDocument();
+      expect(screen.getByText('Cursor Cloud Agent')).toBeInTheDocument();
     });
 
-    it("renders agent name based on Claude provider", () => {
+    it('renders agent name based on Claude provider', () => {
       render(
         <CodingAgentsCard
           autofix={mockAutofix}
-          section={makeSection("coding_agents", "completed", [
+          section={makeSection('coding_agents', 'completed', [
             [
               makeCodingAgent({
                 provider: CodingAgentProvider.CLAUDE_CODE_AGENT,
               }),
             ],
           ])}
-        />,
+        />
       );
 
-      expect(screen.getByText("Claude Agent")).toBeInTheDocument();
+      expect(screen.getByText('Claude Agent')).toBeInTheDocument();
     });
 
-    it("renders agent name based on GitHub Copilot provider", () => {
+    it('renders agent name based on GitHub Copilot provider', () => {
       render(
         <CodingAgentsCard
           autofix={mockAutofix}
-          section={makeSection("coding_agents", "completed", [
+          section={makeSection('coding_agents', 'completed', [
             [
               makeCodingAgent({
                 provider: CodingAgentProvider.GITHUB_COPILOT_AGENT,
               }),
             ],
           ])}
-        />,
+        />
       );
 
-      expect(screen.getByText("GitHub Copilot")).toBeInTheDocument();
+      expect(screen.getByText('GitHub Copilot')).toBeInTheDocument();
     });
 
-    it("renders default agent name for unknown provider", () => {
+    it('renders default agent name for unknown provider', () => {
       render(
         <CodingAgentsCard
           autofix={mockAutofix}
-          section={makeSection("coding_agents", "completed", [
-            [makeCodingAgent({ provider: "unknown_provider" as any })],
+          section={makeSection('coding_agents', 'completed', [
+            [makeCodingAgent({provider: 'unknown_provider' as any})],
           ])}
-        />,
+        />
       );
 
-      expect(screen.getByText("Coding Agent")).toBeInTheDocument();
+      expect(screen.getByText('Coding Agent')).toBeInTheDocument();
     });
 
-    it("renders agent status tags", () => {
+    it('renders agent status tags', () => {
       render(
         <CodingAgentsCard
           autofix={mockAutofix}
-          section={makeSection("coding_agents", "completed", [
-            [makeCodingAgent({ status: "running" })],
+          section={makeSection('coding_agents', 'completed', [
+            [makeCodingAgent({status: 'running'})],
           ])}
-        />,
+        />
       );
 
-      expect(screen.getByText("running")).toBeInTheDocument();
+      expect(screen.getByText('running')).toBeInTheDocument();
     });
 
     it('renders "Open in" link when agent_url is present', () => {
       render(
         <CodingAgentsCard
           autofix={mockAutofix}
-          section={makeSection("coding_agents", "completed", [
+          section={makeSection('coding_agents', 'completed', [
             [
               makeCodingAgent({
-                agent_url: "https://cursor.com/agent/1",
+                agent_url: 'https://cursor.com/agent/1',
               }),
             ],
           ])}
-        />,
+        />
       );
 
-      const link = screen.getByRole("button", { name: /Open in/ });
-      expect(link).toHaveAttribute("href", "https://cursor.com/agent/1");
+      const link = screen.getByRole('button', {name: /Open in/});
+      expect(link).toHaveAttribute('href', 'https://cursor.com/agent/1');
     });
 
-    it("renders result PR links when results have pr_url", () => {
+    it('renders result PR links when results have pr_url', () => {
       render(
         <CodingAgentsCard
           autofix={mockAutofix}
-          section={makeSection("coding_agents", "completed", [
+          section={makeSection('coding_agents', 'completed', [
             [
               makeCodingAgent({
                 results: [
                   {
-                    description: "Fixed",
-                    repo_full_name: "org/repo",
-                    repo_provider: "github",
-                    pr_url: "https://github.com/org/repo/pull/99",
+                    description: 'Fixed',
+                    repo_full_name: 'org/repo',
+                    repo_provider: 'github',
+                    pr_url: 'https://github.com/org/repo/pull/99',
                   },
                 ],
               }),
             ],
           ])}
-        />,
+        />
       );
 
-      const link = screen.getByRole("button", { name: "View Pull Request" });
-      expect(link).toHaveAttribute(
-        "href",
-        "https://github.com/org/repo/pull/99",
-      );
+      const link = screen.getByRole('button', {name: 'View Pull Request'});
+      expect(link).toHaveAttribute('href', 'https://github.com/org/repo/pull/99');
     });
 
-    it("handles multiple coding agents", () => {
+    it('handles multiple coding agents', () => {
       render(
         <CodingAgentsCard
           autofix={mockAutofix}
-          section={makeSection("coding_agents", "completed", [
+          section={makeSection('coding_agents', 'completed', [
             [
               makeCodingAgent({
-                id: "agent-1",
-                name: "Agent One",
-                status: "completed",
+                id: 'agent-1',
+                name: 'Agent One',
+                status: 'completed',
               }),
               makeCodingAgent({
-                id: "agent-2",
-                name: "Agent Two",
-                status: "running",
+                id: 'agent-2',
+                name: 'Agent Two',
+                status: 'running',
               }),
             ],
           ])}
-        />,
+        />
       );
 
-      expect(screen.getByText("Agent One")).toBeInTheDocument();
-      expect(screen.getByText("Agent Two")).toBeInTheDocument();
-      expect(screen.getByText("completed")).toBeInTheDocument();
-      expect(screen.getByText("running")).toBeInTheDocument();
+      expect(screen.getByText('Agent One')).toBeInTheDocument();
+      expect(screen.getByText('Agent Two')).toBeInTheDocument();
+      expect(screen.getByText('completed')).toBeInTheDocument();
+      expect(screen.getByText('running')).toBeInTheDocument();
     });
 
-    it("copies markdown when copy button is clicked", async () => {
+    it('copies markdown when copy button is clicked', async () => {
       render(
         <CodingAgentsCard
           autofix={mockAutofix}
-          section={makeSection("coding_agents", "completed", [
+          section={makeSection('coding_agents', 'completed', [
             [
               makeCodingAgent({
-                agent_url: "https://cursor.com/agent/1",
+                agent_url: 'https://cursor.com/agent/1',
               }),
             ],
           ])}
-        />,
+        />
       );
 
-      await userEvent.click(
-        screen.getByRole("button", { name: "Copy as Markdown" }),
-      );
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        expect.stringContaining("Coding Agents"),
+        expect.stringContaining('Coding Agents')
       );
     });
 
-    it("does not show copy button when no artifacts", () => {
+    it('does not show copy button when no artifacts', () => {
       render(
         <CodingAgentsCard
           autofix={mockAutofix}
-          section={makeSection("coding_agents", "completed", [])}
-        />,
+          section={makeSection('coding_agents', 'completed', [])}
+        />
       );
 
-      expect(
-        screen.queryByRole("button", { name: "Copy as Markdown" }),
-      ).toBeDisabled();
+      expect(screen.queryByRole('button', {name: 'Copy as Markdown'})).toBeDisabled();
     });
   });
 });
