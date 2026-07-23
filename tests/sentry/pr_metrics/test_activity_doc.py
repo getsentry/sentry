@@ -28,6 +28,8 @@ from sentry.pr_metrics.activity_doc import (
     human_participant_count,
     is_failing_conclusion,
     new_document,
+    review_activity_from_doc,
+    reviews_requested_count_from_doc,
     timeline_events_from_doc,
 )
 
@@ -877,6 +879,74 @@ def test_derived_metrics_empty_doc() -> None:
         "opened_by_bot": None,
         "closed_by_bot": None,
         "opened_and_closed_by_same_actor": None,
+    }
+
+
+def test_reviews_requested_count_from_doc_nets_removals() -> None:
+    doc = new_document()
+    doc["counts"] = {"review_requested": 3, "review_request_removed": 1}
+    assert reviews_requested_count_from_doc(doc) == 2
+
+
+def test_reviews_requested_count_from_doc_floors_at_zero() -> None:
+    # More removals than requests can't be matched 1:1 (e.g. a second
+    # reviewer's outstanding request), so the net never goes negative.
+    doc = new_document()
+    doc["counts"] = {"review_requested": 1, "review_request_removed": 3}
+    assert reviews_requested_count_from_doc(doc) == 0
+
+
+def test_reviews_requested_count_from_doc_empty() -> None:
+    assert reviews_requested_count_from_doc(new_document()) == 0
+
+
+def test_review_activity_from_doc_tallies_results() -> None:
+    doc = new_document()
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+        webhook_id="r1",
+        review_state="approved",
+    )
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+        webhook_id="r2",
+        review_state="approved",
+    )
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+        webhook_id="r3",
+        review_state="commented",
+    )
+    assert review_activity_from_doc(doc) == {
+        "requested_count": 0,
+        "results": {"approved": 2, "changes_requested": 0, "commented": 1},
+    }
+
+
+def test_review_activity_from_doc_ignores_unrecognized_state() -> None:
+    doc = new_document()
+    # A review_dismissed row (or any future/unmapped state) contributes
+    # nothing rather than erroring or padding an unexpected key.
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+        webhook_id="r1",
+        review_state="dismissed",
+    )
+    assert review_activity_from_doc(doc)["results"] == {
+        "approved": 0,
+        "changes_requested": 0,
+        "commented": 0,
+    }
+
+
+def test_review_activity_from_doc_empty() -> None:
+    assert review_activity_from_doc(new_document()) == {
+        "requested_count": 0,
+        "results": {"approved": 0, "changes_requested": 0, "commented": 0},
     }
 
 

@@ -498,6 +498,60 @@ def _bot_human_counts(
     return counts
 
 
+def reviews_requested_count_from_doc(doc: ActivityDoc) -> int:
+    """Net outstanding review requests: ``REVIEW_REQUESTED`` minus
+    ``REVIEW_REQUEST_REMOVED``, floored at 0.
+
+    Not part of ``derived_metrics_from_doc``'s persisted-counters dict — unlike
+    ``reviews_count`` and friends, nothing downstream re-reads this off
+    ``PullRequestMetrics`` after emission, so it's read straight from the doc at
+    emit time (see ``emit.review_activity``) rather than written through
+    to the model.
+
+    Both counts come from ``counts`` (not the ``events`` list) so the total
+    survives the events cap the same way ``reviews_count`` does. Floored
+    because a removal can't be matched to which earlier request it revoked —
+    e.g. a second reviewer's request outliving the first's removal — so the
+    net can't go negative; 0 just means "no request outstanding", not "one too
+    many removals".
+    """
+    counts = doc.get("counts", {})
+    requested = counts.get(PullRequestActivityType.REVIEW_REQUESTED, 0)
+    removed = counts.get(PullRequestActivityType.REVIEW_REQUEST_REMOVED, 0)
+    return max(requested - removed, 0)
+
+
+# GitHub's review-submission vocabulary — mirrors emit.REVIEW_STATES. Duplicated
+# rather than imported to avoid a circular import (emit.py imports this module).
+_REVIEW_STATES = ("approved", "changes_requested", "commented")
+
+
+def review_activity_from_doc(doc: ActivityDoc) -> dict[str, Any]:
+    """Review-submission facts, projected from the document: the same shape as
+    ``emit.review_activity``, returned as a plain dict for that function to
+    wrap into its ``ReviewActivity`` NamedTuple.
+
+    ``requested_count`` reuses ``reviews_requested_count_from_doc`` (from
+    ``counts``, cap-surviving). ``results`` tallies each ``REVIEW_SUBMITTED``
+    entry's ``review_state`` from the stored entries — like the bot/human
+    splits in ``derived_metrics_from_doc``, this is *not* cap-surviving (no
+    per-state totals are kept in ``counts``), so a PR past the events cap
+    undercounts here the same way it already does for
+    ``reviews_bot_count``/``reviews_human_count``.
+    """
+    results: Counter[str] = Counter()
+    for event in doc.get("events", []):
+        if event["event_type"] != PullRequestActivityType.REVIEW_SUBMITTED:
+            continue
+        review_state = (event.get("payload") or {}).get("review_state")
+        if review_state in _REVIEW_STATES:
+            results[review_state] += 1
+    return {
+        "requested_count": reviews_requested_count_from_doc(doc),
+        "results": {state: results[state] for state in _REVIEW_STATES},
+    }
+
+
 def derived_metrics_from_doc(doc: ActivityDoc) -> dict[str, Any]:
     """The activity-derived counters, projected from the document.
 
