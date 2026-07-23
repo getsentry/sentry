@@ -27,6 +27,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.users.services.user.serial import serialize_rpc_user
@@ -1460,8 +1461,11 @@ class JiraIntegrationTest(APITestCase):
         assert config[0]["disabled"] is True
         assert "Unable to communicate" in config[0]["disabledReason"]
 
-    @responses.activate
-    def test_get_organization_config_lazy_status_with_configured_projects(self) -> None:
+    def _setup_jira_with_status_responses(
+        self,
+        projects: list[dict[str, str]] | None = None,
+        statuses: list[dict[str, str]] | None = None,
+    ) -> tuple[Integration, Any]:
         integration = self.create_provider_integration(
             provider="jira",
             name="Example Jira",
@@ -1474,6 +1478,37 @@ class JiraIntegrationTest(APITestCase):
         )
         integration.add_organization(self.organization, self.user)
         installation = integration.get_installation(self.organization.id)
+
+        if projects is None:
+            projects = [{"id": "10000", "name": "Project A"}]
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project",
+            json=projects,
+        )
+
+        if statuses is not None:
+            responses.add(
+                responses.GET,
+                "https://example.atlassian.net/rest/api/2/statuses/search",
+                json={"values": statuses},
+            )
+
+        return integration, installation
+
+    @responses.activate
+    @with_feature("organizations:jira-lazy-status-sync")
+    def test_get_organization_config_lazy_status_with_configured_projects(self) -> None:
+        integration, installation = self._setup_jira_with_status_responses(
+            projects=[
+                {"id": "10000", "name": "Project A"},
+                {"id": "10001", "name": "Project B"},
+            ],
+            statuses=[
+                {"id": "1", "name": "Open"},
+                {"id": "6", "name": "Closed"},
+            ],
+        )
 
         org_integration = OrganizationIntegration.objects.get(
             organization_id=self.organization.id, integration=integration
@@ -1486,24 +1521,7 @@ class JiraIntegrationTest(APITestCase):
             unresolved_status="1",
         )
 
-        responses.add(
-            responses.GET,
-            "https://example.atlassian.net/rest/api/2/project",
-            json=[{"id": "10000", "name": "Project A"}, {"id": "10001", "name": "Project B"}],
-        )
-        responses.add(
-            responses.GET,
-            "https://example.atlassian.net/rest/api/2/statuses/search",
-            json={
-                "values": [
-                    {"id": "1", "name": "Open"},
-                    {"id": "6", "name": "Closed"},
-                ],
-            },
-        )
-
-        with self.feature("organizations:jira-lazy-status-sync"):
-            config = installation.get_organization_config()
+        config = installation.get_organization_config()
 
         assert config[0]["perItemMapping"] is True
         assert "statusUrl" in config[0]
@@ -1514,28 +1532,11 @@ class JiraIntegrationTest(APITestCase):
         assert "10001" not in config[0]["mappedSelectors"]
 
     @responses.activate
+    @with_feature("organizations:jira-lazy-status-sync")
     def test_get_organization_config_lazy_status_no_configured_projects(self) -> None:
-        integration = self.create_provider_integration(
-            provider="jira",
-            name="Example Jira",
-            metadata={
-                "oauth_client_id": "oauth-client-id",
-                "shared_secret": "a-super-secret-key-from-atlassian",
-                "base_url": "https://example.atlassian.net",
-                "domain_name": "example.atlassian.net",
-            },
-        )
-        integration.add_organization(self.organization, self.user)
-        installation = integration.get_installation(self.organization.id)
+        _integration, installation = self._setup_jira_with_status_responses()
 
-        responses.add(
-            responses.GET,
-            "https://example.atlassian.net/rest/api/2/project",
-            json=[{"id": "10000", "name": "Project A"}],
-        )
-
-        with self.feature("organizations:jira-lazy-status-sync"):
-            config = installation.get_organization_config()
+        config = installation.get_organization_config()
 
         assert config[0]["perItemMapping"] is True
         assert "statusUrl" in config[0]
@@ -1543,33 +1544,11 @@ class JiraIntegrationTest(APITestCase):
 
     @responses.activate
     def test_get_organization_config_flag_off_uses_existing_behavior(self) -> None:
-        integration = self.create_provider_integration(
-            provider="jira",
-            name="Example Jira",
-            metadata={
-                "oauth_client_id": "oauth-client-id",
-                "shared_secret": "a-super-secret-key-from-atlassian",
-                "base_url": "https://example.atlassian.net",
-                "domain_name": "example.atlassian.net",
-            },
-        )
-        integration.add_organization(self.organization, self.user)
-        installation = integration.get_installation(self.organization.id)
-
-        responses.add(
-            responses.GET,
-            "https://example.atlassian.net/rest/api/2/project",
-            json=[{"id": "10000", "name": "Project A"}],
-        )
-        responses.add(
-            responses.GET,
-            "https://example.atlassian.net/rest/api/2/statuses/search",
-            json={
-                "values": [
-                    {"id": "1", "name": "Open"},
-                    {"id": "6", "name": "Closed"},
-                ],
-            },
+        _integration, installation = self._setup_jira_with_status_responses(
+            statuses=[
+                {"id": "1", "name": "Open"},
+                {"id": "6", "name": "Closed"},
+            ],
         )
 
         config = installation.get_organization_config()
