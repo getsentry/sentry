@@ -65,6 +65,7 @@ class OrganizationReportContext:
         self.top_spans_timeseries: dict[str, dict[int, float]] = {}  # {span_name: {timestamp: p95}}
         self.top_spans_projects: dict[str, int] = {}  # {span_name: project_id}
         self.spans_count_by_project: dict[int, int] = {}  # {project_id: count}
+        self.prev_week_spans_count_by_project: dict[int, int] = {}  # {project_id: count}
 
     def __repr__(self) -> str:
         return self.projects_context_map.__repr__()
@@ -710,6 +711,39 @@ def _get_transaction_projects(ctx: OrganizationReportContext) -> list[Project]:
     ]
 
 
+def spans_count_by_project(
+    projects: Sequence[Project],
+    organization: Organization,
+    start: datetime,
+    end: datetime,
+    referrer: str,
+) -> dict[int, int]:
+    snuba_params = SnubaParams(
+        start=start,
+        end=end,
+        projects=projects,
+        organization=organization,
+    )
+    config = SearchResolverConfig(auto_fields=True)
+    result = Spans.run_table_query(
+        params=snuba_params,
+        query_string="is_transaction:1",
+        selected_columns=["project.id", "count()"],
+        orderby=None,
+        offset=0,
+        limit=len(projects),
+        referrer=referrer,
+        config=config,
+        sampling_mode=None,
+    )
+    counts: dict[int, int] = {}
+    for row in result.get("data", []):
+        project_id = row.get("project.id")
+        if project_id:
+            counts[int(project_id)] = row.get("count()") or 0
+    return counts
+
+
 def organization_top_spans(
     ctx: OrganizationReportContext,
     referrer: str,
@@ -760,22 +794,9 @@ def organization_top_spans(
         op="weekly_reports.spans_count_by_project",
         name="weekly_reports.spans_count_by_project",
     ):
-        count_by_project_result = Spans.run_table_query(
-            params=snuba_params,
-            query_string="is_transaction:1",
-            selected_columns=["project.id", "count()"],
-            orderby=None,
-            offset=0,
-            limit=len(projects),
-            referrer=referrer,
-            config=config,
-            sampling_mode=None,
+        ctx.spans_count_by_project = spans_count_by_project(
+            projects, ctx.organization, ctx.start, ctx.end, referrer
         )
-
-    for row in count_by_project_result.get("data", []):
-        project_id = row.get("project.id")
-        if project_id:
-            ctx.spans_count_by_project[int(project_id)] = row.get("count()", 0)
 
     for row in result.get("data", []):
         span_name = row.get("span.name", "")

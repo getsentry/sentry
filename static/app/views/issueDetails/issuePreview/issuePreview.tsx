@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -38,6 +38,7 @@ import {
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
+import {IssueProgressTag} from 'sentry/views/issueList/utils/progress';
 
 interface IssuePreviewProps {
   groupId: string;
@@ -94,32 +95,43 @@ function IssuePreviewContent() {
     <Fragment>
       <Container paddingBottom="lg" borderBottom="muted">
         <Stack gap="xs">
-          <Flex align="center" justify="between" gap="md">
-            <Flex align="center" gap="md" minWidth={0}>
-              <Tooltip
-                title={primaryTitle}
-                skipWrapper
-                isHoverable
-                showOnlyOnOverflow
-                delay={1000}
-              >
-                <Heading as="h3" size="lg" ellipsis>
-                  {primaryTitle}
-                </Heading>
-              </Tooltip>
-              <LinkButton
-                to={issueDetailsUrl}
-                size="zero"
-                variant="transparent"
-                icon={<IconOpen size="xs" variant="muted" />}
-                aria-label={t('Open Issue')}
-                tooltipProps={{title: t('Open Issue')}}
-              />
+          <Container>
+            <Flex align="center" justify="between" gap="md">
+              <Flex align="center" gap="md" minWidth={0}>
+                <Tooltip
+                  title={primaryTitle}
+                  skipWrapper
+                  isHoverable
+                  showOnlyOnOverflow
+                  delay={1000}
+                >
+                  <Heading as="h3" size="lg" ellipsis>
+                    {primaryTitle}
+                  </Heading>
+                </Tooltip>
+                <LinkButton
+                  to={issueDetailsUrl}
+                  size="zero"
+                  variant="transparent"
+                  icon={<IconOpen size="xs" variant="muted" />}
+                  aria-label={t('Open Issue')}
+                  tooltipProps={{title: t('Open Issue')}}
+                />
+              </Flex>
+              <IssueSeenTimes group={group} />
             </Flex>
-            <IssueSeenTimes group={group} />
+            <EventMessage
+              level={group.level}
+              message={secondaryTitle}
+              type={group.type}
+            />
+          </Container>
+          <Flex justify="between" align="center" gap="md">
+            <GroupStatusSubtitle group={group} project={project} />
+            {group.derivedData?.progress && (
+              <IssueProgressTag state={group.derivedData.progress} />
+            )}
           </Flex>
-          <EventMessage level={group.level} message={secondaryTitle} type={group.type} />
-          <GroupStatusSubtitle group={group} project={project} />
         </Stack>
       </Container>
       <Flex
@@ -138,18 +150,13 @@ function IssuePreviewContent() {
           event={null}
         />
         <Flex align="center" wrap="wrap" gap="lg">
-          <Flex align="center" gap="xs">
-            <Text size="sm" variant="muted">
-              {t('Priority')}
-            </Text>
-            <GroupPriority group={group} />
-          </Flex>
-          <Flex align="center" gap="xs">
-            <Text size="sm" variant="muted">
-              {t('Assignee')}
-            </Text>
-            <GroupHeaderAssigneeSelector group={group} project={project} event={null} />
-          </Flex>
+          <GroupPriority group={group} />
+          <GroupHeaderAssigneeSelector
+            group={group}
+            project={project}
+            event={null}
+            showLabel={false}
+          />
         </Flex>
       </Flex>
       <Container paddingTop="md">

@@ -441,8 +441,7 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
             [artifact], {artifact.id: metrics}, {}, {}, {}, project=self.project
         )
 
-        assert f"/settings/projects/{self.project.slug}/mobile-builds/" in result
-        assert "tab=snapshots" in result
+        assert f"/settings/projects/{self.project.slug}/snapshots/" in result
         assert f"{self.project.name} Snapshot Settings" in result
 
 
@@ -516,8 +515,7 @@ class FormatSoloPrCommentTest(SnapshotPrCommentTestBase):
         assert "My App" in result
         assert "Snapshot diffs will appear when we have a base upload to compare against" in result
         assert "main branch" in result
-        assert f"/settings/projects/{self.project.slug}/mobile-builds/" in result
-        assert "tab=snapshots" in result
+        assert f"/settings/projects/{self.project.slug}/snapshots/" in result
         assert f"{self.project.name} Snapshot Settings" in result
 
     def test_solo_empty_artifacts_raises(self) -> None:
@@ -554,7 +552,7 @@ class FormatSoloPrCommentTest(SnapshotPrCommentTestBase):
         assert "4 uploaded" in result
         assert "Waiting for base snapshots to finish uploading" in result
         assert "~10 minutes" in result
-        assert f"/settings/projects/{self.project.slug}/mobile-builds/" in result
+        assert f"/settings/projects/{self.project.slug}/snapshots/" in result
 
     def test_waiting_for_base_empty_artifacts_raises(self) -> None:
         with pytest.raises(ValueError, match="Cannot format PR comment for empty artifact list"):
@@ -571,7 +569,7 @@ class FormatSoloPrCommentTest(SnapshotPrCommentTestBase):
         assert "2 uploaded" in result
         assert "No base snapshots found to compare against" in result
         assert "main branch" in result
-        assert f"/settings/projects/{self.project.slug}/mobile-builds/" in result
+        assert f"/settings/projects/{self.project.slug}/snapshots/" in result
 
     def test_missing_base_empty_artifacts_raises(self) -> None:
         with pytest.raises(ValueError, match="Cannot format PR comment for empty artifact list"):
