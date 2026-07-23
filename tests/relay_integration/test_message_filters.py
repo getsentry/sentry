@@ -1,8 +1,8 @@
 from sentry.ingest.inbound_filters import (
-    _browser_extensions_filter,
-    _legacy_browsers_filter,
-    _localhost_filter,
-    _web_crawlers_filter,
+    browser_extensions_filter,
+    legacy_browsers_filter,
+    localhost_filter,
+    web_crawlers_filter,
 )
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TransactionTestCase
@@ -31,13 +31,13 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
         return message
 
     def test_should_filter_local_ip_addresses_when_enabled(self) -> None:
-        self._set_filter_state(_localhost_filter, "1")
+        self._set_filter_state(localhost_filter, "1")
         message = self._get_message_with_bad_ip()
         event = self.post_and_try_retrieve_event(message)
         assert event is None
 
     def test_should_not_filter_bad_ip_addresses_when_disabled(self) -> None:
-        self._set_filter_state(_localhost_filter, "0")
+        self._set_filter_state(localhost_filter, "0")
         message = self._get_message_with_bad_ip()
         self.post_and_retrieve_event(message)
 
@@ -52,13 +52,13 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
         return message
 
     def test_should_filter_browser_extensions_when_enabled(self) -> None:
-        self._set_filter_state(_browser_extensions_filter, "1")
+        self._set_filter_state(browser_extensions_filter, "1")
         message = self._get_message_with_bad_extension()
         event = self.post_and_try_retrieve_event(message)
         assert event is None
 
     def test_should_not_filter_browser_extensions_when_disabled(self) -> None:
-        self._set_filter_state(_browser_extensions_filter, "0")
+        self._set_filter_state(browser_extensions_filter, "0")
         message = self._get_message_with_bad_extension()
         self.post_and_retrieve_event(message)
 
@@ -76,13 +76,13 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
         return message
 
     def test_should_filter_web_crawlers_when_enabled(self) -> None:
-        self._set_filter_state(_web_crawlers_filter, "1")
+        self._set_filter_state(web_crawlers_filter, "1")
         message = self._get_message_from_webcrawler()
         event = self.post_and_try_retrieve_event(message)
         assert event is None
 
     def test_should_not_filter_web_crawlers_when_disabled(self) -> None:
-        self._set_filter_state(_web_crawlers_filter, "0")
+        self._set_filter_state(web_crawlers_filter, "0")
         message = self._get_message_from_webcrawler()
         self.post_and_retrieve_event(message)
 
@@ -104,12 +104,12 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
         return message
 
     def test_should_filter_legacy_browsers(self) -> None:
-        self._set_filter_state(_legacy_browsers_filter, "1")
+        self._set_filter_state(legacy_browsers_filter, "1")
         message = self._get_message_from_legacy_browser()
         event = self.post_and_try_retrieve_event(message)
         assert event is None
 
     def test_should_not_filter_legacy_browsers_when_disabled(self) -> None:
-        self._set_filter_state(_legacy_browsers_filter, "0")
+        self._set_filter_state(legacy_browsers_filter, "0")
         message = self._get_message_from_legacy_browser()
         self.post_and_retrieve_event(message)

@@ -1,5 +1,3 @@
-from collections.abc import Iterable
-
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,7 +16,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.ingest import inbound_filters
-from sentry.ingest.inbound_filters import FilterStatKeys, _LegacyBrowserFilterSerializer
+from sentry.ingest.inbound_filters import FilterStatKeys, LegacyBrowserFilterSerializer
 
 
 @extend_schema(tags=["Projects"])
@@ -36,7 +34,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.FILTER_ID,
         ],
-        request=_LegacyBrowserFilterSerializer,
+        request=LegacyBrowserFilterSerializer,
         responses={
             204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
@@ -63,13 +61,17 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=400)
 
-        current_state = inbound_filters.get_filter_state(filter_id, project)
-        if isinstance(current_state, list):
-            current_state = set(current_state)
+        raw_current_state = inbound_filters.get_filter_state(filter_id, project)
+        current_state: bool | set[str] = (
+            set(raw_current_state) if isinstance(raw_current_state, list) else raw_current_state
+        )
 
-        new_state = inbound_filters.set_filter_state(filter_id, project, serializer.validated_data)
-        if isinstance(new_state, list):
-            new_state = set(new_state)
+        raw_new_state = inbound_filters.set_filter_state(
+            filter_id, project, serializer.validated_data
+        )
+        new_state: bool | set[str] = (
+            set(raw_new_state) if isinstance(raw_new_state, list) else raw_new_state
+        )
         audit_log_state = audit_log.get_event_id("PROJECT_ENABLE")
 
         returned_state = None
@@ -96,19 +98,19 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             FilterStatKeys.HEALTH_CHECK,
         ):
             returned_state = filter_id
-            removed = current_state - new_state
 
-            if removed == 1:
+            if current_state is True and new_state is False:
                 audit_log_state = audit_log.get_event_id("PROJECT_DISABLE")
 
-        if isinstance(returned_state, Iterable) and not isinstance(returned_state, str):
-            returned_state = list(returned_state)
+        audit_state: bool | str | list[str] | None = (
+            sorted(returned_state) if isinstance(returned_state, set) else returned_state
+        )
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=project.id,
             event=audit_log_state,
-            data={"state": returned_state, "slug": project.slug},
+            data={"state": audit_state, "slug": project.slug},
         )
 
         return Response(status=204)
