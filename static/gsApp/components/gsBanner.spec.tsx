@@ -141,7 +141,7 @@ describe('GSBanner', () => {
       organization.slug,
       SubscriptionFixture({
         organization,
-        isTrial: true,
+        trialPlan: 'am1_t',
         hasDismissedTrialEndingNotice: false,
         plan: 'am1_t',
         trialEnd: now.add(2, 'day').toISOString(),
@@ -225,7 +225,7 @@ describe('GSBanner', () => {
       organization.slug,
       SubscriptionFixture({
         organization,
-        isTrial: true,
+        trialPlan: 'am1_business',
         hasDismissedTrialEndingNotice: false,
         plan: 'am1_business',
         trialEnd: now.add(2, 'day').toISOString(),

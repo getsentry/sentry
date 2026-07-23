@@ -7,7 +7,7 @@ import {getOrganizationAge} from 'sentry/utils/getOrganizationAge';
 
 import type {PromotionClaimed, Subscription} from 'getsentry/types';
 
-import {getProductTrial, getTrialDaysLeft} from './billing';
+import {getProductTrial, getTrialDaysLeft, isTrial} from './billing';
 
 // we encode sizes for bucketing using roygbiv coloring
 const SIZES = {
@@ -101,7 +101,6 @@ export function getPendoAccountFields(
     ...pick(subscription, [
       'isFree',
       'isManaged',
-      'isTrial',
       'isEnterpriseTrial',
       'isPerformancePlanTrial',
       'isSuspended',
@@ -109,6 +108,7 @@ export function getPendoAccountFields(
       'canSelfServe',
       'plan',
     ]),
+    isTrial: isTrial(subscription),
     ...pick(organization, ['isEarlyAdopter']),
   };
   // for fields with bucketing, we need to encode the value so
@@ -277,7 +277,7 @@ function getAccountCredit(subscription: Subscription) {
 
 function getTrialDaysLeftFromSub(subscription: Subscription) {
   // only check if trial is active
-  if (!subscription.isTrial) {
+  if (!isTrial(subscription)) {
     return null;
   }
   return getTrialDaysLeft(subscription);

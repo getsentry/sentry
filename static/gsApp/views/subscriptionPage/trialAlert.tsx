@@ -9,7 +9,7 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import type {Subscription} from 'getsentry/types';
-import {getTrialDaysLeft} from 'getsentry/utils/billing';
+import {getTrialDaysLeft, isTrial} from 'getsentry/utils/billing';
 
 import {TrialBadge} from './trial/badge';
 import {ButtonWrapper, SubscriptionBody} from './styles';
@@ -20,7 +20,7 @@ type Props = {
 };
 
 export function TrialAlert({organization, subscription}: Props) {
-  if (!subscription.isTrial) {
+  if (!isTrial(subscription)) {
     return null;
   }
 

@@ -43,6 +43,7 @@ import {
   getActiveProductTrial,
   getBilledCategory,
   getProductTrial,
+  isTrial,
   RETENTION_SETTINGS_CATEGORIES,
 } from 'getsentry/utils/billing';
 import {
@@ -648,7 +649,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
         <DetailList>
           <DetailLabel title="Status">
             <CustomerStatus customer={customer} />
-            {customer.isTrial && (
+            {isTrial(customer) && (
               <div>
                 <small>
                   <strong>{moment(customer.trialEnd).fromNow(true)} remaining</strong>{' '}

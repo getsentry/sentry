@@ -75,6 +75,7 @@ import {
   hasActiveVCFeature,
   hasPerformance,
   isBizPlanFamily,
+  isTrial,
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
 import {
@@ -389,14 +390,14 @@ export function CustomerDetails() {
             key: 'allowTrial',
             name: 'Allow Trial',
             help: 'Allow this account to opt-in to a trial period.',
-            visible: !subscription.canTrial && !subscription.isTrial,
+            visible: !subscription.canTrial && !isTrial(subscription),
             onAction: params => onUpdateMutation.mutate({...params, canTrial: true}),
           },
           {
             key: 'endTrialEarly',
             name: 'End Trial Early',
             help: 'End the current trial immediately.',
-            disabled: !subscription.isTrial,
+            disabled: !isTrial(subscription),
             disabledReason: 'This account is not on on trial.',
             onAction: params => onUpdateMutation.mutate({...params, endTrialEarly: true}),
           },
@@ -560,7 +561,7 @@ export function CustomerDetails() {
           },
           {
             key: 'startTrial',
-            name: subscription.isTrial ? 'Extend Trial' : 'Start Trial',
+            name: isTrial(subscription) ? 'Extend Trial' : 'Start Trial',
             help: 'Start or extend a trial for this account.',
             confirmModalOpts: {
               renderModalSpecificContent: deps => (

@@ -1002,7 +1002,7 @@ describe('isNewPayingCustomer', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_team',
-      isTrial: true,
+      trialPlan: 'am3_team',
       isFree: false,
     });
     expect(isNewPayingCustomer(subscription, organization)).toBe(false);
