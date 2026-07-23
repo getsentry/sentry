@@ -2484,7 +2484,7 @@ class WeeklyReportsTest(
 
         updated = ctx.projects_context_map[self.project.id].past_resolved_issues
         assert len(updated) == 1
-        assert updated[0][2] == "Resolved in next release"
+        assert updated[0][2] == "Resolved after release"
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_fetch_resolution_label_pr_priority_over_release(self) -> None:
@@ -2575,7 +2575,7 @@ class WeeklyReportsTest(
 
         updated = ctx.projects_context_map[self.project.id].past_resolved_issues
         assert len(updated) == 1
-        assert updated[0][2] == "Resolved in next release"
+        assert updated[0][2] == "Resolved after release"
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_fetch_resolution_label_expired_next_release(self) -> None:
@@ -2620,4 +2620,4 @@ class WeeklyReportsTest(
 
         updated = ctx.projects_context_map[self.project.id].past_resolved_issues
         assert len(updated) == 1
-        assert updated[0][2] == "Resolved in next release"
+        assert updated[0][2] == "Resolved after release"
