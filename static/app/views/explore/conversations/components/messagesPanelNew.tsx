@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {MessageRow} from '@sentry/scraps/chat';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -229,8 +229,15 @@ const AssistantTurn = memo(function AssistantTurn({
         </MessageRow>
       )}
       {message.content === '' ? (
-        // Tool/reasoning-only turn: still surface the turn's cost and duration.
-        hasMeta && <MessageRow from="user">{meta}</MessageRow>
+        // Tool/reasoning-only turn: no bubble, but still surface the turn's cost
+        // and duration, right-aligned to the meta column like other assistant turns.
+        hasMeta && (
+          <MessageRow from="assistant">
+            <Flex justify="end" width="100%">
+              {meta}
+            </Flex>
+          </MessageRow>
+        )
       ) : message.content === EMPTY_TEXT_CONTENT ? (
         <AssistantMessageBlock meta={meta} isSelected={isSelected} onClick={handleClick}>
           <MessageText align="left" variant="muted">
