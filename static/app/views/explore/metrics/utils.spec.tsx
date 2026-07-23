@@ -1,18 +1,27 @@
 import qs from 'query-string';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
-import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery';
+import {
+  type BaseMetricQuery,
+  decodeMetricsQueryParams,
+  defaultMetricQuery,
+  encodeMetricQueryParams,
+} from 'sentry/views/explore/metrics/metricQuery';
 import {
   createTraceMetricEventsFilter,
+  encodeEquationMetricQueries,
   getEquationMetricsTotalFilter,
   getMetricsUrlFromSavedQueryUrl,
   mapMetricUnitToFieldType,
   parseTraceMetricFromQuery,
+  spliceEquationQueries,
   stripTraceMetricTokens,
 } from 'sentry/views/explore/metrics/utils';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {VisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 
 describe('mapMetricUnitToFieldType', () => {
   it.each([
@@ -335,5 +344,105 @@ describe('createTraceMetricEventsFilter', () => {
     expect(result).toBe(
       '( metric.name:chat.message_sent metric.type:counter ( !has:metric.unit OR metric.unit:none ) )'
     );
+  });
+});
+
+function makeAggregateQuery(overrides?: Partial<BaseMetricQuery>): BaseMetricQuery {
+  return {
+    ...defaultMetricQuery(),
+    metric: {name: 'test_metric', type: 'counter'},
+    ...overrides,
+  };
+}
+
+function makeEquationQuery(equation: string): BaseMetricQuery {
+  return {
+    ...defaultMetricQuery({type: 'equation'}),
+    queryParams: defaultMetricQuery({type: 'equation'}).queryParams.replace({
+      aggregateFields: [new VisualizeEquation(`${EQUATION_PREFIX}${equation}`)],
+    }),
+  };
+}
+
+describe('spliceEquationQueries', () => {
+  it('returns noop when equationMetricQueries is empty', () => {
+    const encoded = ['a', 'b'];
+    const result = spliceEquationQueries(encoded, []);
+    expect(result).toBe('noop');
+    expect(encoded).toEqual(['a', 'b']);
+  });
+
+  it('returns requires_clear when there are not enough slots', () => {
+    const existingEncoded = Array.from({length: 8}, (_, i) => `metric_${i}`);
+    const equationQueries = [makeAggregateQuery(), makeEquationQuery('a + b')];
+
+    const result = spliceEquationQueries(existingEncoded, equationQueries);
+    expect(result).toBe('requires_clear');
+    expect(existingEncoded).toHaveLength(8);
+  });
+
+  it('splices aggregate rows before existing equations and appends equation rows', () => {
+    const existingAggregate = makeAggregateQuery();
+    const existingEquation = makeEquationQuery('a + b');
+
+    const existingMetrics = [existingAggregate, existingEquation];
+    const encodedMetrics = existingMetrics.map(mq => encodeMetricQueryParams(mq));
+
+    const newAgg = makeAggregateQuery({
+      metric: {name: 'new_agg', type: 'distribution'},
+    });
+    const newEqn = makeEquationQuery('c + d');
+
+    const result = spliceEquationQueries(encodedMetrics, [newAgg, newEqn]);
+
+    expect(result).toBe('applied');
+    expect(encodedMetrics).toHaveLength(4);
+    expect(encodedMetrics[1]).toBe(encodeMetricQueryParams(newAgg));
+    expect(encodedMetrics[3]).toBe(encodeMetricQueryParams(newEqn));
+  });
+
+  it('appends aggregates at the end when no existing equations', () => {
+    const existingAggregate = makeAggregateQuery();
+    const existingMetrics = [existingAggregate];
+    const encodedMetrics = existingMetrics.map(mq => encodeMetricQueryParams(mq));
+
+    const newAgg = makeAggregateQuery({
+      metric: {name: 'new_metric', type: 'gauge'},
+    });
+
+    const result = spliceEquationQueries(encodedMetrics, [newAgg]);
+
+    expect(result).toBe('applied');
+    expect(encodedMetrics).toHaveLength(2);
+    expect(encodedMetrics[1]).toBe(encodeMetricQueryParams(newAgg));
+  });
+});
+
+describe('encodeEquationMetricQueries', () => {
+  it('returns encoded aggregates before equations', () => {
+    const agg = makeAggregateQuery({metric: {name: 'metricA', type: 'counter'}});
+    const eqn = makeEquationQuery('metricA + metricB');
+
+    const result = encodeEquationMetricQueries([eqn, agg]);
+
+    expect(result).toEqual([encodeMetricQueryParams(agg), encodeMetricQueryParams(eqn)]);
+  });
+
+  it('returns empty array for empty input', () => {
+    expect(encodeEquationMetricQueries([])).toEqual([]);
+  });
+
+  it('handles multiple aggregates and one equation', () => {
+    const agg1 = makeAggregateQuery({metric: {name: 'metricA', type: 'counter'}});
+    const agg2 = makeAggregateQuery({metric: {name: 'metricB', type: 'distribution'}});
+    const eqn = makeEquationQuery('metricA / metricB');
+
+    const result = encodeEquationMetricQueries([eqn, agg1, agg2]);
+
+    expect(result).toEqual([
+      encodeMetricQueryParams(agg1),
+      encodeMetricQueryParams(agg2),
+      encodeMetricQueryParams(eqn),
+    ]);
   });
 });
