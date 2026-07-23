@@ -49,6 +49,7 @@ class ActivityType(Enum):
     PULL_REQUEST_REOPENED = 39
     PULL_REQUEST_MERGED = 40
     PULL_REQUEST_UNLINKED = 41
+    TRIGGER_AUTOFIX = 42
 
 
 # Warning: This must remain in this EXACT order.
@@ -96,6 +97,7 @@ CHOICES = tuple(
         ActivityType.PULL_REQUEST_REOPENED,  # 39
         ActivityType.PULL_REQUEST_MERGED,  # 40
         ActivityType.PULL_REQUEST_UNLINKED,  # 41
+        ActivityType.TRIGGER_AUTOFIX,  # 42
     ]
 )
 

@@ -18,7 +18,23 @@
       },
       "required": ["value", "format"],
       "additionalProperties": false
-    }
+    },
+    "examples": [
+      {
+        "label": "Absolute",
+        "data": {
+          "value": "2025-07-15T14:30:00Z",
+          "format": "absolute"
+        }
+      },
+      {
+        "label": "Relative",
+        "data": {
+          "value": "2025-07-15T14:30:00Z",
+          "format": "relative"
+        }
+      }
+    ]
   },
   {
     "name": "docs",
@@ -37,6 +53,15 @@
       },
       "required": ["href", "title"],
       "additionalProperties": false
-    }
+    },
+    "examples": [
+      {
+        "label": "Doc link",
+        "data": {
+          "href": "https://docs.sentry.io/product/issues/",
+          "title": "Issues"
+        }
+      }
+    ]
   }
 ]
