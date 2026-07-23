@@ -408,7 +408,7 @@ class Dashboard(Model):
             )
 
     @classmethod
-    def incremental_title(cls, organization, name):
+    def incremental_title(cls, organization: Organization, name: str) -> str:
         """
         Given a dashboard name that migh already exist, returns a new unique name that does not exist, by appending the word "copy" and an integer if necessary.
         """
