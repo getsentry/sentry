@@ -213,7 +213,7 @@ const AssistantTurn = memo(function AssistantTurn({
   return (
     <Fragment>
       {message.toolCalls && message.toolCalls.length > 0 && (
-        <MessageRow from="assistant">
+        <MessageRow from="assistant" density="compact">
           <MessageToolCallsNew
             toolCalls={message.toolCalls}
             selectedToolCallId={selectedToolCallId}
@@ -223,7 +223,7 @@ const AssistantTurn = memo(function AssistantTurn({
         </MessageRow>
       )}
       {message.reasoning && (
-        <MessageRow from="assistant">
+        <MessageRow from="assistant" density="compact">
           <ReasoningSection reasoning={message.reasoning} />
           <Container width={TURN_META_WIDTH} flexShrink={0} />
         </MessageRow>
@@ -232,7 +232,7 @@ const AssistantTurn = memo(function AssistantTurn({
         // Tool/reasoning-only turn: no bubble, but still surface the turn's cost
         // and duration, right-aligned to the meta column like other assistant turns.
         hasMeta && (
-          <MessageRow from="assistant">
+          <MessageRow from="assistant" density="compact">
             <Flex justify="end" width="100%">
               {meta}
             </Flex>
@@ -412,7 +412,7 @@ export function MessagesPanelSkeleton() {
 
 function PanelContainer({children}: {children: React.ReactNode}) {
   return (
-    <Stack background="primary" minHeight="100%" width="100%">
+    <Stack padding="xl 0" background="primary" minHeight="100%" width="100%">
       {children}
     </Stack>
   );

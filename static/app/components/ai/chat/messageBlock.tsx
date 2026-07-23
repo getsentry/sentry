@@ -23,7 +23,7 @@ interface UserMessageBlockProps {
 
 export function UserMessageBlock({children, className, expand}: UserMessageBlockProps) {
   return (
-    <MessageRow from="user" className={className}>
+    <MessageRow from="user" density="compact" className={className}>
       {/* Placeholder for spacing as we want to keep the right aligned look even on smaller screens */}
       <Container paddingLeft="3xl" flexShrink={0} />
       <UserMessage
@@ -81,7 +81,7 @@ export function AssistantMessageBlock({
   `;
 
   return (
-    <MessageRow from="assistant" className={className}>
+    <MessageRow from="assistant" density="compact" className={className}>
       <Flex justify="between" align="start" gap="md" width="100%">
         <Container
           maxWidth={AI_MESSAGE_MAX_WIDTH}
