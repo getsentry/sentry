@@ -1,8 +1,8 @@
-import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -10,6 +10,7 @@ import {
   IconCode,
   IconCommit,
   IconMerge,
+  IconOpen,
   IconPullRequest,
   IconRefresh,
   IconSearch,
@@ -44,12 +45,12 @@ const ACTION_META: Record<
   review_pr: {
     Icon: IconPullRequest,
     label: t('Review PR'),
-    variant: 'warning',
+    variant: 'primary',
     description: t('Autofix opened a pull request. Review and merge it.'),
   },
   code_changes_ready: {
     Icon: IconCommit,
-    label: t('Open PR'),
+    label: t('Draft PR'),
     variant: 'secondary',
     description: t('Autofix wrote a diff. Review it and open a pull request.'),
   },
@@ -63,10 +64,10 @@ const ACTION_META: Record<
   },
   needs_investigation: {
     Icon: IconSearch,
-    label: t('Investigate'),
+    label: t('Approve Root Cause'),
     variant: 'secondary',
     description: t(
-      'Seer stopped at a diagnosis. Open the run to investigate the root cause.'
+      'Seer stopped at a diagnosis. Review the root cause and approve it to continue.'
     ),
   },
   awaiting_input: {
@@ -95,30 +96,6 @@ export function deriveCardAction(
   return {type: sectionKey};
 }
 
-const AccentLinkButton = styled(LinkButton)`
-  background: ${p => p.theme.tokens.background.accent};
-  border-color: ${p => p.theme.tokens.border.accent};
-  color: ${p => p.theme.tokens.content.accent};
-  &:hover {
-    color: ${p => p.theme.tokens.content.accent};
-  }
-`;
-
-const SuccessLinkButton = styled(LinkButton)`
-  background: ${p => p.theme.tokens.background.success};
-  border-color: ${p => p.theme.tokens.border.success};
-  color: ${p => p.theme.tokens.content.success};
-  &:hover {
-    color: ${p => p.theme.tokens.content.success};
-  }
-`;
-
-const MutedLinkButton = styled(LinkButton)`
-  background: transparent;
-  border-color: ${p => p.theme.tokens.border.neutral};
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
 function ActionButton({
   actionKey,
   size,
@@ -129,33 +106,6 @@ function ActionButton({
   to: LocationDescriptor;
 }) {
   const meta = ACTION_META[actionKey];
-  if (actionKey === 'code_changes_ready') {
-    return (
-      <Tooltip title={meta.description} skipWrapper>
-        <AccentLinkButton size={size} icon={<meta.Icon />} to={to}>
-          {meta.label}
-        </AccentLinkButton>
-      </Tooltip>
-    );
-  }
-  if (actionKey === 'solution_ready') {
-    return (
-      <Tooltip title={meta.description} skipWrapper>
-        <SuccessLinkButton size={size} icon={<meta.Icon />} to={to}>
-          {meta.label}
-        </SuccessLinkButton>
-      </Tooltip>
-    );
-  }
-  if (actionKey === 'errored') {
-    return (
-      <Tooltip title={meta.description} skipWrapper>
-        <MutedLinkButton size={size} icon={<meta.Icon />} to={to}>
-          {meta.label}
-        </MutedLinkButton>
-      </Tooltip>
-    );
-  }
   return (
     <Tooltip title={meta.description} skipWrapper>
       <LinkButton size={size} variant={meta.variant} icon={<meta.Icon />} to={to}>
@@ -176,22 +126,22 @@ function ReviewPrButton({
 }) {
   const meta = ACTION_META.review_pr;
   return (
-    <Tooltip
-      title={
-        prNumber
-          ? t('Autofix opened pull request #%s. Review and merge it.', prNumber)
-          : meta.description
-      }
-      skipWrapper
-    >
+    <Tooltip title={meta.description} skipWrapper>
       <LinkButton
         size={size}
-        variant="warning"
-        icon={<IconPullRequest />}
+        variant={meta.variant}
+        icon={<meta.Icon />}
         href={prUrl}
         external
       >
-        {meta.label}
+        {/* The PR number breaks up a section of otherwise-identical buttons;
+            the trailing IconOpen marks the jump out to the code host. The
+            button only auto-spaces its leading icon slot, so the trailing
+            icon needs its own flex gap. */}
+        <Flex as="span" gap="xs" align="center">
+          {prNumber ? t('Review PR #%s', prNumber) : meta.label}
+          <IconOpen size="xs" />
+        </Flex>
       </LinkButton>
     </Tooltip>
   );
