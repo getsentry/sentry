@@ -1,5 +1,5 @@
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {IssueCategory, IssueType, PriorityLevel} from 'sentry/types/group';
+import {IssueType, PriorityLevel} from 'sentry/types/group';
 import {
   buildAnalysis,
   buildOverviewRow,
@@ -84,7 +84,6 @@ function makeIssue(overrides: Partial<OverviewIssue> = {}): OverviewIssue {
     assignedTo: null,
     count: '100',
     id: '2',
-    issueCategory: IssueCategory.ERROR,
     issueType: IssueType.ERROR,
     lastSeen: '2026-07-20T12:00:00Z',
     level: 'error',
@@ -103,7 +102,6 @@ describe('buildOverviewRow', () => {
   it('preserves priority metadata from the issue response', () => {
     const row = buildOverviewRow(
       makeIssue({
-        issueCategory: IssueCategory.PERFORMANCE,
         issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
         priority: null,
         priorityLockedAt: '2026-07-23T12:00:00Z',
@@ -116,7 +114,6 @@ describe('buildOverviewRow', () => {
 
     expect(row).toEqual(
       expect.objectContaining({
-        issueCategory: IssueCategory.PERFORMANCE,
         issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
         priority: null,
         priorityLockedAt: '2026-07-23T12:00:00Z',

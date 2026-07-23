@@ -24,6 +24,16 @@ type GroupDetailsPriorityProps = {
   onChange?: (priority: PriorityLevel) => void;
 };
 
+export type GroupPriorityControlProps = {
+  groupId: Group['id'];
+  issueType: Group['issueType'];
+  priority: PriorityLevel;
+  priorityLockedAt: Group['priorityLockedAt'];
+  projectId: Group['project']['id'];
+  onChange?: (priority: PriorityLevel) => void;
+  onChangeInitiated?: (priority: PriorityLevel) => void;
+};
+
 const PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
   [PriorityLevel.HIGH]: 3,
   [PriorityLevel.MEDIUM]: 2,
@@ -33,22 +43,26 @@ const PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
 const getPriorityUpdateSuccessMessage = (priority: PriorityLevel) =>
   t('Priority updated to %s', priority);
 
-function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) => void) {
+function useChangePriority({
+  groupId,
+  priority,
+  projectId,
+  onChange,
+  onChangeInitiated,
+}: Pick<
+  GroupPriorityControlProps,
+  'groupId' | 'priority' | 'projectId' | 'onChange' | 'onChangeInitiated'
+>) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
   return (nextPriority: PriorityLevel) => {
-    if (nextPriority === group.priority) {
+    if (nextPriority === priority) {
       return;
     }
 
-    trackAnalytics('issue_details.set_priority', {
-      organization,
-      ...getAnalyticsDataForGroup(group),
-      from_priority: group.priority,
-      to_priority: nextPriority,
-    });
+    onChangeInitiated?.(nextPriority);
 
     addLoadingMessage(t('Saving changes\u2026'));
     IssueListCacheStore.reset();
@@ -57,17 +71,17 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
       api,
       {
         orgId: organization.slug,
-        itemIds: [group.id],
+        itemIds: [groupId],
         data: {priority: nextPriority},
         failSilently: true,
-        project: [group.project.id],
+        project: [projectId],
       },
       {
         success: () => {
           queryClient.invalidateQueries({
             queryKey: groupQueryKey({
               organizationSlug: organization.slug,
-              groupId: group.id,
+              groupId,
             }),
           });
           clearIndicators();
@@ -83,20 +97,63 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
   };
 }
 
-export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
-  const onChangePriority = useChangePriority(group, onChange);
+function useTrackPriorityChange(group: Group) {
+  const organization = useOrganization();
+
+  return (nextPriority: PriorityLevel) => {
+    trackAnalytics('issue_details.set_priority', {
+      organization,
+      ...getAnalyticsDataForGroup(group),
+      from_priority: group.priority,
+      to_priority: nextPriority,
+    });
+  };
+}
+
+export function GroupPriorityControl({
+  groupId,
+  issueType,
+  priority,
+  priorityLockedAt,
+  projectId,
+  onChange,
+  onChangeInitiated,
+}: GroupPriorityControlProps) {
+  const onChangePriority = useChangePriority({
+    groupId,
+    priority,
+    projectId,
+    onChange,
+    onChangeInitiated,
+  });
 
   // We can assume that when there is not `priorityLockedAt`, there were no
   // user edits to the priority.
-  const lastEditedBy = group.priorityLockedAt ? undefined : 'system';
+  const lastEditedBy = priorityLockedAt ? undefined : 'system';
 
   return (
     <GroupPriorityDropdown
-      disabled={group.issueType === 'metric_issue'}
-      groupId={group.id}
+      disabled={issueType === 'metric_issue'}
+      groupId={groupId}
       onChange={onChangePriority}
-      value={group.priority ?? PriorityLevel.MEDIUM}
+      value={priority}
       lastEditedBy={lastEditedBy}
+    />
+  );
+}
+
+export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
+  const onChangeInitiated = useTrackPriorityChange(group);
+
+  return (
+    <GroupPriorityControl
+      groupId={group.id}
+      issueType={group.issueType}
+      priority={group.priority ?? PriorityLevel.MEDIUM}
+      priorityLockedAt={group.priorityLockedAt}
+      projectId={group.project.id}
+      onChange={onChange}
+      onChangeInitiated={onChangeInitiated}
     />
   );
 }
@@ -104,8 +161,14 @@ export function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
 export function GroupPriorityCommandPaletteAction({
   group,
 }: Pick<GroupDetailsPriorityProps, 'group'>) {
-  const onChangePriority = useChangePriority(group);
   const priority = group.priority ?? PriorityLevel.MEDIUM;
+  const onChangeInitiated = useTrackPriorityChange(group);
+  const onChangePriority = useChangePriority({
+    groupId: group.id,
+    priority,
+    projectId: group.project.id,
+    onChangeInitiated,
+  });
 
   return (
     <CMDKAction

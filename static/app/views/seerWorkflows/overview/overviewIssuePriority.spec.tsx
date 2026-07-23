@@ -12,46 +12,31 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {
-  GroupActivityType,
-  IssueCategory,
-  IssueType,
-  PriorityLevel,
-} from 'sentry/types/group';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import {GroupActivityType, IssueType, PriorityLevel} from 'sentry/types/group';
 
-import {
-  OverviewIssuePriority,
-  type OverviewIssuePriorityGroup,
-} from './overviewIssuePriority';
-
-jest.mock('sentry/utils/analytics');
+import {OverviewIssuePriority} from './overviewIssuePriority';
 
 describe('OverviewIssuePriority', () => {
   const organization = OrganizationFixture();
   const groupFixture = GroupFixture();
 
-  function makeGroup(
-    overrides: Partial<OverviewIssuePriorityGroup> = {}
-  ): OverviewIssuePriorityGroup {
-    return {
-      assignedTo: groupFixture.assignedTo,
-      count: groupFixture.count,
-      id: groupFixture.id,
-      issueCategory: groupFixture.issueCategory,
-      issueType: groupFixture.issueType,
-      lastSeen: groupFixture.lastSeen,
-      level: groupFixture.level,
-      owners: groupFixture.owners,
-      priority: groupFixture.priority,
-      priorityLockedAt: groupFixture.priorityLockedAt,
-      project: {id: groupFixture.project.id},
-      ...overrides,
-    };
+  function renderPriority(
+    overrides: Partial<React.ComponentProps<typeof OverviewIssuePriority>> = {}
+  ) {
+    render(
+      <OverviewIssuePriority
+        groupId={groupFixture.id}
+        issueType={groupFixture.issueType}
+        priority={groupFixture.priority}
+        priorityLockedAt={groupFixture.priorityLockedAt}
+        projectId={groupFixture.project.id}
+        {...overrides}
+      />,
+      {organization}
+    );
   }
 
   beforeEach(() => {
-    jest.mocked(trackAnalytics).mockClear();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {data: {dismissed_ts: null}},
@@ -65,16 +50,10 @@ describe('OverviewIssuePriority', () => {
       body: {priority: PriorityLevel.HIGH},
     });
 
-    render(
-      <OverviewIssuePriority
-        group={makeGroup({
-          issueCategory: IssueCategory.PERFORMANCE,
-          issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-          priority: null,
-        })}
-      />,
-      {organization}
-    );
+    renderPriority({
+      issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+      priority: null,
+    });
 
     const priorityDropdown = screen.getByRole('button', {
       name: 'Modify issue priority',
@@ -98,16 +77,6 @@ describe('OverviewIssuePriority', () => {
         await screen.findByRole('button', {name: 'Modify issue priority'})
       ).getByText('High')
     ).toBeInTheDocument();
-
-    expect(trackAnalytics).toHaveBeenCalledWith(
-      'issue_details.set_priority',
-      expect.objectContaining({
-        from_priority: PriorityLevel.MEDIUM,
-        issue_category: IssueCategory.PERFORMANCE,
-        issue_type: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-        to_priority: PriorityLevel.HIGH,
-      })
-    );
   });
 
   it('resolves the actor for a user-edited priority', async () => {
@@ -123,12 +92,7 @@ describe('OverviewIssuePriority', () => {
       },
     });
 
-    render(
-      <OverviewIssuePriority
-        group={makeGroup({priorityLockedAt: '2026-07-23T12:00:00Z'})}
-      />,
-      {organization}
-    );
+    renderPriority({priorityLockedAt: '2026-07-23T12:00:00Z'});
 
     await userEvent.click(screen.getByRole('button', {name: 'Modify issue priority'}));
 
@@ -139,15 +103,7 @@ describe('OverviewIssuePriority', () => {
   });
 
   it('disables priority changes for metric issues', () => {
-    render(
-      <OverviewIssuePriority
-        group={makeGroup({
-          issueCategory: IssueCategory.METRIC,
-          issueType: IssueType.METRIC_ISSUE,
-        })}
-      />,
-      {organization}
-    );
+    renderPriority({issueType: IssueType.METRIC_ISSUE});
 
     expect(screen.getByRole('button', {name: 'Modify issue priority'})).toBeDisabled();
   });

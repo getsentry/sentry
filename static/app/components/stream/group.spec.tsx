@@ -9,6 +9,7 @@ import {EventOrGroupType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {GroupStatus, PriorityLevel} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
 
 jest.mock('sentry/utils/analytics');
@@ -95,6 +96,15 @@ describe('StreamGroup', () => {
         data: expect.objectContaining({
           priority: 'high',
         }),
+      })
+    );
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'issue_details.set_priority',
+      expect.objectContaining({
+        ...getAnalyticsDataForGroup(group1),
+        organization: expect.objectContaining({slug: 'org-slug'}),
+        from_priority: group1.priority,
+        to_priority: PriorityLevel.HIGH,
       })
     );
   });

@@ -477,19 +477,11 @@ export function IssueCard({
               </Stack>
               <Flex gap="xs" align="center">
                 <OverviewIssuePriority
-                  group={{
-                    assignedTo: row.assignedTo,
-                    count: String(row.eventCount),
-                    id: row.id,
-                    issueCategory: row.issueCategory,
-                    issueType: row.issueType,
-                    lastSeen: row.lastSeen,
-                    level: row.level,
-                    owners: row.owners,
-                    priority: row.priority,
-                    priorityLockedAt: row.priorityLockedAt,
-                    project: {id: row.project.id},
-                  }}
+                  groupId={row.id}
+                  issueType={row.issueType}
+                  priority={row.priority}
+                  priorityLockedAt={row.priorityLockedAt}
+                  projectId={row.project.id}
                 />
                 <OverviewIssueAssignee
                   groupId={row.id}

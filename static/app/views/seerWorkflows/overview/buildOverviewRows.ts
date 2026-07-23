@@ -233,7 +233,6 @@ export function buildOverviewRow(
     project: issue.project,
     assignedTo: issue.assignedTo ?? null,
     owners: issue.owners,
-    issueCategory: issue.issueCategory,
     issueType: issue.issueType,
     priority: issue.priority,
     priorityLockedAt: issue.priorityLockedAt,

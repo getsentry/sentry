@@ -97,7 +97,6 @@ export interface OverviewIssue {
   // Event count over the stats period; the endpoint returns it as a string.
   count: string;
   id: string;
-  issueCategory: Group['issueCategory'];
   issueType: Group['issueType'];
   lastSeen: string;
   level: Level;
@@ -151,7 +150,6 @@ export interface OverviewRow {
   assignedTo: Actor | null;
   eventCount: number;
   id: string;
-  issueCategory: Group['issueCategory'];
   issueType: Group['issueType'];
   // Most recent Seer activity on the run (state update, trigger, or
   // issue-level last-trigger timestamp); null when the run has no Seer-side

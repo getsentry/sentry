@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {IssueCategory, IssueType, PriorityLevel} from 'sentry/types/group';
+import {IssueType, PriorityLevel} from 'sentry/types/group';
 import {
   deriveCardAction,
   IssuePrimaryAction,
@@ -18,7 +18,6 @@ function makeRow(overrides: Partial<OverviewRow> = {}): OverviewRow {
     assignedTo: null,
     eventCount: 1,
     id: '2',
-    issueCategory: IssueCategory.ERROR,
     issueType: IssueType.ERROR,
     lastActivityAt: '2026-07-14T10:00:00Z',
     lastSeen: '2026-07-14T09:00:00Z',
