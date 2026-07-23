@@ -458,7 +458,7 @@ describe('IssuePreviewDrawer', () => {
 
     render(<IssuePreviewDrawer groupId={group.id} />);
 
-    expect(await screen.findByLabelText('Event count')).toHaveTextContent('2.6K');
-    expect(screen.getByLabelText('User count')).toHaveTextContent('11');
+    expect(await screen.findByLabelText('2,600 events')).toHaveTextContent('2.6K');
+    expect(screen.getByLabelText('11 affected users')).toHaveTextContent('11');
   });
 });

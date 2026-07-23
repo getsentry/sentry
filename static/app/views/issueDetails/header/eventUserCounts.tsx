@@ -6,7 +6,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {IconStack, IconUser} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -26,24 +26,30 @@ export function EventUserCounts({group, project}: EventUserCountsProps) {
     return null;
   }
 
-  const {count: eventCount, userCount} = group;
+  const eventCount = Number(group.count);
+  const {userCount} = group;
+
+  // Use the full numbers in the tooltip/accessible label so the exact counts
+  // are available even though the visible value is abbreviated (e.g. "2.6K").
+  const eventLabel = tn('%s event', '%s events', eventCount);
+  const userLabel = tn('%s affected user', '%s affected users', userCount);
 
   return (
     <Fragment>
       <Divider />
       <Flex align="center" gap="md">
-        <Tooltip title={t('Events')} skipWrapper>
-          <Flex align="center" gap="xs">
+        <Tooltip title={eventLabel} skipWrapper>
+          <Flex align="center" gap="xs" aria-label={eventLabel}>
             <IconStack size="xs" />
-            <Text size="sm" variant="muted" aria-label={t('Event count')}>
+            <Text size="sm" variant="muted" aria-hidden>
               <Count value={eventCount} />
             </Text>
           </Flex>
         </Tooltip>
-        <Tooltip title={t('Affected users')} skipWrapper>
-          <Flex align="center" gap="xs">
+        <Tooltip title={userLabel} skipWrapper>
+          <Flex align="center" gap="xs" aria-label={userLabel}>
             <IconUser size="xs" />
-            <Text size="sm" variant="muted" aria-label={t('User count')}>
+            <Text size="sm" variant="muted" aria-hidden>
               <Count value={userCount} />
             </Text>
           </Flex>
