@@ -238,11 +238,8 @@ def format_duration_ms(v):
     if hours < 24:
         return f"{hours:.1f}hr"
     days = hours / 24
-    if days < 7:
+    if days < 30.44:
         return f"{days:.1f}d"
-    weeks = days / 7
-    if weeks < 4:
-        return f"{weeks:.1f}wk"
     months = days / 30.44
     if days < 365.25:
         return f"{months:.1f}mo"
