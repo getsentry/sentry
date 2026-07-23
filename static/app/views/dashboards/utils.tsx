@@ -499,6 +499,33 @@ export function getCurrentPageFilters(
 }
 
 /**
+ * Like `getCurrentPageFilters`, but safe to persist to a dashboard. When the
+ * user isn't a member of any project, the page filters force `project=-1`
+ * (ALL_ACCESS_PROJECTS) into the URL as a default (see `initializeUrlState` and
+ * `hasUnsavedFilterChanges`). Persisting that forced default would silently
+ * convert a dashboard's empty "My Projects" filter into "All Projects" for
+ * everyone, so drop it back to the empty saved filter. Scoped to an empty saved
+ * filter on purpose: a real saved selection deliberately switched to All
+ * Projects should still be persisted.
+ */
+export function getSaveablePageFilters(
+  location: Location,
+  savedDashboard: DashboardDetails,
+  userHasNoMemberProjects: boolean
+) {
+  const pageFilters = getCurrentPageFilters(location);
+  if (
+    userHasNoMemberProjects &&
+    (savedDashboard.projects?.length ?? 0) === 0 &&
+    pageFilters.projects?.length === 1 &&
+    pageFilters.projects[0] === ALL_ACCESS_PROJECTS
+  ) {
+    pageFilters.projects = [];
+  }
+  return pageFilters;
+}
+
+/**
  * Merges saved dashboard filters with any overrides from the URL.
  * URL filters take precedence per-key, but saved filters fill in
  * keys that aren't present in the URL (e.g. globalFilter when only

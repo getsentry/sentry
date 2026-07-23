@@ -62,8 +62,8 @@ import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashbo
 import {getDashboardRevisionsQueryKey} from 'sentry/views/dashboards/hooks/useDashboardRevisions';
 import {
   cloneDashboard,
-  getCurrentPageFilters,
   getMergedDashboardFilters,
+  getSaveablePageFilters,
   hasUnsavedFilterChanges,
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
@@ -405,6 +405,16 @@ class DashboardDetail extends Component<Props, State> {
     const {dashboard} = this.props;
     const {modifiedDashboard} = this.state;
     return modifiedDashboard ? modifiedDashboard.title : dashboard.title;
+  }
+
+  // Mirrors the member/non-member split in `PageFiltersContainer`: when a
+  // non-superuser is a member of no projects but the org has accessible ones,
+  // the page filters force `project=-1` into the URL as a default.
+  get userHasNoMemberProjects() {
+    const {projects} = this.props;
+    return isActiveSuperuser()
+      ? projects.length === 0
+      : !projects.some(project => project.isMember);
   }
 
   handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -877,7 +887,11 @@ class DashboardDetail extends Component<Props, State> {
         if (modifiedDashboard) {
           const newModifiedDashboard = {
             ...cloneDashboard(modifiedDashboard),
-            ...getCurrentPageFilters(location),
+            ...getSaveablePageFilters(
+              location,
+              modifiedDashboard,
+              this.userHasNoMemberProjects
+            ),
             filters: getMergedDashboardFilters(modifiedDashboard.filters, location),
           };
           createDashboard(api, organization.slug, newModifiedDashboard).then(
@@ -1191,15 +1205,9 @@ class DashboardDetail extends Component<Props, State> {
       isCommittingChanges,
     } = this.state;
 
-    // Mirrors the member/non-member split in `PageFiltersContainer`: when a
-    // non-superuser is a member of no projects but the org has accessible ones,
-    // the page filters force `project=-1` into the URL as a default.
-    const userHasNoMemberProjects = isActiveSuperuser()
-      ? projects.length === 0
-      : !projects.some(project => project.isMember);
     const hasUnsavedFilters =
       dashboardState !== DashboardState.CREATE &&
-      hasUnsavedFilterChanges(dashboard, location, userHasNoMemberProjects);
+      hasUnsavedFilterChanges(dashboard, location, this.userHasNoMemberProjects);
 
     const eventView = generatePerformanceEventView(location, projects, {});
 
@@ -1301,7 +1309,11 @@ class DashboardDetail extends Component<Props, State> {
                               onSave={async () => {
                                 const newModifiedDashboard = {
                                   ...cloneDashboard(modifiedDashboard ?? dashboard),
-                                  ...getCurrentPageFilters(location),
+                                  ...getSaveablePageFilters(
+                                    location,
+                                    modifiedDashboard ?? dashboard,
+                                    this.userHasNoMemberProjects
+                                  ),
                                   filters: getMergedDashboardFilters(
                                     (modifiedDashboard ?? dashboard).filters,
                                     location

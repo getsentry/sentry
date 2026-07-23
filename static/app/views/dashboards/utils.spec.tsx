@@ -9,6 +9,7 @@ import {
   getCurrentPageFilters,
   getFieldsFromEquations,
   getNumEquations,
+  getSaveablePageFilters,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   hasUnsavedFilterChanges,
@@ -373,6 +374,59 @@ describe('Dashboards util', () => {
       };
 
       expect(hasUnsavedFilterChanges(initialDashboard, location, true)).toBe(true);
+    });
+  });
+
+  describe('getSaveablePageFilters', () => {
+    it('drops the forced project=-1 default against an empty saved filter', () => {
+      const savedDashboard = {projects: []} as unknown as DashboardDetails;
+      const location = {
+        ...LocationFixture(),
+        query: {project: '-1', environment: 'production'},
+      };
+
+      // For a user with no member projects, the forced `-1` must not be
+      // persisted (it would silently convert "My Projects" to "All Projects").
+      // Other filter changes are still saved.
+      expect(getSaveablePageFilters(location, savedDashboard, true)).toEqual(
+        expect.objectContaining({projects: [], environment: ['production']})
+      );
+    });
+
+    it('keeps project=-1 for a user with member projects', () => {
+      const savedDashboard = {projects: []} as unknown as DashboardDetails;
+      const location = {
+        ...LocationFixture(),
+        query: {project: '-1'},
+      };
+
+      expect(getSaveablePageFilters(location, savedDashboard, false)).toEqual(
+        expect.objectContaining({projects: [-1]})
+      );
+    });
+
+    it('keeps a deliberate All Projects switch on a dashboard with a saved selection', () => {
+      const savedDashboard = {projects: [5]} as unknown as DashboardDetails;
+      const location = {
+        ...LocationFixture(),
+        query: {project: '-1'},
+      };
+
+      expect(getSaveablePageFilters(location, savedDashboard, true)).toEqual(
+        expect.objectContaining({projects: [-1]})
+      );
+    });
+
+    it('keeps a real project selection for a user with no member projects', () => {
+      const savedDashboard = {projects: []} as unknown as DashboardDetails;
+      const location = {
+        ...LocationFixture(),
+        query: {project: '5'},
+      };
+
+      expect(getSaveablePageFilters(location, savedDashboard, true)).toEqual(
+        expect.objectContaining({projects: [5]})
+      );
     });
   });
 });
