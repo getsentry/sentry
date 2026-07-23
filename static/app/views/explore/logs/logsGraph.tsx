@@ -62,7 +62,10 @@ import {
   getSamplingWarningReason,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
-import {getMetricAlertsUpsellTooltip} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
+import {
+  getCreateAlertLabel,
+  getMetricAlertsUpsellTooltip,
+} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -313,12 +316,13 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
 
     const disableAddToDashboard = !organization.features.includes('dashboards-edit');
     const alertsUpsellTooltip = getMetricAlertsUpsellTooltip(organization);
+    const newAlertLabel = getCreateAlertLabel(organization);
 
     return [
       {
         key: 'create-alert',
-        textValue: t('Create an Alert'),
-        label: t('Create an Alert'),
+        textValue: newAlertLabel,
+        label: newAlertLabel,
         disabled: defined(alertsUpsellTooltip),
         tooltip: alertsUpsellTooltip,
         to: getAlertsUrl({

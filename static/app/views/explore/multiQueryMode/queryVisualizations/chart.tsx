@@ -33,7 +33,10 @@ import {
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
-import {getMetricAlertsUpsellTooltip} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
+import {
+  getCreateAlertLabel,
+  getMetricAlertsUpsellTooltip,
+} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -106,10 +109,11 @@ export function MultiQueryModeChart({
 
   if (defined(yAxes[0])) {
     const alertsUpsellTooltip = getMetricAlertsUpsellTooltip(organization);
+    const newAlertLabel = getCreateAlertLabel(organization);
     items.push({
       key: 'create-alert',
-      textValue: t('Create an Alert'),
-      label: t('Create an Alert'),
+      textValue: newAlertLabel,
+      label: newAlertLabel,
       disabled: defined(alertsUpsellTooltip),
       tooltip: alertsUpsellTooltip,
       to: getAlertsUrl({

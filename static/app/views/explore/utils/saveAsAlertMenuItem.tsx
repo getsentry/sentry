@@ -19,6 +19,12 @@ export function getMetricAlertsUpsellTooltip(
     : t('Alerts are not available on your current plan.');
 }
 
+export function getCreateAlertLabel(organization: Organization): string {
+  return organization.features.includes('workflow-engine-ui')
+    ? t('Create a Monitor')
+    : t('Create an Alert');
+}
+
 export function getSaveAsAlertMenuItem({
   organization,
   alertsUrls,

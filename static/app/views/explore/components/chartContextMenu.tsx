@@ -15,7 +15,10 @@ import {
   isVisualizeEquation,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
-import {getMetricAlertsUpsellTooltip} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
+import {
+  getCreateAlertLabel,
+  getMetricAlertsUpsellTooltip,
+} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 export function ChartContextMenu({
@@ -46,9 +49,7 @@ export function ChartContextMenu({
     const alertsUpsellTooltip = getMetricAlertsUpsellTooltip(organization);
 
     if (visualizeYAxes.length === 1) {
-      const newAlertLabel = organization.features.includes('workflow-engine-ui')
-        ? t('Create a Monitor')
-        : t('Create an Alert');
+      const newAlertLabel = getCreateAlertLabel(organization);
 
       const yAxis = visualizeYAxes[0]!.yAxis;
       menuItems.push({
