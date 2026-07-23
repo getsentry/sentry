@@ -349,6 +349,38 @@ class EventLifecycle:
             )
 
 
+# OSError subtypes that represent network connectivity failures to external servers.
+# These are expected infrastructure errors (e.g., customer's server is unreachable)
+# and should be treated as halts rather than Sentry-issue-creating failures.
+_CONNECTIVITY_ERRORS: tuple[type[OSError], ...] = (TimeoutError, ConnectionError)
+
+
+def _has_connectivity_error_in_chain(exc: BaseException | None) -> bool:
+    """Return True if the exception chain contains a network connectivity failure.
+
+    Walks both explicit (__cause__) and implicit (__context__) exception chains
+    because integrations may use implicit re-raising (``raise X`` without
+    ``raise X from Y``), which sets ``__context__`` instead of ``__cause__``.
+    """
+    seen: set[int] = set()
+    stack: list[BaseException | None] = [exc]
+    while stack:
+        current = stack.pop()
+        if current is None:
+            continue
+        eid = id(current)
+        if eid in seen:
+            continue
+        seen.add(eid)
+        if isinstance(current, _CONNECTIVITY_ERRORS):
+            return True
+        if current.__cause__ is not None:
+            stack.append(current.__cause__)
+        if current.__context__ is not None:
+            stack.append(current.__context__)
+    return False
+
+
 class IntegrationEventLifecycle(EventLifecycle):
     def __exit__(
         self,
@@ -365,6 +397,16 @@ class IntegrationEventLifecycle(EventLifecycle):
             # ApiHostError is raised from RestrictedIPAddress
             self.record_halt(exc_value)
             return
+
+        if exc_value is not None and _has_connectivity_error_in_chain(exc_value):
+            # Network connectivity failures (TCP timeout, connection refused, etc.)
+            # to customer-managed external servers are expected infrastructure errors,
+            # not bugs. Halt rather than create a Sentry issue for each unreachable
+            # server. The exception chain may use implicit (__context__) chaining, so
+            # we walk both __cause__ and __context__.
+            self.record_halt(exc_value)
+            return
+
         super().__exit__(exc_type, exc_value, traceback)
 
 
