@@ -80,11 +80,12 @@ function makeRun(overrides: Partial<SeerRun> = {}): SeerRun {
 
 function makeIssue(overrides: Partial<OverviewIssue> = {}): OverviewIssue {
   return {
+    assignedTo: null,
     count: '100',
     id: '2',
     lastSeen: '2026-07-20T12:00:00Z',
     level: 'error',
-    project: {slug: 'proj'},
+    project: {id: '1', slug: 'proj'},
     seerAutofixLastTriggered: null,
     shortId: 'PROJ-1',
     title: 'Boom',

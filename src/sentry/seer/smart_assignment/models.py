@@ -26,6 +26,7 @@ SEER_FEATURE_ID = "smart_assignment"
 # Resolutions we treat as ground truth: a human resolving an issue is a signal for
 # who should have owned it.
 # SET_RESOLVED_BY_AGE is excluded (auto-resolve cron, no acting user, so no signal).
+# SET_RESOLVED_IN_PULL_REQUEST is excluded (it will trigger ASSIGNED in practice, which we already capture).
 # Other ground-truth activities include ASSIGNED and SEER_*_STARTED,
 # configured in workflow_activity_handlers.py
 RESOLUTION_ACTIVITIES = frozenset(
@@ -33,7 +34,6 @@ RESOLUTION_ACTIVITIES = frozenset(
         ActivityType.SET_RESOLVED,
         ActivityType.SET_RESOLVED_IN_RELEASE,
         ActivityType.SET_RESOLVED_IN_COMMIT,
-        ActivityType.SET_RESOLVED_IN_PULL_REQUEST,
     }
 )
 
