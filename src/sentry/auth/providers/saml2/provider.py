@@ -24,7 +24,7 @@ from PIL import Image, ImageOps
 from rest_framework.request import Request
 
 from sentry import features, options
-from sentry.api.fields.avatar import AvatarField
+from sentry.api.fields.avatar import MAX_DIMENSION, AvatarField
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.helper import AuthHelper
 from sentry.auth.provider import Provider
@@ -268,8 +268,9 @@ def _validate_saml_avatar(value: str | None) -> str | None:
     optional ``data:<mimetype>;base64,`` prefix is stripped and the size and
     format are validated via :class:`AvatarField`. The image is then normalized
     for storage: EXIF orientation is baked in, non-square photos are center-
-    cropped (avatars are served resized to a square), and the result is
-    re-encoded to strip EXIF and other metadata.
+    cropped, oversized photos are downscaled, and the result is always re-encoded
+    as PNG (stripping EXIF/metadata). PNG matches the ``{user_id}.png`` filename
+    and the ``image/png`` content type the avatar view serves.
     """
     if not value:
         return None
@@ -323,9 +324,7 @@ def _validate_saml_avatar(value: str | None) -> str | None:
     return b64encode(buffer.getvalue()).decode()
 
 
-def _extract_saml_avatar(
-    config: Mapping[str, Any], attributes: dict[str, list[str]]
-) -> str | None:
+def _extract_saml_avatar(config: Mapping[str, Any], attributes: dict[str, list[str]]) -> str | None:
     """
     Pop the mapped avatar attribute out of ``attributes`` and return the
     validated, re-encoded avatar (or ``None`` when unmapped, absent, or invalid).
