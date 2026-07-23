@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 import {
+  docsFlowVariantParams,
   DSN_COPIED_EVENT,
   resolveDocsFlowEvent,
 } from 'sentry/components/onboarding/gettingStartedDoc/docsFlowAnalytics';
@@ -26,6 +27,7 @@ function CopyDsnField({params}: {params: DocsParams<any>}) {
           trackAnalytics(resolveDocsFlowEvent(DSN_COPIED_EVENT, params.docsFlow), {
             organization: params.organization,
             platform: params.platformKey,
+            ...docsFlowVariantParams(params.docsFlow),
           })
         }
       >

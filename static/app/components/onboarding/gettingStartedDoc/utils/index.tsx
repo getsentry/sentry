@@ -4,6 +4,7 @@ import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
+  docsFlowVariantParams,
   resolveDocsFlowEvent,
   SOURCE_MAPS_COPY_CLICKED_EVENT,
   SOURCE_MAPS_SELECTED_AND_COPIED_EVENT,
@@ -37,6 +38,7 @@ export function getUploadSourceMapsStep({
       project_id: project.id,
       platform: platformKey,
       organization,
+      ...docsFlowVariantParams(docsFlow),
     });
   }
 

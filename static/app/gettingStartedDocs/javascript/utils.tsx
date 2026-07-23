@@ -2,6 +2,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import {
+  docsFlowVariantParams,
   JS_LOADER_NPM_DOCS_SHOWN_EVENT,
   resolveDocsFlowEvent,
   SETUP_LOADER_DOCS_RENDERED_EVENT,
@@ -354,6 +355,7 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
           organization: params.organization,
           platform: params.platformKey,
           project_id: params.project.id,
+          ...docsFlowVariantParams(params.docsFlow),
         }
       );
     };
@@ -366,6 +368,7 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
           organization: params.organization,
           platform: params.platformKey,
           project_id: params.project.id,
+          ...docsFlowVariantParams(params.docsFlow),
         }
       );
     };
@@ -470,6 +473,7 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
           organization: params.organization,
           platform: params.platformKey,
           project_id: params.project.id,
+          ...docsFlowVariantParams(params.docsFlow),
         }
       );
     };
@@ -504,6 +508,7 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
           organization: params.organization,
           platform: params.platformKey,
           project_id: params.project.id,
+          ...docsFlowVariantParams(params.docsFlow),
         }
       );
     };

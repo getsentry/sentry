@@ -198,15 +198,15 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
           path: `/${project.slug}/getting-started/`,
           organization,
         }),
-        // Carry the upfront product selection into the setup docs so the
-        // instructions match what was chosen here; the getting-started page
-        // seeds its selection from the `product` query. Mirrors the SCM
-        // onboarding flow (ScmProjectDetails -> goNextStep). Classic
-        // createProject selects products on that page instead, so it forwards
-        // nothing.
-        query: wizardState.selectedFeatures
-          ? {product: wizardState.selectedFeatures}
-          : undefined,
+        // Carry both the creating flow and upfront product selection into the
+        // setup docs. The flow marker attributes analytics to the SCM variant;
+        // the product query seeds the selected instructions.
+        query: {
+          projectCreationVariant: 'scm',
+          ...(wizardState.selectedFeatures
+            ? {product: wizardState.selectedFeatures}
+            : {}),
+        },
       });
     },
     [wizardState, navigate, organization]

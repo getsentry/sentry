@@ -410,7 +410,7 @@ describe('CreateProject', () => {
     });
     TeamStore.loadUserTeams([teamWithAccess]);
 
-    render(<CreateProject />, {
+    const {router} = render(<CreateProject />, {
       organization,
     });
 
@@ -422,6 +422,7 @@ describe('CreateProject', () => {
       1
     );
     expect(addSuccessMessage).toHaveBeenCalledWith('Created project testProj');
+    expect(router.location.query.projectCreationVariant).toBe('legacy');
   });
 
   it('should display error message on proj creation failure', async () => {

@@ -217,6 +217,7 @@ describe('ScmCreateProject', () => {
     await waitFor(() => {
       expect(router.location.pathname).toContain('/python/getting-started/');
     });
+    expect(router.location.query.projectCreationVariant).toBe('scm');
   });
 
   it('forwards the selected products to getting-started as the product query', async () => {
@@ -260,6 +261,7 @@ describe('ScmCreateProject', () => {
       ProductSolution.PERFORMANCE_MONITORING,
       ProductSolution.SESSION_REPLAY,
     ]);
+    expect(router.location.query.projectCreationVariant).toBe('scm');
   });
 
   it('forwards synced-back product selection to getting-started on the next project creation', async () => {
