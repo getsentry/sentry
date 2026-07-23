@@ -706,6 +706,32 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
     @patch(
         "sentry.integrations.github.tasks.sync_repos_on_install_change.sync_repos_on_install_change.apply_async"
     )
+    def test_handler_skips_when_installation_is_null(self, mock_apply_async: MagicMock) -> None:
+        """GitHub sends ``installation: null`` when repos are removed as part of a
+        deleted-account cleanup. The handler must return early cleanly rather than
+        raising AttributeError from ``event.get("installation", {}).get("id")``."""
+        handler = InstallationRepositoriesEventWebhook()
+        handler(
+            event=cast(
+                InstallationRepositoriesEvent,
+                {
+                    "installation": None,
+                    "action": "removed",
+                    "repositories_added": [],
+                    "repositories_removed": [
+                        {"id": 20, "full_name": "getsentry/old-repo", "private": False}
+                    ],
+                    "repository_selection": "selected",
+                    "sender": {"id": 1, "login": "octocat"},
+                },
+            )
+        )
+
+        mock_apply_async.assert_not_called()
+
+    @patch(
+        "sentry.integrations.github.tasks.sync_repos_on_install_change.sync_repos_on_install_change.apply_async"
+    )
     def test_handler_skips_when_integration_not_found(self, mock_apply_async: MagicMock) -> None:
         """Integration doesn't exist in Sentry — handler returns early."""
         handler = InstallationRepositoriesEventWebhook()

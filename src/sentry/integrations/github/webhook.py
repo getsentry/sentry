@@ -125,7 +125,7 @@ class WebhookProcessor(Protocol):
 
 
 def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str | None:
-    external_id: str | None = event.get("installation", {}).get("id")
+    external_id: str | None = (event.get("installation") or {}).get("id")
     return f"{host}:{external_id}" if host else external_id
 
 
@@ -135,8 +135,8 @@ def get_scm_stream_extra(
     """Identifiers an SCM-stream listener needs to resolve org/integration/repo context,
     surfaced so listeners don't have to re-parse the raw event body."""
     return {
-        "installation_id": event.get("installation", {}).get("id"),
-        "repository_id": event.get("repository", {}).get("id"),
+        "installation_id": (event.get("installation") or {}).get("id"),
+        "repository_id": (event.get("repository") or {}).get("id"),
     }
 
 
