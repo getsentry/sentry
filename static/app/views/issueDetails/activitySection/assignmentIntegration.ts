@@ -16,7 +16,7 @@ export function getAssignmentIntegrationName(integration: AssignmentIntegration)
     case 'suspectCommitter':
       return t('Suspect Commit');
     case 'seerSuggested':
-      return t('Suggested by Seer');
+      return t('Seer Suggestion');
     default:
       return null;
   }

@@ -114,7 +114,7 @@ function getAssignmentSourceLabel(source: AssignmentDetails['source']) {
     case 'suspectCommitter':
       return t('Based on commit data');
     case 'seerSuggested':
-      return t('Suggested by Seer');
+      return t('Seer Suggestion');
     default:
       return null;
   }
