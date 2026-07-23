@@ -1460,6 +1460,127 @@ class JiraIntegrationTest(APITestCase):
         assert config[0]["disabled"] is True
         assert "Unable to communicate" in config[0]["disabledReason"]
 
+    @responses.activate
+    def test_get_organization_config_lazy_status_with_configured_projects(self) -> None:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        installation = integration.get_installation(self.organization.id)
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="10000",
+            name="Project A",
+            resolved_status="6",
+            unresolved_status="1",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project",
+            json=[{"id": "10000", "name": "Project A"}, {"id": "10001", "name": "Project B"}],
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/statuses/search",
+            json={
+                "values": [
+                    {"id": "1", "name": "Open"},
+                    {"id": "6", "name": "Closed"},
+                ],
+            },
+        )
+
+        with self.feature("organizations:jira-lazy-status-sync"):
+            config = installation.get_organization_config()
+
+        assert config[0]["perItemMapping"] is True
+        assert "statusUrl" in config[0]
+        assert config[0]["mappedSelectors"]["10000"] == {
+            "on_resolve": {"choices": [("1", "Open"), ("6", "Closed")]},
+            "on_unresolve": {"choices": [("1", "Open"), ("6", "Closed")]},
+        }
+        assert "10001" not in config[0]["mappedSelectors"]
+
+    @responses.activate
+    def test_get_organization_config_lazy_status_no_configured_projects(self) -> None:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        installation = integration.get_installation(self.organization.id)
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project",
+            json=[{"id": "10000", "name": "Project A"}],
+        )
+
+        with self.feature("organizations:jira-lazy-status-sync"):
+            config = installation.get_organization_config()
+
+        assert config[0]["perItemMapping"] is True
+        assert "statusUrl" in config[0]
+        assert config[0]["mappedSelectors"] == {}
+
+    @responses.activate
+    def test_get_organization_config_flag_off_uses_existing_behavior(self) -> None:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        installation = integration.get_installation(self.organization.id)
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project",
+            json=[{"id": "10000", "name": "Project A"}],
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/statuses/search",
+            json={
+                "values": [
+                    {"id": "1", "name": "Open"},
+                    {"id": "6", "name": "Closed"},
+                ],
+            },
+        )
+
+        config = installation.get_organization_config()
+
+        assert config[0]["perItemMapping"] is True
+        assert "statusUrl" not in config[0]
+        assert config[0]["mappedSelectors"]["10000"] == {
+            "on_resolve": {"choices": [("1", "Open"), ("6", "Closed")]},
+            "on_unresolve": {"choices": [("1", "Open"), ("6", "Closed")]},
+        }
+
     def test_error_fields_from_json_issue_not_found(self) -> None:
         integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)

@@ -186,7 +186,10 @@ class JiraIntegration(IssueSyncIntegration):
                     JiraProjectMapping(value=p["id"], label=p["name"])
                     for p in client.get_projects_list()
                 ]
-            self._set_status_choices_in_organization_config(configuration, projects)
+            if features.has("organizations:jira-lazy-status-sync", self.organization):
+                self._set_lazy_status_choices_in_organization_config(configuration)
+            else:
+                self._set_status_choices_in_organization_config(configuration, projects)
             configuration[0]["addDropdown"]["items"] = projects
         except ApiError:
             configuration[0]["disabled"] = True
@@ -260,6 +263,39 @@ class JiraIntegration(IssueSyncIntegration):
             "on_resolve": {"choices": statuses},
             "on_unresolve": {"choices": statuses},
         }
+
+        return configuration
+
+    def _set_lazy_status_choices_in_organization_config(
+        self, configuration: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """
+        Pre-load statuses only for already-configured projects and provide a
+        statusUrl so the frontend can lazy-load statuses for newly-added projects.
+        """
+        client = self.get_client()
+
+        configured_projects = IntegrationExternalProject.objects.filter(
+            organization_integration_id=self.org_integration.id
+        )
+        for project in configured_projects:
+            try:
+                project_statuses = client.get_project_statuses(project.external_id).get(
+                    "values", []
+                )
+            except ApiError:
+                continue
+            statuses = [(c["id"], c["name"]) for c in project_statuses]
+            configuration[0]["mappedSelectors"][project.external_id] = {
+                "on_resolve": {"choices": statuses},
+                "on_unresolve": {"choices": statuses},
+            }
+
+        configuration[0]["perItemMapping"] = True
+        configuration[0]["statusUrl"] = reverse(
+            "sentry-extensions-jira-search",
+            args=[self.organization.slug, self.model.id],
+        )
 
         return configuration
 
