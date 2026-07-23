@@ -9,12 +9,14 @@ from sentry.models.organization import Organization
 from sentry.ratelimits import backend as ratelimiter
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models import SeerApiError, SeerPermissionError
-from sentry.seer.models.run import SeerAgentRun, SeerRun
+from sentry.seer.models.run import SeerRun
 from sentry.seer.smart_assignment.models import (
     RESOLUTION_ACTIVITIES,
     SEER_FEATURE_ID,
     SmartAssignmentPayload,
 )
+from sentry.seer.smart_assignment.scoring import record_ground_truth
+from sentry.seer.utils import runs_for_group
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
@@ -31,15 +33,23 @@ def trigger_smart_assignment(
     activity_type: ActivityType,
     activity: Activity | None = None,
 ) -> None:
-    """Gate + dispatch a prediction for `group`.
+    """Trigger and/or score a Smart Assignment run for an issue.
 
-    Dispatches a Seer run the first time (deduped to one run per group, and subject
-    to per-org / global daily caps). `activity_type` is what triggered us (a Seer AI
-    step starting, an assignment, or a resolution); `activity` is the triggering
-    activity, stamped with a pointer to the run it kicked off. No-op unless the org
-    is flagged. Automatic resolutions (no acting user, e.g. resolved by age) are
-    skipped entirely -- we only treat a resolution as signal when a human resolved
-    the issue, since then they probably should have been the assignee.
+    If we haven't run Smart Assignment yet on this issue, and the org has the
+    flag on, and we haven't hit daily caps, _dispatch() smart assignment.
+
+    Always call record_ground_truth(), which will record details from this
+    activity (the user manually assigned to the issue) if it indicates
+    what the smart assignment result *should* be.
+
+    Activites that truly *need* a SA result--SEER_CODING_STARTED, etc.--
+    won't have these. But activites like ASSIGNED will, because we're running
+    SA simply to check if it would have the same result as ground truth.
+
+    If SA ran earlier, it will score the ground truth against the SA result.
+    If SA is running now, it will score when SA completes.
+    If SA is running now and ground truth comes later, this trigger will be
+    called again and we'll score then.
     """
     organization = group.organization
 
@@ -58,6 +68,8 @@ def trigger_smart_assignment(
     if not _already_predicted(group) and not _dispatch_rate_limited(organization):
         _dispatch(group, activity_type, activity)
 
+    record_ground_truth(group, activity_type, activity)
+
 
 def _already_predicted(group: Group) -> bool:
     """Whether a smart-assignment run has ever been dispatched for this group.
@@ -66,7 +78,7 @@ def _already_predicted(group: Group) -> bool:
     cross-service call. Best-effort: a rare concurrent trigger could slip a second
     run past this before the first mirror commits, which the daily caps still bound.
     """
-    return SeerAgentRun.objects.filter(group_id=group.id, source=SEER_FEATURE_ID).exists()
+    return runs_for_group(group.id, SEER_FEATURE_ID).exists()
 
 
 def _dispatch_rate_limited(organization: Organization) -> bool:
