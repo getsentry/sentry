@@ -1,9 +1,7 @@
-import {useEffect} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
-import scrollToElement from 'scroll-to-element';
 
 import {Link} from '@sentry/scraps/link';
 
@@ -138,12 +136,6 @@ export function CustomerDetails() {
     isError: isErrorBillingConfig,
     isPending: isPendingBillingConfig,
   } = useApiQuery<BillingConfig>(BILLING_CONFIG_QUERY_KEY, {staleTime: Infinity});
-
-  useEffect(() => {
-    if (location.query.dataType) {
-      scrollToElement('#stats-filter');
-    }
-  });
 
   const onUpdateMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>

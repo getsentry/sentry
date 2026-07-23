@@ -1,6 +1,5 @@
 import {Fragment, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
-import scrollToElement from 'scroll-to-element';
 
 import {defined} from 'sentry/utils/defined';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
@@ -62,10 +61,9 @@ function JsonForm({
     // this is required when navigating from a different page so that
     // the element is rendered on the page before trying to getElementById.
     try {
-      scrollToElement(sanitizeQuerySelector(decodeURIComponent(hash)), {
-        align: 'middle',
-        offset: -100,
-      });
+      document
+        .querySelector(sanitizeQuerySelector(decodeURIComponent(hash)))
+        ?.scrollIntoView({behavior: 'smooth', block: 'center'});
     } catch (err) {
       Sentry.captureException(err);
     }
