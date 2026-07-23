@@ -47,6 +47,7 @@ class RecordPredictionScoringTest(ScoringTestBase):
         mock_metrics.incr.assert_called_once_with(
             "smart_assignment.scored",
             tags={"result": expected, "hit_rank": hit_rank, "trigger": STARTED.name},
+            sample_rate=1.0,
         )
 
     @patch(METRICS_PATH)
@@ -308,6 +309,7 @@ class RecordGroundTruthTest(ScoringTestBase):
         mock_metrics.incr.assert_any_call(
             "smart_assignment.scored",
             tags={"result": SmartAssignmentScore.EXACT, "hit_rank": 1, "trigger": STARTED.name},
+            sample_rate=1.0,
         )
 
     def test_resolution_does_not_overwrite_existing_assignee(self) -> None:
