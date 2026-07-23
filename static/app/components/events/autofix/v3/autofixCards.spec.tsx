@@ -924,7 +924,7 @@ describe('ArtifactCard', () => {
       expect(feedbackLink).toHaveAttribute('href', commentUrl);
     });
 
-    it('renders GitHub PR review body feedback with a GitHub icon and link', () => {
+    it('renders a GitHub PR review body as plain feedback text', () => {
       const reviewUrl = 'https://github.com/org/repo/pull/42#pullrequestreview-999';
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
@@ -958,11 +958,17 @@ describe('ArtifactCard', () => {
         {organization: prIterationOrganization}
       );
 
-      const feedbackLink = screen.getByRole('link', {
-        name: 'Overall this looks good, please add a test.',
-      });
-      expect(feedbackLink).toHaveAttribute('href', reviewUrl);
-      expect(screen.getByTestId('icon-github')).toBeInTheDocument();
+      // Review bodies have no dedicated cell yet, so they fall through to the
+      // generic renderer: plain text with no external link. Grouping the body
+      // with its inline comments under a state header comes in a later change.
+      expect(
+        screen.getByText('Overall this looks good, please add a test.')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', {
+          name: 'Overall this looks good, please add a test.',
+        })
+      ).not.toBeInTheDocument();
     });
 
     it('shows a formatted check-suite label instead of the raw feedback text', () => {
