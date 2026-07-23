@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Any
 
 from google.cloud.exceptions import NotFound
@@ -222,13 +223,16 @@ def run_bulk_replay_delete_job(
     if job.status != DeletionJobStatus.IN_PROGRESS:
         return None
 
+    # Chunk the query into 7-day windows to avoid full table scans in ClickHouse.
+    window_end = min(job.range_start + timedelta(days=7), job.range_end)
+
     try:
         # Delete the replays within a limited range. If more replays exist an incremented offset value
         # is returned.
         results = fetch_rows_matching_pattern(
             project_id=job.project_id,
             start=job.range_start,
-            end=job.range_end,
+            end=window_end,
             query=job.query,
             environment=job.environments,
             limit=limit,
@@ -263,10 +267,20 @@ def run_bulk_replay_delete_job(
             job.id, next_offset, limit=limit, has_seer_data=has_seer_data
         )
         return None
-    else:
-        # If we've finished deleting all the replays for the selection. We can move the status to
-        # completed and exit the call chain.
+
+    # Current window exhausted. Check if more time windows remain.
+    if window_end < job.range_end:
+        # Advance to the next 7-day window and reset the offset.
+        job.range_start = window_end
         job.offset = next_offset
-        job.status = DeletionJobStatus.COMPLETED
         job.save()
+        run_bulk_replay_delete_job.delay(
+            job.id, 0, limit=limit, has_seer_data=has_seer_data
+        )
         return None
+
+    # All windows processed. Mark the job as completed.
+    job.offset = next_offset
+    job.status = DeletionJobStatus.COMPLETED
+    job.save()
+    return None

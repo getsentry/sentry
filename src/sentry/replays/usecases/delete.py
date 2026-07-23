@@ -35,6 +35,7 @@ from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.snuba.referrer import Referrer
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
@@ -168,7 +169,7 @@ def fetch_rows_matching_pattern(
             execute_query,
             query,
             {"tenant_id": Organization.objects.filter(project__id=project_id).get().id},
-            "replays.delete_replays_bulk",
+            Referrer.REPLAYS_DELETE_REPLAYS_BULK.value,
         )
     )
 
