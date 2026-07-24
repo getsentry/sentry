@@ -1,4 +1,7 @@
+import styled from '@emotion/styled';
+
 import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {IconOpen} from 'sentry/icons';
@@ -35,23 +38,25 @@ export function ProguardSection({data, projectSlug}: ProguardSectionProps) {
           {
             key: 'uuid',
             subject: t('UUID'),
-            value: <pre className="val-string">{uuid}</pre>,
-            actionButton: (
-              <LinkButton
-                size="xs"
-                icon={<IconOpen />}
-                tooltipProps={{
-                  title: t(
-                    'Search for this mapping file in the %s project settings',
-                    projectSlug
-                  ),
-                }}
-                aria-label={t('Open in Settings')}
-                to={{
-                  pathname: `/settings/${organization.slug}/projects/${projectSlug}/debug-symbols/`,
-                  query: {query: uuid},
-                }}
-              />
+            value: (
+              <Flex align="center" gap="md">
+                <UuidValue className="val-string">{uuid}</UuidValue>
+                <LinkButton
+                  size="xs"
+                  icon={<IconOpen />}
+                  tooltipProps={{
+                    title: t(
+                      'Search for this mapping file in the %s project settings',
+                      projectSlug
+                    ),
+                  }}
+                  aria-label={t('Open in Settings')}
+                  to={{
+                    pathname: `/settings/${organization.slug}/projects/${projectSlug}/debug-symbols/`,
+                    query: {query: uuid},
+                  }}
+                />
+              </Flex>
             ),
           },
         ]}
@@ -59,3 +64,7 @@ export function ProguardSection({data, projectSlug}: ProguardSectionProps) {
     </FoldSection>
   );
 }
+
+const UuidValue = styled('pre')`
+  flex-grow: 1;
+`;
