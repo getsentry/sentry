@@ -3961,6 +3961,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# If True, FutureTrackingProducer will backpressure on produce futures
+register(
+    "arroyo.ftp.backpressure",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Arroyo producer poll metrics should be logged every X poll iterations.
 register(

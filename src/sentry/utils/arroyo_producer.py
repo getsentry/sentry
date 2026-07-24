@@ -5,11 +5,18 @@ from collections import deque
 from collections.abc import Callable
 
 from arroyo.backends.abstract import ProducerFuture
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_producer_configuration
+from arroyo.backends.kafka import (
+    FutureTrackingProducer,
+    KafkaPayload,
+    KafkaProducer,
+    build_kafka_producer_configuration,
+)
+from arroyo.backends.kafka.producer import CloseableProducerProtocol
 from arroyo.types import BrokerValue, Partition
 from arroyo.types import Topic as ArroyoTopic
 
 from sentry import options
+from sentry.conf.server import IS_TASKWORKER
 from sentry.conf.types.kafka_definition import Topic
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -124,4 +131,46 @@ def get_arroyo_producer(
         record_poll_metrics=record_poll_metrics,
         poll_metric_frequency=poll_metric_frequency,
         **kafka_producer_kwargs,
+    )
+
+
+class _FutureTrackingProducer(FutureTrackingProducer):
+    """
+    HACK(bmckerry): We can't read options during module import (since there's no option cache yet),
+    so this class overrides FutureTrackingProducer's `_backpressure` attribute to be read from the option at
+    runtime. This will be deleted once FTP backpressure is enabled everywhere.
+    """
+
+    _resolved_backpressure: bool | None = None
+
+    @property
+    def _backpressure(self) -> bool:
+        """
+        This makes the `self._backpressure` check during produce() read the option.
+        """
+        if self._resolved_backpressure is None:
+            self._resolved_backpressure = options.get("arroyo.ftp.backpressure")
+        return self._resolved_backpressure
+
+    @_backpressure.setter
+    def _backpressure(self, value: bool) -> None:
+        """
+        This overrides when FTP assigns `self._backpressure` during __init__ to be a no-op.
+        """
+        pass
+
+
+def get_producer(
+    producer_name: str,
+    producer_factory: Callable[[], CloseableProducerProtocol],
+) -> FutureTrackingProducer:
+    """
+    Helper function to get a FutureTrackingProducer instance with the `should_track_futures` arg
+    correctly set (depending on if we're in taskworker or not).
+    """
+
+    return _FutureTrackingProducer(
+        name=producer_name,
+        producer_factory=producer_factory,
+        should_track_futures=IS_TASKWORKER,
     )
