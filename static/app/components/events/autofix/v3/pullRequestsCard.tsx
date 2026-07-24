@@ -3,6 +3,7 @@ import {useMemo} from 'react';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   getAutofixArtifactFromSection,
   isPullRequestsArtifact,
@@ -24,7 +25,7 @@ interface PullRequestsCardProps {
 }
 
 export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
-  const runId = autofix.runState?.run_id;
+  const runId = getAutofixRunId(autofix.runState);
   const {createPR} = autofix;
   const artifact = useMemo(() => {
     const sectionArtifact = getAutofixArtifactFromSection(section);
