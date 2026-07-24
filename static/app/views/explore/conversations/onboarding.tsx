@@ -53,6 +53,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
@@ -64,7 +65,6 @@ import {
   PYTHON_AGENT_INTEGRATIONS,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
-import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {
   BulletList,
   HeaderText,
@@ -98,7 +98,7 @@ function useConversationSpanWaiter(project: Project) {
         },
       },
     },
-    Referrer.CONVERSATIONS_ONBOARDING
+    Referrer.ONBOARDING
   );
 
   const hasEvents = Boolean(request.data?.length);
