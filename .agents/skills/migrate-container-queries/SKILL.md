@@ -114,6 +114,7 @@ the container's active key (`'zero'` … `'5xl'`) — don't compare it with
 Took the lowest rung that fits (above). Then verify the gotchas:
 
 - [ ] Mapped to the `container` token with the nearest pixel value, not the same name — e.g. `breakpoints.sm` → `container.xl`, not `container.sm`
+- [ ] For width read in JS, used `useResponsivePropValue({...})` for a threshold boolean; reserved `useContainerBreakpoint()` for branching on the key — never `=== 'zero'` to mean "narrow" (that's only <320px)
 - [ ] Routed genuine viewport-width cases to `screen:` keys; kept `useMedia` only for non-width media features
 - [ ] Added `container-type` only when a subtree needs its own; used `inline-size`
 - [ ] Confirmed a query-container ancestor exists (`@container` silently no-ops without one)
