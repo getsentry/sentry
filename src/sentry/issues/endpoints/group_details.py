@@ -74,6 +74,7 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import is_mcp_request
@@ -399,7 +400,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
             participants = user_service.serialize_many(
                 filter={"user_ids": GroupSubscriptionManager.get_participating_user_ids(group)},
-                as_user=request.user,
+                as_user=serialize_generic_user(request.user),
             )
 
             for participant in participants:
