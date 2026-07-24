@@ -30,16 +30,16 @@ const Slot = slot(['breadcrumbs', 'title', 'search', 'actions', 'feedback'] as c
 
 function TopBarContent() {
   const theme = useTheme();
-  const {contentTop} = useTopOffset();
+  const {pageContentTop} = useTopOffset();
 
   const organization = useOrganization({allowNull: true});
 
   useEffect(() => {
-    document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, contentTop);
+    document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, pageContentTop);
     return () => {
       document.documentElement.style.removeProperty(TOP_BAR_HEIGHT_CSS_VAR);
     };
-  }, [contentTop]);
+  }, [pageContentTop]);
 
   const {isOpen: isSeerExplorerOpen} = useSeerExplorerContext();
   const {runId: seerExplorerRunId} = useSeerExplorerChatState();

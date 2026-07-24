@@ -12,10 +12,20 @@ import {
 } from 'sentry/views/navigation/constants';
 
 interface TopOffset {
-  /** The `top` CSS value for the sticky bar itself */
+  /** The `top` CSS value for the sticky nav sidebar itself (marquee only) */
   barTop: string;
-  /** Offset where content below the bar starts (marquee + header only, excludes in-flow SystemAlerts) */
+  /**
+   * Offset from the viewport top, past the marquee and the header. For
+   * viewport-fixed overlays (drawers, the widget builder) that anchor to the
+   * screen, not to the scrolling content pane.
+   */
   contentTop: string;
+  /**
+   * Offset for sticky content *inside* the scrolling page pane, below the
+   * sticky TopBar. Header height only: the pane already sits below the marquee,
+   * so including it here would push in-page stickies down by the marquee height.
+   */
+  pageContentTop: string;
 }
 
 export function useTopOffset(): TopOffset {
@@ -35,5 +45,6 @@ export function useTopOffset(): TopOffset {
   return {
     barTop: `${superuserOffset}px`,
     contentTop: `${superuserOffset + headerHeight}px`,
+    pageContentTop: `${headerHeight}px`,
   };
 }
