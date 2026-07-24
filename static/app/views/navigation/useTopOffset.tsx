@@ -1,8 +1,10 @@
+import {useRef} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -16,6 +18,15 @@ interface TopOffset {
   barTop: string;
   /** The total offset where content below the bar should start */
   contentTop: string;
+}
+
+export function useTopAlertsRegion() {
+  const topAlertsRegionRef = useRef<HTMLDivElement>(null);
+  const {height: topAlertsRegionHeight} = useDimensions({
+    elementRef: topAlertsRegionRef,
+  });
+
+  return {topAlertsRegionRef, topAlertsRegionHeight};
 }
 
 export function useTopOffset(): TopOffset {

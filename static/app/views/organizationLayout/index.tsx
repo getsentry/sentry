@@ -1,4 +1,3 @@
-import {useRef} from 'react';
 import {Outlet, ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 
@@ -21,7 +20,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
-import {useDimensions} from 'sentry/utils/useDimensions';
 import {useInitSentryToolbar} from 'sentry/utils/useInitSentryToolbar';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SystemAlerts} from 'sentry/views/app/systemAlerts';
@@ -30,6 +28,7 @@ import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/dom
 import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useTopAlertsRegion} from 'sentry/views/navigation/useTopOffset';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {useSeerExplorerDocumentTitle} from 'sentry/views/seerExplorer/components/useSeerExplorerDocumentTitle';
@@ -89,10 +88,7 @@ function AppDrawers() {
 
 function AppLayout({organization}: LayoutProps) {
   useSeerExplorerDocumentTitle();
-  const topAlertsRegionRef = useRef<HTMLDivElement>(null);
-  const {height: topAlertsRegionHeight} = useDimensions({
-    elementRef: topAlertsRegionRef,
-  });
+  const {topAlertsRegionRef, topAlertsRegionHeight} = useTopAlertsRegion();
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
