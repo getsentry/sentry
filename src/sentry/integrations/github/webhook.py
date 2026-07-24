@@ -7,6 +7,7 @@ import logging
 import time
 from abc import ABC
 from collections.abc import Mapping, MutableMapping, Sequence
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from typing import Any, Protocol
 
@@ -49,11 +50,13 @@ from sentry.integrations.types import (
     IntegrationProviderSlug,
 )
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
+from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.integrations.utils.scope import clear_organization_info
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.issues.action_log import (
     ActionSource,
+    GroupActionActor,
     action_context_scope,
     resolve_action_actor,
 )
@@ -1200,25 +1203,49 @@ class PullRequestEventWebhook(GitHubWebhook):
                     )
 
         author.preload_users()
-        try:
-            _, created = PullRequest.objects.update_or_create(
+        activity_actor = None
+        if state == PullRequestLifecycleState.MERGED:
+            activity_actor = pull_request.get("merged_by") or event.get("sender")
+        elif event.get("action") in ("closed", "reopened"):
+            activity_actor = event.get("sender")
+        activity_user = (
+            find_user_for_scm_actor(
                 organization_id=organization.id,
-                repository_id=repo.id,
-                key=number,
-                defaults={
-                    "organization_id": organization.id,
-                    "title": title,
-                    "author": author,
-                    "message": body,
-                    "merge_commit_sha": merge_commit_sha,
-                    "head_commit_sha": head_commit_sha,
-                    "opened_at": opened_at,
-                    "closed_at": closed_at,
-                    "merged_at": merged_at,
-                    "state": state,
-                    "draft": draft,
-                },
+                integration_id=integration.id,
+                username=activity_actor["login"],
+                external_id=activity_actor.get("id"),
             )
+            if activity_actor and activity_actor.get("login")
+            else None
+        )
+        activity_context = (
+            action_context_scope(
+                source=self.provider,
+                actor=GroupActionActor.user(activity_user.id),
+            )
+            if activity_user is not None
+            else nullcontext()
+        )
+        try:
+            with activity_context:
+                _, created = PullRequest.objects.update_or_create(
+                    organization_id=organization.id,
+                    repository_id=repo.id,
+                    key=number,
+                    defaults={
+                        "organization_id": organization.id,
+                        "title": title,
+                        "author": author,
+                        "message": body,
+                        "merge_commit_sha": merge_commit_sha,
+                        "head_commit_sha": head_commit_sha,
+                        "opened_at": opened_at,
+                        "closed_at": closed_at,
+                        "merged_at": merged_at,
+                        "state": state,
+                        "draft": draft,
+                    },
+                )
 
             if created:
                 try:

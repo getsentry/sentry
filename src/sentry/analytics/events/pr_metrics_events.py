@@ -30,9 +30,7 @@ class PrCloseMetricsEvent(analytics.Event):
     # Group (issue) IDs this PR resolves, from the resolving GroupLink rows
     # (parsed from the PR title/message). Empty when the PR resolves nothing.
     group_ids: list[int]
-    close_action: Literal["closed", "merged"]
-    # Always present on a close/merge webhook — read fail-fast so a malformed
-    # payload errors loudly instead of emitting a silent null.
+    close_action: Literal["closed", "merged", "abandoned"]
     head_commit_sha: str
     closed_at: str
     # Null when Sentry never saw the PR open (late-installed integration, missed
@@ -69,6 +67,22 @@ class PrCloseMetricsEvent(analytics.Event):
     # Reviews split by the reviewer's account class; the two sum to reviews_count.
     reviews_bot_count: int = 0
     reviews_human_count: int = 0
+    # Net outstanding review requests at the terminal event (REVIEW_REQUESTED
+    # minus REVIEW_REQUEST_REMOVED, floored at 0). Distinct from reviews_count:
+    # this answers "was a review ever asked for", not "was one ever submitted",
+    # so a requested-but-unreviewed PR doesn't look identical to one nobody was
+    # ever asked to review.
+    reviews_requested_count: int = 0
+    # Every REVIEW_SUBMITTED tallied by its GitHub review state — JSON-encoded
+    # {"approved": int, "changes_requested": int, "commented": int}, all three
+    # keys always present (0 default) on an emitted row. A reviewer who submits
+    # twice counts twice, same as reviews_count, which the three values sum to.
+    # Activity-derived and unpersisted, like reviews_requested_count above (see
+    # emit.review_activity). GitHub-only: this pipeline doesn't track GitLab
+    # reviews, so every count is 0 for a GitLab-hosted PR — same as every other
+    # activity-derived counter when activity isn't tracked. "{}" is only the
+    # dataclass default, never an emitted value.
+    review_results: str = "{}"
     # Pushes (opened + synchronize events) split by the pusher's account class. A
     # push, not a commit: GitHub's synchronize payload carries no commit count, so
     # this counts push events, with a bot-app push attributed to the bot.
@@ -83,7 +97,9 @@ class PrCloseMetricsEvent(analytics.Event):
     opened_and_closed_by_same_actor: bool | None = None
     # The point-in-time attribution snapshot at emit time: a JSON-encoded list of
     # the active (is_valid=True) attributions, each {signal_type, source,
-    # signal_details}, ordered by attribution priority (highest-confidence first).
+    # signal_details}. A PR can carry more than one; all are emitted equally, with
+    # no ranking between them — each is a definite attribution, not a probabilistic
+    # guess. List order carries no meaning and isn't guaranteed; don't rely on it.
     attributions: str = "[]"
     # Distinct ``AutofixReferrer`` values (e.g. "slack", "night_shift") behind the
     # Seer runs that produced this PR's attributions, resolved via ``SeerRun`` at

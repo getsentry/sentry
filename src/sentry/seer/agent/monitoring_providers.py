@@ -9,6 +9,7 @@ from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.services.identity import identity_service
+from sentry.integrations.gcp.utils import GCP_MCP_URLS
 from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.organization import Organization
 from sentry.seer.sentry_data_models import MonitoringProviderConnectionData
@@ -26,8 +27,13 @@ class OrgMonitoringProvider(abc.ABC):
     @abc.abstractmethod
     def build_connection(
         self, organization: Organization
-    ) -> MonitoringProviderConnectionData | None:
-        """Build the Seer connection for this org's integration, or None if unconfigured."""
+    ) -> list[MonitoringProviderConnectionData] | None:
+        """
+        Build Seer connection(s) for this org's integration, or None if unconfigured.
+
+        A single integration may map to multiple MCP connections (e.g. GCP has
+        separate logging, monitoring, and trace endpoints).
+        """
 
 
 org_monitoring_provider_registry = Registry[type[OrgMonitoringProvider]]()
@@ -61,7 +67,7 @@ def get_org_monitoring_connections(
     connections: list[MonitoringProviderConnectionData] = []
     for provider in _org_monitoring_providers():
         try:
-            connection = provider.build_connection(organization)
+            result = provider.build_connection(organization)
         except RpcException:
             logger.warning(
                 "seer.monitoring_providers.org_fetch_failed",
@@ -72,8 +78,8 @@ def get_org_monitoring_connections(
                 exc_info=True,
             )
             continue
-        if connection is not None:
-            connections.append(connection)
+        if result is not None:
+            connections.extend(result)
     return connections
 
 
@@ -136,23 +142,17 @@ def _get_personal_monitoring_connections(
 # Remove when the full GcpIntegrationProvider + setup UI is built.
 _SENTRY_ORG_GCP_PROJECT_IDS = ["internal-sentry"]
 
-_GCP_MCP_CONNECTIONS = [
-    ("gcp_logging", "https://logging.googleapis.com/mcp"),
-    ("gcp_monitoring", "https://monitoring.googleapis.com/mcp"),
-    ("gcp_trace", "https://cloudtrace.googleapis.com/mcp"),
-]
-
 
 def _get_gcp_connections_for_sentry_org() -> list[MonitoringProviderConnectionData]:
     return [
         MonitoringProviderConnectionData(
-            provider_key=provider_key,
+            provider_key="gcp",
             url=url,
             auth_method="gcp_adc",
             refreshable=False,
             gcp_project_ids=_SENTRY_ORG_GCP_PROJECT_IDS,
         )
-        for provider_key, url in _GCP_MCP_CONNECTIONS
+        for url in GCP_MCP_URLS
     ]
 
 

@@ -26,6 +26,7 @@ from sentry.pr_metrics.emit import (
     emit_pr_metrics_row,
     is_pr_tracked,
     resolve_autofix_referrers,
+    review_activity,
     select_fallback_verdict,
     select_verdict,
 )
@@ -151,6 +152,26 @@ class PrMetricsEmissionTest(TestCase):
             webhook_id=webhook_id,
             event_type=PullRequestActivityType.CHECK_SUITE_COMPLETED,
             payload={"conclusion": conclusion, "app_slug": app_slug, "check_runs_count": 1},
+        )
+
+    def _add_review_request(self, *, webhook_id: str, removed: bool = False) -> None:
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id=webhook_id,
+            event_type=(
+                PullRequestActivityType.REVIEW_REQUEST_REMOVED
+                if removed
+                else PullRequestActivityType.REVIEW_REQUESTED
+            ),
+            payload={},
+        )
+
+    def _add_review(self, *, webhook_id: str, review_state: str) -> None:
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id=webhook_id,
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            payload={"review_state": review_state},
         )
 
     def test_select_verdict_merged_without_later_commits_is_unchanged(self) -> None:
@@ -282,6 +303,49 @@ class PrMetricsEmissionTest(TestCase):
         self._add_check_suite(app_slug="github-actions", conclusion="failure", webhook_id="check-2")
         assert ci_failing_at_close(self.pull_request) is True
 
+    def test_reviews_requested_count_no_activity_is_zero(self) -> None:
+        assert review_activity(self.pull_request).requested_count == 0
+
+    def test_reviews_requested_count_nets_removals(self) -> None:
+        self._add_review_request(webhook_id="rr1")
+        self._add_review_request(webhook_id="rr2")
+        self._add_review_request(webhook_id="rr3", removed=True)
+        assert review_activity(self.pull_request).requested_count == 1  # 2 requested - 1 removed
+
+    def test_reviews_requested_count_floors_at_zero(self) -> None:
+        # More removals than requests can't be matched 1:1 (e.g. a second
+        # reviewer's outstanding request), so the net never goes negative.
+        self._add_review_request(webhook_id="rr1", removed=True)
+        assert review_activity(self.pull_request).requested_count == 0
+
+    def test_review_results_no_activity_is_all_zero(self) -> None:
+        assert review_activity(self.pull_request).results == {
+            "approved": 0,
+            "changes_requested": 0,
+            "commented": 0,
+        }
+
+    def test_review_results_tallies_each_state(self) -> None:
+        self._add_review(webhook_id="r1", review_state="approved")
+        self._add_review(webhook_id="r2", review_state="approved")
+        self._add_review(webhook_id="r3", review_state="changes_requested")
+        self._add_review(webhook_id="r4", review_state="commented")
+        assert review_activity(self.pull_request).results == {
+            "approved": 2,
+            "changes_requested": 1,
+            "commented": 1,
+        }
+
+    def test_review_results_ignores_unrecognized_state(self) -> None:
+        # A review_dismissed row (or any future/unmapped state) contributes
+        # nothing rather than erroring or padding an unexpected key.
+        self._add_review(webhook_id="r1", review_state="dismissed")
+        assert review_activity(self.pull_request).results == {
+            "approved": 0,
+            "changes_requested": 0,
+            "commented": 0,
+        }
+
     def test_select_fallback_verdict_merged_without_later_commits_is_unchanged(self) -> None:
         assert select_fallback_verdict(self.pull_request) == PullRequestVerdict.MERGED_UNCHANGED
 
@@ -329,6 +393,38 @@ class PrMetricsEmissionTest(TestCase):
         assert row.review_comments_count == 6
         assert row.is_assigned is True
 
+    def test_build_row_carries_reviews_requested_count(self) -> None:
+        # Unlike the other counters (persisted onto PullRequestMetrics),
+        # reviews_requested_count is read live from activity at build time.
+        self._add_review_request(webhook_id="rr1")
+        self._add_review_request(webhook_id="rr2")
+        self._add_review_request(webhook_id="rr3", removed=True)
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.reviews_requested_count == 1
+
+    def test_build_row_carries_review_results(self) -> None:
+        # Like reviews_requested_count, review_results is read live from
+        # activity at build time (never persisted), JSON-encoded on the row.
+        self._add_review(webhook_id="r1", review_state="approved")
+        self._add_review(webhook_id="r2", review_state="changes_requested")
+        self._add_review(webhook_id="r3", review_state="changes_requested")
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert json.loads(row.review_results) == {
+            "approved": 1,
+            "changes_requested": 2,
+            "commented": 0,
+        }
+
     def test_build_row_carries_repository_provider(self) -> None:
         # setUp's repo is created with the prefixed "integrations:github" form —
         # the row carries the normalized slug.
@@ -373,6 +469,62 @@ class PrMetricsEmissionTest(TestCase):
             group_ids=[],
         )
         assert row.repository_is_public is True
+
+    def test_build_row_raises_when_stored_lifecycle_missing(self) -> None:
+        # A close/merge row needs a persisted head_commit_sha and closed_at;
+        # abandoned is exempt since the PR never reached a terminal state.
+        self.pull_request.closed_at = None
+
+        with pytest.raises(ValueError):
+            build_pr_metrics_row(
+                pull_request=self.pull_request,
+                close_action="merged",
+                attributions=[],
+                group_ids=[],
+            )
+
+        with pytest.raises(ValueError):
+            build_pr_metrics_row(
+                pull_request=self.pull_request,
+                close_action="closed",
+                attributions=[],
+                group_ids=[],
+            )
+
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="abandoned",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.closed_at is not None
+
+    def test_build_row_raises_when_head_commit_sha_missing(self) -> None:
+        self.pull_request.head_commit_sha = None
+
+        with pytest.raises(ValueError):
+            build_pr_metrics_row(
+                pull_request=self.pull_request,
+                close_action="merged",
+                attributions=[],
+                group_ids=[],
+            )
+
+        with pytest.raises(ValueError):
+            build_pr_metrics_row(
+                pull_request=self.pull_request,
+                close_action="closed",
+                attributions=[],
+                group_ids=[],
+            )
+
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="abandoned",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.head_commit_sha == "unknown"
 
     def test_build_row_repository_is_public_false_for_private_repo(self) -> None:
         PullRequestActivity.objects.create(
@@ -488,18 +640,6 @@ class PrMetricsEmissionTest(TestCase):
         )
         assert row.opened_at is None
 
-    def test_build_row_raises_when_stored_lifecycle_missing(self) -> None:
-        # A close/merge row needs a persisted head_commit_sha and closed_at; a
-        # null means emit ran on a PR that never reached a terminal state.
-        self.pull_request.closed_at = None
-        with pytest.raises(ValueError):
-            build_pr_metrics_row(
-                pull_request=self.pull_request,
-                close_action="merged",
-                attributions=[],
-                group_ids=[],
-            )
-
     def test_build_row_for_close_omits_merge_commit_sha(self) -> None:
         # The webhook persists null merge fields for a closed-but-unmerged PR.
         self.pull_request.merge_commit_sha = None
@@ -569,22 +709,23 @@ class PrMetricsEmissionTest(TestCase):
         )
         assert active_attributions(self.pull_request) == [SENTRY_APP_ATTRIBUTION]
 
-    def test_active_attributions_ordered_by_priority_with_source_and_details(self) -> None:
-        # Lower-confidence signal recorded first, but ordered second.
+    def test_active_attributions_returns_all_valid_signals(self) -> None:
+        # A PR can carry more than one valid signal; all are returned, unranked.
+        # Order carries no meaning, so this asserts membership, not position.
+        self._track(PullRequestAttributionSignalType.SENTRY_APP)
         self._track(
             PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
             source=PullRequestAttributionSource.WEBHOOK_DATA,
             signal_details={"group_ids": [7]},
         )
-        self._track(PullRequestAttributionSignalType.SENTRY_APP)
-        assert active_attributions(self.pull_request) == [
-            SENTRY_APP_ATTRIBUTION,
-            {
-                "signal_type": "seer_delegated:claude_code",
-                "source": "webhook_data",
-                "signal_details": {"group_ids": [7]},
-            },
-        ]
+        result = active_attributions(self.pull_request)
+        assert len(result) == 2
+        assert SENTRY_APP_ATTRIBUTION in result
+        assert {
+            "signal_type": "seer_delegated:claude_code",
+            "source": "webhook_data",
+            "signal_details": {"group_ids": [7]},
+        } in result
 
     def test_resolve_autofix_referrers_empty_without_run_id(self) -> None:
         assert resolve_autofix_referrers(self.pull_request, [SENTRY_APP_ATTRIBUTION]) == []
@@ -796,6 +937,7 @@ class PrMetricsEmissionTest(TestCase):
                 review_comments_count=6,
                 is_assigned=True,
                 attributions=json.dumps([SENTRY_APP_ATTRIBUTION]),
+                review_results=json.dumps({"approved": 0, "changes_requested": 0, "commented": 0}),
             ),
         )
 
@@ -982,11 +1124,16 @@ class PrMetricsEmissionTest(TestCase):
         )
         self._activity(
             webhook_id="c2",
+            event_type=PullRequestActivityType.REVIEW_REQUESTED,
+            sender_login="octocat",
+        )
+        self._activity(
+            webhook_id="c3",
             event_type=PullRequestActivityType.REVIEW_SUBMITTED,
             sender_login="reviewer",
         )
         self._activity(
-            webhook_id="c3", event_type=PullRequestActivityType.MERGED, sender_login="octocat"
+            webhook_id="c4", event_type=PullRequestActivityType.MERGED, sender_login="octocat"
         )
         emit_pr_metrics_row(pull_request=self.pull_request)
 
@@ -999,12 +1146,21 @@ class PrMetricsEmissionTest(TestCase):
         assert row.opened_by_bot is False
         assert row.closed_by_bot is False
         assert row.opened_and_closed_by_same_actor is True
-        # ...and carried on the emitted analytics row.
+        # ...and carried on the emitted analytics row. reviews_requested_count is
+        # read live from activity rather than persisted, so it only shows up here.
         emitted = mock_record.call_args[0][0]
         assert emitted.participants_count == 2
         assert emitted.reviews_count == 1
         assert emitted.reviews_human_count == 1
+        assert emitted.reviews_requested_count == 1
         assert emitted.opened_and_closed_by_same_actor is True
+        # review_results is also read live, not persisted; the review above
+        # carries no review_state, so no state key is incremented.
+        assert json.loads(emitted.review_results) == {
+            "approved": 0,
+            "changes_requested": 0,
+            "commented": 0,
+        }
 
     # --- _commit_shas_from_activity ---
 

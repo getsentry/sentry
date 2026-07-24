@@ -665,6 +665,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         <BaseChart
           ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
           autoHeightResize
+          renderer="canvas"
           series={allSeries}
           grid={{
             // NOTE: Adding a few pixels of left padding prevents ECharts from

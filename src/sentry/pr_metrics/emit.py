@@ -10,7 +10,10 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from enum import Enum
-from typing import Any, cast
+from typing import Any, NamedTuple, cast
+
+from django.db.models import Count, Q
+from django.utils import timezone as dj_timezone
 
 from sentry import analytics
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
@@ -27,8 +30,8 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics import activity_doc
-from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
 from sentry.pr_metrics.contracts import (
+    CLOSE_ACTION_ABANDONED,
     CLOSE_ACTION_CLOSED,
     CLOSE_ACTION_MERGED,
     CloseAction,
@@ -44,6 +47,36 @@ from sentry.seer.models.run import SeerRun
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
+
+# GitHub's review-submission vocabulary (a "submitted" pull_request_review
+# action's review.state) — see ReviewSubmittedPayload.review_state. Always
+# emitted with all three keys present (0 for a state never seen), rather than
+# sparse, so a consumer doesn't need to coalesce missing keys itself. GitLab
+# reviews aren't tracked by this pipeline at all (see webhooks.py), so these
+# are GitHub-only today.
+REVIEW_STATES = ("approved", "changes_requested", "commented")
+
+
+class ReviewActivity(NamedTuple):
+    """Review-submission facts read live off activity at emit time (see
+    ``review_activity``), never persisted onto ``PullRequestMetrics``.
+
+    ``requested_count``: net outstanding review requests (``REVIEW_REQUESTED``
+    minus ``REVIEW_REQUEST_REMOVED``, floored at 0). Distinct from
+    ``reviews_count``: that only says whether a review was ever *submitted*, so
+    a PR with reviewers requested but never actioned looks identical to one
+    nobody was ever asked to review. Floored at 0 because a removal can't be
+    matched to which earlier request it revoked — e.g. a second reviewer's
+    request outliving the first's removal — so the net can't go negative.
+
+    ``results``: every ``REVIEW_SUBMITTED`` tallied by its ``review_state``
+    (``REVIEW_STATES``), each key always present (0 default). A reviewer who
+    submits twice counts twice, same as ``reviews_count``; the three values sum
+    to ``reviews_count``.
+    """
+
+    requested_count: int
+    results: dict[str, int]
 
 
 class VerdictDeferral(Enum):
@@ -181,6 +214,9 @@ def select_fallback_verdict(pull_request: PullRequest) -> PullRequestVerdict:
 # the PR's own check-suite activity rather than a judge's opinion.
 CI_FAILING_AT_CLOSE = "ci_failing_at_close"
 
+# Diagnosis label for the stale-detection path. See detect_stale_pull_requests_task.
+NO_REVIEWER_ENGAGEMENT = "no_reviewer_engagement"
+
 # Conclusions that unambiguously mean the check errored out, as opposed to
 # cancelled/skipped/stale (never ran to completion, not a failure verdict),
 # neutral (a soft pass), or action_required (blocked on approval, not broken).
@@ -227,6 +263,42 @@ def ci_failing_at_close(pull_request: PullRequest) -> bool:
     )
 
 
+def review_activity(pull_request: PullRequest) -> ReviewActivity:
+    """Review-submission facts read live off activity at emit time — never
+    persisted onto ``PullRequestMetrics`` like ``reviews_count`` and its
+    siblings, since every current caller of ``build_pr_metrics_row`` runs
+    before that PR's activity is swept (``cleanup_pr_activity_task`` is only
+    ever enqueued from inside a successful ``emit_pr_metrics_row``, and each PR
+    is only emitted once), so there's no "later re-derivation" that would need
+    a persisted copy. See ``ReviewActivity`` for what each field means.
+
+    A single conditional aggregate does all the bucketing in Postgres — no rows
+    cross into Python — rather than pulling every row over to count client-side.
+    """
+    doc = load_activity_document(pull_request)
+    if doc is not None:
+        return ReviewActivity(**activity_doc.review_activity_from_doc(doc))
+
+    counts = PullRequestActivity.objects.filter(pull_request=pull_request).aggregate(
+        requested=Count("id", filter=Q(event_type=PullRequestActivityType.REVIEW_REQUESTED)),
+        removed=Count("id", filter=Q(event_type=PullRequestActivityType.REVIEW_REQUEST_REMOVED)),
+        **{
+            state: Count(
+                "id",
+                filter=Q(
+                    event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+                    payload__review_state=state,
+                ),
+            )
+            for state in REVIEW_STATES
+        },
+    )
+    return ReviewActivity(
+        requested_count=max(counts["requested"] - counts["removed"], 0),
+        results={state: counts[state] for state in REVIEW_STATES},
+    )
+
+
 def calculate_deterministic_diagnosis_labels(
     pull_request: PullRequest, verdict: PullRequestVerdict | None
 ) -> list[str] | None:
@@ -255,19 +327,18 @@ def is_pr_tracked(pull_request: PullRequest) -> bool:
 
 
 def active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
-    """The PR's valid attribution signals, highest-confidence first.
+    """The PR's valid attribution signals — all of them, unranked.
 
     Each entry carries the ``signal_type``, ``source``, and ``signal_details`` so
-    the consumer sees the full picture, ordered by attribution priority so the
-    primary attribution leads. Ties break on ``signal_type`` then ``source`` for
-    a deterministic order. Shared by emission and the Seer judge forward so both
-    hand the consumer the same ordered snapshot.
+    the consumer sees the full picture. A PR can carry more than one valid signal
+    and every one is emitted equally — each is a definite attribution, so no
+    signal outranks another and the list order carries no meaning. Shared by
+    emission and the Seer judge forward so both hand the consumer the same set.
     """
     attributions = PullRequestAttribution.objects.filter(pull_request=pull_request, is_valid=True)
-    ordered = sorted(
-        attributions,
-        key=lambda a: (-SIGNAL_TYPE_CONFIDENCE.get(a.signal_type, -1), a.signal_type, a.source),
-    )
+    # Sorted only so the emitted list is reproducible run-to-run; the order isn't
+    # a contract (see above) and consumers must not read significance into it.
+    ordered = sorted(attributions, key=lambda a: (a.signal_type, a.source))
     return [
         {"signal_type": a.signal_type, "source": a.source, "signal_details": a.signal_details}
         for a in ordered
@@ -404,13 +475,16 @@ def build_pr_metrics_row(
     conversation_analysis: PrConversationAnalysis | None = None,
     diagnosis_labels: Sequence[str] | None = None,
 ) -> PrCloseMetricsEvent:
-    """Assemble the close/merge analytics row.
+    """Assemble the close/merge/abandoned analytics row.
 
     Every fact is read from the stored ``PullRequest`` / ``PullRequestMetrics``
     rows, so the judge path (Seer RPC callback, which has no webhook payload) can
     reuse this. ``attributions`` is passed in so the tracking gate and the
     emitted row read the same query. A missing metrics row (a PR Sentry never saw
     active) coalesces every counter to its default.
+
+    ``abandoned`` PRs have null ``head_commit_sha``/``closed_at`` on the model
+    (still open); ``closed_at`` falls back to the detection timestamp.
 
     ``conversation_analysis`` is set on the judge path only: the conversation
     judge's result (semantic outputs become columns, its ``metadata`` is
@@ -419,18 +493,25 @@ def build_pr_metrics_row(
     ``CLOSED_UNMERGED`` path can also populate it (see ``ci_failing_at_close``),
     so its presence doesn't by itself mean the row was judged.
     """
-    head_commit_sha = pull_request.head_commit_sha
-    closed_at = pull_request.closed_at
-    if head_commit_sha is None or closed_at is None:
-        # The webhook always persists both on a close/merge; a null here means
-        # emit ran on a PR that never reached a terminal state. Fail loud.
-        raise ValueError("PR metrics row requires a persisted head_commit_sha and closed_at")
+    if close_action != CLOSE_ACTION_ABANDONED:
+        if pull_request.head_commit_sha is None or pull_request.closed_at is None:
+            raise ValueError(
+                f"PR {pull_request.id} has close_action='{close_action}' but is missing "
+                "head_commit_sha and/or closed_at. Only abandoned PRs are allowed to have "
+                "null lifecycle fields."
+            )
+
+    head_commit_sha = pull_request.head_commit_sha or "unknown"
+    effective_closed_at = pull_request.closed_at or dj_timezone.now()
 
     # A bare instance carries the model's zero/false field defaults, so a PR with
     # no stored metrics row emits zeroed counters rather than erroring.
     metrics = (
         PullRequestMetrics.objects.filter(pull_request=pull_request).first() or PullRequestMetrics()
     )
+    # Read once so requested_count and results (both unpersisted) come from the
+    # same activity snapshot rather than two separate reads.
+    review = review_activity(pull_request)
 
     return PrCloseMetricsEvent(
         organization_id=pull_request.organization_id,
@@ -442,7 +523,7 @@ def build_pr_metrics_row(
         group_ids=group_ids,
         close_action=close_action,
         head_commit_sha=head_commit_sha,
-        closed_at=closed_at.isoformat(),
+        closed_at=effective_closed_at.isoformat(),
         merge_commit_sha=pull_request.merge_commit_sha,
         merge_commit_id=_merge_commit_id(pull_request),
         merged_at=iso_or_none(pull_request.merged_at),
@@ -459,6 +540,8 @@ def build_pr_metrics_row(
         reviews_count=metrics.reviews_count,
         reviews_bot_count=metrics.reviews_bot_count,
         reviews_human_count=metrics.reviews_human_count,
+        reviews_requested_count=review.requested_count,
+        review_results=json.dumps(review.results),
         pushes_bot_count=metrics.pushes_bot_count,
         pushes_human_count=metrics.pushes_human_count,
         opened_by_bot=metrics.opened_by_bot,
@@ -649,6 +732,11 @@ def emit_pr_metrics_row(
     only on that judge path; ``diagnosis_labels`` is mostly judge-sourced but the
     deterministic ``CLOSED_UNMERGED`` path can also pass one in (see
     ``ci_failing_at_close``).
+
+    ``close_action`` is derived from the PR's lifecycle fields:
+    - ``merged_at`` set → ``merged``
+    - ``closed_at`` set, not merged → ``closed``
+    - both null → ``abandoned`` (still-open stale PR detected by cron)
     """
     # Fetch the attribution snapshot once: it both gates emission (≥1 valid row)
     # and rides along on the emitted row, so the two can't diverge.
@@ -665,9 +753,13 @@ def emit_pr_metrics_row(
         **_activity_derived_metrics(pull_request)
     )
 
-    close_action: CloseAction = (
-        CLOSE_ACTION_MERGED if pull_request.merged_at is not None else CLOSE_ACTION_CLOSED
-    )
+    if pull_request.merged_at is not None:
+        close_action: CloseAction = CLOSE_ACTION_MERGED
+    elif pull_request.closed_at is not None:
+        close_action = CLOSE_ACTION_CLOSED
+    else:
+        close_action = CLOSE_ACTION_ABANDONED
+
     row = build_pr_metrics_row(
         pull_request=pull_request,
         close_action=close_action,
@@ -687,7 +779,7 @@ def emit_pr_metrics_row(
             "close_action": close_action,
         },
     )
-    # Imported here to avoid a circular import: tasks → judge → emit.
+    # Imported here to avoid a circular import: tasks → emit.
     from sentry.pr_metrics.tasks import cleanup_pr_activity_task
 
     cleanup_pr_activity_task.delay(pull_request_id=pull_request.id)

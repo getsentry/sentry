@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryState} from 'nuqs';
+import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {ActorAvatar, ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
@@ -9,6 +9,7 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -24,7 +25,6 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
-import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {ProgressState, type Group} from 'sentry/types/group';
@@ -37,12 +37,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
+import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 
 const TITLE = t('Inbox');
 const ISSUE_LIMIT = 5;
 const SELECTED_ISSUE_QUERY_PARAM = 'preview';
+const ASSIGNMENT_QUERY_PARAM = 'assignment';
+const ASSIGNMENT_FILTERS = ['me', 'my_teams'] as const;
+type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
 
 interface InboxSectionConfig {
   defaultExpanded: boolean;
@@ -100,6 +104,12 @@ export default function InboxPage() {
 
 function InboxContent() {
   const {selection, isReady} = usePageFilters();
+  const [assignmentFilter, setAssignmentFilter] = useQueryState(
+    ASSIGNMENT_QUERY_PARAM,
+    parseAsStringLiteral(ASSIGNMENT_FILTERS)
+      .withDefault('me')
+      .withOptions({history: 'replace'})
+  );
   const [selectedIssueId, setSelectedIssueId] = useQueryState(
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
@@ -122,26 +132,51 @@ function InboxContent() {
           'screen:xs': 'minmax(0, 1fr)',
           'screen:md': 'minmax(320px, 2fr) minmax(0, 3fr)',
         }}
-        gap="lg"
       >
         <Stack
           as="section"
           aria-label={t('Issue inbox')}
           minHeight={0}
-          overflowY="auto"
           display={selectedIssueId ? {'screen:xs': 'none', 'screen:md': 'flex'} : 'flex'}
           background="primary"
           borderRight="muted"
         >
-          {SECTIONS.map(section => (
-            <InboxSection
-              key={section.key}
-              section={section}
-              selection={selection}
-              isReady={isReady}
-              selectedIssueId={selectedIssueId}
-            />
-          ))}
+          <Flex
+            as="header"
+            align="center"
+            justify="between"
+            padding="md lg"
+            background="secondary"
+            borderBottom="muted"
+            flexShrink={0}
+          >
+            <Heading as="h2" size="md">
+              {t('Issues')}
+            </Heading>
+            <SegmentedControl
+              aria-label={t('Issue assignee')}
+              size="xs"
+              value={assignmentFilter}
+              onChange={setAssignmentFilter}
+            >
+              <SegmentedControl.Item key="me">{t('Me')}</SegmentedControl.Item>
+              <SegmentedControl.Item key="my_teams">
+                {t('My Teams')}
+              </SegmentedControl.Item>
+            </SegmentedControl>
+          </Flex>
+          <Stack flex={1} minHeight={0} overflowY="auto">
+            {SECTIONS.map(section => (
+              <InboxSection
+                key={section.key}
+                section={section}
+                assignmentFilter={assignmentFilter}
+                selection={selection}
+                isReady={isReady}
+                selectedIssueId={selectedIssueId}
+              />
+            ))}
+          </Stack>
         </Stack>
         <Stack
           as="aside"
@@ -174,13 +209,20 @@ function InboxContent() {
 }
 
 interface InboxSectionProps {
+  assignmentFilter: AssignmentFilter;
   isReady: boolean;
   section: InboxSectionConfig;
   selectedIssueId: string | null;
   selection: ReturnType<typeof usePageFilters>['selection'];
 }
 
-function InboxSection({isReady, section, selection, selectedIssueId}: InboxSectionProps) {
+function InboxSection({
+  assignmentFilter,
+  isReady,
+  section,
+  selection,
+  selectedIssueId,
+}: InboxSectionProps) {
   const organization = useOrganization();
   const {start, end, period, utc} = selection.datetime;
   const queryResult = useInfiniteQuery({
@@ -189,7 +231,7 @@ function InboxSection({isReady, section, selection, selectedIssueId}: InboxSecti
       query: {
         project: selection.projects,
         environment: selection.environments,
-        query: section.query,
+        query: `${section.query} assigned:${assignmentFilter}`,
         sort: IssueSortOptions.PROGRESS,
         limit: ISSUE_LIMIT,
         expand: ['owners', 'derivedData'],
@@ -220,7 +262,7 @@ function InboxSection({isReady, section, selection, selectedIssueId}: InboxSecti
           <Disclosure.Title trailingItems={<Badge variant="muted">{count}</Badge>}>
             <Flex align="center" gap="sm">
               {getProgressIcon(section.progress)}
-              <Heading as="h2" size="md">
+              <Heading as="h3" size="md">
                 {section.label}
               </Heading>
             </Flex>
@@ -319,7 +361,7 @@ function InboxIssueCard({
           )}
         </Flex>
         <Stack minWidth={0} gap="xs">
-          <Heading as="h3" size="md" ellipsis>
+          <Heading as="h4" size="md" ellipsis>
             {title}
           </Heading>
           <EventMessage level={group.level} message={message} type={group.type} />
@@ -331,23 +373,7 @@ function InboxIssueCard({
           </Flex>
         </Stack>
         <Stack align="end" justify="between" gap="sm">
-          <Flex align="center" gap="xs" wrap="nowrap">
-            <TimeSince
-              date={group.lastSeen}
-              suffix=""
-              unitStyle="extraShort"
-              tooltipPrefix={t('Last Seen')}
-              variant="muted"
-            />
-            <Text variant="muted">|</Text>
-            <TimeSince
-              date={group.firstSeen}
-              suffix=""
-              unitStyle="extraShort"
-              tooltipPrefix={t('First Seen')}
-              variant="muted"
-            />
-          </Flex>
+          <IssueSeenTimes group={group} />
           {group.assignedTo &&
             (group.assignedTo.type === 'user' ? (
               <UserAvatar

@@ -1,11 +1,11 @@
-from sentry.notifications.platform.templates.activity import (
-    ACTIVITY_TYPE_TO_SOURCE,
-)
 from sentry.notifications.platform.templates.activity.base import (
+    ACTIVITY_TYPE_TO_SOURCE,
     EXAMPLE_ALERT_URL,
     EXAMPLE_ISSUE_URL,
     EXAMPLE_PROJECT_URL,
     EXAMPLE_USER_SETTINGS_URL,
+    ActivityNotificationData,
+    build_activity_notification_data,
     build_footer,
     build_issue_link,
     create_activity_notification_example,
@@ -19,10 +19,12 @@ from sentry.notifications.platform.templates.activity.status_change.base import 
 )
 from sentry.notifications.platform.types import (
     LinkTextBlock,
+    NotificationSource,
     NotificationTextBlockType,
 )
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
+from sentry.utils.http import absolute_uri
 
 
 class ActivityAlertBaseTest(TestCase):
@@ -104,6 +106,27 @@ class ActivityAlertBaseTest(TestCase):
         sections = get_issue_description(data)
         blocks = sections[0].blocks
         assert not any(b.type == NotificationTextBlockType.CODE for b in blocks)
+
+    def test_build_activity_notification_data(self) -> None:
+        workflow = self.create_workflow(
+            name="my_workflow",
+            when_condition_group=self.create_data_condition_group(),
+        )
+
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SEER_RCA_STARTED.value,
+        )
+        data = build_activity_notification_data(activity, workflow_id=workflow.id)
+
+        assert isinstance(data, ActivityNotificationData)
+        assert data.source == NotificationSource.ACTIVITY_SEER_RCA_STARTED
+        assert data.activity_type == ActivityType.SEER_RCA_STARTED.value
+        assert data.issue_short_id == self.group.qualified_short_id
+        assert absolute_uri(self.group.get_absolute_url()) in data.issue_url
+        assert data.issue_culprit == self.group.culprit
+        assert data.alert_url is not None
+        assert data.activity_data == activity.data
 
 
 class ActivitySeerAlertBaseTest(TestCase):

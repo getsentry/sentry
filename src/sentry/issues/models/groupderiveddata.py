@@ -25,7 +25,30 @@ EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 class GroupDerivedData(DefaultFieldsModel):
     """
     Materialized state derived from GroupActionLogEntry entries.
-    One row per group. The cursor tracks the last entry processed.
+    One row per group (enforced by ``unique=True`` on the FK).
+
+    Update safety
+    ~~~~~~~~~~~~~
+    The pipeline is deterministic: replaying the same log produces the same
+    state. However, the log is not strictly append-only — historical entries
+    may be inserted, which is a primary reason generations are triggered.
+
+    * **generated_at** — timestamp of when the generation that produced
+      this row's current state *started* processing. This is a CAS version:
+      incremental writes only succeed if ``generated_at`` hasn't changed
+      since the row was read, and generation promotes only succeed if their
+      ``generated_at`` is newer than the row's.  The start time (rather
+      than finish time) reflects the log state the generation observed.
+
+    * **cursor guard** — incremental writes only succeed if the writer's
+      ``(cursor_date, cursor_id)`` is at or ahead of the row's, preventing
+      cursor regression.
+
+    * **pipeline_hash** — stamped at row creation, incremental writes only
+      succeed if the pipeline version hasn't changed since the row was
+      read. A pipeline upgrade invalidates in-flight incremental work.
+
+    See ``processing.py`` for the full lifecycle.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -33,7 +56,10 @@ class GroupDerivedData(DefaultFieldsModel):
     group = FlexibleForeignKey("sentry.Group", unique=True)
 
     # Timestamp of when the generation that produced this state *started*
-    # processing. Defaults to row creation time.
+    # processing. The start time (not finish time) reflects the log state
+    # the generation observed. Used as a CAS version — incremental writes
+    # check equality, generation promotes require their timestamp to be
+    # newer. Defaults to row creation time.
     generated_at = models.DateTimeField(default=timezone.now, db_default=Now())
 
     cursor_date = models.DateTimeField(default=EPOCH)
@@ -64,6 +90,7 @@ class GroupDerivedData(DefaultFieldsModel):
         indexes = [
             models.Index(fields=["progress", "group"]),
             models.Index(fields=["last_progressed_at", "group"]),
+            models.Index(fields=["pipeline_hash", "group"]),
         ]
 
     __repr__ = sane_repr("group_id", "generated_at", "cursor_date", "cursor_id")

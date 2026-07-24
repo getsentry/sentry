@@ -6,6 +6,7 @@ from os.path import join
 from typing import Any
 from unittest import mock
 from unittest.mock import patch
+from uuid import UUID
 
 import msgpack
 import pytest
@@ -31,6 +32,7 @@ from sentry.profiles.task import (
     _set_frames_platform,
     _symbolicate_profile,
     determine_profile_type,
+    get_debug_file_id,
     process_profile_from_kafka,
     process_profile_task,
 )
@@ -536,6 +538,79 @@ def test_decode_signature(project, android_profile) -> None:
     assert frames[1]["signature"] == "(): boolean"
 
 
+def test_get_debug_file_id() -> None:
+    # android trace formats (legacy and android-trace chunks) carry a
+    # top-level build_id
+    assert (
+        get_debug_file_id(
+            {
+                "platform": "android",
+                "build_id": PROGUARD_UUID,
+                "profile": {"methods": []},
+            }
+        )
+        == UUID(PROGUARD_UUID).hex
+    )
+    assert (
+        get_debug_file_id({"platform": "android", "profile": {"methods": []}, "build_id": ""})
+        is None
+    )
+    assert (
+        get_debug_file_id(
+            {"platform": "android", "profile": {"methods": []}, "build_id": "not-a-uuid"}
+        )
+        is None
+    )
+
+    # sample v2 chunks reference the proguard mapping via debug_meta instead
+    sample_v2: dict[str, Any] = {
+        "version": "2",
+        "platform": "android",
+        "profile": {"frames": [], "stacks": [], "samples": []},
+        "debug_meta": {
+            "images": [
+                {"type": "jvm", "debug_id": "2bc44057-58ce-496b-a2fe-dd63254c921a"},
+                {"type": "proguard", "uuid": PROGUARD_UUID},
+            ]
+        },
+    }
+    assert get_debug_file_id(sample_v2) == UUID(PROGUARD_UUID).hex
+
+    # a top-level build_id is not part of the sample v2 schema and is ignored
+    assert (
+        get_debug_file_id(
+            {
+                "version": "2",
+                "platform": "android",
+                "profile": {"frames": [], "stacks": [], "samples": []},
+                "build_id": PROGUARD_UUID,
+            }
+        )
+        is None
+    )
+    assert (
+        get_debug_file_id(
+            {
+                "version": "2",
+                "platform": "android",
+                "profile": {"frames": [], "stacks": [], "samples": []},
+                "debug_meta": {"images": [{"type": "proguard"}]},
+            }
+        )
+        is None
+    )
+    assert (
+        get_debug_file_id(
+            {
+                "version": "2",
+                "platform": "android",
+                "profile": {"frames": [], "stacks": [], "samples": []},
+            }
+        )
+        is None
+    )
+
+
 def test_determine_profile_type() -> None:
     assert determine_profile_type({"version": "1"}) == EventType.PROFILE
     assert determine_profile_type({"version": "2"}) == EventType.PROFILE_CHUNK
@@ -907,7 +982,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
             "organization_id": self.project.organization_id,
             "project_id": self.project.id,
             "event_id": "a" * 32,
-            "build_id": PROGUARD_UUID,
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
             "client_sdk": {"name": "sentry.java.android", "version": "8.0.0"},
             "profile": {
                 "frames": [

@@ -96,8 +96,24 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 type DashboardHeadersProps = {organization: Organization};
 
 type ReplayListPageHeaderProps = {children?: React.ReactNode};
-type ReplayOnboardingCTAProps = {children: React.ReactNode; organization: Organization};
+type ReplayOnboardingCTAProps = {
+  children: React.ReactNode;
+  organization: Organization;
+};
 type ProductUnavailableCTAProps = {organization: Organization};
+
+/**
+ * Compatibility props for rendering the legacy access-category override inside a
+ * Scraps form. They remain optional for consumers backed by the legacy FormModel.
+ */
+export type SuperuserAccessCategoryProps = {
+  accessCategory?: string;
+  accessCategoryError?: string;
+  onAccessCategoryChange?: (value: string) => void;
+  onReasonChange?: (value: string) => void;
+  reason?: string;
+  reasonError?: string;
+};
 
 type ContinuousProfilingBillingRequirementBannerProps = {
   project: Project;
@@ -185,7 +201,9 @@ type ComponentOverrides = {
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:dashboards-limit-provider': () => React.ComponentType<DashboardLimitProviderProps>;
-  'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
+  'component:data-consent-banner': () => React.ComponentType<{
+    source: string;
+  }> | null;
   'component:data-consent-org-creation-checkbox': () => React.ComponentType | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType | null;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
@@ -214,7 +232,7 @@ type ComponentOverrides = {
   'component:replay-settings-alert': () => React.ComponentType | null;
   'component:scm-github-multi-org-install': () => React.ComponentType<ScmGithubMultiOrgInstallProps>;
   'component:seer-beta-closing-alert': () => React.ComponentType;
-  'component:superuser-access-category': React.ComponentType<any>;
+  'component:superuser-access-category': React.ComponentType<SuperuserAccessCategoryProps>;
   'component:superuser-warning': React.ComponentType<any>;
   'component:superuser-warning-excluded': SuperuserWarningExcluded;
 };
