@@ -5,7 +5,10 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {DETAILS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/settings';
+import {
+  DETAILS_DASHBOARD_DESCRIPTION,
+  DETAILS_DASHBOARD_TITLE,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
@@ -300,6 +303,7 @@ export const FRONTEND_ASSETS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
     ],
   },
   title: DETAILS_DASHBOARD_TITLE,
+  description: DETAILS_DASHBOARD_DESCRIPTION,
   widgets: [
     ASSET_DESCRIPTION_WIDGET,
     ...SECOND_ROW_WIDGETS,

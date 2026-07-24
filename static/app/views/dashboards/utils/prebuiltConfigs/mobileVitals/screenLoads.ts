@@ -10,7 +10,10 @@ import {
   TTFD_CONDITION,
   TTID_CONDITION,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
-import {SCREEN_LOADS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
+import {
+  SCREEN_LOADS_DASHBOARD_DESCRIPTION,
+  SCREEN_LOADS_DASHBOARD_TITLE,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const AVG_TTID_BIG_NUMBER_WIDGET: PrebuiltWidget = {
@@ -303,6 +306,7 @@ const THIRD_ROW_WIDGETS: PrebuiltWidget[] = [
 export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   title: SCREEN_LOADS_DASHBOARD_TITLE,
+  description: SCREEN_LOADS_DASHBOARD_DESCRIPTION,
   projects: [],
   widgets: [
     ...HEADER_ROW_WIDGETS,

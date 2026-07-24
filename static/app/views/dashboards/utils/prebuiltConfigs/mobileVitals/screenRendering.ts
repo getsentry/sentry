@@ -4,7 +4,10 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {PrebuiltWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {SCREEN_RENDERING_SPAN_OPERATIONS_CONDITION} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
-import {SCREEN_RENDERING_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
+import {
+  SCREEN_RENDERING_DASHBOARD_DESCRIPTION,
+  SCREEN_RENDERING_DASHBOARD_TITLE,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const SPAN_OPERATIONS_TABLE: PrebuiltWidget = {
@@ -55,6 +58,7 @@ const SPAN_OPERATIONS_TABLE: PrebuiltWidget = {
 export const MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   title: SCREEN_RENDERING_DASHBOARD_TITLE,
+  description: SCREEN_RENDERING_DASHBOARD_DESCRIPTION,
   projects: [],
   widgets: [SPAN_OPERATIONS_TABLE],
   filters: {

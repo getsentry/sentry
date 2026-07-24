@@ -2,6 +2,10 @@ import {t} from 'sentry/locale';
 
 export const DASHBOARD_TITLE = t('Frontend Overview');
 
+export const DASHBOARD_DESCRIPTION = t(
+  'Frontend transaction performance across page loads and navigations.'
+);
+
 export const FRONTEND_SDK_NAMES = [
   'dart',
   'dart-sentry-client',
