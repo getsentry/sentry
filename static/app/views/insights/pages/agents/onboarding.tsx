@@ -325,7 +325,6 @@ export function Onboarding() {
     },
     platformOptions: selectedPlatformOptions,
     docsLocation: DocsPageLocation.PROFILING_PAGE,
-    newOrg: false,
     urlPrefix,
     isSelfHosted,
   };

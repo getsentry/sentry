@@ -12,7 +12,8 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.models.detector_state import DetectorState
-from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorPriorityLevel
+from sentry.workflow_engine.processors import DetectorEvaluation
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class TestSourcemapDetectorHandler(TestCase):
@@ -72,7 +73,7 @@ class TestSourcemapDetectorHandler(TestCase):
 
     def handle_result(
         self, detector: Detector, data_packet: DataPacket[ProcessingErrorPacketValue]
-    ) -> DetectorEvaluationResult | None:
+    ) -> DetectorEvaluation | None:
         handler = SourcemapDetectorHandler(detector)
         evaluation = handler.evaluate(data_packet)
         if None not in evaluation:
@@ -98,8 +99,8 @@ class TestSourcemapDetectorHandler(TestCase):
         assert result.result.issue_title == "Source maps are misconfigured"
         assert result.result.evidence_data["error_types"] == ["js_invalid_source", "js_no_source"]
         assert result.result.evidence_data["sample_event_id"] == "test-event-123"
-        assert result.event_data is not None
-        assert result.event_data["platform"] == "javascript"
+        assert result.data["event_data"] is not None
+        assert result.data["event_data"]["platform"] == "javascript"
 
         state = DetectorState.objects.get(detector=detector)
         assert state.is_triggered is True

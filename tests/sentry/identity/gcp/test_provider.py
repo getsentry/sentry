@@ -15,13 +15,13 @@ from django.test import Client, RequestFactory
 import sentry.identity
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.identity.gcp.provider import (
-    GCP_MCP_URLS,
     GCPIdentityProvider,
     GCPOAuth2LoginView,
 )
 from sentry.identity.oauth2 import OAuth2CallbackView
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
+from sentry.integrations.gcp.utils import GCP_MCP_URLS
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import IdentityProvider
