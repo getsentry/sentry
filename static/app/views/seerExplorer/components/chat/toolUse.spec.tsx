@@ -135,6 +135,113 @@ describe('ToolUseBlock', () => {
     expect(screen.getByText('Propose a fix')).toBeInTheDocument();
   });
 
+  it('renders the links bus from a Code Mode execute (many links, one result)', () => {
+    // seer carries a result's deep-links on its structuredContent.links; a Code Mode execute can
+    // produce many, and each renders as a labeled link (code-mode-effects-registry).
+    const block = createBlock({
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+      },
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ran',
+          structuredContent: {
+            links: [
+              {kind: 'get_issue_details', params: {issue_id: '123'}},
+              {kind: 'get_trace_waterfall', params: {trace_id: 'abc'}},
+            ],
+          },
+        },
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+    expect(screen.getByText('View issue')).toBeInTheDocument();
+    expect(screen.getByText('View trace')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /View issue/})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/issues/123/')
+    );
+  });
+
+  it('does not double-render a classic link present in both channels', () => {
+    // A classic tool populates both the positional tool_links (row link) and structuredContent.links
+    // during migration; the bus entry that duplicates the row link is deduped, so it renders once.
+    const block = createBlock({
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'telemetry_live_search',
+          content: '{}',
+          structuredContent: {
+            links: [{kind: 'telemetry_live_search', params: {}}],
+          },
+        },
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+    // The row link renders (from the positional channel); no duplicate labeled link below.
+    expect(screen.getByText(/Queried spans/)).toBeInTheDocument();
+    expect(screen.queryByText('View issue')).not.toBeInTheDocument();
+  });
+
+  it('renders per-row channels in a mixed block (classic positional + Code Mode bus)', () => {
+    // One block, two tool calls: a classic tool renders via the positional tool_links row link,
+    // and a Code Mode execute renders its links from structuredContent — each row independent.
+    const block = createBlock({
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [
+          {id: 'call-1', function: 'telemetry_live_search', args: '{}'},
+          {id: 'call-2', function: 'sentry_api_execute', args: '{}'},
+        ],
+      },
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'telemetry_live_search',
+          content: '{}',
+        },
+        {
+          tool_call_id: 'call-2',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ran',
+          structuredContent: {
+            links: [{kind: 'get_issue_details', params: {issue_id: '123'}}],
+          },
+        },
+      ],
+      // Positional link for the classic call only; the execute has none.
+      tool_links: [{kind: 'telemetry_live_search', params: {}}, null],
+    });
+
+    const blocks = [block];
+    render(<BlockComponent block={block} blockIndex={0} blocks={blocks} />);
+
+    // Classic row renders via the positional channel.
+    expect(screen.getByText(/Queried spans/)).toBeInTheDocument();
+    // Code Mode row renders its link from the bus.
+    expect(screen.getByRole('link', {name: /View issue/})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/issues/123/')
+    );
+  });
+
+  it('falls back to the positional link when a result has no bus links', () => {
+    // No structuredContent on the result (older seer): the row renders from tool_links.
+    const block = createBlock(); // default: telemetry_live_search + positional tool_link, no bus
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+    expect(screen.getByRole('link', {name: /Queried spans/})).toBeInTheDocument();
+  });
+
   it('does not render action bar', () => {
     render(<BlockComponent block={createBlock()} blockIndex={0} runId={123} />);
     expect(
