@@ -734,6 +734,7 @@ class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
                     "url_name": "sentry-js-sdk-loader",
                     "kind": "cell_resolver",
                     "request_method": "GET",
+                    "destination_cell": "us",
                 },
             )
 
@@ -758,6 +759,7 @@ class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
                     "url_name": "sentry-js-sdk-loader",
                     "kind": "cell_resolver",
                     "request_method": "GET",
+                    "destination_cell": "us",
                 },
             )
 
@@ -782,6 +784,7 @@ class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
             assert (
                 "apigateway.proxy_request",
                 (
+                    ("destination_cell", "us"),
                     ("kind", "regionpin"),
                     ("request_method", "GET"),
                     ("url_name", "sentry-js-sdk-loader"),
@@ -790,6 +793,7 @@ class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
             assert (
                 "apigateway.proxy_request",
                 (
+                    ("destination_cell", "us"),
                     ("kind", "cell_resolver"),
                     ("request_method", "GET"),
                     ("url_name", "sentry-js-sdk-loader"),
@@ -815,6 +819,7 @@ class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
             assert (
                 "apigateway.proxy_request",
                 (
+                    ("destination_cell", "us"),
                     ("kind", "cell_resolver"),
                     ("request_method", "GET"),
                     ("url_name", "sentry-js-sdk-loader"),
@@ -823,6 +828,7 @@ class JavaScriptSdkLoaderProxyTest(ApiGatewayTestCase):
             assert (
                 "apigateway.proxy_request",
                 (
+                    ("destination_cell", "us"),
                     ("kind", "regionpin"),
                     ("request_method", "GET"),
                     ("url_name", "sentry-js-sdk-loader"),
