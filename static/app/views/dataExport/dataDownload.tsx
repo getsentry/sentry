@@ -80,7 +80,7 @@ export default function DataDownload() {
     dataExportId: string;
     orgId: string;
   }>();
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
 
   const {
     data: download,
@@ -319,7 +319,7 @@ export default function DataDownload() {
           }
         >
           {type === ExportQueryType.DISCOVER
-            ? getDiscoverDeprecation(organization)
+            ? organization && getDiscoverDeprecation(organization)
               ? t('Open in Explore')
               : t('Open in Discover')
             : t('Open in Explore')}
