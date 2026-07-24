@@ -305,17 +305,21 @@ function ReservedBudgetData({
 function seerAddOnStatus(
   addOn: AddOn | undefined,
   onTrial: boolean
-): {label: string; variant: 'success' | 'warning' | 'muted'} | null {
+): {active: boolean; label: string; variant: 'success' | 'warning' | 'muted'} | null {
   if (!addOn) {
     return null;
   }
   if (addOn.enabled) {
-    return {label: 'Enabled', variant: 'success'};
+    return {label: 'Enabled', variant: 'success', active: true};
   }
   if (onTrial) {
-    return {label: 'Trial', variant: 'warning'};
+    return {label: 'Trial', variant: 'warning', active: true};
   }
-  return {label: addOn.isAvailable ? 'Available' : 'Unavailable', variant: 'muted'};
+  return {
+    label: addOn.isAvailable ? 'Available' : 'Unavailable',
+    variant: 'muted',
+    active: false,
+  };
 }
 
 function SeerPlanSummary({customer}: {customer: Subscription}) {
@@ -335,8 +339,6 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
   const legacyBudget = customer.reservedBudgets?.find(
     budget => budget.apiName === ReservedBudgetCategoryType.SEER
   );
-  const showSeatData = !!seerAddOn?.enabled || onSeatTrial;
-  const showLegacyData = !!legacySeerAddOn?.enabled || onLegacyTrial;
 
   return (
     <div data-test-id="seer-plan-summary">
@@ -356,7 +358,7 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
             <DetailLabel title="Seat-based">
               <Tag variant={seatStatus.variant}>{seatStatus.label}</Tag>
             </DetailLabel>
-            {showSeatData && (
+            {seatStatus.active && (
               <Fragment>
                 <DetailLabel title="Reserved Seats">
                   {formatReservedWithUnits(seerUsers.reserved, DataCategory.SEER_USER)}
@@ -383,7 +385,7 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
             <DetailLabel title="Legacy (budget)">
               <Tag variant={legacyStatus.variant}>{legacyStatus.label}</Tag>
             </DetailLabel>
-            {showLegacyData &&
+            {legacyStatus.active &&
               (legacyBudget ? (
                 <Fragment>
                   <DetailLabel title="Reserved Budget">
