@@ -964,7 +964,6 @@ describe('CustomerOverview', () => {
         usage: 3,
         free: 1,
       });
-      // A lingering trial record must not downgrade a purchased add-on to Trial.
       subscription.productTrials = [makeTrial(DataCategory.SEER_USER)];
 
       render(
@@ -1098,8 +1097,6 @@ describe('CustomerOverview', () => {
     it('does not show budget figures for an unpurchased legacy add-on', () => {
       const organization = OrganizationFixture();
       const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
-      // The serializer surfaces a $0 budget entry for available-but-unpurchased
-      // reserved-budget categories; it must not render beside a non-active status.
       subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
 
       render(
@@ -1163,8 +1160,6 @@ describe('CustomerOverview', () => {
         organization,
         plan: 'am3_business',
       });
-      // Purchased legacy alongside a seat trial: both surface with their own
-      // status; there is no precedence that suppresses one for the other.
       subscription.productTrials = [makeTrial(DataCategory.SEER_USER)];
 
       render(

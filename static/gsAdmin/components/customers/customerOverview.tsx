@@ -302,11 +302,6 @@ function ReservedBudgetData({
   );
 }
 
-/**
- * The status of one Seer add-on, derived only from that add-on's own signals.
- * There is deliberately no cross-add-on resolution: each renders independently
- * so the display can't produce a contradictory combined verdict.
- */
 function seerAddOnStatus(
   addOn: AddOn | undefined,
   onTrial: boolean
@@ -323,11 +318,6 @@ function seerAddOnStatus(
   return {label: addOn.isAvailable ? 'Available' : 'Unavailable', variant: 'muted'};
 }
 
-/**
- * The same numbers otherwise appear only as anonymous rows across ReservedData
- * / ReservedBudgetsData; this surfaces each Seer add-on's status and figures in
- * one labeled place.
- */
 function SeerPlanSummary({customer}: {customer: Subscription}) {
   const seerAddOn = customer.addOns?.[AddOnCategory.SEER];
   const legacySeerAddOn = customer.addOns?.[AddOnCategory.LEGACY_SEER];
@@ -338,8 +328,6 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
   const seatStatus = seerAddOnStatus(seerAddOn, onSeatTrial);
   const legacyStatus = seerAddOnStatus(legacySeerAddOn, onLegacyTrial);
 
-  // A seat-based org can be active before any seat usage accrues, so a missing
-  // metric row is zero usage, not an error.
   const seerUsers = normalizeMetricHistory(
     DataCategory.SEER_USER,
     customer.categories?.[DataCategory.SEER_USER]
@@ -410,7 +398,6 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
                   </DetailLabel>
                 </Fragment>
               ) : legacySeerAddOn?.enabled ? (
-                // A paid legacy plan is backed by a reserved budget; a trial is not.
                 <DetailLabel title="Budget">
                   <Tag variant="danger">Enabled but no budget data found</Tag>
                 </DetailLabel>
