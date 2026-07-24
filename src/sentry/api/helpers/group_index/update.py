@@ -799,7 +799,6 @@ def prepare_response(
                             "group_index.groupactionlogentry.not_found",
                             extra={"group_id": group.id},
                         )
-                        return
 
                 else:
                     result["activity"] = serialize(

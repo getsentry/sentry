@@ -731,7 +731,7 @@ class UpdateGroupsTest(TestCase):
         assert [entry["type"] for entry in activity] == ["set_resolved", "first_seen"]
         assert activity[-1]["id"] == "0"
 
-    def test_resolve_in_next_release_activity_falls_back_without_action_log(self) -> None:
+    def test_resolve_in_next_release_no_activity_without_action_log(self) -> None:
         self.create_release(project=self.project, version="test@1.0.0.0")
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
@@ -749,8 +749,8 @@ class UpdateGroupsTest(TestCase):
         assert any(
             record.message == "group_index.groupactionlogentry.not_found" for record in logs.records
         )
-        activity = response.data["activity"]
-        assert activity[-1]["type"] == "first_seen"
+        assert response is not None
+        assert "activity" not in response.data
         assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 0
 
 
