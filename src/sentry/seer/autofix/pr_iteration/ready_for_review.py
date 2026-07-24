@@ -100,9 +100,17 @@ def mark_ready_for_review(ctx: GreenCheckSuiteContext) -> None:
                 _skip("already_marked", resolved.log_extra)
                 return
 
-            # Bootstrap already fetched the PR; skip the undraft API (and its
-            # internal GET) when the tip is already ready — still counts as
-            # quota if we call through.
+            # Bootstrap already fetched the PR. Skip the undraft API (and its
+            # internal GET) when there's nothing to do — still records the
+            # sticky marker so later green suites don't keep confirming SCM.
+            pr_data = ctx.pull_request["data"]
+            if pr_data["state"] != "open" or pr_data["merged"]:
+                record_ready_for_review_marker(
+                    resolved.seer_run, resolved.repo_name, head_sha=ctx.head_sha
+                )
+                _skip("pr_not_open", resolved.log_extra)
+                return
+
             raw_pr = ctx.pull_request["raw"]["data"] or {}
             if raw_pr.get("draft") is False:
                 record_ready_for_review_marker(

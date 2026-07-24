@@ -25,9 +25,15 @@ PR_NUMBER = 42
 GREEN_SWEEP = CheckRunsSweep(total=3, incomplete=0, failed=0)
 
 
-def _pull_request_result(*, head_sha: str = HEAD_SHA, draft: bool = True) -> dict:
+def _pull_request_result(
+    *,
+    head_sha: str = HEAD_SHA,
+    draft: bool = True,
+    state: str = "open",
+    merged: bool = False,
+) -> dict:
     return {
-        "data": {"state": "open", "merged": False, "head": {"sha": head_sha}},
+        "data": {"state": state, "merged": merged, "head": {"sha": head_sha}},
         "raw": {"headers": None, "data": {"draft": draft}},
         "type": "github",
         "meta": {},
@@ -253,6 +259,28 @@ class MarkReadyForReviewTest(TestCase):
             _mark_ready(_green_event())
 
         mock_actions.mark_pull_request_ready_for_review.assert_not_called()
+        marker = self._marker()
+        assert marker is not None
+        assert marker["head_sha"] == HEAD_SHA
+
+    @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    def test_skips_undraft_when_pr_not_open(
+        self,
+        mock_resolve: MagicMock,
+        _mock_scm: MagicMock,
+        mock_actions: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = self._resolved()
+        self.get_pr.return_value = _pull_request_result(state="closed", merged=True)
+
+        with self.feature(REVIEW_REQUEST_FLAG):
+            _mark_ready(_green_event())
+
+        mock_actions.mark_pull_request_ready_for_review.assert_not_called()
+        # Sticky marker so later green suites don't keep confirming + undrafting.
         marker = self._marker()
         assert marker is not None
         assert marker["head_sha"] == HEAD_SHA
