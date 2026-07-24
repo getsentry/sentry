@@ -11,6 +11,7 @@ import type {Project} from 'sentry/types/project';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 import type {
   RoutableModuleNames,
@@ -462,7 +463,7 @@ export function getTraceViewBreadcrumbs({
     case TraceViewSources.DISCOVER:
       return [
         {
-          label: t('Discover'),
+          label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
           to: getBreadCrumbTarget(
             makeDiscoverPathname({path: '/homepage/', organization}),
             location.query

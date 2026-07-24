@@ -151,10 +151,15 @@ class SeerOperatorTest(TestCase):
             )
 
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
-    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_agent", return_value=MOCK_RUN_ID)
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_agent")
     def test_slack_autofix_kickoff_creates_activity(
-        self, _mock_trigger_autofix, _mock_get_autofix_state
+        self, mock_trigger_autofix, _mock_get_autofix_state
     ):
+        mock_trigger_autofix.return_value = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=MOCK_RUN_ID,
+        )
+
         with capture_action_log() as action_log:
             self.operator.trigger_autofix(
                 group=self.group,

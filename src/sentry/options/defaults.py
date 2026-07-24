@@ -941,6 +941,14 @@ register(
     type=Int,
 )
 
+# Fraction of JSON (SnQL/MQL) snuba queries that request zstd response compression via Accept-Encoding.
+register(
+    "snuba.json-response-compression.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Refresh Bundle Indexes reported as used by symbolicator
 register(
@@ -3958,14 +3966,6 @@ register(
     "arroyo.producer.record_poll_metrics",
     type=Sequence,
     default=None,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# If True, FutureTrackingProducer will backpressure on produce futures
-register(
-    "arroyo.ftp.backpressure",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

@@ -321,7 +321,6 @@ export type Subscription = {
 
   isPartner: boolean;
   isPastDue: boolean;
-  isPerformancePlanTrial: boolean;
   isSelfServePartner: boolean;
   isSponsored: boolean;
   isSuspended: boolean;
