@@ -1532,6 +1532,20 @@ class MultiOrgEmissionDedupeTest(TestCase):
             assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is True
         assert mock_record.call_count == 1
 
+    @patch("sentry.analytics.record")
+    def test_emit_disabled_row_defers_rather_than_duplicating(self, mock_record: Any) -> None:
+        # The mirror of the above: the run's-org row that lost pr-metrics-emit after
+        # its cooldown was claimed must defer to the enabled sibling, not emit a
+        # duplicate alongside it.
+        with patch(
+            "sentry.pr_metrics.emit.features.has",
+            side_effect=lambda name, org, **kw: not (
+                name == "organizations:pr-metrics-emit" and org.id == self.organization.id
+            ),
+        ):
+            assert emit_pr_metrics_row(pull_request=self.pull_request) is False
+        assert mock_record.call_count == 0
+
 
 @cell_silo_test
 @with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])

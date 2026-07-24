@@ -514,10 +514,13 @@ def is_canonical_github_pr_row(pull_request: PullRequest) -> bool:
     siblings = PullRequest.objects.for_provider_pr(
         external_id=external_id, provider=provider, key=pull_request.key
     )
-    # Only rows that would actually emit can be canonical (see _emitting_rows), else
-    # a non-emitting shadow could win and suppress the sibling that would emit.
+    # Canonical is the winner among only the rows that would actually emit (see
+    # _emitting_rows); comparing its id to this row's — rather than short-circuiting
+    # on a count — means a row that can't emit (e.g. it lost the emit flag after the
+    # cooldown was claimed) defers instead of emitting a duplicate alongside the real
+    # one. Emit when nothing would qualify, so the PR is never dropped entirely.
     emitting = _emitting_rows(siblings)
-    if len(emitting) <= 1:
+    if not emitting:
         return True
     return _canonical_sibling(emitting).id == pull_request.id
 
