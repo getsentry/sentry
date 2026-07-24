@@ -1,5 +1,6 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {IssueCategory, IssueType, PriorityLevel} from 'sentry/types/group';
 import {
   deriveCardAction,
   IssuePrimaryAction,
@@ -14,12 +15,17 @@ import type {
 function makeRow(overrides: Partial<OverviewRow> = {}): OverviewRow {
   return {
     analysis: [],
+    assignedTo: null,
     eventCount: 1,
     id: '2',
+    issueCategory: IssueCategory.ERROR,
+    issueType: IssueType.ERROR,
     lastActivityAt: '2026-07-14T10:00:00Z',
     lastSeen: '2026-07-14T09:00:00Z',
     level: 'error',
-    project: {slug: 'proj'},
+    priority: PriorityLevel.MEDIUM,
+    priorityLockedAt: null,
+    project: {id: '2', slug: 'proj'},
     runStatus: null,
     shortId: 'PROJ-1',
     statePending: false,
@@ -59,8 +65,21 @@ describe('deriveCardAction', () => {
 });
 
 describe('IssuePrimaryAction', () => {
-  function renderAction(action: CardAction, row: OverviewRow) {
-    return render(<IssuePrimaryAction action={action} row={row} runUrl={runUrl} />);
+  function renderAction(
+    action: CardAction,
+    row: OverviewRow,
+    {inline = true}: {inline?: boolean} = {}
+  ) {
+    const onOpenRun = inline ? jest.fn() : undefined;
+    const result = render(
+      <IssuePrimaryAction
+        action={action}
+        row={row}
+        onOpenRun={onOpenRun}
+        runUrl={runUrl}
+      />
+    );
+    return {...result, onOpenRun};
   }
 
   it('renders a placeholder while the run state is pending', () => {
@@ -111,7 +130,7 @@ describe('IssuePrimaryAction', () => {
     {type: 'merged', label: 'Merged'},
     {type: 'code_changes_ready', label: 'Draft PR'},
     {type: 'solution_ready', label: 'Generate code'},
-    {type: 'needs_investigation', label: 'Approve Root Cause'},
+    {type: 'needs_investigation', label: 'Create Plan'},
   ] as Array<{label: string; type: Exclude<CardAction['type'], 'review_pr'>}>)(
     'renders the $label action for a completed $type card',
     ({type, label}) => {
@@ -121,15 +140,76 @@ describe('IssuePrimaryAction', () => {
     }
   );
 
-  it('falls back to the internal review link when a review_pr card has no PR url', () => {
-    renderAction(
+  it.each([
+    {type: 'code_changes_ready', label: 'Draft PR'},
+    {type: 'solution_ready', label: 'Generate code'},
+    {type: 'needs_investigation', label: 'Create Plan'},
+  ] as Array<{label: string; type: Exclude<CardAction['type'], 'review_pr'>}>)(
+    'opens the run drawer when the $label action is clicked',
+    async ({type, label}) => {
+      const {onOpenRun} = renderAction({type}, makeRow({runStatus: 'completed'}));
+
+      await userEvent.click(screen.getByRole('button', {name: label}));
+
+      expect(onOpenRun).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it('opens the run drawer when a review_pr card has no PR url', async () => {
+    const {onOpenRun} = renderAction(
       {type: 'review_pr', prUrl: undefined, prNumber: undefined},
       makeRow({runStatus: 'completed'})
     );
 
-    expect(screen.getByRole('button', {name: 'Review PR'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/issues/2/?seerDrawer=true'
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Review PR'}));
+
+    expect(onOpenRun).toHaveBeenCalledTimes(1);
   });
+
+  it.each([
+    {
+      action: {type: 'code_changes_ready'} as CardAction,
+      label: 'Draft PR',
+      row: makeRow({runStatus: 'completed'}),
+    },
+    {
+      action: {type: 'solution_ready'} as CardAction,
+      label: 'Generate code',
+      row: makeRow({runStatus: 'completed'}),
+    },
+    {
+      action: {type: 'needs_investigation'} as CardAction,
+      label: 'Create Plan',
+      row: makeRow({runStatus: 'completed'}),
+    },
+    {
+      action: {
+        type: 'review_pr',
+        prUrl: undefined,
+        prNumber: undefined,
+      } as CardAction,
+      label: 'Review PR',
+      row: makeRow({runStatus: 'completed'}),
+    },
+    {
+      action: {type: 'needs_investigation'} as CardAction,
+      label: 'Retry',
+      row: makeRow({runStatus: 'error'}),
+    },
+    {
+      action: {type: 'needs_investigation'} as CardAction,
+      label: 'Add context',
+      row: makeRow({runStatus: 'awaiting_user_input'}),
+    },
+  ])(
+    'links the $label action to the issue when inline opening is unavailable',
+    ({action, label, row}) => {
+      renderAction(action, row, {inline: false});
+
+      expect(screen.getByRole('button', {name: label})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/issues/2/?seerDrawer=true'
+      );
+    }
+  );
 });

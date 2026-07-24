@@ -8,10 +8,14 @@ from taskbroker_client.retry import Retry
 
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.preprod.integration_utils import get_commit_context_client
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
-from sentry.preprod.snapshots.utils import build_changes_map
+from sentry.preprod.snapshots.utils import (
+    SnapshotChangeCriteria,
+    evaluate_snapshot_changes_by_artifact_id,
+)
 from sentry.preprod.vcs.pr_comments.snapshot_templates import (
     format_missing_base_snapshot_pr_comment,
     format_snapshot_pr_comment,
@@ -22,6 +26,9 @@ from sentry.preprod.vcs.pr_comments.tasks import (
     lock_pr_comparisons_for_update,
     resolve_pr_comment_context,
     save_pr_comment_result,
+)
+from sentry.preprod.vcs.status_checks.snapshots.config import (
+    get_snapshot_approval_policy,
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
@@ -35,6 +42,15 @@ POST_ON_ADDED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_added"
 POST_ON_REMOVED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_removed"
 POST_ON_CHANGED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_changed"
 POST_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_renamed"
+
+
+def get_snapshot_pr_comment_reporting_criteria(project: Project) -> SnapshotChangeCriteria:
+    return SnapshotChangeCriteria(
+        added=project.get_option(POST_ON_ADDED_OPTION_KEY, default=False),
+        removed=project.get_option(POST_ON_REMOVED_OPTION_KEY, default=True),
+        changed=project.get_option(POST_ON_CHANGED_OPTION_KEY, default=True),
+        renamed=project.get_option(POST_ON_RENAMED_OPTION_KEY, default=False),
+    )
 
 
 @instrumented_task(
@@ -103,14 +119,14 @@ def create_preprod_snapshot_pr_comment_task(
             c.head_snapshot_metrics_id: c for c in comparisons_qs
         }
 
-        approvals_map: dict[int, PreprodComparisonApproval] = {}
+        approvals_by_artifact_id: dict[int, PreprodComparisonApproval] = {}
         approval_qs = PreprodComparisonApproval.objects.filter(
             preprod_artifact_id__in=artifact_ids,
             preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
         )
         for approval in approval_qs:
-            approvals_map[approval.preprod_artifact_id] = approval
+            approvals_by_artifact_id[approval.preprod_artifact_id] = approval
 
         base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(all_artifacts)
 
@@ -145,31 +161,36 @@ def create_preprod_snapshot_pr_comment_task(
                     all_artifacts, snapshot_metrics_map, project=artifact.project
                 )
         else:
-            post_on_added = artifact.project.get_option(POST_ON_ADDED_OPTION_KEY, default=False)
-            post_on_removed = artifact.project.get_option(POST_ON_REMOVED_OPTION_KEY, default=True)
-            post_on_changed = artifact.project.get_option(POST_ON_CHANGED_OPTION_KEY, default=True)
-            post_on_renamed = artifact.project.get_option(POST_ON_RENAMED_OPTION_KEY, default=False)
-            changes_map = build_changes_map(
+            reporting_criteria = get_snapshot_pr_comment_reporting_criteria(artifact.project)
+            reportable_changes_by_artifact_id = evaluate_snapshot_changes_by_artifact_id(
                 all_artifacts,
                 snapshot_metrics_map,
                 comparisons_map,
-                fail_on_added=post_on_added,
-                fail_on_removed=post_on_removed,
-                fail_on_changed=post_on_changed,
-                fail_on_renamed=post_on_renamed,
+                reporting_criteria,
+            )
+            approval_policy = get_snapshot_approval_policy(artifact.project)
+            approval_requirements_by_artifact_id = (
+                evaluate_snapshot_changes_by_artifact_id(
+                    all_artifacts,
+                    snapshot_metrics_map,
+                    comparisons_map,
+                    approval_policy.criteria,
+                )
+                if approval_policy.enabled
+                else {}
             )
 
-            has_changes = any(changes_map.values())
-            # Failed comparisons and errored images are absent from changes_map
-            # (which only tracks SUCCESS state with diffs), so check
-            # comparisons_map directly to avoid suppressing these reports.
+            has_reportable_changes = any(reportable_changes_by_artifact_id.values())
+            # Failed comparisons and errored images are absent from
+            # reportable_changes_by_artifact_id (which only tracks SUCCESS state with diffs), so
+            # check comparisons_map directly to avoid suppressing these reports.
             has_failures_or_errors = any(
                 c.state == PreprodSnapshotComparison.State.FAILED
                 or (c.state == PreprodSnapshotComparison.State.SUCCESS and c.images_errored > 0)
                 for c in comparisons_map.values()
             )
             # Suppress brand-new comments on uneventful runs to avoid PR noise.
-            if not (has_changes or has_failures_or_errors or existing_comment_id):
+            if not (has_reportable_changes or has_failures_or_errors or existing_comment_id):
                 logger.info(
                     "preprod.snapshot_pr_comments.create.skipped_no_diff",
                     extra={"preprod_artifact_id": artifact.id},
@@ -181,8 +202,9 @@ def create_preprod_snapshot_pr_comment_task(
                 snapshot_metrics_map,
                 comparisons_map,
                 base_artifact_map,
-                changes_map,
-                approvals_map=approvals_map,
+                reportable_changes_by_artifact_id,
+                approval_requirements_by_artifact_id=approval_requirements_by_artifact_id,
+                approvals_by_artifact_id=approvals_by_artifact_id,
                 project=artifact.project,
             )
 

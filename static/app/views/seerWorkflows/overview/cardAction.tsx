@@ -1,7 +1,7 @@
 import type {LocationDescriptor} from 'history';
 
 import {Tag} from '@sentry/scraps/badge';
-import {LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -64,7 +64,7 @@ const ACTION_META: Record<
   },
   needs_investigation: {
     Icon: IconSearch,
-    label: t('Approve Root Cause'),
+    label: t('Create Plan'),
     variant: 'secondary',
     description: t(
       'Seer stopped at a diagnosis. Review the root cause and approve it to continue.'
@@ -99,18 +99,26 @@ export function deriveCardAction(
 function ActionButton({
   actionKey,
   size,
+  onClick,
   to,
 }: {
   actionKey: ActionKey;
+  onClick: (() => void) | undefined;
   size: 'sm' | 'xs';
   to: LocationDescriptor;
 }) {
   const meta = ACTION_META[actionKey];
   return (
     <Tooltip title={meta.description} skipWrapper>
-      <LinkButton size={size} variant={meta.variant} icon={<meta.Icon />} to={to}>
-        {meta.label}
-      </LinkButton>
+      {onClick ? (
+        <Button size={size} variant={meta.variant} icon={<meta.Icon />} onClick={onClick}>
+          {meta.label}
+        </Button>
+      ) : (
+        <LinkButton size={size} variant={meta.variant} icon={<meta.Icon />} to={to}>
+          {meta.label}
+        </LinkButton>
+      )}
     </Tooltip>
   );
 }
@@ -127,17 +135,9 @@ function ReviewPrButton({
   const meta = ACTION_META.review_pr;
   return (
     <Tooltip title={meta.description} skipWrapper>
-      <LinkButton
-        size={size}
-        variant={meta.variant}
-        icon={<meta.Icon />}
-        href={prUrl}
-        external
-      >
+      <LinkButton size={size} variant={meta.variant} href={prUrl} external>
         {/* The PR number breaks up a section of otherwise-identical buttons;
-            the trailing IconOpen marks the jump out to the code host. The
-            button only auto-spaces its leading icon slot, so the trailing
-            icon needs its own flex gap. */}
+            the trailing IconOpen marks the jump out to the code host. */}
         <Flex as="span" gap="xs" align="center">
           {prNumber ? t('Review PR #%s', prNumber) : meta.label}
           <IconOpen size="xs" />
@@ -156,12 +156,14 @@ function ReviewPrButton({
 export function IssuePrimaryAction({
   action,
   row,
+  onOpenRun,
   runUrl,
   size = 'sm',
 }: {
   action: CardAction;
   row: OverviewRow;
   runUrl: LocationDescriptor;
+  onOpenRun?: () => void;
   size?: 'sm' | 'xs';
 }) {
   if (row.statePending) {
@@ -171,10 +173,19 @@ export function IssuePrimaryAction({
     return <Tag variant="info">{t('Running')}</Tag>;
   }
   if (row.runStatus === 'error') {
-    return <ActionButton actionKey="errored" size={size} to={runUrl} />;
+    return (
+      <ActionButton actionKey="errored" size={size} onClick={onOpenRun} to={runUrl} />
+    );
   }
   if (row.runStatus === 'awaiting_user_input') {
-    return <ActionButton actionKey="awaiting_input" size={size} to={runUrl} />;
+    return (
+      <ActionButton
+        actionKey="awaiting_input"
+        size={size}
+        onClick={onOpenRun}
+        to={runUrl}
+      />
+    );
   }
 
   switch (action.type) {
@@ -190,9 +201,16 @@ export function IssuePrimaryAction({
       return action.prUrl ? (
         <ReviewPrButton prUrl={action.prUrl} prNumber={action.prNumber} size={size} />
       ) : (
-        <ActionButton actionKey="review_pr" size={size} to={runUrl} />
+        <ActionButton actionKey="review_pr" size={size} onClick={onOpenRun} to={runUrl} />
       );
     default:
-      return <ActionButton actionKey={action.type} size={size} to={runUrl} />;
+      return (
+        <ActionButton
+          actionKey={action.type}
+          size={size}
+          onClick={onOpenRun}
+          to={runUrl}
+        />
+      );
   }
 }

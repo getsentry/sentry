@@ -76,11 +76,19 @@ function ConversationsOverviewPage() {
   const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
-      onSearch: (newQuery: string) => {
+      onSearch: (newQuery, {queryIsValid}) => {
+        // The conversations API can't express negation (and other invalid
+        // syntax), so don't apply a query the builder has flagged as invalid.
+        if (!queryIsValid) {
+          return;
+        }
         setSearchQuery(newQuery);
         unsetCursor();
       },
       searchSource: 'conversations',
+      // The conversations API cannot express negation given how it fetches
+      // conversations, so hide negation operators from the search suggestions.
+      disallowNegation: true,
       replaceRawSearchKeys: ['gen_ai.conversation.id', 'gen_ai.input.messages'],
       matchKeySuggestions: [
         {key: 'gen_ai.conversation.id', valuePattern: /^[0-9a-fA-F]{8,32}$/},

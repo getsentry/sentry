@@ -503,7 +503,7 @@ describe('Default Tier Checkout', () => {
       onDemandMaxSpend: 2000,
       supportsOnDemand: true,
       isFree: false,
-      isTrial: true, // isTrial is true for both subscription trials and plan trials
+      trialPlan: 'am3_business', // trialPlan is set for both subscription trials and plan trials
     });
     sub.categories = {
       ...sub.categories,
@@ -690,14 +690,14 @@ describe('Default Tier Checkout', () => {
 
   it('does not use trial volumes for trial subscriptions', async () => {
     /**
-     * Test for the trial checkout slider fix in AM3 tier. When subscription.isTrial is true,
-     * the checkout should use default volumes instead of trial reserved volumes.
+     * Test for the trial checkout slider fix in AM3 tier. When the subscription is on a
+     * trial plan, the checkout should use default volumes instead of trial reserved volumes.
      */
 
     const trialSub = SubscriptionFixture({
       organization,
       plan: 'am3_t',
-      isTrial: true, // This is true for both subscription trials and plan trials
+      trialPlan: 'am3_t', // trialPlan is set for both subscription trials and plan trials
       categories: {
         // These are high trial volumes that should NOT be used in checkout
         errors: MetricHistoryFixture({reserved: 750_000}), // High trial volume
