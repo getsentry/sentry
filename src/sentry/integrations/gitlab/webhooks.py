@@ -31,6 +31,7 @@ from sentry.integrations.utils.metrics import IntegrationWebhookEvent, Integrati
 from sentry.integrations.utils.scope import clear_organization_info
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
+from sentry.issues.action_log import ActionSource, action_context_scope, resolve_action_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
@@ -532,17 +533,6 @@ class MergeEventWebhook(GitlabWebhook):
         except IntegrityError:
             pass
 
-        debug_log(
-            logger,
-            organization,
-            "gitlab.merge_request.dispatching_processors",
-            {
-                "integration_id": integration.id,
-                "repo_id": repo.id,
-                "pr_number": number,
-                "processor_count": len(self.WEBHOOK_EVENT_PROCESSORS),
-            },
-        )
         self._handle(
             integration=integration,
             event=event,
@@ -604,16 +594,6 @@ class NoteEventWebhook(GitlabWebhook):
         # Keep repo metadata fresh (url and path_with_namespace).
         self.update_repo_data(repo, event)
 
-        debug_log(
-            logger,
-            organization,
-            "gitlab.note.dispatching_processors",
-            {
-                "integration_id": integration.id,
-                "repo_id": repo.id,
-                "processor_count": len(self.WEBHOOK_EVENT_PROCESSORS),
-            },
-        )
         self._handle(
             integration=integration,
             event=event,
@@ -713,7 +693,8 @@ class GitlabWebhookEndpoint(Endpoint):
         if request.method != "POST":
             return HttpResponse(status=405, reason="HTTP method not supported.")
 
-        return super().dispatch(request, *args, **kwargs)
+        with action_context_scope(ActionSource.GITLAB, resolve_action_actor(request)):
+            return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: HttpRequest) -> HttpResponse:
         clear_organization_info()

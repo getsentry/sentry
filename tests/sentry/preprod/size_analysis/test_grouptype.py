@@ -661,7 +661,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
 
         assert None in result
         occurrence = result[None].result
-        event_data = result[None].event_data
+        event_data = result[None].data["event_data"]
         assert isinstance(occurrence, IssueOccurrence)
         assert event_data is not None
 
@@ -730,7 +730,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
 
         assert None in result
         occurrence = result[None].result
-        event_data = result[None].event_data
+        event_data = result[None].data["event_data"]
         assert isinstance(occurrence, IssueOccurrence)
         assert event_data is not None
 
@@ -773,7 +773,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
         result = self._evaluate_with_metadata("install_size", metadata)
 
         assert None in result
-        event_data = result[None].event_data
+        event_data = result[None].data["event_data"]
         assert event_data is not None
 
         assert event_data["tags"]["head.preprod_artifact_id"] == str(head_artifact.id)
@@ -802,7 +802,7 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
 
         assert None in result
         occurrence = result[None].result
-        event_data = result[None].event_data
+        event_data = result[None].data["event_data"]
         assert isinstance(occurrence, IssueOccurrence)
         assert event_data is not None
 

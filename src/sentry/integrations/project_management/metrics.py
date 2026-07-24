@@ -25,6 +25,7 @@ class ProjectManagementActionType(StrEnum):
     SEARCH_ISSUES = "search_issues"
     SEARCH_USERS = "search_users"
     SEARCH_PROJECTS = "search_projects"
+    SEARCH_STATUSES = "search_statuses"
     SEARCH_FIELD_AUTOCOMPLETE = "search_field_autocomplete"
 
 

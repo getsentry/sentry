@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
-import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, type Responsive, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
@@ -31,37 +30,39 @@ import {
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 type Props = {
-  containerWidth: number | undefined;
   rootEventResults: TraceRootEventQueryResults;
   tree: TraceTree;
 };
 
-export function TraceContextVitals({rootEventResults, tree, containerWidth}: Props) {
+export function TraceContextVitals({rootEventResults, tree}: Props) {
   const {hasVitals} = useTraceContextSections({
     tree,
     logs: undefined,
     metrics: undefined,
   });
   const traceNode = tree.root.children[0];
-  const theme = useTheme();
+
+  const isWeb = tree.vital_types.has('web');
+  const vitalsToDisplay = isWeb ? TRACE_VIEW_WEB_VITALS : TRACE_VIEW_MOBILE_VITALS;
+  const totalCount = vitalsToDisplay.length;
+
+  // How many vitals fit inline before collapsing into "+N more", resolved
+  // against the container width. Web shows all from xl up; mobile ramps 2 → 3
+  // and stays at 3 — showing all 7 mobile vitals inline crowds/overflows the row.
+  const primaryCountByBreakpoint: Responsive<number> = isWeb
+    ? {zero: 2, xl: totalCount}
+    : {zero: 2, xl: 3};
+  const resolvedCount = useResponsivePropValue(primaryCountByBreakpoint);
+  const primaryVitalsCount =
+    typeof resolvedCount === 'number' ? resolvedCount : totalCount;
 
   // TODO Abdullah Khan: Ignoring loading/error states for now
   if (!hasVitals || !rootEventResults.data || !traceNode) {
     return null;
   }
 
-  const vitalsToDisplay = tree.vital_types.has('web')
-    ? TRACE_VIEW_WEB_VITALS
-    : TRACE_VIEW_MOBILE_VITALS;
-
   const collectedVitals = Array.from(tree.vitals.values()).flat();
 
-  const primaryVitalsCount = getPrimaryVitalsCount(
-    vitalsToDisplay,
-    tree.vital_types.has('web') ? 'web' : 'mobile',
-    containerWidth,
-    theme
-  );
   const [primaryVitals, secondaryVitals] = [
     vitalsToDisplay.slice(0, primaryVitalsCount),
     vitalsToDisplay.slice(primaryVitalsCount),
@@ -192,33 +193,6 @@ const SecondaryVitalsCountContainer = styled('div')`
   gap: ${p => p.theme.space.xs};
   text-align: left;
 `;
-
-function getPrimaryVitalsCount(
-  primaryVitals: WebVital[] | MobileVital[],
-  type: 'web' | 'mobile',
-  containerWidth: number | undefined,
-  theme: Theme
-) {
-  const totalCount = primaryVitals.length;
-
-  if (!containerWidth) {
-    return totalCount;
-  }
-
-  if (containerWidth > parseInt(theme.breakpoints['2xl'], 10)) {
-    return totalCount;
-  }
-
-  if (containerWidth > parseInt(theme.breakpoints.sm, 10)) {
-    if (type === 'web') {
-      return totalCount;
-    }
-
-    return 3;
-  }
-
-  return 2;
-}
 
 const getVitalInfo = (
   vitalKey: WebVital | MobileVital,

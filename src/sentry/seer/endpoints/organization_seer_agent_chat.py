@@ -98,6 +98,11 @@ class SeerAgentChatSerializer(serializers.Serializer):
         default=None,
         help_text="The UI page name where the request originated (e.g., route string).",
     )
+    override_bash_mode_enabled = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Override bash mode tools.",
+    )
     override_ce_enable = serializers.BooleanField(
         required=False,
         default=True,
@@ -251,6 +256,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         insert_index = validated_data.get("insert_index")
         on_page_context = validated_data.get("on_page_context")
         page_name = validated_data.get("page_name")
+        override_bash_mode_enabled = validated_data["override_bash_mode_enabled"]
         override_ce_enable = validated_data["override_ce_enable"]
         override_code_mode_enable = validated_data.get("override_code_mode_enable")
         ui_tools = (
@@ -276,6 +282,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             ) and features.has(
                 "organizations:seer-explorer-chat-coding", organization, actor=request.user
             )
+
             has_code_mode_feature = features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
             )
@@ -285,10 +292,12 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 enable_code_mode_tools = override_code_mode_enable
             else:
                 enable_code_mode_tools = "on"
+
             client = SeerAgentClient(
                 organization,
                 request.user,
                 is_interactive=True,
+                enable_bash_tools=override_bash_mode_enabled,
                 enable_coding=enable_coding,
                 enable_code_mode_tools=enable_code_mode_tools,
                 reasoning_effort="medium",

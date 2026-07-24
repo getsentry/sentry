@@ -15,6 +15,7 @@ export const LOGS_FIELDS_KEY = 'logsFields';
 export const LOGS_AGGREGATE_FN_KEY = 'logsAggregate'; // e.g., p99
 export const LOGS_AGGREGATE_PARAM_KEY = 'logsAggregateParam'; // e.g., message.parameters.0
 export const LOGS_GROUP_BY_KEY = 'logsGroupBy'; // e.g., message.template
+export const LOGS_ROW_ID_KEY = 'logsRowId'; // Deep-links to a log row to highlight + expand it.
 
 export interface PersistedLogsPageParams {
   fields: string[];

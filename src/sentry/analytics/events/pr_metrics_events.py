@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import field
 from typing import Literal
 
 from sentry import analytics
@@ -15,6 +16,14 @@ class PrCloseMetricsEvent(analytics.Event):
 
     organization_id: int
     repository_id: int
+    # Normalized SCM slug (e.g. "github", "gitlab"), read off Repository.provider
+    # at emit time. Null when the Repository row is gone or its provider is unset.
+    repository_provider: str | None = None
+    # Whether the repo was public at PR-open time. Sourced from the "opened"
+    # webhook payload's repository.private (Repository never persists visibility),
+    # so it's null for PRs opened before this field existed or with activity
+    # tracking off.
+    repository_is_public: bool | None = None
     pull_request_id: int
     # The PR number as stored on ``PullRequest.key`` (e.g. "5131" on GitHub).
     pr_key: str
@@ -60,6 +69,22 @@ class PrCloseMetricsEvent(analytics.Event):
     # Reviews split by the reviewer's account class; the two sum to reviews_count.
     reviews_bot_count: int = 0
     reviews_human_count: int = 0
+    # Net outstanding review requests at the terminal event (REVIEW_REQUESTED
+    # minus REVIEW_REQUEST_REMOVED, floored at 0). Distinct from reviews_count:
+    # this answers "was a review ever asked for", not "was one ever submitted",
+    # so a requested-but-unreviewed PR doesn't look identical to one nobody was
+    # ever asked to review.
+    reviews_requested_count: int = 0
+    # Every REVIEW_SUBMITTED tallied by its GitHub review state — JSON-encoded
+    # {"approved": int, "changes_requested": int, "commented": int}, all three
+    # keys always present (0 default) on an emitted row. A reviewer who submits
+    # twice counts twice, same as reviews_count, which the three values sum to.
+    # Activity-derived and unpersisted, like reviews_requested_count above (see
+    # emit.review_activity). GitHub-only: this pipeline doesn't track GitLab
+    # reviews, so every count is 0 for a GitLab-hosted PR — same as every other
+    # activity-derived counter when activity isn't tracked. "{}" is only the
+    # dataclass default, never an emitted value.
+    review_results: str = "{}"
     # Pushes (opened + synchronize events) split by the pusher's account class. A
     # push, not a commit: GitHub's synchronize payload carries no commit count, so
     # this counts push events, with a bot-app push attributed to the bot.
@@ -76,15 +101,27 @@ class PrCloseMetricsEvent(analytics.Event):
     # the active (is_valid=True) attributions, each {signal_type, source,
     # signal_details}, ordered by attribution priority (highest-confidence first).
     attributions: str = "[]"
+    # Distinct ``AutofixReferrer`` values (e.g. "slack", "night_shift") behind the
+    # Seer runs that produced this PR's attributions, resolved via ``SeerRun`` at
+    # emit time rather than stored on ``attributions`` itself — see
+    # ``resolve_autofix_referrers``. Empty when no attribution carries a
+    # resolvable Seer run id.
+    autofix_referrers: list[str] = field(default_factory=list)
     # The terminal verdict, one of ``PullRequestVerdict``: the deterministic
     # outcome (``merged_unchanged`` / ``closed_unmerged``) on the no-judge path, or
-    # the Seer judge's verdict on the judge path. Claimed before emit on both paths
-    # (the claim gates emission), so every emitted row carries a verdict — the
+    # the Seer judge's verdict on the judge path. Claimed before emit on both
+    # paths (the claim gates emission), so every emitted row carries a verdict — the
     # ``| None`` is only the column's unset default, not an expected emitted value.
+    # (The ``JUDGE_IN_PROGRESS`` reaper's indeterminate rows — no reliable local
+    # signal to settle from — release the claim without emitting at all, rather
+    # than emit a null-verdict row; see ``reap_stuck_judge_verdicts``.)
     verdict: str | None = None
     # Close-reason labels behind the verdict (e.g. out_of_scope_or_unwanted) — the
-    # "why", a vocabulary shared across judges, not specific to any one. Repeated
-    # free-string column; null off the judge path. BigQuery-only.
+    # "why", a vocabulary shared across judges, not specific to any one. Mostly
+    # judge-sourced, but Sentry's own deterministic CLOSED_UNMERGED path can also
+    # set "ci_failing_at_close" (see pr_metrics.emit.ci_failing_at_close) — so a
+    # non-null value doesn't by itself mean the row was judged. Repeated
+    # free-string column; null when nothing applies. BigQuery-only.
     diagnosis_labels: list[str] | None = None
 
     # --- Conversation judge (set only on a judged close/merge row) ---

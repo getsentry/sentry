@@ -108,8 +108,8 @@
     }
 
     .project-breakdown .graph .label {
-      font-size: 14px;
-      color: #848296;
+      font-size: 10px;
+      color: #000;
       text-align: center;
       padding-top: 10px;
     }
@@ -117,8 +117,8 @@
     .project-breakdown .summary thead th {
       font-size: 12px;
       text-transform: uppercase;
-      color: #2f2936;
-      font-weight: 500;
+      color: #80708F;
+      font-weight: 700;
     }
 
     .project-breakdown .summary tr {
@@ -134,6 +134,33 @@
 
     .project-breakdown .summary .numeric {
       text-align: center;
+    }
+
+    .issue-title {
+      display: block;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 2px;
+    }
+
+    .issue-message {
+      display: block;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+      max-height: 1.2em;
+      font-size: 14px;
+      color: #80708F;
+      line-height: 1.2;
+      margin-bottom: 2px;
+    }
+
+    .issue-count {
+      font-size: 16px;
     }
 
   </style>
@@ -182,7 +209,7 @@
         </h1>
       </td>
       <td class="align-right">
-        <strong>Weekly Update for {{ organization.name|sanitize_periods }}</strong><br />
+        <strong>Weekly Report for {{ organization.name|sanitize_periods }}</strong><br />
         {{ start }} &ndash; {{ end }}
       </td>
     </tr>
@@ -198,17 +225,15 @@
     <table class="project-breakdown-graph-deck"><tbody><tr>
 
     <td class="project-breakdown-graph-cell issues">
-    <h4 class="total-count-title">Total Project Issues</h4>
-    <h1 style="margin: 0;" class="total-count">
+    <h4 class="total-count-title" style="font-weight: bold;">Total Issues</h4>
+    <h1 style="margin: 0; font-weight: bold;" class="total-count">
       {{ trends.total_issue_count|small_count:1 }}
       {% if show_week_over_week_metric and trends.issue_pct_change %}
-      <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 12px; vertical-align: middle; background-color: #F2F0FA; color: #3A1873;">{{ trends.issue_pct_change }}</span>
+      <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 6px; vertical-align: middle; background-color: {{ trends.issue_pct_change.bg_color }}; color: {{ trends.issue_pct_change.text_color }};">{{ trends.issue_pct_change.arrow }}&nbsp;{{ trends.issue_pct_change.pct }}</span>
       {% endif %}
     </h1>
-    {% url 'sentry-organization-issue-list' organization.slug as issue_list %}
-    {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
-    <a href="{% org_url organization issue_list query=query %}"
-       style="font-size: 12px; margin-bottom: 16px; display: block;">View All Issues</a>
+    <a href="{{ view_all_issues_url }}"
+       style="font-size: 12px; margin-bottom: 16px; display: block; font-weight: bold;">View All Issues</a>
 
     <table class="graph">
       <tr>
@@ -231,7 +256,7 @@
       <tr>
         {% for timestamp, project_values in trends.series %}
           <td class="label" style="width: {% widthratio 1 trends.series|length 100 %}%">
-            {{ timestamp|date:"D" }}
+            {{ timestamp|day_initial }}
           </td>
         {% endfor %}
       </tr>
@@ -239,15 +264,15 @@
     </td>
 
     <td class="project-breakdown-graph-cell errors">
-    <h4 class="total-count-title">Total Project Errors</h4>
-    <h1 style="margin: 0;" class="total-count">
+    <h4 class="total-count-title" style="font-weight: bold;">Total Errors</h4>
+    <h1 style="margin: 0; font-weight: bold;" class="total-count">
       {{ trends.total_error_count|small_count:1 }}
       {% if show_week_over_week_metric and trends.error_pct_change %}
-      <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 12px; vertical-align: middle; background-color: #F2F0FA; color: #3A1873;">{{ trends.error_pct_change }}</span>
+      <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 6px; vertical-align: middle; background-color: {{ trends.error_pct_change.bg_color }}; color: {{ trends.error_pct_change.text_color }};">{{ trends.error_pct_change.arrow }}&nbsp;{{ trends.error_pct_change.pct }}</span>
       {% endif %}
     </h1>
     <a href="{% org_url organization '/explore/discover/homepage/' query=errors_discover_query %}"
-       style="font-size: 12px; margin-bottom: 16px; display: block;">View All Errors</a>
+       style="font-size: 12px; margin-bottom: 16px; display: block; font-weight: bold;">View All Errors</a>
 
     <table class="graph">
       <tr>
@@ -270,7 +295,7 @@
       <tr>
         {% for timestamp, project_values in trends.series %}
           <td class="label" style="width: {% widthratio 1 trends.series|length 100 %}%">
-            {{ timestamp|date:"D" }}
+            {{ timestamp|day_initial }}
           </td>
         {% endfor %}
       </tr>
@@ -293,16 +318,16 @@
       <tbody>
       {% for project in trends.legend %}
         <tr>
-          <td>
+          <td style="vertical-align: middle;">
               {% if project.color %}<span style="background: {{ project.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
           </td>
-          <td>
-              {% if project.url %}<a href="{{ project.url }}">{% endif %}{{ project.slug }}{% if project.url %}</a>{% endif %}
+          <td style="font-weight: 700; vertical-align: middle;">
+              {% if project.url %}<a href="{{ project.url }}" style="font-weight: 700;">{% endif %}{{ project.slug }}{% if project.url %}</a>{% endif %}
           </td>
           <td class="numeric" style="text-align: right;">{{ project.accepted_error_count|small_count:1 }}</td>
-          <td class="numeric" style="text-align: right;">{{ project.new_substatus_count|small_count:1 }}</td>
-          <td class="numeric" style="text-align: right;">{{ project.escalating_substatus_count|small_count:1 }}</td>
-          <td class="numeric" style="text-align: right;">{{ project.regression_substatus_count|small_count:1 }}</td>
+          <td class="numeric" style="text-align: right;">{% if project.new_substatus_url %}<a href="{{ project.new_substatus_url }}" style="color: #4674ca;">{% endif %}{{ project.new_substatus_count|small_count:1 }}{% if project.new_substatus_url %}</a>{% endif %}</td>
+          <td class="numeric" style="text-align: right;">{% if project.escalating_substatus_url %}<a href="{{ project.escalating_substatus_url }}" style="color: #4674ca;">{% endif %}{{ project.escalating_substatus_count|small_count:1 }}{% if project.escalating_substatus_url %}</a>{% endif %}</td>
+          <td class="numeric" style="text-align: right;">{% if project.regression_substatus_url %}<a href="{{ project.regression_substatus_url }}" style="color: #4674ca;">{% endif %}{{ project.regression_substatus_count|small_count:1 }}{% if project.regression_substatus_url %}</a>{% endif %}</td>
         </tr>
       {% endfor %}
       </tbody>
@@ -344,6 +369,13 @@
     </table>
     {% endif %}
 
+    {% if notification_settings_link and user_project_count > 5 %}
+    <div style="padding: 16px 16px 12px; margin: 16px 0 16px; background-color: #f8f8f9; border-radius: 4px; font-size: 14px; color: #80708F;">
+      Want to choose the projects you see in the weekly report? <a href="{% absolute_uri notification_settings_link %}">Customize your project preferences here!</a>
+    </div>
+    {% endif %}
+
+
     {% if issue_summary.total_substatus_count > 0 %}
     <table class="issue-breakdown">
       <tr class="mobile-full-width">
@@ -383,7 +415,7 @@
   </div>
 
   {% if enhanced_privacy %}
-  <div style="padding: 16px; margin: 16px 0; background-color: #f5f3f7; border-radius: 4px; font-size: 14px;">
+  <div style="padding: 16px; margin: 16px 0; background-color: #f8f8f9; border-radius: 4px; font-size: 14px;">
     Details about specific issues and transactions are not shown in this report since enhanced privacy
     controls are enabled. For more details,
     {% url 'sentry-organization-issue-list' organization.slug as issue_list %}
@@ -392,47 +424,24 @@
   </div>
   {% endif %}
 
-  {% if key_errors|length > 0 and not enhanced_privacy %}
-  <div id="key-errors">
-    <h4>Issues with the most errors</h4>
-    {% for a in key_errors %}
+  {% if top_issues|length > 0 and not enhanced_privacy %}
+  <div id="top-issues">
+    <h4>Top Issues</h4>
+    {% for a in top_issues %}
     <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
-      <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
+      <div style="width: 10%;" class="issue-count">{{a.count|small_count:1}}</div>
       <div style="width: 65%; min-width: 0; overflow: hidden;">
         {% url 'sentry-organization-issue-detail' issue_id=a.group.id organization_slug=organization.slug as issue_detail %}
         {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
-        <a title="{{a.title}}" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-height: 21px; font-size: 17px; line-height: 1.2; margin-bottom: 2px;"
+        <a title="{{a.title}}" class="issue-title"
            href="{% org_url organization issue_detail query=query %}">{{a.title}}</a>
-        <div title="{{a.message}}" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-height: 17px; line-height: 1.2; font-size: 14px; color: #80708F; margin-bottom: 2px;">{{a.message}}</div>
+        <div title="{{a.message}}" class="issue-message">{{a.message}}</div>
         <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
       </div>
       {% if a.group_substatus and a.group_substatus_color %}
-      <span style="background-color: {{a.group_substatus_color}}; color: {{a.group_substatus_text_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center; line-height: 16px; white-space: nowrap; height: 20px;">{{a.group_substatus}}</span>
+      <span style="background-color: {{a.group_substatus_color}}; color: {{a.group_substatus_text_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 0 10px; margin-left: auto; text-align: center; line-height: 22px; white-space: nowrap; height: 22px;">{{a.group_substatus}}</span>
       {% else %}
-      <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center; line-height: 16px; white-space: nowrap; height: 20px;">{{a.status}}</span>
-      {% endif %}
-      </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-  {% if key_performance_issues|length > 0 and not enhanced_privacy %}
-  <div id="key-performance-issues">
-    <h4>Most frequent performance issues</h4>
-    {% for a in key_performance_issues %}
-    <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
-      <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
-      <div style="width: 65%; min-width: 0; overflow: hidden;">
-        {% url 'sentry-organization-issue-detail' issue_id=a.group.id organization_slug=organization.slug as issue_detail %}
-        {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
-        <a title="{{a.title}}" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-height: 21px; font-size: 17px; line-height: 1.2; margin-bottom: 2px;"
-           href="{% org_url organization issue_detail query=query %}">{{a.title}}</a>
-        <div title="{{a.message}}" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-height: 17px; line-height: 1.2; font-size: 14px; color: #80708F; margin-bottom: 2px;">{{a.message}}</div>
-        <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
-      </div>
-      {% if a.group_substatus and a.group_substatus_color %}
-      <span style="background-color: {{a.group_substatus_color}}; color: {{a.group_substatus_text_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center; line-height: 16px; white-space: nowrap; height: 20px;">{{a.group_substatus}}</span>
-      {% else %}
-      <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center; line-height: 16px; white-space: nowrap; height: 20px;">{{a.status}}</span>
+      <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 0 10px; margin-left: auto; text-align: center; line-height: 22px; white-space: nowrap; height: 22px;">{{a.status}}</span>
       {% endif %}
     </div>
     {% endfor %}
@@ -443,20 +452,65 @@
     <h4>Resolved last week</h4>
     {% for a in past_issues %}
     <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
-      <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
+      <div style="width: 10%;" class="issue-count">{{a.count|small_count:1}}</div>
       <div style="width: 65%; min-width: 0;">
         {% url 'sentry-organization-issue-detail' issue_id=a.group.id organization_slug=organization.slug as issue_detail %}
         {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
-        <a title="{{a.title}}" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: auto; max-width: 100%; font-size: 17px; line-height: 1.2; margin-bottom: 2px;"
+        <a title="{{a.title}}" class="issue-title"
            href="{% org_url organization issue_detail query=query %}">{{a.title}}</a>
-        <div title="{{a.message}}" style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: auto; max-width: 100%; max-height: 38px; line-height: 1.2; font-size: 14px; color: #80708F; margin-bottom: 2px;">{{a.message}}</div>
+        <div title="{{a.message}}" class="issue-message">{{a.message}}</div>
         <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
       </div>
-      <span style="background-color: #E3F7E3; color: #008900; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; text-align: center; line-height: 16px; white-space: nowrap; height: 20px;">Resolved</span>
+      <span style="background-color: #E3F7E3; color: #008900; border-radius: 8px; font-size: 12px; align-self: center; padding: 0 10px; margin-left: auto; text-align: center; line-height: 22px; white-space: nowrap; height: 22px;">Resolved</span>
     </div>
     {% endfor %}
   </div>
   {% endif %}
 
+  {% if total_spans_count and not enhanced_privacy %}
+  <div id="total-spans" style="margin-top: 36px; margin-bottom: 20px;">
+    <h4 class="total-count-title" style="font-weight: bold; margin-top: 0; margin-bottom: 0;">Total Spans</h4>
+    <h1 style="margin: 0; font-weight: bold;">
+      {{ total_spans_count|small_count:1 }}
+      {% if show_week_over_week_metric and spans_pct_change %}
+      <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 6px; vertical-align: middle; background-color: {{ spans_pct_change.bg_color }}; color: {{ spans_pct_change.text_color }};">{{ spans_pct_change.arrow }}&nbsp;{{ spans_pct_change.pct }}</span>
+      {% endif %}
+    </h1>
+    <a href="{% org_url organization '/explore/traces/' %}"
+       style="font-size: 12px; margin-bottom: 16px; display: block; font-weight: bold;">View All Spans</a>
+
+    {% if top_spans_table %}
+    <h4 style="margin-bottom: 0;">Top Spans</h4>
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="border-bottom: 1px solid #DEE7EB;">
+          <th style="font-size: 12px; text-transform: uppercase; color: #80708F; font-weight: 700; text-align: left; padding-top: 8px; padding-bottom: 8px;">Span Name</th>
+          <th style="font-size: 12px; text-transform: uppercase; color: #80708F; font-weight: 700; text-align: left; padding-top: 8px; padding-bottom: 8px;">Project</th>
+          <th style="font-size: 12px; text-transform: uppercase; color: #80708F; font-weight: 700; text-align: center; padding-top: 8px; padding-bottom: 8px;">P95</th>
+          <th style="font-size: 12px; text-transform: uppercase; color: #80708F; font-weight: 700; text-align: right; padding-top: 8px; padding-bottom: 8px;">Total<br>Duration</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for span in top_spans_table %}
+        <tr style="border-bottom: 1px solid #DEE7EB;">
+          <td style="font-size: 14px; font-weight: 700; vertical-align: middle; padding-top: 8px; padding-bottom: 8px; padding-right: 16px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ span.name }}"><a href="{{ span.url }}" style="font-weight: 700;">{{ span.name }}</a></td>
+          <td style="font-size: 14px; vertical-align: middle; padding-top: 8px; padding-bottom: 8px; padding-right: 16px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ span.project_slugs }}">{{ span.project_slugs }}</td>
+          <td style="font-size: 14px; text-align: center; padding-top: 8px; padding-bottom: 8px;">{{ span.p95|format_duration_ms }}</td>
+          <td style="font-size: 14px; text-align: right; padding-top: 8px; padding-bottom: 8px;">{{ span.sum|format_duration_ms }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+  {% endif %}
+
+
 </div>
+{% endblock %}
+
+{% block footer %}
+  <a href="{% absolute_uri %}" style="float:right">Home</a>
+
+  <a href="{% absolute_uri notification_settings_link %}">Notification Settings</a>
 {% endblock %}

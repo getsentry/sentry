@@ -18,20 +18,10 @@ import {
   NO_FLAG_CONTEXT_SECTION_PROPS,
   NO_FLAG_CONTEXT_WITH_FLAGS_SECTION_PROPS,
 } from 'sentry/components/events/featureFlags/testUtils';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
-// Needed to mock useVirtualizer lists.
-jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
-  x: 0,
-  y: 0,
-  width: 0,
-  height: 30,
-  left: 0,
-  top: 0,
-  right: 0,
-  bottom: 0,
-  toJSON: jest.fn(),
-}));
+mockElementSize({width: 0, height: 30});
 
 describe('EventFeatureFlagList', () => {
   beforeEach(() => {

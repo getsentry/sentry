@@ -34,18 +34,14 @@ interface RequiredChildren {
 function Main({children}: RequiredChildren) {
   return (
     <Layout.Main>
-      <Flex direction="column" gap="xl">
-        {children}
-      </Flex>
+      <Stack gap="xl">{children}</Stack>
     </Layout.Main>
   );
 }
 function Sidebar({children}: RequiredChildren) {
   return (
     <Layout.Side>
-      <Flex direction="column" gap="xl">
-        {children}
-      </Flex>
+      <Stack gap="xl">{children}</Stack>
     </Layout.Side>
   );
 }

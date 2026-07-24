@@ -1,7 +1,6 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -20,13 +19,11 @@ import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {ArchiveActions} from 'sentry/components/actions/archive';
 import {ResolveActions} from 'sentry/components/actions/resolve';
-import {renderArchiveReason} from 'sentry/components/archivedBox';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {ResolutionReason} from 'sentry/components/resolutionBox';
 import {
   IconCheckmark,
   IconClock,
@@ -57,14 +54,14 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
 import {SeerCommandPaletteActions} from 'sentry/views/issueDetails/actions/seerCommandPaletteActions';
 import {ShareIssueModal} from 'sentry/views/issueDetails/actions/shareModal';
+import {StatusBanner} from 'sentry/views/issueDetails/actions/statusBanner';
 import {SubscribeAction} from 'sentry/views/issueDetails/actions/subscribeAction';
 import {discardIssueMutationOptions} from 'sentry/views/issueDetails/discardIssueMutationOptions';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/header/assigneeSelector';
-import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 type UpdateData =
   | {isBookmarked: boolean; inbox?: boolean}
@@ -115,7 +112,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
-  const environments = useEnvironmentsFromUrl();
   const {mutate: discardIssue} = useMutation(discardIssueMutationOptions({navigate}));
 
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
@@ -136,8 +132,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const hasSemverReleaseFeature = hasSemverRelease;
 
   const isResolved = group.status === 'resolved';
-  const isAutoResolved =
-    group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
   const isIgnored = group.status === 'ignored';
   const hasDeleteAccess = organization.access.includes('event:admin');
 
@@ -244,11 +238,10 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           }
           onComplete?.();
           queryClient.invalidateQueries({
-            queryKey: groupApiOptions({
+            queryKey: groupQueryKey({
               organizationSlug: organization.slug,
               groupId: group.id,
-              environments,
-            }).queryKey,
+            }),
           });
         },
       }
@@ -434,7 +427,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 }
               />
             )}
-            {isResolved && resolveCap.enabled && !isAutoResolved && (
+            {isResolved && resolveCap.enabled && (
               <CMDKAction
                 display={{label: t('Unresolve'), icon: <IconCheckmark />}}
                 onAction={() =>
@@ -481,33 +474,17 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       <Flex align="center" gap="xs">
         {isResolved || isIgnored ? (
           <Flex align="center" gap="md">
-            <ResolvedWrapper>
-              <IconCheckmark size="md" />
-              <Flex direction="column">
-                {isResolved ? resolvedCopyCap || t('Resolved') : t('Archived')}
-                <ReasonBanner>
-                  {group.status === 'resolved' ? (
-                    <ResolutionReason
-                      statusDetails={group.statusDetails}
-                      activities={group.activity}
-                      project={project}
-                    />
-                  ) : null}
-                  {group.status === 'ignored'
-                    ? renderArchiveReason({
-                        substatus: group.substatus,
-                        statusDetails: group.statusDetails,
-                      })
-                    : null}
-                </ReasonBanner>
-              </Flex>
-            </ResolvedWrapper>
+            <StatusBanner
+              group={group}
+              project={project}
+              resolvedCopy={resolvedCopyCap}
+            />
 
             <Divider />
             {resolveCap.enabled && isResolved && (
               <Button
                 size="sm"
-                disabled={disabled || isAutoResolved}
+                disabled={disabled}
                 onClick={() =>
                   onUpdate({
                     status: GroupStatus.UNRESOLVED,
@@ -522,7 +499,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             {isIgnored && (
               <Button
                 size="sm"
-                disabled={disabled || isAutoResolved}
+                disabled={disabled}
                 onClick={() =>
                   onUpdate({
                     status: GroupStatus.UNRESOLVED,
@@ -546,9 +523,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 latestRelease={project.latestRelease}
                 hasSemverReleaseFeature={hasSemverReleaseFeature}
                 onUpdate={onUpdate}
-                projectSlug={project.slug}
-                isResolved={isResolved}
-                isAutoResolved={isAutoResolved}
+                project={project}
                 size="sm"
                 priority="primary"
               />
@@ -632,18 +607,3 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     </Fragment>
   );
 }
-
-const ResolvedWrapper = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.lg};
-  align-items: center;
-  color: ${p => p.theme.colors.green500};
-  font-weight: bold;
-  font-size: ${p => p.theme.font.size.lg};
-`;
-
-const ReasonBanner = styled('div')`
-  font-weight: normal;
-  color: ${p => p.theme.colors.green500};
-  font-size: ${p => p.theme.font.size.sm};
-`;

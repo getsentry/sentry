@@ -20,9 +20,9 @@ from sentry.workflow_engine.handlers.detector import (
 )
 from sentry.workflow_engine.handlers.detector.base import EventData
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
     DetectorPriorityLevel,
     DetectorSettings,
 )
@@ -47,7 +47,21 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
                 self, data_packet: DataPacket[dict[Never, Never]]
             ) -> GroupedDetectorEvaluationResult:
                 return GroupedDetectorEvaluationResult(
-                    result={None: DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH)},
+                    result={
+                        None: DetectorEvaluation(
+                            result=None,
+                            data=DetectorEvaluationData(
+                                group_key=None,
+                                trigger_group_evaluation=DataConditionGroupEvaluation(
+                                    result=True,
+                                    data={"condition_evaluations": [], "logic_type": "any"},
+                                ),
+                                event_data=None,
+                            ),
+                            triggered=True,
+                            priority=DetectorPriorityLevel.HIGH,
+                        )
+                    },
                     tainted=False,
                 )
 
@@ -59,7 +73,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
             def create_occurrence(
                 self,
-                evaluation_result: ProcessedDataConditionGroup,
+                evaluation_result: DataConditionGroupEvaluation,
                 data_packet: DataPacket[dict[Never, Never]],
                 priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, EventData]:

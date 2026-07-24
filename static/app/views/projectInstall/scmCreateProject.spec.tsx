@@ -4,11 +4,13 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from 'sentry/views/projectInstall/issueAlertOptions';
+import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
 import {ScmCreateProject} from './scmCreateProject';
 
@@ -98,6 +100,81 @@ describe('ScmCreateProject', () => {
     jest.clearAllMocks();
   });
 
+  function renderScmWithOriginQuery(query: Record<string, string> = {}) {
+    const routeAnalytics = {
+      previousUrl: '',
+      setDisableRouteAnalytics: jest.fn(),
+      setEventNames: jest.fn(),
+      setOrganization: jest.fn(),
+      setRouteAnalyticsParams: jest.fn(),
+    };
+
+    render(
+      <RouteAnalyticsContext value={routeAnalytics}>
+        <ScmCreateProject />
+      </RouteAnalyticsContext>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/projects/new/',
+            query,
+          },
+        },
+      }
+    );
+
+    return {routeAnalytics};
+  }
+
+  it('sets page-view origin to org_creation from the org-create seed param', () => {
+    const {routeAnalytics} = renderScmWithOriginQuery({
+      projectCreationOrigin: 'org_creation',
+    });
+
+    expect(routeAnalytics.setEventNames).toHaveBeenCalledWith(
+      'project_creation_page.viewed',
+      'Project Create: Creation page viewed'
+    );
+    expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+      variant: 'scm',
+      origin: 'org_creation',
+    });
+  });
+
+  it('keeps org_creation origin sticky after getting-started autofill return', () => {
+    window.sessionStorage.setItem('project-creation-origin:org-slug', 'org_creation');
+
+    const {routeAnalytics} = renderScmWithOriginQuery({
+      referrer: 'getting-started',
+      project: CREATED_PROJECT_ID,
+    });
+    expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+      variant: 'scm',
+      origin: 'org_creation',
+    });
+  });
+
+  it('defaults page-view origin to existing_org without a seed', () => {
+    const {routeAnalytics} = renderScmWithOriginQuery();
+
+    expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+      variant: 'scm',
+      origin: 'existing_org',
+    });
+  });
+
+  it('does not treat getting-started referrer alone as org creation', () => {
+    const {routeAnalytics} = renderScmWithOriginQuery({
+      referrer: 'getting-started',
+      project: CREATED_PROJECT_ID,
+    });
+
+    expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+      variant: 'scm',
+      origin: 'existing_org',
+    });
+  });
   it('shows all steps with the Create CTA disabled on a fresh visit', async () => {
     render(<ScmCreateProject />, {organization});
 
@@ -109,6 +186,19 @@ describe('ScmCreateProject', () => {
 
     // Nothing is filled in yet, so the primary action stays disabled.
     expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
+  });
+
+  it('shows a tooltip on the disabled Create CTA explaining what is missing', async () => {
+    render(<ScmCreateProject />, {organization});
+
+    const createButton = await screen.findByRole('button', {name: 'Create project'});
+    expect(createButton).toBeDisabled();
+
+    // Fresh wizard: platform and project name are both missing.
+    await userEvent.hover(createButton);
+    expect(
+      await screen.findByText('Please fill out all the required fields')
+    ).toBeInTheDocument();
   });
 
   it('drops a persisted wizard on a fresh visit (no return from getting-started)', async () => {
@@ -138,40 +228,6 @@ describe('ScmCreateProject', () => {
       await screen.findByRole('heading', {name: 'Project name'})
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-restored-name');
-  });
-
-  it('explains what is missing on the disabled Create CTA', async () => {
-    render(<ScmCreateProject />, {organization});
-
-    const createButton = await screen.findByRole('button', {name: 'Create project'});
-    expect(createButton).toBeDisabled();
-
-    // Fresh wizard: platform and project name are both missing.
-    await userEvent.hover(createButton);
-    expect(
-      await screen.findByText('Please fill out all the required fields')
-    ).toBeInTheDocument();
-  });
-
-  it('names the single missing field on the disabled Create CTA', async () => {
-    // All steps render at once now, so a plain restored session (platform set)
-    // is enough; no separate "revealed" state to seed.
-    persistWizardSession();
-
-    render(<ScmCreateProject />, {
-      organization,
-      initialRouterConfig: returningRouterConfig,
-    });
-
-    // Platform is restored, so the name defaults; clearing it leaves the name
-    // as the only missing field.
-    const nameInput = await screen.findByPlaceholderText('project-name');
-    await userEvent.clear(nameInput);
-
-    const createButton = screen.getByRole('button', {name: 'Create project'});
-    expect(createButton).toBeDisabled();
-    await userEvent.hover(createButton);
-    expect(await screen.findByText('Please provide a project name')).toBeInTheDocument();
   });
 
   it('restores the wizard when the return params arrive after mount', async () => {
@@ -237,11 +293,15 @@ describe('ScmCreateProject', () => {
     await waitFor(() => {
       expect(router.location.pathname).toContain('/python/getting-started/');
     });
+    expect(router.location.query.projectCreationVariant).toBe('scm');
   });
 
   it('forwards the selected products to getting-started as the product query', async () => {
     persistWizardSession({
-      selectedFeatures: ['performance-monitoring', 'session-replay'],
+      selectedFeatures: [
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.SESSION_REPLAY,
+      ],
     });
 
     MockApiClient.addMockResponse({
@@ -274,8 +334,57 @@ describe('ScmCreateProject', () => {
     });
     // The upfront product selection seeds the setup docs via the product query.
     expect(router.location.query.product).toEqual([
-      'performance-monitoring',
-      'session-replay',
+      ProductSolution.PERFORMANCE_MONITORING,
+      ProductSolution.SESSION_REPLAY,
+    ]);
+    expect(router.location.query.projectCreationVariant).toBe('scm');
+  });
+
+  it('forwards synced-back product selection to getting-started on the next project creation', async () => {
+    // Simulate a round-trip: getting-started already patched selectedFeatures in
+    // the session via useScmCreateProjectProductSync. On return, the wizard reads
+    // the updated selection from session and forwards it to getting-started again.
+    persistWizardSession({
+      selectedFeatures: [
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.SESSION_REPLAY,
+      ],
+      projectDetailsForm: {projectName: 'my-project', teamSlug: adminTeam.slug},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+      method: 'POST',
+      body: ProjectFixture({slug: 'python', name: 'python'}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [adminTeam],
+    });
+
+    const {router} = render(<ScmCreateProject />, {
+      organization,
+      initialRouterConfig: returningRouterConfig,
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(router.location.pathname).toContain('/python/getting-started/');
+    });
+    // The synced-back selection is forwarded through the product query, closing
+    // the round-trip.
+    expect(router.location.query.product).toEqual([
+      ProductSolution.PERFORMANCE_MONITORING,
+      ProductSolution.SESSION_REPLAY,
     ]);
   });
 

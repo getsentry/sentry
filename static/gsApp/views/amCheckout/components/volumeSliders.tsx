@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
@@ -135,7 +135,7 @@ export function VolumeSliders({
           return (
             <DataVolumeItem key={category} data-test-id={`${category}-volume-item`}>
               <CategoryContainer>
-                <Flex direction="column">
+                <Stack>
                   {showPerformanceUnits && renderPerformanceUnitDecoration()}
                   <Title htmlFor={sliderId}>
                     <div>{getPlanCategoryName({plan: activePlan, category})}</div>
@@ -158,7 +158,7 @@ export function VolumeSliders({
                       </div>
                     </Description>
                   )}
-                </Flex>
+                </Stack>
                 <div>
                   <SpaceBetweenGrid>
                     <VolumeAmount>

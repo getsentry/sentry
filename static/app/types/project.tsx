@@ -98,6 +98,7 @@ export interface DetailedProject extends ProjectSummary {
   digestsMaxDelay: number;
   digestsMinDelay: number;
   dynamicSamplingBiases: DynamicSamplingBias[] | null;
+  enableAutoReleaseCreation: boolean;
   fingerprintingRules: string;
   groupingConfig: string;
   groupingEnhancements: string;
@@ -130,6 +131,8 @@ export interface DetailedProject extends ProjectSummary {
   preprodDistributionPrCommentsEnabledByCustomer?: boolean;
   preprodSizeEnabledByCustomer?: boolean;
   preprodSizeEnabledQuery?: string | null;
+  preprodSizePrCommentsEnabled?: boolean;
+  preprodSizePrCommentsRules?: unknown[];
   preprodSizeStatusChecksEnabled?: boolean;
   preprodSizeStatusChecksRules?: unknown[];
   preprodSnapshotPrCommentsEnabled?: boolean;

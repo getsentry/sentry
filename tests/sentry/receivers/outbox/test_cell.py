@@ -3,6 +3,8 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
+from cryptography.fernet import Fernet
+from django.test import override_settings
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
@@ -12,6 +14,8 @@ from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
+
+TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
 
 class BackfillScmIntegrationConfigReceiverTest(TestCase):
@@ -144,6 +148,38 @@ class HandleSeerRunCreateTest(TestCase):
         run.refresh_from_db()
         assert run.seer_run_state_id == 99
         assert run.mirror_status == SeerRunMirrorStatus.LIVE
+
+    @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    def test_explorer_serializes_monitoring_providers_as_dicts(self, mock_request: Mock) -> None:
+        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 1}))
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(
+                provider="datadog",
+                external_id="dd-org-uuid",
+                name="Datadog",
+                metadata={
+                    "api_key": "org-api-key",
+                    "app_key": "org-app-key",
+                    "site": "datadoghq.com",
+                },
+            )
+            org_integration = integration.add_organization(self.organization.id)
+            assert org_integration is not None
+        run = self.create_seer_run(type=SeerRunType.EXPLORER)
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            handle_seer_run_create(
+                object_identifier=run.id,
+                payload=self._make_payload(),
+                shard_identifier=run.id,
+            )
+
+        body = mock_request.call_args.args[0]
+        providers = body["monitoring_providers"]
+        assert providers, "expected an org monitoring connection in the body"
+        assert all(isinstance(provider, dict) for provider in providers)
+        assert providers[0]["provider_key"] == "datadog"
 
     @patch("sentry.receivers.outbox.cell.make_search_agent_start_request")
     def test_happy_path_assisted_query(self, mock_request: Mock) -> None:

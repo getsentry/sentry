@@ -17,7 +17,6 @@ export enum DashboardFilter {
   SHARED = 'shared',
   EXCLUDE_PREBUILT = 'excludePrebuilt',
   ONLY_PREBUILT = 'onlyPrebuilt',
-  ALL = 'all',
   SHOW_HIDDEN = 'showHidden',
 }
 
@@ -183,7 +182,7 @@ export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {
   minH: number;
 };
 
-export type WidgetPreview = {
+type WidgetPreview = {
   displayType: DisplayType;
   layout: WidgetLayout | null;
 };
