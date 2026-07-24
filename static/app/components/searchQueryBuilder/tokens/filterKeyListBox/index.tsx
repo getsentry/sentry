@@ -557,27 +557,12 @@ const RecentFilterPill = styled('li')`
   height: 22px;
   font-weight: ${p => p.theme.font.weight.sans.regular};
   font-size: ${p => p.theme.font.size.md};
-  padding: 0 ${p => p.theme.space.lg} 0 ${p => p.theme.space.sm};
+  padding: 0 ${p => p.theme.space.sm};
   background-color: ${p => p.theme.tokens.background.primary};
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
-  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
+  border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
-
-  /* Fade out on right side to represent that this is a filter key only */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      to left,
-      ${p => p.theme.tokens.background.secondary} 0 2px,
-      transparent ${p => p.theme.space.xl} 100%
-    );
-  }
 `;
 
 const RecentFilterPillLabel = styled('div')`
