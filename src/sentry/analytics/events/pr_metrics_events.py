@@ -30,9 +30,7 @@ class PrCloseMetricsEvent(analytics.Event):
     # Group (issue) IDs this PR resolves, from the resolving GroupLink rows
     # (parsed from the PR title/message). Empty when the PR resolves nothing.
     group_ids: list[int]
-    close_action: Literal["closed", "merged"]
-    # Always present on a close/merge webhook — read fail-fast so a malformed
-    # payload errors loudly instead of emitting a silent null.
+    close_action: Literal["closed", "merged", "abandoned"]
     head_commit_sha: str
     closed_at: str
     # Null when Sentry never saw the PR open (late-installed integration, missed
