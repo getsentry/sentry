@@ -48,7 +48,7 @@ export function ProguardSection({data, projectSlug}: ProguardSectionProps) {
                 }}
                 aria-label={t('Open in Settings')}
                 to={{
-                  pathname: `/settings/${organization.slug}/projects/${projectSlug}/proguard/`,
+                  pathname: `/settings/${organization.slug}/projects/${projectSlug}/debug-symbols/`,
                   query: {query: uuid},
                 }}
               />

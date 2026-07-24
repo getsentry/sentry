@@ -29,7 +29,7 @@ describe('ProguardSection', () => {
     const link = screen.getByRole('button', {name: 'Open in Settings'});
     expect(link).toHaveAttribute(
       'href',
-      `/settings/${organization.slug}/projects/${project.slug}/proguard/?query=${uuid}`
+      `/settings/${organization.slug}/projects/${project.slug}/debug-symbols/?query=${uuid}`
     );
   });
 
