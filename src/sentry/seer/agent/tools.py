@@ -1498,6 +1498,11 @@ def _get_detector_context(
     detector_config: dict[str, Any] = dict(detector.config or {})
     detection_type = detector_config.get("detection_type")
     comparison_delta = detector_config.get("comparison_delta")
+    # Some migrated metric detectors persisted "static" with a comparison delta,
+    # although the backend evaluates them as percent alerts. Match the API's
+    # compatibility normalization until ISWF-2272 backfills those configs.
+    if detection_type == "static" and isinstance(comparison_delta, int) and comparison_delta:
+        detection_type = "percent"
     return DetectorContext(
         id=str(detector.id),
         name=detector.name,

@@ -2191,6 +2191,33 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
     @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_metric_issue_detector_context_normalizes_migrated_percent_config(
+        self, mock_tags, mock_ts
+    ):
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        detector, _ = self._create_metric_detector_chain(group)
+        detector.update(
+            config={
+                "detection_type": "static",
+                "comparison_delta": 3600,
+            }
+        )
+
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        detector_context = result["detector_context"]
+        assert detector_context["detection_type"] == "percent"
+        assert detector_context["comparison_delta_seconds"] == 3600
+
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
     def test_detector_context_open_periods_scoped_and_capped(self, mock_tags, mock_ts):
         """start/end scope the open-period list to overlapping periods; the list is
         capped at the most recent _DETECTOR_OPEN_PERIODS_LIMIT with a truncation flag."""
