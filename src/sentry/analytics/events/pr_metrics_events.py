@@ -16,6 +16,16 @@ class PrCloseMetricsEvent(analytics.Event):
 
     organization_id: int
     repository_id: int
+    # Opaque key identifying the provider-side PR, for deduping emitted rows.
+    # Emission already dedupes a shared multi-org installation's per-org rows to one
+    # canonical row, but only within a cell (Repository/PullRequest are cell-local),
+    # so a PR spanning cells still emits once per cell — the same PR yields the same
+    # key in every cell, letting a cross-cell consumer collapse those (and guarding
+    # against a duplicate slipping through in-cell). Treat as opaque: dedupe by
+    # equality only, never parse, so the identity composition can change in code
+    # without a schema change. "" is only the dataclass default; an emitted row
+    # always carries a real key (see emit._deduplication_key).
+    deduplication_key: str = ""
     # Normalized SCM slug (e.g. "github", "gitlab"), read off Repository.provider
     # at emit time. Null when the Repository row is gone or its provider is unset.
     repository_provider: str | None = None

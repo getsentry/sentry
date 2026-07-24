@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from enum import Enum
+from hashlib import sha1
 from typing import Any, NamedTuple, cast
 
 from django.db.models import Count, Q
@@ -322,6 +323,42 @@ def is_pr_tracked(pull_request: PullRequest) -> bool:
     return PullRequestAttribution.objects.filter(pull_request=pull_request, is_valid=True).exists()
 
 
+def _repo_external_identity(pull_request: PullRequest) -> tuple[str | None, str | None]:
+    """The PR repo's provider ``external_id`` (GitHub repo id) and normalized
+    provider slug. ``external_id`` is None when the repo row is gone or never had
+    one — the PR then can't be identified by its provider-side identity.
+    """
+    repo = (
+        Repository.objects.filter(id=pull_request.repository_id)
+        .values_list("external_id", "provider")
+        .first()
+    )
+    if repo is None:
+        return None, None
+    external_id, provider = repo
+    return external_id, normalize_scm_provider(provider)
+
+
+def _deduplication_key(
+    pull_request: PullRequest, external_id: str | None, provider: str | None
+) -> str:
+    """Opaque key identifying this row's provider-side PR, for deduping emitted rows.
+
+    The same provider PR hashes to the same key in every cell, so a cross-cell
+    consumer can collapse the one-row-per-cell duplicates the cell-local in-Sentry
+    dedupe can't reach. Opaque by contract: consumers dedupe by equality only and
+    must not parse it, so the identity composition here can change without a
+    pipeline/schema change. When the repo has no external id the PR can't be
+    identified globally (nor fanned out across orgs), so the key falls back to the
+    row's own globally-unique identity — it forms its own group instead of merging.
+    """
+    if external_id is not None:
+        identity = f"pr:{provider or ''}:{external_id}:{pull_request.key}"
+    else:
+        identity = f"row:{pull_request.organization_id}:{pull_request.id}"
+    return sha1(identity.encode()).hexdigest()
+
+
 def active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
     """The PR's valid attribution signals, highest-confidence first.
 
@@ -452,17 +489,6 @@ def _repo_is_public(pull_request: PullRequest) -> bool | None:
     return None if is_private is None else not is_private
 
 
-def _repo_provider(pull_request: PullRequest) -> str | None:
-    """Normalized SCM slug for the PR's repo (e.g. "github"), or ``None`` if the
-    ``Repository`` row is gone or its provider is unset."""
-    provider = (
-        Repository.objects.filter(id=pull_request.repository_id)
-        .values_list("provider", flat=True)
-        .first()
-    )
-    return normalize_scm_provider(provider)
-
-
 def build_pr_metrics_row(
     *,
     pull_request: PullRequest,
@@ -503,10 +529,14 @@ def build_pr_metrics_row(
     # same activity snapshot rather than two separate reads.
     review = review_activity(pull_request)
 
+    # One repo read serves both the provider slug and the dedup key's identity.
+    repo_external_id, repo_provider = _repo_external_identity(pull_request)
+
     return PrCloseMetricsEvent(
         organization_id=pull_request.organization_id,
         repository_id=pull_request.repository_id,
-        repository_provider=_repo_provider(pull_request),
+        deduplication_key=_deduplication_key(pull_request, repo_external_id, repo_provider),
+        repository_provider=repo_provider,
         repository_is_public=_repo_is_public(pull_request),
         pull_request_id=pull_request.id,
         pr_key=pull_request.key,

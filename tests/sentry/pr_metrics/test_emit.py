@@ -894,6 +894,8 @@ class PrMetricsEmissionTest(TestCase):
                 attributions=json.dumps([SENTRY_APP_ATTRIBUTION]),
                 review_results=json.dumps({"approved": 0, "changes_requested": 0, "commented": 0}),
             ),
+            # Opaque hash, asserted on its own in MultiOrgEmissionDedupeTest.
+            exclude_fields=["deduplication_key"],
         )
 
     @patch("sentry.analytics.record")
@@ -1281,3 +1283,52 @@ class PrMetricsEmissionTest(TestCase):
         result = emit_pr_metrics_row(pull_request=self.pull_request)
         assert result is False
         mock_cleanup.delay.assert_not_called()
+
+
+EXTERNAL_ID = "556677"
+
+
+@cell_silo_test
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+class DeduplicationKeyTest(TestCase):
+    """The same provider PR, fanned out to one row per org, must build the same
+    opaque deduplication_key so a cross-cell consumer can collapse them."""
+
+    def setUp(self) -> None:
+        self.pull_request = self._mergeable_pr(self._repo(self.project), self.organization)
+        sibling_org = self.create_organization()
+        self.sibling_pull_request = self._mergeable_pr(
+            self._repo(self.create_project(organization=sibling_org)), sibling_org
+        )
+
+    def _repo(self, project: Any) -> Any:
+        return self.create_repo(
+            project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id=EXTERNAL_ID,
+        )
+
+    def _mergeable_pr(self, repo: Any, organization: Any) -> Any:
+        pull_request = self.create_pull_request(
+            repository_id=repo.id, organization_id=organization.id, key="42"
+        )
+        pull_request.head_commit_sha = HEAD_SHA
+        pull_request.closed_at = CLOSED_AT
+        pull_request.save()
+        return pull_request
+
+    def test_deduplication_key_shared_across_sibling_rows(self) -> None:
+        # Build each sibling's row directly: the same provider PR must yield one
+        # identical, non-empty opaque key so a cross-cell consumer can collapse the
+        # one-row-per-cell duplicates.
+        key_a = build_pr_metrics_row(
+            pull_request=self.pull_request, close_action="merged", attributions=[], group_ids=[]
+        ).deduplication_key
+        key_b = build_pr_metrics_row(
+            pull_request=self.sibling_pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        ).deduplication_key
+        assert key_a == key_b != ""
