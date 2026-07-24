@@ -375,7 +375,6 @@ def run_night_shift_execution(
     ):
         logger.info("night_shift.no_seer_quota", extra=log_extra)
         _record_run_error(run, "No Seer quota available")
-        _complete_run(run)
         return None
 
     try:
@@ -389,7 +388,6 @@ def run_night_shift_execution(
             event="night_shift.failed_to_get_eligible_projects",
             extra=log_extra,
         )
-        _complete_run(run)
         return None
 
     sentry_sdk.metrics.distribution("night_shift.eligible_projects", len(eligible))
@@ -515,13 +513,24 @@ def _get_eligible_orgs_from_batch(
 
 
 def _complete_run(run: SeerNightShiftRun) -> None:
-    SeerNightShiftRun.objects.filter(id=run.id, date_completed__isnull=True).update(
-        date_completed=timezone.now()
-    )
+    using = router.db_for_write(SeerNightShiftRun)
+    with transaction.atomic(using=using):
+        locked_run = SeerNightShiftRun.objects.select_for_update().get(id=run.id)
+        if locked_run.date_completed is not None:
+            return
+
+        extras = dict(locked_run.extras or {})
+        extras.pop("error_message", None)
+        locked_run.update(extras=extras, date_completed=timezone.now())
 
 
 def _record_run_error(run: SeerNightShiftRun, message: str) -> None:
-    run.update(extras={**(run.extras or {}), "error_message": message})
+    using = router.db_for_write(SeerNightShiftRun)
+    with transaction.atomic(using=using):
+        locked_run = SeerNightShiftRun.objects.select_for_update().get(id=run.id)
+        if locked_run.date_completed is not None:
+            return
+        locked_run.update(extras={**(locked_run.extras or {}), "error_message": message})
 
 
 def _fail_run(
@@ -697,7 +706,7 @@ def _plan_and_dispatch_shards(
     except SeerPermissionError:
         logger.info("night_shift.no_seer_access", extra=log_extra)
         _record_run_error(run, "Organization does not have Seer access")
-        return True
+        return False
 
     shard_size = max(1, options.get("seer.night_shift.shard_size"))
     chunks = list(chunked(scored, shard_size))

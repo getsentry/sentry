@@ -691,20 +691,26 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         assert run.extras.get("error_message") is None
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
-    def test_eligible_projects_error_records_error_message(self) -> None:
+    def test_eligible_projects_error_resumes_same_schedule_run(self) -> None:
         org = self.create_organization()
         self.create_project(organization=org)
+        schedule_id = "2024-07-22T22:00"
 
-        with (
-            patch(
-                "sentry.tasks.seer.night_shift.cron._get_eligible_projects",
-                side_effect=RuntimeError("boom"),
-            ),
+        with patch(
+            "sentry.tasks.seer.night_shift.cron._get_eligible_projects",
+            side_effect=RuntimeError("boom"),
         ):
-            run_night_shift_for_org(org.id)
+            run_night_shift_for_org(org.id, schedule_id=schedule_id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
         assert run.extras["error_message"] == "Failed to get eligible projects"
+        assert run.date_completed is None
+
+        run_night_shift_for_org(org.id, schedule_id=schedule_id)
+
+        run.refresh_from_db()
+        assert run.date_completed is not None
+        assert run.extras.get("error_message") is None
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
     def test_filters_recently_skipped_groups(self) -> None:
@@ -730,25 +736,33 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         candidate_ids = [c["group_id"] for c in body["payload"]["candidates"]]
         assert candidate_ids == [other_group.id]
 
-    def test_skips_dispatch_when_no_seer_quota(self) -> None:
+    def test_no_seer_quota_resumes_same_schedule_run(self) -> None:
         org = self.create_organization()
-        project = self.create_project(organization=org)
-        self._make_eligible(project)
-
-        self._store_event_and_update_group(
-            project, "fixable", seer_fixability_score=0.9, times_seen=5
-        )
+        schedule_id = "2024-07-22T22:00"
 
         with patch(
             "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
             return_value=False,
         ):
-            run_night_shift_for_org(org.id)
+            run_night_shift_for_org(org.id, schedule_id=schedule_id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
         assert run.extras["error_message"] == "No Seer quota available"
+        assert run.date_completed is None
         assert not SeerRun.objects.filter(organization=org).exists()
-        assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
+
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
+                return_value=True,
+            ),
+            patch("sentry.tasks.seer.night_shift.cron._get_eligible_projects", return_value=[]),
+        ):
+            run_night_shift_for_org(org.id, schedule_id=schedule_id)
+
+        run.refresh_from_db()
+        assert run.date_completed is not None
+        assert run.extras.get("error_message") is None
 
     def test_max_candidates_defaults_to_global_option(self) -> None:
         org = self.create_organization()
@@ -1131,6 +1145,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
             run.refresh_from_db()
             assert run.date_completed is not None
+            assert run.extras.get("error_message") is None
             assert run.shards.filter(seer_run__isnull=True).count() == 0
             assert (
                 SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 2
