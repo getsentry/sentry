@@ -38,7 +38,6 @@ interface ApplySeerEquationResult {
  * and optionally supports non-equation replacements. Returns updated, encoded metric queries and the result of equation splicing
  * in case there was not enough space to fit all the Seer-generated aggregates/equations.
  */
-
 export function applySeerResultsToMetricQueries({
   metricQueries,
   interactedQueryParams,

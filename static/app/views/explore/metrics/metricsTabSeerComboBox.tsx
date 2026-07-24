@@ -56,6 +56,7 @@ import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {getSeerExploreQuery, getSeerSort} from 'sentry/views/explore/seerQuery';
+
 interface MetricsTabSeerComboBoxProps {
   traceMetric: TraceMetric;
 }
