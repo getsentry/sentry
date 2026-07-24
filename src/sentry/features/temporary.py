@@ -79,8 +79,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-details-widget", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Insights to Dashboards UI migration
     manager.add("organizations:insights-to-dashboards-ui-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable AI-powered dashboard editing via Seer
-    manager.add("organizations:dashboards-ai-generate-edit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables starred dashboards functionality
     manager.add("organizations:dashboards-starred", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables per-user "last visited" tracking and sorting for dashboards
