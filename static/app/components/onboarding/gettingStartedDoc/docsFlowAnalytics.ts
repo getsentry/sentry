@@ -42,6 +42,20 @@ export function docsFlowVariantParams(flow: DocsFlow | undefined): {
   }
 }
 
+/**
+ * Project context for shared setup-docs events. Unmarked surfaces keep the
+ * historical project-creation fallback, while onboarding events retain their
+ * existing payload shape.
+ */
+export function docsFlowProjectIdParams(
+  flow: DocsFlow | undefined,
+  projectId: string
+): {project_id?: string} {
+  return flow === 'onboarding' || flow === 'onboarding-scm'
+    ? {}
+    : {project_id: projectId};
+}
+
 export const DSN_COPIED_EVENT = {
   onboarding: 'onboarding.dsn-copied',
   'onboarding-scm': 'onboarding.scm_dsn_copied',

@@ -16,6 +16,12 @@ class PrCloseMetricsEvent(analytics.Event):
 
     organization_id: int
     repository_id: int
+    # Opaque key identifying the provider-side PR. A repo shared across orgs emits one
+    # scm.pr.closed per org, all with the same key, so a consumer can collapse the
+    # duplicates by grouping on it. Opaque by contract -- dedupe by equality only,
+    # never parse -- so the identity composition can change in code without a schema
+    # change. "" is only the dataclass default; an emitted row always carries a key.
+    deduplication_key: str = ""
     # Normalized SCM slug (e.g. "github", "gitlab"), read off Repository.provider
     # at emit time. Null when the Repository row is gone or its provider is unset.
     repository_provider: str | None = None
@@ -30,9 +36,7 @@ class PrCloseMetricsEvent(analytics.Event):
     # Group (issue) IDs this PR resolves, from the resolving GroupLink rows
     # (parsed from the PR title/message). Empty when the PR resolves nothing.
     group_ids: list[int]
-    close_action: Literal["closed", "merged"]
-    # Always present on a close/merge webhook — read fail-fast so a malformed
-    # payload errors loudly instead of emitting a silent null.
+    close_action: Literal["closed", "merged", "abandoned"]
     head_commit_sha: str
     closed_at: str
     # Null when Sentry never saw the PR open (late-installed integration, missed
@@ -99,7 +103,9 @@ class PrCloseMetricsEvent(analytics.Event):
     opened_and_closed_by_same_actor: bool | None = None
     # The point-in-time attribution snapshot at emit time: a JSON-encoded list of
     # the active (is_valid=True) attributions, each {signal_type, source,
-    # signal_details}, ordered by attribution priority (highest-confidence first).
+    # signal_details}. A PR can carry more than one; all are emitted equally, with
+    # no ranking between them — each is a definite attribution, not a probabilistic
+    # guess. List order carries no meaning and isn't guaranteed; don't rely on it.
     attributions: str = "[]"
     # Distinct ``AutofixReferrer`` values (e.g. "slack", "night_shift") behind the
     # Seer runs that produced this PR's attributions, resolved via ``SeerRun`` at
@@ -107,21 +113,13 @@ class PrCloseMetricsEvent(analytics.Event):
     # ``resolve_autofix_referrers``. Empty when no attribution carries a
     # resolvable Seer run id.
     autofix_referrers: list[str] = field(default_factory=list)
-    # The terminal verdict, one of ``PullRequestVerdict``: the deterministic
-    # outcome (``merged_unchanged`` / ``closed_unmerged``) on the no-judge path, or
-    # the Seer judge's verdict on the judge path. Claimed before emit on both
-    # paths (the claim gates emission), so every emitted row carries a verdict — the
-    # ``| None`` is only the column's unset default, not an expected emitted value.
-    # (The ``JUDGE_IN_PROGRESS`` reaper's indeterminate rows — no reliable local
-    # signal to settle from — release the claim without emitting at all, rather
-    # than emit a null-verdict row; see ``reap_stuck_judge_verdicts``.)
+    # The deterministic outcome (``merged_unchanged`` / ``closed_unmerged``) on
+    # the no-judge path, or the Seer judge's verdict on the judge path.
+    # This differs slightly from PullRequestMetrics.verdicts because some values
+    # there include internal states that are not considered outcomes.
     verdict: str | None = None
-    # Close-reason labels behind the verdict (e.g. out_of_scope_or_unwanted) — the
-    # "why", a vocabulary shared across judges, not specific to any one. Mostly
-    # judge-sourced, but Sentry's own deterministic CLOSED_UNMERGED path can also
-    # set "ci_failing_at_close" (see pr_metrics.emit.ci_failing_at_close) — so a
-    # non-null value doesn't by itself mean the row was judged. Repeated
-    # free-string column; null when nothing applies. BigQuery-only.
+    # Relevant datapoint for this PR, mostly related to the conversation and mostly
+    # derived by the judge. Examples include "superseded", "ci_failing_at_close", etc.
     diagnosis_labels: list[str] | None = None
 
     # --- Conversation judge (set only on a judged close/merge row) ---

@@ -585,6 +585,7 @@ class CreateIssueAction(GroupAction):
 class SetResolvedInReleaseAction(GroupAction):
     user_visible = True
     version: Optional[str] = None
+    current_release_version: Optional[str] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:

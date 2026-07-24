@@ -205,6 +205,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
                 "html_url": "https://x/500",
                 "body": "overall summary",
                 "state": "changes_requested",
+                "author": {"id": "999", "username": "reviewer"},
             }
         )
         # Default the author to a repo collaborator with write access; tests that
@@ -402,9 +403,34 @@ class TriggerPrIterationFromReviewTest(TestCase):
         assert source.body == "overall summary"
         assert source.review_id == 500
         assert source.review_state == "changes_requested"
+        # The author rides on the body source's ``user`` (the same shape an inline
+        # comment carries) so the UI can render the reviewer's avatar on the header.
+        assert source.user is not None
+        assert source.user.login == "reviewer"
 
         # A body-only review has no inline comment to react to.
         self.mock_actions.create_review_comment_reaction.assert_not_called()
+
+    def test_body_author_read_from_review_not_gate_actor(self) -> None:
+        # The body avatar author comes from the fetched review's author, not the
+        # write-access gate's actor. Set them to different logins to prove the
+        # source is the review payload (mirroring how a comment reads its author).
+        self.mock_actions.get_pull_request_review.return_value = self._review_result(
+            {
+                "id": "500",
+                "html_url": "https://x/500",
+                "body": "overall summary",
+                "state": "changes_requested",
+                "author": {"id": "42", "username": "review-author"},
+            }
+        )
+
+        self._run(author_username="gate-actor")
+
+        source = self.mock_enqueue.call_args.kwargs["feedback"].source
+        assert isinstance(source, GithubPrReviewBodyFeedbackSource)
+        assert source.user is not None
+        assert source.user.login == "review-author"
 
     def test_single_comment_review(self) -> None:
         # GitHub's "Add single comment" fires a review with state=commented, one
