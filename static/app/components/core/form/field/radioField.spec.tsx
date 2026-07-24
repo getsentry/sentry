@@ -122,6 +122,12 @@ describe('RadioField', () => {
     expect(screen.getByText('Urgent issues')).toBeInTheDocument();
   });
 
+  it('reserves space for field status without reflowing options', () => {
+    render(<TestForm label="Priority" />);
+
+    expect(screen.getByRole('radiogroup').lastElementChild).toBeEmptyDOMElement();
+  });
+
   it('renders as radiogroup with associated label as text', () => {
     render(<TestForm label="Priority" />);
 
