@@ -28,8 +28,7 @@ import {
   getLocalityDataFromOrganization,
   shouldDisplayLocalities,
 } from 'sentry/utils/cells';
-import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
-import {selectUsersFromMembers} from 'sentry/utils/members/shared';
+import {memberUsersQueryOptions} from 'sentry/utils/members/shared';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
@@ -86,10 +85,9 @@ export function ReplayAccessMembersField({
   organization: Organization;
 }) {
   const endpoint = `/organizations/${organization.slug}/`;
-  const {data: members = [], isPending: fetching} = useQuery({
-    ...useProjectMembersQueryOptions(),
-    select: resp => selectUsersFromMembers(resp.json),
-  });
+  const {data: members = [], isPending: fetching} = useQuery(
+    memberUsersQueryOptions({orgSlug: organization.slug})
+  );
   const memberOptions = members.map(m => ({value: m.id, label: m.name}));
 
   const replayMutationOpts = mutationOptions({
