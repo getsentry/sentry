@@ -54,9 +54,7 @@ interface GithubPrCommentFeedback extends ParsedBaseFeedback {
   githubUsername?: string;
 }
 
-// An inline comment left as part of a submitted review. `Omit<'sourceType'>`
-// because a discriminant can't be narrowed to a new literal through plain
-// `extends`; everything else (commentUrl, githubUsername) is shared.
+// An inline comment left as part of a submitted review.
 interface GithubPrReviewCommentFeedback extends Omit<
   GithubPrCommentFeedback,
   'sourceType'
