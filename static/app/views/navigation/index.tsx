@@ -104,7 +104,8 @@ function NavigationLayout({children}: {children: React.ReactNode}) {
       left={0}
       position={currentStepId ? undefined : 'sticky'}
       bottom={layout === 'mobile' ? undefined : 0}
-      height={layout === 'mobile' ? undefined : `calc(100dvh - ${barTop})`}
+      minHeight={layout === 'mobile' ? undefined : '0'}
+      alignSelf={layout === 'mobile' ? undefined : 'stretch'}
       style={{
         zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
         userSelect: 'none',
