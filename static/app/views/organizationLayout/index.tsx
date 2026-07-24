@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import {Outlet, ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
@@ -108,9 +108,11 @@ function AppLayout({organization}: LayoutProps) {
     <PrimaryNavigationContextProvider>
       <Stack flex="1" minWidth="0" minHeight="100dvh">
         <Container ref={topRegionRef}>
-          {showSuperuserWarning && <Container height={`${SUPERUSER_MARQUEE_HEIGHT}px`} />}
           {showSuperuserWarning && (
-            <Override name="component:superuser-warning" organization={organization} />
+            <Fragment>
+              <Container height={`${SUPERUSER_MARQUEE_HEIGHT}px`} />
+              <Override name="component:superuser-warning" organization={organization} />
+            </Fragment>
           )}
           <SystemAlerts className="messages-container" />
         </Container>
