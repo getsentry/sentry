@@ -302,9 +302,8 @@ function ReservedBudgetData({
 }
 
 /**
- * Surfaces the org's Seer plan in one labeled place. The same numbers are
- * otherwise scattered as anonymous rows across ReservedData /
- * ReservedBudgetsData.
+ * The same numbers otherwise appear only as anonymous rows across ReservedData
+ * / ReservedBudgetsData; this surfaces the Seer plan in one labeled place.
  */
 function SeerPlanSummary({customer}: {customer: Subscription}) {
   const seerAddOn = customer.addOns?.[AddOnCategory.SEER];
@@ -312,8 +311,7 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
   const isOffered = !!seerAddOn?.isAvailable || !!legacySeerAddOn?.isAvailable;
 
   // An active product trial counts as the plan being in use even when the
-  // add-on hasn't been purchased, matching productIsEnabled. Seat-based and
-  // legacy Seer trial on different billed categories.
+  // add-on hasn't been purchased, matching productIsEnabled.
   const trials = customer.productTrials ?? null;
   const onSeatTrial = !!getActiveProductTrial(trials, DataCategory.SEER_USER);
   const onLegacyTrial = !!getActiveProductTrial(trials, DataCategory.SEER_AUTOFIX);
