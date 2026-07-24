@@ -21,6 +21,8 @@ from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry import analytics, features
 from sentry.analytics.events.weekly_report import WeeklyReportSent
+from sentry.charts import backend as charts
+from sentry.charts.types import ChartType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
@@ -606,10 +608,47 @@ def get_local_dates(ctx: OrganizationReportContext, user_id: int) -> tuple[datet
     return (local_start, local_end)
 
 
+CHART_PALETTE = ["#7553FF", "#3A1873", "#F0369A", "#FF9838", "#FFD00E"]
+
+
+def _top_spans_chart_url(
+    table: list[dict[str, Any]],
+    ctx: OrganizationReportContext,
+    spans_chart_cache: dict[frozenset[str], str | None] | None,
+) -> str | None:
+    if not table or not charts.is_enabled():
+        return None
+
+    cache_key = frozenset(span["name"] for span in table)
+    if spans_chart_cache is not None and cache_key in spans_chart_cache:
+        return spans_chart_cache[cache_key]
+
+    chart_data: dict[str, Any] = {"stats": {}}
+    for i, span in enumerate(table):
+        ts_data = ctx.top_spans_timeseries.get(span["name"], {})
+        data_points = [[ts, [{"count": p95}]] for ts, p95 in sorted(ts_data.items())]
+        chart_data["stats"][span["name"]] = {"data": data_points, "order": i}
+
+    chart_url = None
+    try:
+        chart_url = charts.generate_chart(
+            ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE,
+            chart_data,
+            size={"width": 600, "height": 200},
+        )
+    except Exception:
+        logger.exception("weekly_report.spans_chart.generation_failed")
+
+    if spans_chart_cache is not None:
+        spans_chart_cache[cache_key] = chart_url
+    return chart_url
+
+
 def render_template_context(
     ctx,
     user_id: int | None,
     excluded_project_ids: set[int] | None = None,
+    spans_chart_cache: dict[frozenset[str], str | None] | None = None,
 ) -> dict[str, Any] | None:
     # Serialize ctx for template, and calculate view parameters (like graph bar heights)
     # Fetch the list of projects associated with the user.
@@ -887,7 +926,7 @@ def render_template_context(
             or ctx.organization.flags.enhanced_privacy
             or user_total_spans_count == 0
         ):
-            return {"total_spans_count": 0, "top_spans_table": []}
+            return {"total_spans_count": 0, "top_spans_table": [], "spans_chart_url": None}
 
         project_by_id = {p.project.id: p.project for p in user_projects}
         table: list[dict[str, Any]] = []
@@ -913,6 +952,7 @@ def render_template_context(
                 f"/organizations/{ctx.organization.slug}/explore/traces/",
                 query=span_query,
             )
+            color = CHART_PALETTE[len(table)] if len(table) < len(CHART_PALETTE) else ""
             table.append(
                 {
                     "name": span["name"],
@@ -920,8 +960,11 @@ def render_template_context(
                     "sum": span["sum"],
                     "project_slugs": project.slug if project else "",
                     "url": span_url,
+                    "color": color,
                 }
             )
+        chart_url = _top_spans_chart_url(table, ctx, spans_chart_cache)
+
         prev_week_total_spans_count = sum(
             count
             for pid, count in ctx.prev_week_spans_count_by_project.items()
@@ -930,6 +973,7 @@ def render_template_context(
         return {
             "total_spans_count": user_total_spans_count,
             "top_spans_table": table,
+            "spans_chart_url": chart_url,
             "spans_pct_change": _pct_change(user_total_spans_count, prev_week_total_spans_count),
         }
 
@@ -988,10 +1032,13 @@ def prepare_template_context(
         ).values_list("user_id", "project_id"):
             exclusions_by_user.setdefault(exc_user_id, set()).add(exc_project_id)
 
+    spans_chart_cache: dict[frozenset[str], str | None] = {}
     user_template_context_by_user_id_list = []
     for user_id in user_ids:
         excluded = exclusions_by_user.get(user_id) if isinstance(user_id, int) else None
-        template_ctx = render_template_context(ctx, user_id, excluded_project_ids=excluded)
+        template_ctx = render_template_context(
+            ctx, user_id, excluded_project_ids=excluded, spans_chart_cache=spans_chart_cache
+        )
         if not template_ctx:
             logger.debug(
                 "Skipping report for %s to <User: %s>, no qualifying reports to deliver.",

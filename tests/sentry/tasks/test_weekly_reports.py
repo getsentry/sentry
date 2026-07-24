@@ -31,6 +31,8 @@ from sentry.tasks.summaries.organization_report_context_factory import (
 )
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
+    SIX_HOURS,
+    TOP_SPANS_LIMIT,
     OrganizationReportContext,
     ProjectContext,
     _project_key_performance_issues_eap,
@@ -42,12 +44,14 @@ from sentry.tasks.summaries.utils import (
     user_project_ownership,
 )
 from sentry.tasks.summaries.weekly_reports import (
+    CHART_PALETTE,
     OrganizationReportBatch,
     _pct_change,
     date_format,
     group_status_to_color,
     prepare_organization_report,
     prepare_template_context,
+    project_breakdown_colors,
     render_template_context,
     schedule_organizations,
 )
@@ -2360,6 +2364,105 @@ class WeeklyReportsTest(
             assert context["show_past_issues"] is False
             assert len(context["past_issues"]) == 0
             assert len(context["top_issues"]) == 1
+
+    @with_feature("organizations:weekly-report-spans-chart")
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_spans_chart_url_in_template_context(self) -> None:
+        self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
+
+        ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
+        user_project_ownership(ctx)
+
+        ts1 = int(ctx.start.timestamp())
+        ctx.top_spans = [
+            {"name": "/api/users", "p95": 120.0, "sum": 50000.0},
+            {"name": "/api/events", "p95": 80.0, "sum": 30000.0},
+        ]
+        ctx.top_spans_projects = {
+            "/api/users": self.project.id,
+            "/api/events": self.project.id,
+        }
+        ctx.top_spans_timeseries = {
+            "/api/users": {ts1: 100.0, ts1 + SIX_HOURS: 150.0},
+            "/api/events": {ts1: 80.0, ts1 + SIX_HOURS: 90.0},
+        }
+        ctx.spans_count_by_project = {self.project.id: 10}
+
+        with mock.patch("sentry.tasks.summaries.weekly_reports.charts") as mock_charts:
+            mock_charts.is_enabled.return_value = True
+            mock_charts.generate_chart.return_value = "https://example.com/chart.png"
+
+            template_ctx = render_template_context(ctx, self.user.id)
+
+        assert template_ctx is not None
+        assert template_ctx["spans_chart_url"] == "https://example.com/chart.png"
+        mock_charts.generate_chart.assert_called_once()
+        call_args = mock_charts.generate_chart.call_args
+        chart_data = call_args[0][1]
+        assert "/api/users" in chart_data["stats"]
+        assert "/api/events" in chart_data["stats"]
+
+    @with_feature("organizations:weekly-report-spans-chart")
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_spans_chart_url_cached_across_users(self) -> None:
+        self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
+
+        ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
+
+        user2 = self.create_user()
+        self.create_member(
+            organization=self.organization,
+            user=user2,
+            teams=[self.team],
+        )
+
+        user_project_ownership(ctx)
+
+        ts1 = int(ctx.start.timestamp())
+        ctx.top_spans = [{"name": "/api/users", "p95": 120.0, "sum": 50000.0}]
+        ctx.top_spans_projects = {"/api/users": self.project.id}
+        ctx.top_spans_timeseries = {"/api/users": {ts1: 100.0}}
+        ctx.spans_count_by_project = {self.project.id: 10}
+
+        with mock.patch("sentry.tasks.summaries.weekly_reports.charts") as mock_charts:
+            mock_charts.is_enabled.return_value = True
+            mock_charts.generate_chart.return_value = "https://example.com/chart.png"
+
+            cache: dict[frozenset[str], str | None] = {}
+            ctx1 = render_template_context(ctx, self.user.id, spans_chart_cache=cache)
+            ctx2 = render_template_context(ctx, user2.id, spans_chart_cache=cache)
+
+        assert ctx1 is not None
+        assert ctx2 is not None
+        assert ctx1["spans_chart_url"] == "https://example.com/chart.png"
+        assert ctx2["spans_chart_url"] == "https://example.com/chart.png"
+        mock_charts.generate_chart.assert_called_once()
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_spans_chart_url_none_without_feature_flag(self) -> None:
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
+
+        ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
+        user_project_ownership(ctx)
+        ctx.top_spans = [{"name": "/api/users", "p95": 120.0, "sum": 50000.0}]
+
+        template_ctx = render_template_context(ctx, self.user.id)
+        assert template_ctx is not None
+        assert template_ctx["spans_chart_url"] is None
+
+    def test_chart_palette_equals_top_spans_limit(self):
+        assert len(CHART_PALETTE) == TOP_SPANS_LIMIT
+
+    def test_project_breakdown_equals_covers_project_limit(self):
+        assert len(project_breakdown_colors) == TOP_SPANS_LIMIT
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_fetch_resolution_label_pr(self) -> None:
