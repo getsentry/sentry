@@ -149,7 +149,6 @@ describe('applySeerEquation', () => {
     const decoded = decodeResults(result.encodedMetrics);
 
     // ƒ1 was replaced by an aggregate, extra aggregate + equation spliced in
-    // Expect: [aggA, aggB, replacement(metricC), extra(metricD), newEquation]
     expect(decoded).toHaveLength(5);
 
     // The replacement row is an aggregate, not an equation
@@ -157,9 +156,8 @@ describe('applySeerEquation', () => {
     expect(decoded[2]!.yAxis).toBe('p50(value,metricC,distribution,none)');
 
     // The new equation references letter labels, not ƒ labels
-    // TODO: the new one should get the correct internalExpression, we can calculate that.
-    // const newEq = decoded.find(d => d.isEquation && d.yAxis === seerEquationYAxis);
-    // expect(newEq!.internalExpression).toBe('C * D');
+    const newEq = decoded.find(d => d.isEquation && d.yAxis === seerEquationYAxis);
+    expect(newEq!.internalExpression).toBe('C * D');
   });
 
   it('preserves existing equation yAxis when replacing an aggregate', () => {
