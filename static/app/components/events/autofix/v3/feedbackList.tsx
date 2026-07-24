@@ -50,10 +50,20 @@ interface UserUiFeedback extends ParsedBaseFeedback {
 
 interface GithubPrCommentFeedback extends ParsedBaseFeedback {
   commentUrl: string;
-  sourceType: 'github-pr-comment' | 'github-pr-review-comment';
+  sourceType: 'github-pr-comment';
   githubUsername?: string;
+}
+
+// An inline comment left as part of a submitted review. `Omit<'sourceType'>`
+// because a discriminant can't be narrowed to a new literal through plain
+// `extends`; everything else (commentUrl, githubUsername) is shared.
+interface GithubPrReviewCommentFeedback extends Omit<
+  GithubPrCommentFeedback,
+  'sourceType'
+> {
+  sourceType: 'github-pr-review-comment';
   // Shared with the review body's `reviewId` to group a review's items under one
-  // header. Present only for `github-pr-review-comment`.
+  // header.
   reviewId?: number;
 }
 
@@ -82,6 +92,7 @@ interface OtherFeedback extends ParsedBaseFeedback {
 type ParsedFeedback =
   | UserUiFeedback
   | GithubPrCommentFeedback
+  | GithubPrReviewCommentFeedback
   | GithubPrReviewBodyFeedback
   | CheckSuiteFeedback
   | OtherFeedback;
@@ -109,14 +120,14 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
       if (!commentUrl) {
         return null;
       }
-      return {
+      const comment = {
         ...base,
-        sourceType: source.type,
         githubUsername: source.comment?.user?.login,
         commentUrl,
-        reviewId:
-          source.type === 'github-pr-review-comment' ? source.review_id : undefined,
       };
+      return source.type === 'github-pr-review-comment'
+        ? {...comment, sourceType: source.type, reviewId: source.review_id}
+        : {...comment, sourceType: source.type};
     }
     case 'github-pr-review-body':
       return {
