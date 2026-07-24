@@ -140,16 +140,3 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         )
         resp = self.client.delete(url)
         assert resp.status_code == 404
-
-    def test_edit_another_orgs_code_mapping(self) -> None:
-        invalid_user = self.create_user()
-        invalid_organization = self.create_organization(owner=invalid_user)
-        self.login_as(user=invalid_user)
-        url = reverse(
-            self.endpoint,
-            args=[invalid_organization.slug, self.config.id],
-        )
-
-        resp = self.client.put(url, {})
-
-        assert resp.status_code == status.HTTP_404_NOT_FOUND

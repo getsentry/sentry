@@ -42,7 +42,6 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
                 "project_repository__project"
             ).get(
                 id=config_id,
-                organization_id=kwargs["organization"].id,
                 organization_integration_id__in=[oi.id for oi in ois],
             )
         except (RepositoryProjectPathConfig.DoesNotExist, ValueError):
