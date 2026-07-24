@@ -134,4 +134,26 @@ describe('useColumnResize', () => {
       screen.getByTestId('grid').style.getPropertyValue('--grid-editable-resizer-height')
     ).toBe('');
   });
+
+  it('tears down a previous drag when a new one starts without a mouseup', async () => {
+    const getResizeTemplate = jest.fn(() => '10px');
+    render(<TestTable getResizeTemplate={getResizeTemplate} />);
+    const resizer = screen.getByTestId('resizer');
+
+    // A missed mouseup (e.g. the pointer was released outside the window) leaves the
+    // first drag's listeners attached; starting a second drag must remove them so a
+    // single move can't fire two handlers. userEvent cannot model a missed mouseup, so
+    // dispatch the events directly.
+    resizer.dispatchEvent(
+      new MouseEvent('mousedown', {bubbles: true, cancelable: true, clientX: 100})
+    );
+    resizer.dispatchEvent(
+      new MouseEvent('mousedown', {bubbles: true, cancelable: true, clientX: 100})
+    );
+    getResizeTemplate.mockClear();
+    window.dispatchEvent(new MouseEvent('mousemove', {bubbles: true, clientX: 160}));
+
+    await waitFor(() => expect(getResizeTemplate).toHaveBeenCalled());
+    expect(getResizeTemplate).toHaveBeenCalledTimes(1);
+  });
 });

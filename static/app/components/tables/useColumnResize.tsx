@@ -122,6 +122,10 @@ export function useColumnResize<T extends HTMLElement>({
         removeListeners();
       };
 
+      // Tear down a prior drag that never received its mouseup (e.g. the pointer was
+      // released outside the window) so its listeners can't leak past this one.
+      removeListeners();
+
       activeListenersRef.current = {onMouseMove, onMouseUp};
       window.addEventListener('mousemove', onMouseMove);
       window.addEventListener('mouseup', onMouseUp);
