@@ -96,6 +96,7 @@ def test_get_hybrid_sdk_exits_early_without_configured_packages() -> None:
     assert get_hybrid_sdk("sentry.cocoa.flutter", object(), {}) is None
 
 
+@django_db_all
 def test_react_native_native_sdks_have_hybrid_package_attribution() -> None:
     hybrid_sdk_packages = {
         sdk_name: package
