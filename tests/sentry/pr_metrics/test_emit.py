@@ -30,7 +30,11 @@ from sentry.pr_metrics.emit import (
     select_fallback_verdict,
     select_verdict,
 )
-from sentry.pr_metrics.utils import _commit_shas_from_activity, resolved_group_ids
+from sentry.pr_metrics.utils import (
+    _commit_shas_from_activity,
+    group_ids_from_attributions,
+    resolved_group_ids,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -763,6 +767,45 @@ class PrMetricsEmissionTest(TestCase):
     def test_resolved_group_ids_empty_when_pr_resolves_nothing(self) -> None:
         assert resolved_group_ids(self.pull_request) == []
 
+    def test_group_ids_from_attributions_dedupes_and_sorts_across_rows(self) -> None:
+        attributions = [
+            {
+                "signal_type": "sentry_app",
+                "source": "seer_data",
+                "signal_details": {"group_ids": [9, 10]},
+            },
+            {
+                "signal_type": "mcp",
+                "source": "webhook_data",
+                "signal_details": {"group_ids": {"7": "claude", "9": "cursor"}},
+            },
+        ]
+        assert group_ids_from_attributions(attributions) == [7, 9, 10]
+
+    def test_group_ids_from_attributions_empty_when_no_signal_details(self) -> None:
+        attributions = [
+            {"signal_type": "sentry_app", "source": "seer_data", "signal_details": None},
+            {
+                "signal_type": "sentry_app",
+                "source": "webhook_data",
+                "signal_details": {"pr_url": "https://github.com/owner/repo/pulls/123"},
+            },
+        ]
+        assert group_ids_from_attributions(attributions) == []
+
+    def test_group_ids_from_attributions_skips_malformed_entries(self) -> None:
+        # signal_details is an unstructured JSONField that one producer (the
+        # Seer judge RPC callback) populates from caller-supplied data — a
+        # non-numeric entry should be dropped, not raise and abort emission.
+        attributions = [
+            {
+                "signal_type": "seer_delegated:claude_code",
+                "source": "webhook_data",
+                "signal_details": {"group_ids": ["not-a-number", 9]},
+            }
+        ]
+        assert group_ids_from_attributions(attributions) == [9]
+
     def test_build_row_carries_group_ids(self) -> None:
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
@@ -1264,6 +1307,33 @@ class PrMetricsEmissionTest(TestCase):
         self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s1")
         emit_pr_metrics_row(pull_request=self.pull_request)
         assert mock_record.call_args[0][0].group_ids == [group_id]
+
+    @patch("sentry.analytics.record")
+    def test_emit_merges_group_ids_carried_only_by_attribution(self, mock_record: Any) -> None:
+        # A group id attributed via Seer data (e.g. the run's target group) may
+        # never surface as a resolving GroupLink — the PR text never referenced
+        # it. It should still make it into the emitted row's group_ids.
+        linked_group_id = self._link_group()
+        self._track(
+            PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+            signal_details={"group_ids": [linked_group_id + 1000]},
+        )
+        emit_pr_metrics_row(pull_request=self.pull_request)
+        assert mock_record.call_args[0][0].group_ids == sorted(
+            [linked_group_id, linked_group_id + 1000]
+        )
+
+    @patch("sentry.analytics.record")
+    def test_emit_merges_mcp_dict_shaped_attribution_group_ids(self, mock_record: Any) -> None:
+        self._track()
+        self._track(
+            PullRequestAttributionSignalType.MCP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+            signal_details={"group_ids": {"321": "claude_code"}},
+        )
+        emit_pr_metrics_row(pull_request=self.pull_request)
+        assert mock_record.call_args[0][0].group_ids == [321]
 
     @patch("sentry.pr_metrics.tasks.cleanup_pr_activity_task")
     @patch("sentry.analytics.record")

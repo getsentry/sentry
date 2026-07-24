@@ -37,6 +37,7 @@ from sentry.pr_metrics.contracts import (
     PrConversationAnalysis,
 )
 from sentry.pr_metrics.utils import (
+    group_ids_from_attributions,
     is_activity_tracking_enabled,
     iso_or_none,
     load_activity_document,
@@ -741,11 +742,18 @@ def emit_pr_metrics_row(
     close_action: CloseAction = (
         CLOSE_ACTION_MERGED if pull_request.merged_at is not None else CLOSE_ACTION_CLOSED
     )
+    # Union the GroupLink-derived ids with whatever attribution rows carry in
+    # their signal_details, so a group id attributed only through Seer data
+    # (never exposed back via a GitHub-parseable "Fixes #123" reference) isn't
+    # dropped from the emitted row.
+    group_ids = sorted(
+        set(resolved_group_ids(pull_request)) | set(group_ids_from_attributions(attributions))
+    )
     row = build_pr_metrics_row(
         pull_request=pull_request,
         close_action=close_action,
         attributions=attributions,
-        group_ids=resolved_group_ids(pull_request),
+        group_ids=group_ids,
         conversation_analysis=conversation_analysis,
         diagnosis_labels=diagnosis_labels,
     )

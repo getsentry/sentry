@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import cast
+from typing import Any, cast
 
 from django.db.models import Q
 from django.utils import timezone
@@ -26,6 +28,8 @@ from sentry.models.pullrequest import (
 )
 from sentry.pr_metrics.activity_doc import ActivityDoc, commit_shas_from_doc
 from sentry.seer.models import SeerAgentRun, SeerRunPullRequest
+
+logger = logging.getLogger(__name__)
 
 _PR_ACTIVITY_ATTRIBUTION_BUFFER = timedelta(hours=30)
 
@@ -252,6 +256,50 @@ def resolved_group_ids(pull_request: PullRequest) -> list[int]:
         combined = pr_filter
 
     return sorted(GroupLink.objects.filter(combined).values_list("group_id", flat=True).distinct())
+
+
+def group_ids_from_attributions(attributions: Sequence[Mapping[str, Any]]) -> list[int]:
+    """Group IDs carried in the PR's attribution ``signal_details``.
+
+    ``signal_details["group_ids"]`` is a ``list[int]`` for ``SENTRY_APP`` and
+    ``SEER_DELEGATED_*`` signals (see ``SentryAppSignalDetails`` /
+    ``DelegatedAgentSignalDetails``), but the ``MCP`` signal instead stores a
+    ``dict[str, str]`` mapping group id (as a string key) to client family (see
+    ``_write_mcp_attribution``). Both shapes are read here so a group id
+    attributed only through MCP isn't dropped.
+
+    This exists because attribution can be written from data GitHub never
+    exposes back to us (e.g. a Seer run's target group), so the high-level
+    ``resolved_group_ids`` GroupLink lookup alone can miss it.
+
+    ``signal_details`` is an unstructured, nullable JSONField, and one producer
+    (the Seer judge RPC callback) merges in caller-supplied data — so a
+    malformed entry is tolerated (skipped) rather than raising and aborting
+    emission for the whole PR.
+    """
+    group_ids: set[int] = set()
+    for attribution in attributions:
+        details = attribution.get("signal_details")
+        if not details:
+            continue
+        raw_group_ids = details.get("group_ids")
+        if not raw_group_ids:
+            continue
+        # A dict (MCP) iterates its string keys; a list (everything else)
+        # iterates its int elements. Either way, coerce to int.
+        for group_id in raw_group_ids:
+            try:
+                group_ids.add(int(group_id))
+            except (TypeError, ValueError):
+                logger.warning(
+                    "pr_metrics.group_ids_from_attributions.malformed_group_id",
+                    extra={
+                        "signal_type": attribution.get("signal_type"),
+                        "source": attribution.get("source"),
+                        "group_id": group_id,
+                    },
+                )
+    return sorted(group_ids)
 
 
 def seer_run_link_for_pull_request(pull_request: PullRequest) -> tuple[list[int], int | None]:
