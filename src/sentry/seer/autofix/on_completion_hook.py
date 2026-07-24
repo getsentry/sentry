@@ -377,18 +377,18 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 comment_unique_ids=unique_ids,
             )
             if result.unsupported_provider:
-                _record_completion_reaction("resolve_unsupported_provider")
+                outcomes = {"resolve_unsupported_provider": 1}
             elif result.failed:
-                _record_completion_reaction("resolve_failed")
+                outcomes = {"resolve_failed": 1}
             else:
-                if result.resolved:
-                    _record_completion_reaction("resolved", result.resolved)
-                if result.already_resolved:
-                    _record_completion_reaction(
-                        "resolve_skipped_already_resolved", result.already_resolved
-                    )
-                if result.not_found:
-                    _record_completion_reaction("resolve_thread_not_found", result.not_found)
+                outcomes = {
+                    "resolved": result.resolved,
+                    "resolve_skipped_already_resolved": result.already_resolved,
+                    "resolve_thread_not_found": result.not_found,
+                }
+            for outcome, amount in outcomes.items():
+                if amount:
+                    _record_completion_reaction(outcome, amount)
 
     @classmethod
     def find_latest_artifact_for_step(cls, state: SeerRunState, key: str) -> Artifact | None:

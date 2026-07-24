@@ -9,6 +9,7 @@ from typing import Any
 import sentry_sdk
 from scm import actions as scm_actions
 from scm.errors import ResourceNotFound
+from scm.helpers import iter_all_pages
 from scm.manager import SourceCodeManager
 from scm.types import (
     Author,
@@ -397,14 +398,15 @@ def _resolve_review_comment_threads(
 
     try:
         threads: list[ReviewThread] = []
-        cursor: str | None = None
-        while True:
-            pagination: PaginationParams | None = {"cursor": cursor} if cursor else None
-            result = scm_actions.get_pull_request_review_threads(scm, str(pr_number), pagination)
-            threads.extend(result["data"])
-            cursor = result["meta"].get("next_cursor")
-            if not cursor:
-                break
+        # Empty starting cursor so GitHub's GraphQL first page is `after: null`.
+        for page in iter_all_pages(
+            lambda pagination: scm_actions.get_pull_request_review_threads(
+                scm, str(pr_number), pagination
+            ),
+            per_page=100,
+            cursor="",
+        ):
+            threads.extend(page["data"])
 
         thread_by_comment: dict[str, ReviewThread] = {}
         for thread in threads:
