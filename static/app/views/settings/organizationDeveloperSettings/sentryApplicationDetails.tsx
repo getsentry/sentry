@@ -39,7 +39,7 @@ import {
 } from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Avatar} from 'sentry/types/core';
+import type {Avatar, Scope} from 'sentry/types/core';
 import type {
   PermissionResource,
   SentryApp,
@@ -54,6 +54,7 @@ import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryCli
 import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -76,6 +77,7 @@ import {
   AllowedOriginsField,
   AlertableField,
   AuthorField,
+  CLAUDE_ROUTINE_URL_REGEX,
   NameField,
   OverviewField,
   RedirectUrlField,
@@ -403,8 +405,144 @@ function useSaveSentryApp({
   return {handleSaveError, saveSentryAppMutation, scopeErrors};
 }
 
+const CLAUDE_ROUTINE_STARTER_PROMPT = `Triage the Sentry issue passed in this run's context. The message includes
+a link to the issue.
+
+1. Review the issue: the error message, stack trace, how many users and
+   events are affected, and whether it is new or a regression.
+2. Decide what should happen:
+   - Needs a human: crashes in core flows, regressions, errors spiking
+     across many users, or anything that looks security-related.
+   - Safe to archive: known noise, such as third-party script errors, bot
+     traffic, or one-off network blips.
+3. Act on the decision:
+   - If it needs a human, notify the team with a short summary: what broke,
+     who is affected, and a link to the issue.
+   - If it is safe to archive, archive the issue in Sentry and note why.`;
+
+const CLAUDE_ROUTINE_SCOPES: Scope[] = ['event:read', 'event:write'];
+const CLAUDE_ROUTINE_EVENTS: WebhookSubscription[] = ['issue.created'];
+const ANTHROPIC_ROUTINE_HEADERS = [
+  'anthropic-version: 2023-06-01',
+  'anthropic-beta: experimental-cc-routine-2026-04-01',
+];
+
+const claudeRoutineSchema = sentryAppBaseSchema
+  .extend({token: z.string()})
+  .superRefine((data, ctx) => {
+    requireField(ctx, data.name, 'name');
+    requireField(ctx, data.webhookUrl, 'webhookUrl');
+    if (data.webhookUrl.trim() && !CLAUDE_ROUTINE_URL_REGEX.test(data.webhookUrl)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: t('Enter the fire URL from the API trigger settings of the routine'),
+        path: ['webhookUrl'],
+      });
+    }
+    requireField(ctx, data.token, 'token');
+  });
+
+function ClaudeRoutineTemplateForm() {
+  const organization = useOrganization();
+  const {handleSaveError, saveSentryAppMutation, scopeErrors} = useSaveSentryApp({
+    app: undefined,
+    isInternal: true,
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      ...emptySentryAppValues(organization.slug, true),
+      name: 'Claude Routine',
+      token: '',
+      scopes: CLAUDE_ROUTINE_SCOPES,
+      events: CLAUDE_ROUTINE_EVENTS,
+    },
+    validators: {
+      onDynamic: claudeRoutineSchema,
+    },
+    onSubmit: ({value, formApi}) => {
+      const payload = buildSentryAppPayload(value);
+      payload.webhookHeaders = [
+        `Authorization: Bearer ${value.token.trim()}`,
+        ...ANTHROPIC_ROUTINE_HEADERS,
+      ];
+      return saveSentryAppMutation
+        .mutateAsync(payload)
+        .catch(error => handleSaveError(error, formApi));
+    },
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.FieldGroup title={t('Internal Integration Details')}>
+        <NameField form={form} fields={{name: 'name'}} />
+
+        <WebhookUrlField
+          form={form}
+          fields={{webhookUrl: 'webhookUrl'}}
+          label={t('Anthropic Routine URL')}
+          hint={tct(
+            "The fire URL from the API trigger settings of the routine. Don't have one yet? [copy] to create it.",
+            {
+              copy: (
+                <InlineTextButton
+                  size="zero"
+                  variant="link"
+                  onClick={() =>
+                    copyToClipboard(CLAUDE_ROUTINE_STARTER_PROMPT, {
+                      successMessage: t('Starter prompt copied'),
+                    })
+                  }
+                >
+                  {t('Copy a starter prompt')}
+                </InlineTextButton>
+              ),
+            }
+          )}
+          placeholder="https://api.anthropic.com/v1/claude_code/routines/trig_.../fire"
+          required
+        />
+
+        <form.AppField name="token">
+          {field => (
+            <field.Layout.Row
+              label={t('Routine Token')}
+              hintText={t('Shown once when the API trigger is added to the routine.')}
+              required
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder="sk-ant-oat01-..."
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+      </form.FieldGroup>
+
+      <PermissionsObserver
+        appPublished={false}
+        scopes={CLAUDE_ROUTINE_SCOPES}
+        events={CLAUDE_ROUTINE_EVENTS}
+        newApp
+        permissionErrors={scopeErrors.permissions}
+        continuousIntegrationError={scopeErrors.continuousIntegration}
+        onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
+        onEventsChange={events => form.setFieldValue('events', events)}
+      />
+
+      <Flex justify="end" paddingTop="xl">
+        <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
+      </Flex>
+    </form.AppForm>
+  );
+}
+
 // Each template renders its own creation form, keyed by registry slug.
-const TEMPLATE_FORMS: Record<string, React.ComponentType> = {};
+const TEMPLATE_FORMS: Record<string, React.ComponentType> = {
+  'claude-routine': ClaudeRoutineTemplateForm,
+};
 
 export default function SentryApplicationDetails() {
   const location = useLocation();
@@ -993,6 +1131,10 @@ function SentryAppEditForm({
     </form.AppForm>
   );
 }
+
+const InlineTextButton = styled(Button)`
+  font-size: inherit;
+`;
 
 const HiddenSecret = styled('span')`
   width: 100px;
