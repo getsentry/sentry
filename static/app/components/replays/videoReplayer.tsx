@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import {Timer} from 'sentry/utils/replays/timer';
 import type {ClipWindow, VideoEvent} from 'sentry/utils/replays/types';
 
@@ -598,8 +600,7 @@ export class VideoReplayer {
     // If 'ended' is true, the current time will be overwritten to 0 after hitting play.
     // Setting currentTime will cause a side-effect of resetting 'ended' to false.
     if (!Number.isFinite(timeMs)) {
-      // eslint-disable-next-line no-console
-      console.error(
+      Sentry.captureException(
         new Error(`Attempted to set a non-finite video currentTime: ${timeMs}`)
       );
       return;
