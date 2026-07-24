@@ -115,6 +115,30 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
             "stackRoot": ["This field is required."],
         }
 
+    def test_edit_snake_case_project_id_is_access_checked(self) -> None:
+        member = self.create_user()
+        self.create_member(
+            organization=self.org, user=member, has_global_access=False, teams=[self.team]
+        )
+        self.login_as(user=member)
+
+        # every key is snake_case so `projectId` never appears in the body, but the
+        # serializer still reads it as project_id and would move the mapping
+        resp = self.client.put(
+            self.url,
+            {
+                "repository_id": self.repo.id,
+                "project_id": self.project2.id,
+                "stack_root": "/stack/root",
+                "source_root": "/source/root",
+                "default_branch": "master",
+            },
+        )
+
+        assert resp.status_code == status.HTTP_403_FORBIDDEN
+        self.config.refresh_from_db()
+        assert self.config.project_repository.project_id == self.project.id
+
     def test_basic_edit_from_member_permissions(self) -> None:
         self.login_as(user=self.user2)
         resp = self.make_put({"sourceRoot": "newRoot"})

@@ -12,6 +12,7 @@ from sentry.api.bases.organization import (
     OrganizationIntegrationsLoosePermission,
 )
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 
@@ -44,11 +45,12 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
                 id=config_id,
                 organization_integration_id__in=[oi.id for oi in ois],
             )
-            # Only set when the request wants to move the mapping to another project
-            if request.data.get("projectId"):
-                kwargs["new_project"] = self.get_project(
-                    kwargs["organization"], request.data["projectId"]
-                )
+            # Only set when the request wants to move the mapping to another project.
+            # Normalize keys the way the serializer does first, otherwise a snake_case
+            # `project_id` skips the access check below but still moves the mapping.
+            data = convert_dict_key_case(request.data, camel_to_snake_case)
+            if data.get("project_id"):
+                kwargs["new_project"] = self.get_project(kwargs["organization"], data["project_id"])
         except (RepositoryProjectPathConfig.DoesNotExist, ValueError):
             raise Http404
 
