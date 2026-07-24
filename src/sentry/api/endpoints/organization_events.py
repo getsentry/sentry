@@ -32,6 +32,7 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -624,6 +625,9 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 def flex_time_data_fn(limit, page_token):
                     config = get_rpc_config()
 
+                    if not self.get_field_list(organization, request):
+                        raise InvalidSearchQuery("No columns selected")
+
                     return scoped_dataset.run_table_query(
                         params=snuba_params,
                         query_string=scoped_query or "",
@@ -645,6 +649,9 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             def data_fn(offset, limit):
                 if scoped_dataset in RPC_DATASETS:
                     config = get_rpc_config()
+
+                    if not self.get_field_list(organization, request):
+                        raise InvalidSearchQuery("No columns selected")
 
                     return scoped_dataset.run_table_query(
                         params=snuba_params,
