@@ -62,7 +62,7 @@ class GroupNotesEndpoint(GroupEndpoint):
         if features.has("projects:issue-action-log-activity", group.project, actor=request.user):
             edit_entries = GroupActionLogEntry.objects.filter(
                 group_id=group.id, type=GroupActionType.COMMENT_EDIT.value
-            ).order_by("-date_added")
+            ).order_by("-date_added", "id")
 
             # A COMMENT_EDIT points at the GALE id of the original COMMENT it
             # supersedes; entries are newest-first, so keep the latest edit's

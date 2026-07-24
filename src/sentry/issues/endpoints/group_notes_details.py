@@ -71,10 +71,19 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             raise ResourceDoesNotExist
         note = user_note[0]
 
+        # The Activity lookups above are what signal whether the note exists.
+        # When the write flag is on every note is mirrored to a GALE, so a missing
+        # entry means it's already gone -> 404 rather than deleting nothing and
+        # returning 204. With the write flag off the GALE is never written, so we
+        # fall through and rely on the Activity alone.
         original_comment_log_action = GroupActionLogEntry.objects.filter(
             group_id=group.id,
             idempotency_key=activity_action_idempotency_key(note),
         ).first()
+        if original_comment_log_action is None and features.has(
+            "projects:issue-action-log-write-to-db", group.project, actor=request.user
+        ):
+            raise ResourceDoesNotExist
 
         webhook_data = {
             "comment_id": note.id,
@@ -146,14 +155,23 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             # Remove mentions as they shouldn't go into the database
             mentions = [mention.dict() for mention in payload.pop("mentions", [])]
 
-            # Would be nice to have a last_modified timestamp we could bump here
-            note.data.update(dict(payload))
-            note.save()
-
+            # The Activity fetched above is what signals whether the note exists.
+            # When the write flag is on every note is mirrored to a GALE, so a
+            # missing entry means it's already gone -> 404 rather than editing the
+            # Activity and returning 200. With the write flag off the GALE is never
+            # written, so we fall through and rely on the Activity alone.
             original_comment_log_action = GroupActionLogEntry.objects.filter(
                 group_id=group.id,
                 idempotency_key=activity_action_idempotency_key(note),
             ).first()
+            if original_comment_log_action is None and features.has(
+                "projects:issue-action-log-write-to-db", group.project, actor=request.user
+            ):
+                raise ResourceDoesNotExist
+
+            # Would be nice to have a last_modified timestamp we could bump here
+            note.data.update(dict(payload))
+            note.save()
 
             if original_comment_log_action is not None:
                 publish_action(
@@ -195,11 +213,12 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             ):
                 if original_comment_log_action is not None:
                     # editing a note doesn't update its COMMENT entry (instead it
-                    # appends a separate COMMENT_EDIT entry), so re-derive the fresh
-                    # text from the activity we just saved
+                    # appends a separate COMMENT_EDIT entry), so patch in the fresh
+                    # text we just published to GALE; the Activity is used only for
+                    # the id below.
                     original_comment_log_action.data = {
                         **original_comment_log_action.data,
-                        "text": note.data.get("text"),
+                        "text": payload.get("text"),
                     }
                     serialized = serialize(original_comment_log_action, request.user)
                     # Return the Activity id as `id`, matching the flag-off
