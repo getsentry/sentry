@@ -26,6 +26,7 @@ import {
 } from 'sentry/views/issueDetails/groupDataContext';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
+import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
@@ -127,10 +128,15 @@ function IssuePreviewContent() {
             />
           </Container>
           <Flex justify="between" align="center" gap="md">
-            <GroupStatusSubtitle group={group} project={project} />
-            {group.derivedData?.progress && (
-              <IssueProgressTag state={group.derivedData.progress} />
-            )}
+            <Flex flex="1" minWidth={0}>
+              <GroupStatusSubtitle group={group} project={project} />
+            </Flex>
+            <Flex align="center" gap="xs" flexShrink={0} wrap="nowrap">
+              {group.derivedData?.progress && (
+                <IssueProgressTag state={group.derivedData.progress} />
+              )}
+              <EventUserCounts group={group} project={project} />
+            </Flex>
           </Flex>
         </Stack>
       </Container>
