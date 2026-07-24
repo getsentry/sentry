@@ -1036,6 +1036,8 @@ class PrMetricsEmissionTest(TestCase):
                 attributions=json.dumps([SENTRY_APP_ATTRIBUTION]),
                 review_results=json.dumps({"approved": 0, "changes_requested": 0, "commented": 0}),
             ),
+            # Opaque hash, asserted on its own in MultiOrgEmissionDedupeTest.
+            exclude_fields=["deduplication_key"],
         )
 
     @patch("sentry.analytics.record")
@@ -1423,3 +1425,68 @@ class PrMetricsEmissionTest(TestCase):
         result = emit_pr_metrics_row(pull_request=self.pull_request)
         assert result is False
         mock_cleanup.delay.assert_not_called()
+
+
+EXTERNAL_ID = "556677"
+
+
+@cell_silo_test
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+class DeduplicationKeyTest(TestCase):
+    """The same provider PR, fanned out to one row per org, must build the same
+    opaque deduplication_key so a consumer can collapse them."""
+
+    def setUp(self) -> None:
+        # One shared installation across both orgs -> both rows carry the same
+        # integration_id, so the same provider PR keys identically.
+        self.integration = self.create_integration(
+            organization=self.organization, external_id="shared-install", provider="github"
+        )
+        self.pull_request = self._mergeable_pr(
+            self._repo(self.project, self.integration.id), self.organization
+        )
+        sibling_org = self.create_organization()
+        self.sibling_pull_request = self._mergeable_pr(
+            self._repo(self.create_project(organization=sibling_org), self.integration.id),
+            sibling_org,
+        )
+
+    def _repo(self, project: Any, integration_id: int) -> Any:
+        return self.create_repo(
+            project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id=EXTERNAL_ID,
+            integration_id=integration_id,
+        )
+
+    def _mergeable_pr(self, repo: Any, organization: Any) -> Any:
+        pull_request = self.create_pull_request(
+            repository_id=repo.id, organization_id=organization.id, key="42"
+        )
+        pull_request.head_commit_sha = HEAD_SHA
+        pull_request.closed_at = CLOSED_AT
+        pull_request.save()
+        return pull_request
+
+    def _key_for(self, pull_request: Any) -> str:
+        return build_pr_metrics_row(
+            pull_request=pull_request, close_action="merged", attributions=[], group_ids=[]
+        ).deduplication_key
+
+    def test_deduplication_key_shared_across_sibling_rows(self) -> None:
+        # The same provider PR must yield one identical, non-empty opaque key so a
+        # cross-cell consumer can collapse the one-row-per-cell duplicates.
+        assert self._key_for(self.pull_request) == self._key_for(self.sibling_pull_request) != ""
+
+    def test_deduplication_key_differs_across_installations(self) -> None:
+        # Same external_id + PR number under a *different* installation (e.g. a second
+        # GitHub Enterprise host, where repo ids can collide) must not share a key.
+        other_integration = self.create_integration(
+            organization=self.organization, external_id="other-install", provider="github"
+        )
+        other_org = self.create_organization()
+        other_pr = self._mergeable_pr(
+            self._repo(self.create_project(organization=other_org), other_integration.id), other_org
+        )
+        assert self._key_for(self.pull_request) != self._key_for(other_pr)
