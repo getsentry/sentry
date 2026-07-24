@@ -20,6 +20,7 @@ import {
 import {
   sentryAppApiOptions,
   sentryAppsApiOptions,
+  sentryAppTokensApiOptions,
 } from 'sentry/actionCreators/sentryApps';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
 import {Confirm} from 'sentry/components/confirm';
@@ -48,9 +49,7 @@ import type {
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -243,14 +242,6 @@ type SaveSentryAppPayload = {
 
 type RotateSecretResponse = {
   clientSecret: string;
-};
-
-const makeSentryAppApiTokensQueryKey = (appSlug: string): ApiQueryKey => {
-  return [
-    getApiUrl('/sentry-apps/$sentryAppIdOrSlug/api-tokens/', {
-      path: {sentryAppIdOrSlug: appSlug},
-    }),
-  ];
 };
 
 function getSchemaFieldValue(schema: SentryApp['schema'] | null | undefined) {
@@ -597,9 +588,8 @@ export default function SentryApplicationDetails() {
     },
   });
 
-  const {data: tokens = []} = useApiQuery<InternalAppApiToken[]>(
-    makeSentryAppApiTokensQueryKey(appSlug ?? ''),
-    {staleTime: 30_000, enabled: !!appSlug}
+  const {data: tokens = []} = useQuery(
+    sentryAppTokensApiOptions({appSlug: appSlug ?? null})
   );
 
   return (
@@ -796,6 +786,7 @@ function SentryAppEditForm({
 
   const isInternal = app.status === 'internal';
   const sentryAppQueryOptions = sentryAppApiOptions({appSlug: app.slug});
+  const sentryAppTokensQueryOptions = sentryAppTokensApiOptions({appSlug: app.slug});
 
   const [newTokens, setNewTokens] = useState<NewInternalAppApiToken[]>([]);
   const {handleSaveError, saveSentryAppMutation, scopeErrors} = useSaveSentryApp({
@@ -867,14 +858,20 @@ function SentryAppEditForm({
   const handleFinishNewToken = (newToken: NewInternalAppApiToken) => {
     const updatedNewTokens = newTokens.filter(token => token.id !== newToken.id);
     const updatedTokens = tokens.concat(newToken);
-    setApiQueryData(queryClient, makeSentryAppApiTokensQueryKey(app.slug), updatedTokens);
+    queryClient.setQueryData(sentryAppTokensQueryOptions.queryKey, {
+      json: updatedTokens,
+      headers: {},
+    });
     setNewTokens(updatedNewTokens);
   };
 
   const onRemoveToken = async (token: InternalAppApiToken) => {
     const updatedTokens = tokens.filter(tok => tok.id !== token.id);
     await removeTokenMutation.mutateAsync({sentryAppSlug: app.slug, tokenId: token.id});
-    setApiQueryData(queryClient, makeSentryAppApiTokensQueryKey(app.slug), updatedTokens);
+    queryClient.setQueryData(sentryAppTokensQueryOptions.queryKey, {
+      json: updatedTokens,
+      headers: {},
+    });
   };
 
   const renderTokens = () => {
