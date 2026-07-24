@@ -57,14 +57,12 @@ export function ResizableWindow({
 
 export function useElementSize(ref: React.RefObject<HTMLElement | null>) {
   const sizeRef = useRef({width: 0, height: 0});
+  const roRef = useRef<ResizeObserver | null>(null);
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
-      const el = ref.current;
-      if (!el) {
-        return () => {};
-      }
-      const ro = new ResizeObserver(entries => {
+      roRef.current?.disconnect();
+      roRef.current = new ResizeObserver(entries => {
         const rect = entries[0]?.contentRect;
         if (!rect) {
           return;
@@ -77,11 +75,17 @@ export function useElementSize(ref: React.RefObject<HTMLElement | null>) {
           onStoreChange();
         }
       });
-      ro.observe(el);
-      return () => ro.disconnect();
+      return () => roRef.current?.disconnect();
     },
-    [ref]
+    [sizeRef]
   );
+
+  useEffect(() => {
+    const el = ref.current;
+    if (el && roRef.current) {
+      roRef.current.observe(el);
+    }
+  });
 
   return useSyncExternalStore(
     subscribe,
@@ -95,13 +99,8 @@ function useDragResize(
   onResize?: (size: {height: number; width: number}) => void
 ) {
   const [dragging, setDragging] = useState<Edge | false>(false);
-  const dragState = useRef<{
-    edge: Edge;
-    startH: number;
-    startW: number;
-    startX: number;
-    startY: number;
-  } | null>(null);
+  const onResizeRef = useRef(onResize);
+  onResizeRef.current = onResize;
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent, edge: Edge) => {
@@ -110,56 +109,37 @@ function useDragResize(
         return;
       }
       e.preventDefault();
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      e.currentTarget.setPointerCapture(e.pointerId);
       const rect = el.getBoundingClientRect();
-      dragState.current = {
-        edge,
-        startX: e.clientX,
-        startY: e.clientY,
-        startW: rect.width,
-        startH: rect.height,
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startW = rect.width;
+      const startH = rect.height;
+
+      const onPointerMove = (ev: PointerEvent) => {
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        if (edge === 'right' || edge === 'corner') {
+          el.style.width = `${Math.max(MIN_WIDTH, startW + dx)}px`;
+        }
+        if (edge === 'bottom' || edge === 'corner') {
+          el.style.height = `${Math.max(MIN_HEIGHT, startH + dy)}px`;
+        }
+        onResizeRef.current?.({width: el.offsetWidth, height: el.offsetHeight});
       };
+
+      const onPointerUp = () => {
+        document.removeEventListener('pointermove', onPointerMove);
+        document.removeEventListener('pointerup', onPointerUp);
+        setDragging(false);
+      };
+
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', onPointerUp);
       setDragging(edge);
     },
     [containerRef]
   );
-
-  useEffect(() => {
-    if (!dragging) {
-      return;
-    }
-
-    const onPointerMove = (e: PointerEvent) => {
-      const el = containerRef.current;
-      const state = dragState.current;
-      if (!el || !state) {
-        return;
-      }
-      const dx = e.clientX - state.startX;
-      const dy = e.clientY - state.startY;
-
-      if (state.edge === 'right' || state.edge === 'corner') {
-        el.style.width = `${Math.max(MIN_WIDTH, state.startW + dx)}px`;
-      }
-      if (state.edge === 'bottom' || state.edge === 'corner') {
-        el.style.height = `${Math.max(MIN_HEIGHT, state.startH + dy)}px`;
-      }
-      onResize?.({width: el.offsetWidth, height: el.offsetHeight});
-    };
-
-    const onPointerUp = () => {
-      dragState.current = null;
-      setDragging(false);
-      document.body.style.cursor = '';
-    };
-
-    document.addEventListener('pointermove', onPointerMove);
-    document.addEventListener('pointerup', onPointerUp);
-    return () => {
-      document.removeEventListener('pointermove', onPointerMove);
-      document.removeEventListener('pointerup', onPointerUp);
-    };
-  }, [dragging, containerRef, onResize]);
 
   return {handlePointerDown, dragging};
 }

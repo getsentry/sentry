@@ -54,7 +54,7 @@ export function Demo({resizable, ...props}: DemoProps) {
         bottom="16px"
         gap="sm"
       >
-        <Text display="inline-block" style={{width: '3ch'}} align="right">
+        <Text display="inline-block" style={{width: '4ch'}} align="right">
           {getActiveBreakpoint(width.width)}
         </Text>{' '}
         <Text variant="muted" tabular>
@@ -63,7 +63,7 @@ export function Demo({resizable, ...props}: DemoProps) {
         <Text monospace variant="muted">
           {' × '}
         </Text>
-        <Text display="inline-block" style={{width: '3ch'}} align="right">
+        <Text display="inline-block" style={{width: '4ch'}} align="right">
           {getActiveBreakpoint(width.height)}
         </Text>{' '}
         <Text variant="muted" tabular>
@@ -106,8 +106,9 @@ const CONTAINER_BREAKPOINTS: Array<[string, number]> = [
 
 function getActiveBreakpoint(width: number): string {
   for (let i = CONTAINER_BREAKPOINTS.length - 1; i >= 0; i--) {
-    if (width >= CONTAINER_BREAKPOINTS[i]![1]) {
-      return CONTAINER_BREAKPOINTS[i]![0];
+    const bp = CONTAINER_BREAKPOINTS[i];
+    if (bp && width >= bp[1]) {
+      return bp[0];
     }
   }
   return 'zero';
