@@ -598,6 +598,10 @@ export class VideoReplayer {
     // If 'ended' is true, the current time will be overwritten to 0 after hitting play.
     // Setting currentTime will cause a side-effect of resetting 'ended' to false.
     if (!Number.isFinite(timeMs)) {
+      // eslint-disable-next-line no-console
+      console.error(
+        new Error(`Attempted to set a non-finite video currentTime: ${timeMs}`)
+      );
       return;
     }
 
