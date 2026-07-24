@@ -106,7 +106,7 @@ def _process_segment(
         # If the project does not exist then it might have been deleted during ingestion.
         return []
 
-    if project is not None and killswitch_matches_context(
+    if killswitch_matches_context(
         "spans.process-segments.drop-segments",
         {"org_id": str(project.organization_id)},
         emit_metrics=True,
@@ -114,8 +114,7 @@ def _process_segment(
         return []
 
     # Always attempt title generation, even when enrichment is skipped below.
-    if project is not None:
-        spawn_conversation_title_generation(unprocessed_spans, project)
+    spawn_conversation_title_generation(unprocessed_spans, project)
 
     if skip_enrichment:
         return [make_compatible(span) for span in unprocessed_spans]
