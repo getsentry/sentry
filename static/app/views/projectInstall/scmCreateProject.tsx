@@ -38,6 +38,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage, writeStorageValue} from 'sentry/utils/useSessionStorage';
+import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
 import {
   WIZARD_STORAGE_KEY,
   type WizardState,
@@ -71,7 +72,11 @@ export function ScmCreateProject() {
     'project_creation_page.viewed',
     'Project Create: Creation page viewed'
   );
-  useRouteAnalyticsParams({variant: 'scm'});
+  // Journey origin is sticky (sessionStorage seeded by
+  // ?projectCreationOrigin=org_creation from org-create). Orthogonal to
+  // `variant` and to `referrer=getting-started` autofill — back-from-docs
+  // must not reclassify an org-activation visit as existing_org.
+  useRouteAnalyticsParams({variant: 'scm', origin: useProjectCreationPageOrigin()});
 
   // Snapshot of the last completed wizard session, written when a project is
   // created (see handleComplete in the wizard). Restored when this mount is a

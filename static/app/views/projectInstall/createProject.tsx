@@ -55,6 +55,7 @@ import {
   IssueAlertOptions,
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
 import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
@@ -276,7 +277,11 @@ export function CreateProject() {
     'project_creation_page.viewed',
     'Project Create: Creation page viewed'
   );
-  useRouteAnalyticsParams({variant: 'legacy'});
+  // Journey origin is sticky (sessionStorage seeded by
+  // ?projectCreationOrigin=org_creation from org-create). Orthogonal to
+  // `variant` and to `referrer=getting-started` autofill — back-from-docs
+  // must not reclassify an org-activation visit as existing_org.
+  useRouteAnalyticsParams({variant: 'legacy', origin: useProjectCreationPageOrigin()});
 
   const configurePlatform = useCallback(
     async ({

@@ -10,6 +10,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from 'sentry/views/projectInstall/issueAlertOptions';
+import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
 import {ScmCreateProject} from './scmCreateProject';
 
@@ -99,6 +100,81 @@ describe('ScmCreateProject', () => {
     jest.clearAllMocks();
   });
 
+  function renderScmWithOriginQuery(query: Record<string, string> = {}) {
+    const routeAnalytics = {
+      previousUrl: '',
+      setDisableRouteAnalytics: jest.fn(),
+      setEventNames: jest.fn(),
+      setOrganization: jest.fn(),
+      setRouteAnalyticsParams: jest.fn(),
+    };
+
+    render(
+      <RouteAnalyticsContext value={routeAnalytics}>
+        <ScmCreateProject />
+      </RouteAnalyticsContext>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/projects/new/',
+            query,
+          },
+        },
+      }
+    );
+
+    return {routeAnalytics};
+  }
+
+  it('sets page-view origin to org_creation from the org-create seed param', () => {
+    const {routeAnalytics} = renderScmWithOriginQuery({
+      projectCreationOrigin: 'org_creation',
+    });
+
+    expect(routeAnalytics.setEventNames).toHaveBeenCalledWith(
+      'project_creation_page.viewed',
+      'Project Create: Creation page viewed'
+    );
+    expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+      variant: 'scm',
+      origin: 'org_creation',
+    });
+  });
+
+  it('keeps org_creation origin sticky after getting-started autofill return', () => {
+    window.sessionStorage.setItem('project-creation-origin:org-slug', 'org_creation');
+
+    const {routeAnalytics} = renderScmWithOriginQuery({
+      referrer: 'getting-started',
+      project: CREATED_PROJECT_ID,
+    });
+    expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+      variant: 'scm',
+      origin: 'org_creation',
+    });
+  });
+
+  it('defaults page-view origin to existing_org without a seed', () => {
+    const {routeAnalytics} = renderScmWithOriginQuery();
+
+    expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+      variant: 'scm',
+      origin: 'existing_org',
+    });
+  });
+
+  it('does not treat getting-started referrer alone as org creation', () => {
+    const {routeAnalytics} = renderScmWithOriginQuery({
+      referrer: 'getting-started',
+      project: CREATED_PROJECT_ID,
+    });
+
+    expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+      variant: 'scm',
+      origin: 'existing_org',
+    });
+  });
   it('shows all steps with the Create CTA disabled on a fresh visit', async () => {
     render(<ScmCreateProject />, {organization});
 
