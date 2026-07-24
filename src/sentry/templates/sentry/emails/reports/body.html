@@ -472,6 +472,9 @@
     <h4 class="total-count-title" style="font-weight: bold; margin-top: 0; margin-bottom: 0;">Total Spans</h4>
     <h1 style="margin: 0; font-weight: bold;">
       {{ total_spans_count|small_count:1 }}
+      {% if show_week_over_week_metric and spans_pct_change %}
+      <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 6px; vertical-align: middle; background-color: {{ spans_pct_change.bg_color }}; color: {{ spans_pct_change.text_color }};">{{ spans_pct_change.arrow }}&nbsp;{{ spans_pct_change.pct }}</span>
+      {% endif %}
     </h1>
     <a href="{% org_url organization '/explore/traces/' %}"
        style="font-size: 12px; margin-bottom: 16px; display: block; font-weight: bold;">View All Spans</a>

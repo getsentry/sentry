@@ -1,9 +1,9 @@
-import {Fragment, type ReactNode} from 'react';
+import {Fragment} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -37,75 +37,42 @@ import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
-
-type ChromeRenderer = (children: ReactNode) => ReactNode;
+import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
+import {IssueProgressTag} from 'sentry/views/issueList/utils/progress';
 
 interface IssuePreviewProps {
   groupId: string;
-  renderBody?: ChromeRenderer;
-  renderHeader?: ChromeRenderer;
 }
 
-function renderDefaultHeader(children: ReactNode) {
-  return (
-    <Container padding="md" borderBottom="muted">
-      {children}
-    </Container>
-  );
-}
-
-function renderDefaultBody(children: ReactNode) {
-  return (
-    <Container flexGrow={1} minHeight={0} overflowY="auto" padding="lg">
-      {children}
-    </Container>
-  );
-}
-
-export function IssuePreview({
-  groupId,
-  renderHeader = renderDefaultHeader,
-  renderBody = renderDefaultBody,
-}: IssuePreviewProps) {
-  const organization = useOrganization();
+export function IssuePreview({groupId}: IssuePreviewProps) {
   const {data: group, isPending, isError} = useGroup({groupId});
   const {projects} = useProjects();
   const project = projects.find(p => p.id === group?.project.id) ?? group?.project;
 
-  const issueDetailsUrl = normalizeUrl(
-    `/organizations/${organization.slug}/issues/${groupId}/`
-  );
-
   return (
     <Fragment>
-      {renderHeader(
-        <Flex justify="between" align="center" flex="1" gap="md">
+      <Container padding="md" borderBottom="muted">
+        <Flex align="center" flex="1" gap="md">
           {group && project && <IssueIdBreadcrumb group={group} project={project} />}
-          <Flex justify="end" flex="1">
-            <LinkButton to={issueDetailsUrl} size="xs" icon={<IconOpen />}>
-              {t('Open Issue')}
-            </LinkButton>
-          </Flex>
         </Flex>
-      )}
-      {renderBody(
-        <Fragment>
-          {isPending && <LoadingIndicator />}
-          {isError && <LoadingError />}
-          {group && project && (
-            <GroupDataContextProvider group={group} project={project}>
-              <ErrorBoundary mini>
-                <IssuePreviewContent />
-              </ErrorBoundary>
-            </GroupDataContextProvider>
-          )}
-        </Fragment>
-      )}
+      </Container>
+      <Container flexGrow={1} minHeight={0} overflowY="auto" padding="lg">
+        {isPending && <LoadingIndicator />}
+        {isError && <LoadingError />}
+        {group && project && (
+          <GroupDataContextProvider group={group} project={project}>
+            <ErrorBoundary mini>
+              <IssuePreviewContent />
+            </ErrorBoundary>
+          </GroupDataContextProvider>
+        )}
+      </Container>
     </Fragment>
   );
 }
 
 function IssuePreviewContent() {
+  const organization = useOrganization();
   const {group, project} = useGroupData();
   const {hasAutofix} = useAiConfig(group, project);
   const {data: event} = useGroupEvent({
@@ -120,29 +87,51 @@ function IssuePreviewContent() {
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(getGroupReprocessingStatus(group));
 
+  const issueDetailsUrl = normalizeUrl(
+    `/organizations/${organization.slug}/issues/${group.id}/`
+  );
+
   return (
     <Fragment>
       <Container paddingBottom="lg" borderBottom="muted">
         <Stack gap="xs">
           <Container>
-            <Tooltip
-              title={primaryTitle}
-              skipWrapper
-              isHoverable
-              showOnlyOnOverflow
-              delay={1000}
-            >
-              <Heading as="h3" size="lg" ellipsis>
-                {primaryTitle}
-              </Heading>
-            </Tooltip>
+            <Flex align="center" justify="between" gap="md">
+              <Flex align="center" gap="md" minWidth={0}>
+                <Tooltip
+                  title={primaryTitle}
+                  skipWrapper
+                  isHoverable
+                  showOnlyOnOverflow
+                  delay={1000}
+                >
+                  <Heading as="h3" size="lg" ellipsis>
+                    {primaryTitle}
+                  </Heading>
+                </Tooltip>
+                <LinkButton
+                  to={issueDetailsUrl}
+                  size="zero"
+                  variant="transparent"
+                  icon={<IconOpen size="xs" variant="muted" />}
+                  aria-label={t('Open Issue')}
+                  tooltipProps={{title: t('Open Issue')}}
+                />
+              </Flex>
+              <IssueSeenTimes group={group} />
+            </Flex>
             <EventMessage
               level={group.level}
               message={secondaryTitle}
               type={group.type}
             />
           </Container>
-          <GroupStatusSubtitle group={group} project={project} />
+          <Flex justify="between" align="center" gap="md">
+            <GroupStatusSubtitle group={group} project={project} />
+            {group.derivedData?.progress && (
+              <IssueProgressTag state={group.derivedData.progress} />
+            )}
+          </Flex>
         </Stack>
       </Container>
       <Flex
@@ -161,18 +150,13 @@ function IssuePreviewContent() {
           event={null}
         />
         <Flex align="center" wrap="wrap" gap="lg">
-          <Flex align="center" gap="xs">
-            <Text size="sm" variant="muted">
-              {t('Priority')}
-            </Text>
-            <GroupPriority group={group} />
-          </Flex>
-          <Flex align="center" gap="xs">
-            <Text size="sm" variant="muted">
-              {t('Assignee')}
-            </Text>
-            <GroupHeaderAssigneeSelector group={group} project={project} event={null} />
-          </Flex>
+          <GroupPriority group={group} />
+          <GroupHeaderAssigneeSelector
+            group={group}
+            project={project}
+            event={null}
+            showLabel={false}
+          />
         </Flex>
       </Flex>
       <Container paddingTop="md">

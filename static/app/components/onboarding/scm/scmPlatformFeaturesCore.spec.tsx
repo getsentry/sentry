@@ -109,6 +109,79 @@ describe('ScmPlatformFeaturesCore', () => {
     );
   });
 
+  it('fires only growth.select_platform for the project-creation SCM flow', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+    });
+
+    render(
+      <ScmPlatformFeaturesCore
+        {...defaultProps({
+          analyticsFlow: 'project-creation',
+          selectedRepository: repository,
+          selectedPlatform: undefined,
+        })}
+      />,
+      {organization}
+    );
+
+    await waitFor(() =>
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'growth.select_platform',
+        expect.objectContaining({
+          platform_id: 'python',
+          selection_source: 'detected',
+          source: 'project-creation',
+          variant: 'scm',
+        })
+      )
+    );
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'project_creation.platform_selected',
+      expect.anything()
+    );
+  });
+
+  it('keeps the onboarding SCM platform-selection event', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+    });
+
+    render(
+      <ScmPlatformFeaturesCore
+        {...defaultProps({
+          analyticsFlow: 'onboarding',
+          selectedRepository: repository,
+          selectedPlatform: undefined,
+        })}
+      />,
+      {organization}
+    );
+
+    await waitFor(() =>
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'onboarding.scm_platform_selected',
+        expect.objectContaining({platform: 'python', source: 'detected'})
+      )
+    );
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'growth.select_platform',
+      expect.anything()
+    );
+  });
+
   it('clears the selected platform from the manual picker', async () => {
     const onPlatformChange = jest.fn();
     const onFeaturesChange = jest.fn();

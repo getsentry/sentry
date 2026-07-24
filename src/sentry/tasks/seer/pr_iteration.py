@@ -671,13 +671,17 @@ def _build_review_feedback(
     *,
     review_id: int,
     review_html_url: str | None,
+    review_state: str | None,
     author_is_bot: bool,
 ) -> list[Feedback]:
     """Normalize a submitted review into feedback items.
 
     Each inline comment becomes an anchored ``GithubPrReviewCommentFeedbackSource``
     (command gate relaxed) and the review's summary body, if any, becomes its own
-    non-anchored ``GithubPrReviewBodyFeedbackSource``.
+    non-anchored ``GithubPrReviewBodyFeedbackSource``. Every item carries the
+    shared ``review_id`` so the UI can group them under one review; the review's
+    ``review_state`` (approved / changes requested / commented) lives on the body
+    source, the review's own representation.
 
     ``author_is_bot`` marks the resulting feedback as automated so it counts
     toward the automated-iteration streak cap (see ``automated_iteration_cap_reached``).
@@ -702,13 +706,16 @@ def _build_review_feedback(
             user=GithubPrCommentUser(login=author["username"] if author else None),
         )
         source = GithubPrReviewCommentFeedbackSource(
-            comment=review_comment, author_is_bot=author_is_bot
+            comment=review_comment,
+            review_id=review_id,
+            author_is_bot=author_is_bot,
         )
         feedback.append(Feedback(source=source))
 
     if review_body:
         body_source = GithubPrReviewBodyFeedbackSource(
             review_id=review_id,
+            review_state=review_state,
             body=review_body,
             html_url=review_html_url,
             author_is_bot=author_is_bot,
@@ -838,6 +845,7 @@ def trigger_pr_iteration_from_review(
     review = _fetch_review_body(scm, pr_number=pr_number, review_id=review_id)
     review_body = (review.get("body") or "").strip() if review else None
     review_html_url = review.get("html_url") if review else None
+    review_state = review.get("state") if review else None
 
     # Skip genuinely empty reviews — no body text AND no inline comments — there
     # is nothing to act on (e.g. a bare approve with no message). A review with
@@ -851,6 +859,7 @@ def trigger_pr_iteration_from_review(
         review_body,
         review_id=review_id,
         review_html_url=review_html_url,
+        review_state=review_state,
         author_is_bot=author_is_bot,
     )
     if not feedback_items:
