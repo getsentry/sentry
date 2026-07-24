@@ -106,7 +106,7 @@ export function WidgetBuilderV2({
     }
   }, []);
 
-  const {contentTop} = useTopOffset();
+  const {stickyContentTop} = useTopOffset();
 
   const dimensions = useDimensions({elementRef: navigationElementRef});
 
@@ -172,12 +172,12 @@ export function WidgetBuilderV2({
                     ? isMediumScreen
                       ? {
                           left: 0,
-                          top: contentTop,
+                          top: stickyContentTop,
                           willChange: 'top',
                         }
                       : {
                           left: `${dimensions.width ?? 0}px`,
-                          top: contentTop,
+                          top: stickyContentTop,
                           willChange: 'left',
                         }
                     : undefined

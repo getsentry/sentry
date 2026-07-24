@@ -73,7 +73,7 @@ export function SlideOverPanel({
   // is displayed.
   // Subsequent updates of the `children` are not deferred.
   const [isContentVisible, setIsContentVisible] = useState(false);
-  const {contentTop} = useTopOffset();
+  const {stickyContentTop} = useTopOffset();
   useEffect(() => {
     startTransition(() => {
       setIsContentVisible(true);
@@ -96,7 +96,7 @@ export function SlideOverPanel({
         ref={ref}
         id={id}
         mode={mode}
-        top={contentTop}
+        top={stickyContentTop}
         initial={collapsedStyle}
         animate={openStyle}
         exit={collapsedStyle}

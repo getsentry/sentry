@@ -1,3 +1,4 @@
+import {createContext, useContext} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {getOverride} from 'sentry/overrideRegistry';
@@ -11,17 +12,42 @@ import {
   SUPERUSER_MARQUEE_HEIGHT,
 } from 'sentry/views/navigation/constants';
 
+/**
+ * Measured height of the global banner region (superuser marquee + in-flow
+ * SystemAlerts) that sits above the nav + content row. Only AppLayout can
+ * measure it, so it flows down through context. Defaults to 0 outside the
+ * provider (tests, Storybook, standalone primitives) — those trees have no
+ * banner, so the fallback is correct rather than merely safe.
+ */
+const BannerHeightContext = createContext(0);
+
+export function BannerHeightProvider({
+  height,
+  children,
+}: {
+  children: React.ReactNode;
+  height: number;
+}) {
+  return <BannerHeightContext value={height}>{children}</BannerHeightContext>;
+}
+
 interface TopOffset {
-  /** The `top` CSS value for the sticky bar itself */
-  barTop: string;
-  /** Offset where content below the bar starts (marquee + header only, excludes in-flow SystemAlerts) */
-  contentTop: string;
+  /**
+   * Measured banner region height (marquee + SystemAlerts), for sizing the nav
+   * against the viewport. 0 outside the provider.
+   */
+  bannerHeight: number;
+  /** `top` where sticky page content starts: below the marquee and the header. */
+  stickyContentTop: string;
+  /** `top` where the nav sidebar sticks: below the marquee only. */
+  stickyNavTop: string;
 }
 
 export function useTopOffset(): TopOffset {
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
   const isMobile = !useMedia(`(min-width: ${theme.breakpoints.md})`);
+  const bannerHeight = useContext(BannerHeightContext);
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
@@ -33,7 +59,8 @@ export function useTopOffset(): TopOffset {
     : PRIMARY_HEADER_HEIGHT;
 
   return {
-    barTop: `${superuserOffset}px`,
-    contentTop: `${superuserOffset + headerHeight}px`,
+    bannerHeight,
+    stickyNavTop: `${superuserOffset}px`,
+    stickyContentTop: `${superuserOffset + headerHeight}px`,
   };
 }

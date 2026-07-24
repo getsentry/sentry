@@ -51,7 +51,7 @@ function CommandPaletteSlotOutlets() {
   );
 }
 
-function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
+function UserAndOrganizationNavigation() {
   const {layout} = usePrimaryNavigation();
   const {visible} = useModal();
   const {view, setView} = useSecondaryNavigation();
@@ -68,7 +68,7 @@ function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
   );
 
   return (
-    <NavigationLayout pageBannerHeight={pageBannerHeight}>
+    <NavigationLayout>
       <CommandPaletteHotkeys />
       <CommandPaletteSlotOutlets />
       <GlobalCommandPaletteActions />
@@ -91,33 +91,26 @@ function UserOnlyNavigation() {
   );
 }
 
-interface NavigationProps {
-  pageBannerHeight?: number;
-}
-
-function NavigationLayout({
-  children,
-  pageBannerHeight = 0,
-}: NavigationProps & {children: React.ReactNode}) {
+function NavigationLayout({children}: {children: React.ReactNode}) {
   const theme = useTheme();
   const {layout} = usePrimaryNavigation();
   const {currentStepId} = useNavigationTour();
   const hoverProps = useResetActiveNavigationGroup();
-  const {barTop} = useTopOffset();
+  const {stickyNavTop, bannerHeight} = useTopOffset();
 
   return (
     <Flex
-      top={barTop}
+      top={stickyNavTop}
       left={0}
       position={currentStepId ? undefined : 'sticky'}
       bottom={layout === 'mobile' ? undefined : 0}
       height={
         layout === 'mobile'
           ? undefined
-          : // barTop (marquee) and pageBannerHeight (marquee + alerts) overlap, so
-            // max not sum; barTop also floors the height while pageBannerHeight's
+          : // stickyNavTop (marquee) and bannerHeight (marquee + alerts) overlap, so
+            // max not sum; stickyNavTop also floors the height while bannerHeight's
             // ResizeObserver still reports 0 on first paint.
-            `calc(100dvh - max(${barTop}, ${pageBannerHeight}px))`
+            `calc(100dvh - max(${stickyNavTop}, ${bannerHeight}px))`
       }
       style={{
         zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
@@ -130,7 +123,7 @@ function NavigationLayout({
   );
 }
 
-export function Navigation({pageBannerHeight = 0}: NavigationProps) {
+export function Navigation() {
   const organization = useOrganization({allowNull: true});
 
   if (!organization) {
@@ -146,7 +139,7 @@ export function Navigation({pageBannerHeight = 0}: NavigationProps) {
     <HoverOverlayGroupProvider>
       <NavigationTourProvider>
         <SkipLink />
-        <UserAndOrganizationNavigation pageBannerHeight={pageBannerHeight} />
+        <UserAndOrganizationNavigation />
       </NavigationTourProvider>
     </HoverOverlayGroupProvider>
   );

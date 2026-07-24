@@ -41,8 +41,8 @@ export function EventDetails({group, event, project}: EventDetailsContentProps) 
 function StickyEventNav({event, group}: {event: Event; group: Group}) {
   const [nav, setNav] = useState<HTMLDivElement | null>(null);
   const {dispatch} = useIssueDetails();
-  const {contentTop} = useTopOffset();
-  const stickyTopOffset = Number.parseInt(contentTop, 10);
+  const {stickyContentTop} = useTopOffset();
+  const stickyTopOffset = Number.parseInt(stickyContentTop, 10);
 
   useLayoutEffect(() => {
     if (!nav) {
