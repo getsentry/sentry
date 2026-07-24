@@ -172,7 +172,7 @@ const WindowRoot = styled(Container)`
   &[data-dragging] {
     user-select: none;
     /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-    border-color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    border-color: ${p => p.theme.tokens.graphics.neutral.moderate};
   }
 `;
 
@@ -193,7 +193,7 @@ const Handle = styled('div')`
   &:hover,
   ${WindowRoot}:has(> [data-edge='corner']:hover) > & {
     --sw: 1px;
-    --color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    --color: ${p => p.theme.tokens.graphics.neutral.vibrant};
   }
 
   &[data-edge='right'] {
