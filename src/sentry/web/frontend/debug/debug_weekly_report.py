@@ -23,7 +23,9 @@ from sentry.tasks.summaries.utils import (
     ProjectContext,
 )
 from sentry.tasks.summaries.weekly_reports import (
+    CHART_PALETTE,
     _pct_change,
+    _top_spans_chart_url,
     get_group_display,
     render_template_context,
 )
@@ -272,9 +274,13 @@ class DebugWeeklyReportView(MailPreviewView):
                     if ctx.top_spans_projects.get(span["name"]) in project_by_id
                     else "",
                     "url": "#",
+                    "color": CHART_PALETTE[i] if i < len(CHART_PALETTE) else "",
                 }
-                for span in ctx.top_spans
+                for i, span in enumerate(ctx.top_spans)
             ]
+            chart_url = _top_spans_chart_url(context["top_spans_table"], ctx, None)
+            if chart_url:
+                context["spans_chart_url"] = chart_url
             past_issues: list[dict[str, Any]] = []
             for project_ctx in ctx.projects_context_map.values():
                 for group, count, resolution_label in project_ctx.past_resolved_issues:

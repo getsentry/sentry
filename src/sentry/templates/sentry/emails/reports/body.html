@@ -370,11 +370,10 @@
     {% endif %}
 
     {% if notification_settings_link and user_project_count > 5 %}
-    <div style="padding: 16px 16px 12px; margin: 16px 0 16px; background-color: #f8f8f9; border-radius: 4px; font-size: 14px; color: #80708F;">
-      Want to choose the projects you see in the weekly report? <a href="{% absolute_uri notification_settings_link %}">Customize your project preferences here!</a>
-    </div>
+      <div style="padding: 16px 16px 12px; margin: 16px 0 16px; background-color: #f8f8f9; border-radius: 4px; font-size: 14px; color: #80708F;">
+        Want to choose the projects you see in the weekly report? <a href="{% absolute_uri notification_settings_link %}">Customize your project preferences here!</a>
+      </div>
     {% endif %}
-
 
     {% if issue_summary.total_substatus_count > 0 %}
     <table class="issue-breakdown">
@@ -479,11 +478,19 @@
     <a href="{% org_url organization '/explore/traces/' %}"
        style="font-size: 12px; margin-bottom: 16px; display: block; font-weight: bold;">View All Spans</a>
 
+    {% if spans_chart_url %}
+    <h4 style="margin-bottom: 0;">p95 for Top Spans</h4>
+
+    <div style="margin-bottom: 16px;">
+      <img src="{{ spans_chart_url }}" width="600" height="200" alt="Top spans p95 chart" style="max-width: 100%;" />
+    </div>
+    {% endif %}
+
     {% if top_spans_table %}
-    <h4 style="margin-bottom: 0;">Top Spans</h4>
     <table style="width: 100%; border-collapse: collapse;">
       <thead>
         <tr style="border-bottom: 1px solid #DEE7EB;">
+          <th style="width: 2em; padding-right: 0.5em"></th>
           <th style="font-size: 12px; text-transform: uppercase; color: #80708F; font-weight: 700; text-align: left; padding-top: 8px; padding-bottom: 8px;">Span Name</th>
           <th style="font-size: 12px; text-transform: uppercase; color: #80708F; font-weight: 700; text-align: left; padding-top: 8px; padding-bottom: 8px;">Project</th>
           <th style="font-size: 12px; text-transform: uppercase; color: #80708F; font-weight: 700; text-align: center; padding-top: 8px; padding-bottom: 8px;">P95</th>
@@ -493,6 +500,9 @@
       <tbody>
       {% for span in top_spans_table %}
         <tr style="border-bottom: 1px solid #DEE7EB;">
+          <td style="vertical-align: middle;">
+            {% if span.color %}<span style="background: {{ span.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
+          </td>
           <td style="font-size: 14px; font-weight: 700; vertical-align: middle; padding-top: 8px; padding-bottom: 8px; padding-right: 16px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ span.name }}"><a href="{{ span.url }}" style="font-weight: 700;">{{ span.name }}</a></td>
           <td style="font-size: 14px; vertical-align: middle; padding-top: 8px; padding-bottom: 8px; padding-right: 16px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ span.project_slugs }}">{{ span.project_slugs }}</td>
           <td style="font-size: 14px; text-align: center; padding-top: 8px; padding-bottom: 8px;">{{ span.p95|format_duration_ms }}</td>
@@ -504,7 +514,6 @@
     {% endif %}
   </div>
   {% endif %}
-
 
 </div>
 {% endblock %}
