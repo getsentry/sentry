@@ -2223,6 +2223,18 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Deterministic % rollout, keyed on organization id, of the per-project EAP
+# transaction volume query: the top N transactions of every root project via
+# LIMIT BY (N from dynamic-sampling.prioritise_transactions.num_explicit_large_transactions)
+# instead of a single org-wide query capped at 100 rows. 0.0 keeps the org-wide
+# query for every org; 1.0 uses the per-project query for every org.
+register(
+    "dynamic-sampling.per_org.transaction-volumes-per-project-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Sample rate for metrics emitted by the per-org dynamic sampling pipeline
 # (status counters, org_status counters, duration timer). 1.0 emits every
 # event; lower values drop events proportionally. Use this to reduce metric
