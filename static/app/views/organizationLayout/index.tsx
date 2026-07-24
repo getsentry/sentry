@@ -89,8 +89,10 @@ function AppDrawers() {
 
 function AppLayout({organization}: LayoutProps) {
   useSeerExplorerDocumentTitle();
-  const topRegionRef = useRef<HTMLDivElement>(null);
-  const {height: topRegionHeight} = useDimensions({elementRef: topRegionRef});
+  const topAlertsRegionRef = useRef<HTMLDivElement>(null);
+  const {height: topAlertsRegionHeight} = useDimensions({
+    elementRef: topAlertsRegionRef,
+  });
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
@@ -99,7 +101,7 @@ function AppLayout({organization}: LayoutProps) {
   return (
     <PrimaryNavigationContextProvider>
       <Stack flex="1" minWidth="0" minHeight="100dvh">
-        <Container ref={topRegionRef}>
+        <Container ref={topAlertsRegionRef}>
           {showSuperuserWarning && (
             <Override name="component:superuser-warning" organization={organization} />
           )}
@@ -112,7 +114,7 @@ function AppLayout({organization}: LayoutProps) {
           direction={{'screen:sm': 'column', 'screen:md': 'row'}}
           position="relative"
         >
-          <Navigation topRegionHeight={topRegionHeight} />
+          <Navigation topAlertsRegionHeight={topAlertsRegionHeight} />
           <SeerExplorerSidebarLayout>
             {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
             <ContentStack
