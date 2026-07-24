@@ -364,6 +364,6 @@ def filter_deploy_data(
     return data.copy(
         update={
             "release_projects": filtered_release_projects,
-            "user_settinsg_url": user_settings_url,
+            "user_settings_url": user_settings_url,
         }
     )

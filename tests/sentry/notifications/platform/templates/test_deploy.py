@@ -89,6 +89,17 @@ class FilterDeployDataTest(TestCase):
         assert result.user_settings_url is not None
         assert "notifications/deploy/" in result.user_settings_url
 
+    def test_includes_user_settings_url_when_allow_joinleave_is_false(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        result = filter_deploy_data(
+            data=self.data, user_id=self.user.id, organization=self.organization
+        )
+
+        assert result.user_settings_url is not None
+        assert "notifications/deploy/" in result.user_settings_url
+
     def test_no_user_settings_url_when_user_id_is_none(self) -> None:
         result = filter_deploy_data(data=self.data, user_id=None, organization=self.organization)
 
