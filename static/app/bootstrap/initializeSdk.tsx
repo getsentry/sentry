@@ -150,6 +150,14 @@ export function initializeSdk(config: Config) {
       /AbortError: signal is aborted without reason/i,
       /AbortError: The user aborted a request/i,
       /**
+       * Script https://org-slug.sentry.io/service-worker.js load failed
+       * ServiceWorker script at https://org-slug.sentry.io/service-worker.js
+       *   encountered an error during installation.
+       * Failed to register a ServiceWorker with script
+       *   https://org-slug.sentry.io/service-worker.js: unsupported MIME type
+       */
+      /service-worker\.js.*(?:load failed|error during installation|unsupported MIME type)/i,
+      /**
        * React internal error thrown when something outside react modifies the DOM
        * This is usually because of a browser extension or chrome translate page
        */
@@ -180,7 +188,7 @@ export function initializeSdk(config: Config) {
       if (
         isFilteredRequestErrorEvent(event) ||
         isEventWithFileUrl(event) ||
-        isNullTupleUnhandledRejectionEvent(event)
+        isNullTupleUnhandledRejectionEvent(hint)
       ) {
         return null;
       }
@@ -272,19 +280,17 @@ export function isEventWithFileUrl(event: Event): boolean {
 }
 
 /**
- * Some unhandled rejections are serialized as `[null,null]`, which maps to
- * an unhelpful `Error: ,` and is not actionable.
+ * Ignore unhandled rejections of `[null, null]`. The SDK keeps the original
+ * array in the hint until after `beforeSend`, then normalizes it to the
+ * `[null,null]` message shown in the stored event.
  */
-function isNullTupleUnhandledRejectionEvent(event: Event): boolean {
-  if (event.message !== '[null,null]') {
-    return false;
-  }
+function isNullTupleUnhandledRejectionEvent(hint: Sentry.EventHint): boolean {
+  const originalException = hint.originalException;
 
-  const error = event.exception?.values?.at(-1);
   return (
-    error?.type === 'Error' &&
-    error.value === ',' &&
-    error.mechanism?.type === 'auto.browser.global_handlers.onunhandledrejection'
+    Array.isArray(originalException) &&
+    originalException.length === 2 &&
+    originalException.every(value => value === null)
   );
 }
 
