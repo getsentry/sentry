@@ -999,6 +999,56 @@ describe('CustomerOverview', () => {
       expect(seerSection.getByText('Budget Used:')).toBeInTheDocument();
     });
 
+    it('flags a seat-based plan with no seat data instead of hiding it', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
+      subscription.addOns = {
+        ...subscription.addOns,
+        [AddOnCategory.SEER]: {
+          ...subscription.addOns![AddOnCategory.SEER]!,
+          enabled: true,
+        },
+      };
+      delete subscription.categories.seerUsers;
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Seat-based')).toBeInTheDocument();
+      expect(
+        seerSection.getByText('Seat plan enabled but no seat data found')
+      ).toBeInTheDocument();
+    });
+
+    it('flags a legacy plan with no budget data instead of hiding it', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionWithLegacySeerFixture({
+        organization,
+        plan: 'am3_business',
+      });
+      subscription.reservedBudgets = [];
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Legacy (budget)')).toBeInTheDocument();
+      expect(
+        seerSection.getByText('Legacy plan enabled but no budget data found')
+      ).toBeInTheDocument();
+    });
+
     it('renders None when the plan offers Seer but it is not enabled', () => {
       const organization = OrganizationFixture();
       const subscription = SubscriptionFixture({organization, plan: 'am3_business'});

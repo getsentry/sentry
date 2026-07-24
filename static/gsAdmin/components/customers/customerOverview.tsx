@@ -301,16 +301,14 @@ function ReservedBudgetData({
 }
 
 /**
- * A clearly-labeled summary of the org's Seer plan. All of this data already
- * lives on the subscription payload, but it's otherwise scattered as anonymous
- * rows across ReservedData / ReservedBudgetsData, which makes it hard to tell
- * at a glance which Seer plan an org is on and how many seats they pay for.
+ * Surfaces the org's Seer plan in one labeled place. The same numbers are
+ * otherwise scattered as anonymous rows across ReservedData /
+ * ReservedBudgetsData.
  */
 function SeerPlanSummary({customer}: {customer: Subscription}) {
   const seerAddOn = customer.addOns?.[AddOnCategory.SEER];
   const legacySeerAddOn = customer.addOns?.[AddOnCategory.LEGACY_SEER];
 
-  // Seer isn't offered on this subscription's plan at all — nothing to show.
   if (!seerAddOn && !legacySeerAddOn) {
     return null;
   }
@@ -336,40 +334,50 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
             <Tag variant="muted">None</Tag>
           )}
         </DetailLabel>
-        {isSeatBased && seerUsers && (
-          <Fragment>
-            <DetailLabel title="Reserved Seats">
-              {formatReservedWithUnits(seerUsers.reserved, DataCategory.SEER_USER)}
-            </DetailLabel>
-            <DetailLabel title="Active Contributors (billed this period)">
-              {seerUsers.usage.toLocaleString()}
-            </DetailLabel>
-            <DetailLabel title="Gifted Seats">
-              {formatReservedWithUnits(seerUsers.free, DataCategory.SEER_USER, {
-                isGifted: true,
-              })}
-            </DetailLabel>
-            {typeof seerUsers.customPrice === 'number' && (
-              <DetailLabel title="Custom Price">
-                {displayPriceWithCents({cents: seerUsers.customPrice})}
+        {isSeatBased &&
+          (seerUsers ? (
+            <Fragment>
+              <DetailLabel title="Reserved Seats">
+                {formatReservedWithUnits(seerUsers.reserved, DataCategory.SEER_USER)}
               </DetailLabel>
-            )}
-          </Fragment>
-        )}
-        {isLegacy && legacyBudget && (
-          <Fragment>
-            <DetailLabel title="Reserved Budget">
-              {displayPriceWithCents({cents: legacyBudget.reservedBudget})}
+              <DetailLabel title="Active Contributors (billed this period)">
+                {seerUsers.usage.toLocaleString()}
+              </DetailLabel>
+              <DetailLabel title="Gifted Seats">
+                {formatReservedWithUnits(seerUsers.free, DataCategory.SEER_USER, {
+                  isGifted: true,
+                })}
+              </DetailLabel>
+              {typeof seerUsers.customPrice === 'number' && (
+                <DetailLabel title="Custom Price">
+                  {displayPriceWithCents({cents: seerUsers.customPrice})}
+                </DetailLabel>
+              )}
+            </Fragment>
+          ) : (
+            <DetailLabel title="Seats">
+              <Tag variant="danger">Seat plan enabled but no seat data found</Tag>
             </DetailLabel>
-            <DetailLabel title="Budget Used">
-              {displayPriceWithCents({cents: legacyBudget.totalReservedSpend})} /{' '}
-              {displayPriceWithCents({
-                cents: legacyBudget.reservedBudget + legacyBudget.freeBudget,
-              })}{' '}
-              ({(legacyBudget.percentUsed * 100).toFixed(2)}%)
+          ))}
+        {isLegacy &&
+          (legacyBudget ? (
+            <Fragment>
+              <DetailLabel title="Reserved Budget">
+                {displayPriceWithCents({cents: legacyBudget.reservedBudget})}
+              </DetailLabel>
+              <DetailLabel title="Budget Used">
+                {displayPriceWithCents({cents: legacyBudget.totalReservedSpend})} /{' '}
+                {displayPriceWithCents({
+                  cents: legacyBudget.reservedBudget + legacyBudget.freeBudget,
+                })}{' '}
+                ({(legacyBudget.percentUsed * 100).toFixed(2)}%)
+              </DetailLabel>
+            </Fragment>
+          ) : (
+            <DetailLabel title="Budget">
+              <Tag variant="danger">Legacy plan enabled but no budget data found</Tag>
             </DetailLabel>
-          </Fragment>
-        )}
+          ))}
       </DetailList>
     </div>
   );
