@@ -100,6 +100,11 @@ export function ConversationsChart() {
     ];
   }, [timeSeries, chartType, label]);
 
+  const chartTypeLabel =
+    CHART_TYPE_OPTIONS.find(option => option.value === chartType)?.label ?? '';
+  const intervalLabel =
+    intervalOptions.find(option => option.value === interval)?.label ?? interval;
+
   const Title = (
     <CompactSelect
       trigger={triggerProps => (
@@ -126,7 +131,7 @@ export function ConversationsChart() {
               variant="transparent"
               size="xs"
             >
-              {CHART_TYPE_OPTIONS.find(option => option.value === chartType)?.label}
+              {chartTypeLabel}
             </OverlayTrigger.Button>
           )}
           value={chartType}
@@ -144,7 +149,7 @@ export function ConversationsChart() {
               variant="transparent"
               size="xs"
             >
-              {intervalOptions.find(option => option.value === interval)?.label}
+              {intervalLabel}
             </OverlayTrigger.Button>
           )}
           value={interval}
