@@ -30,32 +30,11 @@ interface ApplySeerEquationResult {
 }
 
 /**
- * Applies Seer-generated equations or aggregates to metric queries after a user interacts
- * within the metrics explorer. The function is structured in logical steps (chunks)
- * to clarify its operation and surface any redundant or decomposable work:
+ * Updates metric queries by applying Seer-generated aggregates or equations based on user interaction.
  *
- * **Main chunks of the process:**
- * 1. **Detection:** Determines if Seer equation(s) or aggregate(s) are present, and identifies which metric query row was interacted with.
- * 2. **Replacement Preparation:**
- *    - Analyzes whether the interacted row is an equation or an aggregate.
- *    - Calculates the correct label for a replacement aggregate if necessary (e.g., assigning a sequential label for aggregates within equations).
- *    - Captures existing metric references for future synchronization.
- * 3. **Replacement Application:** Builds a new metric query array:
- *    - Replaces the interacted row either with a Seer-generated aggregate/equation or swaps in a non-equation replacement metric (if specified).
- *    - Ensures label consistency for aggregates and equations to maintain correctness in equation evaluation.
- * 4. **Encoding and Splicing:**
- *    - Encodes the updated set of metric queries for further processing.
- *    - Applies any required splicing of equation/aggregate sequences for proper visual and logical order.
- *
- * **Summary:**
- * This function thus modularly:
- *   - Swaps in aggregates/equations after interacting with a metric row.
- *   - Maintains correct label assignment for equation parsing.
- *   - Supports non-equation replacement if provided.
- *   - Returns both the encoded metric queries and the splice operation result.
- *
- * @param params - Encapsulates the current metric queries, the row interacted with, Seer-provided aggregates and equations, and (optionally) details for a non-equation replacement.
- * @returns An object with (a) an updated, encoded metrics list and (b) the result of the equation splicing operation.
+ * Swaps in Seer aggregates/equations for the interacted row, updates label references for equations,
+ * and optionally supports non-equation replacements. Returns updated, encoded metric queries and the result of equation splicing
+ * in case there was not enough space to fit all the Seer-generated aggregates/equations.
  */
 
 export function applySeerResultsToMetricQueries({
