@@ -1,5 +1,6 @@
 import abc
 from collections.abc import Callable, Collection, Sequence
+from typing import cast
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -33,6 +34,7 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
         "issues.sdk_crash_detection.java.project_id": 3,
         "issues.sdk_crash_detection.java.sample_rate": 1.0,
         "issues.sdk_crash_detection.react-native.project_id": 2,
+        "issues.sdk_crash_detection.react-native.sample_rate": 1.0,
     }
 )
 def build_sdk_configs() -> Sequence[SDKCrashDetectionConfig]:
@@ -291,7 +293,7 @@ def test_react_native_sdk_version_attributed_without_replacing_native_version(
     sdk_name: str,
     event_factory: Callable[[], dict[str, object]],
 ) -> None:
-    event_data = event_factory()
+    event_data = cast(dict[str, Collection[str]], event_factory())
     set_path(event_data, "sdk", "name", value=sdk_name)
     set_path(
         event_data,
