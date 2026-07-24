@@ -40,10 +40,12 @@ export function ProguardSection({data, projectSlug}: ProguardSectionProps) {
               <LinkButton
                 size="xs"
                 icon={<IconOpen />}
-                title={t(
-                  'Search for this mapping file in the %s project settings',
-                  projectSlug
-                )}
+                tooltipProps={{
+                  title: t(
+                    'Search for this mapping file in the %s project settings',
+                    projectSlug
+                  ),
+                }}
                 aria-label={t('Open in Settings')}
                 to={{
                   pathname: `/settings/${organization.slug}/projects/${projectSlug}/proguard/`,
