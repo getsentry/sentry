@@ -221,6 +221,7 @@ class GithubPrReviewBodyFeedbackSource(FeedbackSourceBase):
     review_state: str | None = None
     body: str = ""
     html_url: str | None = None
+    user: GithubPrCommentUser | None = None
     # Whether the review author is a bot (e.g. a test-coverage bot). Bot reviews
     # count toward the automated-iteration streak cap; human reviews reset it.
     author_is_bot: bool = False

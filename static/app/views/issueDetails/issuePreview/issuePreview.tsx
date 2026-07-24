@@ -10,6 +10,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getMessage, getTitle} from 'sentry/utils/events';
@@ -26,6 +27,7 @@ import {
 } from 'sentry/views/issueDetails/groupDataContext';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
+import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
@@ -51,12 +53,19 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
 
   return (
     <Fragment>
-      <Container padding="md" borderBottom="muted">
+      <Container padding="xs 2xl" borderBottom="muted">
         <Flex align="center" flex="1" gap="md">
-          {group && project && <IssueIdBreadcrumb group={group} project={project} />}
+          {group && project ? (
+            <IssueIdBreadcrumb group={group} project={project} />
+          ) : isPending ? (
+            <Flex align="center" gap="md" height="36px">
+              <Placeholder width="16px" height="16px" shape="rect" />
+              <Placeholder width="80px" height="16px" shape="rect" />
+            </Flex>
+          ) : null}
         </Flex>
       </Container>
-      <Container flexGrow={1} minHeight={0} overflowY="auto" padding="lg">
+      <Container flexGrow={1} minHeight={0} overflowY="auto" padding="lg 2xl">
         {isPending && <LoadingIndicator />}
         {isError && <LoadingError />}
         {group && project && (
@@ -127,10 +136,15 @@ function IssuePreviewContent() {
             />
           </Container>
           <Flex justify="between" align="center" gap="md">
-            <GroupStatusSubtitle group={group} project={project} />
-            {group.derivedData?.progress && (
-              <IssueProgressTag state={group.derivedData.progress} />
-            )}
+            <Flex flex="1" minWidth={0}>
+              <GroupStatusSubtitle group={group} project={project} />
+            </Flex>
+            <Flex align="center" gap="xs" flexShrink={0} wrap="nowrap">
+              {group.derivedData?.progress && (
+                <IssueProgressTag state={group.derivedData.progress} />
+              )}
+              <EventUserCounts group={group} project={project} />
+            </Flex>
           </Flex>
         </Stack>
       </Container>

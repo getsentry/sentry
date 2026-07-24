@@ -312,9 +312,6 @@ importers:
       '@types/reflux':
         specifier: 0.4.1
         version: 0.4.1
-      '@types/scroll-to-element':
-        specifier: ^2.0.2
-        version: 2.0.2
       ansi-to-react:
         specifier: ^6.1.6
         version: 6.1.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -507,9 +504,6 @@ importers:
       screenfull:
         specifier: ^6.0.2
         version: 6.0.2
-      scroll-to-element:
-        specifier: ^2.0.0
-        version: 2.0.3
       sprintf-js:
         specifier: 1.0.3
         version: 1.0.3
@@ -4021,9 +4015,6 @@ packages:
 
   '@types/reflux@0.4.1':
     resolution: {integrity: sha512-XOavgwrJxBiSQufelsZ+ZAi6Xvrh/M/IlfKNrqnxHytK8WKkWF8G4QhZwwhLXk7NsgaUf3ZqcFFN9YhzBqmuNA==}
-
-  '@types/scroll-to-element@2.0.2':
-    resolution: {integrity: sha512-0YqjFrXxppCHLpVGWL1BBnOrtF+IcUJ9cZrK4USLbIG/H7VSPSCn2T/I8WdWHKeiO1cLbMq7BmCADEP30Z7+1Q==}
 
   '@types/semver@7.5.8':
     resolution: {integrity: sha512-I8EUhyrgfLrcTkzV3TSsGyl1tSuPrEDzr0yd5m90UgNxQkyDXULk3b6MlQqTCpZpNtWe1K0hzclnZkTcLBe2UQ==}
@@ -7699,9 +7690,6 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  performance-now@2.1.0:
-    resolution: {integrity: sha512-7EAHlyLHI56VEIdK57uwHdHKIaAGbnXPiw0yWbarQZOKaKpvUIgW0jWRVLiatnM+XXlSwsanIBH/hzGMJulMow==}
-
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
@@ -7921,9 +7909,6 @@ packages:
 
   querystringify@2.2.0:
     resolution: {integrity: sha512-FIqgj2EUvTa7R50u0rGsyTftzjYmv/a3hO345bZNrqabNqjtgiDMgmo4mkUjd+nzU5oF3dClKqFIPUKybUyqoQ==}
-
-  raf@3.4.1:
-    resolution: {integrity: sha512-Sq4CW4QhwOHE8ucn6J34MqtZCeWFP2aQSmrlroYgqAV1PjStIhJXxYuTgUIfkEk7zTLjmIjLmU5q+fbD1NnOJA==}
 
   react-date-range@1.4.0:
     resolution: {integrity: sha512-+9t0HyClbCqw1IhYbpWecjsiaftCeRN5cdhsi9v06YdimwyMR2yYHWcgVn3URwtN/txhqKpEZB6UX1fHpvK76w==}
@@ -8301,9 +8286,6 @@ packages:
   screenfull@6.0.2:
     resolution: {integrity: sha512-AQdy8s4WhNvUZ6P8F6PB21tSPIYKniic+Ogx0AacBMjKP1GUHN2E9URxQHtCusiwxudnCKkdy4GrHXPPJSkCCw==}
     engines: {node: ^14.13.1 || >=16.0.0}
-
-  scroll-to-element@2.0.3:
-    resolution: {integrity: sha512-5herPcm9jMfQgRwu94lH5mei+2YhipR4RQ2nAvnBxJb2tG+P7O0ctOKAaAZBXbBejnn+MImh3wrAUA5EcLnjEQ==}
 
   scslre@0.3.0:
     resolution: {integrity: sha512-3A6sD0WYP7+QrjbfNA2FN3FsOaGGFoekCVgTyypy53gPxhbkCIjtO6YWgdrfM+n/8sI8JeXZOIxsHjMTNxQ4nQ==}
@@ -12911,8 +12893,6 @@ snapshots:
       safe-buffer: 5.1.2
 
   '@types/reflux@0.4.1': {}
-
-  '@types/scroll-to-element@2.0.2': {}
 
   '@types/semver@7.5.8': {}
 
@@ -17539,8 +17519,6 @@ snapshots:
       commander: 14.0.3
       source-map-generator: 2.0.2
 
-  performance-now@2.1.0: {}
-
   picocolors@1.1.1: {}
 
   picomatch@2.3.2: {}
@@ -17738,10 +17716,6 @@ snapshots:
       strict-uri-encode: 2.0.0
 
   querystringify@2.2.0: {}
-
-  raf@3.4.1:
-    dependencies:
-      performance-now: 2.1.0
 
   react-date-range@1.4.0(date-fns@2.17.0)(react@19.2.3):
     dependencies:
@@ -18233,10 +18207,6 @@ snapshots:
       ajv-keywords: 5.1.0(ajv@8.17.1)
 
   screenfull@6.0.2: {}
-
-  scroll-to-element@2.0.3:
-    dependencies:
-      raf: 3.4.1
 
   scslre@0.3.0:
     dependencies:

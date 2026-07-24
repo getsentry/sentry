@@ -42,20 +42,6 @@ import {combineStatus, getFileName, normalizeId} from './utils';
 const ROW_HEIGHT = 45;
 const MAX_HEIGHT = 400;
 
-function shouldSkipSection(
-  filteredImages: Image[],
-  images: EntryDebugMeta['data']['images']
-) {
-  if (filteredImages.length) {
-    return false;
-  }
-  const definedImages = images?.filter(image => defined(image));
-  if (!definedImages?.length) {
-    return true;
-  }
-  return definedImages.every(image => image.type === 'proguard');
-}
-
 function filterImages(
   images: ImageWithCombinedStatus[],
   filterSelections: Array<SelectOption<string>>,
@@ -214,7 +200,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     [event, groupId, organization, projectSlug, theme, openModal]
   );
 
-  if (shouldSkipSection(filteredImages, data.images)) {
+  if (!allImages.length) {
     return null;
   }
 

@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -23,11 +23,14 @@ import {
   ExploreBodySearch,
 } from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {ConversationsChart} from 'sentry/views/explore/conversations/components/conversationsChart';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
+import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
+import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {
@@ -120,7 +123,7 @@ function ConversationsOverviewPage() {
                     resetParamsOnChange={[TableUrlParams.CURSOR]}
                   />
                 </PageFilterBar>
-                <AgentSelector referrer="api.insights.conversations.get-agent-names" />
+                <AgentSelector referrer={Referrer.AGENT_NAMES} />
               </Flex>
               {!showOnboarding && !isOnboardingLoading && (
                 <Flex flex={1} minWidth="300px">
@@ -142,7 +145,12 @@ function ConversationsOverviewPage() {
           ) : showOnboarding ? (
             <ConversationOnboarding onDismiss={refetchOnboarding} />
           ) : (
-            <ConversationsTable />
+            <Fragment>
+              {hasGenAiConversationsRedesignFeature(organization) && (
+                <ConversationsChart />
+              )}
+              <ConversationsTable />
+            </Fragment>
           )}
         </Stack>
       </ExploreBodyContent>

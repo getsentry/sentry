@@ -293,6 +293,11 @@ const seerPullRequest = {
 
 const seerActivities = [
   seerActivity(GroupActivityType.TRIGGER_AUTOFIX),
+  seerActivity(GroupActivityType.TRIGGER_AUTOFIX, {referrer: 'slack'}),
+  seerActivity(GroupActivityType.TRIGGER_AUTOFIX, {
+    referrer: 'issue_summary.post_process_fixability',
+  }),
+  seerActivity(GroupActivityType.TRIGGER_AUTOFIX, {referrer: 'night_shift'}),
   seerActivity(GroupActivityType.SEER_RCA_STARTED),
   seerActivity(GroupActivityType.SEER_RCA_COMPLETED),
   seerActivity(GroupActivityType.SEER_SOLUTION_STARTED),
