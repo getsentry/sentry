@@ -857,7 +857,7 @@ class ExecuteTimeseriesQueryErrorResponse(BaseModel):
 
 
 class HeaderAuthConnectionData(BaseModel):
-    """Connection authenticated via encrypted HTTP headers (API key, PAT, OAuth)."""
+    """Connection authenticated via encrypted HTTP headers."""
 
     type: Literal["header_auth"] = "header_auth"
     provider_key: str
