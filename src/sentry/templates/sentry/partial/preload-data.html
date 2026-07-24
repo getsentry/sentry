@@ -45,9 +45,9 @@
           };
           return [json, response.statusText, responseMeta];
         }
-        throw [response.status, response.statusText];
-      } catch (error) {
-        throw [error.status, error.statusText];
+        return null;
+      } catch {
+        return null;
       }
     }
 
