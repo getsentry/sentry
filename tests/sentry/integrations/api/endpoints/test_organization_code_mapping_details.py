@@ -71,6 +71,9 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         non_member_om = self.create_member(organization=self.org, user=non_member)
         self.login_as(user=non_member)
 
+        response = self.client.put(self.url, {"sourceRoot": ""})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
         response = self.make_put({"sourceRoot": "newRoot"})
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -102,6 +105,16 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         assert resp.data["id"] == str(self.config.id)
         assert resp.data["sourceRoot"] == "newRoot"
 
+    def test_edit_rejects_missing_required_fields(self) -> None:
+        resp = self.client.put(self.url, {"sourceRoot": ""})
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.data == {
+            "projectId": ["This field is required."],
+            "repositoryId": ["This field is required."],
+            "stackRoot": ["This field is required."],
+        }
+
     def test_basic_edit_from_member_permissions(self) -> None:
         self.login_as(user=self.user2)
         resp = self.make_put({"sourceRoot": "newRoot"})
@@ -127,3 +140,16 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         )
         resp = self.client.delete(url)
         assert resp.status_code == 404
+
+    def test_edit_another_orgs_code_mapping(self) -> None:
+        invalid_user = self.create_user()
+        invalid_organization = self.create_organization(owner=invalid_user)
+        self.login_as(user=invalid_user)
+        url = reverse(
+            self.endpoint,
+            args=[invalid_organization.slug, self.config.id],
+        )
+
+        resp = self.client.put(url, {})
+
+        assert resp.status_code == status.HTTP_404_NOT_FOUND
