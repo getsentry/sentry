@@ -1095,6 +1095,29 @@ describe('CustomerOverview', () => {
       expect(seerSection.queryByText('Reserved Seats:')).not.toBeInTheDocument();
     });
 
+    it('does not show budget figures for an unpurchased legacy add-on', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
+      // The serializer surfaces a $0 budget entry for available-but-unpurchased
+      // reserved-budget categories; it must not render beside a non-active status.
+      subscription.reservedBudgets = [SeerReservedBudgetFixture({})];
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Legacy (budget):').nextSibling).toHaveTextContent(
+        'Available'
+      );
+      expect(seerSection.queryByText('Reserved Budget:')).not.toBeInTheDocument();
+      expect(seerSection.queryByText('Budget Used:')).not.toBeInTheDocument();
+    });
+
     it('shows an ineligible add-on as Unavailable', () => {
       const organization = OrganizationFixture();
       const subscription = SubscriptionFixture({organization, plan: 'am3_business'});

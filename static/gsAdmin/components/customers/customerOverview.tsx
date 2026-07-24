@@ -348,6 +348,7 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
     budget => budget.apiName === ReservedBudgetCategoryType.SEER
   );
   const showSeatData = !!seerAddOn?.enabled || onSeatTrial;
+  const showLegacyData = !!legacySeerAddOn?.enabled || onLegacyTrial;
 
   return (
     <div data-test-id="seer-plan-summary">
@@ -394,25 +395,26 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
             <DetailLabel title="Legacy (budget)">
               <Tag variant={legacyStatus.variant}>{legacyStatus.label}</Tag>
             </DetailLabel>
-            {legacyBudget ? (
-              <Fragment>
-                <DetailLabel title="Reserved Budget">
-                  {displayPriceWithCents({cents: legacyBudget.reservedBudget})}
+            {showLegacyData &&
+              (legacyBudget ? (
+                <Fragment>
+                  <DetailLabel title="Reserved Budget">
+                    {displayPriceWithCents({cents: legacyBudget.reservedBudget})}
+                  </DetailLabel>
+                  <DetailLabel title="Budget Used">
+                    {displayPriceWithCents({cents: legacyBudget.totalReservedSpend})} /{' '}
+                    {displayPriceWithCents({
+                      cents: legacyBudget.reservedBudget + legacyBudget.freeBudget,
+                    })}{' '}
+                    ({(legacyBudget.percentUsed * 100).toFixed(2)}%)
+                  </DetailLabel>
+                </Fragment>
+              ) : legacySeerAddOn?.enabled ? (
+                // A paid legacy plan is backed by a reserved budget; a trial is not.
+                <DetailLabel title="Budget">
+                  <Tag variant="danger">Enabled but no budget data found</Tag>
                 </DetailLabel>
-                <DetailLabel title="Budget Used">
-                  {displayPriceWithCents({cents: legacyBudget.totalReservedSpend})} /{' '}
-                  {displayPriceWithCents({
-                    cents: legacyBudget.reservedBudget + legacyBudget.freeBudget,
-                  })}{' '}
-                  ({(legacyBudget.percentUsed * 100).toFixed(2)}%)
-                </DetailLabel>
-              </Fragment>
-            ) : legacySeerAddOn?.enabled ? (
-              // A paid legacy plan is backed by a reserved budget; a trial is not.
-              <DetailLabel title="Budget">
-                <Tag variant="danger">Enabled but no budget data found</Tag>
-              </DetailLabel>
-            ) : null}
+              ) : null)}
           </Fragment>
         )}
       </DetailList>
