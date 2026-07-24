@@ -41,6 +41,7 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.models import SummarizeIssueResponse
+from sentry.seer.models.run import SeerRun
 from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     SummarizeIssueRequest,
@@ -177,9 +178,9 @@ def _trigger_autofix_task(
             }
         )
 
-        run_id: int | None = None
+        run: SeerRun | None = None
         try:
-            run_id = trigger_autofix_agent(
+            run = trigger_autofix_agent(
                 group=group,
                 step=AutofixStep.ROOT_CAUSE,
                 referrer=referrer,
@@ -189,8 +190,10 @@ def _trigger_autofix_task(
         except NoSeerQuotaException:
             pass
 
-        if run_id and SeerAutofixOperator.has_access(organization=group.project.organization):
-            SeerOperatorAutofixCache.migrate(from_group_id=group_id, to_run_id=run_id)
+        if run and SeerAutofixOperator.has_access(organization=group.project.organization):
+            SeerOperatorAutofixCache.migrate(
+                from_group_id=group_id, to_run_id=run.seer_run_state_id
+            )
 
 
 def _get_event(

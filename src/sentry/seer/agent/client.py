@@ -49,7 +49,12 @@ from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
     extract_hook_definition,
 )
-from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
+from sentry.seer.models import (
+    UNKNOWN_RUN_ID_FOR_GROUP,
+    SeerApiError,
+    SeerPermissionError,
+    SeerRepoDefinition,
+)
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
@@ -648,7 +653,7 @@ class SeerAgentClient:
         artifact_schema: type[BaseModel] | None = None,
         ui_tools: str | None = None,
         request: Request | None = None,
-    ) -> int:
+    ) -> SeerRun:
         """
         Continue an existing Seer Agent session. This allows you to add follow-up queries to an ongoing conversation.
 
@@ -661,14 +666,23 @@ class SeerAgentClient:
             artifact_schema: Optional Pydantic model for the new artifact (required if artifact_key is provided)
 
         Returns:
-            int: The run ID (same as input)
+            SeerRun: The run's mirror row.
 
         Raises:
             SeerApiError: If the Seer API request fails
+            SeerPermissionError: If no SeerRun mirror exists for run_id
             ValueError: If artifact_schema is provided without artifact_key
         """
         if bool(artifact_schema) != bool(artifact_key):
             raise ValueError("artifact_key and artifact_schema must be provided together")
+
+        # Resolve the mirror before calling Seer so a missing run never advances
+        # the remote run (fail closed).
+        run = SeerRun.objects.filter(
+            organization_id=self.organization.id, seer_run_state_id=run_id
+        ).first()
+        if run is None:
+            raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
 
         agent_run_options: dict[str, Any] = {
             "enable_coding": self.enable_coding,
@@ -765,11 +779,10 @@ class SeerAgentClient:
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
-        result = response.json()
 
-        SeerRun.objects.filter(seer_run_state_id=run_id).update(last_triggered_at=now())
+        run.update(last_triggered_at=now())
 
-        return result["run_id"]
+        return run
 
     def get_run(
         self,
