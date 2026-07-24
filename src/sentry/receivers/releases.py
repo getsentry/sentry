@@ -11,6 +11,7 @@ from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.analytics import IntegrationResolveCommitEvent, IntegrationResolvePREvent
 from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
     ActionSource,
     GroupActionActor,
     action_context_scope,
@@ -195,7 +196,20 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
                 if acting_user is not None:
                     activity_kwargs["user_id"] = acting_user.id
 
-                Activity.objects.create(**activity_kwargs)
+                action_context = get_action_context()
+                if action_context is not None:
+                    source = action_context.source
+                    actor = action_context.actor
+                else:
+                    source = ActionSource.SYSTEM
+                    actor = (
+                        GroupActionActor.user(acting_user.id)
+                        if acting_user is not None
+                        else SYSTEM_ACTOR
+                    )
+
+                with action_context_scope(source=source, actor=actor):
+                    Activity.objects.create(**activity_kwargs)
 
         except IntegrityError:
             pass
@@ -259,14 +273,25 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                             group=group, assigned_to=acting_user, acting_user=acting_user
                         )
 
-                Activity.objects.create(
-                    project_id=group.project_id,
-                    group=group,
-                    type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
-                    ident=instance.id,
-                    user_id=acting_user.id if acting_user else None,
-                    data={"pull_request": instance.id},
-                )
+                pr_action_context = get_action_context()
+                if pr_action_context is not None:
+                    pr_source = pr_action_context.source
+                    pr_actor = pr_action_context.actor
+                else:
+                    pr_source = ActionSource.SYSTEM
+                    pr_actor = (
+                        GroupActionActor.user(acting_user.id) if acting_user else SYSTEM_ACTOR
+                    )
+
+                with action_context_scope(source=pr_source, actor=pr_actor):
+                    Activity.objects.create(
+                        project_id=group.project_id,
+                        group=group,
+                        type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+                        ident=instance.id,
+                        user_id=acting_user.id if acting_user else None,
+                        data={"pull_request": instance.id},
+                    )
                 record_group_history(
                     group, GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST, actor=acting_user
                 )
