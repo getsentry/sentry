@@ -119,7 +119,7 @@ function AppLayout({organization}: LayoutProps) {
           direction={{'screen:sm': 'column', 'screen:md': 'row'}}
           position="relative"
         >
-          <Navigation viewportTop={topRegionHeight} />
+          <Navigation topRegionHeight={topRegionHeight} />
           <SeerExplorerSidebarLayout>
             {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
             <ContentStack

@@ -51,7 +51,7 @@ function CommandPaletteSlotOutlets() {
   );
 }
 
-function UserAndOrganizationNavigation({viewportTop}: NavigationProps) {
+function UserAndOrganizationNavigation({topRegionHeight}: NavigationProps) {
   const {layout} = usePrimaryNavigation();
   const {visible} = useModal();
   const {view, setView} = useSecondaryNavigation();
@@ -68,7 +68,7 @@ function UserAndOrganizationNavigation({viewportTop}: NavigationProps) {
   );
 
   return (
-    <NavigationLayout viewportTop={viewportTop}>
+    <NavigationLayout topRegionHeight={topRegionHeight}>
       <CommandPaletteHotkeys />
       <CommandPaletteSlotOutlets />
       <GlobalCommandPaletteActions />
@@ -92,12 +92,12 @@ function UserOnlyNavigation() {
 }
 
 interface NavigationProps {
-  viewportTop?: number;
+  topRegionHeight?: number;
 }
 
 function NavigationLayout({
   children,
-  viewportTop = 0,
+  topRegionHeight = 0,
 }: NavigationProps & {children: React.ReactNode}) {
   const theme = useTheme();
   const {layout} = usePrimaryNavigation();
@@ -114,7 +114,7 @@ function NavigationLayout({
       height={
         layout === 'mobile'
           ? undefined
-          : `calc(100dvh - max(${barTop}, ${viewportTop}px))`
+          : `calc(100dvh - max(${barTop}, ${topRegionHeight}px))`
       }
       style={{
         zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
@@ -127,7 +127,7 @@ function NavigationLayout({
   );
 }
 
-export function Navigation({viewportTop = 0}: NavigationProps) {
+export function Navigation({topRegionHeight = 0}: NavigationProps) {
   const organization = useOrganization({allowNull: true});
 
   if (!organization) {
@@ -143,7 +143,7 @@ export function Navigation({viewportTop = 0}: NavigationProps) {
     <HoverOverlayGroupProvider>
       <NavigationTourProvider>
         <SkipLink />
-        <UserAndOrganizationNavigation viewportTop={viewportTop} />
+        <UserAndOrganizationNavigation topRegionHeight={topRegionHeight} />
       </NavigationTourProvider>
     </HoverOverlayGroupProvider>
   );

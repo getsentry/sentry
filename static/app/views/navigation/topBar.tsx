@@ -64,7 +64,7 @@ function TopBarContent() {
       padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
       position="sticky"
       borderBottom="primary"
-      top="0"
+      top={0}
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
