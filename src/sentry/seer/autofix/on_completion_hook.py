@@ -541,6 +541,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
     @classmethod
     def _format_pull_requests_payload(cls, state: SeerRunState) -> list[dict]:
+        # Skip repos whose PR creation is still in flight (pr_creation_status ==
+        # "creating") -- they have no pr_number/pr_url yet; a later hook firing
+        # once creation settles will report them. "error"/None are kept: an
+        # iteration push can error against a repo whose PR already exists (see
+        # _iteration_terminal_errored_repos), and that PR is still reportable.
         return [
             {
                 "provider": "unknown",
@@ -552,6 +557,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 },
             }
             for pull_request in state.repo_pr_states.values()
+            if pull_request.pr_creation_status != "creating"
         ]
 
     @classmethod

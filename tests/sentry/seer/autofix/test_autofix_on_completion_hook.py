@@ -510,6 +510,105 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["removed"] == 2
 
     @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_pr_created(self, mock_broadcast, mock_analytics) -> None:
+        """Sends pr_created webhook with the completed PR once repo_pr_states is populated."""
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+            ]
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_id=77,
+                pr_number=7,
+                pr_url="https://example.com/pull/7",
+                pr_creation_status="completed",
+            )
+        }
+
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_broadcast.assert_called_once()
+        call_kwargs = mock_broadcast.call_args.kwargs
+        assert call_kwargs["event_name"] == SeerActionType.PR_CREATED.value
+        assert len(call_kwargs["payload"]["pull_requests"]) == 1
+        assert call_kwargs["payload"]["pull_requests"][0]["repo_name"] == "test-repo"
+        assert call_kwargs["payload"]["pull_requests"][0]["pull_request"]["pr_number"] == 7
+
+    @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_pr_created_excludes_repos_still_creating(
+        self, mock_broadcast, mock_analytics
+    ) -> None:
+        """Excludes a repo from the payload while its PR creation is still in-flight."""
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+            ]
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_id=77,
+                pr_number=7,
+                pr_url="https://example.com/pull/7",
+                pr_creation_status="completed",
+            ),
+            "other-repo": RepoPRState(
+                repo_name="other-repo",
+                pr_creation_status="creating",
+            ),
+        }
+
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_broadcast.assert_called_once()
+        call_kwargs = mock_broadcast.call_args.kwargs
+        assert call_kwargs["event_name"] == SeerActionType.PR_CREATED.value
+        pull_requests = call_kwargs["payload"]["pull_requests"]
+        assert len(pull_requests) == 1
+        assert pull_requests[0]["repo_name"] == "test-repo"
+
+    @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_pr_iteration_includes_errored_repo_with_existing_pr(
+        self, mock_broadcast, mock_analytics
+    ) -> None:
+        """An errored repo is still reported if it already has a PR (only the latest
+        iteration push failed, unlike "creating" which has no PR yet)."""
+        state = run_state(
+            blocks=[
+                code_changes_memory_block(),
+                pr_iteration_memory_block(commit_sha="synced-sha"),
+            ]
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_id=77,
+                pr_number=7,
+                pr_url="https://example.com/pull/7",
+                pr_creation_status="error",
+                commit_sha="stale-sha",
+            )
+        }
+
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_broadcast.assert_called_once()
+        call_kwargs = mock_broadcast.call_args.kwargs
+        assert call_kwargs["event_name"] == SeerActionType.ITERATION_COMPLETED.value
+        pull_requests = call_kwargs["payload"]["pull_requests"]
+        assert len(pull_requests) == 1
+        assert pull_requests[0]["pull_request"]["pr_number"] == 7
+
+    @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
     @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
