@@ -29,7 +29,7 @@ class Migration(CheckedMigration):
         migrations.AddField(
             model_name="seernightshiftrun",
             name="schedule_id",
-            field=models.CharField(max_length=32, null=True),
+            field=models.CharField(max_length=256, null=True),
         ),
         migrations.AddConstraint(
             model_name="seernightshiftrun",
