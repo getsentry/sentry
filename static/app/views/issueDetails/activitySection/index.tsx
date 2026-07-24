@@ -21,11 +21,11 @@ import {uniqueId} from 'sentry/utils/guid';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
+import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
 import {
-  ActivityLine,
   ActivityLineNote,
   isActivityNote,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
 import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
@@ -77,12 +77,7 @@ function TimelineItem({
     }
 
     return (
-      <ActivityLine
-        item={item}
-        group={group}
-        inputVariant={inputVariant}
-        timestampUnitStyle={timestampUnitStyle}
-      />
+      <ActivityLine item={item} group={group} timestampUnitStyle={timestampUnitStyle} />
     );
   }
 
@@ -221,6 +216,43 @@ interface ActivitySectionProps {
   variant?: 'sidebar' | 'standalone';
 }
 
+function isDuplicatePullRequestActivity(
+  activity: GroupActivity,
+  adjacentActivity: GroupActivity | undefined
+): boolean {
+  switch (activity.type) {
+    // REFERENCED_IN_COMMIT should be hidden if there is an adjacent PULL_REQUEST_MERGED activity with the same pull request
+    case GroupActivityType.REFERENCED_IN_COMMIT: {
+      if (adjacentActivity?.type !== GroupActivityType.PULL_REQUEST_MERGED) {
+        return false;
+      }
+
+      const pullRequest = activity.data.commit?.pullRequest;
+      const adjacentPullRequest = adjacentActivity.data.pullRequest;
+      if (!pullRequest || !adjacentPullRequest) {
+        return false;
+      }
+
+      return (
+        pullRequest.id === adjacentPullRequest.id &&
+        pullRequest.repository.id === adjacentPullRequest.repository.id
+      );
+    }
+    default:
+      return false;
+  }
+}
+
+function removeAdjacentDuplicatePullRequestActivities(
+  activities: GroupActivity[]
+): GroupActivity[] {
+  return activities.filter(
+    (activity, index) =>
+      !isDuplicatePullRequestActivity(activity, activities[index - 1]) &&
+      !isDuplicatePullRequestActivity(activity, activities[index + 1])
+  );
+}
+
 export function ActivitySection({
   group,
   filterComments,
@@ -282,9 +314,9 @@ export function ActivitySection({
       )
     : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
 
-  const filteredActivities = visibleActivities.filter(
-    item => !filterComments || item.type === GroupActivityType.NOTE
-  );
+  const filteredActivities = removeAdjacentDuplicatePullRequestActivities(
+    visibleActivities
+  ).filter(item => !filterComments || item.type === GroupActivityType.NOTE);
   const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
   const timestampUnitStyle = variant === 'sidebar' ? 'short' : undefined;
 
@@ -431,13 +463,15 @@ const ActivityLineList = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
+  container-name: activity-list;
+  container-type: inline-size;
 
   &::before {
     content: '';
     position: absolute;
     left: 10.5px;
     top: 11px;
-    bottom: 0;
+    bottom: 11px;
     width: 0;
     border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   }

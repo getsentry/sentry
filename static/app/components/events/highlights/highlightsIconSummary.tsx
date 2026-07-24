@@ -121,7 +121,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
         <ScrollCarousel gap="xl" aria-label={t('Icon highlights')}>
           {runtimeInfo && (
             <Fragment>
-              <Tooltip title={runtimeInfo.tooltip} isHoverable>
+              <Tooltip title={runtimeInfo.tooltip} isHoverable skipWrapper>
                 <Container as="span" padding="xs 0">
                   <Text>{runtimeInfo.label}</Text>
                 </Container>

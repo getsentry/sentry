@@ -36,11 +36,11 @@ export function IssuesSecondaryNavigation() {
             {organization.features.includes('issue-stream-progress-ui') && (
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={`${baseUrl}/awaiting-input/`}
+                  to={`${baseUrl}/inbox/`}
                   end
-                  analyticsItemName="issues_awaiting_input"
+                  analyticsItemName="issues_inbox"
                 >
-                  {t('Awaiting Input')}
+                  {t('Inbox')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             )}

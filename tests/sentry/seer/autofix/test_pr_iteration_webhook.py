@@ -13,10 +13,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackType,
     GithubPrReviewCommentFeedbackSource,
 )
-from sentry.seer.autofix.pr_iteration.mention import (
-    handle_issue_comment_for_autofix_iteration,
-    handle_pull_request_review_comment_for_autofix_iteration,
-)
+from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
 from sentry.tasks.seer.pr_iteration import (
     _add_comment_reaction,
     trigger_pr_iteration_from_comment,
@@ -76,6 +73,7 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         feedback = Feedback.parse_raw(kwargs["feedback"])
         assert isinstance(feedback.source, GithubPrCommentFeedbackSource)
         assert feedback.source.comment.id == 999
+        assert feedback.source.repo_name == self.repo.name
         assert feedback.text == "fix it"
         assert feedback.ui_text == "fix it"
 
@@ -110,71 +108,6 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         event["issue"].pop("number")
         with self.feature("organizations:autofix-pr-iteration"):
             self._call(event)
-        mock_delay.assert_not_called()
-
-
-class HandlePullRequestReviewCommentForAutofixIterationTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.repo = self.create_repo(
-            project=self.project,
-            provider="integrations:github",
-            external_id="123",
-            name="owner/repo",
-        )
-        self.integration = MagicMock(id=42, provider="github")
-
-    def _event(self, body: str = "@sentry fix it", action: str = "created") -> dict:
-        return {
-            "action": action,
-            "comment": {
-                "id": 999,
-                "body": body,
-                "user": {"login": "octocat"},
-                "html_url": "https://github.com/getsentry/sentry/pull/7#discussion_r999",
-                "path": "src/sentry/foo.py",
-                "line": 42,
-                "start_line": 40,
-            },
-            "pull_request": {"number": 7},
-        }
-
-    def _call(self, event: dict):
-        return handle_pull_request_review_comment_for_autofix_iteration(
-            event=event,
-            organization=self.organization,
-            repo=self.repo,
-            integration=self.integration,
-        )
-
-    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
-    def test_schedules_task_with_review_comment_source(self, mock_delay: MagicMock) -> None:
-        with self.feature("organizations:autofix-pr-iteration"):
-            self._call(self._event())
-
-        mock_delay.assert_called_once()
-        kwargs = mock_delay.call_args.kwargs
-        assert kwargs["pr_number"] == 7
-        assert "comment" not in kwargs
-        assert "source_type" not in kwargs
-        feedback = Feedback.parse_raw(kwargs["feedback"])
-        assert isinstance(feedback.source, GithubPrReviewCommentFeedbackSource)
-        assert feedback.source.file_path == "src/sentry/foo.py"
-        assert feedback.source.line == 42
-        assert feedback.source.start_line == 40
-        assert feedback.text == "Inline comment on src/sentry/foo.py:40-42:\nfix it"
-        assert feedback.ui_text == "fix it"
-
-    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
-    def test_skips_non_created_action(self, mock_delay: MagicMock) -> None:
-        with self.feature("organizations:autofix-pr-iteration"):
-            self._call(self._event(action="edited"))
-        mock_delay.assert_not_called()
-
-    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
-    def test_skips_when_not_iterate_command(self, mock_delay: MagicMock) -> None:
-        with self.feature("organizations:autofix-pr-iteration"):
-            self._call(self._event(body="just a comment"))
         mock_delay.assert_not_called()
 
 
@@ -300,6 +233,8 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue.assert_not_called()
         mock_consume.assert_not_called()
 
+    @patch(f"{TASK_PATH}._add_comment_reaction")
+    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
@@ -312,8 +247,12 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue: MagicMock,
         mock_consume: MagicMock,
         mock_has_access: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_reaction: MagicMock,
     ) -> None:
-        mock_get_integration.return_value = self._mock_integration()
+        # Multi-region fan-out: missing run must no-op without reacting.
+        mock_integration = self._mock_integration()
+        mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = None
 
         self._call()
@@ -321,6 +260,9 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_has_access.assert_not_called()
         mock_enqueue.assert_not_called()
         mock_consume.assert_not_called()
+        mock_reaction.assert_not_called()
+        mock_make_scm.assert_not_called()
+        mock_integration.get_installation.return_value.get_client.return_value.create_comment.assert_not_called()
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}.make_scm")

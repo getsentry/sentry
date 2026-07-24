@@ -17,6 +17,7 @@ import {
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {FieldValueType} from 'sentry/utils/fields';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
@@ -27,7 +28,10 @@ import {
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {
+  addValidatedFieldTypesToLogsMeta,
+  LogsInfiniteTable,
+} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 jest.mock('@tanstack/react-virtual', () => {
@@ -63,6 +67,29 @@ jest.mock('@tanstack/react-virtual', () => {
       isScrolling: false,
     }),
   };
+});
+
+describe('addValidatedFieldTypesToLogsMeta', () => {
+  it('preserves known field definitions and response metadata over validation types', () => {
+    const meta = addValidatedFieldTypesToLogsMeta({
+      meta: {
+        fields: {
+          [OurLogKnownFieldKey.PAYLOAD_SIZE]: FieldValueType.NUMBER,
+          'custom.duration': FieldValueType.STRING,
+        },
+        units: {},
+      },
+      validatedFieldTypes: {
+        [OurLogKnownFieldKey.PAYLOAD_SIZE]: FieldValueType.NUMBER,
+        'custom.duration': FieldValueType.NUMBER,
+      },
+    });
+
+    expect(meta.fields).toEqual({
+      [OurLogKnownFieldKey.PAYLOAD_SIZE]: FieldValueType.SIZE,
+      'custom.duration': FieldValueType.STRING,
+    });
+  });
 });
 
 describe('LogsInfiniteTable', () => {
@@ -358,6 +385,31 @@ describe('LogsInfiniteTable', () => {
     });
   });
 
+  it('shows a rate limit message and retry button when the query is rate limited', async () => {
+    MockApiClient.clearMockResponses();
+    const mockResponse = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 429,
+    });
+
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
+
+    expect(
+      await screen.findByText(
+        'Your organization has had a lot of activity. Wait a few seconds and then try again.'
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    await waitFor(() => {
+      expect(mockResponse).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it('quantizes log timestamps for replay links', async () => {
     const replayId = 'abc123def456';
     const replayId2 = 'abc123eef457';
@@ -493,7 +545,7 @@ describe('LogsInfiniteTable', () => {
     await screen.findByText('abc123ee');
   });
 
-  it('renders a pin button on a hovered row when ourlogs-pinning is enabled', async () => {
+  it('renders a pin button on a row when hovering', async () => {
     renderWithProviders(
       <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
       {
@@ -517,19 +569,6 @@ describe('LogsInfiniteTable', () => {
     expect(
       await within(firstRow!).findByRole('button', {name: 'Pin log row'})
     ).toBeInTheDocument();
-  });
-
-  it('does not render a pin button when ourlogs-pinning is disabled', async () => {
-    renderWithProviders(
-      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
-    );
-
-    const [firstRow] = await screen.findAllByTestId('log-table-row');
-    await userEvent.hover(firstRow!);
-
-    expect(
-      within(firstRow!).queryByRole('button', {name: 'Pin log row'})
-    ).not.toBeInTheDocument();
   });
 
   it('marks the row as pinned when its id is in the logsPinned query', async () => {

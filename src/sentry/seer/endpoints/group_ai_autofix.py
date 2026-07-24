@@ -166,6 +166,11 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         help_text="Referrer identifying where the issue fix was triggered from.",
     )
+    enable_bash_tools = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Override bash mode tools.",
+    )
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         stopping_point = data.get("stopping_point", None)
@@ -253,9 +258,22 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
         sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")
+        legacy_run_id_param = data.get("run_id")
         run_ref: str | int | None = (
-            str(sentry_run_id_param) if sentry_run_id_param is not None else data.get("run_id")
+            str(sentry_run_id_param) if sentry_run_id_param is not None else legacy_run_id_param
         )
+
+        if sentry_run_id_param is None and legacy_run_id_param is not None:
+            logger.info(
+                "group_ai_autofix.legacy_integer_run_id",
+                extra={
+                    "run_id": legacy_run_id_param,
+                    "referrer": data.get("referrer"),
+                    "is_mcp_request": is_mcp_request(request),
+                    "user_agent": request.META.get("HTTP_USER_AGENT", "")[:256],
+                    "organization_id": group.organization.id,
+                },
+            )
 
         resolved_run_id: int | None = None
         resolved_sentry_run_id: str | None = None
@@ -401,6 +419,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         user_context=user_context,
                         insert_index=data.get("insert_index"),
                         user=request.user,
+                        enable_bash_tools=data.get("enable_bash_tools", False),
                     )
                 except NoSeerQuotaException:
                     return Response(
@@ -480,12 +499,14 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     user_id=request.user.id,
                     organization_id=group.organization.id,
                     run_id=state.run_id,
+                    group_id=group.id,
                 )
             if CodingAgentProviderType.CLAUDE_CODE_AGENT in agent_providers:
                 poll_claude_code_agents(
                     coding_agents=state.coding_agents,
                     organization_id=group.organization.id,
                     run_id=state.run_id,
+                    group_id=group.id,
                 )
 
         run = get_seer_run(state.run_id, group.organization)

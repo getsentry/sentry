@@ -3,9 +3,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -199,30 +199,28 @@ const TimelineRow = memo(function TimelineRow({
                 </Flex>
               ) : (
                 <Container maxWidth="50%" minWidth="0">
-                  <Tooltip title={title} showOnlyOnOverflow skipWrapper>
-                    <Text
-                      size="sm"
-                      variant={isSelected ? 'primary' : 'muted'}
-                      monospace
-                      ellipsis
-                    >
-                      {title}
-                    </Text>
-                  </Tooltip>
+                  <InfoText
+                    title={title}
+                    mode="overflowOnly"
+                    size="sm"
+                    variant={isSelected ? 'primary' : 'muted'}
+                    monospace
+                  >
+                    {title}
+                  </InfoText>
                 </Container>
               )}
               <Flex flex="1" minWidth="0">
                 {secondary && (
-                  <Tooltip
+                  <InfoText
                     title={secondary}
-                    showOnlyOnOverflow
-                    skipWrapper
+                    mode="overflowOnly"
                     maxWidth={500}
+                    size="sm"
+                    variant="muted"
                   >
-                    <Text size="sm" variant="muted" ellipsis>
-                      {secondary}
-                    </Text>
-                  </Tooltip>
+                    {secondary}
+                  </InfoText>
                 )}
               </Flex>
               <Flex align="center" justify="end" flexShrink={0} gap="xs">

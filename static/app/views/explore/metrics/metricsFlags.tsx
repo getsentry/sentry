@@ -29,18 +29,8 @@ export const canUseMetricsStatsBytesUI = (organization: Organization) => {
   );
 };
 
-export const canUseMetricsEquations = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-equations-in-explore')
-  );
-};
-
 export const canUseMetricsEquationsInAlerts = (organization: Organization) => {
-  return (
-    canUseMetricsAlertsUI(organization) &&
-    organization.features.includes('tracemetrics-equations-in-alerts')
-  );
+  return canUseMetricsAlertsUI(organization);
 };
 
 export const canUseMetricsPiiScrubbingUI = (organization: Organization) => {
@@ -51,8 +41,5 @@ export const canUseMetricsPiiScrubbingUI = (organization: Organization) => {
 };
 
 export const canUseMetricsHeatMap = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) &&
-    organization.features.includes('data-browsing-heat-map-widget')
-  );
+  return canUseMetricsUI(organization);
 };

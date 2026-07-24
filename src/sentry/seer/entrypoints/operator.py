@@ -3,6 +3,8 @@ from typing import Any
 
 from sentry import features, options
 from sentry.constants import DataCategory
+from sentry.issues.action_log.publish import action_context_scope
+from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -296,10 +298,8 @@ class SeerAutofixOperator[CachePayloadT]:
     ) -> None:
         from sentry.locks import locks
         from sentry.seer.autofix.autofix_agent import trigger_coding_agent_handoff
-        from sentry.seer.autofix.utils import (
-            CodingAgentProviderType,
-            CodingAgentStatus,
-        )
+        from sentry.seer.autofix.constants import CodingAgentStatus
+        from sentry.seer.autofix.utils import CodingAgentProviderType
         from sentry.utils.locking import UnableToAcquireLock
 
         event_lifecycle = SeerOperatorEventLifecycleMetric(
@@ -664,7 +664,8 @@ def process_autofix_updates(
             return
 
         try:
-            _create_seer_activity(group, event_type, event_payload)
+            with action_context_scope(ActionSource.SEER_EXPLORER, SYSTEM_ACTOR):
+                _create_seer_activity(group, event_type, event_payload)
         except Exception:
             logger.exception(
                 "seer.activity_creation_failed",

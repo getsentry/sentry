@@ -38,7 +38,7 @@ describe('CronsBillingBanner', () => {
     const subscription = SubscriptionFixture({
       organization,
       trialEnd,
-      isTrial: true,
+      trialPlan: 'am1_t',
     });
 
     const mockApiCall = MockApiClient.addMockResponse({

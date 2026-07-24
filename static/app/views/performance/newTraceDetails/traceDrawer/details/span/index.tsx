@@ -53,6 +53,7 @@ import {MCPOutputSection} from 'sentry/views/performance/newTraceDetails/traceDr
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import {ReplayPreview} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
+import {findSpanAttributeValue} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -466,7 +467,7 @@ function EAPSpanNodeDetailsContent({
   );
 
   const links = traceItemData.links;
-  const isTransaction = node.value.is_transaction && !!eventTransaction;
+  const isTransaction = node.value.is_transaction;
 
   const threadIdAttribute = attributesMap['thread.id'];
   const threadId = typeof threadIdAttribute === 'string' ? threadIdAttribute : undefined;
@@ -512,13 +513,17 @@ function EAPSpanNodeDetailsContent({
     }
   }, [genAiOperationType, organization, hideNodeActions]);
 
-  const isSdkSentV2Span =
-    // The presence of this attribute indicates that the EAP span was sent as a v2 span
-    // from SDKs rather than an SDK-sent transaction converted to EAP spans during ingestion.
-    attributesMap.observed_timestamp_nanos &&
-    // Furthermore, to distinguish between v2 and v1 web vital spans, we can check that the old
-    // report_event only sent on v1 spans attribute is undefined
-    !attributesMap.report_event;
+  const isSdkSentStreamedSpan =
+    // Sent by span-streaming-configured SDKs to explicitly indicate a streamed span:
+    attributesMap.trace_lifecycle === 'stream' ||
+    // If the attribute is not set, we fall back to infer the original span type from other attributes:
+    (!attributesMap.trace_lifecycle &&
+      // The presence of this attribute indicates that the EAP span was sent as a v2 span
+      // from SDKs rather than an SDK-sent transaction converted to EAP spans during ingestion.
+      attributesMap.observed_timestamp_nanos &&
+      // Furthermore, to distinguish between v2 and v1 web vital spans, we can check that the old
+      // report_event only sent on v1 spans attribute is undefined
+      !attributesMap.report_event);
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -527,7 +532,7 @@ function EAPSpanNodeDetailsContent({
           <TraceDrawerComponents.LegacyTitleText>
             <TraceDrawerComponents.TitleText>
               {t('Span')}
-              {isSdkSentV2Span && (
+              {isSdkSentStreamedSpan && (
                 <Fragment>
                   {' '}
                   <Tooltip title={t('Streamed Span')}>
@@ -547,7 +552,7 @@ function EAPSpanNodeDetailsContent({
             node={node}
             organization={organization}
             onTabScrollToNode={onTabScrollToNode}
-            showJSONLink={node.value.is_transaction}
+            showJSONLink={isTransaction}
             profileId={node.profileId}
             profilerId={node.profilerId}
             threadId={threadId}
@@ -590,7 +595,9 @@ function EAPSpanNodeDetailsContent({
           project={project}
         />
 
-        {isTransaction ? <Contexts event={eventTransaction} project={project} /> : null}
+        {isTransaction && eventTransaction ? (
+          <Contexts event={eventTransaction} project={project} />
+        ) : null}
 
         <LogDetails />
 
@@ -617,10 +624,17 @@ function EAPSpanNodeDetailsContent({
         ) : null}
 
         {isTransaction ? (
-          <ReplayPreview event={eventTransaction} organization={organization} />
+          <ReplayPreview
+            replayId={
+              findSpanAttributeValue(attributes, 'replay.id') ||
+              findSpanAttributeValue(attributes, 'replayId')
+            }
+            eventTimestampMs={Math.floor(node.value.start_timestamp * 1000)}
+            organization={organization}
+          />
         ) : null}
 
-        {isTransaction && project ? (
+        {isTransaction && eventTransaction && project ? (
           <EventAttachments
             event={eventTransaction}
             project={project}
@@ -628,9 +642,11 @@ function EAPSpanNodeDetailsContent({
           />
         ) : null}
 
-        {isTransaction ? <BreadCrumbs event={eventTransaction} /> : null}
+        {isTransaction && eventTransaction ? (
+          <BreadCrumbs event={eventTransaction} />
+        ) : null}
 
-        {isTransaction && project ? (
+        {isTransaction && eventTransaction && project ? (
           <EventViewHierarchy
             event={eventTransaction}
             project={project}
@@ -638,7 +654,7 @@ function EAPSpanNodeDetailsContent({
           />
         ) : null}
 
-        {isTransaction && eventTransaction.projectSlug ? (
+        {isTransaction && eventTransaction?.projectSlug ? (
           <EventRRWebIntegration
             event={eventTransaction}
             orgId={organization.slug}

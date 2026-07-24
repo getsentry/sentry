@@ -20,6 +20,7 @@ import {CodingAgentsCard} from 'sentry/components/events/autofix/v3/codingAgents
 import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
 import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
 import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
+import {SeerEnableNotifications} from 'sentry/components/events/autofix/v3/seerEnableNotifications';
 import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
@@ -80,6 +81,8 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
           {message}
         </Alert>
       ))}
+
+      <SeerEnableNotifications status={autofix.runState?.status} />
     </Stack>
   );
 }

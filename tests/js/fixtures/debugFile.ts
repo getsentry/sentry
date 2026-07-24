@@ -1,7 +1,7 @@
 import type {DebugFile} from 'sentry/types/debugFiles';
 import {DebugFileFeature, DebugFileType} from 'sentry/types/debugFiles';
 
-export function DebugFileFixture(params = {}): DebugFile {
+export function DebugFileFixture(params: Partial<DebugFile> = {}): DebugFile {
   return {
     objectName: 'libS.so',
     symbolType: 'elf',

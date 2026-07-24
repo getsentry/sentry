@@ -148,6 +148,15 @@ def format_snapshot_status_check_messages(
     return str(title), str(subtitle), str(summary)
 
 
+def format_skipped_snapshot_status_check_messages(project: Project) -> tuple[str, str, str]:
+    """Format status check messages when snapshot testing was skipped for a commit."""
+    title = _SNAPSHOT_TITLE_BASE
+    subtitle = _("Snapshot testing skipped")
+    settings_url = _get_settings_url(project)
+    summary = str(_format_configure_link(project, settings_url))
+    return str(title), str(subtitle), str(summary)
+
+
 def format_first_snapshot_status_check_messages(
     artifacts: list[PreprodArtifact],
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
