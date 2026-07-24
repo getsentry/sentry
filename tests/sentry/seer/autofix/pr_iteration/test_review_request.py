@@ -11,6 +11,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     bootstrap_green_check_suite,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.ready_for_review import READY_FOR_REVIEW_EXTRA
 from sentry.seer.autofix.pr_iteration.review_request import (
     REVIEW_REQUESTS_EXTRA,
     request_review_from_context,
@@ -72,8 +73,9 @@ def _pull_request_result(
     requested_reviewers: list[dict] | None = None,
     author: str | None = None,
     head_sha: str = HEAD_SHA,
+    draft: bool = True,
 ) -> dict:
-    raw: dict[str, Any] = {"requested_reviewers": requested_reviewers or []}
+    raw: dict[str, Any] = {"requested_reviewers": requested_reviewers or [], "draft": draft}
     if author is not None:
         raw["user"] = {"login": author}
     return {
@@ -283,6 +285,7 @@ class RequestReviewFromContextTest(TestCase):
         _mock_scm: MagicMock,
         mock_actions: MagicMock,
     ) -> None:
+        # Both green-path markers present → bootstrap skips SCM entirely.
         self.seer_run.update(
             extras={
                 REVIEW_REQUESTS_EXTRA: {
@@ -291,7 +294,13 @@ class RequestReviewFromContextTest(TestCase):
                         "head_sha": "older-sha",
                         "reviewers": ["octocat"],
                     }
-                }
+                },
+                READY_FOR_REVIEW_EXTRA: {
+                    REPO_NAME: {
+                        "marked_at": "2024-01-01T00:00:00+00:00",
+                        "head_sha": "older-sha",
+                    }
+                },
             }
         )
         mock_resolve.return_value = self._resolved()
@@ -299,7 +308,8 @@ class RequestReviewFromContextTest(TestCase):
         with self.feature(FLAG):
             _request_review(_green_event())
 
-        # Shared bootstrap loads the PR; the marker check still skips the request.
+        # Rate-limit guard: do not get_pull_request / sweep on already-complete runs.
+        self.get_pr.assert_not_called()
         mock_actions.request_review.assert_not_called()
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")

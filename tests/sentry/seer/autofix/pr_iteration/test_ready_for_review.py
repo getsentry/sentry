@@ -27,10 +27,10 @@ PR_NUMBER = 42
 GREEN_SWEEP = CheckRunsSweep(total=3, incomplete=0, failed=0)
 
 
-def _pull_request_result(*, head_sha: str = HEAD_SHA) -> dict:
+def _pull_request_result(*, head_sha: str = HEAD_SHA, draft: bool = True) -> dict:
     return {
         "data": {"state": "open", "merged": False, "head": {"sha": head_sha}},
-        "raw": {"headers": None, "data": {}},
+        "raw": {"headers": None, "data": {"draft": draft}},
         "type": "github",
         "meta": {},
     }
@@ -206,3 +206,55 @@ class MarkReadyForReviewTest(TestCase):
             _mark_ready(_green_event())
 
         assert self._marker() is None
+
+    @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    def test_skips_when_marker_exists_for_any_head(
+        self,
+        mock_resolve: MagicMock,
+        _mock_scm: MagicMock,
+        mock_actions: MagicMock,
+    ) -> None:
+        # Sticky: prior undraft on an older SHA must not undraft a new tip.
+        self.seer_run.update(
+            extras={
+                READY_FOR_REVIEW_EXTRA: {
+                    REPO_NAME: {
+                        "marked_at": "2024-01-01T00:00:00+00:00",
+                        "head_sha": "older-sha",
+                    }
+                }
+            }
+        )
+        mock_resolve.return_value = self._resolved()
+
+        with self.feature(REVIEW_REQUEST_FLAG):
+            _mark_ready(_green_event())
+
+        mock_actions.mark_pull_request_ready_for_review.assert_not_called()
+        marker = self._marker()
+        assert marker is not None
+        assert marker["head_sha"] == "older-sha"
+
+    @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    def test_skips_undraft_when_pr_not_draft(
+        self,
+        mock_resolve: MagicMock,
+        _mock_scm: MagicMock,
+        mock_actions: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = self._resolved()
+        self.get_pr.return_value = _pull_request_result(draft=False)
+
+        with self.feature(REVIEW_REQUEST_FLAG):
+            _mark_ready(_green_event())
+
+        mock_actions.mark_pull_request_ready_for_review.assert_not_called()
+        marker = self._marker()
+        assert marker is not None
+        assert marker["head_sha"] == HEAD_SHA
