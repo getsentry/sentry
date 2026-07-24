@@ -120,6 +120,8 @@ class Referrer(StrEnum):
 
     # ** Explore **
     API_EXPLORE_CONVERSATIONS_LIST_CHART = "api.explore.conversations.list.chart"
+    API_EXPLORE_CONVERSATIONS_ONBOARDING = "api.explore.conversations.onboarding"
+    API_EXPLORE_CONVERSATIONS_GET_AGENT_NAMES = "api.explore.conversations.get-agent-names"
     API_EXPLORE_SPANS_TIMESERIES = "api.explore.spans-timeseries"
     API_EXPLORE_OURLOGS_TIMESERIES = "api.explore.ourlogs-timeseries"
     API_EXPLORE_TRACEMETRICS_TIMESERIES = "api.explore.tracemetrics-timeseries"
