@@ -311,8 +311,15 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
   const legacySeerAddOn = customer.addOns?.[AddOnCategory.LEGACY_SEER];
   const isOffered = !!seerAddOn?.isAvailable || !!legacySeerAddOn?.isAvailable;
 
-  const isSeatBased = !!seerAddOn?.enabled;
-  const isLegacy = !!legacySeerAddOn?.enabled;
+  // An active product trial counts as the plan being in use even when the
+  // add-on hasn't been purchased, matching productIsEnabled. Seat-based and
+  // legacy Seer trial on different billed categories.
+  const trials = customer.productTrials ?? null;
+  const onSeatTrial = !!getActiveProductTrial(trials, DataCategory.SEER_USER);
+  const onLegacyTrial = !!getActiveProductTrial(trials, DataCategory.SEER_AUTOFIX);
+
+  const isSeatBased = !!seerAddOn?.enabled || onSeatTrial;
+  const isLegacy = !!legacySeerAddOn?.enabled || onLegacyTrial;
 
   // A seat-based org can be enabled (via opt-in or trial) before any seat
   // usage accrues, so a missing metric row is zero usage, not an error.
@@ -330,9 +337,9 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
       <DetailList>
         <DetailLabel title="Plan">
           {isSeatBased ? (
-            <Tag variant="success">Seat-based</Tag>
+            <Tag variant="success">Seat-based{onSeatTrial ? ' (trial)' : ''}</Tag>
           ) : isLegacy ? (
-            <Tag variant="warning">Legacy (budget)</Tag>
+            <Tag variant="warning">Legacy (budget){onLegacyTrial ? ' (trial)' : ''}</Tag>
           ) : isOffered ? (
             <Tag variant="muted">None</Tag>
           ) : (
@@ -377,11 +384,12 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
                 ({(legacyBudget.percentUsed * 100).toFixed(2)}%)
               </DetailLabel>
             </Fragment>
-          ) : (
+          ) : legacySeerAddOn?.enabled ? (
+            // A paid legacy plan is backed by a reserved budget; a trial is not.
             <DetailLabel title="Budget">
               <Tag variant="danger">Legacy plan enabled but no budget data found</Tag>
             </DetailLabel>
-          ))}
+          ) : null)}
       </DetailList>
     </div>
   );
