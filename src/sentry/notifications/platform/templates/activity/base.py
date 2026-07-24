@@ -13,6 +13,8 @@ from sentry.notifications.platform.types import (
     NotificationData,
     NotificationSection,
     NotificationSource,
+    NotificationTarget,
+    NotificationTargetResourceType,
     NotificationTextBlock,
     ParagraphSection,
     PlainTextBlock,
@@ -158,7 +160,7 @@ def extract_notification_models_by_activity(
 
 
 def build_activity_notification_data(
-    activity: Activity, *, workflow_id: int | None = None
+    activity: Activity, *, workflow_id: int | None = None, target: NotificationTarget | None = None
 ) -> ActivityNotificationData:
     from sentry.integrations.messaging.message_builder import (
         build_attachment_text,
@@ -207,6 +209,21 @@ def build_activity_notification_data(
                 "alert_url": organization.absolute_url(
                     f"organizations/{organization.slug}/monitors/alerts/{workflow_id}/"
                 ),
+            }
+        )
+
+    if target and target.resource_type in {
+        NotificationTargetResourceType.DIRECT_MESSAGE,
+        NotificationTargetResourceType.EMAIL,
+    }:
+        # Note: This is NOT backwards, a Workflow model comes from the workflow engine, powering alerts
+        # The category of 'workflow' refers to subscribers to issues, which don't come from alerts.
+        notification_category = "alerts" if workflow else "workflow"
+        action_data.update(
+            {
+                "user_settings_url": organization.absolute_url(
+                    f"settings/account/notifications/{notification_category}/"
+                )
             }
         )
 

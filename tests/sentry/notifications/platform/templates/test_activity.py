@@ -1,3 +1,4 @@
+from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.templates.activity.base import (
     ACTIVITY_TYPE_TO_SOURCE,
     EXAMPLE_ALERT_URL,
@@ -19,7 +20,9 @@ from sentry.notifications.platform.templates.activity.status_change.base import 
 )
 from sentry.notifications.platform.types import (
     LinkTextBlock,
+    NotificationProviderKey,
     NotificationSource,
+    NotificationTargetResourceType,
     NotificationTextBlockType,
 )
 from sentry.testutils.cases import TestCase
@@ -127,6 +130,72 @@ class ActivityAlertBaseTest(TestCase):
         assert data.issue_culprit == self.group.culprit
         assert data.alert_url is not None
         assert data.activity_data == activity.data
+        assert data.user_settings_url is None
+
+    def test_build_activity_notification_data_user_settings_url_email_with_workflow(self) -> None:
+        workflow = self.create_workflow(
+            name="my_workflow",
+            when_condition_group=self.create_data_condition_group(),
+        )
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SEER_RCA_STARTED.value,
+        )
+        target = GenericNotificationTarget(
+            provider_key=NotificationProviderKey.EMAIL,
+            resource_type=NotificationTargetResourceType.EMAIL,
+            resource_id=str(self.user.id),
+        )
+        data = build_activity_notification_data(activity, workflow_id=workflow.id, target=target)
+
+        assert data.user_settings_url is not None
+        assert "notifications/alerts/" in data.user_settings_url
+
+    def test_build_activity_notification_data_user_settings_url_email_without_workflow(
+        self,
+    ) -> None:
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SEER_RCA_STARTED.value,
+        )
+        target = GenericNotificationTarget(
+            provider_key=NotificationProviderKey.EMAIL,
+            resource_type=NotificationTargetResourceType.EMAIL,
+            resource_id=str(self.user.id),
+        )
+        data = build_activity_notification_data(activity, target=target)
+
+        assert data.user_settings_url is not None
+        assert "notifications/workflow/" in data.user_settings_url
+
+    def test_build_activity_notification_data_user_settings_url_dm(self) -> None:
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SEER_RCA_STARTED.value,
+        )
+        target = GenericNotificationTarget(
+            provider_key=NotificationProviderKey.SLACK,
+            resource_type=NotificationTargetResourceType.DIRECT_MESSAGE,
+            resource_id="U12345",
+        )
+        data = build_activity_notification_data(activity, target=target)
+
+        assert data.user_settings_url is not None
+        assert "notifications/workflow/" in data.user_settings_url
+
+    def test_build_activity_notification_data_user_settings_url_channel_excluded(self) -> None:
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SEER_RCA_STARTED.value,
+        )
+        target = GenericNotificationTarget(
+            provider_key=NotificationProviderKey.SLACK,
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            resource_id="C12345",
+        )
+        data = build_activity_notification_data(activity, target=target)
+
+        assert data.user_settings_url is None
 
 
 class ActivitySeerAlertBaseTest(TestCase):

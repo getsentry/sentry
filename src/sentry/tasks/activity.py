@@ -100,6 +100,7 @@ def send_activity_notifications(activity_id: int) -> None:
         _send_legacy_activity_notification(activity=activity)
         return
 
-    data = build_activity_notification_data(activity=activity)
     strategy = IssueSubscribersActivityStrategy(activity=activity)
-    NotificationService[ActivityNotificationData](data=data).notify_sync(strategy=strategy)
+    for target in strategy.get_targets():
+        data = build_activity_notification_data(activity=activity, target=target)
+        NotificationService[ActivityNotificationData](data=data).notify_target(target=target)

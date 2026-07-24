@@ -81,6 +81,30 @@ class FilterDeployDataTest(TestCase):
 
         assert result.release_projects == []
 
+    def test_includes_user_settings_url_when_user_id_present(self) -> None:
+        result = filter_deploy_data(
+            data=self.data, user_id=self.user.id, organization=self.organization
+        )
+
+        assert result.user_settings_url is not None
+        assert "notifications/deploy/" in result.user_settings_url
+
+    def test_includes_user_settings_url_when_allow_joinleave_is_false(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        result = filter_deploy_data(
+            data=self.data, user_id=self.user.id, organization=self.organization
+        )
+
+        assert result.user_settings_url is not None
+        assert "notifications/deploy/" in result.user_settings_url
+
+    def test_no_user_settings_url_when_user_id_is_none(self) -> None:
+        result = filter_deploy_data(data=self.data, user_id=None, organization=self.organization)
+
+        assert result.user_settings_url is None
+
     def test_does_not_mutate_original_data(self) -> None:
         other_user = self.create_user()
         self.create_member(organization=self.organization, user=other_user)

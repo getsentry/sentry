@@ -3,9 +3,6 @@ from unittest import mock
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.activity_registry.email import EmailActivityHandler
 from sentry.notifications.notification_action.registry import activity_handler_registry
-from sentry.notifications.platform.strategies.issue_owners import (
-    IssueOwnersActivityAlertStrategy,
-)
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
@@ -69,8 +66,12 @@ class TestEmailActivityHandler(BaseWorkflowTest):
     @mock.patch(
         "sentry.notifications.notification_action.activity_registry.email.build_activity_notification_data"
     )
+    @mock.patch(
+        "sentry.notifications.notification_action.activity_registry.email.IssueOwnersActivityAlertStrategy"
+    )
     def test_invoke_action_issue_owners(
         self,
+        mock_strategy_cls: mock.MagicMock,
         mock_build_data: mock.MagicMock,
         mock_notification_service: mock.MagicMock,
     ) -> None:
@@ -91,12 +92,14 @@ class TestEmailActivityHandler(BaseWorkflowTest):
             workflow_id=self.workflow.id,
         )
 
+        mock_target = mock.MagicMock()
+        mock_strategy_cls.return_value.get_targets.return_value = [mock_target]
+
         EmailActivityHandler.invoke_action(invocation=invocation, activity=activity)
 
-        mock_build_data.assert_called_once_with(activity, workflow_id=self.workflow.id)
+        mock_strategy_cls.assert_called_once_with(group=activity.group)
+        mock_build_data.assert_called_once_with(
+            activity, workflow_id=self.workflow.id, target=mock_target
+        )
         mock_service_instance = mock_notification_service.__getitem__.return_value.return_value
-        mock_service_instance.notify_sync.assert_called_once()
-        call_kwargs = mock_service_instance.notify_sync.call_args[1]
-        strategy = call_kwargs["strategy"]
-        assert isinstance(strategy, IssueOwnersActivityAlertStrategy)
-        assert strategy.group == activity.group
+        mock_service_instance.notify_target.assert_called_once_with(target=mock_target)
