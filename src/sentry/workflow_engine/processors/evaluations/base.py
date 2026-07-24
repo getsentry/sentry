@@ -1,8 +1,16 @@
+from abc import abstractmethod
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, replace
-from typing import Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from sentry.workflow_engine.types import ConditionError
+
+if TYPE_CHECKING:
+    from logging import Logger
+
+# The shared, static prefix for every evaluation log. Combined with each evaluation's
+# `log_name` to build a stable, searchable event name (e.g. `workflow_engine.evaluation.condition`).
+_LOG_PREFIX = "workflow_engine.evaluation"
 
 
 def _find_error(
@@ -38,12 +46,39 @@ class BaseWorkflowEngineEvaluation[R, D]:
 
     triggered: bool = field(compare=False)
 
+    # The static suffix for this evaluation type, combined with `_LOG_PREFIX` to build the
+    # log event name in `to_log`. Set by each concrete subclass.
+    log_name: ClassVar[str]
+
+    @abstractmethod
+    def to_artifact(self) -> dict[str, Any]:
+        """
+        Serialize the result, data, error, and triggered state into a flat, log-safe dict
+        that can be emitted in a log or stored as an artifact.
+
+        Implementations MUST NOT include the raw evaluated value (it may be large or contain
+        PII) - use metadata (ids, types) and the derived result instead.
+        """
+        ...
+
+    def to_log(self, logger: "Logger") -> None:
+        """
+        Emit this evaluation as a structured log line under a stable, searchable event name
+        (`{_LOG_PREFIX}.{log_name}`), passing `to_artifact()` as the log `extra`.
+        """
+        event = f"{_LOG_PREFIX}.{self.log_name}"
+        logger.debug(event, extra=self.to_artifact())
+
     def is_tainted(self) -> bool:
         """
         Returns True if this result is less trustworthy due to an error during
         evaluation.
         """
         return self.error is not None
+
+    def error_message(self) -> str | None:
+        """The error's message for serialization in `to_artifact`, or None when untainted."""
+        return self.error.msg if self.error else None
 
     def with_error(self, error: ConditionError) -> "BaseWorkflowEngineEvaluation[R, D]":
         """

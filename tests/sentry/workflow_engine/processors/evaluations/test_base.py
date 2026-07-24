@@ -1,7 +1,17 @@
-from sentry.workflow_engine.models import DataConditionGroup
-from sentry.workflow_engine.processors.evaluations import DataConditionGroupEvaluation
+from unittest import mock
+
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup
+from sentry.workflow_engine.processors.evaluations import (
+    DataConditionEvaluation,
+    DataConditionGroupEvaluation,
+    DetectorEvaluation,
+)
 from sentry.workflow_engine.processors.evaluations.base import BaseWorkflowEngineEvaluation
-from sentry.workflow_engine.types import ConditionError
+from sentry.workflow_engine.types import (
+    ConditionError,
+    DataConditionResult,
+    DetectorPriorityLevel,
+)
 
 ERR = ConditionError(msg="test error")
 OTHER_ERR = ConditionError(msg="other error")
@@ -155,3 +165,119 @@ class TestChooseTainted:
         a, b = _ev(True), _ev(False)
         assert BaseWorkflowEngineEvaluation.choose_tainted(a, b) is a
         assert BaseWorkflowEngineEvaluation.choose_tainted(b, a) is b
+
+
+def _condition_eval(
+    *,
+    result: DataConditionResult = True,
+    triggered: bool = True,
+    error: ConditionError | None = None,
+) -> DataConditionEvaluation:
+    # Unsaved model instance: to_artifact only reads `id`/`type`, no DB access.
+    return DataConditionEvaluation(
+        condition=DataCondition(id=42, type="eq"),
+        result=result,
+        triggered=triggered,
+        error=error,
+        data="the-raw-value",  # never surfaced in the artifact
+    )
+
+
+class TestDataConditionEvaluationArtifact:
+    def test_serializes_metadata_result_and_triggered(self) -> None:
+        artifact = _condition_eval(result=True, triggered=True).to_artifact()
+        assert artifact == {
+            "condition_id": 42,
+            "type": "eq",
+            "result": True,
+            "triggered": True,
+            "error": None,
+        }
+
+    def test_omits_raw_value(self) -> None:
+        # The evaluated value may be large / contain PII; it must never appear in the artifact.
+        assert "the-raw-value" not in _condition_eval().to_artifact().values()
+
+    def test_unwraps_enum_result(self) -> None:
+        artifact = _condition_eval(result=DetectorPriorityLevel.HIGH).to_artifact()
+        assert artifact["result"] == DetectorPriorityLevel.HIGH.value
+
+    def test_serializes_error_message(self) -> None:
+        artifact = _condition_eval(triggered=False, error=ERR).to_artifact()
+        assert artifact["triggered"] is False
+        assert artifact["error"] == "test error"
+
+
+class TestDataConditionGroupEvaluationArtifact:
+    def test_embeds_condition_artifacts_and_unwraps_logic_type(self) -> None:
+        condition = _condition_eval()
+        group = DataConditionGroupEvaluation(
+            result=True,
+            triggered=True,
+            error=None,
+            data={
+                "condition_evaluations": [condition],
+                "logic_type": DataConditionGroup.Type.ANY,
+            },
+        )
+        assert group.to_artifact() == {
+            "logic_type": "any",
+            "result": True,
+            "triggered": True,
+            "error": None,
+            "condition_evaluations": [condition.to_artifact()],
+        }
+
+    def test_handles_raw_string_logic_type(self) -> None:
+        group = DataConditionGroupEvaluation(
+            result=False,
+            triggered=False,
+            error=None,
+            data={"condition_evaluations": [], "logic_type": "not-a-real-type"},
+        )
+        assert group.to_artifact()["logic_type"] == "not-a-real-type"
+
+
+class TestDetectorEvaluationArtifact:
+    def test_embeds_trigger_group_and_unwraps_priority(self) -> None:
+        trigger_group = DataConditionGroupEvaluation(
+            result=True,
+            triggered=True,
+            error=None,
+            data={
+                "condition_evaluations": [_condition_eval()],
+                "logic_type": DataConditionGroup.Type.ANY,
+            },
+        )
+        detector = DetectorEvaluation(
+            result=None,
+            priority=DetectorPriorityLevel.HIGH,
+            triggered=True,
+            error=None,
+            data={
+                "group_key": "group-1",
+                "trigger_group_evaluation": trigger_group,
+                "event_data": None,
+            },
+        )
+        assert detector.to_artifact() == {
+            "group_key": "group-1",
+            "priority": DetectorPriorityLevel.HIGH.value,
+            "result": None,
+            "triggered": True,
+            "error": None,
+            "trigger_group_evaluation": trigger_group.to_artifact(),
+        }
+
+
+class TestToLog:
+    def test_logs_under_static_prefix_with_artifact_extra(self) -> None:
+        evaluation = _ev(True)
+        mock_logger = mock.MagicMock()
+
+        evaluation.to_log(mock_logger)
+
+        mock_logger.debug.assert_called_once_with(
+            "workflow_engine.evaluation.condition_group",
+            extra=evaluation.to_artifact(),
+        )

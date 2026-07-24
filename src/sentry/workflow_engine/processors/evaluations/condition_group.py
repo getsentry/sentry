@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from .base import BaseWorkflowEngineEvaluation
 from .condition import DataConditionEvaluation
@@ -31,4 +31,17 @@ class DataConditionGroupEvaluation(BaseWorkflowEngineEvaluation[bool, GroupEvalu
     - triggered: bool - whether the group's conditions passed
     """
 
-    pass
+    log_name = "condition_group"
+
+    def to_artifact(self) -> dict[str, Any]:
+        logic_type = self.data["logic_type"]
+        return {
+            # logic_type may be a DataConditionGroup.Type enum or a raw string; unwrap to its value.
+            "logic_type": getattr(logic_type, "value", logic_type),
+            "result": self.result,
+            "triggered": self.triggered,
+            "error": self.error_message(),
+            "condition_evaluations": [
+                condition.to_artifact() for condition in self.data["condition_evaluations"]
+            ],
+        }

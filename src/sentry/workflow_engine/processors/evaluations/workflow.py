@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from sentry_sdk import logger as sentry_logger
 
@@ -63,7 +63,27 @@ class WorkflowEvaluation(
     - `triggered`: bool - Whether the workflow's trigger (WHEN) conditions passed.
     """
 
-    pass
+    log_name = "workflow"
+
+    def to_artifact(self) -> dict[str, Any]:
+        result = self.result
+        # result is either the "deferred" sentinel (a str) or the sequence of actions that fired.
+        if isinstance(result, str):
+            result_kind = "deferred"
+            triggered_action_ids = None
+        else:
+            result_kind = "actions"
+            triggered_action_ids = [action.id for action in result]
+        return {
+            "triggered": self.triggered,
+            "error": self.error_message(),
+            "result": result_kind,
+            "triggered_action_ids": triggered_action_ids,
+            "trigger_group_eval": self.data["trigger_group_eval"].to_artifact(),
+            "filter_group_evals": [
+                filter_eval.to_artifact() for filter_eval in self.data["filter_group_evals"]
+            ],
+        }
 
 
 class WorkflowEvaluationSnapshot(TypedDict):
@@ -101,7 +121,7 @@ class GroupedWorkflowEvaluationResult:
     result: dict[WorkflowId, WorkflowEvaluation]
     tainted: bool
 
-    # Batch-level context used by log_to / get_snapshot / consumers.
+    # Batch-level context used by to_log / to_artifact / get_snapshot / consumers.
     organization: Organization
     event: GroupEvent | Activity
     group: Group | None = None
@@ -160,7 +180,42 @@ class GroupedWorkflowEvaluationResult:
             "triggered_actions": triggered_actions,
         }
 
-    def log_to(self, logger: Logger) -> bool:
+    def to_artifact(self) -> dict[str, Any]:
+        """
+        Flatten the batch-level context into a structured, log-safe dict (ids, counts, and
+        debug info) and embed each workflow's own `to_artifact()` under `workflow_evaluations`
+        so a log search can answer *why* a given workflow did or didn't trigger.
+
+        This is the `extra` payload emitted by `to_log`. Empty per-workflow evaluations for the
+        sentinel early-return paths, where `result` is `{}`.
+        """
+        data_snapshot = self.get_snapshot()
+        detection_type = (
+            data_snapshot["associated_detector"]["type"]
+            if data_snapshot["associated_detector"]
+            else None
+        )
+        group_id = data_snapshot["group"].id if data_snapshot["group"] else None
+        triggered_workflows = data_snapshot["triggered_workflows"] or []
+        action_filter_conditions = data_snapshot["action_filter_conditions"] or []
+        triggered_actions = data_snapshot["triggered_actions"] or []
+        return {
+            "event_id": data_snapshot["event_id"],
+            "group_id": group_id,
+            "detection_type": detection_type,
+            "workflow_ids": data_snapshot["workflow_ids"],
+            "triggered_workflow_ids": [w["id"] for w in triggered_workflows],
+            "delayed_conditions": data_snapshot["delayed_conditions"],
+            "action_filter_group_ids": [afg["id"] for afg in action_filter_conditions],
+            "triggered_action_ids": [a["id"] for a in triggered_actions],
+            "debug_msg": self.msg,
+            "workflow_evaluations": {
+                str(workflow_id): evaluation.to_artifact()
+                for workflow_id, evaluation in self.result.items()
+            },
+        }
+
+    def to_log(self, logger: Logger) -> bool:
         """
         Logs workflow evaluation data.
         Logging may be skipped if the organization isn't opted in and logs are being
@@ -189,27 +244,7 @@ class GroupedWorkflowEvaluationResult:
         else:
             log_str = f"{log_str}.actions.triggered"
 
-        data_snapshot = self.get_snapshot()
-        detection_type = (
-            data_snapshot["associated_detector"]["type"]
-            if data_snapshot["associated_detector"]
-            else None
-        )
-        group_id = data_snapshot["group"].id if data_snapshot["group"] else None
-        triggered_workflows = data_snapshot["triggered_workflows"] or []
-        action_filter_conditions = data_snapshot["action_filter_conditions"] or []
-        triggered_actions = data_snapshot["triggered_actions"] or []
-        extra = {
-            "event_id": data_snapshot["event_id"],
-            "group_id": group_id,
-            "detection_type": detection_type,
-            "workflow_ids": data_snapshot["workflow_ids"],
-            "triggered_workflow_ids": [w["id"] for w in triggered_workflows],
-            "delayed_conditions": data_snapshot["delayed_conditions"],
-            "action_filter_group_ids": [afg["id"] for afg in action_filter_conditions],
-            "triggered_action_ids": [a["id"] for a in triggered_actions],
-            "debug_msg": self.msg,
-        }
+        extra = self.to_artifact()
 
         if direct_to_sentry:
             sentry_logger.info(log_str, attributes=extra)

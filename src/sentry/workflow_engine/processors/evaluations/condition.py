@@ -40,5 +40,17 @@ class DataConditionEvaluation(
     - triggered: bool - If the evaluation should consider this condition "triggered" or not.
     """
 
+    log_name = "condition"
+
     result: DataConditionResult = None
     condition: DataCondition
+
+    def to_artifact(self) -> dict[str, Any]:
+        return {
+            "condition_id": self.condition.id,
+            "type": self.condition.type,
+            # DataConditionResult may be a DetectorPriorityLevel enum; unwrap to its value.
+            "result": getattr(self.result, "value", self.result),
+            "triggered": self.triggered,
+            "error": self.error_message(),
+        }
