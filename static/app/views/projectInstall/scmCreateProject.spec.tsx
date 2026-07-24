@@ -1,14 +1,24 @@
+import {DetectedPlatformFixture} from 'sentry-fixture/detectedPlatform';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {PlatformKey} from 'sentry/types/platform';
 import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from 'sentry/views/projectInstall/issueAlertOptions';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
@@ -52,8 +62,31 @@ const pythonPlatform: OnboardingSelectedSDK = {
 };
 
 describe('ScmCreateProject', () => {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['performance-view']});
   const adminTeam = TeamFixture({slug: 'admin-team', access: ['team:admin']});
+  const githubIntegration = OrganizationIntegrationsFixture({
+    id: '1',
+    name: 'getsentry',
+    status: 'active',
+    organizationIntegrationStatus: 'active',
+    provider: {
+      key: 'github',
+      slug: 'github',
+      name: 'GitHub',
+      canAdd: true,
+      canDisable: false,
+      features: ['commits'],
+      aspects: {},
+    },
+  });
+  const githubRepository = RepositoryFixture({
+    id: 'repository-1',
+    externalId: '1',
+    name: 'getsentry/sentry',
+    externalSlug: 'getsentry/sentry',
+    integrationId: githubIntegration.id,
+    provider: {id: 'integrations:github', name: 'GitHub'},
+  });
 
   // Seed a persisted wizard for a project created in this session.
   function persistWizardSession(overrides: Partial<Record<string, unknown>> = {}) {
@@ -74,6 +107,69 @@ describe('ScmCreateProject', () => {
       query: {referrer: 'getting-started', project: CREATED_PROJECT_ID},
     },
   };
+
+  function mockProjectCreation(projectSlug: string, platform: PlatformKey) {
+    const project = ProjectFixture({
+      id: `${projectSlug}-id`,
+      slug: projectSlug,
+      name: projectSlug,
+      platform,
+    });
+    const createRequest = MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+      method: 'POST',
+      body: project,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [adminTeam],
+    });
+    return {createRequest, project};
+  }
+
+  function mockExistingGithubRepository() {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [githubIntegration],
+      match: [MockApiClient.matchQuery({integrationType: 'source_code_management'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${githubIntegration.id}/repos/`,
+      body: {
+        repos: [
+          {
+            externalId: githubRepository.externalId,
+            identifier: githubRepository.externalSlug,
+            name: 'sentry',
+            isInstalled: true,
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      body: [githubRepository],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${githubRepository.id}/platforms/`,
+      body: {
+        platforms: [DetectedPlatformFixture({platform: 'python'})],
+      },
+    });
+    return MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/python/repo/`,
+      method: 'POST',
+      body: {},
+    });
+  }
 
   beforeEach(() => {
     TeamStore.reset();
@@ -418,5 +514,145 @@ describe('ScmCreateProject', () => {
       expect(router.location.pathname).toContain('/python/getting-started/');
     });
     expect(createRequest).not.toHaveBeenCalled();
+  });
+
+  it('creates from fresh manual selections and persists the completed state', async () => {
+    const {createRequest, project} = mockProjectCreation('fresh-project', 'python');
+    renderGlobalModal();
+    const {router} = render(<ScmCreateProject />, {organization});
+
+    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.keyboard('Python');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Python'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
+
+    const projectName = await screen.findByPlaceholderText('project-name');
+    await waitFor(() => expect(projectName).toHaveValue('python'));
+    const tracing = screen.getByRole('checkbox', {name: /Tracing/});
+    await userEvent.click(tracing);
+    expect(tracing).toBeChecked();
+    await userEvent.clear(projectName);
+    await userEvent.type(projectName, project.slug);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(createRequest).toHaveBeenCalledWith(
+        `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        expect.objectContaining({
+          data: expect.objectContaining({name: project.slug, platform: project.platform}),
+        })
+      );
+    });
+    await waitFor(() => {
+      expect(router.location.pathname).toContain(`/${project.slug}/getting-started/`);
+    });
+    expect(router.location.query.product).toEqual([
+      ProductSolution.ERROR_MONITORING,
+      ProductSolution.PERFORMANCE_MONITORING,
+    ]);
+
+    const savedState = JSON.parse(window.sessionStorage.getItem(WIZARD_KEY)!);
+    expect(savedState).toEqual(
+      expect.objectContaining({
+        selectedPlatform: expect.objectContaining({key: 'python'}),
+        selectedFeatures: [
+          ProductSolution.ERROR_MONITORING,
+          ProductSolution.PERFORMANCE_MONITORING,
+        ],
+        projectDetailsForm: expect.objectContaining({
+          projectName: project.slug,
+          teamSlug: adminTeam.slug,
+        }),
+        createdProjectId: project.id,
+        createdProjectSlug: project.slug,
+      })
+    );
+    expect(savedState).not.toHaveProperty('selectedRepository');
+  });
+
+  it('creates from an existing integration and detected repository platform', async () => {
+    const repoLinkRequest = mockExistingGithubRepository();
+    const {createRequest, project} = mockProjectCreation('python', 'python');
+    const {router} = render(<ScmCreateProject />, {organization});
+
+    expect(await screen.findByRole('button', {name: /getsentry/})).toBeInTheDocument();
+    await userEvent.click(screen.getByText('Search repositories'));
+    await userEvent.keyboard('sentry');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
+
+    expect(await screen.findByRole('radio', {name: 'Python Language'})).toBeChecked();
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
+    });
+    expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(createRequest).toHaveBeenCalledWith(
+        `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        expect.objectContaining({
+          data: expect.objectContaining({name: project.slug, platform: project.platform}),
+        })
+      );
+    });
+    await waitFor(() => {
+      expect(repoLinkRequest).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/repo/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {repositoryId: githubRepository.id},
+        })
+      );
+    });
+    await waitFor(() => {
+      expect(router.location.pathname).toContain(`/${project.slug}/getting-started/`);
+    });
+    expect(JSON.parse(window.sessionStorage.getItem(WIZARD_KEY)!)).toEqual(
+      expect.objectContaining({
+        selectedRepository: expect.objectContaining({id: githubRepository.id}),
+        selectedPlatform: expect.objectContaining({key: 'python'}),
+        projectDetailsForm: expect.objectContaining({
+          projectName: project.slug,
+          teamSlug: adminTeam.slug,
+        }),
+      })
+    );
+  });
+
+  it('clears repository-derived state when the selected repository is removed', async () => {
+    mockExistingGithubRepository();
+    renderGlobalModal();
+    render(<ScmCreateProject />, {organization});
+
+    await userEvent.click(await screen.findByText('Search repositories'));
+    await userEvent.keyboard('sentry');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
+
+    expect(await screen.findByRole('radio', {name: 'Python Language'})).toBeChecked();
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
+    });
+    expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
+    const tracing = await screen.findByRole('checkbox', {name: /Tracing/});
+    await userEvent.click(tracing);
+    expect(tracing).toBeChecked();
+
+    await userEvent.click(screen.getByText('sentry'));
+    await userEvent.keyboard('{Backspace}');
+
+    expect(await screen.findByText('Search SDKs...')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('radio', {name: 'Python Language'})
+    ).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('project-name')).toHaveValue('');
+    expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
+    await userEvent.click(screen.getByText('Search SDKs...'));
+    await userEvent.keyboard('Python');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Python'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
+
+    expect(await screen.findByRole('checkbox', {name: /Tracing/})).not.toBeChecked();
   });
 });
