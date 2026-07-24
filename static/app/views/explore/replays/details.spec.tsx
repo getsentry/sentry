@@ -36,6 +36,9 @@ mockUseLoadReplayReader.mockReturnValue({
 function TopBarWrapper({children}: {children: ReactNode}) {
   return (
     <TopBar.Slot.Provider>
+      <TopBar.Slot.Outlet name="breadcrumbs">
+        {props => <div {...props} data-test-id="topbar-breadcrumbs-slot" />}
+      </TopBar.Slot.Outlet>
       <TopBar.Slot.Outlet name="title">
         {props => <div {...props} data-test-id="topbar-title-slot" />}
       </TopBar.Slot.Outlet>
@@ -90,9 +93,9 @@ describe('ReplayDetails', () => {
     expect(mockUseLoadReplayReader).toHaveBeenCalled();
   });
 
-  it('renders pagination chevrons and a copy action in the replay crumb (flag on)', () => {
+  it('renders pagination chevrons and a copy action in the replay crumb', () => {
     const organization = OrganizationFixture({
-      features: ['session-replay', 'ui-migration-breadcrumbs'],
+      features: ['session-replay'],
     });
 
     render(<ReplayDetails />, {

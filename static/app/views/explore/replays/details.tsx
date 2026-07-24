@@ -26,7 +26,6 @@ import {ReplayDetailsMetadata} from 'sentry/views/explore/replays/detail/header/
 import {ReplayDetailsPageBreadcrumbs} from 'sentry/views/explore/replays/detail/header/replayDetailsPageBreadcrumbs';
 import {ReplayDetailsUserBadge} from 'sentry/views/explore/replays/detail/header/replayDetailsUserBadge';
 import {ReplayDetailsPage} from 'sentry/views/explore/replays/detail/page';
-import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
@@ -109,13 +108,7 @@ function ReplayDetailsContent() {
 
   const pageFrameContent = (
     <Fragment>
-      {organization.features.includes('ui-migration-breadcrumbs') ? (
-        <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-      ) : (
-        <TopBar.Slot name="title">
-          <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-        </TopBar.Slot>
-      )}
+      <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
       <ReplayDetailsHeaderActions readerResult={readerResult} />
       <Flex
         justify="between"
