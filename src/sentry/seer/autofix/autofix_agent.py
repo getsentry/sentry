@@ -396,8 +396,9 @@ def trigger_autofix_agent(
         stopping_point: Where to stop the automated pipeline (only used for new runs)
 
     Returns:
-        The run's SeerRun mirror (carrying both seer_run_state_id and uuid). None
-        only when continuing a legacy run that predates SeerRun mirroring.
+        The run's SeerRun mirror (carrying both seer_run_state_id and uuid). A
+        kickoff (run_id is None) always returns a freshly created mirror; a
+        continue returns None if no SeerRun row matches the given run_id.
     """
     # check billing quota for triggering a new autofix run
     if run_id is None:
