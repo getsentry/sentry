@@ -26,7 +26,7 @@ export function FeedbackOnboardingLayout({
   dsn,
   platformKey,
   project,
-  newOrg,
+  docsFlow,
   projectKeyId,
   configType = 'onboarding',
 }: OnboardingLayoutProps) {
@@ -63,7 +63,7 @@ export function FeedbackOnboardingLayout({
         data: registryData,
       },
       platformOptions: selectedOptions,
-      newOrg,
+      docsFlow,
       feedbackOptions: {
         email,
         name,
@@ -81,7 +81,7 @@ export function FeedbackOnboardingLayout({
     docsConfig,
     dsn,
     isLoadingRegistry,
-    newOrg,
+    docsFlow,
     organization,
     platformKey,
     project,

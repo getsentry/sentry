@@ -88,12 +88,11 @@ export function SubscriptionFixture(props: Props): TSubscription {
     spendAllocationEnabled: false,
     status: 'active',
     totalProjects: 0,
-    trialPlan: null,
+    trialPlan: isTrial ? planDetails.id : null,
     onDemandPeriodStart: '2018-09-25',
     trialEnd: null,
     countryCode: null,
     cancelAtPeriodEnd: false,
-    isTrial,
     onTrialPlan: isTrial,
     paymentSource: {
       last4: '4242',
