@@ -75,7 +75,7 @@ RETENTIONS_CONFIG_MAPPING = {
     DataCategory.LOG_BYTE: "log",
     DataCategory.TRANSACTION: "span",
     DataCategory.SPAN: "span",
-    DataCategory.TRACE_METRIC: "traceMetric",
+    DataCategory.TRACE_METRIC_BYTE: "traceMetric",
 }
 
 
