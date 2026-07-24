@@ -119,9 +119,7 @@ def _set_dedup_and_signal(
         cache.set(deduplication_key, "", CACHE_TIMEOUT)
 
     with start_span(op="event_accepted.send_robust", name="event_accepted.send_robust"):
-        event_accepted.send_robust(
-            ip=remote_addr, data=data, project=project, sender=process_event
-        )
+        event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
 
 
 def _process_transaction_event(
@@ -142,9 +140,7 @@ def _process_transaction_event(
     processing_store = transaction_processing_store
 
     if reprocess_only_stuck_events:
-        with start_span(
-            op="event_processing_store.exists", name="event_processing_store.exists"
-        ):
+        with start_span(op="event_processing_store.exists", name="event_processing_store.exists"):
             if not processing_store.exists(data):
                 return
 
@@ -250,9 +246,7 @@ def _process_default_event(
     processing_store = event_processing_store
 
     if reprocess_only_stuck_events:
-        with start_span(
-            op="event_processing_store.exists", name="event_processing_store.exists"
-        ):
+        with start_span(op="event_processing_store.exists", name="event_processing_store.exists"):
             if not processing_store.exists(data):
                 return
 
