@@ -1,10 +1,7 @@
 import {t} from 'sentry/locale';
 import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {
-  DETAILS_DASHBOARD_DESCRIPTION,
-  DETAILS_DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
+import {DETAILS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
 import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
@@ -13,7 +10,6 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DETAILS_DASHBOARD_TITLE,
-  description: DETAILS_DASHBOARD_DESCRIPTION,
   filters: {
     globalFilter: [],
   },

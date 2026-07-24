@@ -10,10 +10,7 @@ import {
   WARM_START_CONDITION,
   WARM_START_TABLE_OPERATIONS_CONDITION,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
-import {
-  APP_STARTS_DASHBOARD_DESCRIPTION,
-  APP_STARTS_DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
+import {APP_STARTS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
@@ -331,7 +328,6 @@ const SECOND_ROW_WIDGETS: PrebuiltWidget[] = [
 export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   title: APP_STARTS_DASHBOARD_TITLE,
-  description: APP_STARTS_DASHBOARD_DESCRIPTION,
   projects: [],
   widgets: [
     ...HEADER_ROW_WIDGETS,

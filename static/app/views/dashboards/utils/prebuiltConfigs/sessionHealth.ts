@@ -7,9 +7,7 @@ export const SESSION_HEALTH_PREBUILT_CONFIG: PrebuiltDashboard = {
   filters: {},
   projects: [],
   title: 'Frontend Session Health',
-  description: t(
-    'Session and user health rates (crashed, abnormal, errored), with issue counts.'
-  ),
+  description: t('Monitor browser session health by user and session.'),
   widgets: [
     {
       id: 'issue-counts',

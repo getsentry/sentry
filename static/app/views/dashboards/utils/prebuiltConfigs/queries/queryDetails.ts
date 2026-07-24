@@ -6,7 +6,6 @@ import {
   AVERAGE_DURATION_TEXT,
   BASE_FILTER_STRING,
   QUERIES_PER_MINUTE_TEXT,
-  DETAILS_DASHBOARD_DESCRIPTION,
   DETAILS_DASHBOARD_TITLE,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
@@ -16,7 +15,6 @@ export const QUERIES_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DETAILS_DASHBOARD_TITLE,
-  description: DETAILS_DASHBOARD_DESCRIPTION,
   filters: {
     globalFilter: [
       {

@@ -5,10 +5,7 @@ import type {
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {QUEUE_CHARTS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueCharts';
-import {
-  DETAILS_DASHBOARD_DESCRIPTION,
-  DETAILS_DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/settings';
+import {DETAILS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
@@ -218,7 +215,6 @@ export const QUEUE_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DETAILS_DASHBOARD_TITLE,
-  description: DETAILS_DASHBOARD_DESCRIPTION,
   filters: {},
   widgets: [...FIRST_ROW_WIDGTS, ...SECOND_ROW_WIDGETS, CONSUMER_TABLE, PRODUCER_TABLE],
   onboarding: {type: 'module', moduleName: ModuleName.QUEUE},
