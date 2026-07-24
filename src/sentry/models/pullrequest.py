@@ -12,6 +12,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -25,6 +26,7 @@ from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
+from sentry.models.repository import Repository
 from sentry.utils.groupreference import find_referenced_groups
 
 if TYPE_CHECKING:
@@ -189,8 +191,6 @@ class PullRequestManager(BaseManager["PullRequest"]):
         rather than through an SCM installation (e.g. Seer-created and delegated-agent
         attribution).
         """
-        from sentry.models.repository import Repository
-
         normalized_provider = normalize_scm_provider(provider)
         provider_unmappable = (
             normalized_provider is not None and normalized_provider not in _KNOWN_SCM_PROVIDERS
@@ -212,6 +212,36 @@ class PullRequestManager(BaseManager["PullRequest"]):
             key=str(key),
         )
         return ResolvedPullRequest(pull_request, "resolved", provider_unmappable)
+
+    def for_provider_pr(
+        self, *, external_id: str, provider: str, key: int | str
+    ) -> list[PullRequest]:
+        """Every ``PullRequest`` row for one provider-side PR, across all orgs
+        sharing the repository.
+
+        A repository connected to multiple Sentry orgs (a shared GitHub App
+        installation) has one active ``Repository`` row per org, all carrying the
+        provider's ``external_id`` (e.g. GitHub's repo id). A single provider PR —
+        the same ``(external_id, key)`` — therefore fans out to one ``PullRequest``
+        row per org. This returns every such row so callers can treat the provider
+        PR as the unit rather than the per-org row (e.g. emission dedupe, so a
+        single provider PR emits one ``scm.pr.closed`` instead of one per org).
+
+        ``provider`` is the bare, normalized slug (e.g. ``github``) and scopes the
+        match so a numeric ``external_id`` can't collide across providers.
+
+        Cell-local: ``Repository`` and ``PullRequest`` are cell models, so rows in
+        other cells aren't visible here — consistent with every other cross-org
+        query in these paths. Returns ``[]`` when ``external_id`` matches no active
+        repository.
+        """
+        repos = Repository.objects.filter(
+            external_id=external_id, status=ObjectStatus.ACTIVE
+        ).filter(Repository.objects.provider_match(provider))
+        repo_ids = list(repos.values_list("id", flat=True))
+        if not repo_ids:
+            return []
+        return list(self.filter(repository_id__in=repo_ids, key=str(key)))
 
 
 @cell_silo_model
@@ -260,7 +290,6 @@ class PullRequest(Model):
         return find_referenced_groups(text, self.organization_id)
 
     def get_external_url(self) -> str | None:
-        from sentry.models.repository import Repository
         from sentry.plugins.base import bindings
 
         repository = Repository.objects.get(id=self.repository_id)

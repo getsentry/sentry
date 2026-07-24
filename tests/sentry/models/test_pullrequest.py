@@ -5,6 +5,7 @@ from uuid import uuid4
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
@@ -596,6 +597,59 @@ class GetOrCreateFromReferenceTest(TestCase):
         assert resolved.pull_request is not None
         assert resolved.pull_request.repository_id == other_repo.id
         assert not PullRequest.objects.filter(repository_id=self.repo.id).exists()
+
+
+class ForProviderPrTest(TestCase):
+    def setUp(self) -> None:
+        self.external_id = "556677"
+        self.repo = self.create_repo(
+            self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id=self.external_id,
+        )
+        self.pull_request = self.create_pull_request(
+            organization_id=self.organization.id, repository_id=self.repo.id, key="42"
+        )
+
+    def _for_provider_pr(self, *, provider: str = "github", key: int | str = 42):
+        return PullRequest.objects.for_provider_pr(
+            external_id=self.external_id, provider=provider, key=key
+        )
+
+    def test_resolves_row_in_own_org(self) -> None:
+        assert [pr.id for pr in self._for_provider_pr()] == [self.pull_request.id]
+
+    def test_fans_across_orgs_sharing_external_id(self) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_repo = self.create_repo(
+            other_project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id=self.external_id,
+        )
+        other_pr = self.create_pull_request(
+            organization_id=other_org.id, repository_id=other_repo.id, key="42"
+        )
+
+        assert {pr.id for pr in self._for_provider_pr()} == {self.pull_request.id, other_pr.id}
+
+    def test_coerces_integer_key_to_string(self) -> None:
+        assert [pr.id for pr in self._for_provider_pr(key=42)] == [self.pull_request.id]
+
+    def test_excludes_other_pr_numbers(self) -> None:
+        self.create_pull_request(
+            organization_id=self.organization.id, repository_id=self.repo.id, key="99"
+        )
+        assert [pr.id for pr in self._for_provider_pr()] == [self.pull_request.id]
+
+    def test_excludes_inactive_repositories(self) -> None:
+        self.repo.update(status=ObjectStatus.HIDDEN)
+        assert self._for_provider_pr() == []
+
+    def test_excludes_mismatched_provider(self) -> None:
+        assert self._for_provider_pr(provider="gitlab") == []
 
 
 class ParsePullRequestNumberTest(TestCase):

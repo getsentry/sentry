@@ -44,7 +44,7 @@ from sentry.pr_metrics.utils import (
     load_activity_document,
     resolved_group_ids,
 )
-from sentry.seer.models.run import SeerRun
+from sentry.seer.models.run import SeerRun, SeerRunPullRequest
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -499,6 +499,72 @@ def _deduplication_key(
     return sha1(identity.encode()).hexdigest()
 
 
+def is_canonical_github_pr_row(pull_request: PullRequest) -> bool:
+    """Whether this row is the one that should emit for its provider-side PR.
+
+    A provider PR shared across orgs (a multi-org GitHub App installation) fans
+    out to one ``PullRequest`` row per org, each independently passing the
+    tracking gate — so without dedupe a single provider PR emits one
+    ``scm.pr.closed`` per org. This picks exactly one canonical row:
+
+      - the row in the org of the Seer run that opened the PR (its
+        ``SeerRunPullRequest`` link), when one exists — the org with the real
+        signal;
+      - else the lowest-id row among the siblings (a stable, arbitrary pick when
+        no run link ties the PR to a specific org).
+
+    Returns True for that canonical row, and for any PR with no resolvable
+    siblings — the common single-org case, one repo lookup and out.
+    """
+    external_id, provider = _repo_external_identity(pull_request)
+    if external_id is None or provider is None:
+        return True
+    siblings = PullRequest.objects.for_provider_pr(
+        external_id=external_id, provider=provider, key=pull_request.key
+    )
+    # Dedupe only among rows that actually emit (≥1 valid attribution). An untracked
+    # shadow must never win canonical and suppress a tracked sibling — e.g. an
+    # attribution feature (MCP issue-view) enabled in one org but not another leaves
+    # the sibling untracked, and a run-less MCP PR would otherwise emit nothing.
+    tracked = _tracked_rows(siblings)
+    if len(tracked) <= 1:
+        return True
+    return _canonical_sibling(tracked).id == pull_request.id
+
+
+def _tracked_rows(pull_requests: list[PullRequest]) -> list[PullRequest]:
+    """The subset with ≥1 valid attribution — the rows that actually emit.
+
+    Canonical selection runs over these only: an untracked sibling never emits, so
+    letting it win canonical would suppress a tracked row and drop the PR entirely.
+    """
+    tracked_ids = set(
+        PullRequestAttribution.objects.filter(pull_request__in=pull_requests, is_valid=True)
+        .values_list("pull_request_id", flat=True)
+        .distinct()
+    )
+    return [pull_request for pull_request in pull_requests if pull_request.id in tracked_ids]
+
+
+def _canonical_sibling(siblings: list[PullRequest]) -> PullRequest:
+    """The single row that emits for a provider PR fanned out across orgs.
+
+    Prefer the row whose org owns the Seer run linked to it (the run's-org row,
+    the one with real signal); fall back to the lowest-id row when no link ties a
+    row to its own org. Deterministic either way, so concurrent per-org emissions
+    all agree on the same winner.
+    """
+    run_org_by_pr = dict(
+        SeerRunPullRequest.objects.filter(pull_request__in=siblings).values_list(
+            "pull_request_id", "seer_run__organization_id"
+        )
+    )
+    for pull_request in sorted(siblings, key=lambda pr: pr.id):
+        if run_org_by_pr.get(pull_request.id) == pull_request.organization_id:
+            return pull_request
+    return min(siblings, key=lambda pr: pr.id)
+
+
 def active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
     """The PR's valid attribution signals — all of them, unranked.
 
@@ -909,6 +975,13 @@ def emit_pr_metrics_row(
     attributions = active_attributions(pull_request)
     if not attributions:
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
+        return False
+
+    # A provider PR shared across orgs fans out to one row per org, each tracked
+    # and each otherwise emitting — dedupe to a single canonical row so counts
+    # aren't inflated by sibling-org duplicates.
+    if not is_canonical_github_pr_row(pull_request):
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "duplicate_github_pr"})
         return False
 
     # Derive the activity-sourced counters at the terminal event — before the
