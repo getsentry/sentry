@@ -2,6 +2,8 @@ from datetime import timedelta
 from typing import Any, Literal
 from unittest.mock import MagicMock, patch
 
+from scm.types import ReviewComment
+
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.autofix_agent import (
     PrIterationNoPullRequestException,
@@ -1111,11 +1113,7 @@ class ResolveReviewCommentThreadsTest(TestCase):
         return {
             "id": thread_id,
             "is_resolved": is_resolved,
-            "is_outdated": False,
-            "file_path": "test.py",
-            "line": 1,
-            "start_line": None,
-            "comments": [{"id": uid, "unique_id": uid} for uid in comment_unique_ids],
+            "comments": [{"unique_id": uid} for uid in comment_unique_ids],
         }
 
     def _page(
@@ -1180,10 +1178,23 @@ class ResolveReviewCommentThreadsTest(TestCase):
     @patch(f"{TASK_PATH}.scm_actions")
     def test_pages_until_exhausted(self, mock_scm_actions: MagicMock) -> None:
         scm = self._scm()
-        mock_scm_actions.get_pull_request_review_threads.side_effect = [
+        pages = [
             self._page([self._thread("PRRT_1", ["PRRC_a"])], next_cursor="page-2"),
             self._page([self._thread("PRRT_2", ["PRRC_b"])]),
         ]
+
+        # Assert the cursor is threaded across pages, not ignored: the first page
+        # must start at ``after: null`` (empty cursor) and the second at page-1's
+        # next_cursor.
+        def get_threads(scm_arg: Any, pr_number_str: str, pagination: Any) -> dict[str, Any]:
+            if mock_scm_actions.get_pull_request_review_threads.call_count == 1:
+                assert pagination["cursor"] == ""
+                assert pagination["per_page"] == 100
+            else:
+                assert pagination["cursor"] == "page-2"
+            return pages[mock_scm_actions.get_pull_request_review_threads.call_count - 1]
+
+        mock_scm_actions.get_pull_request_review_threads.side_effect = get_threads
 
         result = _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_b"])
 
@@ -1218,9 +1229,9 @@ class ResolveReviewCommentThreadsTest(TestCase):
 
 
 class BuildReviewFeedbackTest(TestCase):
-    def _review_comment(self, unique_id: str | None) -> dict[str, Any]:
+    def _review_comment(self, unique_id: str | None) -> ReviewComment:
         return {
-            "id": 222,
+            "id": "222",
             "unique_id": unique_id,
             "url": "https://example.com/c/222",
             "file_path": "test.py",
@@ -1230,7 +1241,7 @@ class BuildReviewFeedbackTest(TestCase):
             "diff_hunk": None,
             "line": None,
             "start_line": None,
-            "review_id": 55,
+            "review_id": "55",
             "author_association": None,
             "commit_sha": None,
             "head": None,
