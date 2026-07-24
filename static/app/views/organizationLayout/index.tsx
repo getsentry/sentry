@@ -1,7 +1,6 @@
-import {useRef, useState} from 'react';
+import {useRef} from 'react';
 import {Outlet, ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
-import {useResizeObserver} from '@react-aria/utils';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -22,6 +21,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {useInitSentryToolbar} from 'sentry/utils/useInitSentryToolbar';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SystemAlerts} from 'sentry/views/app/systemAlerts';
@@ -90,18 +90,11 @@ function AppDrawers() {
 function AppLayout({organization}: LayoutProps) {
   useSeerExplorerDocumentTitle();
   const topRegionRef = useRef<HTMLDivElement>(null);
-  const [topRegionHeight, setTopRegionHeight] = useState(0);
+  const {height: topRegionHeight} = useDimensions({elementRef: topRegionRef});
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
     !getOverride('component:superuser-warning-excluded')?.(organization);
-
-  useResizeObserver({
-    ref: topRegionRef,
-    onResize() {
-      setTopRegionHeight(topRegionRef.current?.offsetHeight ?? 0);
-    },
-  });
 
   return (
     <PrimaryNavigationContextProvider>
