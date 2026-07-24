@@ -327,6 +327,9 @@ def get_agent_state_from_pr_id(
     body = AgentPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
     response = make_agent_state_pr_request(body)
 
+    if response.status == 404:
+        return None
+
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
 
