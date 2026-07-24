@@ -359,7 +359,7 @@ class PrMetricsEmissionTest(TestCase):
             "commented": 0,
         }
 
-    # --- ci_failed_at_open --------------------------------------------------
+    # --- _ci_failed_at_open --------------------------------------------------
 
     def test_ci_failed_at_open_no_check_activity_is_false(self) -> None:
         assert _ci_failed_at_open(self.pull_request, doc=None) is False
@@ -399,7 +399,7 @@ class PrMetricsEmissionTest(TestCase):
         self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-2")
         assert _ci_failed_at_open(self.pull_request, doc=None) is False
 
-    # --- no_ci_events --------------------------------------------------------
+    # --- _no_ci_events --------------------------------------------------------
 
     def test_no_ci_events_true_when_no_checks_recorded(self) -> None:
         assert _no_ci_events(self.pull_request, doc=None) is True
@@ -413,7 +413,7 @@ class PrMetricsEmissionTest(TestCase):
         assert _no_ci_events(self.pull_request, doc=None) is False
 
     def test_no_ci_events_false_even_when_checks_only_follow_a_later_push(self) -> None:
-        # Scoped to the whole PR, unlike ci_failed_at_open: CI activity recorded
+        # Scoped to the whole PR, unlike _ci_failed_at_open: CI activity recorded
         # only against a later push still counts as "CI reported in".
         self._add_synchronize()
         self._add_check_suite(conclusion="success", webhook_id="check-1")
@@ -435,7 +435,7 @@ class PrMetricsEmissionTest(TestCase):
     def test_calculate_deterministic_diagnosis_labels_merged_with_ci_failure_at_open_only(
         self,
     ) -> None:
-        # ci_failing_at_close is scoped to CLOSED_UNMERGED, but ci_failed_at_open
+        # _ci_failing_at_close is scoped to CLOSED_UNMERGED, but _ci_failed_at_open
         # applies to a merge too.
         self._add_check_suite(conclusion="failure", webhook_id="check-1")
         assert calculate_deterministic_diagnosis_labels(
