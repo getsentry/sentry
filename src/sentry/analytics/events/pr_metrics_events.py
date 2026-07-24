@@ -107,21 +107,13 @@ class PrCloseMetricsEvent(analytics.Event):
     # ``resolve_autofix_referrers``. Empty when no attribution carries a
     # resolvable Seer run id.
     autofix_referrers: list[str] = field(default_factory=list)
-    # The terminal verdict, one of ``PullRequestVerdict``: the deterministic
-    # outcome (``merged_unchanged`` / ``closed_unmerged``) on the no-judge path, or
-    # the Seer judge's verdict on the judge path. Claimed before emit on both
-    # paths (the claim gates emission), so every emitted row carries a verdict — the
-    # ``| None`` is only the column's unset default, not an expected emitted value.
-    # (The ``JUDGE_IN_PROGRESS`` reaper's indeterminate rows — no reliable local
-    # signal to settle from — release the claim without emitting at all, rather
-    # than emit a null-verdict row; see ``reap_stuck_judge_verdicts``.)
+    # The deterministic outcome (``merged_unchanged`` / ``closed_unmerged``) on
+    # the no-judge path, or the Seer judge's verdict on the judge path.
+    # This differs slightly from PullRequestMetrics.verdicts because some values
+    # there include internal states that are not considered outcomes.
     verdict: str | None = None
-    # Close-reason labels behind the verdict (e.g. out_of_scope_or_unwanted) — the
-    # "why", a vocabulary shared across judges, not specific to any one. Mostly
-    # judge-sourced, but Sentry's own deterministic CLOSED_UNMERGED path can also
-    # set "ci_failing_at_close" (see pr_metrics.emit.ci_failing_at_close) — so a
-    # non-null value doesn't by itself mean the row was judged. Repeated
-    # free-string column; null when nothing applies. BigQuery-only.
+    # Relevant datapoint for this PR, mostly related to the conversation and mostly
+    # derived by the judge. Examples include "superseded", "ci_failing_at_close", etc.
     diagnosis_labels: list[str] | None = None
 
     # --- Conversation judge (set only on a judged close/merge row) ---
