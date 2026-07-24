@@ -51,7 +51,7 @@ function CommandPaletteSlotOutlets() {
   );
 }
 
-function UserAndOrganizationNavigation({topAlertsRegionHeight}: NavigationProps) {
+function UserAndOrganizationNavigation() {
   const {layout} = usePrimaryNavigation();
   const {visible} = useModal();
   const {view, setView} = useSecondaryNavigation();
@@ -68,7 +68,7 @@ function UserAndOrganizationNavigation({topAlertsRegionHeight}: NavigationProps)
   );
 
   return (
-    <NavigationLayout topAlertsRegionHeight={topAlertsRegionHeight}>
+    <NavigationLayout>
       <CommandPaletteHotkeys />
       <CommandPaletteSlotOutlets />
       <GlobalCommandPaletteActions />
@@ -91,19 +91,12 @@ function UserOnlyNavigation() {
   );
 }
 
-interface NavigationProps {
-  topAlertsRegionHeight?: number;
-}
-
-function NavigationLayout({
-  children,
-  topAlertsRegionHeight = 0,
-}: NavigationProps & {children: React.ReactNode}) {
+function NavigationLayout({children}: {children: React.ReactNode}) {
   const theme = useTheme();
   const {layout} = usePrimaryNavigation();
   const {currentStepId} = useNavigationTour();
   const hoverProps = useResetActiveNavigationGroup();
-  const {barTop} = useTopOffset();
+  const {barTop, globalAlertsRegionHeight} = useTopOffset();
 
   return (
     <Flex
@@ -114,7 +107,7 @@ function NavigationLayout({
       height={
         layout === 'mobile'
           ? undefined
-          : `calc(100dvh - max(${barTop}, ${topAlertsRegionHeight}px))`
+          : `calc(100dvh - max(${barTop}, ${globalAlertsRegionHeight}px))`
       }
       style={{
         zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
@@ -127,7 +120,7 @@ function NavigationLayout({
   );
 }
 
-export function Navigation({topAlertsRegionHeight = 0}: NavigationProps) {
+export function Navigation() {
   const organization = useOrganization({allowNull: true});
 
   if (!organization) {
@@ -143,7 +136,7 @@ export function Navigation({topAlertsRegionHeight = 0}: NavigationProps) {
     <HoverOverlayGroupProvider>
       <NavigationTourProvider>
         <SkipLink />
-        <UserAndOrganizationNavigation topAlertsRegionHeight={topAlertsRegionHeight} />
+        <UserAndOrganizationNavigation />
       </NavigationTourProvider>
     </HoverOverlayGroupProvider>
   );

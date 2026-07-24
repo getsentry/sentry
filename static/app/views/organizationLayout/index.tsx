@@ -28,7 +28,10 @@ import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/dom
 import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useTopAlertsRegion} from 'sentry/views/navigation/useTopOffset';
+import {
+  GlobalAlertsRegionProvider,
+  useGlobalAlertsRegion,
+} from 'sentry/views/navigation/useTopOffset';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {useSeerExplorerDocumentTitle} from 'sentry/views/seerExplorer/components/useSeerExplorerDocumentTitle';
@@ -88,55 +91,57 @@ function AppDrawers() {
 
 function AppLayout({organization}: LayoutProps) {
   useSeerExplorerDocumentTitle();
-  const {topAlertsRegionRef, topAlertsRegionHeight} = useTopAlertsRegion();
+  const {globalAlertsRegionRef, globalAlertsRegionHeight} = useGlobalAlertsRegion();
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
     !getOverride('component:superuser-warning-excluded')?.(organization);
 
   return (
-    <PrimaryNavigationContextProvider>
-      <Stack flex="1" minWidth="0" minHeight="100dvh">
-        <Container ref={topAlertsRegionRef}>
-          {showSuperuserWarning && (
-            <Override name="component:superuser-warning" organization={organization} />
-          )}
-          <SystemAlerts className="messages-container" />
-        </Container>
-        <Flex
-          flex="1"
-          minWidth="0"
-          minHeight="0"
-          direction={{'screen:sm': 'column', 'screen:md': 'row'}}
-          position="relative"
-        >
-          <Navigation topAlertsRegionHeight={topAlertsRegionHeight} />
-          <SeerExplorerSidebarLayout>
-            {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
-            <ContentStack
-              id="main"
-              tabIndex={-1}
-              flex="1"
-              minWidth="0"
-              background="secondary"
-              containerType="inline-size"
-            >
-              <DemoHeader />
-              {organization && <OrganizationHeader organization={organization} />}
-              <OrganizationDetailsBody>
-                <TopBar.Slot.Provider>
-                  <TopBar />
-                  <Layout.Page>
-                    <Outlet />
-                  </Layout.Page>
-                </TopBar.Slot.Provider>
-              </OrganizationDetailsBody>
-            </ContentStack>
-          </SeerExplorerSidebarLayout>
-        </Flex>
-      </Stack>
-      {organization ? <AppDrawers /> : null}
-    </PrimaryNavigationContextProvider>
+    <GlobalAlertsRegionProvider value={globalAlertsRegionHeight}>
+      <PrimaryNavigationContextProvider>
+        <Stack flex="1" minWidth="0" minHeight="100dvh">
+          <Container ref={globalAlertsRegionRef}>
+            {showSuperuserWarning && (
+              <Override name="component:superuser-warning" organization={organization} />
+            )}
+            <SystemAlerts className="messages-container" />
+          </Container>
+          <Flex
+            flex="1"
+            minWidth="0"
+            minHeight="0"
+            direction={{'screen:sm': 'column', 'screen:md': 'row'}}
+            position="relative"
+          >
+            <Navigation />
+            <SeerExplorerSidebarLayout>
+              {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
+              <ContentStack
+                id="main"
+                tabIndex={-1}
+                flex="1"
+                minWidth="0"
+                background="secondary"
+                containerType="inline-size"
+              >
+                <DemoHeader />
+                {organization && <OrganizationHeader organization={organization} />}
+                <OrganizationDetailsBody>
+                  <TopBar.Slot.Provider>
+                    <TopBar />
+                    <Layout.Page>
+                      <Outlet />
+                    </Layout.Page>
+                  </TopBar.Slot.Provider>
+                </OrganizationDetailsBody>
+              </ContentStack>
+            </SeerExplorerSidebarLayout>
+          </Flex>
+        </Stack>
+        {organization ? <AppDrawers /> : null}
+      </PrimaryNavigationContextProvider>
+    </GlobalAlertsRegionProvider>
   );
 }
 
