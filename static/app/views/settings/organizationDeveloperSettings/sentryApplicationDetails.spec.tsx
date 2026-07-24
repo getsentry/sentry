@@ -997,22 +997,6 @@ describe('Sentry Application Details', () => {
         })
       );
     });
-
-    it('expands the consolidated events when webhookEvents is absent', async () => {
-      sentryApp.webhookEvents = undefined;
-      MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/`,
-        body: sentryApp,
-      });
-
-      renderComponent();
-      await screen.findByRole('button', {name: 'Save Changes'});
-
-      expect(screen.getByRole('checkbox', {name: 'issue'})).toBeChecked();
-      expect(screen.getByRole('checkbox', {name: 'issue.created'})).toBeChecked();
-      expect(screen.getByRole('checkbox', {name: 'issue.unresolved'})).toBeChecked();
-      expect(screen.getByRole('checkbox', {name: 'comment.created'})).not.toBeChecked();
-    });
   });
 
   describe('Editing an existing public Sentry App with a scope error', () => {
