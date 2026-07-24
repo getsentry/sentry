@@ -26,7 +26,6 @@ import {
   useSecondaryNavigation,
 } from 'sentry/views/navigation/secondaryNavigationContext';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
-import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
 /**
  * Renders the CMDK slot outlet elements in task → page → global DOM order so
@@ -51,7 +50,7 @@ function CommandPaletteSlotOutlets() {
   );
 }
 
-function UserAndOrganizationNavigation({viewportTop}: NavigationProps) {
+function UserAndOrganizationNavigation() {
   const {layout} = usePrimaryNavigation();
   const {visible} = useModal();
   const {view, setView} = useSecondaryNavigation();
@@ -68,7 +67,7 @@ function UserAndOrganizationNavigation({viewportTop}: NavigationProps) {
   );
 
   return (
-    <NavigationLayout viewportTop={viewportTop}>
+    <NavigationLayout>
       <CommandPaletteHotkeys />
       <CommandPaletteSlotOutlets />
       <GlobalCommandPaletteActions />
@@ -91,31 +90,19 @@ function UserOnlyNavigation() {
   );
 }
 
-interface NavigationProps {
-  viewportTop?: number;
-}
-
-function NavigationLayout({
-  children,
-  viewportTop = 0,
-}: NavigationProps & {children: React.ReactNode}) {
+function NavigationLayout({children}: {children: React.ReactNode}) {
   const theme = useTheme();
   const {layout} = usePrimaryNavigation();
   const {currentStepId} = useNavigationTour();
   const hoverProps = useResetActiveNavigationGroup();
-  const {barTop} = useTopOffset();
 
   return (
     <Flex
-      top={barTop}
+      top="0"
       left={0}
       position={currentStepId ? undefined : 'sticky'}
       bottom={layout === 'mobile' ? undefined : 0}
-      height={
-        layout === 'mobile'
-          ? undefined
-          : `calc(100dvh - max(${barTop}, ${viewportTop}px))`
-      }
+      height={layout === 'mobile' ? undefined : '100%'}
       style={{
         zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
         userSelect: 'none',
@@ -127,7 +114,7 @@ function NavigationLayout({
   );
 }
 
-export function Navigation({viewportTop = 0}: NavigationProps) {
+export function Navigation() {
   const organization = useOrganization({allowNull: true});
 
   if (!organization) {
@@ -143,7 +130,7 @@ export function Navigation({viewportTop = 0}: NavigationProps) {
     <HoverOverlayGroupProvider>
       <NavigationTourProvider>
         <SkipLink />
-        <UserAndOrganizationNavigation viewportTop={viewportTop} />
+        <UserAndOrganizationNavigation />
       </NavigationTourProvider>
     </HoverOverlayGroupProvider>
   );
