@@ -141,13 +141,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         if self.when_condition_group_id is None:
             return (
-                DataConditionGroupEvaluation(
-                    result=True,
+                DataConditionGroupEvaluation.from_conditions(
                     triggered=True,
-                    data={
-                        "condition_evaluations": [],
-                        "logic_type": DataConditionGroup.Type.ANY,
-                    },
+                    logic_type=DataConditionGroup.Type.ANY,
                 ),
                 [],
             )
@@ -167,13 +163,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                     extra={"id": self.when_condition_group_id},
                 )
                 return (
-                    DataConditionGroupEvaluation(
-                        result=False,
+                    DataConditionGroupEvaluation.from_conditions(
                         triggered=False,
-                        data={
-                            "condition_evaluations": [],
-                            "logic_type": DataConditionGroup.Type.ANY,
-                        },
+                        logic_type=DataConditionGroup.Type.ANY,
                         error=ConditionError(msg="DataConditionGroup does not exist"),
                     ),
                     [],

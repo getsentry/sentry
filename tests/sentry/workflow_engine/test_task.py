@@ -12,8 +12,10 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
-from sentry.workflow_engine.processors.evaluations import DataConditionGroupEvaluation
-from sentry.workflow_engine.processors.workflow import EvaluationStats
+from sentry.workflow_engine.processors.evaluations import (
+    DataConditionGroupEvaluation,
+    WorkflowEvaluation,
+)
 from sentry.workflow_engine.tasks.utils import fetch_event
 from sentry.workflow_engine.tasks.workflows import process_workflow_activity
 from sentry.workflow_engine.types import WorkflowEventData
@@ -85,11 +87,11 @@ class TestProcessWorkflowActivity(TestCase):
     @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch(
         "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
-        return_value=({}, {}, EvaluationStats(), {}),
+        return_value=({}, {}),
     )
     @mock.patch(
         "sentry.workflow_engine.processors.workflow.evaluate_workflows_action_filters",
-        return_value=(set(), {}, EvaluationStats(), {}),
+        return_value=(set(), {}),
     )
     @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
     def test_process_workflow_activity__workflows__no_actions(
@@ -196,16 +198,17 @@ class TestProcessWorkflowActivity(TestCase):
             workflow=self.workflow,
         )
 
-        trigger_eval = DataConditionGroupEvaluation(
-            result=True,
+        trigger_eval = DataConditionGroupEvaluation.from_conditions(
             triggered=True,
-            data={"condition_evaluations": [], "logic_type": "any"},
+            logic_type="any",
         )
         mock_evaluate_workflow_triggers.return_value = (
-            {self.workflow: trigger_eval},
+            {
+                self.workflow: WorkflowEvaluation.from_trigger(
+                    trigger_eval=trigger_eval, triggered=True
+                )
+            },
             {},
-            EvaluationStats(),
-            {self.workflow: trigger_eval},
         )
         process_workflow_activity(
             activity_id=self.activity.id,

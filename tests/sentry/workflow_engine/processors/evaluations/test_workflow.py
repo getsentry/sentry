@@ -9,7 +9,7 @@ from sentry.workflow_engine.processors.evaluations import (
     WorkflowEvaluation,
 )
 from sentry.workflow_engine.processors.evaluations.workflow import GroupedWorkflowEvaluationResult
-from sentry.workflow_engine.types import ConditionError, WorkflowEventData
+from sentry.workflow_engine.types import ConditionError
 
 LOG_TO_MODULE = "sentry.workflow_engine.processors.evaluations.workflow"
 
@@ -33,7 +33,6 @@ class TestGroupedWorkflowEvaluationResultLogTo(TestCase):
     def _build_result(self) -> GroupedWorkflowEvaluationResult:
         return GroupedWorkflowEvaluationResult(
             result={},
-            tainted=True,
             organization=self.organization,
             event=self.event,
         )
@@ -127,7 +126,6 @@ class TestWorkflowEvaluationArtifact(TestCase):
             data={
                 "trigger_group_eval": trigger_group,
                 "filter_group_evals": [filter_group],
-                "event": WorkflowEventData(event=mock.MagicMock(), group=mock.MagicMock()),
             },
         )
         assert evaluation.to_artifact() == {
@@ -148,7 +146,6 @@ class TestWorkflowEvaluationArtifact(TestCase):
             data={
                 "trigger_group_eval": trigger_group,
                 "filter_group_evals": [],
-                "event": WorkflowEventData(event=mock.MagicMock(), group=mock.MagicMock()),
             },
         )
         artifact = evaluation.to_artifact()
@@ -174,12 +171,10 @@ class TestGroupedWorkflowEvaluationResultArtifact(TestCase):
             data={
                 "trigger_group_eval": trigger_group,
                 "filter_group_evals": [],
-                "event": WorkflowEventData(event=mock.MagicMock(), group=mock.MagicMock()),
             },
         )
         result = GroupedWorkflowEvaluationResult(
             result={123: workflow_eval},
-            tainted=True,
             organization=self.organization,
             event=self.event,
         )
@@ -189,7 +184,6 @@ class TestGroupedWorkflowEvaluationResultArtifact(TestCase):
     def test_empty_result_yields_empty_workflow_evaluations(self) -> None:
         result = GroupedWorkflowEvaluationResult(
             result={},
-            tainted=True,
             organization=self.organization,
             event=self.event,
         )

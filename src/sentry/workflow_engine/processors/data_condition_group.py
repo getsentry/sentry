@@ -83,13 +83,10 @@ def evaluate_condition_group_results(
         else []
     )
 
-    return DataConditionGroupEvaluation(
-        result=triggered,
-        data={
-            "condition_evaluations": passing_evaluations,
-            "logic_type": logic_type,
-        },
+    return DataConditionGroupEvaluation.from_conditions(
         triggered=triggered,
+        logic_type=logic_type,
+        condition_evaluations=passing_evaluations,
         error=error,
     )
 
@@ -107,13 +104,9 @@ def evaluate_data_conditions(
 
     if not conditions_to_evaluate:
         # if there are no conditions on the group, always return True.
-        return DataConditionGroupEvaluation(
-            result=True,
+        return DataConditionGroupEvaluation.from_conditions(
             triggered=True,
-            data={
-                "condition_evaluations": condition_evaluations,
-                "logic_type": logic_type,
-            },
+            logic_type=logic_type,
         )
 
     for condition, value in conditions_to_evaluate:
@@ -124,26 +117,19 @@ def evaluate_data_conditions(
             match logic_type:
                 case DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
                     # The first matching condition conclusively satisfies the group.
-                    return DataConditionGroupEvaluation(
-                        result=True,
+                    return DataConditionGroupEvaluation.from_conditions(
                         triggered=True,
+                        logic_type=logic_type,
+                        condition_evaluations=[evaluation],
                         error=evaluation.error,
-                        data={
-                            "condition_evaluations": [evaluation],
-                            "logic_type": logic_type,
-                        },
                     )
                 case DataConditionGroup.Type.NONE:
                     # A NONE group requires that no condition matches; a match
                     # makes the group conclusively not triggered.
-                    return DataConditionGroupEvaluation(
-                        result=False,
+                    return DataConditionGroupEvaluation.from_conditions(
                         triggered=False,
+                        logic_type=logic_type,
                         error=evaluation.error,
-                        data={
-                            "condition_evaluations": [],
-                            "logic_type": logic_type,
-                        },
                     )
 
         condition_evaluations.append(evaluation)
@@ -167,9 +153,7 @@ def _is_conclusive_evaluation(evaluation: DataConditionGroupEvaluation) -> bool:
     Determines if a given group evaluation is completed based on the logic_type
     and the results of the conditions in the evaluation.
     """
-    logic_type = evaluation.data.get("logic_type")
-
-    match logic_type:
+    match evaluation.logic_type:
         case DataConditionGroup.Type.ALL | DataConditionGroup.Type.NONE:
             return not evaluation.triggered
         case DataConditionGroup.Type.ANY | DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
@@ -184,19 +168,12 @@ def process_data_condition_group(
     value: T,
     data_conditions_for_group: list[DataCondition] | None = None,
 ) -> DataConditionGroupResult:
-    condition_results: list[DataConditionEvaluation] = []
-    all_conditions: list[DataCondition]
-
     try:
         logic_type = DataConditionGroup.Type(group.logic_type)
     except ValueError:
-        return DataConditionGroupEvaluation(
-            result=False,
+        return DataConditionGroupEvaluation.from_conditions(
             triggered=False,
-            data={
-                "condition_evaluations": condition_results,
-                "logic_type": group.logic_type,
-            },
+            logic_type=group.logic_type,
             error=ConditionError(msg="Invalid DataConditionGroup.logic_type"),
         ), []
 
@@ -211,13 +188,9 @@ def process_data_condition_group(
         # There are only slow conditions to evaluate. Don't evaluate an empty list
         # of fast conditions, which would incorrectly resolve to triggered=True
         # before the slow conditions have been evaluated.
-        return DataConditionGroupEvaluation(
-            result=False,
+        return DataConditionGroupEvaluation.from_conditions(
             triggered=False,
-            data={
-                "condition_evaluations": condition_results,
-                "logic_type": logic_type,
-            },
+            logic_type=logic_type,
         ), conditions.slow
 
     conditions_to_evaluate = [(condition, value) for condition in conditions.fast]

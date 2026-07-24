@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from sentry_sdk import logger as sentry_logger
 
 from sentry import features, options
-from sentry.workflow_engine.types import WorkflowEvaluationResult, WorkflowEventData
+from sentry.workflow_engine.types import WorkflowEvaluationResult
 
 from .base import BaseWorkflowEngineEvaluation
 from .condition_group import DataConditionGroupEvaluation
@@ -37,12 +37,10 @@ class WorkflowEvaluationData(TypedDict):
 
     `trigger_group_eval`: The evaluation of the conditions for triggering a workflow.
     `filter_group_evals`: All of the condition groups that determine if an action should be triggered.
-    `event`: The data that started the workflow's evaluation.
     """
 
     trigger_group_eval: DataConditionGroupEvaluation
     filter_group_evals: Sequence[DataConditionGroupEvaluation]
-    event: WorkflowEventData
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -57,13 +55,40 @@ class WorkflowEvaluation(
 
     Inherited Properties
     - `result`: The actions that are triggered from the workflow, or the "deferred"
-        sentinel when there are slow conditions to batch evaluate.
+        sentinel when there are slow conditions to batch evaluate (whether or not
+        they were enqueued).
     - `data`: WorkflowEvaluationData
     - `error`: ConditionError - Set when there's an error while evaluating the workflow.
-    - `triggered`: bool - Whether the workflow's trigger (WHEN) conditions passed.
+    - `triggered`: bool - Whether the workflow's trigger (WHEN) conditions conclusively
+        passed: the group evaluated to triggered with no slow conditions still pending.
     """
 
     log_name = "workflow"
+
+    @classmethod
+    def from_trigger(
+        cls,
+        *,
+        trigger_eval: DataConditionGroupEvaluation,
+        triggered: bool,
+        result: WorkflowEvaluationResult = (),
+        filter_group_evals: Sequence[DataConditionGroupEvaluation] = (),
+    ) -> WorkflowEvaluation:
+        """
+        Build a WorkflowEvaluation from its trigger (WHEN) group evaluation, deriving
+        `error` from it. `triggered` is passed explicitly because it must be the
+        *conclusive* value: a partially-evaluated group can report `triggered=True`
+        while slow conditions are still pending.
+        """
+        return cls(
+            result=result,
+            triggered=triggered,
+            error=trigger_eval.error,
+            data={
+                "trigger_group_eval": trigger_eval,
+                "filter_group_evals": list(filter_group_evals),
+            },
+        )
 
     def to_artifact(self) -> dict[str, Any]:
         result = self.result
@@ -111,27 +136,50 @@ class GroupedWorkflowEvaluationResult:
 
     Mirrors `GroupedDetectorEvaluationResult` from the detector path.
 
-    The `tainted` flag indicates whether actions have been triggered during the
-    workflows evaluation (`False` only once actions fire, `True` for every early exit).
-
     The `msg` field is used for debug information during the evaluation.
+
+    The batch-level facts about the evaluation — which workflows triggered, which
+    actions fired, and whether the run is `tainted` — are derived from the
+    per-workflow evaluations in `result` rather than stored.
     """
 
     # Per-workflow evaluations, keyed by workflow id. Empty for sentinel early-returns.
     result: dict[WorkflowId, WorkflowEvaluation]
-    tainted: bool
 
     # Batch-level context used by to_log / to_artifact / get_snapshot / consumers.
     organization: Organization
     event: GroupEvent | Activity
-    group: Group | None = None
     msg: str | None = None
     associated_detector: Detector | None = None
     workflows: set[Workflow] | None = None
-    triggered_workflows: set[Workflow] | None = None
     action_groups: set[DataConditionGroup] | None = None
-    triggered_actions: set[Action] | None = None
     delayed_conditions: dict[Workflow, DelayedWorkflowItem] | None = None
+
+    @property
+    def triggered_workflows(self) -> set[Workflow]:
+        """The workflows whose trigger (WHEN) conditions conclusively passed."""
+        if not self.workflows:
+            return set()
+        return {
+            workflow
+            for workflow in self.workflows
+            if (evaluation := self.result.get(workflow.id)) and evaluation.triggered
+        }
+
+    @property
+    def triggered_actions(self) -> set[Action]:
+        """All actions that fired across the evaluated workflows."""
+        return {
+            action
+            for evaluation in self.result.values()
+            if evaluation.result != "deferred"
+            for action in evaluation.result
+        }
+
+    @property
+    def tainted(self) -> bool:
+        """True until actions actually fired for this batch (i.e. for every early exit)."""
+        return not self.triggered_actions
 
     def get_snapshot(self) -> WorkflowEvaluationSnapshot:
         """
