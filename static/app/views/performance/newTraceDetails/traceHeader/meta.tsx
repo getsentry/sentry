@@ -169,6 +169,7 @@ export function Meta(props: MetaProps) {
 const MetaWrapper = styled('div')`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: ${p => p.theme.space.xl};
 
   ${HeaderInfo} {
