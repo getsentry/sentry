@@ -12,6 +12,7 @@ from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry import options
+from sentry.ai_monitoring.tasks import spawn_conversation_title_generation
 from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
@@ -101,15 +102,19 @@ def _process_segment(
             except (Project.DoesNotExist, Organization.DoesNotExist):
                 return []
 
-    if project is not None and killswitch_matches_context(
+    if project is None:
+        # If the project does not exist then it might have been deleted during ingestion.
+        return []
+
+    if killswitch_matches_context(
         "spans.process-segments.drop-segments",
         {"org_id": str(project.organization_id)},
         emit_metrics=True,
     ):
         return []
 
-    if any(attribute_value(s, ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID) for s in unprocessed_spans):
-        metrics.incr("spans.consumers.process_segments.gen_ai_conversation")
+    # Always attempt title generation, even when enrichment is skipped below.
+    spawn_conversation_title_generation(unprocessed_spans, project)
 
     if skip_enrichment:
         return [make_compatible(span) for span in unprocessed_spans]
@@ -122,10 +127,6 @@ def _process_segment(
     segment_span, spans = _enrich_spans(unprocessed_spans)
     if segment_span is None:
         return spans
-
-    if project is None:
-        # If the project does not exist then it might have been deleted during ingestion.
-        return []
 
     _add_segment_name(segment_span, spans)
     _compute_breakdowns(segment_span, spans, project)

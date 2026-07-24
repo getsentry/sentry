@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.db import IntegrityError, router, transaction
@@ -464,6 +464,7 @@ class SpawnConversationTitleGenerationTest(TestCase):
                     messages=_user_messages("middle"),
                 ),
             ],
+            self.project,
         )
 
         mock_delay.assert_called_once_with(
@@ -480,6 +481,7 @@ class SpawnConversationTitleGenerationTest(TestCase):
                 make_gen_ai_span(project_id=self.project.id, conversation_id="a"),
                 make_gen_ai_span(project_id=self.project.id, conversation_id="b"),
             ],
+            self.project,
         )
 
         assert mock_delay.call_count == 2
@@ -493,6 +495,7 @@ class SpawnConversationTitleGenerationTest(TestCase):
                 make_gen_ai_span(project_id=self.project.id, omit_messages=True),
                 make_gen_ai_span(project_id=self.project.id, messages="[Filtered]"),
             ],
+            self.project,
         )
         mock_delay.assert_not_called()
 
@@ -505,57 +508,32 @@ class SpawnConversationTitleGenerationTest(TestCase):
                     messages=_user_messages("a" * (MAX_USER_MESSAGE_CHARS + 100)),
                 )
             ],
+            self.project,
         )
         assert len(mock_delay.call_args.kwargs["first_user_message"]) == MAX_USER_MESSAGE_CHARS
 
     @patch(DELAY)
-    def test_resolves_project_from_span(self, mock_delay: MagicMock) -> None:
-        spawn_conversation_title_generation([make_gen_ai_span(project_id=self.project.id)])
-        mock_delay.assert_called_once()
-        assert mock_delay.call_args.kwargs["project_id"] == self.project.id
-
-    @patch(DELAY)
-    def test_no_enqueue_when_project_not_found(self, mock_delay: MagicMock) -> None:
-        spawn_conversation_title_generation([make_gen_ai_span(project_id=2**31 - 1)])
-        mock_delay.assert_not_called()
-
-    @patch(DELAY)
-    def test_no_enqueue_when_hide_ai_features(self, mock_delay: MagicMock) -> None:
+    def test_hide_ai_features_returns_early(self, mock_delay: MagicMock) -> None:
         self.organization.update_option("sentry:hide_ai_features", True)
-        spawn_conversation_title_generation([make_gen_ai_span(project_id=self.project.id)])
+        spawn_conversation_title_generation(
+            [make_gen_ai_span(project_id=self.project.id)], self.project
+        )
         mock_delay.assert_not_called()
 
     @patch(DELAY)
-    @patch("sentry.ai_monitoring.tasks.metrics.incr")
-    def test_emits_conversation_count_metric(
-        self, mock_incr: MagicMock, mock_delay: MagicMock
-    ) -> None:
-        metric = "spans.consumers.process_segments.gen_ai_conversation"
+    def test_enqueues_only_conversations_with_user_message(self, mock_delay: MagicMock) -> None:
         spawn_conversation_title_generation(
             [
                 make_gen_ai_span(project_id=self.project.id, conversation_id="a"),
-                # A conversation without a usable message still counts as "seen".
                 make_gen_ai_span(
                     project_id=self.project.id, conversation_id="b", omit_messages=True
                 ),
                 make_gen_ai_span(project_id=self.project.id, omit_conversation_id=True),
             ],
+            self.project,
         )
-        assert sum(1 for c in mock_incr.call_args_list if c == call(metric, 2)) == 1
-        # Only the conversation with a message is enqueued.
         mock_delay.assert_called_once()
         assert mock_delay.call_args.kwargs["conversation_id"] == "a"
-
-    @patch(DELAY)
-    @patch("sentry.ai_monitoring.tasks.metrics.incr")
-    def test_no_presence_metric_without_conversation_spans(
-        self, mock_incr: MagicMock, mock_delay: MagicMock
-    ) -> None:
-        metric = "spans.consumers.process_segments.gen_ai_conversation"
-        spawn_conversation_title_generation(
-            [make_gen_ai_span(project_id=self.project.id, omit_conversation_id=True)],
-        )
-        assert not any(c.args[:1] == (metric,) for c in mock_incr.call_args_list)
 
     @patch(DELAY)
     @patch(
@@ -577,6 +555,7 @@ class SpawnConversationTitleGenerationTest(TestCase):
                 make_gen_ai_span(project_id=self.project.id, start_timestamp=TS + 30),
                 make_gen_ai_span(project_id=self.project.id, start_timestamp=TS + 60),
             ],
+            self.project,
         )
         assert mock_extract.call_count == 1
         mock_delay.assert_called_once()
@@ -584,7 +563,7 @@ class SpawnConversationTitleGenerationTest(TestCase):
 
 class SpawnConversationTitleGenerationFeatureDisabledTest(TestCase):
     @patch(DELAY)
-    def test_no_enqueue_when_feature_disabled(self, mock_delay: MagicMock) -> None:
+    def test_feature_disabled_returns_early(self, mock_delay: MagicMock) -> None:
         project = self.create_project()
-        spawn_conversation_title_generation([make_gen_ai_span(project_id=project.id)])
+        spawn_conversation_title_generation([make_gen_ai_span(project_id=project.id)], project)
         mock_delay.assert_not_called()

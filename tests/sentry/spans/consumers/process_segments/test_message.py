@@ -332,49 +332,6 @@ class TestSpansTask(TestCase):
         signals = [args[0][1] for args in mock_track.call_args_list]
         assert signals == ["has_transactions", "has_insights_agent_monitoring"]
 
-    @mock.patch("sentry.spans.consumers.process_segments.message.metrics.incr")
-    def test_gen_ai_conversation_metric(self, mock_incr: mock.MagicMock) -> None:
-        """Count once per segment when any span has gen_ai.conversation.id."""
-        metric_name = "spans.consumers.process_segments.gen_ai_conversation"
-
-        def conversation_calls() -> int:
-            return sum(1 for call in mock_incr.call_args_list if call == mock.call(metric_name))
-
-        child_span, segment_span = self.generate_basic_spans()
-        process_segment([child_span, segment_span])
-        assert conversation_calls() == 0
-
-        mock_incr.reset_mock()
-        child_span, segment_span = self.generate_basic_spans()
-        child_span["attributes"]["gen_ai.conversation.id"] = {
-            "type": "string",
-            "value": "conv-123",
-        }
-        process_segment([child_span, segment_span])
-        assert conversation_calls() == 1
-
-        mock_incr.reset_mock()
-        child_span, segment_span = self.generate_basic_spans()
-        child_span["attributes"]["gen_ai.conversation.id"] = {
-            "type": "string",
-            "value": "conv-123",
-        }
-        segment_span["attributes"]["gen_ai.conversation.id"] = {
-            "type": "string",
-            "value": "conv-123",
-        }
-        process_segment([child_span, segment_span])
-        assert conversation_calls() == 1
-
-        mock_incr.reset_mock()
-        child_span, segment_span = self.generate_basic_spans()
-        child_span["attributes"]["gen_ai.conversation.id"] = {
-            "type": "string",
-            "value": "conv-123",
-        }
-        process_segment([child_span, segment_span], skip_enrichment=True)
-        assert conversation_calls() == 1
-
     def test_segment_name_propagation(self) -> None:
         child_span, segment_span = self.generate_basic_spans()
         assert (
