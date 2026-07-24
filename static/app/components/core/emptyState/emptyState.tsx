@@ -1,7 +1,7 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-interface EmptyStateProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
+interface EmptyStateProps extends Omit<FlexProps, 'title'> {
   title: React.ReactNode;
   action?: React.ReactNode;
   description?: React.ReactNode;
@@ -21,7 +21,7 @@ export function EmptyState({
   const textAlign = isVertical ? ('center' as const) : undefined;
 
   const copy = (
-    <Flex direction="column" gap="md" maxWidth={360}>
+    <Stack gap="md" maxWidth={360}>
       <Text bold size="lg" align={textAlign}>
         {title}
       </Text>
@@ -30,7 +30,7 @@ export function EmptyState({
           {description}
         </Text>
       )}
-    </Flex>
+    </Stack>
   );
 
   if (!isVertical) {
@@ -47,22 +47,16 @@ export function EmptyState({
             {illustration}
           </Flex>
         )}
-        <Flex direction="column" gap="xl">
+        <Stack gap="xl">
           {copy}
           {action}
-        </Flex>
+        </Stack>
       </Flex>
     );
   }
 
   return (
-    <Flex
-      direction="column"
-      align="center"
-      gap="xl"
-      data-test-id="empty-state"
-      {...props}
-    >
+    <Stack align="center" gap="xl" data-test-id="empty-state" {...props}>
       {illustration && (
         <Flex justify="center" overflow="hidden">
           {illustration}
@@ -70,6 +64,6 @@ export function EmptyState({
       )}
       {copy}
       {action}
-    </Flex>
+    </Stack>
   );
 }
