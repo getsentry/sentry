@@ -999,7 +999,7 @@ describe('CustomerOverview', () => {
       expect(seerSection.getByText('Budget Used:')).toBeInTheDocument();
     });
 
-    it('flags a seat-based plan with no seat data instead of hiding it', () => {
+    it('shows zeroed seats when seat-based Seer is enabled before any usage', () => {
       const organization = OrganizationFixture();
       const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
       subscription.addOns = {
@@ -1009,6 +1009,7 @@ describe('CustomerOverview', () => {
           enabled: true,
         },
       };
+      // Enabled via opt-in/trial before any seat usage accrues — no metric row.
       delete subscription.categories.seerUsers;
 
       render(
@@ -1021,9 +1022,11 @@ describe('CustomerOverview', () => {
 
       const seerSection = within(screen.getByTestId('seer-plan-summary'));
       expect(seerSection.getByText('Seat-based')).toBeInTheDocument();
+      expect(seerSection.getByText('Reserved Seats:').nextSibling).toHaveTextContent('0');
       expect(
-        seerSection.getByText('Seat plan enabled but no seat data found')
-      ).toBeInTheDocument();
+        seerSection.getByText('Active Contributors (billed this period):').nextSibling
+      ).toHaveTextContent('0');
+      expect(seerSection.queryByText(/no seat data found/)).not.toBeInTheDocument();
     });
 
     it('flags a legacy plan with no budget data instead of hiding it', () => {

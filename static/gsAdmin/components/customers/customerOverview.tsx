@@ -49,6 +49,7 @@ import {
   getBilledCategory,
   getProductTrial,
   isTrial,
+  normalizeMetricHistory,
   RETENTION_SETTINGS_CATEGORIES,
 } from 'getsentry/utils/billing';
 import {
@@ -313,7 +314,12 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
   const isSeatBased = !!seerAddOn?.enabled;
   const isLegacy = !!legacySeerAddOn?.enabled;
 
-  const seerUsers = customer.categories?.[DataCategory.SEER_USER];
+  // A seat-based org can be enabled (via opt-in or trial) before any seat
+  // usage accrues, so a missing metric row is zero usage, not an error.
+  const seerUsers = normalizeMetricHistory(
+    DataCategory.SEER_USER,
+    customer.categories?.[DataCategory.SEER_USER]
+  );
   const legacyBudget = customer.reservedBudgets?.find(
     budget => budget.apiName === ReservedBudgetCategoryType.SEER
   );
@@ -337,31 +343,26 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
             </Tag>
           )}
         </DetailLabel>
-        {isSeatBased &&
-          (seerUsers ? (
-            <Fragment>
-              <DetailLabel title="Reserved Seats">
-                {formatReservedWithUnits(seerUsers.reserved, DataCategory.SEER_USER)}
-              </DetailLabel>
-              <DetailLabel title="Active Contributors (billed this period)">
-                {seerUsers.usage.toLocaleString()}
-              </DetailLabel>
-              <DetailLabel title="Gifted Seats">
-                {formatReservedWithUnits(seerUsers.free, DataCategory.SEER_USER, {
-                  isGifted: true,
-                })}
-              </DetailLabel>
-              {typeof seerUsers.customPrice === 'number' && (
-                <DetailLabel title="Custom Price">
-                  {displayPriceWithCents({cents: seerUsers.customPrice})}
-                </DetailLabel>
-              )}
-            </Fragment>
-          ) : (
-            <DetailLabel title="Seats">
-              <Tag variant="danger">Seat plan enabled but no seat data found</Tag>
+        {isSeatBased && (
+          <Fragment>
+            <DetailLabel title="Reserved Seats">
+              {formatReservedWithUnits(seerUsers.reserved, DataCategory.SEER_USER)}
             </DetailLabel>
-          ))}
+            <DetailLabel title="Active Contributors (billed this period)">
+              {seerUsers.usage.toLocaleString()}
+            </DetailLabel>
+            <DetailLabel title="Gifted Seats">
+              {formatReservedWithUnits(seerUsers.free, DataCategory.SEER_USER, {
+                isGifted: true,
+              })}
+            </DetailLabel>
+            {typeof seerUsers.customPrice === 'number' && (
+              <DetailLabel title="Custom Price">
+                {displayPriceWithCents({cents: seerUsers.customPrice})}
+              </DetailLabel>
+            )}
+          </Fragment>
+        )}
         {isLegacy &&
           (legacyBudget ? (
             <Fragment>
