@@ -41,6 +41,23 @@ logger = logging.getLogger(__name__)
 
 CACHE_TIMEOUT = 3600
 
+# Event types that use the default pipeline (preprocess → symbolicate → save).
+# Derived from EventTypeStr in sentry.eventtypes.base, minus "transaction" and
+# "feedback" which have dedicated handlers.
+_DEFAULT_PIPELINE_EVENT_TYPES = frozenset(
+    {
+        "default",
+        "error",
+        "csp",
+        "hpkp",
+        "expectct",
+        "expectstaple",
+        "nel",
+        "generic",
+        None,
+    }
+)
+
 IngestMessage = Mapping[str, Any]
 
 
@@ -216,7 +233,7 @@ def _process_feedback_event(
     _set_dedup_and_signal(deduplication_key, remote_addr, data, project)
 
 
-def _process_error_event(
+def _process_default_event(
     data: MutableMapping[str, Any],
     project: Project,
     project_id: int,
@@ -410,8 +427,8 @@ def process_event(
                 remote_addr=remote_addr,
                 deduplication_key=deduplication_key,
             )
-        else:
-            _process_error_event(
+        elif event_type in _DEFAULT_PIPELINE_EVENT_TYPES:
+            _process_default_event(
                 data=data,
                 project=project,
                 project_id=project_id,
@@ -424,6 +441,19 @@ def process_event(
                 reprocess_only_stuck_events=reprocess_only_stuck_events,
                 reprocess_only_events_not_in_nodestore=reprocess_only_events_not_in_nodestore,
                 inline_save_event=inline_save_event,
+            )
+        else:
+            logger.error(
+                "process_event.unknown_event_type",
+                extra={
+                    "event_type": event_type,
+                    "event_id": event_id,
+                    "project_id": project_id,
+                },
+            )
+            metrics.incr(
+                "ingest_consumer.unknown_event_type",
+                tags={"event_type": str(event_type)},
             )
     except Exception as exc:
         if isinstance(exc, KeyError):  # ex: missing event_id in message["payload"]
