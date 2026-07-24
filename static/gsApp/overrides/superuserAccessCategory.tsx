@@ -3,10 +3,12 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {FieldRequiredBadge} from 'sentry/components/forms/fieldGroup/fieldRequiredBadge';
 import {RadioField} from 'sentry/components/forms/fields/radioField';
 import {TextField} from 'sentry/components/forms/fields/textField';
+import type {SuperuserAccessCategoryProps} from 'sentry/types/overrides';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 type SuperuserAccessCategories = [string, React.ReactNode];
@@ -34,7 +36,14 @@ const OtherCategory: SuperuserAccessCategories[] = [['other', 'Other']];
 
 const DOCUMENTATION_URL = 'https://www.notion.so/sentry/aae9a918b5814fe0918d8e7aecacf97a';
 
-export function SuperuserAccessCategory() {
+export function SuperuserAccessCategory({
+  accessCategory,
+  accessCategoryError,
+  onAccessCategoryChange,
+  onReasonChange,
+  reason,
+  reasonError,
+}: SuperuserAccessCategoryProps) {
   return (
     <Fragment>
       <Alert variant="muted" showIcon={false}>
@@ -51,6 +60,8 @@ export function SuperuserAccessCategory() {
           inline={false}
           label="Engineering"
           choices={EngineeringCategories}
+          onChange={onAccessCategoryChange}
+          value={accessCategory}
           stacked
         />
         <RadioField
@@ -58,6 +69,8 @@ export function SuperuserAccessCategory() {
           inline={false}
           label="Reactive Support"
           choices={ReactiveSupportCategories}
+          onChange={onAccessCategoryChange}
+          value={accessCategory}
           stacked
         />
         <RadioField
@@ -65,6 +78,8 @@ export function SuperuserAccessCategory() {
           inline={false}
           label="Proactive Support"
           choices={ProactiveSupportCategories}
+          onChange={onAccessCategoryChange}
+          value={accessCategory}
           stacked
         />
         <RadioField
@@ -72,9 +87,16 @@ export function SuperuserAccessCategory() {
           inline={false}
           label="Others"
           choices={OtherCategory}
+          onChange={onAccessCategoryChange}
+          value={accessCategory}
           stacked
         />
       </CategoryGrid>
+      {accessCategoryError ? (
+        <Text role="alert" size="sm" variant="danger">
+          {accessCategoryError}
+        </Text>
+      ) : null}
       <TextField
         name="superuserReason"
         label="Reason for Access"
@@ -84,8 +106,15 @@ export function SuperuserAccessCategory() {
         required
         maxLength={128}
         minLength={4}
+        onChange={onReasonChange}
         placeholder="e.g. disabling SSO enforcement"
+        value={reason}
       />
+      {reasonError ? (
+        <Text role="alert" size="sm" variant="danger">
+          {reasonError}
+        </Text>
+      ) : null}
     </Fragment>
   );
 }
