@@ -31,9 +31,7 @@ interface ColumnResizeState {
 /**
  * Shared column-resize drag mechanic for the sanctioned table shells. Owns the
  * pointer lifecycle (`mousedown` -> window `mousemove`/`mouseup` -> cleanup) and the
- * imperative write to the grid's `gridTemplateColumns`. The resize handle itself is
- * `GridResizer` from `gridEditable/styles`, expected to be nested one level below the
- * head cell whose width is being changed.
+ * imperative write to the grid's `gridTemplateColumns`.
  */
 export function useColumnResize<T extends HTMLElement>({
   gridRef,
