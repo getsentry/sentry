@@ -44,12 +44,17 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
                 id=config_id,
                 organization_integration_id__in=[oi.id for oi in ois],
             )
+            # Only set when the request wants to move the mapping to another project
+            if request.data.get("projectId"):
+                kwargs["new_project"] = self.get_project(
+                    kwargs["organization"], request.data["projectId"]
+                )
         except (RepositoryProjectPathConfig.DoesNotExist, ValueError):
             raise Http404
 
         return (args, kwargs)
 
-    def put(self, request: Request, config_id, organization, config) -> Response:
+    def put(self, request: Request, config_id, organization, config, new_project=None) -> Response:
         """
         Update a repository project path config
         ``````````````````
@@ -63,8 +68,10 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         :param string default_branch:
         :auth: required
         """
-        project = config.project_repository.project
-        if not request.access.has_project_access(project):
+        projects = [config.project_repository.project]
+        if new_project is not None:
+            projects.append(new_project)
+        if not request.access.has_projects_access(projects):
             return self.respond(status=status.HTTP_403_FORBIDDEN)
 
         try:
@@ -85,18 +92,13 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
             instance=config,
             data=request.data,
         )
-        if not serializer.is_valid():
-            return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        new_project = self.get_project(organization, serializer.validated_data["project_id"])
-        if not request.access.has_project_access(new_project):
-            return self.respond(status=status.HTTP_403_FORBIDDEN)
-
-        repository_project_path_config = serializer.save()
-        return self.respond(
-            serialize(repository_project_path_config, request.user),
-            status=status.HTTP_200_OK,
-        )
+        if serializer.is_valid():
+            repository_project_path_config = serializer.save()
+            return self.respond(
+                serialize(repository_project_path_config, request.user),
+                status=status.HTTP_200_OK,
+            )
+        return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request: Request, config_id, organization, config) -> Response:
         """
