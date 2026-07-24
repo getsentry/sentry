@@ -114,7 +114,10 @@ function NavigationLayout({
       height={
         layout === 'mobile'
           ? undefined
-          : `calc(100dvh - max(${barTop}, ${pageBannerHeight}px))`
+          : // barTop (marquee) and pageBannerHeight (marquee + alerts) overlap, so
+            // max not sum; barTop also floors the height while pageBannerHeight's
+            // ResizeObserver still reports 0 on first paint.
+            `calc(100dvh - max(${barTop}, ${pageBannerHeight}px))`
       }
       style={{
         zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,

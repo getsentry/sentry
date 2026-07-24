@@ -14,7 +14,7 @@ import {
 interface TopOffset {
   /** The `top` CSS value for the sticky bar itself */
   barTop: string;
-  /** The total offset where content below the bar should start */
+  /** Offset where content below the bar starts (marquee + header only, excludes in-flow SystemAlerts) */
   contentTop: string;
 }
 
