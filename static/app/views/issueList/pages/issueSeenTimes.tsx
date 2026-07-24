@@ -10,10 +10,13 @@ import type {Group} from 'sentry/types/group';
  * issue card and the issue preview header.
  */
 export function IssueSeenTimes({group}: {group: Group}) {
+  const lastSeen = group.lifetime?.lastSeen ?? group.lastSeen;
+  const firstSeen = group.lifetime?.firstSeen ?? group.firstSeen;
+
   return (
     <Flex align="center" gap="xs" wrap="nowrap">
       <TimeSince
-        date={group.lastSeen}
+        date={lastSeen}
         suffix=""
         unitStyle="short"
         tooltipPrefix={t('Last Seen')}
@@ -21,7 +24,7 @@ export function IssueSeenTimes({group}: {group: Group}) {
       />
       <Text variant="muted">|</Text>
       <TimeSince
-        date={group.firstSeen}
+        date={firstSeen}
         suffix=""
         unitStyle="short"
         tooltipPrefix={t('First Seen')}
