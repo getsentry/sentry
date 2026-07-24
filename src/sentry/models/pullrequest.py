@@ -58,6 +58,9 @@ class PullRequestVerdict(models.TextChoices):
     MERGED_UNCHANGED = "merged_unchanged"
     MERGED_WITH_ITERATION = "merged_with_iteration"
     CLOSED_UNMERGED = "closed_unmerged"
+    # Open PR with no engagement for 4 weeks; emitted by the stale-detection
+    # cron, not the webhook.
+    ABANDONED = "abandoned"
     # Transient, internal: a terminal event whose outcome a judge must decide has
     # been claimed and forwarded to Seer, but the judged verdict hasn't returned.
     # Reuses the verdict column as the redelivery guard so a redelivered terminal

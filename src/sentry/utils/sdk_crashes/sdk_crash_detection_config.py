@@ -199,6 +199,10 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             },
             hybrid_sdk_packages={
                 "sentry.cocoa.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
+                "sentry.cocoa.react-native": (
+                    "sentry.javascript.react-native",
+                    "npm:@sentry/react-native",
+                ),
             },
         )
         configs.append(cocoa_config)
@@ -295,6 +299,10 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             organization_allowlist=java_options["organization_allowlist"],
             hybrid_sdk_packages={
                 "sentry.java.android.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
+                "sentry.java.android.react-native": (
+                    "sentry.javascript.react-native",
+                    "npm:@sentry/react-native",
+                ),
             },
             sdk_names={
                 "sentry.java.android": java_min_sdk_version,
