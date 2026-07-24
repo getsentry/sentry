@@ -3831,6 +3831,26 @@ describe('SearchQueryBuilder', () => {
         expect(optionsAfterToggle).toEqual(initialOptions);
       });
 
+      it('switches from contains to is when selecting an initial value via checkbox', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery={`browser.name:${WildcardOperators.CONTAINS}""`}
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:Chrome'})
+        ).toBeInTheDocument();
+      });
+
       it('does not reset frozen order when predefined sections rebuild', async () => {
         render(
           <SearchQueryBuilder

@@ -588,6 +588,7 @@ function ItemCheckbox({disabled, value}: {disabled: boolean; value: string}) {
               type: 'TOGGLE_FILTER_VALUE',
               token,
               value: escapedValue,
+              op: getOperatorForSelectedValue(token),
             });
 
             const {selected: currentlySelected, selectedCount} = getMultiSelectValueState(
@@ -607,6 +608,20 @@ function ItemCheckbox({disabled, value}: {disabled: boolean; value: string}) {
       </CheckWrap>
     </TrailingWrap>
   );
+}
+
+function getOperatorForSelectedValue(
+  token: TokenResult<Token.FILTER>
+): TermOperator | undefined {
+  if (
+    token.operator === TermOperator.CONTAINS &&
+    token.value.type === Token.VALUE_TEXT &&
+    !token.value.value
+  ) {
+    return token.negated ? TermOperator.NOT_EQUAL : TermOperator.DEFAULT;
+  }
+
+  return undefined;
 }
 
 function ValueComboboxCustomMenu(
@@ -1103,16 +1118,9 @@ export function SearchQueryBuilderValueCombobox({
       }
 
       // When selecting from dropdown with no existing value, switch from "contains" to "is"
-      let newOp: TermOperator | undefined;
-      if (
-        token.operator === TermOperator.CONTAINS &&
-        token.value.type === Token.VALUE_TEXT &&
-        !token.value.value
-      ) {
-        newOp = token.negated ? TermOperator.NOT_EQUAL : TermOperator.DEFAULT;
-      }
-
-      updateFilterValue(value, newOp, {escapeSearchValue: true});
+      updateFilterValue(value, getOperatorForSelectedValue(token), {
+        escapeSearchValue: true,
+      });
       trackAnalytics('search.value_autocompleted', {
         ...analyticsData,
         filter_value: value,

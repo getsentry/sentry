@@ -205,6 +205,7 @@ type MultiSelectFilterValueAction = {
   token: TokenResult<Token.FILTER>;
   type: 'TOGGLE_FILTER_VALUE';
   value: string;
+  op?: TermOperator;
 };
 
 type UpdateAggregateArgsAction = {
@@ -693,7 +694,8 @@ export function modifyFilterValue(
 function updateFilterMultipleValues(
   state: QueryBuilderState,
   token: TokenResult<Token.FILTER>,
-  values: string[]
+  values: string[],
+  op?: TermOperator
 ) {
   // Deduplicate by canonical form while preserving the original text of the
   // first occurrence (so the query string keeps the user's original formatting)
@@ -712,7 +714,7 @@ function updateFilterMultipleValues(
     return true;
   });
   if (uniqNonEmptyValues.length === 0) {
-    return {...state, query: replaceQueryToken(state.query, token.value, '""')};
+    return {...state, query: modifyFilterValue(state.query, token, '""', op)};
   }
 
   const newValue =
@@ -720,7 +722,7 @@ function updateFilterMultipleValues(
       ? `[${uniqNonEmptyValues.join(',')}]`
       : uniqNonEmptyValues[0]!;
 
-  return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
+  return {...state, query: modifyFilterValue(state.query, token, newValue, op)};
 }
 
 // Normalizes a filter value so that different surface representations of the
@@ -803,10 +805,12 @@ export function multiSelectTokenValue(
       );
 
       if (!containsValue) {
-        return updateFilterMultipleValues(state, action.token, [
-          ...values.map(({text}) => text),
-          action.value,
-        ]);
+        return updateFilterMultipleValues(
+          state,
+          action.token,
+          [...values.map(({text}) => text), action.value],
+          action.op
+        );
       }
 
       // The selected value was already present, so this is a deselect. Filter it
@@ -820,18 +824,18 @@ export function multiSelectTokenValue(
         }
       }
 
-      return updateFilterMultipleValues(state, action.token, newValues);
+      return updateFilterMultipleValues(state, action.token, newValues, action.op);
     }
     default: {
       // Single values use the same toggle semantics as lists: if the canonical
       // value is already selected, clear it; otherwise expand it into a list.
       if (canonicalizeSearchValue(tokenValue.value ?? '') === normalizedActionValue) {
-        return updateFilterMultipleValues(state, action.token, ['']);
+        return updateFilterMultipleValues(state, action.token, [''], action.op);
       }
       const newValue = tokenValue.value
         ? [tokenValue.text, action.value]
         : [action.value];
-      return updateFilterMultipleValues(state, action.token, newValue);
+      return updateFilterMultipleValues(state, action.token, newValue, action.op);
     }
   }
 }
