@@ -191,7 +191,7 @@ export function VisuallyCompleteWithData({
   }, [id, location]);
 
   useLayoutEffect(() => {
-    if (disabled || !hasData || !performance?.mark) {
+    if (disabled || !hasData || !performance?.mark || isDataCompleteSet.current) {
       return;
     }
 
