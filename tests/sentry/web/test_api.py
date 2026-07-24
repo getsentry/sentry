@@ -56,7 +56,7 @@ Disallow: /
         assert (
             response.content
             == b"""User-agent: *
-Content-Signal: search=yes, ai-input=yes, ai-train=yes
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Disallow: /api/
 Allow: /
 
