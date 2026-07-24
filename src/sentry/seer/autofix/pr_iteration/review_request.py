@@ -7,8 +7,8 @@ and record a ``review_requests`` marker.
 That marker (+ lock) avoids duplicate GitHub calls *and* re-pinging: requesting
 review again after an approve/dismiss clears ``requested_reviewers`` creates a
 new ``ReviewRequestedEvent`` and notifies the human. Later green suites for the
-same run must not do that. (Undraft's ``ready_for_review`` marker is only for
-skipping redundant API calls — undraft is idempotent when already ready.)
+same run must not do that. (Undraft's ``ready_for_review`` marker is sticky for
+the run+repo so human re-drafts on later heads are left alone.)
 
 The ready-for-review marker is intentionally *not* a gate here — undraft and
 review-request succeed/fail/retry independently.
@@ -24,7 +24,10 @@ from scm import actions as scm_actions
 from scm.types import RequestReviewProtocol
 
 from sentry.locks import locks
-from sentry.seer.autofix.pr_iteration.check_suites import GreenCheckSuiteContext
+from sentry.seer.autofix.pr_iteration.check_suites import (
+    REVIEW_REQUESTS_EXTRA,
+    GreenCheckSuiteContext,
+)
 from sentry.seer.autofix.pr_iteration.reviewer_candidates import (
     ReviewerCandidate,
     collect_reviewer_candidates,
@@ -36,14 +39,6 @@ from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
-
-# SeerRun.extras key holding review-request markers, keyed by repo full name
-# (a run can open PRs in several repos). Presence means "we already asked (or
-# found a preexisting request) for this run+repo" — skip later green events so
-# we neither re-hit the API nor re-notify after approve/dismiss clears the
-# request list. Stores requested_at / head_sha / reviewers for observability
-# (and possible future re-request logic); decisions today only check presence.
-REVIEW_REQUESTS_EXTRA = "review_requests"
 
 # How many candidates to try when a request fails (e.g. the provider rejects
 # a login without repo access) before giving up until the next green event.
@@ -96,16 +91,17 @@ def _record_review_request_marker(
 
 def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
     """Request review for an already-confirmed green tip (own lock + marker)."""
-    if _review_request_marker(ctx.seer_run, ctx.repo_name):
-        _skip("already_requested", ctx.log_extra)
+    resolved = ctx.resolved
+    if _review_request_marker(resolved.seer_run, resolved.repo_name):
+        _skip("already_requested", resolved.log_extra)
         return
 
     if not isinstance(ctx.scm, RequestReviewProtocol):
-        _skip("unsupported_provider", ctx.log_extra)
+        _skip("unsupported_provider", resolved.log_extra)
         return
 
     if ctx.pull_request["data"]["state"] != "open" or ctx.pull_request["data"]["merged"]:
-        _skip("pr_not_open", ctx.log_extra)
+        _skip("pr_not_open", resolved.log_extra)
         return
 
     raw_pr = ctx.pull_request["raw"]["data"] or {}
@@ -129,17 +125,17 @@ def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
     # return before this point and the sources go stale.
     pr_author = (raw_pr.get("user") or {}).get("login")
     candidates = collect_reviewer_candidates(
-        organization=ctx.organization,
-        seer_run=ctx.seer_run,
+        organization=resolved.organization,
+        seer_run=resolved.seer_run,
         exclude_logins={pr_author} if pr_author else (),
-        log_extra=ctx.log_extra,
+        log_extra=resolved.log_extra,
     )
     metrics.incr(
         "autofix.pr_iteration.reviewer_candidates.computed",
         tags={"top_source": candidates[0].source if candidates else "none"},
     )
     if not candidates:
-        _skip("no_candidates", ctx.log_extra)
+        _skip("no_candidates", resolved.log_extra)
         return
 
     # A suite completes once per app/workflow, so several green events can race
@@ -147,24 +143,24 @@ def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
     # the wait the marker re-check settles it — holder succeeded means we skip,
     # holder's request failed (marker unset) means this event retries.
     lock = locks.get(
-        f"autofix:pr_iteration:review_request:{ctx.seer_run.id}",
+        f"autofix:pr_iteration:review_request:{resolved.seer_run.id}",
         duration=30,
         name="autofix_pr_review_request",
     )
     requested_candidate: ReviewerCandidate | None = None
     try:
         with lock.blocking_acquire(initial_delay=0.5, timeout=10):
-            ctx.seer_run.refresh_from_db()
-            if _review_request_marker(ctx.seer_run, ctx.repo_name):
-                _skip("already_requested", ctx.log_extra)
+            resolved.seer_run.refresh_from_db()
+            if _review_request_marker(resolved.seer_run, resolved.repo_name):
+                _skip("already_requested", resolved.log_extra)
                 return
 
             # Persist the ranked list with provenance: fallbacks for later
             # re-request, and the data to measure which source's reviewers
             # actually respond.
             record_reviewer_candidates_marker(
-                ctx.seer_run,
-                ctx.repo_name,
+                resolved.seer_run,
+                resolved.repo_name,
                 head_sha=ctx.head_sha,
                 candidates=candidates,
             )
@@ -176,18 +172,18 @@ def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
                 # pre-check, and don't rebuild the bystander effect by adding
                 # a second person. (Post-undraft CODEOWNERS: see TODO above.)
                 _record_review_request_marker(
-                    ctx.seer_run,
-                    ctx.repo_name,
+                    resolved.seer_run,
+                    resolved.repo_name,
                     head_sha=ctx.head_sha,
                     reviewers=sorted(requested_logins),
                     preexisting=True,
                 )
-                _skip("already_a_reviewer", ctx.log_extra)
+                _skip("already_a_reviewer", resolved.log_extra)
                 return
 
             for candidate in candidates[:MAX_REQUEST_ATTEMPTS]:
                 try:
-                    scm_actions.request_review(ctx.scm, str(ctx.pr_number), [candidate.login])
+                    scm_actions.request_review(ctx.scm, str(resolved.pr_number), [candidate.login])
                     requested_candidate = candidate
                     break
                 except Exception:
@@ -196,8 +192,8 @@ def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
                     _failed(
                         "request_review_failed",
                         {
-                            **ctx.log_extra,
-                            "pr_number": ctx.pr_number,
+                            **resolved.log_extra,
+                            "pr_number": resolved.pr_number,
                             "source": candidate.source,
                         },
                     )
@@ -206,18 +202,18 @@ def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
                 return
 
             _record_review_request_marker(
-                ctx.seer_run,
-                ctx.repo_name,
+                resolved.seer_run,
+                resolved.repo_name,
                 head_sha=ctx.head_sha,
                 reviewers=[requested_candidate.login],
             )
     except SeerRun.DoesNotExist:
         # The run was deleted between our lookup and the marker write (e.g.
         # cleanup); nothing is left to mark or dedupe against.
-        _skip("run_deleted", ctx.log_extra)
+        _skip("run_deleted", resolved.log_extra)
         return
     except UnableToAcquireLock:
-        _skip("locked", ctx.log_extra)
+        _skip("locked", resolved.log_extra)
         return
 
     metrics.incr(
@@ -227,8 +223,8 @@ def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
     logger.info(
         "autofix.pr_iteration.review_request.requested",
         extra={
-            **ctx.log_extra,
-            "pr_number": ctx.pr_number,
+            **resolved.log_extra,
+            "pr_number": resolved.pr_number,
             "reviewers": [requested_candidate.login],
         },
     )

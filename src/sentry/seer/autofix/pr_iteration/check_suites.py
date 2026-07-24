@@ -32,6 +32,7 @@ from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
@@ -39,6 +40,12 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 SEER_GITHUB_PROVIDER = "integrations:github"
+
+# SeerRun.extras keys for the green check-suite side effects (undraft +
+# review-request). Owned here so bootstrap can short-circuit on DB markers
+# without importing those modules (they import GreenCheckSuiteContext from us).
+READY_FOR_REVIEW_EXTRA = "ready_for_review"
+REVIEW_REQUESTS_EXTRA = "review_requests"
 
 # Suite/run conclusions we treat as a failure. Values match scm BuildConclusion
 # after GitHub normalization (startup_failure -> failure).
@@ -285,30 +292,32 @@ def check_suite_matches_pr_head(
 
 
 @dataclass(frozen=True)
-class GreenCheckSuiteContext:
-    """Shared bootstrap for the green ``check_suite`` path (undraft + review-request)."""
+class ResolvedGreenCheckSuite:
+    """Cheap half of green-path bootstrap: enough to read DB markers."""
 
     event: GithubCheckSuiteEvent
     organization: Organization
     autofix_run: CheckSuiteAutofixRun
     seer_run: SeerRun
-    scm: SourceCodeManager
-    pull_request: ActionResult[PullRequest]
     repo_name: str
     pr_number: int
-    head_sha: str
     log_extra: dict[str, Any]
 
 
-def bootstrap_green_check_suite(
-    check_suite_event: CheckSuiteEvent,
-) -> GreenCheckSuiteContext | None:
-    """Load a confirmed-green Autofix PR tip from a green ``check_suite`` event.
+@dataclass(frozen=True)
+class GreenCheckSuiteContext:
+    """Confirmed-green tip after SCM live-head match + check-run sweep."""
 
-    Parses the payload, flag-gates, resolves the run, loads the live PR head,
-    and sweeps check runs so the tip is fully green. Returns ``None`` when the
-    event should be ignored.
-    """
+    resolved: ResolvedGreenCheckSuite
+    scm: SourceCodeManager
+    pull_request: ActionResult[PullRequest]
+    head_sha: str
+
+
+def resolve_green_check_suite(
+    check_suite_event: CheckSuiteEvent,
+) -> ResolvedGreenCheckSuite | None:
+    """Parse, flag-gate, and resolve the Autofix run (no SCM)."""
     try:
         raw = orjson.loads(check_suite_event.subscription_event["event"])
         event = GithubCheckSuiteEvent.parse_obj(raw)
@@ -361,42 +370,59 @@ def bootstrap_green_check_suite(
         _skip("no_seer_run", log_extra)
         return None
 
+    return ResolvedGreenCheckSuite(
+        event=event,
+        organization=organization,
+        autofix_run=autofix_run,
+        seer_run=seer_run,
+        repo_name=repo_name,
+        pr_number=pr_number,
+        log_extra=log_extra,
+    )
+
+
+def confirm_green_check_suite(
+    resolved: ResolvedGreenCheckSuite,
+) -> GreenCheckSuiteContext | None:
+    """SCM live-head match + check-run sweep. Call only when a side effect is needed."""
     # Importing the SCM factory while the check-suite listener module is
     # initialized pulls in integration handlers before options init.
     from sentry.scm.factory import new as make_scm
 
     try:
-        scm = make_scm(organization.id, autofix_run.repository.id, referrer="seer")
+        scm = make_scm(
+            resolved.organization.id, resolved.autofix_run.repository.id, referrer="seer"
+        )
     except Exception:
-        _failed("scm_init_failed", log_extra)
+        _failed("scm_init_failed", resolved.log_extra)
         return None
 
     if not isinstance(scm, GetPullRequestProtocol):
-        _skip("unsupported_provider", log_extra)
+        _skip("unsupported_provider", resolved.log_extra)
         return None
 
     try:
-        pull_request = scm_actions.get_pull_request(scm, str(pr_number))
+        pull_request = scm_actions.get_pull_request(scm, str(resolved.pr_number))
     except Exception:
-        _failed("get_pull_request_failed", {**log_extra, "pr_number": pr_number})
+        _failed("get_pull_request_failed", {**resolved.log_extra, "pr_number": resolved.pr_number})
         return None
 
     head_match = check_suite_matches_pr_head(
-        event, pr_head_sha=pull_request["data"]["head"].get("sha")
+        resolved.event, pr_head_sha=pull_request["data"]["head"].get("sha")
     )
     if not head_match.matched or not head_match.head_sha:
-        _skip("stale_head", {**log_extra, "head_sha": head_match.head_sha})
+        _skip("stale_head", {**resolved.log_extra, "head_sha": head_match.head_sha})
         return None
 
-    sweep = sweep_check_runs(scm, head_match.head_sha, log_extra=log_extra)
+    sweep = sweep_check_runs(scm, head_match.head_sha, log_extra=resolved.log_extra)
     if sweep is None:
-        _skip("sweep_failed", log_extra)
+        _skip("sweep_failed", resolved.log_extra)
         return None
     if not sweep.is_green:
         _skip(
             "not_green",
             {
-                **log_extra,
+                **resolved.log_extra,
                 "incomplete_count": sweep.incomplete,
                 "failed_count": sweep.failed,
             },
@@ -405,17 +431,27 @@ def bootstrap_green_check_suite(
 
     metrics.incr("autofix.pr_iteration.green_check_suite.confirmed")
     return GreenCheckSuiteContext(
-        event=event,
-        organization=organization,
-        autofix_run=autofix_run,
-        seer_run=seer_run,
+        resolved=resolved,
         scm=scm,
         pull_request=pull_request,
-        repo_name=repo_name,
-        pr_number=pr_number,
         head_sha=head_match.head_sha,
-        log_extra=log_extra,
     )
+
+
+def bootstrap_green_check_suite(
+    check_suite_event: CheckSuiteEvent,
+) -> GreenCheckSuiteContext | None:
+    """Resolve + confirm. Skips SCM when both green-path markers are already set."""
+    resolved = resolve_green_check_suite(check_suite_event)
+    if resolved is None:
+        return None
+    if (
+        get_run_marker(resolved.seer_run, READY_FOR_REVIEW_EXTRA, resolved.repo_name) is not None
+        and get_run_marker(resolved.seer_run, REVIEW_REQUESTS_EXTRA, resolved.repo_name) is not None
+    ):
+        _skip("already_complete", resolved.log_extra)
+        return None
+    return confirm_green_check_suite(resolved)
 
 
 def _skip(reason: str, log_extra: dict[str, Any]) -> None:
