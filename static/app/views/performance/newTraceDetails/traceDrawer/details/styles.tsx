@@ -908,6 +908,9 @@ function NodeActions(props: {
 
   const transactionId = props.node.transactionId ?? '';
 
+  const canShowEAPSpanJSON =
+    getDiscoverDeprecation(props.organization) && isEAPSpanNode(props.node);
+
   const transactionProfileTarget = useMemo(() => {
     if (!props.profileId) {
       return null;
@@ -945,12 +948,12 @@ function NodeActions(props: {
           icon={<IconFocus />}
         />
       </Tooltip>
-      {props.showJSONLink && transactionId ? (
+      {props.showJSONLink && (canShowEAPSpanJSON || transactionId) ? (
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
             href={
-              getDiscoverDeprecation(props.organization) && isEAPSpanNode(props.node)
+              canShowEAPSpanJSON
                 ? `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}`
                 : `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/events/${transactionId}/json/`
             }
