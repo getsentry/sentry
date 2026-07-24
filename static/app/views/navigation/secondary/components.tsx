@@ -133,7 +133,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
               transition={{duration: 0.06}}
             >
               <Grid
-                rows="auto 1fr auto"
+                rows="auto minmax(0, 1fr) auto"
                 role="navigation"
                 aria-label="Secondary Navigation"
                 height="100%"
@@ -322,6 +322,7 @@ function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
 
   return (
     <Container
+      minHeight="0"
       overflow="auto"
       overscrollBehavior="contain"
       padding={layout === 'mobile' ? '0 0 md 0' : undefined}
