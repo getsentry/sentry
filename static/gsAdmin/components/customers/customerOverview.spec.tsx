@@ -1067,7 +1067,7 @@ describe('CustomerOverview', () => {
       expect(seerSection.queryByText('Reserved Budget:')).not.toBeInTheDocument();
     });
 
-    it('omits the Seer section when the plan does not offer Seer', () => {
+    it('shows Seer is unavailable when the plan does not offer it', () => {
       const organization = OrganizationFixture();
       const subscription = SubscriptionFixture({organization, plan: 'mm2_a_100k'});
 
@@ -1079,7 +1079,12 @@ describe('CustomerOverview', () => {
         />
       );
 
-      expect(screen.queryByTestId('seer-plan-summary')).not.toBeInTheDocument();
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Plan:').nextSibling).toHaveTextContent(
+        `Not available on the ${subscription.planDetails.name} plan`
+      );
+      expect(seerSection.queryByText('Reserved Seats:')).not.toBeInTheDocument();
+      expect(seerSection.queryByText('Reserved Budget:')).not.toBeInTheDocument();
     });
   });
 });

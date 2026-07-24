@@ -308,10 +308,7 @@ function ReservedBudgetData({
 function SeerPlanSummary({customer}: {customer: Subscription}) {
   const seerAddOn = customer.addOns?.[AddOnCategory.SEER];
   const legacySeerAddOn = customer.addOns?.[AddOnCategory.LEGACY_SEER];
-
-  if (!seerAddOn && !legacySeerAddOn) {
-    return null;
-  }
+  const isOffered = !!seerAddOn || !!legacySeerAddOn;
 
   const isSeatBased = !!seerAddOn?.enabled;
   const isLegacy = !!legacySeerAddOn?.enabled;
@@ -330,8 +327,12 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
             <Tag variant="success">Seat-based</Tag>
           ) : isLegacy ? (
             <Tag variant="warning">Legacy (budget)</Tag>
-          ) : (
+          ) : isOffered ? (
             <Tag variant="muted">None</Tag>
+          ) : (
+            <Tag variant="muted">
+              Not available on the {customer.planDetails.name} plan
+            </Tag>
           )}
         </DetailLabel>
         {isSeatBased &&
