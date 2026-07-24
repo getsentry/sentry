@@ -344,13 +344,11 @@ def _deduplication_key(
 ) -> str:
     """Opaque key identifying this row's provider-side PR, for deduping emitted rows.
 
-    The same provider PR hashes to the same key in every cell, so a cross-cell
-    consumer can collapse the one-row-per-cell duplicates the cell-local in-Sentry
-    dedupe can't reach. Opaque by contract: consumers dedupe by equality only and
-    must not parse it, so the identity composition here can change without a
-    pipeline/schema change. When the repo has no external id the PR can't be
-    identified globally (nor fanned out across orgs), so the key falls back to the
-    row's own globally-unique identity — it forms its own group instead of merging.
+    A repo shared across orgs emits one row per org, all hashing to the same key, so
+    a consumer can collapse the duplicates by grouping on it. Opaque by contract --
+    dedupe by equality only, never parse -- so the identity composition can change
+    without a schema change. With no external id the PR can't be identified globally,
+    so the key falls back to the row's own identity (its own group, never merged).
     """
     if external_id is not None:
         identity = f"pr:{provider or ''}:{external_id}:{pull_request.key}"

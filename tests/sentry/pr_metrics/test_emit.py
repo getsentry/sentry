@@ -1292,7 +1292,7 @@ EXTERNAL_ID = "556677"
 @with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
 class DeduplicationKeyTest(TestCase):
     """The same provider PR, fanned out to one row per org, must build the same
-    opaque deduplication_key so a cross-cell consumer can collapse them."""
+    opaque deduplication_key so a consumer can collapse them."""
 
     def setUp(self) -> None:
         self.pull_request = self._mergeable_pr(self._repo(self.project), self.organization)
