@@ -401,16 +401,21 @@ function SudoModal({
                 <superuserForm.SubmitButton>{t('Continue')}</superuserForm.SubmitButton>
               </Flex>
             ) : (
-              <Button
-                variant="transparent"
-                onClick={() => {
-                  superuserForm.reset();
-                  setErrorType(undefined);
-                  setSuperuserStep({step: 'access'});
-                }}
-              >
-                {t('Change reason')}
-              </Button>
+              <Flex width="100%" justify="between" align="center" gap="md">
+                <Button
+                  variant="transparent"
+                  onClick={() => {
+                    superuserForm.reset();
+                    setErrorType(undefined);
+                    setSuperuserStep({step: 'access'});
+                  }}
+                >
+                  {t('Change reason')}
+                </Button>
+                <superuserForm.SubmitButton>
+                  {t('Re-authenticate')}
+                </superuserForm.SubmitButton>
+              </Flex>
             )}
           </Footer>
         </superuserForm.AppForm>

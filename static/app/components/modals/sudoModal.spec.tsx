@@ -199,6 +199,7 @@ describe('Sudo Modal', () => {
       expect(
         await screen.findByRole('button', {name: 'Change reason'})
       ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Re-authenticate'})).toBeInTheDocument();
       expect(
         screen.queryByRole('textbox', {name: 'Reason for Access'})
       ).not.toBeInTheDocument();
