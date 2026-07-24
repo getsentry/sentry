@@ -13,12 +13,12 @@ Migrate viewport-based responsive logic (`@media` + `useMedia`) to container que
 
 Stop at the first rung that fits. Prefer replacing hand-rolled CSS with primitives over a mechanical token swap.
 
-| Rung                          | When                                                                                                    | Do                                                                                                                            |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 1. Primitive props            | The `@media` only flips layout (`flex-direction`, `display`, `grid-template`, gap, visibility, width)   | Delete the styled component; use `Container`/`Flex`/`Grid`/`Stack` responsive props (`direction={{xs: 'column', md: 'row'}}`) |
-| 2. `@container` swap          | CSS can't be a prop (descendant selectors, pseudo-elements, `font-size`, complex `grid-template-areas`) | Keep the styled component; swap `@media` → `@container`, `theme.breakpoints.*` → `theme.container.*`                          |
-| 3. `useContainerBreakpoint()` | Width is read in JS to branch rendering                                                                 | Replace `useMedia(...)` with `useContainerBreakpoint()` — the container-scoped `useMedia`                                     |
-| 4. Leave as `useMedia`        | Genuine media feature, not width                                                                        | Do nothing — these do not migrate                                                                                             |
+| Rung                   | When                                                                                                    | Do                                                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Primitive props     | The `@media` only flips layout (`flex-direction`, `display`, `grid-template`, gap, visibility, width)   | Delete the styled component; use `Container`/`Flex`/`Grid`/`Stack` responsive props (`direction={{xs: 'column', md: 'row'}}`)                   |
+| 2. `@container` swap   | CSS can't be a prop (descendant selectors, pseudo-elements, `font-size`, complex `grid-template-areas`) | Keep the styled component; swap `@media` → `@container`, `theme.breakpoints.*` → `theme.container.*`                                            |
+| 3. Container-scoped JS | Width is read in JS to branch rendering                                                                 | Replace `useMedia(...)` with `useResponsivePropValue({...})` for a threshold boolean, or `useContainerBreakpoint()` to branch on the active key |
+| 4. Leave as `useMedia` | Genuine media feature, not width                                                                        | Do nothing — these do not migrate                                                                                                               |
 
 ## ⚠️ Convert to the nearest container scale
 
@@ -85,26 +85,29 @@ import {Flex} from '@sentry/scraps/layout';
 @container (max-width: ${p => p.theme.container['3xl']}) { ... }
 ```
 
-### Rung 3 — `useMedia` (width) → `useContainerBreakpoint()`
+### Rung 3 — `useMedia` (width) → container-scoped JS
 
-`useContainerBreakpoint()` is the container-scoped replacement for width-based `useMedia`. Call it from a descendant of a query container; it returns the container's active breakpoint on the container scale (`zero` … `5xl`) and updates as the container crosses a breakpoint.
+Both helpers below read the nearest query container (call from a descendant of one) and re-render as it crosses a breakpoint. A single `max-width` boolean is cleanest as a responsive value; reach for the active key only when you branch on the key itself.
 
 ```tsx
 // Old
 const isNarrow = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
-// New — reads the container's active breakpoint, not the viewport.
-// The hook returns the single ACTIVE key, so a max-width threshold is a
-// "below this key" test, not an equality. Map by pixel value first:
-// breakpoints.sm (800px) → nearest container token is xl (768px), so
-// "narrow" is every key below xl.
-import {useContainerBreakpoint} from '@sentry/scraps/layout';
+// New — resolve a responsive boolean against the container, same mobile-first
+// cascade as CSS. A max-width query is "on by default, off past the threshold",
+// so name only the threshold key. Map by pixel value: breakpoints.sm (800px) →
+// nearest container token is xl (768px).
+import {useResponsivePropValue} from '@sentry/scraps/layout';
 
-const breakpoint = useContainerBreakpoint(); // 'zero' | '3xs' | ... | '5xl'
-const isNarrow = ['zero', '3xs', '2xs', 'xs', 'sm', 'md', 'lg'].includes(breakpoint);
-// NOT `breakpoint === 'zero'` — that only fires below 320px, dropping the
-// 320–768px range the original query treated as narrow.
+const isNarrow = useResponsivePropValue({zero: true, xl: false});
+// below xl → true, at/above xl → false — one key on each side, nothing to enumerate.
 ```
+
+Reach for `useContainerBreakpoint()` instead only when you branch on the key
+itself (e.g. picking one of several layouts), not a single threshold. It returns
+the container's active key (`'zero'` … `'5xl'`) — don't compare it with
+`=== 'zero'` for a max-width case: that fires only below 320px and drops the
+320–768px range the original query treated as narrow.
 
 ## Migration Checklist
 
