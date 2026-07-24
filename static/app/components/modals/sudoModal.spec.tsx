@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {makeClosableHeader, ModalBody} from '@sentry/scraps/modal';
+import {makeClosableHeader, ModalBody, ModalFooter} from '@sentry/scraps/modal';
 
 import SudoModal from 'sentry/components/modals/sudoModal';
 import {registerOverride} from 'sentry/overrideRegistry';
@@ -11,37 +11,8 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {SuperuserAccessCategoryProps} from 'sentry/types/overrides';
 import {App} from 'sentry/views/app';
 
-function TestAccessCategory({
-  accessCategory,
-  accessCategoryError,
-  onAccessCategoryChange,
-  onReasonChange,
-  reason,
-  reasonError,
-}: SuperuserAccessCategoryProps) {
-  return (
-    <div>
-      <label>
-        <input
-          checked={accessCategory === 'development'}
-          name="superuserAccessCategory"
-          type="radio"
-          onChange={() => onAccessCategoryChange?.('development')}
-        />
-        Development
-      </label>
-      {accessCategoryError ? <div role="alert">{accessCategoryError}</div> : null}
-      <label>
-        Reason for Access
-        <input
-          name="superuserReason"
-          value={reason ?? ''}
-          onChange={event => onReasonChange?.(event.target.value)}
-        />
-      </label>
-      {reasonError ? <div role="alert">{reasonError}</div> : null}
-    </div>
-  );
+function TestAccessCategory({RadioItem}: SuperuserAccessCategoryProps) {
+  return <RadioItem value="development">Development</RadioItem>;
 }
 
 describe('Sudo Modal', () => {
@@ -169,7 +140,9 @@ describe('Sudo Modal', () => {
     setHasPasswordAuth(false);
 
     // Should return w/ `sudoRequired` and trigger the modal to open
-    new MockApiClient().request('/organizations/org-slug/', {method: 'DELETE'});
+    new MockApiClient().request('/organizations/org-slug/', {
+      method: 'DELETE',
+    });
 
     render(<App />);
 
@@ -196,6 +169,7 @@ describe('Sudo Modal', () => {
         <SudoModal
           Header={makeClosableHeader(jest.fn())}
           Body={ModalBody}
+          Footer={ModalFooter}
           closeModal={jest.fn()}
           isSuperuser
         />
