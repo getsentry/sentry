@@ -170,7 +170,6 @@ describe('AttributeBreakdownViewerModal', () => {
 
       expect(screen.getByRole('heading', {name: 'empty.attribute'})).toBeInTheDocument();
       expect(screen.queryByText('echarts mock')).not.toBeInTheDocument();
-      // Shows the shared no-data state instead of a blank area or a thrown error
       expect(screen.getByText('No data to plot')).toBeInTheDocument();
     });
   });
@@ -319,7 +318,6 @@ describe('AttributeBreakdownViewerModal', () => {
 
       expect(screen.getByRole('heading', {name: 'empty.attribute'})).toBeInTheDocument();
       expect(screen.queryByText('echarts mock')).not.toBeInTheDocument();
-      // Shows the shared no-data state instead of a blank area or a thrown error
       expect(screen.getByText('No data to plot')).toBeInTheDocument();
     });
   });
