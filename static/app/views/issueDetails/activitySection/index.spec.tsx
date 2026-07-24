@@ -1760,7 +1760,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.TRIGGER_AUTOFIX,
           id: 'autofix-trigger-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {},
+          data: {referrer: 'slack'},
           user: null,
         },
       ],
@@ -1780,7 +1780,7 @@ describe('ActivitySection', () => {
     expect(await screen.findByText('Root Cause Analysis')).toBeInTheDocument();
     expect(screen.getByText('Seer completed root cause analysis')).toBeInTheDocument();
     expect(screen.getByText('Autofix')).toBeInTheDocument();
-    expect(screen.getByText('Autofix was triggered')).toBeInTheDocument();
+    expect(screen.getByText('Autofix was triggered from Slack')).toBeInTheDocument();
   });
 
   it('hides Seer activity when feature flag is disabled', () => {
