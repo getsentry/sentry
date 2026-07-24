@@ -11,6 +11,9 @@ from sentry.replays.query import get_replay_range
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.skips import requires_snuba
 
+# TODO(EAP-627): remove once `snuba.json-response-compression.rollout` completes.
+pytestmark = [pytest.mark.django_db]
+
 
 class ReplayStore:
     def save(self, data: Any) -> None:
