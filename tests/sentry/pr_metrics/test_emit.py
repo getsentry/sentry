@@ -279,21 +279,13 @@ class PrMetricsEmissionTest(TestCase):
         self._add_check_suite(conclusion="success", webhook_id="check-1")
         assert _ci_failing_at_close(self.pull_request, doc=None) is False
 
-    def test_ci_failing_at_close_failure_is_true(self) -> None:
-        self._add_check_suite(conclusion="failure", webhook_id="check-1")
-        assert _ci_failing_at_close(self.pull_request, doc=None) is True
-
-    def test_ci_failing_at_close_timed_out_is_true(self) -> None:
-        self._add_check_suite(conclusion="timed_out", webhook_id="check-1")
-        assert _ci_failing_at_close(self.pull_request, doc=None) is True
-
-    def test_ci_failing_at_close_startup_failure_is_true(self) -> None:
-        self._add_check_suite(conclusion="startup_failure", webhook_id="check-1")
-        assert _ci_failing_at_close(self.pull_request, doc=None) is True
-
-    def test_ci_failing_at_close_non_failure_conclusions_are_false(self) -> None:
-        # neutral/cancelled/skipped/stale/action_required never ran to a failure
-        # verdict, so none of them should trip the label.
+    def test_ci_failing_at_close_conclusion_vocabulary(self) -> None:
+        # _FAILING_CHECK_CONCLUSIONS is the enumerated failing set; every other
+        # GitHub check conclusion is not a failure for this label.
+        for conclusion in ("failure", "timed_out", "startup_failure"):
+            PullRequestActivity.objects.filter(pull_request=self.pull_request).delete()
+            self._add_check_suite(conclusion=conclusion, webhook_id="check-1")
+            assert _ci_failing_at_close(self.pull_request, doc=None) is True, conclusion
         for conclusion in ("neutral", "cancelled", "skipped", "stale", "action_required"):
             PullRequestActivity.objects.filter(pull_request=self.pull_request).delete()
             self._add_check_suite(conclusion=conclusion, webhook_id="check-1")
