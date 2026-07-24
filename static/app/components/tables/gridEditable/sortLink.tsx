@@ -5,15 +5,14 @@ import type {LocationDescriptorObject} from 'history';
 import {Link} from '@sentry/scraps/link';
 
 import type {Alignments} from 'sentry/components/tables/gridEditable';
+import type {SortDirection} from 'sentry/components/tables/sortableHeaderCell';
 import {IconArrow} from 'sentry/icons';
 import {useNavigate} from 'sentry/utils/useNavigate';
-
-export type Directions = 'desc' | 'asc' | undefined;
 
 type Props = {
   align: Alignments;
   canSort: boolean;
-  direction: Directions;
+  direction: SortDirection | undefined;
   title: React.ReactNode;
   generateSortLink?: () => LocationDescriptorObject | undefined;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;

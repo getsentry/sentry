@@ -11,8 +11,8 @@ import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {SearchBar} from 'sentry/components/searchBar';
 import type {Alignments} from 'sentry/components/tables/gridEditable';
-import type {Directions} from 'sentry/components/tables/gridEditable/sortLink';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
+import type {SortDirection} from 'sentry/components/tables/sortableHeaderCell';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
@@ -371,7 +371,7 @@ export function UsageStatsProjects({
     ({showStoredOutcome}: {showStoredOutcome: boolean}) => {
       const {key, direction} = tableSort;
 
-      const getArrowDirection = (linkKey: SortBy): Directions => {
+      const getArrowDirection = (linkKey: SortBy): SortDirection | undefined => {
         if (linkKey !== key) {
           return undefined;
         }
