@@ -292,16 +292,17 @@ describe('applySeerEquation', () => {
     const decoded = decodeResults(result.encodedMetrics);
     expect(decoded).toHaveLength(7);
 
+    // Aggregates: original A, B, C stay, plus two new seer aggregates spliced before equations
     expect(decoded[0]!.yAxis).toBe('sum(value,m1,counter,none)');
     expect(decoded[1]!.yAxis).toBe('avg(value,m2,gauge,none)');
     expect(decoded[2]!.yAxis).toBe('count(value,m3,counter,none)');
-    expect(decoded[3]!.yAxis).toBe('count(value,metricNew,distribution,none)');
-    expect(decoded[4]!.yAxis).toBe(
+    expect(decoded[3]!.yAxis).toBe('p50(value,metricNew,distribution,none)');
+    expect(decoded[4]!.yAxis).toBe('count(value,metricNew,distribution,none)');
+
+    // Equations: ƒ1 preserved, ƒ2 replaced in-place by new equation
+    expect(decoded[5]!.yAxis).toBe(
       'equation|sum(value,m1,counter,none) + avg(value,m2,gauge,none)'
     );
-
-    // TODO: Should this be in the proper order by this point? Or is it aggregated downstream?
-    expect(decoded[5]!.yAxis).toBe('p50(value,metricNew,distribution,none)');
     expect(decoded[6]!.yAxis).toBe(
       'equation|p50(value,metricNew,distribution,none) / count(value,metricNew,distribution,none)'
     );

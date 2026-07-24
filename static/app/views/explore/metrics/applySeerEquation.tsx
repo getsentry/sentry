@@ -47,25 +47,28 @@ export function applySeerResultsToMetricQueries({
     mq =>
       mq.queryParams.visualizes[0] && isVisualizeEquation(mq.queryParams.visualizes[0])
   );
-  const [replacementAggregate, ...extraAggregates] = seerMetricQueries.filter(
+  const seerAggregates = seerMetricQueries.filter(
     mq => !isVisualizeEquation(mq.queryParams.visualizes[0]!)
   );
+  const [replacementAggregate, ...extraAggregates] = seerAggregates;
+
+  const interactedViz = interactedQueryParams.visualizes[0];
+  const interactedIsEquation = interactedViz && isVisualizeEquation(interactedViz);
 
   const previousEquationReferences = getMetricReferences(metricQueries);
 
-  // Replaces the interacted row with the Seer-generated aggregate or the replacement metric from the equation.
-  // The other rows will be left
+  // Replace like with like: equations replace equations, aggregates replace aggregates.
   const updatedMetricQueries = metricQueries.map(mq => {
     if (mq.queryParams === interactedQueryParams) {
-      if (seerEquation && replacementAggregate) {
-        return {
-          ...replacementAggregate,
-          label: mq.label,
-        };
+      if (interactedIsEquation && seerEquation) {
+        return {...seerEquation, label: mq.label};
+      }
+
+      if (!interactedIsEquation && seerEquation && replacementAggregate) {
+        return {...replacementAggregate, label: mq.label};
       }
 
       if (seerAggregateReplacement) {
-        // For non-equation replacement
         return {
           ...mq,
           metric: seerAggregateReplacement.metric,
@@ -95,11 +98,10 @@ export function applySeerResultsToMetricQueries({
     .map(mq => encodeMetricQueryParams(mq))
     .filter(Boolean);
 
-  const remainingSeerAggregates = [...extraAggregates, seerEquation];
-  const spliceResult = spliceEquationQueries(
-    encodedMetrics,
-    remainingSeerAggregates.filter(defined)
-  );
+  const remainingToSplice = interactedIsEquation
+    ? seerAggregates
+    : [...extraAggregates, seerEquation].filter(defined);
+  const spliceResult = spliceEquationQueries(encodedMetrics, remainingToSplice);
 
   // After splicing, set internalExpression on equations that don't already
   // have one by unresolving against the final reference map.
