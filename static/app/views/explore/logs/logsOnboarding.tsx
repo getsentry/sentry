@@ -374,7 +374,6 @@ function Onboarding({organization, project}: OnboardingProps) {
       data: registryData,
     },
     platformOptions: [ProductSolution.LOGS],
-    newOrg: false,
     feedbackOptions: {},
     urlPrefix,
     isSelfHosted,

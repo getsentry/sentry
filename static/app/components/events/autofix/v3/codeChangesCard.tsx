@@ -6,6 +6,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   collectPatches,
   getAutofixArtifactFromSection,
@@ -141,7 +142,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     <PrIterationFeedbackForm
       autofix={autofix}
       groupId={groupId}
-      runId={autofix.runState?.run_id}
+      runId={getAutofixRunId(autofix.runState)}
       referrer="code_changes_card_reset"
       onClose={() => setShouldShowReset(false)}
     />

@@ -108,6 +108,8 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.organizationmapping import OrganizationMapping
@@ -139,6 +141,7 @@ from sentry.notifications.models.notificationaction import (
     ActionTrigger,
     NotificationAction,
 )
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.preprod.models import (
@@ -1305,6 +1308,12 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_subscription(group, **kwargs):
+        kwargs.setdefault("project", group.project)
+        return GroupSubscription.objects.create(group=group, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_group_owner(
         group,
         type=GroupOwnerType.OWNERSHIP_RULE.value,
@@ -1821,6 +1830,27 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_resolution(group, release, **kwargs):
+        return GroupResolution.objects.create(
+            group=group,
+            release=release,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_link(group, linked_id, linked_type=None, relationship=None, **kwargs):
+        return GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=linked_type or GroupLink.LinkedType.commit,
+            linked_id=linked_id,
+            relationship=relationship or GroupLink.Relationship.references,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_integration_external_issue(group=None, integration=None, key=None, **kwargs):
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id, integration_id=integration.id, key=key, **kwargs
@@ -2215,6 +2245,11 @@ class Factories:
         action.save()
 
         return action
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_notification_setting_option(*args, **kwargs) -> NotificationSettingOption:
+        return NotificationSettingOption.objects.create(*args, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)

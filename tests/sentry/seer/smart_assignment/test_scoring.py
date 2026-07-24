@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
-from sentry.models.activity import Activity
+from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
@@ -219,6 +219,27 @@ class RecordGroundTruthTest(ScoringTestBase):
         record_ground_truth(self.group, ActivityType.SEER_RCA_STARTED)
 
         run.refresh_from_db()
+        assert "ground_truth_source" not in run.extras
+
+    def test_our_auto_assignment_is_not_recorded(self) -> None:
+        run = self._run()
+        assignee = self.create_user()
+        GroupAssignee.objects.create(
+            group=self.group, project=self.group.project, user_id=assignee.id
+        )
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.ASSIGNED.value,
+            data={
+                "assignee": str(assignee.id),
+                "assigneeType": "user",
+                "integration": ActivityIntegration.SEER_SUGGESTED.value,
+            },
+        )
+        record_ground_truth(self.group, ActivityType.ASSIGNED, activity)
+
+        run.refresh_from_db()
+        assert "actual_assignee_user_id" not in run.extras
         assert "ground_truth_source" not in run.extras
 
     @patch(METRICS_PATH)
