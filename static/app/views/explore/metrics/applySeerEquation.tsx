@@ -4,6 +4,7 @@ import {
   unresolveExpression,
 } from 'sentry/views/explore/metrics/equationBuilder/utils';
 import {getMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
+import {getNextLabel} from 'sentry/views/explore/metrics/hooks/useStableLabels';
 import {
   decodeMetricsQueryParams,
   encodeMetricQueryParams,
@@ -13,7 +14,6 @@ import {
 import {spliceEquationQueries} from 'sentry/views/explore/metrics/utils';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
-import {getFunctionLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 interface ApplySeerEquationParams {
   interactedQueryParams: ReadableQueryParams;
@@ -71,10 +71,7 @@ export function applySeerResultsToMetricQueries({
 
         if (interactedIsEquation && !seerEquation) {
           if (seerAggregateReplacement) {
-            const aggregateCount = metricQueries.filter(
-              q => !isVisualizeEquation(q.queryParams.visualizes[0]!)
-            ).length;
-            const newLabel = getFunctionLabel(aggregateCount);
+            const newLabel = getNextLabel(metricQueries, 'aggregate');
             replaceLabel?.(i, newLabel);
             return {
               ...mq,
