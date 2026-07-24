@@ -247,14 +247,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         run_id: int,
         state: SeerRunState,
     ) -> None:
-        """Acknowledge the comment(s) that triggered a completed iteration.
-
-        Top-level ``@sentry`` PR comments are acked with :tada:. Inline review
-        comments are acked by resolving their review thread (CW-1688), in addition
-        to the trigger-time :eyes: being removed. The :eyes: is removed from both
-        comment types, since both received it, completing the :eyes:->:tada: swap on
-        top-level comments and clearing the lingering :eyes: on inline ones.
-        """
+        """Acknowledge the comment(s) that triggered a completed iteration."""
         if not features.has("organizations:autofix-pr-iteration", organization=organization):
             return
 
@@ -296,8 +289,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         delete_eyes = not rate_limit_sensitive
 
         scm_by_repo: dict[str, SourceCodeManager] = {}
-        # Inline review-comment node ids to resolve, grouped by (repo, PR) so we
-        # fetch each PR's threads once and resolve each shared thread once.
+        # Inline review-comment node ids to resolve, grouped by (repo, PR).
         resolve_by_repo_pr: dict[tuple[str, int], list[str]] = {}
         for source in sources:
             comment_id = source.comment.id
@@ -349,8 +341,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             pr_number = pr_state.pr_number
 
             source_type = source.type
-            # Only top-level PR comments get the :tada:; inline review comments are
-            # acked by resolving their thread after this loop (CW-1688).
+            # Only top-level PR comments get the :tada:; inline comments resolve below (CW-1688).
             if source_type == "github-pr-comment":
                 _add_comment_reaction(
                     scm,

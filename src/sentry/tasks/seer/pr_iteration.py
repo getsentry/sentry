@@ -387,14 +387,7 @@ def _resolve_review_comment_threads(
     pr_number: int,
     comment_unique_ids: Collection[str],
 ) -> ResolveReviewThreadsResult:
-    """Resolve the review threads of this iteration's inline comments (CW-1688).
-
-    Fetches every review thread on the PR once, maps each requested comment's
-    GraphQL node id to its owning thread, then resolves each unique unresolved
-    thread. Shared threads collapse to one resolve; already-resolved threads are
-    skipped. A GitHub failure is logged and swallowed so the completion hook keeps
-    running.
-    """
+    """Resolve the review threads of this iteration's inline comments (CW-1688)."""
     if not (
         isinstance(scm, ResolveReviewThreadProtocol)
         and isinstance(scm, GetPullRequestReviewThreadsProtocol)
