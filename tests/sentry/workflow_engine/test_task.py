@@ -12,7 +12,10 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
-from sentry.workflow_engine.processors.evaluations import TriggerResult
+from sentry.workflow_engine.processors.evaluations import (
+    DataConditionGroupEvaluation,
+    TriggerResult,
+)
 from sentry.workflow_engine.processors.workflow import EvaluationStats
 from sentry.workflow_engine.tasks.utils import fetch_event
 from sentry.workflow_engine.tasks.workflows import process_workflow_activity
@@ -84,11 +87,11 @@ class TestProcessWorkflowActivity(TestCase):
     @override_options({"workflow_engine.evaluation_log_sample_rate": 1.0})
     @mock.patch(
         "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
-        return_value=({}, {}, EvaluationStats()),
+        return_value=({}, {}, EvaluationStats(), {}),
     )
     @mock.patch(
         "sentry.workflow_engine.processors.workflow.evaluate_workflows_action_filters",
-        return_value=(set(), {}, EvaluationStats()),
+        return_value=(set(), {}, EvaluationStats(), {}),
     )
     @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
     def test_process_workflow_activity__workflows__no_actions(
@@ -118,7 +121,7 @@ class TestProcessWorkflowActivity(TestCase):
         assert mock_eval_actions.call_count == 0
 
         mock_logger.info.assert_called_once_with(
-            "workflow_engine.process_workflows.evaluation.workflows.triggered",
+            "workflow_engine.process_workflows.evaluation.workflows.not_triggered",
             extra={
                 "workflow_ids": [self.workflow.id],
                 "detection_type": self.detector.type,
@@ -198,6 +201,12 @@ class TestProcessWorkflowActivity(TestCase):
             {self.workflow: TriggerResult.TRUE},
             {},
             EvaluationStats(),
+            {
+                self.workflow: DataConditionGroupEvaluation(
+                    result=True,
+                    data={"condition_evaluations": [], "logic_type": "any"},
+                )
+            },
         )
         process_workflow_activity(
             activity_id=self.activity.id,
