@@ -239,9 +239,11 @@ describe('useCreateNotificationAction', () => {
 
     // Query resolved but integration list empty: setup CTA shown, guard not latched,
     // INTEGRATION must NOT be in actions (picker not half-applied).
-    await waitFor(() => expect(result.current.notificationProps.querySuccess).toBe(true));
+    await waitFor(() =>
+      expect(result.current.notificationProps.shouldRenderSetupButton).toBe(true)
+    );
+    expect(result.current.notificationProps.querySuccess).toBe(true);
     expect(result.current.notificationProps.provider).toBeUndefined();
-    expect(result.current.notificationProps.shouldRenderSetupButton).toBe(true);
     expect(result.current.notificationProps.actions).not.toContain(
       MultipleCheckboxOptions.INTEGRATION
     );
