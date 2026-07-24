@@ -28,7 +28,7 @@ export interface AutofixStartStepData {
   step: AutofixExplorerStep;
   stepOptions: {
     insertIndex?: number;
-    runId?: number | string; // SeerExplorerRunId, cloned per the note above
+    runId?: number | string;
     userContext?: string;
   };
 }
