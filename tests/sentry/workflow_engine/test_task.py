@@ -78,6 +78,7 @@ class TestProcessWorkflowActivity(TestCase):
                     "triggered_workflow_ids": [],
                     "delayed_conditions": None,
                     "debug_msg": "No workflows are associated with the detector in the event",
+                    "workflow_evaluations": {},
                 },
             )
 
@@ -129,6 +130,7 @@ class TestProcessWorkflowActivity(TestCase):
                 "triggered_workflow_ids": [],
                 "delayed_conditions": None,
                 "debug_msg": "No items were triggered or queued for slow evaluation",
+                "workflow_evaluations": {},
             },
         )
 
@@ -223,6 +225,22 @@ class TestProcessWorkflowActivity(TestCase):
                 "triggered_workflow_ids": [self.workflow.id],
                 "delayed_conditions": None,
                 "debug_msg": None,
+                "workflow_evaluations": {
+                    str(self.workflow.id): {
+                        "triggered": True,
+                        "error": None,
+                        "result": "actions",
+                        "triggered_action_ids": [self.action.id],
+                        "trigger_group_eval": {
+                            "logic_type": "any",
+                            "result": True,
+                            "triggered": True,
+                            "error": None,
+                            "condition_evaluations": [],
+                        },
+                        "filter_group_evals": mock.ANY,
+                    }
+                },
             },
         )
 

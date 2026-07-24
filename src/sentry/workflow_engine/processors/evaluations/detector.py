@@ -37,5 +37,19 @@ class DetectorEvaluation(
     - triggered: bool - If there is an event that should trigger the next phase in the system.
     """
 
+    log_name = "detector"
+
     result: DetectorResult = None
     priority: DetectorPriorityLevel
+
+    def to_artifact(self) -> dict[str, Any]:
+        return {
+            "group_key": self.data["group_key"],
+            # priority is a DetectorPriorityLevel enum; unwrap to its value.
+            "priority": getattr(self.priority, "value", self.priority),
+            # result is an IssueOccurrence / StatusChangeMessage / None; log its type, not the payload.
+            "result": type(self.result).__name__ if self.result is not None else None,
+            "triggered": self.triggered,
+            "error": self.error_message(),
+            "trigger_group_evaluation": self.data["trigger_group_evaluation"].to_artifact(),
+        }

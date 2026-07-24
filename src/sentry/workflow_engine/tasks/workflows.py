@@ -75,7 +75,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: Dete
             batch_client, event_data, event_start_time=activity.datetime, detector=detector
         )
 
-    evaluation.log_to(logger)
+    evaluation.to_log(logger)
 
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update.executed",
@@ -172,7 +172,7 @@ def _process_workflows_event(
                     and len(evaluation.triggered_actions) > 0,
                 )
 
-    evaluation.log_to(logger)
+    evaluation.to_log(logger)
     duration = time.time() - start_time
     is_slow = duration > 1.0
     # We want full coverage for particularly slow cases, plus a random sampling.
