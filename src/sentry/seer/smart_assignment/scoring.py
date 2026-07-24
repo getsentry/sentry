@@ -58,11 +58,7 @@ def record_ground_truth(
         return
 
     if _apply(run.id, updates):
-        metrics.incr(
-            "smart_assignment.ground_truth.recorded",
-            tags={"trigger": activity_type.name},
-            sample_rate=1.0,
-        )
+        metrics.incr("smart_assignment.ground_truth.recorded", tags={"trigger": activity_type.name})
 
 
 def _ground_truth_updates(
@@ -81,6 +77,11 @@ def _ground_truth_updates(
     when no explicit assignee has been recorded -- an assignment is better truth.
     """
     if activity_type == ActivityType.ASSIGNED:
+        if (
+            activity is not None
+            and (activity.data or {}).get("integration") == ActivityIntegration.SEER_SUGGESTED.value
+        ):
+            return None
         return _assignment_updates(group)
     if activity_type in RESOLUTION_ACTIVITIES:
         if activity is None or activity.user_id is None:
@@ -106,35 +107,16 @@ def _ground_truth_updates(
 
 
 def _assignment_updates(group: Group) -> RunUpdates | None:
-    """Mirror the current assignee (user and/or team), or ``None`` when the group has
-    no assignee or the assignment is our own auto-assignment.
-    """
+    """Mirror the current assignee (user and/or team), or ``None`` when the group
+    has no assignee."""
     assignee = GroupAssignee.objects.filter(group=group).first()
     if assignee is None:
-        return None
-    if _is_seer_auto_assignment(group):
         return None
     return {
         "actual_assignee_user_id": assignee.user_id,
         "actual_assignee_team_id": assignee.team_id,
         "ground_truth_source": ActivityType.ASSIGNED.name,
     }
-
-
-def _is_seer_auto_assignment(group: Group) -> bool:
-    """Whether the group's current assignment came from our own auto-assignment,
-    determined by the most recent ``ASSIGNED`` activity being tagged with the
-    ``SEER_SUGGESTED`` integration."""
-    latest_assignment = (
-        Activity.objects.filter(group=group, type=ActivityType.ASSIGNED.value)
-        .order_by("-datetime")
-        .first()
-    )
-    if latest_assignment is None:
-        return False
-    return (latest_assignment.data or {}).get(
-        "integration"
-    ) == ActivityIntegration.SEER_SUGGESTED.value
 
 
 def _apply(run_id: int, updates: RunUpdates) -> bool:
@@ -176,7 +158,6 @@ def _apply(run_id: int, updates: RunUpdates) -> bool:
                 "hit_rank": hit_rank if hit_rank is not None else 0,
                 "trigger": extras.get("trigger"),
             },
-            sample_rate=1.0,
         )
     return True
 
