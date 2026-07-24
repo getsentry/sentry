@@ -63,6 +63,7 @@ function TopBarContent() {
       align="center"
       padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
       position="sticky"
+      flexShrink={0}
       borderBottom="primary"
       top="0"
       style={{
