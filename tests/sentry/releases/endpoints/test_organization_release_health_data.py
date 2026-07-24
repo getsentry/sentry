@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
+from sentry.search.events.constants import WILDCARD_OPERATOR_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, SessionMRI, TransactionMRI
@@ -489,6 +490,44 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             groupBy="release",
             environment="Release",
             query='!release:"0.99.0 (*)"',
+            statsPeriod="14d",
+            interval="1h",
+            includeTotals="1",
+            includeSeries="0",
+            status_code=400,
+        )
+
+        assert (
+            response.data["detail"]
+            == "Failed to parse conditions: Release Health Queries don't support wildcards"
+        )
+
+    def test_query_with_contains_operator_on_environment(self) -> None:
+        """
+        Regression test for SENTRY-5PKE: a "Contains" (substring) filter on an
+        indexed tag such as ``environment`` is translated into a ClickHouse
+        ``match()`` regex condition. Release health tags are stored as UInt64
+        indexer values, so ``match()`` crashes Snuba with a code 43
+        (QueryIllegalTypeOfArgument) error.
+
+        The wildcard guard must reject these queries with a 400 even when the
+        filter is nested inside a parenthesized group (which is how the UI emits
+        combined filters and the ``Contains`` operator), instead of letting the
+        invalid query reach Snuba.
+        """
+        rh_indexer_record(self.organization.id, "session.crash_free_user_rate")
+        self.build_and_store_session(
+            project_id=self.project.id,
+        )
+        # WILDCARD_OPERATOR_MAP["contains"] is the internal "Contains" operator the
+        # search UI emits; it expands to a leading/trailing wildcard (*production*).
+        # Nest it in a parenthesized group to mirror how the UI combines filters.
+        contains_production = f"{WILDCARD_OPERATOR_MAP['contains']}production"
+        response = self.get_error_response(
+            self.organization.slug,
+            field="session.crash_free_user_rate",
+            groupBy="release",
+            query=f"(environment:{contains_production})",
             statsPeriod="14d",
             interval="1h",
             includeTotals="1",
