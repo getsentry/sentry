@@ -121,7 +121,7 @@ class TestProcessWorkflowActivity(TestCase):
         assert mock_eval_actions.call_count == 0
 
         mock_logger.info.assert_called_once_with(
-            "workflow_engine.process_workflows.evaluation.workflows.triggered",
+            "workflow_engine.process_workflows.evaluation.workflows.not_triggered",
             extra={
                 "workflow_ids": [self.workflow.id],
                 "detection_type": self.detector.type,
