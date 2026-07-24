@@ -72,6 +72,12 @@ export class Frame {
           : 0
         : undefined;
 
+    // Java frames are shown fully qualified as <module>.<function>.
+    // For constructors ("<init>") the class name alone is more readable.
+    if (this.platform === 'java' && this.module) {
+      this.name = this.name === '<init>' ? this.module : `${this.module}.${this.name}`;
+    }
+
     // We are remapping some of the keys as they differ between platforms.
     // This is a temporary solution until we adopt a unified format.
     if (frame.columnNumber && this.column === undefined) {
