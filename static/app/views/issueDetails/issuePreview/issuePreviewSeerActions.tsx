@@ -273,7 +273,7 @@ function IssuePreviewSeerButton({
     }
   };
 
-  if (action.href && !busy) {
+  if (action.href) {
     return (
       <LinkButton
         external

@@ -548,12 +548,13 @@ describe('InboxPage', () => {
     );
   });
 
-  it('links to a completed Autofix pull request', async () => {
+  it('links to a completed Autofix pull request while polling', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
     mockAutofixResponse(
       ExplorerAutofixResponseFixture({
         autofix: ExplorerAutofixStateFixture({
+          queued_feedback: [{text: 'Please revise the fix'}],
           repo_pr_states: {
             'org/repository': AutofixRepoPRStateFixture(),
           },
