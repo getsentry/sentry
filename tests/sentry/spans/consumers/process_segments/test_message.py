@@ -545,6 +545,21 @@ class TestSegmentDropKillswitch(TestCase):
             processed_spans = process_segment([child_span, segment_span])
             assert len(processed_spans) == 0
 
+    def test_drop_segment_with_skip_enrichment(self) -> None:
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+
+        with override_options(
+            {
+                "spans.process-segments.drop-segments": [
+                    {"org_id": str(self.project.organization_id)}
+                ]
+            }
+        ):
+            assert process_segment([segment_span], skip_enrichment=True) == []
+
 
 @exclude_experimental_detectors
 class TestProcessSegmentCaching(TestCase):

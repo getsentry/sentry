@@ -87,6 +87,27 @@ def _process_segment(
 ) -> list[CompatibleSpan]:
     _verify_compatibility(unprocessed_spans)
 
+    project = None
+    if unprocessed_spans:
+        project_id = unprocessed_spans[0].get("project_id")
+        if project_id is not None:
+            try:
+                with metrics.timer("spans.consumers.process_segments.get_project"):
+                    project = Project.objects.get_from_cache(id=project_id)
+                    project.set_cached_field_value(
+                        "organization",
+                        Organization.objects.get_from_cache(id=project.organization_id),
+                    )
+            except (Project.DoesNotExist, Organization.DoesNotExist):
+                return []
+
+    if project is not None and killswitch_matches_context(
+        "spans.process-segments.drop-segments",
+        {"org_id": str(project.organization_id)},
+        emit_metrics=True,
+    ):
+        return []
+
     if any(attribute_value(s, ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID) for s in unprocessed_spans):
         metrics.incr("spans.consumers.process_segments.gen_ai_conversation")
 
@@ -102,25 +123,8 @@ def _process_segment(
     if segment_span is None:
         return spans
 
-    try:
-        with metrics.timer("spans.consumers.process_segments.get_project"):
-            project = Project.objects.get_from_cache(id=segment_span["project_id"])
-
-            project.set_cached_field_value(
-                "organization", Organization.objects.get_from_cache(id=project.organization_id)
-            )
-    except (Project.DoesNotExist, Organization.DoesNotExist):
+    if project is None:
         # If the project does not exist then it might have been deleted during ingestion.
-        return []
-
-    # Check killswitch for dropping segments based on org_id
-    if killswitch_matches_context(
-        "spans.process-segments.drop-segments",
-        {
-            "org_id": str(project.organization_id),
-        },
-        emit_metrics=True,
-    ):
         return []
 
     _add_segment_name(segment_span, spans)
