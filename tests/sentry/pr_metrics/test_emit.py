@@ -1467,11 +1467,14 @@ class MultiOrgEmissionDedupeTest(TestCase):
             )
 
     def _repo(self, project: Any) -> Any:
+        # Same integration_id across orgs = one shared installation, so the rows are
+        # siblings of one provider PR.
         return self.create_repo(
             project,
             name="getsentry/sentry",
             provider="integrations:github",
             external_id=EXTERNAL_ID,
+            integration_id=909,
         )
 
     def _mergeable_pr(self, repo: Any, organization: Any) -> Any:

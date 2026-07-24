@@ -214,28 +214,27 @@ class PullRequestManager(BaseManager["PullRequest"]):
         return ResolvedPullRequest(pull_request, "resolved", provider_unmappable)
 
     def for_provider_pr(
-        self, *, external_id: str, provider: str, key: int | str
+        self, *, external_id: str, integration_id: int, key: int | str
     ) -> list[PullRequest]:
         """Every ``PullRequest`` row for one provider-side PR, across all orgs
         sharing the repository.
 
-        A repo connected to N orgs has one ``Repository`` per org, all sharing the
-        provider's ``external_id``, so one provider PR — the same ``(external_id,
-        key)`` — fans out to one row per org. Returns them all so callers treat the
+        A repo connected to N orgs via one shared installation has one ``Repository``
+        per org, all with the same ``integration_id`` and ``external_id``, so one
+        provider PR fans out to one row per org. Returns them all so callers treat the
         provider PR as the unit, not the per-org row.
 
-        Filters repos like the SCM webhook does (all but ``HIDDEN``), not ``ACTIVE``
-        only, so the set is the rows that can emit and always includes the caller's
-        own PR (whose repo is read status-agnostically elsewhere). ``provider`` (bare
-        slug) keeps a numeric ``external_id`` from colliding across providers.
-        Cell-local. ``[]`` when no repo matches.
+        Keyed on ``integration_id`` (the shared installation) rather than provider, so
+        a numeric ``external_id`` reused across provider hosts — e.g. two GitHub
+        Enterprise instances — doesn't over-match. Filters repos like the SCM webhook
+        (all but ``HIDDEN``), so the set is the rows that can emit and includes the
+        caller's own PR. Cell-local. ``[]`` when no repo matches.
         """
-        repos = (
+        repo_ids = list(
             Repository.objects.exclude(status=ObjectStatus.HIDDEN)
-            .filter(external_id=external_id)
-            .filter(Repository.objects.provider_match(provider))
+            .filter(external_id=external_id, integration_id=integration_id)
+            .values_list("id", flat=True)
         )
-        repo_ids = list(repos.values_list("id", flat=True))
         if not repo_ids:
             return []
         return list(self.filter(repository_id__in=repo_ids, key=str(key)))

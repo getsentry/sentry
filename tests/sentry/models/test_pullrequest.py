@@ -602,32 +602,36 @@ class GetOrCreateFromReferenceTest(TestCase):
 class ForProviderPrTest(TestCase):
     def setUp(self) -> None:
         self.external_id = "556677"
+        self.integration_id = 909
         self.repo = self.create_repo(
             self.project,
             name="getsentry/sentry",
             provider="integrations:github",
             external_id=self.external_id,
+            integration_id=self.integration_id,
         )
         self.pull_request = self.create_pull_request(
             organization_id=self.organization.id, repository_id=self.repo.id, key="42"
         )
 
-    def _for_provider_pr(self, *, provider: str = "github", key: int | str = 42):
+    def _for_provider_pr(self, *, integration_id: int | None = None, key: int | str = 42):
         return PullRequest.objects.for_provider_pr(
-            external_id=self.external_id, provider=provider, key=key
+            external_id=self.external_id,
+            integration_id=self.integration_id if integration_id is None else integration_id,
+            key=key,
         )
 
     def test_resolves_row_in_own_org(self) -> None:
         assert [pr.id for pr in self._for_provider_pr()] == [self.pull_request.id]
 
-    def test_fans_across_orgs_sharing_external_id(self) -> None:
+    def test_fans_across_orgs_sharing_installation(self) -> None:
         other_org = self.create_organization()
-        other_project = self.create_project(organization=other_org)
         other_repo = self.create_repo(
-            other_project,
+            self.create_project(organization=other_org),
             name="getsentry/sentry",
             provider="integrations:github",
             external_id=self.external_id,
+            integration_id=self.integration_id,
         )
         other_pr = self.create_pull_request(
             organization_id=other_org.id, repository_id=other_repo.id, key="42"
@@ -655,8 +659,10 @@ class ForProviderPrTest(TestCase):
         self.repo.update(status=ObjectStatus.PENDING_DELETION)
         assert [pr.id for pr in self._for_provider_pr()] == [self.pull_request.id]
 
-    def test_excludes_mismatched_provider(self) -> None:
-        assert self._for_provider_pr(provider="gitlab") == []
+    def test_excludes_other_installations(self) -> None:
+        # Same external_id under a different installation (e.g. a second GHE host,
+        # where repo ids can collide) must not be treated as a sibling.
+        assert self._for_provider_pr(integration_id=self.integration_id + 1) == []
 
 
 class ParsePullRequestNumberTest(TestCase):

@@ -508,11 +508,11 @@ def is_canonical_github_pr_row(pull_request: PullRequest) -> bool:
     if any, else the lowest-id sibling. True also when there are no resolvable
     siblings — the common single-org case.
     """
-    external_id, provider = _repo_external_identity(pull_request)
-    if external_id is None or provider is None:
+    external_id, _, integration_id = _repo_external_identity(pull_request)
+    if external_id is None or integration_id is None:
         return True
     siblings = PullRequest.objects.for_provider_pr(
-        external_id=external_id, provider=provider, key=pull_request.key
+        external_id=external_id, integration_id=integration_id, key=pull_request.key
     )
     # Canonical is the winner among only the rows that would actually emit (see
     # _emitting_rows); comparing its id to this row's — rather than short-circuiting
