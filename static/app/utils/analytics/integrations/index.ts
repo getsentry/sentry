@@ -79,6 +79,11 @@ type ProjectOwnershipModalParams = {
   net_change?: number;
 };
 
+type SentryAppTemplateAppliedParams = {
+  template: string;
+  referrer?: string;
+};
+
 // Event key to payload mappings
 export type IntegrationEventParameters = {
   'integrations.cloudformation_link_clicked': SingleIntegrationEventParams;
@@ -99,6 +104,7 @@ export type IntegrationEventParameters = {
   'integrations.plugin_add_to_project_clicked': SingleIntegrationEventParams;
   'integrations.request_install': SingleIntegrationEventParams;
   'integrations.resolve_now_clicked': SingleIntegrationEventParams;
+  'integrations.sentry_app_template_applied': SentryAppTemplateAppliedParams;
   'integrations.serverless_function_action': IntegrationServerlessFunctionActionParams;
   'integrations.serverless_functions_viewed': IntegrationServerlessFunctionsViewedParams;
   'integrations.switch_manual_sdk_setup': SingleIntegrationEventParams;
@@ -136,6 +142,7 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.serverless_functions_viewed': 'Integrations: Serverless Functions Viewed',
   'integrations.installation_input_value_changed':
     'Integrations: Installation Input Value Changed',
+  'integrations.sentry_app_template_applied': 'Integrations: Sentry App Template Applied',
   'integrations.serverless_function_action': 'Integrations: Serverless Function Action',
   'integrations.cloudformation_link_clicked': 'Integrations: CloudFormation Link Clicked',
   'integrations.switch_manual_sdk_setup': 'Integrations: Switch Manual SDK Setup',

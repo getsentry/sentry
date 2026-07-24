@@ -18,6 +18,7 @@ import {
 } from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {getSentryAppTemplates} from 'sentry/views/settings/organizationDeveloperSettings/creationTemplates';
 import {ExampleIntegrationButton} from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
 
 const analyticsView = 'new_integration_modal';
@@ -28,6 +29,7 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
   const hasCreationTemplates = organization.features.includes(
     'sentry-apps-creation-templates'
   );
+  const templates = getSentryAppTemplates(organization);
   const [option, selectOption] = useState('internal');
   const baseUrl = `/settings/${organization.slug}/developer-settings/`;
   const choices = [
@@ -186,6 +188,43 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
                 />
               </Stack>
             </Stack>
+            {templates.length > 0 && (
+              <Stack gap="sm">
+                <Stack gap="2xs">
+                  <Text bold>{t('Templates')}</Text>
+                  <Text variant="muted" size="sm">
+                    {t('Get started with a pre-configured internal integration.')}
+                  </Text>
+                </Stack>
+                <Stack border="primary" radius="md">
+                  {templates.map((template, index) => (
+                    <Fragment key={template.slug}>
+                      {index > 0 && <Stack.Separator />}
+                      <ChoiceRow
+                        title={template.heading}
+                        description={template.description}
+                        action={
+                          <LinkButton
+                            variant="secondary"
+                            size="sm"
+                            to={`${baseUrl}new-internal/?template=${template.slug}&referrer=new_integration_modal`}
+                            onClick={() => {
+                              trackIntegrationAnalytics(PlatformEvents.CHOSE_INTERNAL, {
+                                organization,
+                                view: analyticsView,
+                              });
+                              closeModal();
+                            }}
+                          >
+                            {t('Use template')}
+                          </LinkButton>
+                        }
+                      />
+                    </Fragment>
+                  ))}
+                </Stack>
+              </Stack>
+            )}
           </Stack>
         ) : (
           <StyledRadioGroup
