@@ -93,10 +93,17 @@ import {Flex} from '@sentry/scraps/layout';
 // Old
 const isNarrow = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
-// New — reads the container's active breakpoint, not the viewport
+// New — reads the container's active breakpoint, not the viewport.
+// The hook returns the single ACTIVE key, so a max-width threshold is a
+// "below this key" test, not an equality. Map by pixel value first:
+// breakpoints.sm (800px) → nearest container token is xl (768px), so
+// "narrow" is every key below xl.
 import {useContainerBreakpoint} from '@sentry/scraps/layout';
+
 const breakpoint = useContainerBreakpoint(); // 'zero' | '3xs' | ... | '5xl'
-const isNarrow = breakpoint === 'zero';
+const isNarrow = ['zero', '3xs', '2xs', 'xs', 'sm', 'md', 'lg'].includes(breakpoint);
+// NOT `breakpoint === 'zero'` — that only fires below 320px, dropping the
+// 320–768px range the original query treated as narrow.
 ```
 
 ## Migration Checklist
