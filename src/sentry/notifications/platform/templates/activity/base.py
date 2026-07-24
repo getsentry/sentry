@@ -47,9 +47,9 @@ ACTIVITY_TYPE_TO_SOURCE: dict[int, NotificationSource] = {
     ActivityType.UNASSIGNED.value: NotificationSource.ACTIVITY_UNASSIGNED,
 }
 
-EXAMPLE_PROJECT_URL = "https://sentry.io/organization/acme/issues/?project=123"
-EXAMPLE_ISSUE_URL = "https://sentry.io/organization/acme/issues/1/"
-EXAMPLE_ALERT_URL = "https://sentry.io/organization/acme/monitors/alerts/1/"
+EXAMPLE_PROJECT_URL = "https://sentry.io/organizations/acme/issues/?project=123"
+EXAMPLE_ISSUE_URL = "https://sentry.io/organizations/acme/issues/1/"
+EXAMPLE_ALERT_URL = "https://sentry.io/organizations/acme/monitors/alerts/1/"
 EXAMPLE_USER_SETTINGS_URL = "https://sentry.io/settings/account/notifications/alerts/"
 FOOTER_DELIMITER = " · "
 
