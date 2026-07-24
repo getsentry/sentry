@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 from sentry.constants import ObjectStatus
+from sentry.exceptions import InvalidIdentity
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.project_management.metrics import (
@@ -12,13 +13,17 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.notifications.notification_action.activity_registry.base import (
-    NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES,
-    require_integration_id,
-)
+from sentry.notifications.notification_action.activity_registry.base import require_integration_id
 from sentry.notifications.notification_action.registry import activity_handler_registry
 from sentry.notifications.notification_action.types import ActivityHandler
 from sentry.notifications.utils.links import create_link_to_workflow
+from sentry.shared_integrations.exceptions import (
+    ApiUnauthorized,
+    IntegrationConfigurationError,
+    IntegrationFormError,
+    IntegrationProviderError,
+    IntegrationResourceNotFoundError,
+)
 from sentry.silo.base import cell_silo_function
 from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
@@ -27,6 +32,15 @@ from sentry.workflow_engine.types import ActionInvocation
 from sentry.workflow_engine.typings.notification_action import TicketFieldMappingKeys
 
 logger = logging.getLogger(__name__)
+
+TICKETING_ACTIVITY_DESCRIPTIONS: dict[ActivityType, str] = {
+    ActivityType.SEER_RCA_COMPLETED: "Root Cause",
+    ActivityType.SEER_SOLUTION_COMPLETED: "Plan",
+    ActivityType.SEER_CODING_COMPLETED: "Code Changes",
+    ActivityType.SEER_PR_CREATED: "Pull Request",
+}
+
+TICKETING_COMPATIBLE_ACTIVITY_TYPES = list(TICKETING_ACTIVITY_DESCRIPTIONS.keys())
 
 
 @cell_silo_function
@@ -103,7 +117,7 @@ def _build_description(
 @activity_handler_registry.register(Action.Type.JIRA_SERVER)
 @activity_handler_registry.register(Action.Type.AZURE_DEVOPS)
 class TicketingActivityHandler(ActivityHandler):
-    compatible_activity_types = NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES
+    compatible_activity_types = TICKETING_COMPATIBLE_ACTIVITY_TYPES
 
     @classmethod
     def invoke_action(cls, invocation: ActionInvocation, activity: Activity) -> None:
@@ -159,8 +173,11 @@ class TicketingActivityHandler(ActivityHandler):
             )
             return
 
+        activity_description = TICKETING_ACTIVITY_DESCRIPTIONS.get(ActivityType(activity.type))
+        title = f"[{activity_description}] {group.title}" if activity_description else group.title
+
         data: dict[str, Any] = {
-            "title": group.title,
+            "title": title,
             "description": _build_description(
                 installation, group, invocation.workflow_id, organization.slug
             ),
@@ -168,10 +185,6 @@ class TicketingActivityHandler(ActivityHandler):
 
         additional_fields = action.data.get(TicketFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value, {})
         data.update(additional_fields)
-
-        dynamic_form_fields = action.data.get(TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value)
-        if dynamic_form_fields:
-            data["dynamic_form_fields"] = dynamic_form_fields
 
         with ProjectManagementEvent(
             action_type=ProjectManagementActionType.CREATE_EXTERNAL_ISSUE,
@@ -181,17 +194,25 @@ class TicketingActivityHandler(ActivityHandler):
             lifecycle.add_extra("integration_id", integration_id)
             lifecycle.add_extra("action_id", action.id)
 
-            response = installation.create_issue(data)
-
-        if data.get("dynamic_form_fields"):
-            del data["dynamic_form_fields"]
+            try:
+                response = installation.create_issue(data)
+            except (
+                IntegrationConfigurationError,
+                IntegrationFormError,
+                InvalidIdentity,
+                ApiUnauthorized,
+                IntegrationResourceNotFoundError,
+                IntegrationProviderError,
+            ) as e:
+                lifecycle.record_halt(e)
+                raise
 
         _create_link(
             integration_id=integration.id,
             installation=installation,
             organization_id=organization.id,
             group=group,
-            group_title=group.title,
+            group_title=title,
             description=data["description"],
             response=response,
         )
