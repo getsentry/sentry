@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,7 +9,19 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.apidocs.response_types import as_validation_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_SUCCESS,
+    RESPONSE_TOO_MANY_REQUESTS,
+)
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.models.project import Project
 from sentry.preprod.api.schemas import SHA_PATTERN
 from sentry.preprod.vcs.status_checks.skip import (
@@ -23,14 +36,37 @@ from sentry.utils import metrics
 
 
 class SkipStatusCheckSerializer(serializers.Serializer[dict[str, str]]):
-    sha = serializers.RegexField(regex=SHA_PATTERN, max_length=40, trim_whitespace=False)
-    repository = serializers.CharField(max_length=255)
-    provider = serializers.ChoiceField(choices=SUPPORTED_STATUS_CHECK_PROVIDERS)
+    sha = serializers.RegexField(
+        regex=SHA_PATTERN,
+        max_length=40,
+        trim_whitespace=False,
+        help_text="The full 40-character lowercase commit SHA.",
+    )
+    repository = serializers.CharField(
+        max_length=255,
+        help_text="The repository name in `owner/name` format.",
+    )
+    provider = serializers.ChoiceField(
+        choices=SUPPORTED_STATUS_CHECK_PROVIDERS,
+        help_text="The repository integration provider.",
+    )
+
+
+_SKIP_STATUS_CHECK_RESPONSES = {
+    200: RESPONSE_SUCCESS,
+    400: RESPONSE_BAD_REQUEST,
+    403: RESPONSE_FORBIDDEN,
+    404: RESPONSE_NOT_FOUND,
+    429: RESPONSE_TOO_MANY_REQUESTS,
+    502: OpenApiResponse(description="Bad Gateway"),
+}
 
 
 class BaseProjectPreprodSkipStatusCheckEndpoint(ProjectEndpoint):
-    """Post a passing "skipped" status check for a bare commit SHA, so a required
-    check is satisfied on PRs that intentionally don't upload an artifact.
+    """Create a neutral status check for a commit that intentionally skips an artifact upload.
+
+    The repository must have an active GitHub integration in the project's organization.
+    The same Sentry auth token configured for build uploads can also be used for this endpoint.
     """
 
     owner = ApiOwner.EMERGE_TOOLS
@@ -49,7 +85,9 @@ class BaseProjectPreprodSkipStatusCheckEndpoint(ProjectEndpoint):
 
     check_type: StatusCheckType
 
-    def post(self, request: Request, project: Project) -> Response:
+    def post(
+        self, request: Request, project: Project
+    ) -> Response[None] | Response[DetailResponse] | Response[ValidationErrorResponse]:
         serializer = SkipStatusCheckSerializer(data=request.data)
         if not serializer.is_valid():
             self._record_failure("validation_error")
@@ -58,7 +96,7 @@ class BaseProjectPreprodSkipStatusCheckEndpoint(ProjectEndpoint):
         data = serializer.validated_data
 
         try:
-            check_id = create_skipped_status_check(
+            create_skipped_status_check(
                 project=project,
                 repo_name=data["repository"],
                 provider=data["provider"],
@@ -73,7 +111,7 @@ class BaseProjectPreprodSkipStatusCheckEndpoint(ProjectEndpoint):
             "preprod.status_checks.skip",
             tags={"check_type": self.check_type, "success": True},
         )
-        return Response({"checkId": check_id}, status=200)
+        return Response(status=200)
 
     def _record_failure(self, reason: str) -> None:
         metrics.incr(
@@ -82,11 +120,37 @@ class BaseProjectPreprodSkipStatusCheckEndpoint(ProjectEndpoint):
         )
 
 
+@extend_schema(tags=["Mobile Builds"])
+@extend_schema_view(
+    post=extend_schema(
+        operation_id="createProjectPreprodSizeAnalysisSkippedStatusCheck",
+        summary="Create a skipped Size Analysis status check",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+        ],
+        request=SkipStatusCheckSerializer,
+        responses=_SKIP_STATUS_CHECK_RESPONSES,
+    )
+)
 @cell_silo_endpoint
 class ProjectPreprodSizeAnalysisSkipStatusCheckEndpoint(BaseProjectPreprodSkipStatusCheckEndpoint):
     check_type = "size"
 
 
+@extend_schema(tags=["Snapshots"])
+@extend_schema_view(
+    post=extend_schema(
+        operation_id="createProjectPreprodSnapshotSkippedStatusCheck",
+        summary="Create a skipped Snapshot status check",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+        ],
+        request=SkipStatusCheckSerializer,
+        responses=_SKIP_STATUS_CHECK_RESPONSES,
+    )
+)
 @cell_silo_endpoint
 class ProjectPreprodSnapshotSkipStatusCheckEndpoint(BaseProjectPreprodSkipStatusCheckEndpoint):
     check_type = "snapshots"
