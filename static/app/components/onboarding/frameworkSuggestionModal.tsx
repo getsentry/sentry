@@ -249,15 +249,20 @@ export function FrameworkSuggestionModal({
         selectedFramework.key,
         'manual'
       );
+    } else if (newOrg) {
+      trackAnalytics('onboarding.select_framework_modal_configure_sdk_button_clicked', {
+        platform: selectedPlatform.key,
+        framework: selectedFramework.key,
+        organization,
+      });
     } else {
       trackAnalytics(
-        newOrg
-          ? 'onboarding.select_framework_modal_configure_sdk_button_clicked'
-          : 'project_creation.select_framework_modal_configure_sdk_button_clicked',
+        'project_creation.select_framework_modal_configure_sdk_button_clicked',
         {
           platform: selectedPlatform.key,
           framework: selectedFramework.key,
           organization,
+          variant: 'legacy',
         }
       );
     }
@@ -281,16 +286,17 @@ export function FrameworkSuggestionModal({
         selectedPlatform.key,
         'manual'
       );
+    } else if (newOrg) {
+      trackAnalytics('onboarding.select_framework_modal_skip_button_clicked', {
+        platform: selectedPlatform.key,
+        organization,
+      });
     } else {
-      trackAnalytics(
-        newOrg
-          ? 'onboarding.select_framework_modal_skip_button_clicked'
-          : 'project_creation.select_framework_modal_skip_button_clicked',
-        {
-          platform: selectedPlatform.key,
-          organization,
-        }
-      );
+      trackAnalytics('project_creation.select_framework_modal_skip_button_clicked', {
+        platform: selectedPlatform.key,
+        organization,
+        variant: 'legacy',
+      });
     }
     onSkip();
   }, [selectedPlatform, organization, onSkip, newOrg, hasScmOnboarding, analyticsFlow]);

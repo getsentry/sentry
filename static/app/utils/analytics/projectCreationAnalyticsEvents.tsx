@@ -113,10 +113,12 @@ export type ProjectCreationEventParameters = {
   };
   'project_creation.select_framework_modal_close_button_clicked': {
     platform: string;
+    variant?: ProjectCreationVariant;
   };
   'project_creation.select_framework_modal_configure_sdk_button_clicked': {
     framework: string;
     platform: string;
+    variant?: ProjectCreationVariant;
   };
   'project_creation.select_framework_modal_rendered': {
     platform: string;
@@ -124,6 +126,7 @@ export type ProjectCreationEventParameters = {
   };
   'project_creation.select_framework_modal_skip_button_clicked': {
     platform: string;
+    variant?: ProjectCreationVariant;
   };
   'project_creation.setup_loader_docs_rendered': {
     platform: string;

@@ -423,6 +423,7 @@ export function CreateProject() {
               {
                 platform: platform.key,
                 organization,
+                variant: 'legacy',
               }
             );
           },
