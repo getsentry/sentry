@@ -63,7 +63,7 @@ export function PlatformDocHeader({
     if (!isProjectActive) {
       trackAnalytics('project_creation.data_removal_modal_confirm_button_clicked', {
         organization,
-        platform: recentCreatedProject.slug,
+        platform: platform.id,
         project_id: recentCreatedProject.id,
         ...variantParams,
       });
@@ -79,7 +79,7 @@ export function PlatformDocHeader({
         trackAnalytics('project_creation.data_removed', {
           organization,
           date_created: recentCreatedProject.dateCreated,
-          platform: recentCreatedProject.slug,
+          platform: platform.id,
           project_id: recentCreatedProject.id,
           ...variantParams,
         });
@@ -106,6 +106,7 @@ export function PlatformDocHeader({
     isProjectActive,
     navigate,
     projectCreationVariant,
+    platform.id,
   ]);
 
   useBlocker(({historyAction}) => {

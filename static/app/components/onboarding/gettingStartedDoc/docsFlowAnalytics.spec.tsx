@@ -1,5 +1,6 @@
 import {
   docsFlowGamingOrigin,
+  docsFlowProjectIdParams,
   docsFlowMarkdownParams,
   docsFlowVariantParams,
   DSN_COPIED_EVENT,
@@ -80,6 +81,20 @@ describe('docsFlowAnalytics', () => {
 
     it('omits variant when project-creation origin is unmarked', () => {
       expect(docsFlowVariantParams(undefined)).toEqual({});
+    });
+  });
+
+  describe('docsFlowProjectIdParams', () => {
+    it('adds project context only to project-creation events', () => {
+      expect(docsFlowProjectIdParams('project-creation', '42')).toEqual({
+        project_id: '42',
+      });
+      expect(docsFlowProjectIdParams('project-creation-scm', '42')).toEqual({
+        project_id: '42',
+      });
+      expect(docsFlowProjectIdParams(undefined, '42')).toEqual({project_id: '42'});
+      expect(docsFlowProjectIdParams('onboarding', '42')).toEqual({});
+      expect(docsFlowProjectIdParams('onboarding-scm', '42')).toEqual({});
     });
   });
 
