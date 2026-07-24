@@ -52,21 +52,17 @@ interface GithubPrCommentFeedback extends ParsedBaseFeedback {
   commentUrl: string;
   sourceType: 'github-pr-comment' | 'github-pr-review-comment';
   githubUsername?: string;
-  // The review this inline comment belongs to, shared with the review body's
-  // `reviewId`. Present only for `github-pr-review-comment`; used to group a
-  // review's items under one header.
+  // Shared with the review body's `reviewId` to group a review's items under one
+  // header. Present only for `github-pr-review-comment`.
   reviewId?: number;
 }
 
-// The summary body of a submitted PR review — the review's own representation,
-// so it carries the review-level `reviewState` (approved / changes_requested /
-// …). Rendered as the header of a group whose children are the review's inline
-// comments. `text` may be empty (a review can have inline comments but no body).
+// The summary body of a submitted PR review: carries the review-level
+// `reviewState` and heads a group of the review's inline comments.
 interface GithubPrReviewBodyFeedback extends ParsedBaseFeedback {
   sourceType: 'github-pr-review-body';
-  // The review author's GitHub login, used to render their avatar on the review
-  // header. Absent on feedback serialized before the backend emitted it, in
-  // which case the header falls back to the source glyph.
+  // Absent on feedback serialized before the backend emitted it; the header then
+  // falls back to the source glyph.
   githubUsername?: string;
   reviewId?: number;
   reviewState?: string;
@@ -247,8 +243,6 @@ export function usePrIterationFeedback(
   return {feedback, latestIterationIndex};
 }
 
-// A rendered row is either a standalone feedback item or a review group: a
-// review-body header with its inline comments nested beneath.
 type FeedbackNode =
   | {item: IterationFeedback; type: 'item'}
   | {
@@ -257,19 +251,12 @@ type FeedbackNode =
       type: 'review';
     };
 
-// Group a review's body with its inline comments under one node, keying on
-// `(iterationIndex, reviewId)` — `reviewId` is unique per PR, and a review drives
-// exactly one iteration, so the pair can't collide across replays.
-//
-// A group forms only when a review *body* is present: the body carries the
-// review's state (the header badge) and is the review's representation. A
-// comment-only review (GitHub's "Add single comment", no body) therefore has no
-// header — its comments stay flat, as before. Comments whose body is in the same
-// batch are pulled into the group; everything else passes through in order.
-//
-// Order-independent: the caller renders newest-first (comments can precede their
-// body), so grouped comments are identified up front by reference and the group
-// is anchored at the body's position, rather than assuming the body comes first.
+// A group forms only when a review body is present (a comment-only review — e.g.
+// GitHub's "Add single comment" — stays flat). Keyed on `(iterationIndex,
+// reviewId)`: `reviewId` is unique per PR and a review drives exactly one
+// iteration, so the pair can't collide across replays. Grouped comments are
+// identified up front by reference and the group anchored at the body's position,
+// so the caller's newest-first order (a comment can precede its body) is handled.
 function groupFeedback(items: IterationFeedback[]): FeedbackNode[] {
   const key = (iterationIndex: number, reviewId: number) =>
     `${iterationIndex}:${reviewId}`;
@@ -281,8 +268,6 @@ function groupFeedback(items: IterationFeedback[]): FeedbackNode[] {
     }
   }
 
-  // Bucket each grouped comment under its body, tracking the comments to skip by
-  // reference so the flat pass drops them regardless of where they sit.
   const commentsByReview = new Map<string, IterationFeedback[]>();
   const groupedComments = new Set<IterationFeedback>();
   for (const item of items) {
@@ -302,7 +287,6 @@ function groupFeedback(items: IterationFeedback[]): FeedbackNode[] {
   const nodes: FeedbackNode[] = [];
   for (const item of items) {
     if (item.sourceType === 'github-pr-review-body' && item.reviewId !== undefined) {
-      // The body anchors the group at its own position in the list.
       const k = key(item.iterationIndex, item.reviewId);
       nodes.push({
         type: 'review',
@@ -345,10 +329,6 @@ export function FeedbackList({items}: {items: IterationFeedback[]}) {
   );
 }
 
-// A submitted review: the body row as a header (author avatar, state badge,
-// link, body text) with its inline comments indented beneath. The header row
-// reuses the standard `FeedbackItem` shell; the state badge rides in its comment
-// cell via `GithubReviewBodyComment`.
 function ReviewGroup({
   body,
   comments,
@@ -360,47 +340,32 @@ function ReviewGroup({
     <Stack gap="md">
       <FeedbackItem item={body} />
       {comments.length > 0 && (
-        <ReviewChildren>
+        // `marginLeft` aligns the tree rule under the header avatar's center
+        // (`AVATAR_SIZE / 2` === `space.lg`). `gap="0"` keeps rows abutting so
+        // their vertical segments join into one continuous rule.
+        <Stack gap="0" marginLeft="lg">
           {comments.map((comment, index) => (
             <ReviewChildRow key={`${comment.iterationIndex}-${index}`}>
               <FeedbackItem item={comment} />
             </ReviewChildRow>
           ))}
-        </ReviewChildren>
+        </Stack>
       )}
     </Stack>
   );
 }
 
-// How far the horizontal branch reaches from the vertical rule toward the
-// comment, and the radius of the elbow where the rule curves into the branch at
-// the last child.
 const TREE_BRANCH_WIDTH = 16;
 const TREE_ELBOW_RADIUS = 8;
 
-// Inline comments are indented under their review header and connected by a tree
-// rule on the left, so the group reads as one review. The rule sits under the
-// header avatar's center (`margin-left`); each row draws its own branch pointing
-// at the comment, and `ReviewChildRow` rounds the rule into the branch at the
-// last child.
-const ReviewChildren = styled('div')`
-  display: flex;
-  flex-direction: column;
-  margin-left: ${AVATAR_SIZE / 2}px;
-`;
-
-// One comment in the tree. Rows abut (no gap) so their vertical segments read as
-// one continuous rule; the inter-comment spacing is `padding-top` instead, which
-// the rule spans. The branch is anchored at `space.md + AVATAR_SIZE / 2` — the
-// vertical center of the comment's avatar (its first line) — so it stays aligned
-// even when the comment text wraps to multiple lines.
+// Rows abut (no gap) and space themselves with `padding-top` so their vertical
+// segments join into one continuous rule. The branch is anchored at the vertical
+// center of the comment's avatar so it holds when the comment text wraps.
 const ReviewChildRow = styled('div')`
   position: relative;
   padding-top: ${p => p.theme.space.md};
   padding-left: ${TREE_BRANCH_WIDTH + 12}px;
 
-  /* Vertical rule: full height on every row but the last, so abutting rows form
-     one unbroken line down the group. */
   &::before {
     content: '';
     position: absolute;
@@ -410,7 +375,6 @@ const ReviewChildRow = styled('div')`
     border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
-  /* Horizontal branch pointing at the comment, centered on its avatar. */
   &::after {
     content: '';
     position: absolute;
@@ -420,9 +384,8 @@ const ReviewChildRow = styled('div')`
     border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 
-  /* Last child: replace the two straight segments with one L-shaped box so the
-     rule stops at the branch and curves into it (a rounded elbow) rather than
-     running past. */
+  /* One L-shaped box so the rule curves into the branch (rounded elbow) instead
+     of running past the last comment. */
   &:last-child::before {
     height: calc(${p => p.theme.space.md} + ${AVATAR_SIZE / 2}px);
     width: ${TREE_BRANCH_WIDTH}px;
@@ -607,9 +570,6 @@ function GithubComment({item}: {item: IterationFeedback}) {
   return <CommentBody text={item.text} externalUrl={url} />;
 }
 
-// The review header shows the reviewer's avatar, matching the inline comments
-// beneath it. Older feedback serialized before the login was on the wire has no
-// `githubUsername`; `AuthorAvatar` falls back to the GitHub glyph in that case.
 function GithubReviewBodyAvatar({item}: {item: IterationFeedback}) {
   const login =
     item.sourceType === 'github-pr-review-body' ? item.githubUsername : undefined;
@@ -622,9 +582,8 @@ function GithubReviewBodyAvatar({item}: {item: IterationFeedback}) {
   );
 }
 
-// Maps a GitHub review state to a Tag variant + human label. Unknown/other
-// states (dismissed, pending, or anything a future provider adds) fall back to
-// muted so the badge never crashes on an unmapped value.
+// Unmapped states (dismissed, pending, a future provider's) return null so the
+// badge is simply omitted rather than crashing.
 function reviewStateTag(
   state: string | undefined
 ): {label: string; variant: TagProps['variant']} | null {
@@ -640,9 +599,6 @@ function reviewStateTag(
   }
 }
 
-// The review-body header cell: a state badge (when known) followed by the body
-// text, with a trailing link out to the review. Body text may be empty for a
-// bare state change, in which case only the badge shows.
 function GithubReviewBodyComment({item}: {item: IterationFeedback}) {
   if (item.sourceType !== 'github-pr-review-body') {
     return null;
@@ -651,6 +607,7 @@ function GithubReviewBodyComment({item}: {item: IterationFeedback}) {
   return (
     <Flex align="center" gap="sm" wrap="wrap">
       {tag && <Tag variant={tag.variant}>{tag.label}</Tag>}
+      {/* A bare state change has no body — show just the link. */}
       {item.text ? (
         <CommentBody text={item.text} externalUrl={item.reviewUrl} />
       ) : (

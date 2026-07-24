@@ -78,10 +78,8 @@ function makePatch(repoName: string, path: string): ExplorerFilePatch {
  * A folded-in PR-iteration block. Its feedback drives one iteration and renders
  * as a `processed` item once the section is no longer processing.
  *
- * Accepts either a single feedback item or an array — a submitted PR review
- * serializes its body and inline comments together, so passing them as one
- * array (they share this block's `iteration_index`) is what lets the review
- * group under a single header. `parseFeedback` unwraps either shape.
+ * Pass an array to model a submitted review: its body + comments share this
+ * block's `iteration_index`, which is what lets them group under one header.
  */
 function makeFeedbackBlock(
   iterationIndex: number,
@@ -160,10 +158,8 @@ function githubPrCommentFeedback(text: string): RawFeedback {
   };
 }
 
-// An inline review comment. Pass `reviewId` to associate it with a review body
-// carrying the same id (and sharing an iteration block) so the two group under
-// one header; omit it for a standalone "Add single comment" review, which stays
-// flat.
+// Pass a `reviewId` matching a review body's to group them; omit it for a
+// standalone "Add single comment" review, which stays flat.
 function githubPrReviewCommentFeedback(
   text: string,
   {reviewId, login = 'octocat'}: {login?: string; reviewId?: number} = {}
@@ -182,10 +178,8 @@ function githubPrReviewCommentFeedback(
   };
 }
 
-// The summary body of a submitted PR review. It carries the review-level state
-// (`approved` / `changes_requested` / `commented`) that drives the header badge,
-// and its `reviewId` is the key inline comments group against. `body` may be
-// empty — a review can approve with no prose, in which case only the badge shows.
+// The summary body of a submitted PR review; `reviewState` drives the header
+// badge and `reviewId` is the key inline comments group against.
 function githubPrReviewBodyFeedback({
   body = '',
   reviewId,
