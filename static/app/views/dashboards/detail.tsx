@@ -1444,15 +1444,12 @@ class DashboardDetail extends Component<Props, State> {
                               dashboard={modifiedDashboard ?? dashboard}
                               onSave={this.handleSaveWidget}
                             />
-                            {dashboardState === DashboardState.EDIT &&
-                              organization.features.includes(
-                                'dashboards-ai-generate-edit'
-                              ) && (
-                                <DashboardEditSeerChat
-                                  dashboard={modifiedDashboard ?? dashboard}
-                                  onDashboardUpdate={this.handleSeerDashboardUpdate}
-                                />
-                              )}
+                            {dashboardState === DashboardState.EDIT && (
+                              <DashboardEditSeerChat
+                                dashboard={modifiedDashboard ?? dashboard}
+                                onDashboardUpdate={this.handleSeerDashboardUpdate}
+                              />
+                            )}
                           </Fragment>
                         </MEPSettingProvider>
                       )}
