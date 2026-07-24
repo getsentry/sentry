@@ -5,6 +5,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   MessagingIntegrationAnalyticsView,
   SetupMessagingIntegrationButton,
@@ -15,6 +17,7 @@ import {
   useIssueAlertNotificationOptions,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
+import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 import {ScmCollapsibleReveal} from './scmCollapsibleReveal';
 import {ScmMessagingIntegrationAlertRule} from './scmMessagingIntegrationAlertRule';
 
@@ -25,8 +28,13 @@ import {ScmMessagingIntegrationAlertRule} from './scmMessagingIntegrationAlertRu
  * renders the messaging rule stacked (`ScmMessagingIntegrationAlertRule`)
  * instead of the classic inline card.
  */
-export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationProps) {
+type Props = IssueAlertNotificationProps & {
+  analyticsFlow: ScmAnalyticsFlow;
+};
+
+export function ScmIssueAlertNotificationOptions({analyticsFlow, ...props}: Props) {
   const {actions, setActions} = props;
+  const organization = useOrganization();
   const {querySuccess, shouldRenderNotificationConfigs, shouldRenderSetupButton} =
     useIssueAlertNotificationOptions(props);
 
@@ -49,13 +57,20 @@ export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationPr
             <Flex as="label" align="start" gap="md">
               <Checkbox
                 checked={actions.includes(MultipleCheckboxOptions.INTEGRATION)}
-                onChange={e =>
+                onChange={e => {
                   setActions(
                     e.target.checked
                       ? [...actions, MultipleCheckboxOptions.INTEGRATION]
                       : actions.filter(a => a !== MultipleCheckboxOptions.INTEGRATION)
-                  )
-                }
+                  );
+                  if (analyticsFlow === 'project-creation') {
+                    trackAnalytics('project_creation.notify_integration_toggled', {
+                      organization,
+                      enabled: e.target.checked,
+                      variant: 'scm',
+                    });
+                  }
+                }}
               />
               <Text bold={false} ellipsis>
                 {t('Integration (Slack, Discord, MS Teams, etc.)')}
@@ -67,13 +82,18 @@ export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationPr
           open={!shouldRenderSetupButton && shouldRenderNotificationConfigs}
         >
           <IndentedRule>
-            <ScmMessagingIntegrationAlertRule {...props} />
+            <ScmMessagingIntegrationAlertRule {...props} analyticsFlow={analyticsFlow} />
           </IndentedRule>
         </ScmCollapsibleReveal>
       </Stack>
       {shouldRenderSetupButton && (
         <SetupMessagingIntegrationButton
-          analyticsView={MessagingIntegrationAnalyticsView.PROJECT_CREATION}
+          analyticsView={
+            analyticsFlow === 'project-creation'
+              ? MessagingIntegrationAnalyticsView.PROJECT_CREATION
+              : MessagingIntegrationAnalyticsView.ONBOARDING
+          }
+          variant="scm"
         />
       )}
     </Stack>

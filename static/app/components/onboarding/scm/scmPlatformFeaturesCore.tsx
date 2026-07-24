@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {motion} from 'framer-motion';
+import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,8 +10,10 @@ import {Select} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {closeModal, openConsoleModal} from 'sentry/actionCreators/modal';
+import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
@@ -20,7 +23,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
+import {
+  type ScmAnalyticsFlow,
+  scmFlowVariantParams,
+  trackScmPlatformSelected,
+} from './scmAnalyticsFlow';
 import {ScmPlatformCard} from './scmPlatformCard';
 import {
   DEFAULT_SCM_FEATURES,
@@ -33,17 +40,20 @@ import {ScmSearchControl} from './scmSearchControl';
 import {ScmVirtualizedMenuList} from './scmVirtualizedMenuList';
 import {useScmResolvedPlatform} from './useScmResolvedPlatform';
 
-const PLATFORM_SELECTED_EVENT = {
-  onboarding: 'onboarding.scm_platform_selected',
-  'project-creation': 'project_creation.scm_platform_selected',
-} as const;
+type PlatformOption = (typeof platformOptions)[number];
+
+const matchesPlatformOption = createFilter({
+  stringify: (option: {data: PlatformOption; label: string; value: string}) =>
+    option.data.textValue ?? `${option.label} ${option.value}`,
+});
+
 const CHANGE_PLATFORM_CLICKED_EVENT = {
   onboarding: 'onboarding.scm_platform_change_platform_clicked',
-  'project-creation': 'project_creation.scm_platform_change_platform_clicked',
+  'project-creation': 'project_creation.platform_change_platform_clicked',
 } as const;
 const SKIP_DETECTION_CLICKED_EVENT = {
   onboarding: 'onboarding.scm_skip_detection_clicked',
-  'project-creation': 'project_creation.scm_skip_detection_clicked',
+  'project-creation': 'project_creation.skip_detection_clicked',
 } as const;
 
 interface ScmPlatformFeaturesCoreProps {
@@ -81,6 +91,7 @@ export function ScmPlatformFeaturesCore({
   const organization = useOrganization();
 
   const [showManualPicker, setShowManualPicker] = useState(false);
+  const [manualPickerFilter, setManualPickerFilter] = useState('');
   // Guards the auto-detect analytics event below so it fires once per repo.
   const autoDetectionTrackedRef = useRef(false);
 
@@ -147,11 +158,12 @@ export function ScmPlatformFeaturesCore({
     }
     autoDetectionTrackedRef.current = true;
     setPlatform(detectedPlatformKey);
-    trackAnalytics(PLATFORM_SELECTED_EVENT[analyticsFlow], {
+    trackScmPlatformSelected(
+      analyticsFlow,
       organization,
-      platform: detectedPlatformKey,
-      source: 'detected',
-    });
+      detectedPlatformKey,
+      'detected'
+    );
   }, [
     detectedPlatformKey,
     selectedPlatform?.key,
@@ -231,7 +243,7 @@ export function ScmPlatformFeaturesCore({
               closeModal();
             }}
             newOrg={isOnboarding}
-            hasScmOnboarding
+            isScmFlow
             analyticsFlow={analyticsFlow}
           />
         ),
@@ -244,11 +256,7 @@ export function ScmPlatformFeaturesCore({
     onFeaturesChange(DEFAULT_SCM_FEATURES);
     onClearProjectDetailsForm();
 
-    trackAnalytics(PLATFORM_SELECTED_EVENT[analyticsFlow], {
-      organization,
-      platform: platformKey,
-      source: 'manual',
-    });
+    trackScmPlatformSelected(analyticsFlow, organization, platformKey, 'manual');
   };
 
   const handleSelectDetectedPlatform = (platformKey: PlatformKey) => {
@@ -259,11 +267,7 @@ export function ScmPlatformFeaturesCore({
     onFeaturesChange(DEFAULT_SCM_FEATURES);
     onClearProjectDetailsForm();
 
-    trackAnalytics(PLATFORM_SELECTED_EVENT[analyticsFlow], {
-      organization,
-      platform: platformKey,
-      source: 'detected',
-    });
+    trackScmPlatformSelected(analyticsFlow, organization, platformKey, 'detected');
   };
 
   function handleChangePlatformClick() {
@@ -273,10 +277,12 @@ export function ScmPlatformFeaturesCore({
     if (isDetecting) {
       trackAnalytics(SKIP_DETECTION_CLICKED_EVENT[analyticsFlow], {
         organization,
+        ...scmFlowVariantParams(analyticsFlow),
       });
     } else {
       trackAnalytics(CHANGE_PLATFORM_CLICKED_EVENT[analyticsFlow], {
         organization,
+        ...scmFlowVariantParams(analyticsFlow),
       });
     }
   }
@@ -304,11 +310,12 @@ export function ScmPlatformFeaturesCore({
     // selection, so record it as the detected source (mirrors the auto-adopt
     // path and handleSelectDetectedPlatform, which were the only detected-source
     // emitters before).
-    trackAnalytics(PLATFORM_SELECTED_EVENT[analyticsFlow], {
+    trackScmPlatformSelected(
+      analyticsFlow,
       organization,
-      platform: detectedPlatformKey,
-      source: 'detected',
-    });
+      detectedPlatformKey,
+      'detected'
+    );
   }
 
   // Shared by both manual-picker variants. A null option is the clear action,
@@ -343,6 +350,64 @@ export function ScmPlatformFeaturesCore({
       ...platformOptions,
     ];
   }, [currentPlatformKey]);
+
+  const manualPickerFilteredOptions = useMemo(
+    () =>
+      manualPickerOptions.filter(option =>
+        matchesPlatformOption(
+          {label: option.label, value: option.value, data: option},
+          manualPickerFilter
+        )
+      ),
+    [manualPickerFilter, manualPickerOptions]
+  );
+
+  const latestSearchValuesRef = useRef({
+    filter: manualPickerFilter,
+    options: manualPickerFilteredOptions,
+    organization,
+    analyticsFlow,
+  });
+
+  useEffect(() => {
+    latestSearchValuesRef.current = {
+      filter: manualPickerFilter,
+      options: manualPickerFilteredOptions,
+      organization,
+      analyticsFlow,
+    };
+  });
+
+  const debounceManualPickerSearch = useRef(
+    debounce(() => {
+      const {
+        filter,
+        options,
+        organization: currentOrganization,
+        analyticsFlow: flow,
+      } = latestSearchValuesRef.current;
+
+      if (!filter || flow !== 'project-creation') {
+        return;
+      }
+
+      trackAnalytics('growth.platformpicker_search', {
+        organization: currentOrganization,
+        search: filter.toLowerCase(),
+        num_results: options.length,
+        source: 'project-creation',
+        variant: 'scm',
+      });
+    }, DEFAULT_DEBOUNCE_DURATION)
+  ).current;
+
+  function handleManualPickerSearch(query: string, {action}: {action: string}) {
+    if (action !== 'input-change') {
+      return;
+    }
+    setManualPickerFilter(query);
+    debounceManualPickerSearch();
+  }
 
   // When the active platform is a manual (non-detected) pick, show the manual
   // picker so the selection stays visible (see showDetectedPlatforms below).
@@ -453,6 +518,7 @@ export function ScmPlatformFeaturesCore({
           options={manualPickerOptions}
           value={currentPlatformKey ?? null}
           onChange={handleManualPickerChange}
+          onInputChange={handleManualPickerSearch}
           searchable
           components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
           styles={{container: base => ({...base, width: '100%'})}}
@@ -463,6 +529,7 @@ export function ScmPlatformFeaturesCore({
           options={manualPickerOptions}
           value={currentPlatformKey ?? null}
           onChange={handleManualPickerChange}
+          onInputChange={handleManualPickerSearch}
           clearable
           searchable
           components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
