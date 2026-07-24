@@ -16,7 +16,7 @@ from sentry.seer.smart_assignment.models import (
     SmartAssignmentScore,
 )
 from sentry.seer.utils import latest_run_for_group
-from sentry.types.activity import ActivityIntegration, ActivityType
+from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
