@@ -534,7 +534,8 @@ class AuthIdentityHandler:
         - Unauthenticated user who proved email ownership via verification link: auto-link.
         - Otherwise: show a confirmation page to merge, create, or log in.
         """
-        op = self.request.POST.get("op")
+        # IdP POST includes SAMLResponse; op only comes from Sentry's own confirmation form.
+        op = self.request.POST.get("op") if "SAMLResponse" not in self.request.POST else None
 
         # we don't trust all IDP email verification, so users can also confirm via one time email link
         is_account_verified = False

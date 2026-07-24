@@ -7,9 +7,15 @@ from urllib.parse import urlencode
 
 from django.db.models import prefetch_related_objects
 
+from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.discover.arithmetic import get_equation_alias_index, is_equation, is_equation_alias
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardRevision
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
+    DashboardRevision,
+)
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -455,7 +461,7 @@ class _Widget(TypedDict):
     projects: list[int]
     environment: list[str]
     filters: DashboardFilters
-    last_visited: str | None
+    last_visited: datetime | None
 
 
 class PageFiltersOptional(TypedDict, total=False):
@@ -510,6 +516,20 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
     def get_attrs(self, item_list, user, **kwargs):
         item_dict = {i.id: i for i in item_list}
         prefetch_related_objects(item_list, "projects__organization")
+
+        organization = (kwargs.get("context") or {}).get("organization")
+        use_user_last_visited = organization is not None and features.has(
+            "organizations:dashboards-user-last-visited", organization, actor=user
+        )
+        user_last_visited_map: dict[int, datetime] = {}
+        if use_user_last_visited:
+            user_last_visited_map = {
+                dlv.dashboard_id: dlv.last_visited
+                for dlv in DashboardLastVisited.objects.filter(
+                    user_id=user.id,
+                    dashboard_id__in=item_dict.keys(),
+                )
+            }
 
         widgets = DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys()).order_by("id")
 
@@ -571,7 +591,11 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             result[dashboard]["permissions"] = serialize(permission)
 
         for dashboard in item_dict.values():
-            result[dashboard]["last_visited"] = dashboard.last_visited
+            # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
+            if use_user_last_visited:
+                result[dashboard]["last_visited"] = user_last_visited_map.get(dashboard.id)
+            else:
+                result[dashboard]["last_visited"] = dashboard.last_visited
 
             result[dashboard]["created_by"] = serialized_users.get(str(dashboard.created_by_id))
             result[dashboard]["is_favorited"] = dashboard.id in favorited_dashboard_ids

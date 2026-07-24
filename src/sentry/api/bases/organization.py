@@ -40,6 +40,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.seer.agent_token import is_agent_auth
 from sentry.types.cell import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
@@ -812,8 +813,15 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             is_api_token_auth(request.auth) and request.access.has_scope("project:releases")
         )
 
+        agent_auth = request.auth if is_agent_auth(request.auth) else None
+        has_valid_agent_auth = (
+            agent_auth is not None and agent_auth.organization_id == organization.id
+        )
+
         if not (
-            has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)
+            has_valid_api_key
+            or has_valid_agent_auth
+            or (getattr(request, "user", None) and request.user.is_authenticated)
         ):
             return []
 
@@ -847,13 +855,14 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         via has_global_access.
 
         Results are cached for 60s per actor/org/release/effective-project-scope/mode.
+        Agent requests bypass the cache so every call rechecks live project membership.
         """
         actor_id = None
         has_perms = None
         key = None
         if request.user.is_authenticated:
             actor_id = "user:%s" % request.user.id
-        elif request.auth is not None:
+        elif request.auth is not None and not is_agent_auth(request.auth):
             actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:
             if project_ids:

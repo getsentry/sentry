@@ -4,6 +4,7 @@ import {
 } from 'sentry/components/arithmeticBuilder/token';
 import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
 import {EQUATION_PREFIX, isEquation} from 'sentry/utils/discover/fields';
+import {DEFAULT_EQUATION_LABEL} from 'sentry/views/explore/metrics/constants';
 import {
   defaultMetricQuery,
   type BaseMetricQuery,
@@ -13,12 +14,7 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-import {
-  getFunctionLabel,
-  getVisualizeLabel,
-} from 'sentry/views/explore/toolbar/toolbarVisualize';
-
-export const EQUATION_LABEL = getVisualizeLabel(1, true);
+import {getFunctionLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 interface ParsedAggregateExpression {
   /**
@@ -99,7 +95,7 @@ function makeEquationRow(prefixedEquation: string, query?: string): BaseMetricQu
       aggregateFields: [new VisualizeEquation(prefixedEquation)],
       query: query ?? '',
     }),
-    label: EQUATION_LABEL,
+    label: DEFAULT_EQUATION_LABEL,
   };
 }
 
