@@ -2,9 +2,47 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {makeClosableHeader, ModalBody} from '@sentry/scraps/modal';
+
+import SudoModal from 'sentry/components/modals/sudoModal';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
+import type {SuperuserAccessCategoryProps} from 'sentry/types/overrides';
 import {App} from 'sentry/views/app';
+
+function TestAccessCategory({
+  accessCategory,
+  accessCategoryError,
+  onAccessCategoryChange,
+  onReasonChange,
+  reason,
+  reasonError,
+}: SuperuserAccessCategoryProps) {
+  return (
+    <div>
+      <label>
+        <input
+          checked={accessCategory === 'development'}
+          name="superuserAccessCategory"
+          type="radio"
+          onChange={() => onAccessCategoryChange?.('development')}
+        />
+        Development
+      </label>
+      {accessCategoryError ? <div role="alert">{accessCategoryError}</div> : null}
+      <label>
+        Reason for Access
+        <input
+          name="superuserReason"
+          value={reason ?? ''}
+          onChange={event => onReasonChange?.(event.target.value)}
+        />
+      </label>
+      {reasonError ? <div role="alert">{reasonError}</div> : null}
+    </div>
+  );
+}
 
 describe('Sudo Modal', () => {
   const setHasPasswordAuth = (hasPasswordAuth: boolean) =>
@@ -103,10 +141,7 @@ describe('Sudo Modal', () => {
     expect(sudoMock).not.toHaveBeenCalled();
 
     // "Sudo" auth
-    await userEvent.type(
-      await screen.findByRole('textbox', {name: 'Password'}),
-      'password'
-    );
+    await userEvent.type(await screen.findByLabelText('Password'), 'password');
     await userEvent.click(screen.getByRole('button', {name: 'Confirm Password'}));
 
     expect(sudoMock).toHaveBeenCalledWith(
@@ -145,5 +180,118 @@ describe('Sudo Modal', () => {
       '/auth/login/?next=http%3A%2F%2Flocalhost%2F'
     );
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+  });
+
+  describe('superuser', () => {
+    beforeEach(() => {
+      registerOverride('component:superuser-access-category', TestAccessCategory);
+      ConfigStore.set('isSelfHosted', false);
+      ConfigStore.set('validateSUForm', true);
+      ConfigStore.set('disableU2FForSUForm', false);
+      setHasPasswordAuth(true);
+    });
+
+    function renderSuperuserModal() {
+      return render(
+        <SudoModal
+          Header={makeClosableHeader(jest.fn())}
+          Body={ModalBody}
+          closeModal={jest.fn()}
+          isSuperuser
+        />
+      );
+    }
+
+    it('captures access details before starting WebAuthn', async () => {
+      MockApiClient.addMockResponse({
+        url: '/authenticators/',
+        body: [{id: 'u2f', challenge: {}}],
+      });
+      const authRequest = MockApiClient.addMockResponse({
+        url: '/auth/',
+        method: 'PUT',
+      });
+
+      renderSuperuserModal();
+
+      await userEvent.click(await screen.findByRole('radio', {name: 'Development'}));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Reason for Access'}),
+        'Investigating an issue'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      // Access form is replaced by the "Change reason" step; no auth call yet.
+      expect(
+        await screen.findByRole('button', {name: 'Change reason'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('textbox', {name: 'Reason for Access'})
+      ).not.toBeInTheDocument();
+      expect(authRequest).not.toHaveBeenCalled();
+    });
+
+    it('validates the access category and reason before continuing', async () => {
+      MockApiClient.addMockResponse({
+        url: '/authenticators/',
+        body: [{id: 'u2f', challenge: {}}],
+      });
+
+      renderSuperuserModal();
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Continue'}));
+
+      expect(await screen.findByText('Select an access category')).toBeInTheDocument();
+      expect(
+        screen.getByText('Enter a reason of at least 4 characters')
+      ).toBeInTheDocument();
+    });
+
+    it('submits COPS/CSM access details when U2F is disabled', async () => {
+      ConfigStore.set('disableU2FForSUForm', true);
+      const authRequest = MockApiClient.addMockResponse({
+        url: '/auth/',
+        method: 'PUT',
+      });
+
+      renderSuperuserModal();
+
+      await userEvent.click(await screen.findByRole('button', {name: 'COPS/CSM'}));
+
+      await waitFor(() => {
+        expect(authRequest).toHaveBeenCalledWith(
+          '/auth/',
+          expect.objectContaining({
+            method: 'PUT',
+            data: {
+              isSuperuserModal: true,
+              superuserAccessCategory: 'cops_csm',
+              superuserReason: 'COPS and CSM use',
+            },
+          })
+        );
+      });
+    });
+
+    it('shows an error when authentication fails', async () => {
+      ConfigStore.set('disableU2FForSUForm', true);
+      MockApiClient.addMockResponse({
+        url: '/auth/',
+        method: 'PUT',
+        statusCode: 403,
+        body: {detail: {code: 'invalid_password'}},
+      });
+
+      renderSuperuserModal();
+
+      await userEvent.click(await screen.findByRole('radio', {name: 'Development'}));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Reason for Access'}),
+        'Investigating an issue'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      expect(await screen.findByText('Incorrect password')).toBeInTheDocument();
+    });
   });
 });
