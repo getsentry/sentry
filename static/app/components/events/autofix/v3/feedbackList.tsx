@@ -362,7 +362,9 @@ function ReviewGroup({
       {comments.length > 0 && (
         <ReviewChildren>
           {comments.map((comment, index) => (
-            <FeedbackItem key={`${comment.iterationIndex}-${index}`} item={comment} />
+            <ReviewChildRow key={`${comment.iterationIndex}-${index}`}>
+              <FeedbackItem item={comment} />
+            </ReviewChildRow>
           ))}
         </ReviewChildren>
       )}
@@ -370,16 +372,66 @@ function ReviewGroup({
   );
 }
 
-// Inline comments are indented under their review header and separated by a rule
-// on the left, so the group reads as one review. The indent aligns roughly under
-// the header's comment text (past the avatar column).
+// How far the horizontal branch reaches from the vertical rule toward the
+// comment, and the radius of the elbow where the rule curves into the branch at
+// the last child.
+const TREE_BRANCH_WIDTH = 16;
+const TREE_ELBOW_RADIUS = 8;
+
+// Inline comments are indented under their review header and connected by a tree
+// rule on the left, so the group reads as one review. The rule sits under the
+// header avatar's center (`margin-left`); each row draws its own branch pointing
+// at the comment, and `ReviewChildRow` rounds the rule into the branch at the
+// last child.
 const ReviewChildren = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${p => p.theme.space.md};
   margin-left: ${AVATAR_SIZE / 2}px;
-  padding-left: ${p => p.theme.space.xl};
-  border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+`;
+
+// One comment in the tree. Rows abut (no gap) so their vertical segments read as
+// one continuous rule; the inter-comment spacing is `padding-top` instead, which
+// the rule spans. The branch is anchored at `space.md + AVATAR_SIZE / 2` — the
+// vertical center of the comment's avatar (its first line) — so it stays aligned
+// even when the comment text wraps to multiple lines.
+const ReviewChildRow = styled('div')`
+  position: relative;
+  padding-top: ${p => p.theme.space.md};
+  padding-left: ${TREE_BRANCH_WIDTH + 12}px;
+
+  /* Vertical rule: full height on every row but the last, so abutting rows form
+     one unbroken line down the group. */
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+  }
+
+  /* Horizontal branch pointing at the comment, centered on its avatar. */
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: calc(${p => p.theme.space.md} + ${AVATAR_SIZE / 2}px);
+    width: ${TREE_BRANCH_WIDTH}px;
+    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
+  }
+
+  /* Last child: replace the two straight segments with one L-shaped box so the
+     rule stops at the branch and curves into it (a rounded elbow) rather than
+     running past. */
+  &:last-child::before {
+    height: calc(${p => p.theme.space.md} + ${AVATAR_SIZE / 2}px);
+    width: ${TREE_BRANCH_WIDTH}px;
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+    border-bottom-left-radius: ${TREE_ELBOW_RADIUS}px;
+  }
+  &:last-child::after {
+    display: none;
+  }
 `;
 
 // Each source type owns an `Avatar` and a `Comment` cell. `FeedbackItem` renders
@@ -582,7 +634,7 @@ function reviewStateTag(
     case 'changes_requested':
       return {label: t('Changes requested'), variant: 'danger'};
     case 'commented':
-      return {label: t('Commented'), variant: 'muted'};
+      return {label: t('Reviewed'), variant: 'muted'};
     default:
       return null;
   }

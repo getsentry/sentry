@@ -1131,7 +1131,7 @@ describe('ArtifactCard', () => {
       // No review-state badge without a body source to carry the state.
       expect(screen.queryByText('Changes requested')).not.toBeInTheDocument();
       expect(screen.queryByText('Approved')).not.toBeInTheDocument();
-      expect(screen.queryByText('Commented')).not.toBeInTheDocument();
+      expect(screen.queryByText('Reviewed')).not.toBeInTheDocument();
     });
 
     it('shows a formatted check-suite label instead of the raw feedback text', () => {
