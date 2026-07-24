@@ -37,7 +37,7 @@ from sentry.seer.agent.monitoring_providers import (
     OrgMonitoringProvider,
     org_monitoring_provider_registry,
 )
-from sentry.seer.sentry_data_models import MonitoringProviderConnectionData
+from sentry.seer.sentry_data_models import GcpSaImpersonationConnectionData
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 
 logger = logging.getLogger(__name__)
@@ -207,7 +207,7 @@ class GcpOrgMonitoringProvider(OrgMonitoringProvider):
 
     def build_connection(
         self, organization: Organization
-    ) -> list[MonitoringProviderConnectionData] | None:
+    ) -> list[GcpSaImpersonationConnectionData] | None:
         ctx = integration_service.organization_context(
             organization_id=organization.id, provider=self.provider_key
         )
@@ -223,6 +223,9 @@ class GcpOrgMonitoringProvider(OrgMonitoringProvider):
 
         config = org_integration.config
         projects: list[str] = config.get("projects", [])
+        sentry_sa_email: str | None = config.get("sentry_sa_email")
+        customer_sa_email: str | None = config.get("customer_sa_email")
+
         if not projects:
             logger.error(
                 "seer.monitoring_providers.gcp_integration_no_projects",
@@ -233,12 +236,22 @@ class GcpOrgMonitoringProvider(OrgMonitoringProvider):
             )
             return None
 
+        if not sentry_sa_email or not customer_sa_email:
+            logger.error(
+                "seer.monitoring_providers.gcp_integration_missing_sa_emails",
+                extra={
+                    "organization_id": organization.id,
+                    "integration_id": integration.id,
+                },
+            )
+            return None
+
         return [
-            MonitoringProviderConnectionData(
+            GcpSaImpersonationConnectionData(
                 provider_key=self.provider_key,
                 url=url,
-                auth_method="gcp_adc",
-                refreshable=False,
+                sentry_sa_email=sentry_sa_email,
+                customer_sa_email=customer_sa_email,
                 gcp_project_ids=projects,
             )
             for url in GCP_MCP_URLS

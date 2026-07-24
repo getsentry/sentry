@@ -5,7 +5,7 @@ These should be kept in sync with the models in Seer.
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, Field
 
@@ -856,17 +856,46 @@ class ExecuteTimeseriesQueryErrorResponse(BaseModel):
         return id(self)
 
 
-class MonitoringProviderConnectionData(BaseModel):
+class HeaderAuthConnectionData(BaseModel):
+    """Connection authenticated via encrypted HTTP headers."""
+
+    type: Literal["header_auth"] = "header_auth"
     provider_key: str
     url: str
     encrypted_auth_headers: dict[str, str] | None = None
     identity_id: int | None = None
     auth_method: str
     refreshable: bool = True
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+
+class GcpSaImpersonationConnectionData(BaseModel):
+    """
+    Connection authenticated via GCP two-hop SA impersonation chain.
+
+    Seer uses ``sentry_sa_email`` and ``customer_sa_email`` to construct
+    ``GcpMcpCredentials`` for the ADC -> per-customer SA -> customer SA chain.
+    """
+
+    type: Literal["gcp_sa_impersonation"] = "gcp_sa_impersonation"
+    provider_key: str
+    url: str
+    sentry_sa_email: str
+    customer_sa_email: str
+    auth_method: Literal["gcp_sa_impersonation"] = "gcp_sa_impersonation"
+    refreshable: bool = False
     gcp_project_ids: list[str] | None = None
 
     def __getitem__(self, key: str) -> Any:
         return self.dict()[key]
+
+
+MonitoringProviderConnectionData = Annotated[
+    Union[HeaderAuthConnectionData, GcpSaImpersonationConnectionData],
+    Field(discriminator="type"),
+]
 
 
 class MonitoringProviderConnectionsResponse(BaseModel):

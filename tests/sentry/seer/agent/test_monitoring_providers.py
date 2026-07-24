@@ -472,11 +472,14 @@ class TestGetMonitoringProviderConnections(TestCase):
             "https://cloudtrace.googleapis.com/mcp",
         }
         for conn in result:
-            assert conn["auth_method"] == "gcp_adc"
+            assert conn["type"] == "gcp_sa_impersonation"
+            assert conn["auth_method"] == "gcp_sa_impersonation"
             assert conn["refreshable"] is False
             assert conn["gcp_project_ids"] == ["my-project-prod", "my-project-staging"]
-            assert conn["identity_id"] is None
-            assert conn["encrypted_auth_headers"] is None
+            assert (
+                conn["sentry_sa_email"] == "sentry-org-1@sentry-connectors.iam.gserviceaccount.com"
+            )
+            assert conn["customer_sa_email"] == "gcp-sentry@my-project.iam.gserviceaccount.com"
 
     def test_org_gcp_connection_ignores_non_active_integration(self) -> None:
         self._create_org_gcp_integration(status=ObjectStatus.DISABLED)
@@ -505,11 +508,27 @@ class TestGetMonitoringProviderConnections(TestCase):
         result = get_monitoring_provider_connections(self.organization, self.user.id)
         assert result == []
 
+    def test_org_gcp_connection_skips_missing_sa_emails(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="gcp",
+            external_id=str(self.organization.id),
+            name="Google Cloud Platform",
+            metadata={},
+            oi_params={
+                "config": {
+                    "projects": ["my-project-prod"],
+                }
+            },
+        )
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+        assert result == []
+
     def test_org_gcp_connection_for_no_user_run(self) -> None:
         self._create_org_gcp_integration()
         result = get_monitoring_provider_connections(self.organization, None)
         assert len(result) == 3
-        assert all(c["auth_method"] == "gcp_adc" for c in result)
+        assert all(c["auth_method"] == "gcp_sa_impersonation" for c in result)
 
     def test_org_gcp_and_datadog_together(self) -> None:
         self._create_org_gcp_integration()

@@ -37,7 +37,7 @@ from sentry.seer.agent.monitoring_providers import (
     OrgMonitoringProvider,
     org_monitoring_provider_registry,
 )
-from sentry.seer.sentry_data_models import MonitoringProviderConnectionData
+from sentry.seer.sentry_data_models import HeaderAuthConnectionData
 from sentry.seer.utils import encrypt_access_token_for_seer
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 
@@ -220,9 +220,7 @@ class DatadogOrgMonitoringProvider(OrgMonitoringProvider):
 
     provider_key = IntegrationProviderSlug.DATADOG.value
 
-    def build_connection(
-        self, organization: Organization
-    ) -> list[MonitoringProviderConnectionData] | None:
+    def build_connection(self, organization: Organization) -> list[HeaderAuthConnectionData] | None:
         ctx = integration_service.organization_context(
             organization_id=organization.id, provider=self.provider_key
         )
@@ -256,7 +254,7 @@ class DatadogOrgMonitoringProvider(OrgMonitoringProvider):
             return None
 
         return [
-            MonitoringProviderConnectionData(
+            HeaderAuthConnectionData(
                 provider_key=self.provider_key,
                 url=f"{base_url}{MCP_ENDPOINT_PATH}",
                 encrypted_auth_headers={
