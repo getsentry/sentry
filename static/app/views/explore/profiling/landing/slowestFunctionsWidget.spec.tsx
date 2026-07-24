@@ -45,7 +45,15 @@ describe('SlowestFunctionsWidget', () => {
       match: [
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
-          field: ['project.id', 'fingerprint', 'package', 'function', 'count()', 'sum()'],
+          field: [
+            'project.id',
+            'fingerprint',
+            'package',
+            'function',
+            'platform.name',
+            'count()',
+            'sum()',
+          ],
         }),
       ],
     });
@@ -84,7 +92,15 @@ describe('SlowestFunctionsWidget', () => {
       match: [
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
-          field: ['project.id', 'fingerprint', 'package', 'function', 'count()', 'sum()'],
+          field: [
+            'project.id',
+            'fingerprint',
+            'package',
+            'function',
+            'platform.name',
+            'count()',
+            'sum()',
+          ],
         }),
       ],
     });
@@ -251,5 +267,79 @@ describe('SlowestFunctionsWidget', () => {
     // Check items in example profiles dropdown
     expect(screen.getByText('1'.repeat(8))).toBeInTheDocument();
     expect(screen.getByText('2'.repeat(8))).toBeInTheDocument();
+  });
+
+  it('qualifies java function names with the class name', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'project.id': 1,
+            fingerprint: 123,
+            package: 'com.example.Foo',
+            function: 'bar',
+            'platform.name': 'android',
+            'sum()': 150,
+          },
+          {
+            'project.id': 1,
+            fingerprint: 456,
+            package: 'com.example.legacy',
+            function: 'com.example.legacy.Baz.qux()',
+            'platform.name': 'android',
+            'sum()': 100,
+          },
+          {
+            'project.id': 1,
+            fingerprint: 789,
+            package: 'libhwui',
+            function: 'memcpy',
+            'platform.name': 'android',
+            'sum()': 50,
+          },
+        ],
+      },
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'profileFunctions',
+          field: [
+            'project.id',
+            'fingerprint',
+            'package',
+            'function',
+            'platform.name',
+            'count()',
+            'sum()',
+          ],
+        }),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'project.id': 1, 'sum()': 2500000}]},
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'profileFunctions',
+          field: ['project.id', 'sum()'],
+          project: [1],
+        }),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {},
+    });
+
+    render(<SlowestFunctionsWidget widgetHeight="100px" breakdownFunction="p75()" />);
+
+    // continuous profile frames are qualified with the class name
+    expect(await screen.findByText('com.example.Foo.bar')).toBeInTheDocument();
+    // legacy android frames are already fully qualified
+    expect(screen.getByText('com.example.legacy.Baz.qux()')).toBeInTheDocument();
+    // native frames are left untouched
+    expect(screen.getByText('memcpy')).toBeInTheDocument();
   });
 });

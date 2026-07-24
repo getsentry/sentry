@@ -340,11 +340,14 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
   const palette = Array.from<[string]>({length: BARS}).fill([colors[0]]);
 
   const frame = useMemo(() => {
+    const module = qualifiedJavaFrameModule(func);
     return new Frame(
       {
         key: 0,
         name: func.function as string,
         package: func.package as string,
+        module,
+        platform: module ? 'java' : undefined,
       },
       // Ensures that the frame runs through the normalization code path
       project?.platform && /node|javascript/.test(project.platform)
@@ -565,11 +568,38 @@ const functionsFields = [
   'fingerprint',
   'package',
   'function',
+  'platform.name',
   'count()',
   'sum()',
 ] as const;
 
 type FunctionsField = (typeof functionsFields)[number] | SortOption;
+
+// For java frames from continuous profiles, `function` is the bare method
+// name and `package` the fully qualified class name. Passing the class name
+// as the frame module lets the Frame model qualify the display name.
+// Legacy android profiles already ship fully qualified function names and
+// native frames carry a binary name (no dots) as package - both are skipped.
+function qualifiedJavaFrameModule(
+  func: EventsResultsDataRow<FunctionsField>
+): string | undefined {
+  const platform = String(func['platform.name'] ?? '');
+  if (platform !== 'android' && !platform.startsWith('java')) {
+    return undefined;
+  }
+
+  const pkg = func.package;
+  const fn = func.function;
+  if (typeof pkg !== 'string' || typeof fn !== 'string' || !pkg.includes('.')) {
+    return undefined;
+  }
+
+  if (fn === pkg || fn.startsWith(`${pkg}.`)) {
+    return undefined;
+  }
+
+  return pkg;
+}
 
 const totalsFields = ['project.id', 'sum()'] as const;
 
