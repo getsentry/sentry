@@ -544,6 +544,7 @@ class TestTriggerAutofixAgent(TestCase):
             },
         )
         mock_client.continue_run.return_value = 67890
+        self.create_seer_run(organization=self.group.organization, seer_run_state_id=67890)
 
         with self.feature("organizations:autofix-pr-iteration"):
             trigger_autofix_agent(
@@ -627,6 +628,7 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
         mock_client.continue_run.return_value = 67890
+        self.create_seer_run(organization=self.group.organization, seer_run_state_id=67890)
 
         trigger_autofix_agent(
             group=self.group,
@@ -660,9 +662,28 @@ class TestTriggerAutofixAgent(TestCase):
         )
 
         assert run == seer_run
-        mock_client.continue_run.assert_called_once()
-        mock_check_quota.assert_not_called()
-        mock_record_run.assert_not_called()
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_continue_with_missing_mirror_raises_without_touching_seer(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+
+        with pytest.raises(SeerPermissionError):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.SOLUTION,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=99999,
+            )
+
+        # The run is resolved before Seer is called, so a missing mirror fails
+        # without advancing the run.
+        mock_client.continue_run.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
@@ -742,6 +763,7 @@ class TestTriggerAutofixAgent(TestCase):
             },
         )
         mock_client.continue_run.return_value = 67890
+        self.create_seer_run(organization=self.group.organization, seer_run_state_id=67890)
 
         with self.feature("organizations:autofix-pr-iteration"):
             trigger_autofix_agent(

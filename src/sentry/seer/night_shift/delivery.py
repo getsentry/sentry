@@ -219,15 +219,13 @@ def _process_verdicts(
                 else None
             )
             try:
-                autofix_run = trigger_autofix_agent(
+                run_by_group[group.id] = trigger_autofix_agent(
                     group=group,
                     step=AutofixStep.ROOT_CAUSE,
                     referrer=referrer,
                     stopping_point=stopping_point_by_project_id[group.project_id],
                     user_context=user_context,
                 )
-                if autofix_run is not None:
-                    run_by_group[group.id] = autofix_run
             except Exception:
                 logger.exception(
                     "night_shift.autofix_trigger_failed",

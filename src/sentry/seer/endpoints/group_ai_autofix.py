@@ -432,9 +432,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         return Response(status=status.HTTP_404_NOT_FOUND)
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                triggered_run_id = run.seer_run_state_id if run is not None else resolved_run_id
-                assert triggered_run_id is not None
-                run_id = triggered_run_id
+                run_id = run.seer_run_state_id
 
                 if is_autofix_kickoff:
                     actor = resolve_action_actor(request)
@@ -451,7 +449,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                             data={"referrer": referrer.value},
                             send_notification=False,
                         )
-                    sentry_run_id = str(run.uuid) if run else None
+                    sentry_run_id = str(run.uuid)
                 else:
                     sentry_run_id = resolved_sentry_run_id
 

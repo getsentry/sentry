@@ -385,7 +385,7 @@ def trigger_autofix_agent(
     feedback: Sequence[Feedback] | None = None,
     user: User | RpcUser | AnonymousUser | None = None,
     enable_bash_tools: bool = False,
-) -> SeerRun | None:
+) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
 
@@ -456,7 +456,7 @@ def trigger_autofix_agent(
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
 
-    run: SeerRun | None = None
+    run: SeerRun
     if run_id is None:
         metadata: dict[str, Any] = {
             "group_id": group.id,
@@ -478,6 +478,15 @@ def trigger_autofix_agent(
             group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
         )
     else:
+        # Resolve the mirror before touching Seer so a missing run fails without
+        # advancing it.
+        existing = SeerRun.objects.filter(
+            organization_id=group.organization.id,
+            seer_run_state_id=run_id,
+        ).first()
+        if existing is None:
+            raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
+        run = existing
         client.continue_run(
             run_id=run_id,
             prompt=prompt,
@@ -486,12 +495,6 @@ def trigger_autofix_agent(
             artifact_schema=artifact_schema,
             insert_index=insert_index,
         )
-
-    if run is None:
-        run = SeerRun.objects.filter(
-            organization_id=group.organization.id,
-            seer_run_state_id=run_id,
-        ).first()
 
     # Emit the started event after run_id is resolved so it can be joined to
     # downstream completed/PR events.
@@ -509,7 +512,7 @@ def trigger_autofix_agent(
 
     payload: dict[str, Any] = {
         "run_id": run_id,
-        "sentry_run_id": str(run.uuid) if run is not None else None,
+        "sentry_run_id": str(run.uuid),
         "group_id": group.id,
     }
     if iteration_index is not None:

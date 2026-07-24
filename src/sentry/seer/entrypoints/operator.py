@@ -222,7 +222,6 @@ class SeerAutofixOperator[CachePayloadT]:
                         run_id=None,
                         user=user,
                     )
-                    assert run is not None
                     run_id = run.seer_run_state_id
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
                     trigger_push_changes(
