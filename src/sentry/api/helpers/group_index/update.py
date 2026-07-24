@@ -799,12 +799,8 @@ def prepare_response(
                             "group_index.groupactionlogentry.not_found",
                             extra={"group_id": group.id},
                         )
-                        result["activity"] = serialize(
-                            Activity.objects.get_activities_for_group(
-                                group=group, num=ACTIVITIES_COUNT
-                            ),
-                            acting_user,
-                        )
+                        return
+
                 else:
                     result["activity"] = serialize(
                         Activity.objects.get_activities_for_group(
