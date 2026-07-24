@@ -337,12 +337,15 @@ function ReviewGroup({
   comments: IterationFeedback[];
 }) {
   return (
-    <Stack gap="md">
+    // `gap="0"`: all spacing lives inside the rows (their `padding-top`) so the
+    // tree rule spans it continuously. A gap here would sit outside every row —
+    // an uncovered blank stretch under the header, plus a double gap before the
+    // first comment.
+    <Stack gap="0">
       <FeedbackItem item={body} />
       {comments.length > 0 && (
         // `marginLeft` aligns the tree rule under the header avatar's center
-        // (`AVATAR_SIZE / 2` === `space.lg`). `gap="0"` keeps rows abutting so
-        // their vertical segments join into one continuous rule.
+        // (`AVATAR_SIZE / 2` === `space.lg`).
         <Stack gap="0" marginLeft="lg">
           {comments.map((comment, index) => (
             <ReviewChildRow key={`${comment.iterationIndex}-${index}`}>
