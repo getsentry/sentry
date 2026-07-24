@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import {useRef, useState} from 'react';
 import {Outlet, ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
@@ -28,7 +28,6 @@ import {SystemAlerts} from 'sentry/views/app/systemAlerts';
 import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import {Navigation} from 'sentry/views/navigation';
-import {SUPERUSER_MARQUEE_HEIGHT} from 'sentry/views/navigation/constants';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
@@ -109,10 +108,7 @@ function AppLayout({organization}: LayoutProps) {
       <Stack flex="1" minWidth="0" minHeight="100dvh">
         <Container ref={topRegionRef}>
           {showSuperuserWarning && (
-            <Fragment>
-              <Container height={`${SUPERUSER_MARQUEE_HEIGHT}px`} />
-              <Override name="component:superuser-warning" organization={organization} />
-            </Fragment>
+            <Override name="component:superuser-warning" organization={organization} />
           )}
           <SystemAlerts className="messages-container" />
         </Container>

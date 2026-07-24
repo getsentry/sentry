@@ -113,44 +113,47 @@ export function SuperuserWarning({organization}: Props) {
   }
 
   return (
-    <Frame
-      position="fixed"
-      top="0"
-      right="0"
-      bottom="0"
-      left="0"
-      border="danger"
-      display="flex"
-    >
-      <Tooltip
-        isHoverable
-        position="bottom-start"
-        containerDisplayMode="block"
-        title={
-          <TooltipContent>
-            <Content>{WARNING_MESSAGE}</Content>
-            <ExitSuperuserButton />
-          </TooltipContent>
-        }
+    <Fragment>
+      <Container height={`${SUPERUSER_MARQUEE_HEIGHT}px`} />
+      <Frame
+        position="fixed"
+        top="0"
+        right="0"
+        bottom="0"
+        left="0"
+        border="danger"
+        display="flex"
       >
-        <MarqueeStrip ref={stripRef} align="baseline" overflow="hidden">
-          <MarqueeText
-            ref={textRef}
-            wrap="nowrap"
-            monospace
-            bold
-            uppercase
-            style={
-              {
-                '--len': `${SUPERUSER_MESSAGE}${SUPERUSER_SEPARATOR}`.length,
-              } as React.CSSProperties
-            }
-          >
-            {`${SUPERUSER_MESSAGE}${SUPERUSER_SEPARATOR}`.repeat(marqueeCount)}
-          </MarqueeText>
-        </MarqueeStrip>
-      </Tooltip>
-    </Frame>
+        <Tooltip
+          isHoverable
+          position="bottom-start"
+          containerDisplayMode="block"
+          title={
+            <TooltipContent>
+              <Content>{WARNING_MESSAGE}</Content>
+              <ExitSuperuserButton />
+            </TooltipContent>
+          }
+        >
+          <MarqueeStrip ref={stripRef} align="baseline" overflow="hidden">
+            <MarqueeText
+              ref={textRef}
+              wrap="nowrap"
+              monospace
+              bold
+              uppercase
+              style={
+                {
+                  '--len': `${SUPERUSER_MESSAGE}${SUPERUSER_SEPARATOR}`.length,
+                } as React.CSSProperties
+              }
+            >
+              {`${SUPERUSER_MESSAGE}${SUPERUSER_SEPARATOR}`.repeat(marqueeCount)}
+            </MarqueeText>
+          </MarqueeStrip>
+        </Tooltip>
+      </Frame>
+    </Fragment>
   );
 }
 
