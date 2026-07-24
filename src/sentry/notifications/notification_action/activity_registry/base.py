@@ -38,8 +38,10 @@ def send_activity_notification(
     activity: Activity,
     target: NotificationTarget,
 ) -> None:
-    data = build_activity_notification_data(activity, workflow_id=invocation.workflow_id)
-    NotificationService[ActivityNotificationData](data=data).notify_sync(targets=[target])
+    data = build_activity_notification_data(
+        activity, workflow_id=invocation.workflow_id, target=target
+    )
+    NotificationService[ActivityNotificationData](data=data).notify_target(target=target)
 
 
 def require_config(action: Action, key: str) -> str:

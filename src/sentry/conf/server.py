@@ -1212,6 +1212,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "demomode:sentry.demo_mode.tasks.sync_debug_artifacts",
         "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
+    "pr-metrics-detect-stale": {
+        "task": "seer.code_review:sentry.pr_metrics.tasks.detect_stale_pull_requests",
+        "schedule": crontab("0", "2", "*", "*", "*"),
+    },
     "relocation-find-transfer-region": {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
@@ -1227,6 +1231,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "web-vitals-issue-detection": {
         "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
         "schedule": crontab("0", "0", "*", "1,15", "*"),
+    },
+    "heal-stale-derived-data": {
+        "task": "issues:sentry.issues.derived.tasks.heal_stale_derived_data",
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
 }
 

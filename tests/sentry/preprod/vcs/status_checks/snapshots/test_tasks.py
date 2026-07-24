@@ -9,7 +9,11 @@ from sentry.integrations.source_code_management.status_check import StatusCheckS
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
-from sentry.preprod.snapshots.utils import build_changes_map
+from sentry.preprod.snapshots.utils import (
+    SnapshotChangeCriteria,
+    evaluate_snapshot_changes_by_artifact_id,
+)
+from sentry.preprod.vcs.status_checks.snapshots.config import get_snapshot_approval_policy
 from sentry.preprod.vcs.status_checks.snapshots.tasks import (
     _compute_snapshot_status,
     create_preprod_snapshot_status_check_task,
@@ -65,13 +69,59 @@ class SnapshotTasksTestBase(TestCase):
         return artifact, head_metrics, comparison
 
 
+def _criteria(
+    *, added: bool = False, removed: bool = True, changed: bool = True, renamed: bool = False
+) -> SnapshotChangeCriteria:
+    return SnapshotChangeCriteria(
+        added=added,
+        removed=removed,
+        changed=changed,
+        renamed=renamed,
+    )
+
+
+@cell_silo_test
+class SnapshotApprovalPolicyTest(SnapshotTasksTestBase):
+    def test_disabled_status_checks_have_no_approval_criteria(self):
+        self.project.update_option("sentry:preprod_snapshot_status_checks_enabled", False)
+
+        policy = get_snapshot_approval_policy(self.project)
+
+        assert policy.enabled is False
+        assert policy.criteria == SnapshotChangeCriteria(
+            added=False,
+            removed=False,
+            changed=False,
+            renamed=False,
+        )
+
+    def test_enabled_status_checks_use_configured_approval_criteria(self):
+        self.project.update_option("sentry:preprod_snapshot_status_checks_enabled", True)
+        self.project.update_option("sentry:preprod_snapshot_status_checks_fail_on_added", True)
+        self.project.update_option("sentry:preprod_snapshot_status_checks_fail_on_removed", False)
+        self.project.update_option("sentry:preprod_snapshot_status_checks_fail_on_changed", False)
+        self.project.update_option("sentry:preprod_snapshot_status_checks_fail_on_renamed", True)
+
+        policy = get_snapshot_approval_policy(self.project)
+
+        assert policy.enabled is True
+        assert policy.criteria == SnapshotChangeCriteria(
+            added=True,
+            removed=False,
+            changed=False,
+            renamed=True,
+        )
+
+
 @cell_silo_test
 class ComputeSnapshotStatusTest(SnapshotTasksTestBase):
-    def _status_with_changes_map(self, artifact, metrics, approvals=None, **flags):
+    def _status_with_changes_map(self, artifact, metrics, approvals=None, criteria=None):
         artifacts = [artifact]
         metrics_map = {artifact.id: metrics}
         comparisons_map = {metrics.id: _get_comparison(metrics)}
-        changes_map = build_changes_map(artifacts, metrics_map, comparisons_map, **flags)
+        changes_map = evaluate_snapshot_changes_by_artifact_id(
+            artifacts, metrics_map, comparisons_map, criteria or _criteria()
+        )
         return _compute_snapshot_status(
             artifacts, metrics_map, comparisons_map, approvals or {}, changes_map
         )
@@ -83,14 +133,14 @@ class ComputeSnapshotStatusTest(SnapshotTasksTestBase):
     def test_images_added_fails_when_flag_on(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_added=5)
         assert (
-            self._status_with_changes_map(artifact, metrics, fail_on_added=True)
+            self._status_with_changes_map(artifact, metrics, criteria=_criteria(added=True))
             == StatusCheckStatus.FAILURE
         )
 
     def test_images_removed_ignored_when_flag_off(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_removed=3)
         assert (
-            self._status_with_changes_map(artifact, metrics, fail_on_removed=False)
+            self._status_with_changes_map(artifact, metrics, criteria=_criteria(removed=False))
             == StatusCheckStatus.SUCCESS
         )
 
@@ -105,7 +155,7 @@ class ComputeSnapshotStatusTest(SnapshotTasksTestBase):
     def test_images_changed_ignored_when_flag_off(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_changed=2)
         assert (
-            self._status_with_changes_map(artifact, metrics, fail_on_changed=False)
+            self._status_with_changes_map(artifact, metrics, criteria=_criteria(changed=False))
             == StatusCheckStatus.SUCCESS
         )
 
@@ -116,7 +166,7 @@ class ComputeSnapshotStatusTest(SnapshotTasksTestBase):
     def test_images_renamed_fails_when_flag_on(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_renamed=1)
         assert (
-            self._status_with_changes_map(artifact, metrics, fail_on_renamed=True)
+            self._status_with_changes_map(artifact, metrics, criteria=_criteria(renamed=True))
             == StatusCheckStatus.FAILURE
         )
 
@@ -126,72 +176,84 @@ class ComputeSnapshotStatusTest(SnapshotTasksTestBase):
 
 
 @cell_silo_test
-class BuildChangesMapTest(SnapshotTasksTestBase):
+class EvaluateSnapshotChangesByArtifactIdTest(SnapshotTasksTestBase):
     def test_added_ignored_when_flag_off(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_added=5)
-        changes_map = build_changes_map(
-            [artifact], {artifact.id: metrics}, {metrics.id: _get_comparison(metrics)}
+        changes_map = evaluate_snapshot_changes_by_artifact_id(
+            [artifact],
+            {artifact.id: metrics},
+            {metrics.id: _get_comparison(metrics)},
+            _criteria(),
         )
         assert not any(changes_map.values())
 
     def test_added_detected_when_flag_on(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_added=5)
-        changes_map = build_changes_map(
+        changes_map = evaluate_snapshot_changes_by_artifact_id(
             [artifact],
             {artifact.id: metrics},
             {metrics.id: _get_comparison(metrics)},
-            fail_on_added=True,
+            _criteria(added=True),
         )
         assert changes_map[artifact.id] is True
 
     def test_removed_ignored_when_flag_off(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_removed=3)
-        changes_map = build_changes_map(
+        changes_map = evaluate_snapshot_changes_by_artifact_id(
             [artifact],
             {artifact.id: metrics},
             {metrics.id: _get_comparison(metrics)},
-            fail_on_removed=False,
+            _criteria(removed=False),
         )
         assert not any(changes_map.values())
 
     def test_removed_detected_by_default(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_removed=3)
-        changes_map = build_changes_map(
-            [artifact], {artifact.id: metrics}, {metrics.id: _get_comparison(metrics)}
+        changes_map = evaluate_snapshot_changes_by_artifact_id(
+            [artifact],
+            {artifact.id: metrics},
+            {metrics.id: _get_comparison(metrics)},
+            _criteria(),
         )
         assert changes_map[artifact.id] is True
 
     def test_changed_detected_by_default(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_changed=2)
-        changes_map = build_changes_map(
-            [artifact], {artifact.id: metrics}, {metrics.id: _get_comparison(metrics)}
+        changes_map = evaluate_snapshot_changes_by_artifact_id(
+            [artifact],
+            {artifact.id: metrics},
+            {metrics.id: _get_comparison(metrics)},
+            _criteria(),
         )
         assert changes_map[artifact.id] is True
 
     def test_changed_ignored_when_flag_off(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_changed=2)
-        changes_map = build_changes_map(
+        changes_map = evaluate_snapshot_changes_by_artifact_id(
             [artifact],
             {artifact.id: metrics},
             {metrics.id: _get_comparison(metrics)},
-            fail_on_changed=False,
+            _criteria(changed=False),
         )
         assert not any(changes_map.values())
 
     def test_renamed_ignored_by_default(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_renamed=1)
-        changes_map = build_changes_map(
-            [artifact], {artifact.id: metrics}, {metrics.id: _get_comparison(metrics)}
+        changes_map = evaluate_snapshot_changes_by_artifact_id(
+            [artifact],
+            {artifact.id: metrics},
+            {metrics.id: _get_comparison(metrics)},
+            _criteria(),
         )
         assert not any(changes_map.values())
 
     def test_renamed_detected_when_flag_on(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_renamed=1)
-        changes_map = build_changes_map(
+        changes_map = evaluate_snapshot_changes_by_artifact_id(
             [artifact],
             {artifact.id: metrics},
             {metrics.id: _get_comparison(metrics)},
-            fail_on_renamed=True,
+            _criteria(renamed=True),
         )
         assert changes_map[artifact.id] is True
 
@@ -254,8 +316,11 @@ class SnapshotStatusCheckWithSkippedTest(SnapshotTasksTestBase):
         comparison.images_skipped = 100
         comparison.save(update_fields=["images_skipped"])
 
-        changes_map = build_changes_map(
-            [artifact], {artifact.id: metrics}, {metrics.id: comparison}
+        changes_map = evaluate_snapshot_changes_by_artifact_id(
+            [artifact],
+            {artifact.id: metrics},
+            {metrics.id: comparison},
+            _criteria(),
         )
         assert changes_map[artifact.id] is False
 

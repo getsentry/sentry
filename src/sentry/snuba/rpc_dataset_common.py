@@ -48,7 +48,12 @@ from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
-from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
+from sentry.search.eap.constants import (
+    DOUBLE,
+    MAX_ROLLUP_POINTS,
+    SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME,
+    VALID_GRANULARITIES,
+)
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.rpc_utils import and_trace_item_filters, anyvalue_to_python
 from sentry.search.eap.sampling import events_meta_from_rpc_request_meta
@@ -78,6 +83,16 @@ class ProcessedTimeseries:
 
 
 @dataclass
+class LimitBy:
+    """Caps the number of returned rows per distinct combination of `columns`
+    (e.g. the top N rows for every project), unlike `limit` which caps the
+    overall result. `columns` must be selected, non-aggregate columns."""
+
+    columns: list[str]
+    limit: int
+
+
+@dataclass
 class TableQuery:
     query_string: str
     selected_columns: list[str]
@@ -93,6 +108,7 @@ class TableQuery:
     additional_queries: AdditionalQueries | None = None
     extra_conditions: TraceItemFilter | None = None
     max_string_length: int | None = None
+    limit_by: LimitBy | None = None
 
 
 @dataclass
@@ -375,6 +391,33 @@ class RPCBase:
         else:
             group_by = []
 
+        resolved_limit_by: TraceItemTableRequest.LimitBy | None = None
+        if query.limit_by is not None:
+            if query.sampling_mode == SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME:
+                # flextime paginates the scan per time window, so a LIMIT BY would
+                # apply per window rather than globally; snuba rejects the combination.
+                raise InvalidSearchQuery("limit_by is not supported with flextime sampling")
+            if not query.limit_by.columns:
+                raise InvalidSearchQuery("limit_by must specify at least one column")
+            if query.limit_by.limit <= 0:
+                raise InvalidSearchQuery("limit_by limit must be greater than 0")
+            attribute_keys = {
+                column.public_alias: column.proto_definition
+                for column in columns
+                if isinstance(column.proto_definition, AttributeKey)
+            }
+            limit_by_columns = []
+            for limit_by_alias in query.limit_by.columns:
+                key = attribute_keys.get(limit_by_alias)
+                if key is None:
+                    raise InvalidSearchQuery(
+                        f"limit_by column '{limit_by_alias}' must be a selected non-aggregate column"
+                    )
+                limit_by_columns.append(TraceItemTableRequest.LimitBy.Column(key=key))
+            resolved_limit_by = TraceItemTableRequest.LimitBy(
+                columns=limit_by_columns, limit=query.limit_by.limit
+            )
+
         page_token = (
             PageToken(offset=query.offset) if query.page_token is None else query.page_token
         )
@@ -388,6 +431,7 @@ class RPCBase:
                 group_by=group_by,
                 order_by=resolved_orderby,
                 limit=query.limit,
+                limit_by=resolved_limit_by,
                 page_token=page_token,
                 virtual_column_contexts=[context for context in contexts if context is not None],
                 trace_filters=cross_trace_queries,

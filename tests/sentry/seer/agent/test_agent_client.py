@@ -22,7 +22,7 @@ from sentry.seer.agent.client_models import (
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
-from sentry.seer.sentry_data_models import MonitoringProviderConnectionData
+from sentry.seer.sentry_data_models import HeaderAuthConnectionData
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.requests import make_request
@@ -445,7 +445,7 @@ class TestSeerAgentClient(TestCase):
         mock_access.return_value = (True, None)
         mock_post.return_value = self._mock_run_response(run_id=1)
         mock_conns.return_value = [
-            MonitoringProviderConnectionData(
+            HeaderAuthConnectionData(
                 provider_key="datadog",
                 url="https://mcp.datadoghq.com/api/unstable/mcp-server/mcp",
                 encrypted_auth_headers={"DD-API-KEY": "x", "DD-APPLICATION-KEY": "y"},

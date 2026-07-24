@@ -26,6 +26,7 @@ import {
 } from 'sentry/views/issueDetails/groupDataContext';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
+import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
@@ -37,6 +38,7 @@ import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
+import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 import {IssueProgressTag} from 'sentry/views/issueList/utils/progress';
 
 interface IssuePreviewProps {
@@ -44,28 +46,18 @@ interface IssuePreviewProps {
 }
 
 export function IssuePreview({groupId}: IssuePreviewProps) {
-  const organization = useOrganization();
   const {data: group, isPending, isError} = useGroup({groupId});
   const {projects} = useProjects();
   const project = projects.find(p => p.id === group?.project.id) ?? group?.project;
 
-  const issueDetailsUrl = normalizeUrl(
-    `/organizations/${organization.slug}/issues/${groupId}/`
-  );
-
   return (
     <Fragment>
-      <Container padding="md" borderBottom="muted">
-        <Flex justify="between" align="center" flex="1" gap="md">
+      <Container padding="xs 2xl" borderBottom="muted">
+        <Flex align="center" flex="1" gap="md">
           {group && project && <IssueIdBreadcrumb group={group} project={project} />}
-          <Flex justify="end" flex="1">
-            <LinkButton to={issueDetailsUrl} size="xs" icon={<IconOpen />}>
-              {t('Open Issue')}
-            </LinkButton>
-          </Flex>
         </Flex>
       </Container>
-      <Container flexGrow={1} minHeight={0} overflowY="auto" padding="lg">
+      <Container flexGrow={1} minHeight={0} overflowY="auto" padding="lg 2xl">
         {isPending && <LoadingIndicator />}
         {isError && <LoadingError />}
         {group && project && (
@@ -81,6 +73,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
 }
 
 function IssuePreviewContent() {
+  const organization = useOrganization();
   const {group, project} = useGroupData();
   const {hasAutofix} = useAiConfig(group, project);
   const {data: event} = useGroupEvent({
@@ -95,22 +88,39 @@ function IssuePreviewContent() {
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(getGroupReprocessingStatus(group));
 
+  const issueDetailsUrl = normalizeUrl(
+    `/organizations/${organization.slug}/issues/${group.id}/`
+  );
+
   return (
     <Fragment>
       <Container paddingBottom="lg" borderBottom="muted">
         <Stack gap="xs">
           <Container>
-            <Tooltip
-              title={primaryTitle}
-              skipWrapper
-              isHoverable
-              showOnlyOnOverflow
-              delay={1000}
-            >
-              <Heading as="h3" size="lg" ellipsis>
-                {primaryTitle}
-              </Heading>
-            </Tooltip>
+            <Flex align="center" justify="between" gap="md">
+              <Flex align="center" gap="md" minWidth={0}>
+                <Tooltip
+                  title={primaryTitle}
+                  skipWrapper
+                  isHoverable
+                  showOnlyOnOverflow
+                  delay={1000}
+                >
+                  <Heading as="h3" size="lg" ellipsis>
+                    {primaryTitle}
+                  </Heading>
+                </Tooltip>
+                <LinkButton
+                  to={issueDetailsUrl}
+                  size="zero"
+                  variant="transparent"
+                  icon={<IconOpen size="xs" variant="muted" />}
+                  aria-label={t('Open Issue')}
+                  tooltipProps={{title: t('Open Issue')}}
+                />
+              </Flex>
+              <IssueSeenTimes group={group} />
+            </Flex>
             <EventMessage
               level={group.level}
               message={secondaryTitle}
@@ -118,10 +128,15 @@ function IssuePreviewContent() {
             />
           </Container>
           <Flex justify="between" align="center" gap="md">
-            <GroupStatusSubtitle group={group} project={project} />
-            {group.derivedData?.progress && (
-              <IssueProgressTag state={group.derivedData.progress} />
-            )}
+            <Flex flex="1" minWidth={0}>
+              <GroupStatusSubtitle group={group} project={project} />
+            </Flex>
+            <Flex align="center" gap="xs" flexShrink={0} wrap="nowrap">
+              {group.derivedData?.progress && (
+                <IssueProgressTag state={group.derivedData.progress} />
+              )}
+              <EventUserCounts group={group} project={project} />
+            </Flex>
           </Flex>
         </Stack>
       </Container>

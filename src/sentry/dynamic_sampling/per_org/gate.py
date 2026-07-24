@@ -5,6 +5,9 @@ from sentry.options.rollout import in_rollout_group
 
 KILLSWITCH_OPTION = "dynamic-sampling.per_org.killswitch"
 ROLLOUT_RATE_OPTION = "dynamic-sampling.per_org.rollout-rate"
+TRANSACTION_VOLUMES_PER_PROJECT_ROLLOUT_RATE_OPTION = (
+    "dynamic-sampling.per_org.transaction-volumes-per-project-rollout-rate"
+)
 METRICS_SAMPLE_RATE_OPTION = "dynamic-sampling.per_org.metrics-sample-rate"
 PROJECT_BALANCING_DEBUG_PROJECT_IDS_OPTION = (
     "dynamic-sampling.per_org.project-balancing-debug-project-ids"
@@ -29,6 +32,10 @@ def is_rollout_enabled() -> bool:
 
 def is_org_in_rollout(org_id: int) -> bool:
     return in_rollout_group(ROLLOUT_RATE_OPTION, org_id)
+
+
+def is_org_in_transaction_volumes_per_project_rollout(org_id: int) -> bool:
+    return in_rollout_group(TRANSACTION_VOLUMES_PER_PROJECT_ROLLOUT_RATE_OPTION, org_id)
 
 
 def metrics_sample_rate() -> float:
