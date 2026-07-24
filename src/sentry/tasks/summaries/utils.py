@@ -701,7 +701,12 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
             if pr is None:
                 continue
             repo = repos_by_id.get(pr.repository_id)
-            if repo is None or not repo.provider or not repo.provider.startswith("integrations:"):
+            if (
+                repo is None
+                or not repo.url
+                or not repo.provider
+                or not repo.provider.startswith("integrations:")
+            ):
                 continue
             if repo.provider not in provider_cache:
                 try:
