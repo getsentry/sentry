@@ -52,7 +52,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
 
   return (
     <Fragment>
-      <Container padding="md 2xl" borderBottom="muted">
+      <Container padding="xs 2xl" borderBottom="muted">
         <Flex align="center" flex="1" gap="md">
           {group && project && <IssueIdBreadcrumb group={group} project={project} />}
         </Flex>
