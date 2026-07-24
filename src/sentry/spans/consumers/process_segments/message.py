@@ -102,6 +102,10 @@ def _process_segment(
             except (Project.DoesNotExist, Organization.DoesNotExist):
                 return []
 
+    if project is None:
+        # If the project does not exist then it might have been deleted during ingestion.
+        return []
+
     if project is not None and killswitch_matches_context(
         "spans.process-segments.drop-segments",
         {"org_id": str(project.organization_id)},
@@ -124,10 +128,6 @@ def _process_segment(
     segment_span, spans = _enrich_spans(unprocessed_spans)
     if segment_span is None:
         return spans
-
-    if project is None:
-        # If the project does not exist then it might have been deleted during ingestion.
-        return []
 
     _add_segment_name(segment_span, spans)
     _compute_breakdowns(segment_span, spans, project)
