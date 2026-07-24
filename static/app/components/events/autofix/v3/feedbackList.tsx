@@ -3,7 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LetterAvatar, UserAvatar} from '@sentry/scraps/avatar';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -49,8 +50,31 @@ interface UserUiFeedback extends ParsedBaseFeedback {
 
 interface GithubPrCommentFeedback extends ParsedBaseFeedback {
   commentUrl: string;
-  sourceType: 'github-pr-comment' | 'github-pr-review-comment';
+  sourceType: 'github-pr-comment';
   githubUsername?: string;
+}
+
+// An inline comment left as part of a submitted review.
+interface GithubPrReviewCommentFeedback extends Omit<
+  GithubPrCommentFeedback,
+  'sourceType'
+> {
+  sourceType: 'github-pr-review-comment';
+  // Shared with the review body's `reviewId` to group a review's items under one
+  // header.
+  reviewId?: number;
+}
+
+// The summary body of a submitted PR review: carries the review-level
+// `reviewState` and heads a group of the review's inline comments.
+interface GithubPrReviewBodyFeedback extends ParsedBaseFeedback {
+  sourceType: 'github-pr-review-body';
+  // Absent on feedback serialized before the backend emitted it; the header then
+  // falls back to the source glyph.
+  githubUsername?: string;
+  reviewId?: number;
+  reviewState?: string;
+  reviewUrl?: string;
 }
 
 interface CheckSuiteFeedback extends ParsedBaseFeedback {
@@ -66,6 +90,8 @@ interface OtherFeedback extends ParsedBaseFeedback {
 type ParsedFeedback =
   | UserUiFeedback
   | GithubPrCommentFeedback
+  | GithubPrReviewCommentFeedback
+  | GithubPrReviewBodyFeedback
   | CheckSuiteFeedback
   | OtherFeedback;
 
@@ -92,13 +118,24 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
       if (!commentUrl) {
         return null;
       }
-      return {
+      const comment = {
         ...base,
-        sourceType: source.type,
         githubUsername: source.comment?.user?.login,
         commentUrl,
       };
+      return source.type === 'github-pr-review-comment'
+        ? {...comment, sourceType: source.type, reviewId: source.review_id}
+        : {...comment, sourceType: source.type};
     }
+    case 'github-pr-review-body':
+      return {
+        ...base,
+        sourceType: 'github-pr-review-body',
+        githubUsername: source.user?.login,
+        reviewId: source.review_id,
+        reviewState: source.review_state,
+        reviewUrl: source.html_url,
+      };
     case 'check-suite': {
       const {head_sha: headSha, id: checkSuiteId} = source.event.check_suite;
       const repoUrl = source.event.repository.html_url;
@@ -215,20 +252,162 @@ export function usePrIterationFeedback(
   return {feedback, latestIterationIndex};
 }
 
+type FeedbackNode =
+  | {item: IterationFeedback; type: 'item'}
+  | {
+      body: GithubPrReviewBodyFeedback & IterationFeedback;
+      comments: IterationFeedback[];
+      type: 'review';
+    };
+
+// A group forms only when a review body is present (a comment-only review — e.g.
+// GitHub's "Add single comment" — stays flat). Keyed on `(iterationIndex,
+// reviewId)`: `reviewId` is unique per PR and a review drives exactly one
+// iteration, so the pair can't collide across replays. Grouped comments are
+// identified up front by reference and the group anchored at the body's position,
+// so the caller's newest-first order (a comment can precede its body) is handled.
+function groupFeedback(items: IterationFeedback[]): FeedbackNode[] {
+  const key = (iterationIndex: number, reviewId: number) =>
+    `${iterationIndex}:${reviewId}`;
+
+  const bodies = new Map<string, GithubPrReviewBodyFeedback & IterationFeedback>();
+  for (const item of items) {
+    if (item.sourceType === 'github-pr-review-body' && item.reviewId !== undefined) {
+      bodies.set(key(item.iterationIndex, item.reviewId), item);
+    }
+  }
+
+  const commentsByReview = new Map<string, IterationFeedback[]>();
+  const groupedComments = new Set<IterationFeedback>();
+  for (const item of items) {
+    if (item.sourceType !== 'github-pr-review-comment' || item.reviewId === undefined) {
+      continue;
+    }
+    const k = key(item.iterationIndex, item.reviewId);
+    if (!bodies.has(k)) {
+      continue;
+    }
+    const bucket = commentsByReview.get(k) ?? [];
+    bucket.push(item);
+    commentsByReview.set(k, bucket);
+    groupedComments.add(item);
+  }
+
+  const nodes: FeedbackNode[] = [];
+  for (const item of items) {
+    if (item.sourceType === 'github-pr-review-body' && item.reviewId !== undefined) {
+      const k = key(item.iterationIndex, item.reviewId);
+      nodes.push({
+        type: 'review',
+        body: bodies.get(k)!,
+        comments: commentsByReview.get(k) ?? [],
+      });
+      continue;
+    }
+    if (groupedComments.has(item)) {
+      // Rendered under its group header; drop the flat row.
+      continue;
+    }
+    nodes.push({type: 'item', item});
+  }
+  return nodes;
+}
+
 export function FeedbackList({items}: {items: IterationFeedback[]}) {
   if (items.length === 0) {
     return null;
   }
 
+  const nodes = groupFeedback(items);
+
   return (
     <ArtifactDetails>
       <Text bold>{t('Feedback')}</Text>
-      {items.map((item, index) => (
-        <FeedbackItem key={`${item.iterationIndex}-${index}`} item={item} />
-      ))}
+      {nodes.map((node, index) =>
+        node.type === 'review' ? (
+          <ReviewGroup
+            key={`review-${node.body.iterationIndex}-${node.body.reviewId}-${index}`}
+            body={node.body}
+            comments={node.comments}
+          />
+        ) : (
+          <FeedbackItem key={`${node.item.iterationIndex}-${index}`} item={node.item} />
+        )
+      )}
     </ArtifactDetails>
   );
 }
+
+function ReviewGroup({
+  body,
+  comments,
+}: {
+  body: GithubPrReviewBodyFeedback & IterationFeedback;
+  comments: IterationFeedback[];
+}) {
+  return (
+    // `gap="0"`: all spacing lives inside the rows (their `padding-top`) so the
+    // tree rule spans it continuously. A gap here would sit outside every row —
+    // an uncovered blank stretch under the header, plus a double gap before the
+    // first comment.
+    <Stack gap="0">
+      <FeedbackItem item={body} />
+      {comments.length > 0 && (
+        // `marginLeft` aligns the tree rule under the header avatar's center
+        // (`AVATAR_SIZE / 2` === `space.lg`).
+        <Stack gap="0" marginLeft="lg">
+          {comments.map((comment, index) => (
+            <ReviewChildRow key={`${comment.iterationIndex}-${index}`}>
+              <FeedbackItem item={comment} />
+            </ReviewChildRow>
+          ))}
+        </Stack>
+      )}
+    </Stack>
+  );
+}
+
+const TREE_BRANCH_WIDTH = 16;
+const TREE_ELBOW_RADIUS = 8;
+
+// Rows abut (no gap) and space themselves with `padding-top` so their vertical
+// segments join into one continuous rule. The branch is anchored at the vertical
+// center of the comment's avatar so it holds when the comment text wraps.
+const ReviewChildRow = styled('div')`
+  position: relative;
+  padding-top: ${p => p.theme.space.md};
+  padding-left: ${TREE_BRANCH_WIDTH + 12}px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: calc(${p => p.theme.space.md} + ${AVATAR_SIZE / 2}px);
+    width: ${TREE_BRANCH_WIDTH}px;
+    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
+  }
+
+  /* One L-shaped box so the rule curves into the branch (rounded elbow) instead
+     of running past the last comment. */
+  &:last-child::before {
+    height: calc(${p => p.theme.space.md} + ${AVATAR_SIZE / 2}px);
+    width: ${TREE_BRANCH_WIDTH}px;
+    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+    border-bottom-left-radius: ${TREE_ELBOW_RADIUS}px;
+  }
+  &:last-child::after {
+    display: none;
+  }
+`;
 
 // Each source type owns an `Avatar` and a `Comment` cell. `FeedbackItem` renders
 // the shared grid shell (avatar · comment · timestamp · status) and dispatches
@@ -243,6 +422,10 @@ const SOURCE: Record<
   'user-ui': {Avatar: UserUiAvatar, Comment: UserUiComment},
   'github-pr-comment': {Avatar: GithubAvatar, Comment: GithubComment},
   'github-pr-review-comment': {Avatar: GithubAvatar, Comment: GithubComment},
+  'github-pr-review-body': {
+    Avatar: GithubReviewBodyAvatar,
+    Comment: GithubReviewBodyComment,
+  },
   'check-suite': {Avatar: CheckSuiteAvatar, Comment: CheckSuiteComment},
   other: {Avatar: UnknownAvatarCell, Comment: OtherComment},
 };
@@ -311,31 +494,36 @@ function UserUiAvatar({item}: {item: IterationFeedback}) {
   );
 }
 
+// Builds an `AvatarUser` from a bare GitHub login. We only get the login on the
+// wire (no Sentry user, no avatar URL), so point the avatar at GitHub's per-login
+// image (`github.com/<login>.png`). UserAvatar falls back to a letter avatar from
+// the login if the image fails to load. Returns null when there's no login.
+function githubAvatarUser(login: string | undefined): AvatarUser | null {
+  if (!login) {
+    return null;
+  }
+  return {
+    // GitHub's noreply email for the login. `email` must be present so
+    // UserAvatar's `isActor` check (`email === undefined`) treats this as an
+    // AvatarUser and honors the `avatar` field — an Actor is forced to a letter
+    // avatar. (The exact `ID+login@...` form needs the numeric GitHub user id,
+    // which isn't on the wire, so we use the id-less variant.)
+    email: `${login}@users.noreply.github.com`,
+    username: login,
+    name: login,
+    avatar: {avatarType: 'upload', avatarUrl: `https://github.com/${login}.png`},
+  } as AvatarUser;
+}
+
 function GithubAvatar({item}: {item: IterationFeedback}) {
   const login =
     item.sourceType === 'github-pr-comment' ||
     item.sourceType === 'github-pr-review-comment'
       ? item.githubUsername
       : undefined;
-  // We only get the GitHub login on the wire (no Sentry user, no avatar URL), so
-  // point the avatar at GitHub's per-login image (`github.com/<login>.png`).
-  // UserAvatar falls back to a letter avatar from the login if it fails to load.
-  const user = login
-    ? ({
-        // GitHub's noreply email for the login. `email` must be present so
-        // UserAvatar's `isActor` check (`email === undefined`) treats this as an
-        // AvatarUser and honors the `avatar` field — an Actor is forced to a
-        // letter avatar. (The exact `ID+login@...` form needs the numeric GitHub
-        // user id, which isn't on the wire, so we use the id-less variant.)
-        email: `${login}@users.noreply.github.com`,
-        username: login,
-        name: login,
-        avatar: {avatarType: 'upload', avatarUrl: `https://github.com/${login}.png`},
-      } as AvatarUser)
-    : null;
   return (
     <AuthorAvatar
-      user={user}
+      user={githubAvatarUser(login)}
       Icon={IconGithub}
       tooltip={postedOnLabel(login ?? null, t('GitHub'))}
     />
@@ -392,6 +580,57 @@ function GithubComment({item}: {item: IterationFeedback}) {
       : undefined;
   // The comment text is plain; a trailing arrow links out to the PR comment.
   return <CommentBody text={item.text} externalUrl={url} />;
+}
+
+function GithubReviewBodyAvatar({item}: {item: IterationFeedback}) {
+  const login =
+    item.sourceType === 'github-pr-review-body' ? item.githubUsername : undefined;
+  return (
+    <AuthorAvatar
+      user={githubAvatarUser(login)}
+      Icon={IconGithub}
+      tooltip={postedOnLabel(login ?? null, t('GitHub'))}
+    />
+  );
+}
+
+// Unmapped states (dismissed, pending, a future provider's) return null so the
+// badge is simply omitted rather than crashing.
+function reviewStateTag(
+  state: string | undefined
+): {label: string; variant: TagProps['variant']} | null {
+  switch (state) {
+    case 'approved':
+      return {label: t('Approved'), variant: 'success'};
+    case 'changes_requested':
+      return {label: t('Changes requested'), variant: 'danger'};
+    case 'commented':
+      return {label: t('Reviewed'), variant: 'muted'};
+    default:
+      return null;
+  }
+}
+
+function GithubReviewBodyComment({item}: {item: IterationFeedback}) {
+  if (item.sourceType !== 'github-pr-review-body') {
+    return null;
+  }
+  const tag = reviewStateTag(item.reviewState);
+  return (
+    <Flex align="center" gap="sm" wrap="wrap">
+      {tag && <Tag variant={tag.variant}>{tag.label}</Tag>}
+      {/* A bare state change has no body — show just the link. */}
+      {item.text ? (
+        <CommentBody text={item.text} externalUrl={item.reviewUrl} />
+      ) : (
+        item.reviewUrl && (
+          <ExternalLink href={item.reviewUrl} aria-label={t('Open in GitHub')}>
+            <InlineOpenIcon size="xs" />
+          </ExternalLink>
+        )
+      )}
+    </Flex>
+  );
 }
 
 function CheckSuiteComment({item}: {item: IterationFeedback}) {

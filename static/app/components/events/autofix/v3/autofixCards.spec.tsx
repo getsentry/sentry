@@ -25,7 +25,9 @@ jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
   FileDiffViewer: () => <div data-testid="file-diff-viewer" />,
 }));
 
-const prIterationOrganization = OrganizationFixture({features: ['autofix-pr-iteration']});
+const prIterationOrganization = OrganizationFixture({
+  features: ['autofix-pr-iteration'],
+});
 
 function makeSection(
   step: string,
@@ -725,7 +727,10 @@ describe('ArtifactCard', () => {
           metadata: {
             step: 'pr_iteration',
             iteration_index: '0',
-            feedback: JSON.stringify({text: 'ignored', source: {type: 'mystery'}}),
+            feedback: JSON.stringify({
+              text: 'ignored',
+              source: {type: 'mystery'},
+            }),
           },
         },
       };
@@ -924,7 +929,7 @@ describe('ArtifactCard', () => {
       expect(feedbackLink).toHaveAttribute('href', commentUrl);
     });
 
-    it('renders a GitHub PR review body as plain feedback text', () => {
+    it('groups a review body with its inline comments under a state header', () => {
       const reviewUrl = 'https://github.com/org/repo/pull/42#pullrequestreview-999';
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
@@ -935,12 +940,35 @@ describe('ArtifactCard', () => {
           updated_at: '2026-01-01T00:00:00Z',
           queued_feedback: [
             {
-              text: 'Overall this looks good, please add a test.',
+              text: 'Overall this needs work.',
               source: {
                 type: 'github-pr-review-body',
-                review_id: 999,
-                body: 'Overall this looks good, please add a test.',
                 html_url: reviewUrl,
+                review_id: 7,
+                review_state: 'changes_requested',
+                user: {login: 'octocat'},
+              },
+            },
+            {
+              text: 'Handle the null value here.',
+              source: {
+                type: 'github-pr-review-comment',
+                review_id: 7,
+                comment: {
+                  html_url: 'https://github.com/org/repo/pull/42#r1',
+                  user: {login: 'octocat'},
+                },
+              },
+            },
+            {
+              text: 'And rename this variable.',
+              source: {
+                type: 'github-pr-review-comment',
+                review_id: 7,
+                comment: {
+                  html_url: 'https://github.com/org/repo/pull/42#r2',
+                  user: {login: 'octocat'},
+                },
               },
             },
           ],
@@ -958,17 +986,152 @@ describe('ArtifactCard', () => {
         {organization: prIterationOrganization}
       );
 
-      // Review bodies have no dedicated cell yet, so they fall through to the
-      // generic renderer: plain text with no external link. Grouping the body
-      // with its inline comments under a state header comes in a later change.
-      expect(
-        screen.getByText('Overall this looks good, please add a test.')
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('link', {
-          name: 'Overall this looks good, please add a test.',
-        })
-      ).not.toBeInTheDocument();
+      // The review state renders as a single header badge…
+      expect(screen.getByText('Changes requested')).toBeInTheDocument();
+      // …with the body text and both inline comments beneath it.
+      expect(screen.getByText('Overall this needs work.')).toBeInTheDocument();
+      expect(screen.getByText('Handle the null value here.')).toBeInTheDocument();
+      expect(screen.getByText('And rename this variable.')).toBeInTheDocument();
+      // The header and both comments render the reviewer's GitHub avatar (one per
+      // row), so every row is attributed — no un-authored header glyph. The avatar
+      // URL carries a `?s=` size suffix, so match on the login prefix.
+      const octocatAvatars = screen
+        .getAllByRole('img')
+        .filter(img =>
+          img.getAttribute('src')?.startsWith('https://github.com/octocat.png')
+        );
+      expect(octocatAvatars).toHaveLength(3);
+    });
+
+    it('shows a state badge for a body-only review', () => {
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [
+            {
+              text: 'Looks good to me.',
+              source: {
+                type: 'github-pr-review-body',
+                review_id: 8,
+                review_state: 'approved',
+                user: {login: 'octocat'},
+              },
+            },
+          ],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('Approved')).toBeInTheDocument();
+      expect(screen.getByText('Looks good to me.')).toBeInTheDocument();
+      // A body-only approval still shows the reviewer's avatar on the header —
+      // the case a comment-borrowed login would miss.
+      const octocatAvatars = screen
+        .getAllByRole('img')
+        .filter(img =>
+          img.getAttribute('src')?.startsWith('https://github.com/octocat.png')
+        );
+      expect(octocatAvatars).toHaveLength(1);
+    });
+
+    it('falls back to the GitHub glyph when the review body has no author login', () => {
+      // Feedback serialized before the backend emitted `author_login` has no
+      // login, so the header shows the source glyph rather than an avatar image.
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [
+            {
+              text: 'Looks good to me.',
+              source: {
+                type: 'github-pr-review-body',
+                review_id: 10,
+                review_state: 'approved',
+              },
+            },
+          ],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('Looks good to me.')).toBeInTheDocument();
+      // No GitHub avatar image — the header renders the source glyph instead.
+      const githubAvatars = screen
+        .queryAllByRole('img')
+        .filter(img => img.getAttribute('src')?.startsWith('https://github.com/'));
+      expect(githubAvatars).toHaveLength(0);
+    });
+
+    it('leaves a comment-only review (no body) ungrouped', () => {
+      // GitHub's "Add single comment" fires a review with no summary body, so no
+      // header is synthesized — the inline comment renders flat, with no badge.
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [
+            {
+              text: 'One quick nit.',
+              source: {
+                type: 'github-pr-review-comment',
+                review_id: 9,
+                comment: {
+                  html_url: 'https://github.com/org/repo/pull/42#r3',
+                  user: {login: 'octocat'},
+                },
+              },
+            },
+          ],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('One quick nit.')).toBeInTheDocument();
+      // No review-state badge without a body source to carry the state.
+      expect(screen.queryByText('Changes requested')).not.toBeInTheDocument();
+      expect(screen.queryByText('Approved')).not.toBeInTheDocument();
+      expect(screen.queryByText('Reviewed')).not.toBeInTheDocument();
     });
 
     it('shows a formatted check-suite label instead of the raw feedback text', () => {
