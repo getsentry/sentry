@@ -7,10 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {tct} from 'sentry/locale';
 import type {Permissions} from 'sentry/types/integrations';
-import type {
-  WebhookGranularEvent,
-  WebhookSubscription,
-} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import type {WebhookSubscription} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,
@@ -51,7 +48,7 @@ export function Subscriptions({events, onChange, permissions}: Props) {
     onChange([...others, ...RESOURCE_EVENTS[resource]]);
   };
 
-  const handleEventChange = (event: WebhookGranularEvent, checked: boolean) => {
+  const handleEventChange = (event: WebhookSubscription, checked: boolean) => {
     const newEvents = new Set(events);
     if (checked) {
       newEvents.add(event);
