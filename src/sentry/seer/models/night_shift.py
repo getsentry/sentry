@@ -25,6 +25,7 @@ class SeerNightShiftRun(DefaultFieldsModel):
     # Cron-derived schedule window (currently YYYY-MM-DDTHH:MM); nullable for
     # manual and historical runs, with standard capacity for future formats.
     schedule_id = models.CharField(max_length=256, null=True)
+    date_completed = models.DateTimeField(null=True)
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:

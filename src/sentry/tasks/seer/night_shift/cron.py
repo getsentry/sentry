@@ -10,6 +10,8 @@ from typing import Any, Literal, TypedDict
 import sentry_sdk
 from cronsim import CronSim
 from django.conf import settings
+from django.db import router, transaction
+from django.utils import timezone
 from django.utils.translation import ngettext
 from taskbroker_client.scheduler.config import crontab
 
@@ -272,6 +274,7 @@ def run_night_shift_for_org(
     if triggering_user_id is not None:
         extras["triggering_user_id"] = triggering_user_id
 
+    created = schedule_id is None
     if schedule_id is None:
         run = SeerNightShiftRun.objects.create(
             organization=organization,
@@ -285,17 +288,29 @@ def run_night_shift_for_org(
             schedule_id=schedule_id,
             defaults={"extras": extras},
         )
-        if not created:
-            logger.info(
-                "night_shift.duplicate_run_skipped",
-                extra={
-                    "organization_id": organization.id,
-                    "schedule_id": schedule_id,
-                    "night_shift_run_id": run.id,
-                },
-            )
-            sentry_sdk.metrics.count("night_shift.duplicate_run_skipped", 1)
-            return run.id
+
+    if not created and run.date_completed is not None:
+        logger.info(
+            "night_shift.duplicate_run_skipped",
+            extra={
+                "organization_id": organization.id,
+                "schedule_id": schedule_id,
+                "night_shift_run_id": run.id,
+            },
+        )
+        sentry_sdk.metrics.count("night_shift.duplicate_run_skipped", 1)
+        return run.id
+
+    if not created:
+        logger.info(
+            "night_shift.incomplete_run_resumed",
+            extra={
+                "organization_id": organization.id,
+                "schedule_id": schedule_id,
+                "night_shift_run_id": run.id,
+            },
+        )
+        sentry_sdk.metrics.count("night_shift.incomplete_run_resumed", 1)
 
     task_kwargs: dict[str, Any] = {"options": dict(resolved_options)}
     if project_ids is not None:
@@ -342,8 +357,17 @@ def run_night_shift_execution(
         {"organization_id": organization.id, "organization_slug": organization.slug}
     )
 
+    if run.date_completed is not None:
+        logger.info("night_shift.execute_already_complete", extra=log_extra)
+        return None
+
     start_time = time.monotonic()
     logger.info("night_shift.execute.start", extra=log_extra)
+
+    if run.shards.exists():
+        if _dispatch_pending_shards(run, organization, log_extra, start_time):
+            _complete_run(run)
+        return None
 
     if not quotas.backend.check_seer_quota(
         org_id=organization.id,
@@ -351,6 +375,7 @@ def run_night_shift_execution(
     ):
         logger.info("night_shift.no_seer_quota", extra=log_extra)
         _record_run_error(run, "No Seer quota available")
+        _complete_run(run)
         return None
 
     try:
@@ -364,6 +389,7 @@ def run_night_shift_execution(
             event="night_shift.failed_to_get_eligible_projects",
             extra=log_extra,
         )
+        _complete_run(run)
         return None
 
     sentry_sdk.metrics.distribution("night_shift.eligible_projects", len(eligible))
@@ -372,9 +398,13 @@ def run_night_shift_execution(
 
     if not eligible:
         logger.info("night_shift.no_eligible_projects", extra=log_extra)
+        _complete_run(run)
         return None
 
-    _dispatch_to_seer_feature(run, organization, eligible, resolved_options, log_extra, start_time)
+    if _plan_and_dispatch_shards(
+        run, organization, eligible, resolved_options, log_extra, start_time
+    ):
+        _complete_run(run)
 
 
 def _run_option_defaults(data: Mapping[str, Any]) -> SeerNightShiftRunOptions:
@@ -482,6 +512,12 @@ def _get_eligible_orgs_from_batch(
             return []
 
     return eligible
+
+
+def _complete_run(run: SeerNightShiftRun) -> None:
+    SeerNightShiftRun.objects.filter(id=run.id, date_completed__isnull=True).update(
+        date_completed=timezone.now()
+    )
 
 
 def _record_run_error(run: SeerNightShiftRun, message: str) -> None:
@@ -626,18 +662,19 @@ def _build_triage_payload(
     )
 
 
-def _dispatch_to_seer_feature(
+def _plan_and_dispatch_shards(
     run: SeerNightShiftRun,
     organization: Organization,
     eligible: Sequence[EligibleProject],
     resolved_options: SeerNightShiftRunOptions,
     log_extra: dict[str, object],
     start_time: float,
-) -> None:
-    """Shard the scored candidates into chunks of seer.night_shift.shard_size and
-    dispatch each chunk as its own Seer feature run, recorded as a
-    SeerNightShiftRunShard. Seer pushes verdicts back per shard via
-    deliver_feature_result."""
+) -> bool:
+    """Persist the full shard plan before creating any Seer runs.
+
+    A redelivered task can then dispatch only plan rows without a SeerRun,
+    avoiding duplicate feature runs after an interrupted execution.
+    """
     eligible_projects = [ep.project for ep in eligible]
     repos_by_project = {ep.project.id: ep.connected_repos for ep in eligible}
     tuning_by_project = {
@@ -653,22 +690,19 @@ def _dispatch_to_seer_feature(
     run.update(extras={**(run.extras or {}), "num_candidates": len(scored)})
     if not scored:
         logger.info("night_shift.no_candidates", extra=log_extra)
-        return
+        return True
 
     try:
-        client = SeerAgentClient(organization)
+        SeerAgentClient(organization)
     except SeerPermissionError:
         logger.info("night_shift.no_seer_access", extra=log_extra)
         _record_run_error(run, "Organization does not have Seer access")
-        return
-
-    def _link_shard(created: SeerRun) -> None:
-        SeerNightShiftRunShard.objects.create(run=run, seer_run=created)
+        return True
 
     shard_size = max(1, options.get("seer.night_shift.shard_size"))
-    shards = list(chunked(scored, shard_size))
-    dispatched = 0
-    for shard_index, chunk in enumerate(shards):
+    chunks = list(chunked(scored, shard_size))
+    shard_plan: list[dict[str, object]] = []
+    for shard_index, chunk in enumerate(chunks):
         payload = _build_triage_payload(
             chunk, resolved_options, repos_by_project, tuning_by_project
         )
@@ -678,47 +712,111 @@ def _dispatch_to_seer_feature(
             "Agentic triage (%(count)d candidates)",
             num_candidates,
         ) % {"count": num_candidates}
-        if len(shards) > 1:
-            title += f" — part {shard_index + 1} of {len(shards)}"
-        try:
-            client.start_feature_run(
-                feature_id="night_shift",
-                payload=payload.dict(),
-                title=title,
-                flush=False,
-                on_run_created=_link_shard,
-            )
-        except Exception:
-            logger.exception(
-                "night_shift.shard_dispatch_failed",
-                extra={**log_extra, "shard_index": shard_index, "num_shards": len(shards)},
-            )
-            continue
-        dispatched += 1
+        if len(chunks) > 1:
+            title += f" — part {shard_index + 1} of {len(chunks)}"
+        shard_plan.append({"payload": payload.dict(), "title": title})
 
-    if dispatched == 0:
-        sentry_sdk.metrics.count("night_shift.run_error", 1)
-        _record_run_error(run, "Night shift dispatch failed")
-        logger.error("night_shift.dispatch_failed", extra={**log_extra, "num_shards": len(shards)})
-        return
+    _get_or_create_shard_plan(run, shard_plan)
+    return _dispatch_pending_shards(run, organization, log_extra, start_time)
 
-    failed_shards = len(shards) - dispatched
-    if failed_shards:
+
+def _get_or_create_shard_plan(
+    run: SeerNightShiftRun, shard_plan: Sequence[dict[str, object]]
+) -> list[SeerNightShiftRunShard]:
+    using = router.db_for_write(SeerNightShiftRunShard)
+    with transaction.atomic(using=using):
+        locked_run = SeerNightShiftRun.objects.select_for_update().get(id=run.id)
+        planned_shards = list(locked_run.shards.order_by("id"))
+        if planned_shards:
+            return planned_shards
+
+        SeerNightShiftRunShard.objects.bulk_create(
+            [SeerNightShiftRunShard(run=locked_run, extras=plan) for plan in shard_plan]
+        )
+        return list(locked_run.shards.order_by("id"))
+
+
+def _dispatch_pending_shards(
+    run: SeerNightShiftRun,
+    organization: Organization,
+    log_extra: dict[str, object],
+    start_time: float,
+) -> bool:
+    try:
+        client = SeerAgentClient(organization)
+    except SeerPermissionError:
+        logger.info("night_shift.no_seer_access", extra=log_extra)
+        _record_run_error(run, "Organization does not have Seer access")
+        return False
+
+    using = router.db_for_write(SeerNightShiftRunShard)
+    planned_shards = list(run.shards.order_by("id"))
+    dispatched = 0
+    for shard_index, planned_shard in enumerate(planned_shards):
+        with transaction.atomic(using=using):
+            shard = SeerNightShiftRunShard.objects.select_for_update().get(id=planned_shard.id)
+            if shard.seer_run_id is not None:
+                dispatched += 1
+                continue
+
+            payload = shard.extras.get("payload")
+            title = shard.extras.get("title")
+            if not isinstance(payload, dict) or not isinstance(title, str):
+                logger.error(
+                    "night_shift.invalid_shard_plan",
+                    extra={**log_extra, "shard_index": shard_index},
+                )
+                return False
+
+            def _link_shard(created: SeerRun) -> None:
+                shard.seer_run = created
+                shard.save(update_fields=["seer_run"])
+
+            try:
+                client.start_feature_run(
+                    feature_id="night_shift",
+                    payload=payload,
+                    title=title,
+                    flush=False,
+                    on_run_created=_link_shard,
+                )
+            except Exception:
+                logger.exception(
+                    "night_shift.shard_dispatch_failed",
+                    extra={
+                        **log_extra,
+                        "shard_index": shard_index,
+                        "num_shards": len(planned_shards),
+                    },
+                )
+                continue
+            dispatched += 1
+
+    if dispatched != len(planned_shards):
+        failed_shards = len(planned_shards) - dispatched
         sentry_sdk.metrics.count("night_shift.shard_dispatch_failure", failed_shards)
-        _record_run_error(run, f"Failed to dispatch {failed_shards} of {len(shards)} triage shards")
+        _record_run_error(
+            run, f"Failed to dispatch {failed_shards} of {len(planned_shards)} triage shards"
+        )
         logger.warning(
             "night_shift.partial_dispatch_failure",
-            extra={**log_extra, "num_shards": len(shards), "num_shards_dispatched": dispatched},
+            extra={
+                **log_extra,
+                "num_shards": len(planned_shards),
+                "num_shards_dispatched": dispatched,
+            },
         )
+        return False
 
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
     logger.info(
         "night_shift.feature_dispatched",
         extra={
             **log_extra,
-            "num_eligible_projects": len(eligible_projects),
-            "num_candidates": len(scored),
-            "num_shards": len(shards),
+            "num_eligible_projects": run.extras.get("num_eligible_projects"),
+            "num_candidates": run.extras.get("num_candidates"),
+            "num_shards": len(planned_shards),
             "num_shards_dispatched": dispatched,
         },
     )
+    return True

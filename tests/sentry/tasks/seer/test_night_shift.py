@@ -13,6 +13,7 @@ from sentry.models.group import Group
 from sentry.models.organization import OrganizationStatus
 from sentry.models.project import Project
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
+from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
 from sentry.seer.models.night_shift import (
@@ -614,7 +615,7 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
             run_night_shift_for_org(999999999)
             mock_logger.info.assert_not_called()
 
-    def test_duplicate_schedule_id_skips_execution(self) -> None:
+    def test_incomplete_schedule_id_resumes_execution(self) -> None:
         org = self.create_organization()
 
         with (
@@ -627,16 +628,16 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
 
         assert first_run_id == second_run_id
         assert SeerNightShiftRun.objects.filter(organization=org).count() == 1
-        mock_execute.assert_called_once()
+        assert mock_execute.call_count == 2
         mock_logger.info.assert_called_once_with(
-            "night_shift.duplicate_run_skipped",
+            "night_shift.incomplete_run_resumed",
             extra={
                 "organization_id": org.id,
                 "schedule_id": "2024-07-22T22:00",
                 "night_shift_run_id": first_run_id,
             },
         )
-        mock_count.assert_called_once_with("night_shift.duplicate_run_skipped", 1)
+        mock_count.assert_called_once_with("night_shift.incomplete_run_resumed", 1)
 
     def test_different_schedule_ids_create_separate_runs(self) -> None:
         org = self.create_organization()
@@ -1088,36 +1089,57 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         assert sorted(dispatched_group_ids) == sorted(g.id for g in groups)
         assert run.extras.get("error_message") is None
 
-    def test_partial_shard_failure_still_dispatches(self) -> None:
+    def test_partial_shard_failure_resumes_without_duplicate_runs(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         self._make_eligible(project)
-        for i in range(2):
-            self._store_event_and_update_group(
-                project, f"fixable-{i}", seer_fixability_score=0.9, times_seen=5 + i
-            )
+        groups = [self.create_group(project=project) for _ in range(2)]
+        scored = [ScoredCandidate(group=group, fixability=0.9) for group in groups]
+        real_start_feature_run = SeerAgentClient.start_feature_run
+        calls = 0
 
-        real_create = SeerNightShiftRunShard.objects.create
-        calls: list[int] = []
-
-        def flaky_create(*args, **kwargs):
-            calls.append(1)
-            if len(calls) == 2:
+        def fail_second_dispatch(client, *args, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
                 raise RuntimeError("boom")
-            return real_create(*args, **kwargs)
+            return real_start_feature_run(client, *args, **kwargs)
 
         with (
             self.options({"seer.night_shift.shard_size": 1}),
             self.feature("organizations:gen-ai-features"),
-            patch.object(SeerNightShiftRunShard.objects, "create", side_effect=flaky_create),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                return_value=scored,
+            ) as mock_score,
+            patch.object(
+                SeerAgentClient,
+                "start_feature_run",
+                autospec=True,
+                side_effect=fail_second_dispatch,
+            ),
         ):
-            run_night_shift_for_org(org.id)
+            run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
 
-        run = SeerNightShiftRun.objects.get(organization=org)
-        # One shard dispatched; the failed one is recorded so it isn't invisible.
-        assert SeerNightShiftRunShard.objects.filter(run=run).count() == 1
-        assert SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 1
-        assert run.extras["error_message"] == "Failed to dispatch 1 of 2 triage shards"
+            run = SeerNightShiftRun.objects.get(organization=org)
+            assert run.date_completed is None
+            assert run.shards.filter(seer_run__isnull=True).count() == 1
+            assert (
+                SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 1
+            )
+
+            run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
+            run.refresh_from_db()
+            assert run.date_completed is not None
+            assert run.shards.filter(seer_run__isnull=True).count() == 0
+            assert (
+                SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 2
+            )
+
+            run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
+
+        mock_score.assert_called_once()
+        assert SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 2
 
     def test_no_candidates_skips_dispatch(self) -> None:
         org = self.create_organization()
@@ -1165,8 +1187,9 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert not run.shards.exists()
-        assert run.extras["error_message"] == "Night shift dispatch failed"
+        assert run.shards.filter(seer_run__isnull=True).count() == 1
+        assert run.date_completed is None
+        assert run.extras["error_message"] == "Failed to dispatch 1 of 1 triage shards"
 
     def test_outbox_drain_mirrors_run_against_seer(self) -> None:
         org = self.create_organization()

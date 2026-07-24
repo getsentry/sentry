@@ -31,6 +31,11 @@ class Migration(CheckedMigration):
             name="schedule_id",
             field=models.CharField(max_length=256, null=True),
         ),
+        migrations.AddField(
+            model_name="seernightshiftrun",
+            name="date_completed",
+            field=models.DateTimeField(null=True),
+        ),
         migrations.AddConstraint(
             model_name="seernightshiftrun",
             constraint=models.UniqueConstraint(
