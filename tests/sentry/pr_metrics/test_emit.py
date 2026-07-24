@@ -1447,10 +1447,10 @@ class MultiOrgEmissionDedupeTest(TestCase):
         # Run's org (org A): the canonical row, linked to the run.
         self.repo = self._repo(self.project)
         self.pull_request = self._mergeable_pr(self.repo, self.organization)
-        self.run = self.create_seer_run(
+        run = self.create_seer_run(
             self.organization, type=SeerRunType.FEATURE_RUN, seer_run_state_id=777
         )
-        self.create_seer_run_pull_request(self.run, self.pull_request)
+        self.create_seer_run_pull_request(run, self.pull_request)
 
         # Sibling org (org B): a shadow row for the same provider PR.
         self.sibling_org = self.create_organization()
