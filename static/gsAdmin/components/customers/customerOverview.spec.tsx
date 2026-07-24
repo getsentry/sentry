@@ -1067,6 +1067,32 @@ describe('CustomerOverview', () => {
       expect(seerSection.queryByText('Reserved Budget:')).not.toBeInTheDocument();
     });
 
+    it('treats unavailable Seer add-ons as unavailable, not None', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
+      // Add-on entries exist on the plan but the org is not eligible for them.
+      Object.values(AddOnCategory).forEach(category => {
+        if (subscription.addOns?.[category]) {
+          subscription.addOns[category].enabled = false;
+          subscription.addOns[category].isAvailable = false;
+        }
+      });
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Plan:').nextSibling).toHaveTextContent(
+        `Not available on the ${subscription.planDetails.name} plan`
+      );
+      expect(seerSection.queryByText('None')).not.toBeInTheDocument();
+    });
+
     it('shows Seer is unavailable when the plan does not offer it', () => {
       const organization = OrganizationFixture();
       const subscription = SubscriptionFixture({organization, plan: 'mm2_a_100k'});

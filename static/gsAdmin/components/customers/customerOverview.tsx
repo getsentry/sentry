@@ -308,7 +308,7 @@ function ReservedBudgetData({
 function SeerPlanSummary({customer}: {customer: Subscription}) {
   const seerAddOn = customer.addOns?.[AddOnCategory.SEER];
   const legacySeerAddOn = customer.addOns?.[AddOnCategory.LEGACY_SEER];
-  const isOffered = !!seerAddOn || !!legacySeerAddOn;
+  const isOffered = !!seerAddOn?.isAvailable || !!legacySeerAddOn?.isAvailable;
 
   const isSeatBased = !!seerAddOn?.enabled;
   const isLegacy = !!legacySeerAddOn?.enabled;
