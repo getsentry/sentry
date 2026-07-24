@@ -9,6 +9,7 @@ from scm import actions as scm_actions
 from scm.errors import ResourceNotFound
 from scm.manager import SourceCodeManager
 from scm.types import (
+    Author,
     CreatePullRequestCommentReactionProtocol,
     CreateReviewCommentReactionProtocol,
     DeletePullRequestCommentReactionProtocol,
@@ -672,6 +673,7 @@ def _build_review_feedback(
     review_id: int,
     review_html_url: str | None,
     review_state: str | None,
+    review_author: Author | None,
     author_is_bot: bool,
 ) -> list[Feedback]:
     """Normalize a submitted review into feedback items.
@@ -718,6 +720,7 @@ def _build_review_feedback(
             review_state=review_state,
             body=review_body,
             html_url=review_html_url,
+            user=GithubPrCommentUser(login=review_author["username"] if review_author else None),
             author_is_bot=author_is_bot,
         )
         feedback.append(Feedback(source=body_source))
@@ -846,6 +849,7 @@ def trigger_pr_iteration_from_review(
     review_body = (review.get("body") or "").strip() if review else None
     review_html_url = review.get("html_url") if review else None
     review_state = review.get("state") if review else None
+    review_author = review.get("author") if review else None
 
     # Skip genuinely empty reviews — no body text AND no inline comments — there
     # is nothing to act on (e.g. a bare approve with no message). A review with
@@ -860,6 +864,7 @@ def trigger_pr_iteration_from_review(
         review_id=review_id,
         review_html_url=review_html_url,
         review_state=review_state,
+        review_author=review_author,
         author_is_bot=author_is_bot,
     )
     if not feedback_items:
