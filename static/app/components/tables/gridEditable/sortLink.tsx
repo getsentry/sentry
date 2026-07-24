@@ -5,9 +5,9 @@ import type {LocationDescriptorObject} from 'history';
 import {Link} from '@sentry/scraps/link';
 
 import {IconArrow} from 'sentry/icons';
+import type {Alignments} from 'sentry/utils/discover/fields';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-export type Alignments = 'left' | 'right' | undefined;
 export type Directions = 'desc' | 'asc' | undefined;
 
 type Props = {

@@ -118,7 +118,7 @@ export type QueryFieldValue =
 // Column is just an alias of a Query value
 export type Column = QueryFieldValue;
 
-type Alignments = 'left' | 'right';
+export type Alignments = 'left' | 'right';
 
 export type CountUnit = 'count';
 
