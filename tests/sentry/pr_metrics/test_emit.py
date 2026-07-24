@@ -470,6 +470,62 @@ class PrMetricsEmissionTest(TestCase):
         )
         assert row.repository_is_public is True
 
+    def test_build_row_raises_when_stored_lifecycle_missing(self) -> None:
+        # A close/merge row needs a persisted head_commit_sha and closed_at;
+        # abandoned is exempt since the PR never reached a terminal state.
+        self.pull_request.closed_at = None
+
+        with pytest.raises(ValueError):
+            build_pr_metrics_row(
+                pull_request=self.pull_request,
+                close_action="merged",
+                attributions=[],
+                group_ids=[],
+            )
+
+        with pytest.raises(ValueError):
+            build_pr_metrics_row(
+                pull_request=self.pull_request,
+                close_action="closed",
+                attributions=[],
+                group_ids=[],
+            )
+
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="abandoned",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.closed_at is not None
+
+    def test_build_row_raises_when_head_commit_sha_missing(self) -> None:
+        self.pull_request.head_commit_sha = None
+
+        with pytest.raises(ValueError):
+            build_pr_metrics_row(
+                pull_request=self.pull_request,
+                close_action="merged",
+                attributions=[],
+                group_ids=[],
+            )
+
+        with pytest.raises(ValueError):
+            build_pr_metrics_row(
+                pull_request=self.pull_request,
+                close_action="closed",
+                attributions=[],
+                group_ids=[],
+            )
+
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="abandoned",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.head_commit_sha == "unknown"
+
     def test_build_row_repository_is_public_false_for_private_repo(self) -> None:
         PullRequestActivity.objects.create(
             pull_request=self.pull_request,
@@ -583,18 +639,6 @@ class PrMetricsEmissionTest(TestCase):
             group_ids=[],
         )
         assert row.opened_at is None
-
-    def test_build_row_raises_when_stored_lifecycle_missing(self) -> None:
-        # A close/merge row needs a persisted head_commit_sha and closed_at; a
-        # null means emit ran on a PR that never reached a terminal state.
-        self.pull_request.closed_at = None
-        with pytest.raises(ValueError):
-            build_pr_metrics_row(
-                pull_request=self.pull_request,
-                close_action="merged",
-                attributions=[],
-                group_ids=[],
-            )
 
     def test_build_row_for_close_omits_merge_commit_sha(self) -> None:
         # The webhook persists null merge fields for a closed-but-unmerged PR.

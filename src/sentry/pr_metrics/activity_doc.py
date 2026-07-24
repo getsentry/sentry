@@ -713,3 +713,31 @@ def timeline_events_from_doc(doc: ActivityDoc) -> list[dict[str, Any]]:
 
     events.sort(key=lambda event: event["timestamp"] or "")
     return events
+
+
+# Reviewer engagement for the NO_REVIEWER_ENGAGEMENT diagnosis label. Narrower
+# than tasks.ENGAGING_ACTIVITY_TYPES, which also counts PR-author actions with
+# no reviewer involved. Shared by has_reviewer_engagement (document) and
+# detect_stale_pull_requests_task's legacy-track check (PullRequestActivity
+# rows), so both tracks use the same definition.
+REVIEWER_ENGAGEMENT_ACTIVITY_TYPES = frozenset(
+    {
+        PullRequestActivityType.REVIEW_SUBMITTED,
+        PullRequestActivityType.REVIEW_REQUESTED,
+    }
+)
+
+
+def has_reviewer_engagement(doc: Mapping[str, Any]) -> bool:
+    """Whether ``doc`` records any reviewer engagement throughout the PR's lifetime.
+
+    A capped ``events_dropped`` doc reads as engaged rather than risk a false
+    NO_REVIEWER_ENGAGEMENT label off an incomplete record.
+    """
+    if doc.get("events_dropped"):
+        return True
+
+    for entry in doc.get("events") or ():
+        if entry.get("event_type") in REVIEWER_ENGAGEMENT_ACTIVITY_TYPES:
+            return True
+    return False
