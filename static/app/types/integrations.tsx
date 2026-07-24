@@ -239,7 +239,8 @@ export type SentryAppSchemaElement =
   | SentryAppSchemaStacktraceLink;
 
 export type SentryApp = {
-  author: string;
+  // Null for internal integrations, which have no author.
+  author: string | null;
   events: WebhookEvent[];
   featureData: IntegrationFeature[];
   isAlertable: boolean;
