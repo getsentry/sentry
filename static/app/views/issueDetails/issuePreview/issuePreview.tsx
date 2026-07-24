@@ -10,6 +10,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getMessage, getTitle} from 'sentry/utils/events';
@@ -54,7 +55,14 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
     <Fragment>
       <Container padding="xs 2xl" borderBottom="muted">
         <Flex align="center" flex="1" gap="md">
-          {group && project && <IssueIdBreadcrumb group={group} project={project} />}
+          {group && project ? (
+            <IssueIdBreadcrumb group={group} project={project} />
+          ) : isPending ? (
+            <Flex align="center" gap="md" height="36px">
+              <Placeholder width="16px" height="16px" shape="rect" />
+              <Placeholder width="80px" height="16px" shape="rect" />
+            </Flex>
+          ) : null}
         </Flex>
       </Container>
       <Container flexGrow={1} minHeight={0} overflowY="auto" padding="lg 2xl">
