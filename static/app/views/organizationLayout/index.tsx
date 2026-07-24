@@ -1,5 +1,7 @@
+import {useRef, useState} from 'react';
 import {Outlet, ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -88,21 +90,30 @@ function AppDrawers() {
 
 function AppLayout({organization}: LayoutProps) {
   useSeerExplorerDocumentTitle();
+  const topRegionRef = useRef<HTMLDivElement>(null);
+  const [topRegionHeight, setTopRegionHeight] = useState(0);
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
     !getOverride('component:superuser-warning-excluded')?.(organization);
 
+  useResizeObserver({
+    ref: topRegionRef,
+    onResize() {
+      setTopRegionHeight(topRegionRef.current?.offsetHeight ?? 0);
+    },
+  });
+
   return (
     <PrimaryNavigationContextProvider>
-      <Stack flex="1" minWidth="0" height="100dvh" overflow="hidden">
-        {showSuperuserWarning && (
-          <Container height={`${SUPERUSER_MARQUEE_HEIGHT}px`} flexShrink={0} />
-        )}
-        {showSuperuserWarning && (
-          <Override name="component:superuser-warning" organization={organization} />
-        )}
-        <SystemAlerts className="messages-container" />
+      <Stack flex="1" minWidth="0" minHeight="100dvh">
+        <Container ref={topRegionRef}>
+          {showSuperuserWarning && <Container height={`${SUPERUSER_MARQUEE_HEIGHT}px`} />}
+          {showSuperuserWarning && (
+            <Override name="component:superuser-warning" organization={organization} />
+          )}
+          <SystemAlerts className="messages-container" />
+        </Container>
         <Flex
           flex="1"
           minWidth="0"
@@ -110,7 +121,7 @@ function AppLayout({organization}: LayoutProps) {
           direction={{'screen:sm': 'column', 'screen:md': 'row'}}
           position="relative"
         >
-          <Navigation />
+          <Navigation viewportTop={topRegionHeight} />
           <SeerExplorerSidebarLayout>
             {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
             <ContentStack
@@ -118,8 +129,6 @@ function AppLayout({organization}: LayoutProps) {
               tabIndex={-1}
               flex="1"
               minWidth="0"
-              minHeight="0"
-              overflowY="auto"
               background="secondary"
               containerType="inline-size"
             >
