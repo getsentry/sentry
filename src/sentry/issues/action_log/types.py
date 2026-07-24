@@ -332,6 +332,8 @@ class CommentAction(GroupAction):
 class CommentEditAction(GroupAction):
     user_visible = True
     comment_id: int
+    text: Optional[str] = None
+    mentions: Optional[list[SentryActorRef]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
