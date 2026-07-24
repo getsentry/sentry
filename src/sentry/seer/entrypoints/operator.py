@@ -525,7 +525,7 @@ class SeerAgentOperator[CachePayloadT]:
                         run_id=existing_runs[0].run_id,
                         prompt=prompt,
                         on_page_context=on_page_context,
-                    )
+                    ).seer_run_state_id
                     lifecycle.add_extra("continued", "true")
                 else:
                     run_id = client.start_run(

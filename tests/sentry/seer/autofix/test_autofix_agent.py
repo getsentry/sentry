@@ -423,7 +423,6 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=12345)
-        mock_client.continue_run.return_value = 12345
 
         step_to_action = {
             AutofixStep.ROOT_CAUSE: SeerActionType.ROOT_CAUSE_STARTED,
@@ -454,10 +453,10 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.continue_run.return_value = 67890
         seer_run = self.create_seer_run(
             organization=self.group.organization, seer_run_state_id=67890
         )
+        mock_client.continue_run.return_value = seer_run
 
         result = trigger_autofix_agent(
             group=self.group,
@@ -543,8 +542,9 @@ class TestTriggerAutofixAgent(TestCase):
                 )
             },
         )
-        mock_client.continue_run.return_value = 67890
-        self.create_seer_run(organization=self.group.organization, seer_run_state_id=67890)
+        mock_client.continue_run.return_value = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
 
         with self.feature("organizations:autofix-pr-iteration"):
             trigger_autofix_agent(
@@ -627,8 +627,9 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.continue_run.return_value = 67890
-        self.create_seer_run(organization=self.group.organization, seer_run_state_id=67890)
+        mock_client.continue_run.return_value = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
 
         trigger_autofix_agent(
             group=self.group,
@@ -649,10 +650,10 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.continue_run.return_value = 67890
         seer_run = self.create_seer_run(
             organization=self.group.organization, seer_run_state_id=67890
         )
+        mock_client.continue_run.return_value = seer_run
 
         run = trigger_autofix_agent(
             group=self.group,
@@ -662,26 +663,6 @@ class TestTriggerAutofixAgent(TestCase):
         )
 
         assert run == seer_run
-
-    @patch("sentry.quotas.backend.record_seer_run")
-    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_continue_with_missing_mirror_raises_without_touching_seer(
-        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
-    ):
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
-        with pytest.raises(SeerPermissionError):
-            trigger_autofix_agent(
-                group=self.group,
-                step=AutofixStep.SOLUTION,
-                referrer=AutofixReferrer.UNKNOWN,
-                run_id=99999,
-            )
-
-        mock_client.continue_run.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
@@ -760,8 +741,9 @@ class TestTriggerAutofixAgent(TestCase):
                 )
             },
         )
-        mock_client.continue_run.return_value = 67890
-        self.create_seer_run(organization=self.group.organization, seer_run_state_id=67890)
+        mock_client.continue_run.return_value = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
 
         with self.feature("organizations:autofix-pr-iteration"):
             trigger_autofix_agent(

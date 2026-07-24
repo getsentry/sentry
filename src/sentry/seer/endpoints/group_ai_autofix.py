@@ -42,7 +42,6 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix_agent import (
-    UNKNOWN_RUN_ID_FOR_GROUP,
     AutofixStep,
     NoSeerQuotaException,
     get_autofix_agent_state,
@@ -76,7 +75,7 @@ from sentry.seer.autofix.utils import (
     CodingAgentProviderType,
 )
 from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
-from sentry.seer.models import SeerPermissionError
+from sentry.seer.models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
 from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory

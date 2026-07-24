@@ -52,7 +52,7 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.models.run import SeerRun
-from sentry.seer.models.seer_api_models import SeerPermissionError
+from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -69,8 +69,6 @@ if TYPE_CHECKING:
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
-
-UNKNOWN_RUN_ID_FOR_GROUP = "Unknown run id for group"
 
 
 class NoSeerQuotaException(Exception):
@@ -478,15 +476,7 @@ def trigger_autofix_agent(
             group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
         )
     else:
-        # Resolve before continue_run so a missing run fails without advancing it.
-        existing = SeerRun.objects.filter(
-            organization_id=group.organization.id,
-            seer_run_state_id=run_id,
-        ).first()
-        if existing is None:
-            raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
-        run = existing
-        client.continue_run(
+        run = client.continue_run(
             run_id=run_id,
             prompt=prompt,
             prompt_metadata=prompt_metadata,
