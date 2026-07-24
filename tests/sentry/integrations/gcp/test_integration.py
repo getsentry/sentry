@@ -5,26 +5,22 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from sentry.integrations.gcp.client import _GCP_IAM_BASE
+from sentry.integrations.gcp.client import _CONNECTORS_PROJECT, _GCP_IAM_BASE
 from sentry.integrations.gcp.integration import (
     GcpIntegration,
     GcpIntegrationProvider,
     GcpSaGenerationApiStep,
 )
 from sentry.integrations.gcp.utils import validate_gcp_project_id
+from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.pipeline.types import PipelineStepResult
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
-_CONNECTORS_PROJECT = "sentry-connectors"
 _SA_EMAIL = "sentry-abc123@sentry-connectors.iam.gserviceaccount.com"
 _CUSTOMER_SA = "gcp-sentry@customer-project.iam.gserviceaccount.com"
-
-_GCP_OPTIONS = {
-    "gcp.connectors-project-id": _CONNECTORS_PROJECT,
-}
 
 
 def _mock_iam_session() -> AbstractContextManager[Mock]:
@@ -42,7 +38,7 @@ def _setup_create_sa_response(mock_session: Mock, sa_email: str) -> None:
 
 @control_silo_test
 class GcpIntegrationTest(TestCase):
-    """Tests the full GCP integration lifecycle: setup wizard → build → install → uninstall."""
+    """Tests the full GCP integration lifecycle: setup wizard -> build -> install -> uninstall."""
 
     def setUp(self) -> None:
         super().setUp()
@@ -87,15 +83,15 @@ class GcpIntegrationTest(TestCase):
         assert isinstance(installation, GcpIntegration)
         return installation
 
-    # ── Setup wizard: SA generation step ──────────────────────────────
+    # -- Setup wizard: SA generation step --
 
     @patch("sentry.integrations.gcp.client.secrets.token_hex", return_value="abcdef123456")
-    def test_setup_step_creates_sa(self, _mock_token_hex: Mock) -> None:
+    def test_setup_step_creates_sa_and_persists_to_model(self, _mock_token_hex: Mock) -> None:
         expected_email = f"sentry-abcdef123456@{_CONNECTORS_PROJECT}.iam.gserviceaccount.com"
         step = GcpSaGenerationApiStep()
         pipeline = self._make_pipeline()
 
-        with self.options(_GCP_OPTIONS), _mock_iam_session() as mock_get_session:
+        with _mock_iam_session() as mock_get_session:
             mock_session = mock_get_session.return_value
             _setup_create_sa_response(mock_session, expected_email)
 
@@ -114,6 +110,9 @@ class GcpIntegrationTest(TestCase):
             f"Sentry org {self.organization.id}"
         )
 
+        sa_record = GcpServiceAccount.objects.get(organization_id=self.organization.id)
+        assert sa_record.service_account_email == expected_email
+
     def test_setup_step_reuses_sa_on_page_refresh(self) -> None:
         step = GcpSaGenerationApiStep()
         pipeline = self._make_pipeline(state={"sentry_sa_email": _SA_EMAIL})
@@ -124,33 +123,39 @@ class GcpIntegrationTest(TestCase):
         assert step_data["sentrySaEmail"] == _SA_EMAIL
         mock_gen.assert_not_called()
 
+    def test_setup_step_reuses_sa_from_model_across_sessions(self) -> None:
+        GcpServiceAccount.objects.create(
+            organization_id=self.organization.id,
+            service_account_email=_SA_EMAIL,
+        )
+        step = GcpSaGenerationApiStep()
+        pipeline = self._make_pipeline()
+
+        with _mock_iam_session() as mock_get_session:
+            step_data = step.get_step_data(pipeline, Mock())
+
+        assert step_data["sentrySaEmail"] == _SA_EMAIL
+        mock_get_session.return_value.post.assert_not_called()
+
     def test_setup_step_advances_on_post(self) -> None:
         step = GcpSaGenerationApiStep()
         result = step.handle_post(None, Mock(), Mock())
         assert result == PipelineStepResult.advance()
 
-    def test_setup_step_raises_when_connectors_project_not_configured(self) -> None:
-        step = GcpSaGenerationApiStep()
-        pipeline = self._make_pipeline()
-
-        with (
-            self.options({"gcp.connectors-project-id": ""}),
-            pytest.raises(IntegrationConfigurationError, match="connectors project"),
-        ):
-            step.get_step_data(pipeline, Mock())
-
     def test_setup_step_raises_on_gcp_api_failure(self) -> None:
         step = GcpSaGenerationApiStep()
         pipeline = self._make_pipeline()
 
-        with self.options(_GCP_OPTIONS), _mock_iam_session() as mock_get_session:
+        with _mock_iam_session() as mock_get_session:
             mock_session = mock_get_session.return_value
             mock_session.post.return_value = Mock(ok=False, status_code=403)
 
             with pytest.raises(IntegrationError, match="Failed to create"):
                 step.get_step_data(pipeline, Mock())
 
-    # ── Build + install ───────────────────────────────────────────────
+        assert not GcpServiceAccount.objects.filter(organization_id=self.organization.id).exists()
+
+    # -- Build + install --
 
     def test_build_integration_returns_correct_data(self) -> None:
         result = self.provider.build_integration(self._state())
@@ -225,7 +230,7 @@ class GcpIntegrationTest(TestCase):
             "projects": ["my-gcp-project"],
         }
 
-    # ── Installed integration: config access ──────────────────────────
+    # -- Installed integration: config access --
 
     def test_installation_reads_config(self) -> None:
         installation = self._create_installed_integration(
@@ -250,15 +255,28 @@ class GcpIntegrationTest(TestCase):
         assert isinstance(installation, GcpIntegration)
         assert installation.gcp_config is None
 
-    # ── Uninstall: SA deletion ────────────────────────────────────────
+    # -- Config immutability --
 
-    def test_uninstall_deletes_sa(self) -> None:
+    def test_update_organization_config_is_noop(self) -> None:
         installation = self._create_installed_integration()
+        original_config = installation.gcp_config
+        assert original_config is not None
 
-        with (
-            self.options(_GCP_OPTIONS),
-            _mock_iam_session() as mock_get_session,
-        ):
+        installation.update_organization_config({"sentry_sa_email": "evil@attacker.com"})
+
+        oi = OrganizationIntegration.objects.get(organization_id=self.organization.id)
+        assert oi.config == original_config
+
+    # -- Uninstall: SA deletion --
+
+    def test_uninstall_deletes_sa_and_model_row(self) -> None:
+        installation = self._create_installed_integration()
+        GcpServiceAccount.objects.create(
+            organization_id=self.organization.id,
+            service_account_email=_SA_EMAIL,
+        )
+
+        with _mock_iam_session() as mock_get_session:
             mock_session = mock_get_session.return_value
             mock_session.delete.return_value = Mock(ok=True, status_code=200)
 
@@ -267,14 +285,12 @@ class GcpIntegrationTest(TestCase):
         mock_session.delete.assert_called_once_with(
             f"{_GCP_IAM_BASE}/projects/{_CONNECTORS_PROJECT}/serviceAccounts/{_SA_EMAIL}"
         )
+        assert not GcpServiceAccount.objects.filter(organization_id=self.organization.id).exists()
 
     def test_uninstall_tolerates_already_deleted_sa(self) -> None:
         installation = self._create_installed_integration()
 
-        with (
-            self.options(_GCP_OPTIONS),
-            _mock_iam_session() as mock_get_session,
-        ):
+        with _mock_iam_session() as mock_get_session:
             mock_session = mock_get_session.return_value
             mock_session.delete.return_value = Mock(ok=False, status_code=404)
 
@@ -282,15 +298,18 @@ class GcpIntegrationTest(TestCase):
 
     def test_uninstall_tolerates_gcp_api_errors(self) -> None:
         installation = self._create_installed_integration()
+        GcpServiceAccount.objects.create(
+            organization_id=self.organization.id,
+            service_account_email=_SA_EMAIL,
+        )
 
-        with (
-            self.options(_GCP_OPTIONS),
-            _mock_iam_session() as mock_get_session,
-        ):
+        with _mock_iam_session() as mock_get_session:
             mock_session = mock_get_session.return_value
             mock_session.delete.return_value = Mock(ok=False, status_code=500)
 
             installation.uninstall()
+
+        assert not GcpServiceAccount.objects.filter(organization_id=self.organization.id).exists()
 
     def test_uninstall_noop_without_config(self) -> None:
         integration = self.create_integration(
@@ -308,7 +327,7 @@ class GcpIntegrationTest(TestCase):
 
         mock_delete.assert_not_called()
 
-    # ── Validation ────────────────────────────────────────────────────
+    # -- Validation --
 
     def test_validate_gcp_project_id_accepts_valid_ids(self) -> None:
         for project_id in [

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, TypedDict, cast
 
 from django.http.request import HttpRequest
@@ -141,7 +141,10 @@ class GcpIntegration(IntegrationInstallation):
             return
         sa_email = config.get("sentry_sa_email")
         if sa_email:
-            delete_sentry_sa(sa_email)
+            delete_sentry_sa(sa_email, self.organization_id)
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        pass
 
     def get_organization_config(self) -> Sequence[Any]:
         return []
