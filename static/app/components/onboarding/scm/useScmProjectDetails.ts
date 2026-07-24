@@ -276,6 +276,15 @@ export function useScmProjectDetails({
           option: optionMap[value as number] ?? String(value),
           ...scmFlowVariantParams(analyticsFlow),
         });
+      } else if (
+        analyticsFlow === 'project-creation' &&
+        (key === 'threshold' || key === 'metric' || key === 'interval')
+      ) {
+        trackAnalytics('project_creation.alert_threshold_edited', {
+          organization,
+          field: key,
+          ...scmFlowVariantParams(analyticsFlow),
+        });
       }
     },
     [

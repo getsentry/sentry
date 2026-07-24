@@ -9,6 +9,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {IssueAlertActionType} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import * as analytics from 'sentry/utils/analytics';
 import {MultipleCheckboxOptions} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
@@ -104,7 +105,33 @@ describe('useScmProjectDetails', () => {
   afterEach(() => {
     TeamStore.reset();
     MockApiClient.clearMockResponses();
+    jest.restoreAllMocks();
   });
+
+  it.each([
+    ['project-creation', true],
+    ['onboarding', false],
+  ] as const)(
+    'tracks threshold edits only in the project-creation flow (%s)',
+    (analyticsFlow, shouldTrack) => {
+      const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+      const {result} = renderDetails({analyticsFlow});
+
+      act(() => result.current.onAlertChange('threshold', '10'));
+
+      if (shouldTrack) {
+        expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+          'project_creation.alert_threshold_edited',
+          expect.objectContaining({field: 'threshold', variant: 'scm'})
+        );
+      } else {
+        expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+          'project_creation.alert_threshold_edited',
+          expect.anything()
+        );
+      }
+    }
+  );
 
   it('requires an integration channel when notifying via integration', () => {
     TeamStore.loadInitialData([adminTeam]);
