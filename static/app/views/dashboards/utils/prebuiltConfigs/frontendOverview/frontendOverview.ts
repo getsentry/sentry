@@ -7,6 +7,7 @@ import type {
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
+  DASHBOARD_DESCRIPTION,
   DASHBOARD_TITLE,
   FRONTEND_SDK_NAMES,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/settings';
@@ -247,6 +248,7 @@ export const FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DASHBOARD_TITLE,
+  description: DASHBOARD_DESCRIPTION,
   filters: {
     globalFilter: [
       {
