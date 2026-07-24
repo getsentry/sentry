@@ -1,4 +1,10 @@
+from datetime import UTC, datetime
 from unittest.mock import Mock, patch
+
+import pytest
+from django.conf import settings
+from django.db import IntegrityError
+from taskbroker_client.scheduler.config import crontab
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -17,7 +23,9 @@ from sentry.seer.models.night_shift import (
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.tasks.seer.night_shift.cron import (
+    _current_schedule_id,
     _get_eligible_projects,
+    _night_shift_cron_expr,
     build_run_options,
     run_night_shift_for_org,
     schedule_night_shift,
@@ -34,7 +42,7 @@ from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.fixtures import Fixtures
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.cursors import Cursor
@@ -146,6 +154,61 @@ class TestBuildRunOptions(TestCase):
         assert resolved["max_candidates"] == 3
 
 
+class TestCurrentScheduleId(TestCase):
+    def test_exact_fire_minute(self) -> None:
+        cron_expr = "0 10,22 * * *"
+        assert _current_schedule_id(datetime(2024, 7, 22, 22, 0, tzinfo=UTC), cron_expr) == (
+            "2024-07-22T22:00"
+        )
+        assert _current_schedule_id(datetime(2024, 7, 22, 22, 0, 59, tzinfo=UTC), cron_expr) == (
+            "2024-07-22T22:00"
+        )
+
+    def test_redelivery_offsets(self) -> None:
+        cron_expr = "0 10,22 * * *"
+        assert _current_schedule_id(datetime(2024, 7, 22, 22, 30, tzinfo=UTC), cron_expr) == (
+            "2024-07-22T22:00"
+        )
+        assert _current_schedule_id(datetime(2024, 7, 22, 23, 30, tzinfo=UTC), cron_expr) == (
+            "2024-07-22T22:00"
+        )
+
+    def test_day_rollover(self) -> None:
+        assert (
+            _current_schedule_id(datetime(2024, 7, 23, 1, 30, tzinfo=UTC), "0 10,22 * * *")
+            == "2024-07-22T22:00"
+        )
+
+    def test_window_edges(self) -> None:
+        cron_expr = "0 10,22 * * *"
+        assert _current_schedule_id(datetime(2024, 7, 22, 9, 59, tzinfo=UTC), cron_expr) == (
+            "2024-07-21T22:00"
+        )
+        assert _current_schedule_id(datetime(2024, 7, 22, 10, 0, 5, tzinfo=UTC), cron_expr) == (
+            "2024-07-22T10:00"
+        )
+
+    def test_flexible_cadence(self) -> None:
+        cron_expr = "0 2,6,10,14,18,22 * * *"
+        assert _current_schedule_id(datetime(2024, 7, 22, 14, 0, 30, tzinfo=UTC), cron_expr) == (
+            "2024-07-22T14:00"
+        )
+        assert _current_schedule_id(datetime(2024, 7, 22, 1, 59, tzinfo=UTC), cron_expr) == (
+            "2024-07-21T22:00"
+        )
+
+    def test_night_shift_beat_schedule(self) -> None:
+        schedule_entry = settings.TASKWORKER_SCHEDULES["seer-night-shift"]
+        assert schedule_entry["task"] == "seer:sentry.tasks.seer.night_shift.schedule_night_shift"
+        assert isinstance(schedule_entry["schedule"], crontab)
+        assert (
+            _current_schedule_id(
+                datetime(2024, 7, 22, 22, 30, tzinfo=UTC), _night_shift_cron_expr()
+            )
+            == "2024-07-22T22:00"
+        )
+
+
 @django_db_all
 class TestScheduleNightShift(TestCase):
     def create_org_with_seer(self):
@@ -168,6 +231,7 @@ class TestScheduleNightShift(TestCase):
         org = self.create_org_with_seer()
 
         with (
+            freeze_time("2024-07-22 22:30:00Z"),
             self.options({"seer.night_shift.enable": True}),
             self.feature(
                 {
@@ -177,14 +241,22 @@ class TestScheduleNightShift(TestCase):
                 }
             ),
             patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
+            patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
         ):
             schedule_night_shift()
             mock_worker.apply_async.assert_called_once()
             assert mock_worker.apply_async.call_args.kwargs["args"] == [org.id]
-            assert mock_worker.apply_async.call_args.kwargs["kwargs"] == {}
+            assert mock_worker.apply_async.call_args.kwargs["kwargs"] == {
+                "schedule_id": "2024-07-22T22:00"
+            }
             assert mock_worker.apply_async.call_args.kwargs["headers"] == {
                 "sentry-propagate-traces": False
             }
+            log_extras = {
+                call.args[0]: call.kwargs["extra"] for call in mock_logger.info.call_args_list
+            }
+            assert log_extras["night_shift.schedule_start"]["schedule_id"] == "2024-07-22T22:00"
+            assert log_extras["night_shift.schedule_complete"]["schedule_id"] == "2024-07-22T22:00"
 
     def test_dispatches_with_run_options(self) -> None:
         org = self.create_org_with_seer()
@@ -208,6 +280,29 @@ class TestScheduleNightShift(TestCase):
             assert mock_worker.apply_async.call_args.kwargs["kwargs"] == {
                 "options": {"source": "manual", "dry_run": True, "max_candidates": 3},
             }
+
+    def test_redelivery_dispatches_same_schedule_id(self) -> None:
+        org = self.create_org_with_seer()
+
+        with (
+            freeze_time("2024-07-22 22:30:00Z"),
+            self.options({"seer.night_shift.enable": True}),
+            self.feature(
+                {
+                    "organizations:seer-night-shift": [org.slug],
+                    "organizations:gen-ai-features": [org.slug],
+                    "organizations:seat-based-seer-enabled": [org.slug],
+                }
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
+        ):
+            schedule_night_shift()
+            schedule_night_shift()
+
+        assert [call.kwargs["kwargs"] for call in mock_worker.apply_async.call_args_list] == [
+            {"schedule_id": "2024-07-22T22:00"},
+            {"schedule_id": "2024-07-22T22:00"},
+        ]
 
     def test_skips_orgs_without_seat_based_seer(self) -> None:
         org = self.create_org_with_seer()
@@ -518,6 +613,67 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
             run_night_shift_for_org(999999999)
             mock_logger.info.assert_not_called()
+
+    def test_duplicate_schedule_id_skips_execution(self) -> None:
+        org = self.create_organization()
+
+        with (
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execute,
+            patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
+            patch("sentry.tasks.seer.night_shift.cron.sentry_sdk.metrics.count") as mock_count,
+        ):
+            first_run_id = run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
+            second_run_id = run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
+
+        assert first_run_id == second_run_id
+        assert SeerNightShiftRun.objects.filter(organization=org).count() == 1
+        mock_execute.assert_called_once()
+        mock_logger.info.assert_called_once_with(
+            "night_shift.duplicate_run_skipped",
+            extra={
+                "organization_id": org.id,
+                "schedule_id": "2024-07-22T22:00",
+                "night_shift_run_id": first_run_id,
+            },
+        )
+        mock_count.assert_called_once_with("night_shift.duplicate_run_skipped", 1)
+
+    def test_different_schedule_ids_create_separate_runs(self) -> None:
+        org = self.create_organization()
+
+        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution"):
+            run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
+            run_night_shift_for_org(org.id, schedule_id="2024-07-23T10:00")
+
+        assert SeerNightShiftRun.objects.filter(organization=org).count() == 2
+
+    def test_null_schedule_id_preserves_manual_semantics(self) -> None:
+        org = self.create_organization()
+
+        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution"):
+            run_night_shift_for_org(org.id)
+            run_night_shift_for_org(org.id)
+
+        assert (
+            SeerNightShiftRun.objects.filter(organization=org, schedule_id__isnull=True).count()
+            == 2
+        )
+
+    def test_unique_schedule_constraint(self) -> None:
+        org = self.create_organization()
+
+        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution"):
+            run_id = run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
+
+        run = SeerNightShiftRun.objects.get(id=run_id)
+        pytest.raises(
+            IntegrityError,
+            SeerNightShiftRun.objects.create,
+            organization=org,
+            workflow_config=run.workflow_config,
+            schedule_id="2024-07-22T22:00",
+            extras={},
+        )
 
     def test_no_eligible_projects(self) -> None:
         org = self.create_organization()

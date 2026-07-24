@@ -4,11 +4,14 @@ import dataclasses
 import logging
 import time
 from collections.abc import Mapping, Sequence
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal, TypedDict
 
 import sentry_sdk
+from cronsim import CronSim
+from django.conf import settings
 from django.utils.translation import ngettext
+from taskbroker_client.scheduler.config import crontab
 
 from sentry import features, options, quotas
 from sentry.constants import (
@@ -105,6 +108,21 @@ class SeerNightShiftRunOptionsPartial(TypedDict, total=False):
     extra_triage_instructions: str
 
 
+def _night_shift_cron_expr() -> str:
+    schedule = settings.TASKWORKER_SCHEDULES["seer-night-shift"]["schedule"]
+    if not isinstance(schedule, crontab):
+        raise TypeError(
+            "The seer-night-shift schedule must use taskbroker_client.scheduler.config.crontab"
+        )
+    return str(schedule)
+
+
+def _current_schedule_id(now: datetime, cron_expr: str) -> str:
+    """Return the most recent scheduled fire time at or before ``now``."""
+    base = now.replace(second=0, microsecond=0) + timedelta(minutes=1)
+    return next(CronSim(cron_expr, base, reverse=True)).strftime("%Y-%m-%dT%H:%M")
+
+
 @instrumented_task(
     name="sentry.tasks.seer.night_shift.schedule_night_shift",
     namespace=seer_tasks,
@@ -128,7 +146,11 @@ def schedule_night_shift(
     if not options.get("seer.night_shift.enable"):
         return
 
-    logger.info("night_shift.schedule_start")
+    schedule_id: str | None = None
+    if run_options is None:
+        schedule_id = _current_schedule_id(datetime.now(tz=UTC), _night_shift_cron_expr())
+
+    logger.info("night_shift.schedule_start", extra={"schedule_id": schedule_id})
     start_time = time.monotonic()
 
     seer_org_ids: set[int] = set()
@@ -150,7 +172,11 @@ def schedule_night_shift(
 
     spread_seconds = int(NIGHT_SHIFT_SPREAD_DURATION.total_seconds())
     batch_index = 0
-    task_kwargs: dict[str, Any] = {"options": dict(run_options)} if run_options else {}
+    task_kwargs: dict[str, Any] = {}
+    if run_options is not None:
+        task_kwargs["options"] = dict(run_options)
+    if schedule_id is not None:
+        task_kwargs["schedule_id"] = schedule_id
 
     for chunk_index, org_id_chunk in enumerate(chunked(seer_org_ids, 100)):
         org_batch = list(
@@ -187,6 +213,7 @@ def schedule_night_shift(
         extra={
             "orgs_dispatched": batch_index,
             "elapsed_seconds": time.monotonic() - start_time,
+            "schedule_id": schedule_id,
         },
     )
 
@@ -203,6 +230,7 @@ def run_night_shift_for_org(
     project_ids: list[int] | None = None,
     triggering_user_id: int | None = None,
     execute_in_task: bool = False,
+    schedule_id: str | None = None,
     **kwargs: Any,
 ) -> int | None:
     """Run night shift for one organization. `options` is a partial dict —
@@ -244,11 +272,30 @@ def run_night_shift_for_org(
     if triggering_user_id is not None:
         extras["triggering_user_id"] = triggering_user_id
 
-    run = SeerNightShiftRun.objects.create(
-        organization=organization,
-        workflow_config=workflow_config,
-        extras=extras,
-    )
+    if schedule_id is None:
+        run = SeerNightShiftRun.objects.create(
+            organization=organization,
+            workflow_config=workflow_config,
+            extras=extras,
+        )
+    else:
+        run, created = SeerNightShiftRun.objects.get_or_create(
+            organization=organization,
+            workflow_config=workflow_config,
+            schedule_id=schedule_id,
+            defaults={"extras": extras},
+        )
+        if not created:
+            logger.info(
+                "night_shift.duplicate_run_skipped",
+                extra={
+                    "organization_id": organization.id,
+                    "schedule_id": schedule_id,
+                    "night_shift_run_id": run.id,
+                },
+            )
+            sentry_sdk.metrics.count("night_shift.duplicate_run_skipped", 1)
+            return run.id
 
     task_kwargs: dict[str, Any] = {"options": dict(resolved_options)}
     if project_ids is not None:
