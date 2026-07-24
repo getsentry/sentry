@@ -205,6 +205,7 @@ class DeliverSmartAssignmentResultTest(TestCase):
                 "hit_rank": 1,
                 "trigger": ActivityType.SEER_RCA_STARTED.name,
             },
+            sample_rate=1.0,
         )
 
     @patch(METRICS_PATH)
