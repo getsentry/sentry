@@ -2161,7 +2161,7 @@ class WeeklyReportsTest(
             ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
         )
 
-        assert results == [(group, 1, "Resolved")]
+        assert results == [(group, 1, "Resolved", None)]
         mock_perf_counts.assert_called_once()
         assert mock_perf_counts.call_args.args[2] == [group.id]
 
