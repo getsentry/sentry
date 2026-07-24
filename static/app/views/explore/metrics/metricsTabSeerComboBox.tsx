@@ -38,7 +38,10 @@ import {
   defaultAggregateSortBys,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
-import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {
+  useMultiMetricsQueryParams,
+  useReplaceMetricLabel,
+} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {isTraceMetricTypeValue} from 'sentry/views/explore/metrics/types';
@@ -66,6 +69,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   const {projects} = useProjects();
   const queryParams = useQueryParams();
   const metricQueries = useMultiMetricsQueryParams();
+  const replaceLabel = useReplaceMetricLabel();
   const analyticsArea = useAnalyticsArea();
   const {askSeerSuggestedQueryRef, enableAISearch} = useSearchQueryBuilderAI();
 
@@ -258,6 +262,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
             metric: nextMetric,
             queryParams: newQueryParams,
           },
+          replaceLabel,
         });
 
       const selection = {
@@ -337,6 +342,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       pageFilters.selection,
       projects,
       queryParams,
+      replaceLabel,
       setRunId,
       traceMetric,
     ]

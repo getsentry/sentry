@@ -154,3 +154,8 @@ export function useReorderMetricQueries() {
   const {reorderMetricQueries} = useMultiMetricsQueryParamsContext();
   return reorderMetricQueries;
 }
+
+export function useReplaceMetricLabel() {
+  const {replaceLabel} = useMultiMetricsQueryParamsContext();
+  return replaceLabel;
+}

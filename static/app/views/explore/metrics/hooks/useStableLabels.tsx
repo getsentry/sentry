@@ -95,6 +95,9 @@ export function useStableLabels(queries: BaseMetricQuery[]) {
       remove(position: number) {
         labelsRef.current = labelsRef.current.filter((_, j) => j !== position);
       },
+      replace(position: number, label: string) {
+        labelsRef.current = labelsRef.current.with(position, label);
+      },
       move(from: number, to: number) {
         if (
           from === to ||

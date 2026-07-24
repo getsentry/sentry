@@ -474,7 +474,7 @@ describe('applySeerEquation', () => {
     expect(decoded[7]!.internalExpression).toBe('A - C');
   });
 
-  it('removes the equation and appends the aggregate when seer returns no equation', () => {
+  it('replaces the equation with an aggregate when seer returns no equation', () => {
     const aggA = makeAggregate('sum(value,m1,counter,none)', 'A', {
       metric: {name: 'm1', type: 'counter'},
     });
@@ -487,16 +487,18 @@ describe('applySeerEquation', () => {
       'A + B'
     );
 
-    const seerAggregate = makeAggregate(
-      'p99(value,metricNew,distribution,none)',
-      'ignored',
-      {metric: {name: 'metricNew', type: 'distribution'}}
-    );
+    const newQp = makeQueryParams({
+      aggregateFields: [new VisualizeFunction('p99(value,metricNew,distribution,none)')],
+    });
 
     const result = applySeerResultsToMetricQueries({
       metricQueries: [aggA, aggB, eqF1],
       interactedQueryParams: eqF1.queryParams,
-      seerMetricQueries: [seerAggregate],
+      seerMetricQueries: [],
+      seerAggregateReplacement: {
+        metric: {name: 'metricNew', type: 'distribution'},
+        queryParams: newQp,
+      },
     });
 
     const decoded = decodeResults(result.encodedMetrics);
@@ -506,8 +508,9 @@ describe('applySeerEquation', () => {
     expect(decoded[0]!.yAxis).toBe('sum(value,m1,counter,none)');
     expect(decoded[1]!.yAxis).toBe('avg(value,m2,gauge,none)');
 
-    // ƒ1 removed and replaced by the seer aggregate with a letter label
+    // ƒ1 replaced by the seer aggregate with a letter label (C, not ƒ)
     expect(decoded[2]!.yAxis).toBe('p99(value,metricNew,distribution,none)');
     expect(decoded[2]!.isEquation).toBe(false);
+    expect(decoded[2]!.metric).toEqual({name: 'metricNew', type: 'distribution'});
   });
 });

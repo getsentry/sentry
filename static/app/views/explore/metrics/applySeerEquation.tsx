@@ -13,11 +13,13 @@ import {
 import {spliceEquationQueries} from 'sentry/views/explore/metrics/utils';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
+import {getFunctionLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 interface ApplySeerEquationParams {
   interactedQueryParams: ReadableQueryParams;
   metricQueries: BaseMetricQuery[];
   seerMetricQueries: BaseMetricQuery[];
+  replaceLabel?: (position: number, label: string) => void;
   seerAggregateReplacement?: {
     metric: TraceMetric;
     queryParams: ReadableQueryParams;
@@ -42,6 +44,7 @@ export function applySeerResultsToMetricQueries({
   interactedQueryParams,
   seerMetricQueries,
   seerAggregateReplacement,
+  replaceLabel,
 }: ApplySeerEquationParams): ApplySeerEquationResult {
   const seerEquation = seerMetricQueries.find(
     mq =>
@@ -61,14 +64,26 @@ export function applySeerResultsToMetricQueries({
   // When seer returns no equation for an interacted equation, drop it — the
   // seer aggregates will be spliced in by spliceEquationQueries.
   const updatedMetricQueries = metricQueries
-    .map(mq => {
+    .map((mq, i) => {
       if (mq.queryParams === interactedQueryParams) {
         if (interactedIsEquation && seerEquation) {
           return {...seerEquation, label: mq.label};
         }
 
         if (interactedIsEquation && !seerEquation) {
-          return null;
+          if (seerAggregateReplacement) {
+            const aggregateCount = metricQueries.filter(
+              q => !isVisualizeEquation(q.queryParams.visualizes[0]!)
+            ).length;
+            const newLabel = getFunctionLabel(aggregateCount);
+            replaceLabel?.(i, newLabel);
+            return {
+              ...mq,
+              label: newLabel,
+              metric: seerAggregateReplacement.metric,
+              queryParams: seerAggregateReplacement.queryParams,
+            };
+          }
         }
 
         if (!interactedIsEquation && seerEquation && replacementAggregate) {

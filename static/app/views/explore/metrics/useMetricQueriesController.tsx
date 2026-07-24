@@ -47,6 +47,7 @@ export interface MetricQueriesControllerValue {
     oldIndex: number,
     newIndex: number
   ) => void;
+  replaceLabel: (position: number, label: string) => void;
 }
 
 interface UseMetricQueriesControllerArgs {
@@ -202,6 +203,7 @@ export function useMetricQueriesController({
       })),
       addMetricQuery,
       reorderMetricQueries,
+      replaceLabel: labels.replace,
     };
   }, [queries, setQueries, labels]);
 }
