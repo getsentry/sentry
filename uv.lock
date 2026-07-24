@@ -2414,7 +2414,7 @@ requires-dist = [
     { name = "sentry-protos", specifier = ">=0.50.3" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.27" },
-    { name = "sentry-scm", specifier = ">=1.2.0" },
+    { name = "sentry-scm", specifier = ">=1.3.0" },
     { name = "sentry-sdk", extras = ["http2"], specifier = "==2.66.1" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "setuptools", specifier = ">=70.0.0" },
@@ -2632,14 +2632,14 @@ wheels = [
 
 [[package]]
 name = "sentry-scm"
-version = "1.2.0"
+version = "1.3.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "msgspec" },
     { name = "requests" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-1.2.0-py3-none-any.whl", hash = "sha256:ed362945cd59646267943e571c66f24d895ae6fa90f20d434a270bbd9957a70a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_scm-1.3.0-py3-none-any.whl", hash = "sha256:78897a2a95dd62c746ea99f05d01186a6d3e97a985f53a1593635150fa46b94a" },
 ]
 
 [[package]]
