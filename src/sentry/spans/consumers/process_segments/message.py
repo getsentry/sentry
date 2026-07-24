@@ -99,7 +99,7 @@ def _process_segment(
                         Organization.objects.get_from_cache(id=project.organization_id),
                     )
             except (Project.DoesNotExist, Organization.DoesNotExist):
-                pass
+                return []
 
     if project is not None and killswitch_matches_context(
         "spans.process-segments.drop-segments",
