@@ -1,7 +1,7 @@
 """Reader-routing tests for the reduced activity document (CORE-283 PR 4).
 
 Each reader (select_verdict, select_fallback_verdict, the activity-derived counters,
-ci_failing_at_close, resolved_group_ids, the judge timeline forward) routes per PR by
+_ci_failing_at_close, resolved_group_ids, the judge timeline forward) routes per PR by
 store presence: a ``PullRequestActivityLog`` row → read the document; no row → read
 the legacy rows.
 These craft a document and assert the reader returns the document-derived value
@@ -26,9 +26,9 @@ from sentry.models.pullrequest import (
 from sentry.pr_metrics.emit import (
     VerdictDeferral,
     _activity_derived_metrics,
-    ci_failed_at_open,
-    ci_failing_at_close,
-    no_ci_events,
+    _ci_failed_at_open,
+    _ci_failing_at_close,
+    _no_ci_events,
     review_activity,
     select_fallback_verdict,
     select_verdict,
@@ -168,15 +168,15 @@ class ActivityDocumentReadersTest(TestCase):
         assert metrics["reviews_human_count"] == 1
         assert metrics["participants_count"] == 1  # human only; ci[bot] excluded
 
-    # --- ci_failing_at_close ----------------------------------------------
+    # --- _ci_failing_at_close ----------------------------------------------
 
     def test_ci_failing_at_close_from_doc(self) -> None:
         self._write_doc(_doc(checks={"sha1|github-actions": _group(suite_conclusion="failure")}))
-        assert ci_failing_at_close(self.pr) is True
+        assert _ci_failing_at_close(self.pr, doc=load_activity_document(self.pr)) is True
 
     def test_ci_not_failing_at_close_from_doc(self) -> None:
         self._write_doc(_doc(checks={"sha1|github-actions": _group(suite_conclusion="success")}))
-        assert ci_failing_at_close(self.pr) is False
+        assert _ci_failing_at_close(self.pr, doc=load_activity_document(self.pr)) is False
 
     # --- review_activity (requested_count, results) -------------------------
 
@@ -237,7 +237,7 @@ class ActivityDocumentReadersTest(TestCase):
             "commented": 1,
         }
 
-    # --- ci_failed_at_open --------------------------------------------------
+    # --- _ci_failed_at_open --------------------------------------------------
 
     def test_ci_failed_at_open_from_doc(self) -> None:
         self._write_doc(
@@ -246,7 +246,7 @@ class ActivityDocumentReadersTest(TestCase):
                 checks={"sha1|github-actions": _group(head_sha="sha1", suite_conclusion="failure")},
             )
         )
-        assert ci_failed_at_open(self.pr) is True
+        assert _ci_failed_at_open(self.pr, doc=load_activity_document(self.pr)) is True
 
     def test_ci_failed_at_open_from_doc_excludes_later_head(self) -> None:
         # The failing check belongs to a later push's head, not the opening one.
@@ -256,7 +256,7 @@ class ActivityDocumentReadersTest(TestCase):
                 checks={"sha2|github-actions": _group(head_sha="sha2", suite_conclusion="failure")},
             )
         )
-        assert ci_failed_at_open(self.pr) is False
+        assert _ci_failed_at_open(self.pr, doc=load_activity_document(self.pr)) is False
 
     def test_ci_failed_at_open_from_doc_no_opened_entry_is_false(self) -> None:
         # No OPENED entry recorded (e.g. tracking enabled after the PR opened) —
@@ -266,17 +266,17 @@ class ActivityDocumentReadersTest(TestCase):
                 checks={"sha1|github-actions": _group(head_sha="sha1", suite_conclusion="failure")}
             )
         )
-        assert ci_failed_at_open(self.pr) is False
+        assert _ci_failed_at_open(self.pr, doc=load_activity_document(self.pr)) is False
 
-    # --- no_ci_events --------------------------------------------------------
+    # --- _no_ci_events --------------------------------------------------------
 
     def test_no_ci_events_true_from_empty_doc(self) -> None:
         self._write_doc(_doc())
-        assert no_ci_events(self.pr) is True
+        assert _no_ci_events(self.pr, doc=load_activity_document(self.pr)) is True
 
     def test_no_ci_events_false_from_doc_with_checks(self) -> None:
         self._write_doc(_doc(checks={"sha1|github-actions": _group(suite_conclusion="success")}))
-        assert no_ci_events(self.pr) is False
+        assert _no_ci_events(self.pr, doc=load_activity_document(self.pr)) is False
 
     # --- resolved_group_ids -----------------------------------------------
 
