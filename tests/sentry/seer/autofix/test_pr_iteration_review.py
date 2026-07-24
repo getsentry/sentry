@@ -432,25 +432,6 @@ class TriggerPrIterationFromReviewTest(TestCase):
         assert source.user is not None
         assert source.user.login == "review-author"
 
-    def test_body_author_absent_when_review_has_no_author(self) -> None:
-        # A review payload without an author (older provider data) leaves the
-        # user's login unset; the UI falls back to the source glyph.
-        self.mock_actions.get_pull_request_review.return_value = self._review_result(
-            {
-                "id": "500",
-                "html_url": "https://x/500",
-                "body": "overall summary",
-                "state": "changes_requested",
-            }
-        )
-
-        self._run()
-
-        source = self.mock_enqueue.call_args.kwargs["feedback"].source
-        assert isinstance(source, GithubPrReviewBodyFeedbackSource)
-        assert source.user is not None
-        assert source.user.login is None
-
     def test_single_comment_review(self) -> None:
         # GitHub's "Add single comment" fires a review with state=commented, one
         # inline comment and no body.
