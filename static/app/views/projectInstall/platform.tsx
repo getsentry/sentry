@@ -134,7 +134,11 @@ export function ProjectInstallPlatform({project, platform}: Props) {
       {!isSelfHosted && showDocsWithProductSelection && (
         <ProductUnavailableCTA organization={organization} />
       )}
-      <PlatformDocHeader projectSlug={project.slug} platform={platform} />
+      <PlatformDocHeader
+        projectSlug={project.slug}
+        platform={platform}
+        projectCreationVariant={projectCreationVariant}
+      />
       {platform.id === 'other' ? (
         <OtherPlatformsInfo
           projectSlug={project.slug}

@@ -11,6 +11,7 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {ProjectCreationVariant} from 'sentry/utils/analytics/projectCreationAnalyticsEvents';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
@@ -21,10 +22,23 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 type Props = {
   platform: PlatformIntegration;
   projectSlug: Project['slug'];
+  /**
+   * When this getting-started page was reached from project creation, the
+   * create form stamps `?projectCreationVariant=scm|legacy`. Stamp that onto
+   * the three header events so abandonment can be segmented. Unmarked entry
+   * points (older projects, peripheral links) keep firing the same
+   * `project_creation.*` names without a variant guess.
+   */
+  projectCreationVariant?: ProjectCreationVariant;
   title?: string;
 };
 
-export function PlatformDocHeader({platform, projectSlug, title}: Props) {
+export function PlatformDocHeader({
+  platform,
+  projectSlug,
+  projectCreationVariant,
+  title,
+}: Props) {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
@@ -39,8 +53,11 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
       return;
     }
 
+    const variantParams = projectCreationVariant ? {variant: projectCreationVariant} : {};
+
     trackAnalytics('project_creation.back_button_clicked', {
       organization,
+      ...variantParams,
     });
 
     if (!isProjectActive) {
@@ -48,6 +65,7 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
         organization,
         platform: recentCreatedProject.slug,
         project_id: recentCreatedProject.id,
+        ...variantParams,
       });
 
       try {
@@ -63,6 +81,7 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
           date_created: recentCreatedProject.dateCreated,
           platform: recentCreatedProject.slug,
           project_id: recentCreatedProject.id,
+          ...variantParams,
         });
       } catch (error) {
         handleXhrErrorResponse(
@@ -80,7 +99,14 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
       }) + `?referrer=getting-started&project=${recentCreatedProject.id}`,
       {replace: true}
     );
-  }, [api, recentCreatedProject, organization, isProjectActive, navigate]);
+  }, [
+    api,
+    recentCreatedProject,
+    organization,
+    isProjectActive,
+    navigate,
+    projectCreationVariant,
+  ]);
 
   useBlocker(({historyAction}) => {
     if (historyAction === 'POP') {

@@ -2,9 +2,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
@@ -65,7 +66,13 @@ function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatfor
   });
 }
 
-function renderAnalyticsScenario(projectCreationVariant?: string) {
+function renderAnalyticsScenario(
+  projectCreationVariant?: string,
+  options: {
+    isProjectActive?: boolean;
+    mockRecentCreatedProject?: boolean;
+  } = {}
+) {
   const {organization, project} = initializeOrg({
     router: {params: {projectId: ProjectFixture().slug}},
   });
@@ -87,6 +94,19 @@ function renderAnalyticsScenario(projectCreationVariant?: string) {
 
   ProjectsStore.loadInitialData([projectWithPlatform]);
   mockProjectApiResponses([projectWithPlatform]);
+
+  if (options.mockRecentCreatedProject) {
+    jest.spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject').mockReturnValue({
+      project: projectWithPlatform,
+      isProjectActive: options.isProjectActive ?? false,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${projectWithPlatform.slug}/`,
+      method: 'DELETE',
+      body: {},
+    });
+  }
+
   const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
   render(
     <RouteAnalyticsContext value={routeAnalytics}>
@@ -268,6 +288,97 @@ describe('ProjectInstallPlatform', () => {
     expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
       'project_creation.take_me_to_issues_clicked',
       expect.anything()
+    );
+  });
+
+  it.each(['scm', 'legacy'] as const)(
+    'attributes getting-started header back analytics to the %s variant',
+    async variant => {
+      const {organization, project, trackAnalyticsSpy} = renderAnalyticsScenario(
+        variant,
+        {mockRecentCreatedProject: true, isProjectActive: false}
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Back to Platform Selection'})
+      );
+
+      await waitFor(() => {
+        expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+          'project_creation.back_button_clicked',
+          expect.objectContaining({organization, variant})
+        );
+      });
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'project_creation.data_removal_modal_confirm_button_clicked',
+        expect.objectContaining({
+          organization,
+          platform: project.slug,
+          project_id: project.id,
+          variant,
+        })
+      );
+      await waitFor(() => {
+        expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+          'project_creation.data_removed',
+          expect.objectContaining({
+            organization,
+            date_created: project.dateCreated,
+            platform: project.slug,
+            project_id: project.id,
+            variant,
+          })
+        );
+      });
+    }
+  );
+
+  it('fires header back analytics without a guessed variant when unmarked', async () => {
+    const {organization, project, trackAnalyticsSpy} = renderAnalyticsScenario(
+      undefined,
+      {mockRecentCreatedProject: true, isProjectActive: false}
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Back to Platform Selection'})
+    );
+
+    await waitFor(() => {
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'project_creation.back_button_clicked',
+        expect.objectContaining({organization})
+      );
+    });
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.back_button_clicked',
+      expect.not.objectContaining({variant: expect.anything()})
+    );
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.data_removal_modal_confirm_button_clicked',
+      expect.objectContaining({
+        organization,
+        platform: project.slug,
+        project_id: project.id,
+      })
+    );
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.data_removal_modal_confirm_button_clicked',
+      expect.not.objectContaining({variant: expect.anything()})
+    );
+    await waitFor(() => {
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'project_creation.data_removed',
+        expect.objectContaining({
+          organization,
+          date_created: project.dateCreated,
+          platform: project.slug,
+          project_id: project.id,
+        })
+      );
+    });
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.data_removed',
+      expect.not.objectContaining({variant: expect.anything()})
     );
   });
 });
