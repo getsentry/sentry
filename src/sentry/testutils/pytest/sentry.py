@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+import gc
 import os
 import random
 import shutil
@@ -415,6 +416,19 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     # Tests use TaskRunner (TASKWORKER_ALWAYS_EAGER=True) or BurstTaskRunner
     # (_signal_send hook) which both operate before send_task in the call chain.
     TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[assignment,method-assign]
+
+
+def pytest_collection_finish(session: pytest.Session) -> None:
+    # Collection has imported Django, the app registry, and every selected test
+    # module. That is ~900k gc-tracked objects which live for the rest of the
+    # process and can never become garbage, yet every generation-2 collection
+    # walks all of them. Moving them to the permanent generation keeps those
+    # traversals proportional to what the tests themselves allocate.
+    #
+    # Objects created from here on (i.e. anything a test builds) are still
+    # tracked and collected normally, so this does not weaken test isolation or
+    # pytest's unraisable-exception detection.
+    gc.freeze()
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
