@@ -255,11 +255,19 @@ class RequestReviewFromContextTest(TestCase):
         mock_resolve.return_value = self._resolved()
         self.get_pr.return_value = _pull_request_result()
 
-        with self.feature(FLAG):
+        with self.feature(FLAG), patch(f"{REVIEW_REQUEST_PATH}.metrics") as mock_metrics:
             _request_review(_green_event())
 
         mock_actions.request_review.assert_not_called()
-        assert self._marker() is None
+        marker = self._marker()
+        assert marker is not None
+        assert marker["skipped"] is True
+        assert marker["reason"] == "no_candidates"
+        assert marker["head_sha"] == HEAD_SHA
+        assert marker["skipped_at"]
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.review_request.skipped", tags={"reason": "no_candidates"}
+        )
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
@@ -326,11 +334,17 @@ class RequestReviewFromContextTest(TestCase):
         mock_resolve.return_value = self._resolved()
         self.get_pr.return_value = _pull_request_result()
 
-        with self.feature(FLAG):
+        with self.feature(FLAG), patch(f"{REVIEW_REQUEST_PATH}.metrics") as mock_metrics:
             _request_review(_green_event())
 
         mock_actions.request_review.assert_not_called()
-        assert self._marker() is None
+        marker = self._marker()
+        assert marker is not None
+        assert marker["skipped"] is True
+        assert marker["reason"] == "no_candidates"
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.review_request.skipped", tags={"reason": "no_candidates"}
+        )
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
@@ -346,11 +360,55 @@ class RequestReviewFromContextTest(TestCase):
         mock_resolve.return_value = self._resolved()
         self.get_pr.return_value = _pull_request_result(state="closed", merged=True)
 
-        with self.feature(FLAG):
+        with self.feature(FLAG), patch(f"{REVIEW_REQUEST_PATH}.metrics") as mock_metrics:
             _request_review(_green_event())
 
         mock_actions.request_review.assert_not_called()
-        assert self._marker() is None
+        marker = self._marker()
+        assert marker is not None
+        assert marker["skipped"] is True
+        assert marker["reason"] == "pr_not_open"
+        assert marker["head_sha"] == HEAD_SHA
+        assert marker["skipped_at"]
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.review_request.skipped", tags={"reason": "pr_not_open"}
+        )
+
+    @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    def test_sticky_skip_marker_short_circuits_scm_with_ready_for_review(
+        self,
+        mock_resolve: MagicMock,
+        _mock_scm: MagicMock,
+        mock_actions: MagicMock,
+    ) -> None:
+        # Terminal review skip + ready_for_review → bootstrap skips SCM entirely.
+        self.seer_run.update(
+            extras={
+                REVIEW_REQUESTS_EXTRA: {
+                    REPO_NAME: {
+                        "skipped_at": "2024-01-01T00:00:00+00:00",
+                        "head_sha": "older-sha",
+                        "skipped": True,
+                        "reason": "no_candidates",
+                    }
+                },
+                READY_FOR_REVIEW_EXTRA: {
+                    REPO_NAME: {
+                        "marked_at": "2024-01-01T00:00:00+00:00",
+                        "head_sha": "older-sha",
+                    }
+                },
+            }
+        )
+        mock_resolve.return_value = self._resolved()
+
+        with self.feature(FLAG):
+            _request_review(_green_event())
+
+        self.get_pr.assert_not_called()
+        mock_actions.request_review.assert_not_called()
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
@@ -534,12 +592,18 @@ class RequestReviewFromCandidatesTest(TestCase):
         mock_resolve.return_value = self._resolved()
         self.get_pr.return_value = _pull_request_result()
 
-        with self.feature(FLAG):
+        with self.feature(FLAG), patch(f"{REVIEW_REQUEST_PATH}.metrics") as mock_metrics:
             _request_review(_green_event())
 
         mock_actions.request_review.assert_not_called()
-        assert self._marker() is None
+        marker = self._marker()
+        assert marker is not None
+        assert marker["skipped"] is True
+        assert marker["reason"] == "no_candidates"
         assert self._marker(REVIEWER_CANDIDATES_EXTRA) is None
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.review_request.skipped", tags={"reason": "no_candidates"}
+        )
 
     def test_records_preexisting_when_any_candidate_already_requested(
         self,

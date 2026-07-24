@@ -10,6 +10,11 @@ new ``ReviewRequestedEvent`` and notifies the human. Later green suites for the
 same run must not do that. (Undraft's ``ready_for_review`` marker is sticky for
 the run+repo so human re-drafts on later heads are left alone.)
 
+Terminal skips that will never request (``pr_not_open``, ``no_candidates``)
+also write a sticky marker with ``skipped: true`` so the green-path SCM
+short-circuit (both markers set) can fire. Request failures leave the marker
+unset so the next green event retries.
+
 The ready-for-review marker is intentionally *not* a gate here — undraft and
 review-request succeed/fail/retry independently.
 """
@@ -89,6 +94,33 @@ def _record_review_request_marker(
     record_run_marker(seer_run, REVIEW_REQUESTS_EXTRA, repo_name, marker)
 
 
+def _record_review_request_skip_marker(
+    seer_run: SeerRun,
+    repo_name: str,
+    *,
+    head_sha: str,
+    reason: str,
+) -> None:
+    """Sticky "done, never requesting" marker for terminal skips.
+
+    Same ``review_requests`` key as a successful request so the green-path
+    SCM short-circuit (both markers present) still fires. Shape is distinct
+    (``skipped`` + ``reason``) so analytics can tell skip-complete from
+    request-complete.
+    """
+    record_run_marker(
+        seer_run,
+        REVIEW_REQUESTS_EXTRA,
+        repo_name,
+        {
+            "skipped_at": timezone.now().isoformat(),
+            "head_sha": head_sha,
+            "skipped": True,
+            "reason": reason,
+        },
+    )
+
+
 def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
     """Request review for an already-confirmed green tip (own lock + marker)."""
     resolved = ctx.resolved
@@ -101,6 +133,13 @@ def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
         return
 
     if ctx.pull_request["data"]["state"] != "open" or ctx.pull_request["data"]["merged"]:
+        # Sticky: closed/merged PRs will not become requestable on later greens.
+        _record_review_request_skip_marker(
+            resolved.seer_run,
+            resolved.repo_name,
+            head_sha=ctx.head_sha,
+            reason="pr_not_open",
+        )
         _skip("pr_not_open", resolved.log_extra)
         return
 
@@ -135,6 +174,13 @@ def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
         tags={"top_source": candidates[0].source if candidates else "none"},
     )
     if not candidates:
+        # Sticky: night-shift / no-user runs will not grow candidates later.
+        _record_review_request_skip_marker(
+            resolved.seer_run,
+            resolved.repo_name,
+            head_sha=ctx.head_sha,
+            reason="no_candidates",
+        )
         _skip("no_candidates", resolved.log_extra)
         return
 
