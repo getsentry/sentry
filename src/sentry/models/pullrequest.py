@@ -219,18 +219,22 @@ class PullRequestManager(BaseManager["PullRequest"]):
         """Every ``PullRequest`` row for one provider-side PR, across all orgs
         sharing the repository.
 
-        A repo connected to N orgs has one active ``Repository`` per org, all
-        sharing the provider's ``external_id``, so one provider PR — the same
-        ``(external_id, key)`` — fans out to one row per org. Returns them all so
-        callers can treat the provider PR as the unit rather than the per-org row.
+        A repo connected to N orgs has one ``Repository`` per org, all sharing the
+        provider's ``external_id``, so one provider PR — the same ``(external_id,
+        key)`` — fans out to one row per org. Returns them all so callers treat the
+        provider PR as the unit, not the per-org row.
 
-        ``provider`` (bare slug, e.g. ``github``) scopes the match so a numeric
-        ``external_id`` can't collide across providers. Cell-local — rows in other
-        cells aren't visible. ``[]`` when no active repo matches.
+        Filters repos like the SCM webhook does (all but ``HIDDEN``), not ``ACTIVE``
+        only, so the set is the rows that can emit and always includes the caller's
+        own PR (whose repo is read status-agnostically elsewhere). ``provider`` (bare
+        slug) keeps a numeric ``external_id`` from colliding across providers.
+        Cell-local. ``[]`` when no repo matches.
         """
-        repos = Repository.objects.filter(
-            external_id=external_id, status=ObjectStatus.ACTIVE
-        ).filter(Repository.objects.provider_match(provider))
+        repos = (
+            Repository.objects.exclude(status=ObjectStatus.HIDDEN)
+            .filter(external_id=external_id)
+            .filter(Repository.objects.provider_match(provider))
+        )
         repo_ids = list(repos.values_list("id", flat=True))
         if not repo_ids:
             return []

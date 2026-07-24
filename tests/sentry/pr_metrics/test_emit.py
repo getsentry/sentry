@@ -1432,7 +1432,13 @@ EXTERNAL_ID = "556677"
 
 
 @cell_silo_test
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature(
+    [
+        "organizations:pr-metrics-activity",
+        "organizations:gen-ai-features",
+        "organizations:pr-metrics-emit",
+    ]
+)
 class MultiOrgEmissionDedupeTest(TestCase):
     """A provider PR shared across orgs fans out to one tracked row per org; only
     the canonical (run's-org) row should emit."""
@@ -1508,6 +1514,22 @@ class MultiOrgEmissionDedupeTest(TestCase):
         SeerRunPullRequest.objects.all().delete()
         PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
         assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is True
+        assert mock_record.call_count == 1
+
+    @patch("sentry.analytics.record")
+    def test_emit_disabled_canonical_does_not_suppress_enabled_sibling(
+        self, mock_record: Any
+    ) -> None:
+        # Mid-rollout: the run's-org row (canonical via its link) has pr-metrics-emit
+        # off, the sibling has it on. The sibling must still emit rather than defer to
+        # a canonical that its own emit gate will never let through.
+        with patch(
+            "sentry.pr_metrics.emit.features.has",
+            side_effect=lambda name, org, **kw: not (
+                name == "organizations:pr-metrics-emit" and org.id == self.organization.id
+            ),
+        ):
+            assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is True
         assert mock_record.call_count == 1
 
 

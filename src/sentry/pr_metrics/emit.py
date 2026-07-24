@@ -16,7 +16,7 @@ from typing import Any, NamedTuple, cast
 from django.db.models import Count, Q
 from django.utils import timezone as dj_timezone
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.commit import Commit
 from sentry.models.organization import Organization
@@ -514,27 +514,41 @@ def is_canonical_github_pr_row(pull_request: PullRequest) -> bool:
     siblings = PullRequest.objects.for_provider_pr(
         external_id=external_id, provider=provider, key=pull_request.key
     )
-    # Only rows that actually emit (≥1 valid attribution) can be canonical, else an
-    # untracked shadow could suppress a tracked sibling — e.g. a run-less MCP PR
-    # whose attribution feature is on in only one org.
-    tracked = _tracked_rows(siblings)
-    if len(tracked) <= 1:
+    # Only rows that would actually emit can be canonical (see _emitting_rows), else
+    # a non-emitting shadow could win and suppress the sibling that would emit.
+    emitting = _emitting_rows(siblings)
+    if len(emitting) <= 1:
         return True
-    return _canonical_sibling(tracked).id == pull_request.id
+    return _canonical_sibling(emitting).id == pull_request.id
 
 
-def _tracked_rows(pull_requests: list[PullRequest]) -> list[PullRequest]:
-    """The subset with ≥1 valid attribution — the rows that actually emit.
+def _emitting_rows(pull_requests: list[PullRequest]) -> list[PullRequest]:
+    """The subset that would actually emit: a valid attribution *and* the row's org
+    with ``pr-metrics-emit`` on — the two gates every emission path applies.
 
-    Canonical selection runs over these only: an untracked sibling never emits, so
-    letting it win canonical would suppress a tracked row and drop the PR entirely.
+    Canonical selection runs over these so a row that can't emit — untracked (e.g. a
+    run-less MCP PR whose attribution feature is on in only one org), or emit-gated
+    off for its org mid-rollout — never wins canonical and drops the PR by
+    suppressing a sibling that would emit.
     """
     tracked_ids = set(
         PullRequestAttribution.objects.filter(pull_request__in=pull_requests, is_valid=True)
         .values_list("pull_request_id", flat=True)
         .distinct()
     )
-    return [pull_request for pull_request in pull_requests if pull_request.id in tracked_ids]
+    tracked = [pr for pr in pull_requests if pr.id in tracked_ids]
+    if not tracked:
+        return []
+    orgs = {
+        org.id: org
+        for org in Organization.objects.filter(id__in={pr.organization_id for pr in tracked})
+    }
+    return [
+        pr
+        for pr in tracked
+        if (org := orgs.get(pr.organization_id)) is not None
+        and features.has("organizations:pr-metrics-emit", org)
+    ]
 
 
 def _canonical_sibling(siblings: list[PullRequest]) -> PullRequest:

@@ -644,9 +644,16 @@ class ForProviderPrTest(TestCase):
         )
         assert [pr.id for pr in self._for_provider_pr()] == [self.pull_request.id]
 
-    def test_excludes_inactive_repositories(self) -> None:
+    def test_excludes_hidden_repositories(self) -> None:
         self.repo.update(status=ObjectStatus.HIDDEN)
         assert self._for_provider_pr() == []
+
+    def test_includes_non_hidden_inactive_repositories(self) -> None:
+        # A pending-deletion repo still gets webhooks (the fan-out only excludes
+        # HIDDEN), so its PR can emit and must stay in its own sibling set — matching
+        # how _repo_external_identity reads the repo regardless of status.
+        self.repo.update(status=ObjectStatus.PENDING_DELETION)
+        assert [pr.id for pr in self._for_provider_pr()] == [self.pull_request.id]
 
     def test_excludes_mismatched_provider(self) -> None:
         assert self._for_provider_pr(provider="gitlab") == []
