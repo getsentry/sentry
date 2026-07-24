@@ -404,13 +404,14 @@ describe('CustomerOverview', () => {
       />
     );
 
-    expect(screen.getByText('Seer Budget')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Budget:')).toBeInTheDocument();
-    expect(screen.getByText('$25.00')).toBeInTheDocument();
-    expect(screen.getByText('Gifted Budget:')).toBeInTheDocument();
-    expect(screen.getByText('$15.00')).toBeInTheDocument();
-    expect(screen.getByText('Total Used:')).toBeInTheDocument();
-    expect(screen.getByText('$20.00 / $40.00 (50.00%)')).toBeInTheDocument();
+    const budgetSection = within(screen.getByTestId('reserved-budgets-data'));
+    expect(budgetSection.getByText('Seer Budget')).toBeInTheDocument();
+    expect(budgetSection.getByText('Reserved Budget:')).toBeInTheDocument();
+    expect(budgetSection.getByText('$25.00')).toBeInTheDocument();
+    expect(budgetSection.getByText('Gifted Budget:')).toBeInTheDocument();
+    expect(budgetSection.getByText('$15.00')).toBeInTheDocument();
+    expect(budgetSection.getByText('Total Used:')).toBeInTheDocument();
+    expect(budgetSection.getByText('$20.00 / $40.00 (50.00%)')).toBeInTheDocument();
     expect(screen.getByText('Reserved Issue fixes:')).toBeInTheDocument();
     expect(screen.getByText('Reserved Cost-Per-Event Issue fixes:')).toBeInTheDocument();
     expect(screen.getByText('$1.00000000')).toBeInTheDocument();
@@ -940,5 +941,95 @@ describe('CustomerOverview', () => {
     );
 
     expect(screen.getByText('90 days')).toBeInTheDocument();
+  });
+
+  describe('Seer plan section', () => {
+    it('renders seat-based Seer details', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
+      subscription.addOns = {
+        ...subscription.addOns,
+        [AddOnCategory.SEER]: {
+          ...subscription.addOns![AddOnCategory.SEER]!,
+          enabled: true,
+        },
+      };
+      subscription.categories.seerUsers = MetricHistoryFixture({
+        category: DataCategory.SEER_USER,
+        reserved: 5,
+        usage: 3,
+        free: 1,
+      });
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Seat-based')).toBeInTheDocument();
+      expect(seerSection.getByText('Reserved Seats:').nextSibling).toHaveTextContent('5');
+      expect(
+        seerSection.getByText('Active Contributors (billed this period):').nextSibling
+      ).toHaveTextContent('3');
+      expect(seerSection.getByText('Gifted Seats:')).toBeInTheDocument();
+    });
+
+    it('renders legacy budget-based Seer details', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionWithLegacySeerFixture({
+        organization,
+        plan: 'am3_business',
+      });
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Legacy (budget)')).toBeInTheDocument();
+      expect(seerSection.getByText('Reserved Budget:')).toBeInTheDocument();
+      expect(seerSection.getByText('Budget Used:')).toBeInTheDocument();
+    });
+
+    it('renders None when the plan offers Seer but it is not enabled', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Plan:').nextSibling).toHaveTextContent('None');
+      expect(seerSection.queryByText('Reserved Seats:')).not.toBeInTheDocument();
+      expect(seerSection.queryByText('Reserved Budget:')).not.toBeInTheDocument();
+    });
+
+    it('omits the Seer section when the plan does not offer Seer', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionFixture({organization, plan: 'mm2_a_100k'});
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      expect(screen.queryByTestId('seer-plan-summary')).not.toBeInTheDocument();
+    });
   });
 });

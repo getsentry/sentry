@@ -35,7 +35,12 @@ import type {
   ReservedBudgetMetricHistory,
   Subscription,
 } from 'getsentry/types';
-import {AddOnCategory, BillingType, OnDemandBudgetMode} from 'getsentry/types';
+import {
+  AddOnCategory,
+  BillingType,
+  OnDemandBudgetMode,
+  ReservedBudgetCategoryType,
+} from 'getsentry/types';
 import {
   displayBudgetName,
   formatBalance,
@@ -247,7 +252,7 @@ function ReservedBudgetsData({customer}: ReservedDataProps) {
   }
 
   return (
-    <Fragment>
+    <div data-test-id="reserved-budgets-data">
       {customer.reservedBudgets.map(reservedBudget => {
         return (
           <Fragment key={reservedBudget.id}>
@@ -255,7 +260,7 @@ function ReservedBudgetsData({customer}: ReservedDataProps) {
           </Fragment>
         );
       })}
-    </Fragment>
+    </div>
   );
 }
 
@@ -292,6 +297,81 @@ function ReservedBudgetData({
         </DetailLabel>
       </DetailList>
     </Fragment>
+  );
+}
+
+/**
+ * A clearly-labeled summary of the org's Seer plan. All of this data already
+ * lives on the subscription payload, but it's otherwise scattered as anonymous
+ * rows across ReservedData / ReservedBudgetsData, which makes it hard to tell
+ * at a glance which Seer plan an org is on and how many seats they pay for.
+ */
+function SeerPlanSummary({customer}: {customer: Subscription}) {
+  const seerAddOn = customer.addOns?.[AddOnCategory.SEER];
+  const legacySeerAddOn = customer.addOns?.[AddOnCategory.LEGACY_SEER];
+
+  // Seer isn't offered on this subscription's plan at all — nothing to show.
+  if (!seerAddOn && !legacySeerAddOn) {
+    return null;
+  }
+
+  const isSeatBased = !!seerAddOn?.enabled;
+  const isLegacy = !!legacySeerAddOn?.enabled;
+
+  const seerUsers = customer.categories?.[DataCategory.SEER_USER];
+  const legacyBudget = customer.reservedBudgets?.find(
+    budget => budget.apiName === ReservedBudgetCategoryType.SEER
+  );
+
+  return (
+    <div data-test-id="seer-plan-summary">
+      <h6>Seer</h6>
+      <DetailList>
+        <DetailLabel title="Plan">
+          {isSeatBased ? (
+            <Tag variant="success">Seat-based</Tag>
+          ) : isLegacy ? (
+            <Tag variant="warning">Legacy (budget)</Tag>
+          ) : (
+            <Tag variant="muted">None</Tag>
+          )}
+        </DetailLabel>
+        {isSeatBased && seerUsers && (
+          <Fragment>
+            <DetailLabel title="Reserved Seats">
+              {formatReservedWithUnits(seerUsers.reserved, DataCategory.SEER_USER)}
+            </DetailLabel>
+            <DetailLabel title="Active Contributors (billed this period)">
+              {seerUsers.usage.toLocaleString()}
+            </DetailLabel>
+            <DetailLabel title="Gifted Seats">
+              {formatReservedWithUnits(seerUsers.free, DataCategory.SEER_USER, {
+                isGifted: true,
+              })}
+            </DetailLabel>
+            {typeof seerUsers.customPrice === 'number' && (
+              <DetailLabel title="Custom Price">
+                {displayPriceWithCents({cents: seerUsers.customPrice})}
+              </DetailLabel>
+            )}
+          </Fragment>
+        )}
+        {isLegacy && legacyBudget && (
+          <Fragment>
+            <DetailLabel title="Reserved Budget">
+              {displayPriceWithCents({cents: legacyBudget.reservedBudget})}
+            </DetailLabel>
+            <DetailLabel title="Budget Used">
+              {displayPriceWithCents({cents: legacyBudget.totalReservedSpend})} /{' '}
+              {displayPriceWithCents({
+                cents: legacyBudget.reservedBudget + legacyBudget.freeBudget,
+              })}{' '}
+              ({(legacyBudget.percentUsed * 100).toFixed(2)}%)
+            </DetailLabel>
+          </Fragment>
+        )}
+      </DetailList>
+    </div>
   );
 }
 
@@ -917,6 +997,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             </tbody>
           </table>
         </Fragment>
+        <SeerPlanSummary customer={customer} />
       </div>
     </DetailsContainer>
   );
