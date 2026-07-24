@@ -30,6 +30,7 @@ import {ExtendProductTrialAction} from 'admin/components/extendProductTrialActio
 import {getLogQuery} from 'admin/utils';
 import {BILLED_DATA_CATEGORY_INFO, UNLIMITED} from 'getsentry/constants';
 import type {
+  AddOn,
   Plan,
   ReservedBudget,
   ReservedBudgetMetricHistory,
@@ -302,25 +303,43 @@ function ReservedBudgetData({
 }
 
 /**
+ * The status of one Seer add-on, derived only from that add-on's own signals.
+ * There is deliberately no cross-add-on resolution: each renders independently
+ * so the display can't produce a contradictory combined verdict.
+ */
+function seerAddOnStatus(
+  addOn: AddOn | undefined,
+  onTrial: boolean
+): {label: string; variant: 'success' | 'warning' | 'muted'} | null {
+  if (!addOn) {
+    return null;
+  }
+  if (addOn.enabled) {
+    return {label: 'Enabled', variant: 'success'};
+  }
+  if (onTrial) {
+    return {label: 'Trial', variant: 'warning'};
+  }
+  return {label: addOn.isAvailable ? 'Available' : 'Unavailable', variant: 'muted'};
+}
+
+/**
  * The same numbers otherwise appear only as anonymous rows across ReservedData
- * / ReservedBudgetsData; this surfaces the Seer plan in one labeled place.
+ * / ReservedBudgetsData; this surfaces each Seer add-on's status and figures in
+ * one labeled place.
  */
 function SeerPlanSummary({customer}: {customer: Subscription}) {
   const seerAddOn = customer.addOns?.[AddOnCategory.SEER];
   const legacySeerAddOn = customer.addOns?.[AddOnCategory.LEGACY_SEER];
-  const isOffered = !!seerAddOn?.isAvailable || !!legacySeerAddOn?.isAvailable;
-
-  // An active product trial counts as the plan being in use even when the
-  // add-on hasn't been purchased, matching productIsEnabled.
   const trials = customer.productTrials ?? null;
+
   const onSeatTrial = !!getActiveProductTrial(trials, DataCategory.SEER_USER);
   const onLegacyTrial = !!getActiveProductTrial(trials, DataCategory.SEER_AUTOFIX);
+  const seatStatus = seerAddOnStatus(seerAddOn, onSeatTrial);
+  const legacyStatus = seerAddOnStatus(legacySeerAddOn, onLegacyTrial);
 
-  const isSeatBased = !!seerAddOn?.enabled || onSeatTrial;
-  const isLegacy = !!legacySeerAddOn?.enabled || onLegacyTrial;
-
-  // A seat-based org can be enabled (via opt-in or trial) before any seat
-  // usage accrues, so a missing metric row is zero usage, not an error.
+  // A seat-based org can be active before any seat usage accrues, so a missing
+  // metric row is zero usage, not an error.
   const seerUsers = normalizeMetricHistory(
     DataCategory.SEER_USER,
     customer.categories?.[DataCategory.SEER_USER]
@@ -328,66 +347,74 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
   const legacyBudget = customer.reservedBudgets?.find(
     budget => budget.apiName === ReservedBudgetCategoryType.SEER
   );
+  const showSeatData = !!seerAddOn?.enabled || onSeatTrial;
 
   return (
     <div data-test-id="seer-plan-summary">
       <h6>Seer</h6>
       <DetailList>
-        <DetailLabel title="Plan">
-          {isSeatBased ? (
-            <Tag variant="success">Seat-based{onSeatTrial ? ' (trial)' : ''}</Tag>
-          ) : isLegacy ? (
-            <Tag variant="warning">Legacy (budget){onLegacyTrial ? ' (trial)' : ''}</Tag>
-          ) : isOffered ? (
-            <Tag variant="muted">None</Tag>
-          ) : (
+        {!seatStatus && !legacyStatus && (
+          <DetailLabel title="Plan">
             <Tag variant="muted">
               {customer.planDetails?.name
                 ? `Not available on the ${customer.planDetails.name} plan`
                 : 'Not available on this plan'}
             </Tag>
-          )}
-        </DetailLabel>
-        {isSeatBased && (
+          </DetailLabel>
+        )}
+        {seatStatus && (
           <Fragment>
-            <DetailLabel title="Reserved Seats">
-              {formatReservedWithUnits(seerUsers.reserved, DataCategory.SEER_USER)}
+            <DetailLabel title="Seat-based">
+              <Tag variant={seatStatus.variant}>{seatStatus.label}</Tag>
             </DetailLabel>
-            <DetailLabel title="Active Contributors (billed this period)">
-              {seerUsers.usage.toLocaleString()}
-            </DetailLabel>
-            <DetailLabel title="Gifted Seats">
-              {formatReservedWithUnits(seerUsers.free, DataCategory.SEER_USER, {
-                isGifted: true,
-              })}
-            </DetailLabel>
-            {typeof seerUsers.customPrice === 'number' && (
-              <DetailLabel title="Custom Price">
-                {displayPriceWithCents({cents: seerUsers.customPrice})}
-              </DetailLabel>
+            {showSeatData && (
+              <Fragment>
+                <DetailLabel title="Reserved Seats">
+                  {formatReservedWithUnits(seerUsers.reserved, DataCategory.SEER_USER)}
+                </DetailLabel>
+                <DetailLabel title="Active Contributors (billed this period)">
+                  {seerUsers.usage.toLocaleString()}
+                </DetailLabel>
+                <DetailLabel title="Gifted Seats">
+                  {formatReservedWithUnits(seerUsers.free, DataCategory.SEER_USER, {
+                    isGifted: true,
+                  })}
+                </DetailLabel>
+                {typeof seerUsers.customPrice === 'number' && (
+                  <DetailLabel title="Custom Price">
+                    {displayPriceWithCents({cents: seerUsers.customPrice})}
+                  </DetailLabel>
+                )}
+              </Fragment>
             )}
           </Fragment>
         )}
-        {isLegacy &&
-          (legacyBudget ? (
-            <Fragment>
-              <DetailLabel title="Reserved Budget">
-                {displayPriceWithCents({cents: legacyBudget.reservedBudget})}
-              </DetailLabel>
-              <DetailLabel title="Budget Used">
-                {displayPriceWithCents({cents: legacyBudget.totalReservedSpend})} /{' '}
-                {displayPriceWithCents({
-                  cents: legacyBudget.reservedBudget + legacyBudget.freeBudget,
-                })}{' '}
-                ({(legacyBudget.percentUsed * 100).toFixed(2)}%)
-              </DetailLabel>
-            </Fragment>
-          ) : legacySeerAddOn?.enabled ? (
-            // A paid legacy plan is backed by a reserved budget; a trial is not.
-            <DetailLabel title="Budget">
-              <Tag variant="danger">Legacy plan enabled but no budget data found</Tag>
+        {legacyStatus && (
+          <Fragment>
+            <DetailLabel title="Legacy (budget)">
+              <Tag variant={legacyStatus.variant}>{legacyStatus.label}</Tag>
             </DetailLabel>
-          ) : null)}
+            {legacyBudget ? (
+              <Fragment>
+                <DetailLabel title="Reserved Budget">
+                  {displayPriceWithCents({cents: legacyBudget.reservedBudget})}
+                </DetailLabel>
+                <DetailLabel title="Budget Used">
+                  {displayPriceWithCents({cents: legacyBudget.totalReservedSpend})} /{' '}
+                  {displayPriceWithCents({
+                    cents: legacyBudget.reservedBudget + legacyBudget.freeBudget,
+                  })}{' '}
+                  ({(legacyBudget.percentUsed * 100).toFixed(2)}%)
+                </DetailLabel>
+              </Fragment>
+            ) : legacySeerAddOn?.enabled ? (
+              // A paid legacy plan is backed by a reserved budget; a trial is not.
+              <DetailLabel title="Budget">
+                <Tag variant="danger">Enabled but no budget data found</Tag>
+              </DetailLabel>
+            ) : null}
+          </Fragment>
+        )}
       </DetailList>
     </div>
   );

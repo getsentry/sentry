@@ -944,16 +944,20 @@ describe('CustomerOverview', () => {
   });
 
   describe('Seer plan section', () => {
-    it('renders seat-based Seer details', () => {
+    function makeTrial(category: DataCategory) {
+      return {
+        category,
+        isStarted: true,
+        reasonCode: 1001,
+        startDate: moment().utc().subtract(2, 'days').format(),
+        endDate: moment().utc().add(12, 'days').format(),
+      };
+    }
+
+    it('renders seat-based Seer status and figures when enabled', () => {
       const organization = OrganizationFixture();
       const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
-      subscription.addOns = {
-        ...subscription.addOns,
-        [AddOnCategory.SEER]: {
-          ...subscription.addOns![AddOnCategory.SEER]!,
-          enabled: true,
-        },
-      };
+      subscription.addOns![AddOnCategory.SEER]!.enabled = true;
       subscription.categories.seerUsers = MetricHistoryFixture({
         category: DataCategory.SEER_USER,
         reserved: 5,
@@ -970,7 +974,9 @@ describe('CustomerOverview', () => {
       );
 
       const seerSection = within(screen.getByTestId('seer-plan-summary'));
-      expect(seerSection.getByText('Seat-based')).toBeInTheDocument();
+      expect(seerSection.getByText('Seat-based:').nextSibling).toHaveTextContent(
+        'Enabled'
+      );
       expect(seerSection.getByText('Reserved Seats:').nextSibling).toHaveTextContent('5');
       expect(
         seerSection.getByText('Active Contributors (billed this period):').nextSibling
@@ -978,7 +984,7 @@ describe('CustomerOverview', () => {
       expect(seerSection.getByText('Gifted Seats:')).toBeInTheDocument();
     });
 
-    it('renders legacy budget-based Seer details', () => {
+    it('renders legacy budget-based Seer status and figures', () => {
       const organization = OrganizationFixture();
       const subscription = SubscriptionWithLegacySeerFixture({
         organization,
@@ -994,7 +1000,9 @@ describe('CustomerOverview', () => {
       );
 
       const seerSection = within(screen.getByTestId('seer-plan-summary'));
-      expect(seerSection.getByText('Legacy (budget)')).toBeInTheDocument();
+      expect(seerSection.getByText('Legacy (budget):').nextSibling).toHaveTextContent(
+        'Enabled'
+      );
       expect(seerSection.getByText('Reserved Budget:')).toBeInTheDocument();
       expect(seerSection.getByText('Budget Used:')).toBeInTheDocument();
     });
@@ -1002,13 +1010,7 @@ describe('CustomerOverview', () => {
     it('shows zeroed seats when seat-based Seer is enabled before any usage', () => {
       const organization = OrganizationFixture();
       const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
-      subscription.addOns = {
-        ...subscription.addOns,
-        [AddOnCategory.SEER]: {
-          ...subscription.addOns![AddOnCategory.SEER]!,
-          enabled: true,
-        },
-      };
+      subscription.addOns![AddOnCategory.SEER]!.enabled = true;
       // Enabled via opt-in/trial before any seat usage accrues — no metric row.
       delete subscription.categories.seerUsers;
 
@@ -1021,15 +1023,16 @@ describe('CustomerOverview', () => {
       );
 
       const seerSection = within(screen.getByTestId('seer-plan-summary'));
-      expect(seerSection.getByText('Seat-based')).toBeInTheDocument();
+      expect(seerSection.getByText('Seat-based:').nextSibling).toHaveTextContent(
+        'Enabled'
+      );
       expect(seerSection.getByText('Reserved Seats:').nextSibling).toHaveTextContent('0');
       expect(
         seerSection.getByText('Active Contributors (billed this period):').nextSibling
       ).toHaveTextContent('0');
-      expect(seerSection.queryByText(/no seat data found/)).not.toBeInTheDocument();
     });
 
-    it('flags a legacy plan with no budget data instead of hiding it', () => {
+    it('flags a paid legacy plan with no budget data', () => {
       const organization = OrganizationFixture();
       const subscription = SubscriptionWithLegacySeerFixture({
         organization,
@@ -1046,13 +1049,15 @@ describe('CustomerOverview', () => {
       );
 
       const seerSection = within(screen.getByTestId('seer-plan-summary'));
-      expect(seerSection.getByText('Legacy (budget)')).toBeInTheDocument();
+      expect(seerSection.getByText('Legacy (budget):').nextSibling).toHaveTextContent(
+        'Enabled'
+      );
       expect(
-        seerSection.getByText('Legacy plan enabled but no budget data found')
+        seerSection.getByText('Enabled but no budget data found')
       ).toBeInTheDocument();
     });
 
-    it('renders None when the plan offers Seer but it is not enabled', () => {
+    it('shows each available Seer add-on as Available when not enabled', () => {
       const organization = OrganizationFixture();
       const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
 
@@ -1065,15 +1070,15 @@ describe('CustomerOverview', () => {
       );
 
       const seerSection = within(screen.getByTestId('seer-plan-summary'));
-      expect(seerSection.getByText('Plan:').nextSibling).toHaveTextContent('None');
+      expect(seerSection.getByText('Seat-based:').nextSibling).toHaveTextContent(
+        'Available'
+      );
       expect(seerSection.queryByText('Reserved Seats:')).not.toBeInTheDocument();
-      expect(seerSection.queryByText('Reserved Budget:')).not.toBeInTheDocument();
     });
 
-    it('treats unavailable Seer add-ons as unavailable, not None', () => {
+    it('marks an ineligible Seer add-on as Unavailable', () => {
       const organization = OrganizationFixture();
       const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
-      // Add-on entries exist on the plan but the org is not eligible for them.
       Object.values(AddOnCategory).forEach(category => {
         if (subscription.addOns?.[category]) {
           subscription.addOns[category].enabled = false;
@@ -1090,10 +1095,9 @@ describe('CustomerOverview', () => {
       );
 
       const seerSection = within(screen.getByTestId('seer-plan-summary'));
-      expect(seerSection.getByText('Plan:').nextSibling).toHaveTextContent(
-        `Not available on the ${subscription.planDetails.name} plan`
+      expect(seerSection.getByText('Seat-based:').nextSibling).toHaveTextContent(
+        'Unavailable'
       );
-      expect(seerSection.queryByText('None')).not.toBeInTheDocument();
     });
 
     it('shows Seer is unavailable when the plan does not offer it', () => {
@@ -1112,24 +1116,15 @@ describe('CustomerOverview', () => {
       expect(seerSection.getByText('Plan:').nextSibling).toHaveTextContent(
         `Not available on the ${subscription.planDetails.name} plan`
       );
-      expect(seerSection.queryByText('Reserved Seats:')).not.toBeInTheDocument();
-      expect(seerSection.queryByText('Reserved Budget:')).not.toBeInTheDocument();
+      expect(seerSection.queryByText('Seat-based:')).not.toBeInTheDocument();
+      expect(seerSection.queryByText('Legacy (budget):')).not.toBeInTheDocument();
     });
 
-    it('detects an active seat-based Seer trial as seat-based', () => {
+    it('shows a seat-based Seer trial as Trial with seat figures', () => {
       const organization = OrganizationFixture();
       const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
-      // Add-on unpurchased, but an active SEER_USER trial is in use.
       subscription.addOns![AddOnCategory.SEER]!.enabled = false;
-      subscription.productTrials = [
-        {
-          category: DataCategory.SEER_USER,
-          isStarted: true,
-          reasonCode: 1001,
-          startDate: moment().utc().subtract(2, 'days').format(),
-          endDate: moment().utc().add(12, 'days').format(),
-        },
-      ];
+      subscription.productTrials = [makeTrial(DataCategory.SEER_USER)];
 
       render(
         <CustomerOverview
@@ -1140,27 +1135,16 @@ describe('CustomerOverview', () => {
       );
 
       const seerSection = within(screen.getByTestId('seer-plan-summary'));
-      expect(seerSection.getByText('Plan:').nextSibling).toHaveTextContent(
-        'Seat-based (trial)'
-      );
+      expect(seerSection.getByText('Seat-based:').nextSibling).toHaveTextContent('Trial');
       expect(seerSection.getByText('Reserved Seats:')).toBeInTheDocument();
-      expect(seerSection.queryByText('None')).not.toBeInTheDocument();
     });
 
-    it('detects an active legacy Seer trial without flagging missing budget', () => {
+    it('shows a legacy Seer trial as Trial without flagging missing budget', () => {
       const organization = OrganizationFixture();
       const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
       subscription.addOns![AddOnCategory.LEGACY_SEER]!.enabled = false;
       subscription.reservedBudgets = [];
-      subscription.productTrials = [
-        {
-          category: DataCategory.SEER_AUTOFIX,
-          isStarted: true,
-          reasonCode: 1002,
-          startDate: moment().utc().subtract(2, 'days').format(),
-          endDate: moment().utc().add(12, 'days').format(),
-        },
-      ];
+      subscription.productTrials = [makeTrial(DataCategory.SEER_AUTOFIX)];
 
       render(
         <CustomerOverview
@@ -1171,12 +1155,65 @@ describe('CustomerOverview', () => {
       );
 
       const seerSection = within(screen.getByTestId('seer-plan-summary'));
-      expect(seerSection.getByText('Plan:').nextSibling).toHaveTextContent(
-        'Legacy (budget) (trial)'
+      expect(seerSection.getByText('Legacy (budget):').nextSibling).toHaveTextContent(
+        'Trial'
       );
       expect(
-        seerSection.queryByText('Legacy plan enabled but no budget data found')
+        seerSection.queryByText('Enabled but no budget data found')
       ).not.toBeInTheDocument();
+    });
+
+    it('renders seat and legacy add-ons independently when both are present', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionWithLegacySeerFixture({
+        organization,
+        plan: 'am3_business',
+      });
+      // Purchased legacy plus a lingering seat trial: both surface, neither hides
+      // the other and neither overrides the other's status.
+      subscription.productTrials = [makeTrial(DataCategory.SEER_USER)];
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Legacy (budget):').nextSibling).toHaveTextContent(
+        'Enabled'
+      );
+      expect(seerSection.getByText('Seat-based:').nextSibling).toHaveTextContent('Trial');
+      expect(seerSection.getByText('Reserved Budget:')).toBeInTheDocument();
+    });
+
+    it('does not mark a purchased add-on as Trial when a trial record lingers', () => {
+      const organization = OrganizationFixture();
+      const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
+      subscription.addOns![AddOnCategory.SEER]!.enabled = true;
+      subscription.categories.seerUsers = MetricHistoryFixture({
+        category: DataCategory.SEER_USER,
+        reserved: 5,
+      });
+      subscription.productTrials = [makeTrial(DataCategory.SEER_USER)];
+
+      render(
+        <CustomerOverview
+          customer={subscription}
+          onAction={jest.fn()}
+          organization={organization}
+        />
+      );
+
+      const seerSection = within(screen.getByTestId('seer-plan-summary'));
+      expect(seerSection.getByText('Seat-based:').nextSibling).toHaveTextContent(
+        'Enabled'
+      );
+      expect(seerSection.getByText('Seat-based:').nextSibling).not.toHaveTextContent(
+        'Trial'
+      );
     });
   });
 });
