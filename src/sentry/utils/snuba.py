@@ -1454,6 +1454,11 @@ def _snuba_query(
                 sentry_sdk.set_tag("query.referrer", referrer)
                 sentry_sdk.set_attribute("query.referrer", referrer)
 
+                # Whether client asked snuba to zstd-compress the resp.
+                # Span-level so we can see per-query compression rate in traces.
+                sentry_sdk.set_tag("snuba.request_compressed", should_compress)
+                sentry_sdk.set_attribute("snuba.request_compressed", should_compress)
+
                 if isinstance(request.query, MetricsQuery):
                     return (
                         referrer,
