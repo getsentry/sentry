@@ -69,6 +69,22 @@ class PrCloseMetricsEvent(analytics.Event):
     # Reviews split by the reviewer's account class; the two sum to reviews_count.
     reviews_bot_count: int = 0
     reviews_human_count: int = 0
+    # Net outstanding review requests at the terminal event (REVIEW_REQUESTED
+    # minus REVIEW_REQUEST_REMOVED, floored at 0). Distinct from reviews_count:
+    # this answers "was a review ever asked for", not "was one ever submitted",
+    # so a requested-but-unreviewed PR doesn't look identical to one nobody was
+    # ever asked to review.
+    reviews_requested_count: int = 0
+    # Every REVIEW_SUBMITTED tallied by its GitHub review state — JSON-encoded
+    # {"approved": int, "changes_requested": int, "commented": int}, all three
+    # keys always present (0 default) on an emitted row. A reviewer who submits
+    # twice counts twice, same as reviews_count, which the three values sum to.
+    # Activity-derived and unpersisted, like reviews_requested_count above (see
+    # emit.review_activity). GitHub-only: this pipeline doesn't track GitLab
+    # reviews, so every count is 0 for a GitLab-hosted PR — same as every other
+    # activity-derived counter when activity isn't tracked. "{}" is only the
+    # dataclass default, never an emitted value.
+    review_results: str = "{}"
     # Pushes (opened + synchronize events) split by the pusher's account class. A
     # push, not a commit: GitHub's synchronize payload carries no commit count, so
     # this counts push events, with a bot-app push attributed to the bot.

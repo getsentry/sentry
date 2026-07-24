@@ -550,6 +550,7 @@ export type SuggestedOwnerReason =
   | 'suspectCommit'
   | 'ownershipRule'
   | 'projectOwnership'
+  | 'seerSuggested'
   // TODO: codeowners may no longer exist
   | 'codeowners';
 
@@ -613,6 +614,7 @@ export enum GroupActivityType {
   PULL_REQUEST_REOPENED = 'pull_request_reopened',
   PULL_REQUEST_MERGED = 'pull_request_merged',
   PULL_REQUEST_UNLINKED = 'pull_request_unlinked',
+  TRIGGER_AUTOFIX = 'trigger_autofix',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -625,6 +627,7 @@ export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SEER_PR_CREATED,
   GroupActivityType.SEER_ITERATION_STARTED,
   GroupActivityType.SEER_ITERATION_COMPLETED,
+  GroupActivityType.TRIGGER_AUTOFIX,
 ]);
 
 interface GroupActivityBase {
@@ -822,6 +825,11 @@ interface GroupActivityPullRequestUnlinked extends GroupActivityBase {
   type: GroupActivityType.PULL_REQUEST_UNLINKED;
 }
 
+interface GroupActivityTriggerAutofix extends GroupActivityBase {
+  data: Record<string, unknown>;
+  type: GroupActivityType.TRIGGER_AUTOFIX;
+}
+
 export interface GroupActivitySetIgnored extends GroupActivityBase {
   data: {
     ignoreCount?: number;
@@ -917,7 +925,8 @@ export interface GroupActivityAssigned extends GroupActivityBase {
       | 'codeowners'
       | 'slack'
       | 'msteams'
-      | 'suspectCommitter';
+      | 'suspectCommitter'
+      | 'seerSuggested';
     /** Codeowner or Project owner rule as a string */
     rule?: string;
     user?: Team | User;
@@ -1066,7 +1075,8 @@ export type GroupActivity =
   | GroupActivityPullRequestClosed
   | GroupActivityPullRequestReopened
   | GroupActivityPullRequestMerged
-  | GroupActivityPullRequestUnlinked;
+  | GroupActivityPullRequestUnlinked
+  | GroupActivityTriggerAutofix;
 
 export type Activity = GroupActivity;
 

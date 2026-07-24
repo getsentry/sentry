@@ -755,6 +755,9 @@ register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIF
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
+# Tenant-specific OAuth authority, required for single-tenant Azure Bots.
+# Empty (default) keeps the historical multi-tenant botframework.com authority.
+register("msteams.tenant-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 
 # Discord Integration
 register("discord.application-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -2177,12 +2180,6 @@ register(
     30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Number of large transactions to retrieve from Snuba for transaction re-balancing.
-register(
-    "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions",
-    0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Toggles emitting the smallest-transaction sampling-factor bucket metric during transaction rebalancing.
 register(
     "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
@@ -3222,14 +3219,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout rate for resolution activity notifications via the notification platform
-register(
-    "notifications.platform.resolution-notifications.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Killswitch list of NotificationSource values that should be blocked from being
 # dispatched by the notification platform's NotificationService. Values must match
 # the string values of `sentry.notifications.platform.types.NotificationSource`.
@@ -4008,5 +3997,19 @@ register(
     "issues.derived.project-max-tasks",
     default=1000,
     type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Number of projects to schedule for reprocessing per heal_stale_derived_data invocation.
+register(
+    "issues.derived.heal-project-limit",
+    default=3,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Kill switch for heal_stale_derived_data task.
+register(
+    "issues.derived.heal-enabled",
+    default=True,
+    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

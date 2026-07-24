@@ -142,9 +142,12 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
             }
           : undefined;
 
-        const isTodoWrite = toolCall.function === 'todo_write';
+        // Render the checklist once per block (on the last tool-call row), regardless of
+        // which tool produced it — classic `todo_write` or Code Mode `sentry_api_execute`,
+        // which projects its todos onto block.todos (code-mode-effects-bus).
+        const isLastToolCall = idx === (block.message.tool_calls?.length ?? 0) - 1;
         const todos =
-          isTodoWrite &&
+          isLastToolCall &&
           block.todos?.length &&
           blocks?.findLast(b => b.todos?.length) === block
             ? block.todos
