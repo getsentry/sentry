@@ -58,26 +58,34 @@ export function applySeerResultsToMetricQueries({
   const previousEquationReferences = getMetricReferences(metricQueries);
 
   // Replace like with like: equations replace equations, aggregates replace aggregates.
-  const updatedMetricQueries = metricQueries.map(mq => {
-    if (mq.queryParams === interactedQueryParams) {
-      if (interactedIsEquation && seerEquation) {
-        return {...seerEquation, label: mq.label};
-      }
+  // When seer returns no equation for an interacted equation, drop it — the
+  // seer aggregates will be spliced in by spliceEquationQueries.
+  const updatedMetricQueries = metricQueries
+    .map(mq => {
+      if (mq.queryParams === interactedQueryParams) {
+        if (interactedIsEquation && seerEquation) {
+          return {...seerEquation, label: mq.label};
+        }
 
-      if (!interactedIsEquation && seerEquation && replacementAggregate) {
-        return {...replacementAggregate, label: mq.label};
-      }
+        if (interactedIsEquation && !seerEquation) {
+          return null;
+        }
 
-      if (seerAggregateReplacement) {
-        return {
-          ...mq,
-          metric: seerAggregateReplacement.metric,
-          queryParams: seerAggregateReplacement.queryParams,
-        };
+        if (!interactedIsEquation && seerEquation && replacementAggregate) {
+          return {...replacementAggregate, label: mq.label};
+        }
+
+        if (seerAggregateReplacement) {
+          return {
+            ...mq,
+            metric: seerAggregateReplacement.metric,
+            queryParams: seerAggregateReplacement.queryParams,
+          };
+        }
       }
-    }
-    return mq;
-  });
+      return mq;
+    })
+    .filter(defined);
 
   // Re-resolve existing equations' yAxis against the updated reference
   // map so charts query the new aggregate. Preserve the original

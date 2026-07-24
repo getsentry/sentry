@@ -417,4 +417,97 @@ describe('applySeerEquation', () => {
 
     expect(result.spliceResult).toBe('requires_clear');
   });
+
+  it('replaces a middle equation in-place while preserving sibling equations', () => {
+    const aggA = makeAggregate('sum(value,m1,counter,none)', 'A', {
+      metric: {name: 'm1', type: 'counter'},
+    });
+    const aggB = makeAggregate('avg(value,m2,gauge,none)', 'B', {
+      metric: {name: 'm2', type: 'gauge'},
+    });
+    const aggC = makeAggregate('count(value,m3,counter,none)', 'C', {
+      metric: {name: 'm3', type: 'counter'},
+    });
+    const eqF1 = makeEquation(
+      'sum(value,m1,counter,none) + avg(value,m2,gauge,none)',
+      'ƒ1',
+      'A + B'
+    );
+    const eqF2 = makeEquation('count(value,m3,counter,none) * 100', 'ƒ2', 'C * 100');
+    const eqF3 = makeEquation(
+      'sum(value,m1,counter,none) - count(value,m3,counter,none)',
+      'ƒ3',
+      'A - C'
+    );
+
+    const result = runSeerEquationUpdate({
+      currentMetricQueries: [aggA, aggB, aggC, eqF1, eqF2, eqF3],
+      interactedQueryParams: eqF2.queryParams,
+      seerEquationYAxis:
+        'equation|p50(value,metricNew,distribution,none) / count(value,metricNew2,counter,none)',
+    });
+
+    const decoded = decodeResults(result.encodedMetrics);
+    expect(decoded).toHaveLength(8);
+
+    // Original aggregates unchanged
+    expect(decoded[0]!.yAxis).toBe('sum(value,m1,counter,none)');
+    expect(decoded[1]!.yAxis).toBe('avg(value,m2,gauge,none)');
+    expect(decoded[2]!.yAxis).toBe('count(value,m3,counter,none)');
+
+    // New seer aggregates spliced before equations
+    expect(decoded[3]!.yAxis).toBe('p50(value,metricNew,distribution,none)');
+    expect(decoded[4]!.yAxis).toBe('count(value,metricNew2,counter,none)');
+
+    // ƒ1 and ƒ3 preserved, ƒ2 replaced in-place by new equation
+    expect(decoded[5]!.yAxis).toBe(
+      'equation|sum(value,m1,counter,none) + avg(value,m2,gauge,none)'
+    );
+    expect(decoded[5]!.internalExpression).toBe('A + B');
+    expect(decoded[6]!.yAxis).toBe(
+      'equation|p50(value,metricNew,distribution,none) / count(value,metricNew2,counter,none)'
+    );
+    expect(decoded[6]!.internalExpression).toBe('D / E');
+    expect(decoded[7]!.yAxis).toBe(
+      'equation|sum(value,m1,counter,none) - count(value,m3,counter,none)'
+    );
+    expect(decoded[7]!.internalExpression).toBe('A - C');
+  });
+
+  it('removes the equation and appends the aggregate when seer returns no equation', () => {
+    const aggA = makeAggregate('sum(value,m1,counter,none)', 'A', {
+      metric: {name: 'm1', type: 'counter'},
+    });
+    const aggB = makeAggregate('avg(value,m2,gauge,none)', 'B', {
+      metric: {name: 'm2', type: 'gauge'},
+    });
+    const eqF1 = makeEquation(
+      'sum(value,m1,counter,none) + avg(value,m2,gauge,none)',
+      'ƒ1',
+      'A + B'
+    );
+
+    const seerAggregate = makeAggregate(
+      'p99(value,metricNew,distribution,none)',
+      'ignored',
+      {metric: {name: 'metricNew', type: 'distribution'}}
+    );
+
+    const result = applySeerResultsToMetricQueries({
+      metricQueries: [aggA, aggB, eqF1],
+      interactedQueryParams: eqF1.queryParams,
+      seerMetricQueries: [seerAggregate],
+    });
+
+    const decoded = decodeResults(result.encodedMetrics);
+    expect(decoded).toHaveLength(3);
+
+    // Original aggregates unchanged
+    expect(decoded[0]!.yAxis).toBe('sum(value,m1,counter,none)');
+    expect(decoded[1]!.yAxis).toBe('avg(value,m2,gauge,none)');
+
+    // ƒ1 removed and replaced by the seer aggregate with a letter label
+    expect(decoded[2]!.yAxis).toBe('p99(value,metricNew,distribution,none)');
+    expect(decoded[2]!.isEquation).toBe(false);
+  });
 });
