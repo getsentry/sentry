@@ -15,7 +15,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import type {Block, TodoItem} from 'sentry/views/seerExplorer/types';
+import type {Block, TodoItem, ToolLink} from 'sentry/views/seerExplorer/types';
 import {
   buildToolLinkUrl,
   getToolsStringFromBlock,
@@ -88,10 +88,26 @@ function useToolLinks(block: Block) {
     return map;
   }, [block.tool_links, block.tool_results]);
 
+  // The links bus (code-mode-effects-registry): a tool result carries its own deep-links in
+  // structuredContent.links as a {kind, params} list. Keyed by tool_call_id, so a result can hold
+  // many with no index alignment. When present, this is the source of truth for that result's
+  // links; when absent, we fall back to the positional block.tool_links below.
+  const busLinksByCallId = useMemo(() => {
+    const map = new Map<string, ToolLink[]>();
+    (block.tool_results || []).forEach(result => {
+      const links = result?.structuredContent?.links;
+      if (result?.tool_call_id && links?.length) {
+        map.set(result.tool_call_id, links);
+      }
+    });
+    return map;
+  }, [block.tool_results]);
+
   return {
     sortedToolLinks,
     toolCallToLinkIndexMap,
     toolLinkByCallId,
+    busLinksByCallId,
     organization,
     projects,
   };
@@ -108,6 +124,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
     sortedToolLinks,
     toolCallToLinkIndexMap,
     toolLinkByCallId,
+    busLinksByCallId,
     organization,
     projects,
   } = useToolLinks(block);
@@ -122,25 +139,21 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           ? toolLinkByCallId.get(toolCall.id)
           : undefined;
         const hasLink = correspondingLinkIndex !== undefined;
-        const toolUrl = hasLink
-          ? buildToolLinkUrl(
-              sortedToolLinks[correspondingLinkIndex],
-              organization,
-              projects
-            )
+        const positionalLink = hasLink
+          ? sortedToolLinks[correspondingLinkIndex]
+          : undefined;
+        const toolUrl = positionalLink
+          ? buildToolLinkUrl(positionalLink, organization, projects)
           : null;
 
-        const handleLinkClick = hasLink
+        const handleLinkClick = positionalLink
           ? (e: React.MouseEvent) => {
               e.stopPropagation();
-              const selectedLink = sortedToolLinks[correspondingLinkIndex];
-              if (selectedLink) {
-                trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
-                  referrer: getPageReferrer?.() ?? '',
-                  organization,
-                  tool_kind: selectedLink.kind,
-                });
-              }
+              trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
+                referrer: getPageReferrer?.() ?? '',
+                organization,
+                tool_kind: positionalLink.kind,
+              });
             }
           : undefined;
 
@@ -161,6 +174,23 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
             ? t('Tool call returned empty results')
             : null;
 
+        // Links bus: render the result's own links (structuredContent.links) as labeled links
+        // below the row. Dedupe the one already shown as the positional row link (classic tools
+        // populate both channels during migration), so a Code Mode execute's many links surface
+        // while classic single-link rendering is unchanged.
+        const linkKey = (link: ToolLink) => `${link.kind}:${JSON.stringify(link.params)}`;
+        const positionalKey = positionalLink ? linkKey(positionalLink) : null;
+        const navItems = (toolCall.id ? (busLinksByCallId.get(toolCall.id) ?? []) : [])
+          .filter(link => linkKey(link) !== positionalKey)
+          .map(link => ({
+            kind: link.kind,
+            url: buildToolLinkUrl(link, organization, projects),
+          }))
+          .filter(
+            (item): item is {kind: string; url: NonNullable<typeof item.url>} =>
+              !!item.url
+          );
+
         return (
           <ToolCallRow
             key={toolCall.id ?? `${toolCall.function}-${idx}`}
@@ -170,11 +200,17 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
             failureTooltip={failureTooltip}
             onLinkClick={handleLinkClick}
             todos={todos}
+            navItems={navItems}
           />
         );
       })}
     </Stack>
   );
+}
+
+interface NavItem {
+  kind: string;
+  url: NonNullable<ReturnType<typeof buildToolLinkUrl>>;
 }
 
 function ToolCallRow({
@@ -184,9 +220,11 @@ function ToolCallRow({
   failureTooltip,
   onLinkClick,
   todos,
+  navItems,
 }: {
   blockStatus: ToolCallStatus | undefined;
   failureTooltip: string | null;
+  navItems: NavItem[];
   todos: TodoItem[] | null;
   toolString: string;
   toolUrl: ReturnType<typeof buildToolLinkUrl>;
@@ -227,7 +265,34 @@ function ToolCallRow({
           <ToolCallPlainRow>{toolCallText}</ToolCallPlainRow>
         )}
       </Flex>
+      {navItems.length > 0 && <NavLinks navItems={navItems} />}
       {todos && <TodoList todos={todos} />}
+    </Stack>
+  );
+}
+
+const NAV_LINK_LABELS: Record<string, string> = {
+  get_issue_details: t('View issue'),
+  get_trace_waterfall: t('View trace'),
+  get_replay_details: t('View replay'),
+  get_profile_flamegraph: t('View profile'),
+};
+
+function NavLinks({navItems}: {navItems: NavItem[]}) {
+  return (
+    <Stack as="ul" gap="xs" padding="0">
+      {navItems.map((item, idx) => (
+        <Flex key={`${item.kind}-${idx}`} as="li" gap="sm" align="center">
+          <ToolCallLink to={item.url}>
+            <Text size="xs" monospace>
+              {NAV_LINK_LABELS[item.kind] ?? item.kind}
+            </Text>
+            <ToolCallLinkIconWrapper>
+              <ToolCallLinkIcon size="xs" />
+            </ToolCallLinkIconWrapper>
+          </ToolCallLink>
+        </Flex>
+      ))}
     </Stack>
   );
 }
