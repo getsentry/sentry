@@ -107,7 +107,6 @@ describe('Subscription > TrialAlert', () => {
       ...subscription,
       trialPlan: 'am1_business',
       isEnterpriseTrial: false,
-      isPerformancePlanTrial: false,
       onDemandMaxSpend: 1000,
       onDemandSpendUsed: 0,
     };
@@ -119,23 +118,5 @@ describe('Subscription > TrialAlert', () => {
       )
     ).toBeInTheDocument();
     expect(screen.queryByText(/unlimited errors/)).not.toBeInTheDocument();
-  });
-
-  it('renders performance trial', () => {
-    const sub = {
-      ...subscription,
-      trialPlan: 'am1_business',
-      isEnterpriseTrial: false,
-      isPerformancePlanTrial: true,
-      onDemandMaxSpend: 1000,
-      onDemandSpendUsed: 0,
-    };
-    render(<TrialAlert subscription={sub} organization={organization} />);
-    expect(screen.getByText('Performance Trial')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "With your trial you have access to Sentry's performance features."
-      )
-    ).toBeInTheDocument();
   });
 });

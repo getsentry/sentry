@@ -102,7 +102,6 @@ export function getPendoAccountFields(
       'isFree',
       'isManaged',
       'isEnterpriseTrial',
-      'isPerformancePlanTrial',
       'isSuspended',
       'canTrial',
       'canSelfServe',

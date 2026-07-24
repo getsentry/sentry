@@ -32,13 +32,9 @@ export function TrialAlert({organization, subscription}: Props) {
 
   const trialName = subscription.isEnterpriseTrial
     ? t('Enterprise Trial')
-    : subscription.isPerformancePlanTrial
-      ? t('Performance Trial')
-      : t('Business Plan Trial');
+    : t('Business Plan Trial');
 
-  const featuresName = subscription.isPerformancePlanTrial
-    ? 'performance'
-    : 'business plan';
+  const featuresName = 'business plan';
 
   return (
     <Container
