@@ -503,6 +503,7 @@ class TestSeerAgentClient(TestCase):
         """Test that HTTP errors are propagated"""
         mock_access.return_value = (True, None)
         mock_post.return_value.status = 500
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
 
         client = SeerAgentClient(self.organization, self.user)
         with pytest.raises(SeerApiError):
@@ -517,6 +518,9 @@ class TestSeerAgentClient(TestCase):
         client = SeerAgentClient(self.organization, self.user)
         with pytest.raises(SeerPermissionError):
             client.continue_run(999, "Follow up query")
+
+        # Fail closed: a missing mirror must not advance the run on Seer's side.
+        mock_post.assert_not_called()
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")

@@ -676,6 +676,14 @@ class SeerAgentClient:
         if bool(artifact_schema) != bool(artifact_key):
             raise ValueError("artifact_key and artifact_schema must be provided together")
 
+        # Resolve the mirror before calling Seer so a missing run never advances
+        # the remote run (fail closed).
+        run = SeerRun.objects.filter(
+            organization_id=self.organization.id, seer_run_state_id=run_id
+        ).first()
+        if run is None:
+            raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
+
         agent_run_options: dict[str, Any] = {
             "enable_coding": self.enable_coding,
             "enable_code_mode_tools": self.enable_code_mode_tools,
@@ -772,11 +780,6 @@ class SeerAgentClient:
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
 
-        run = SeerRun.objects.filter(
-            organization_id=self.organization.id, seer_run_state_id=run_id
-        ).first()
-        if run is None:
-            raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
         run.update(last_triggered_at=now())
 
         return run
