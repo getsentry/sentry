@@ -529,13 +529,22 @@ describe('InboxPage', () => {
       name: 'Make a Plan',
     });
 
+    // After starting the step, the refetch will see a processing state
+    mockAutofixResponse(
+      ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({status: 'processing'}),
+      })
+    );
+
     await userEvent.click(seerButton);
 
     expect(within(preview).getByRole('tab', {name: 'Autofix'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
-    expect(within(preview).getByRole('button', {name: 'Make a Plan'})).toBeDisabled();
+    await waitFor(() =>
+      expect(within(preview).getByRole('button', {name: 'Make a Plan'})).toBeDisabled()
+    );
     await waitFor(() =>
       expect(startAutofixRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -613,13 +622,31 @@ describe('InboxPage', () => {
     await userEvent.hover(retryButton);
     expect(await screen.findByText('Unable to create PR')).toBeInTheDocument();
 
+    // After retrying, the refetch will see a processing state.
+    mockAutofixResponse(
+      ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({
+          status: 'processing',
+          repo_pr_states: {
+            'org/repository': AutofixRepoPRStateFixture({
+              pr_creation_error: 'Unable to create PR',
+              pr_creation_status: 'error',
+              pr_id: null,
+              pr_number: null,
+              pr_url: null,
+            }),
+          },
+        }),
+      })
+    );
+
     await userEvent.click(retryButton);
 
     expect(within(preview).getByRole('tab', {name: 'Autofix'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
-    expect(retryButton).toBeDisabled();
+    await waitFor(() => expect(retryButton).toBeDisabled());
     await waitFor(() =>
       expect(retryPullRequest).toHaveBeenCalledWith(
         expect.anything(),
