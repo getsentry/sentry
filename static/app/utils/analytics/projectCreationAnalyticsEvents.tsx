@@ -137,6 +137,12 @@ export type ProjectCreationEventParameters = {
     project_id: string;
     variant?: ProjectCreationVariant;
   };
+  'project_creation.take_me_to_issues_clicked': {
+    platform: string;
+    products: string[];
+    project_id: string;
+    variant: ProjectCreationVariant;
+  };
 };
 
 export const projectCreationEventMap: Record<
@@ -196,4 +202,6 @@ export const projectCreationEventMap: Record<
     'Project Creation: JS Loader Switch to npm Instructions',
   'project_creation.setup_loader_docs_rendered':
     'Project Creation: Setup Loader Docs Rendered',
+  'project_creation.take_me_to_issues_clicked':
+    'Project Creation: Take Me to Issues Clicked',
 };

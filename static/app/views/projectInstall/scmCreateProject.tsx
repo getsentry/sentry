@@ -202,8 +202,8 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
           organization,
         }),
         // Carry both the creating flow and upfront product selection into the
-        // setup docs. The flow marker attributes analytics to the SCM variant;
-        // the product query seeds the selected instructions.
+        // setup-docs and getting-started analytics to the SCM variant; the
+        // product query seeds the selected instructions.
         query: {
           projectCreationVariant: 'scm',
           ...(wizardState.selectedFeatures
