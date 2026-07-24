@@ -80,7 +80,7 @@ class ReplayDeletionJobCreateDataSerializer(serializers.Serializer):
     def validate(self, data):
         if data["rangeStart"] >= data["rangeEnd"]:
             raise serializers.ValidationError("rangeStart must be before rangeEnd")
-        if data["rangeStart"] - data["rangeEnd"] > timedelta(days=30):
+        if data["rangeEnd"] - data["rangeStart"] > timedelta(days=30):
             raise serializers.ValidationError(
                 "you cannot delete more than 30 days of data at a time"
             )
