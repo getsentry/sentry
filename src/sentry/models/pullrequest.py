@@ -219,21 +219,14 @@ class PullRequestManager(BaseManager["PullRequest"]):
         """Every ``PullRequest`` row for one provider-side PR, across all orgs
         sharing the repository.
 
-        A repository connected to multiple Sentry orgs (a shared GitHub App
-        installation) has one active ``Repository`` row per org, all carrying the
-        provider's ``external_id`` (e.g. GitHub's repo id). A single provider PR —
-        the same ``(external_id, key)`` — therefore fans out to one ``PullRequest``
-        row per org. This returns every such row so callers can treat the provider
-        PR as the unit rather than the per-org row (e.g. emission dedupe, so a
-        single provider PR emits one ``scm.pr.closed`` instead of one per org).
+        A repo connected to N orgs has one active ``Repository`` per org, all
+        sharing the provider's ``external_id``, so one provider PR — the same
+        ``(external_id, key)`` — fans out to one row per org. Returns them all so
+        callers can treat the provider PR as the unit rather than the per-org row.
 
-        ``provider`` is the bare, normalized slug (e.g. ``github``) and scopes the
-        match so a numeric ``external_id`` can't collide across providers.
-
-        Cell-local: ``Repository`` and ``PullRequest`` are cell models, so rows in
-        other cells aren't visible here — consistent with every other cross-org
-        query in these paths. Returns ``[]`` when ``external_id`` matches no active
-        repository.
+        ``provider`` (bare slug, e.g. ``github``) scopes the match so a numeric
+        ``external_id`` can't collide across providers. Cell-local — rows in other
+        cells aren't visible. ``[]`` when no active repo matches.
         """
         repos = Repository.objects.filter(
             external_id=external_id, status=ObjectStatus.ACTIVE

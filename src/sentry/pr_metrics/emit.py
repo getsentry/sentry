@@ -502,19 +502,11 @@ def _deduplication_key(
 def is_canonical_github_pr_row(pull_request: PullRequest) -> bool:
     """Whether this row is the one that should emit for its provider-side PR.
 
-    A provider PR shared across orgs (a multi-org GitHub App installation) fans
-    out to one ``PullRequest`` row per org, each independently passing the
-    tracking gate — so without dedupe a single provider PR emits one
-    ``scm.pr.closed`` per org. This picks exactly one canonical row:
-
-      - the row in the org of the Seer run that opened the PR (its
-        ``SeerRunPullRequest`` link), when one exists — the org with the real
-        signal;
-      - else the lowest-id row among the siblings (a stable, arbitrary pick when
-        no run link ties the PR to a specific org).
-
-    Returns True for that canonical row, and for any PR with no resolvable
-    siblings — the common single-org case, one repo lookup and out.
+    A repo shared across orgs fans a PR out to one row per org, each passing the
+    tracking gate — so one PR would emit one ``scm.pr.closed`` per org. Pick a
+    single canonical row: the Seer run's-org row (its ``SeerRunPullRequest`` link)
+    if any, else the lowest-id sibling. True also when there are no resolvable
+    siblings — the common single-org case.
     """
     external_id, provider = _repo_external_identity(pull_request)
     if external_id is None or provider is None:
@@ -522,10 +514,9 @@ def is_canonical_github_pr_row(pull_request: PullRequest) -> bool:
     siblings = PullRequest.objects.for_provider_pr(
         external_id=external_id, provider=provider, key=pull_request.key
     )
-    # Dedupe only among rows that actually emit (≥1 valid attribution). An untracked
-    # shadow must never win canonical and suppress a tracked sibling — e.g. an
-    # attribution feature (MCP issue-view) enabled in one org but not another leaves
-    # the sibling untracked, and a run-less MCP PR would otherwise emit nothing.
+    # Only rows that actually emit (≥1 valid attribution) can be canonical, else an
+    # untracked shadow could suppress a tracked sibling — e.g. a run-less MCP PR
+    # whose attribution feature is on in only one org.
     tracked = _tracked_rows(siblings)
     if len(tracked) <= 1:
         return True
