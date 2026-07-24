@@ -432,8 +432,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         return Response(status=status.HTTP_404_NOT_FOUND)
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                # Kickoff always yields a fresh run; continue always has a
-                # resolved_run_id (a legacy run with no mirror leaves run None).
                 triggered_run_id = run.seer_run_state_id if run is not None else resolved_run_id
                 assert triggered_run_id is not None
                 run_id = triggered_run_id
