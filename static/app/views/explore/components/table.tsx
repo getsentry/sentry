@@ -4,6 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
+import type {Alignments} from 'sentry/components/tables/gridEditable';
 import {
   Grid as _Table,
   Body as _TableWrapper,
@@ -15,7 +16,6 @@ import {
   GridRow,
 } from 'sentry/components/tables/gridEditable/styles';
 import {defined} from 'sentry/utils/defined';
-import type {Alignments} from 'sentry/utils/discover/fields';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 
 interface TableProps extends React.ComponentProps<typeof _TableWrapper> {

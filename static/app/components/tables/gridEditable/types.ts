@@ -6,6 +6,8 @@
 
 type ObjectKey = string | number;
 
+export type Alignments = 'left' | 'right';
+
 export type GridColumn<K = ObjectKey> = {
   key: K;
   width?: number;

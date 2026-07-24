@@ -4,8 +4,8 @@ import type {LocationDescriptorObject} from 'history';
 
 import {Link} from '@sentry/scraps/link';
 
+import type {Alignments} from 'sentry/components/tables/gridEditable';
 import {IconArrow} from 'sentry/icons';
-import type {Alignments} from 'sentry/utils/discover/fields';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 export type Directions = 'desc' | 'asc' | undefined;

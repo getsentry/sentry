@@ -5,14 +5,13 @@ import type {Location} from 'history';
 
 import {Link} from '@sentry/scraps/link';
 
-import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {GridEditable, type Alignments} from 'sentry/components/tables/gridEditable';
 import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {Alignments} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';

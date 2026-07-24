@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
+import type {Alignments} from 'sentry/components/tables/gridEditable';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
@@ -117,8 +118,6 @@ export type QueryFieldValue =
 
 // Column is just an alias of a Query value
 export type Column = QueryFieldValue;
-
-export type Alignments = 'left' | 'right';
 
 export type CountUnit = 'count';
 

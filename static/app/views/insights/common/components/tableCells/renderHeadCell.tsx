@@ -3,9 +3,9 @@ import type {Location} from 'history';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import type {Alignments, GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
-import type {Alignments, Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateFunctionOutputType,
   fieldAlignment,
