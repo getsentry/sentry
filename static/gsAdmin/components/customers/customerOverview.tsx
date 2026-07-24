@@ -331,7 +331,9 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
             <Tag variant="muted">None</Tag>
           ) : (
             <Tag variant="muted">
-              Not available on the {customer.planDetails.name} plan
+              {customer.planDetails?.name
+                ? `Not available on the ${customer.planDetails.name} plan`
+                : 'Not available on this plan'}
             </Tag>
           )}
         </DetailLabel>
