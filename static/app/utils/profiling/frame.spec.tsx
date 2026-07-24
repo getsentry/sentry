@@ -94,6 +94,51 @@ describe('Frame', () => {
     });
   });
 
+  describe('java frames', () => {
+    it('qualifies name with module', () => {
+      expect(
+        new Frame(
+          {
+            key: 0,
+            name: 'call',
+            module: 'rx.internal.util.ScalarSynchronousObservable$ScalarAsyncOnSubscribe',
+            platform: 'java',
+          },
+          'mobile'
+        ).name
+      ).toBe('rx.internal.util.ScalarSynchronousObservable$ScalarAsyncOnSubscribe.call');
+    });
+
+    it('shows only module for constructors', () => {
+      expect(
+        new Frame(
+          {
+            key: 0,
+            name: '<init>',
+            module: 'com.example.Foo',
+            platform: 'java',
+          },
+          'mobile'
+        ).name
+      ).toBe('com.example.Foo');
+    });
+
+    it('keeps bare name when module is missing', () => {
+      expect(
+        new Frame({key: 0, name: 'art_jni_trampoline', platform: 'java'}, 'mobile').name
+      ).toBe('art_jni_trampoline');
+    });
+
+    it('does not qualify non-java frames', () => {
+      expect(
+        new Frame(
+          {key: 0, name: 'memcpy', module: 'libc.so', platform: 'native'},
+          'mobile'
+        ).name
+      ).toBe('memcpy');
+    });
+  });
+
   it('formats getSourceLocation', () => {
     const frame = new Frame(
       {
