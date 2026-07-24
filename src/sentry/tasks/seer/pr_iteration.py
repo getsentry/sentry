@@ -9,6 +9,7 @@ from scm import actions as scm_actions
 from scm.errors import ResourceNotFound
 from scm.manager import SourceCodeManager
 from scm.types import (
+    Author,
     CreatePullRequestCommentReactionProtocol,
     CreateReviewCommentReactionProtocol,
     DeletePullRequestCommentReactionProtocol,
@@ -672,7 +673,7 @@ def _build_review_feedback(
     review_id: int,
     review_html_url: str | None,
     review_state: str | None,
-    review_author_login: str | None,
+    review_author: Author | None,
     author_is_bot: bool,
 ) -> list[Feedback]:
     """Normalize a submitted review into feedback items.
@@ -683,12 +684,6 @@ def _build_review_feedback(
     shared ``review_id`` so the UI can group them under one review; the review's
     ``review_state`` (approved / changes requested / commented) lives on the body
     source, the review's own representation.
-
-    ``review_author_login`` is the review author's GitHub login, read from the
-    fetched review the same way an inline comment reads ``comment.author``. It is
-    wrapped in a ``GithubPrCommentUser`` on the body source — the same ``user``
-    shape an inline comment carries — so the UI can render the reviewer's avatar
-    on the review header, matching the avatars on the review's inline comments.
 
     ``author_is_bot`` marks the resulting feedback as automated so it counts
     toward the automated-iteration streak cap (see ``automated_iteration_cap_reached``).
@@ -725,7 +720,7 @@ def _build_review_feedback(
             review_state=review_state,
             body=review_body,
             html_url=review_html_url,
-            user=GithubPrCommentUser(login=review_author_login),
+            user=GithubPrCommentUser(login=review_author["username"] if review_author else None),
             author_is_bot=author_is_bot,
         )
         feedback.append(Feedback(source=body_source))
@@ -854,11 +849,7 @@ def trigger_pr_iteration_from_review(
     review_body = (review.get("body") or "").strip() if review else None
     review_html_url = review.get("html_url") if review else None
     review_state = review.get("state") if review else None
-    # Read the review author off the fetched review, mirroring how an inline
-    # comment reads ``comment.author`` — so the body's avatar comes from the same
-    # payload as its comments', not from the listener's webhook actor.
     review_author = review.get("author") if review else None
-    review_author_login = review_author.get("username") if review_author else None
 
     # Skip genuinely empty reviews — no body text AND no inline comments — there
     # is nothing to act on (e.g. a bare approve with no message). A review with
@@ -873,7 +864,7 @@ def trigger_pr_iteration_from_review(
         review_id=review_id,
         review_html_url=review_html_url,
         review_state=review_state,
-        review_author_login=review_author_login,
+        review_author=review_author,
         author_is_bot=author_is_bot,
     )
     if not feedback_items:
