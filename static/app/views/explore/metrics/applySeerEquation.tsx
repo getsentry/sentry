@@ -50,7 +50,8 @@ export function applySeerResultsToMetricQueries({
       mq.queryParams.visualizes[0] && isVisualizeEquation(mq.queryParams.visualizes[0])
   );
   const seerAggregates = seerMetricQueries.filter(
-    mq => !isVisualizeEquation(mq.queryParams.visualizes[0]!)
+    mq =>
+      mq.queryParams.visualizes[0] && !isVisualizeEquation(mq.queryParams.visualizes[0])
   );
   const [replacementAggregate, ...extraAggregates] = seerAggregates;
 
