@@ -36,8 +36,11 @@ class EmailActivityHandler(ActivityHandler):
         if group is None:
             raise ValueError(f"Activity {activity.id} has no associated group")
         strategy = IssueOwnersActivityAlertStrategy(group=group)
-        data = build_activity_notification_data(activity, workflow_id=invocation.workflow_id)
-        NotificationService[ActivityNotificationData](data=data).notify_sync(strategy=strategy)
+        for target in strategy.get_targets():
+            data = build_activity_notification_data(
+                activity, workflow_id=invocation.workflow_id, target=target
+            )
+            NotificationService[ActivityNotificationData](data=data).notify_target(target=target)
 
     @classmethod
     def invoke_action(cls, invocation: ActionInvocation, activity: Activity) -> None:
