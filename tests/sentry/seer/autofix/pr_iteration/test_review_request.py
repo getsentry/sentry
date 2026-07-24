@@ -6,16 +6,14 @@ import orjson
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.pr_iteration.check_suites import (
+    READY_FOR_REVIEW_EXTRA,
+    REVIEW_REQUESTS_EXTRA,
     CheckRunsSweep,
     CheckSuiteAutofixRun,
     bootstrap_green_check_suite,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
-from sentry.seer.autofix.pr_iteration.ready_for_review import READY_FOR_REVIEW_EXTRA
-from sentry.seer.autofix.pr_iteration.review_request import (
-    REVIEW_REQUESTS_EXTRA,
-    request_review_from_context,
-)
+from sentry.seer.autofix.pr_iteration.review_request import request_review_from_context
 from sentry.seer.autofix.pr_iteration.reviewer_candidates import (
     REVIEWER_CANDIDATES_EXTRA,
     SOURCE_TRIGGERING_USER,

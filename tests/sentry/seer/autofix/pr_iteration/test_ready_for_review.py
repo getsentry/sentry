@@ -5,15 +5,13 @@ import orjson
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.pr_iteration.check_suites import (
+    READY_FOR_REVIEW_EXTRA,
     CheckRunsSweep,
     CheckSuiteAutofixRun,
     bootstrap_green_check_suite,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
-from sentry.seer.autofix.pr_iteration.ready_for_review import (
-    READY_FOR_REVIEW_EXTRA,
-    mark_ready_for_review,
-)
+from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_review
 from sentry.testutils.cases import TestCase
 
 READY_FOR_REVIEW_PATH = "sentry.seer.autofix.pr_iteration.ready_for_review"
