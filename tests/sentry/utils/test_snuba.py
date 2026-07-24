@@ -5,7 +5,7 @@ from unittest import mock
 import pytest
 import sentry_sdk
 from django.utils import timezone
-from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
+from snuba_sdk import Column, Condition, DeleteQuery, Entity, Function, Op, Query, Request
 from urllib3 import HTTPConnectionPool
 from urllib3.exceptions import HTTPError, ReadTimeoutError
 from urllib3.response import HTTPResponse
@@ -21,7 +21,6 @@ from sentry.utils import json
 from sentry.utils.snuba import (
     ROUND_UP,
     SNUBA_JSON_RESP_COMPRESSION_ROLLOUT,
-    DeleteQuery,
     RateLimitExceeded,
     RetrySkipTimeout,
     SnubaQueryParams,
