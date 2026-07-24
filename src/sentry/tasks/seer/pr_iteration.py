@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection
+from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 
@@ -18,15 +20,18 @@ from scm.types import (
     GetAuthenticatedActorProtocol,
     GetPullRequestCommentReactionsProtocol,
     GetPullRequestReviewProtocol,
+    GetPullRequestReviewThreadsProtocol,
     GetRepositoryUserPermissionProtocol,
     GetReviewCommentReactionsProtocol,
     GetReviewCommentsProtocol,
     PaginationParams,
     Reaction,
     ReactionResult,
+    ResolveReviewThreadProtocol,
     ResourceId,
     Review,
     ReviewComment,
+    ReviewThread,
 )
 from taskbroker_client.retry import Retry
 
@@ -365,6 +370,77 @@ def _delete_own_comment_eyes_reaction(
                 )
     except Exception:
         logger.exception("autofix.pr_iteration.completion_reaction.delete_eyes_failed")
+
+
+@dataclass
+class ResolveReviewThreadsResult:
+    resolved: int = 0
+    already_resolved: int = 0
+    not_found: int = 0
+    unsupported_provider: bool = False
+    failed: bool = False
+
+
+def _resolve_review_comment_threads(
+    scm: SourceCodeManager,
+    *,
+    pr_number: int,
+    comment_unique_ids: Collection[str],
+) -> ResolveReviewThreadsResult:
+    """Resolve the review threads of this iteration's inline comments (CW-1688).
+
+    Fetches every review thread on the PR once, maps each requested comment's
+    GraphQL node id to its owning thread, then resolves each unique unresolved
+    thread. Shared threads collapse to one resolve; already-resolved threads are
+    skipped. A GitHub failure is logged and swallowed so the completion hook keeps
+    running.
+    """
+    if not (
+        isinstance(scm, ResolveReviewThreadProtocol)
+        and isinstance(scm, GetPullRequestReviewThreadsProtocol)
+    ):
+        logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
+        return ResolveReviewThreadsResult(unsupported_provider=True)
+
+    try:
+        threads: list[ReviewThread] = []
+        cursor: str | None = None
+        while True:
+            pagination: PaginationParams | None = {"cursor": cursor} if cursor else None
+            result = scm_actions.get_pull_request_review_threads(scm, str(pr_number), pagination)
+            threads.extend(result["data"])
+            cursor = result["meta"].get("next_cursor")
+            if not cursor:
+                break
+
+        thread_by_comment: dict[str, ReviewThread] = {}
+        for thread in threads:
+            for comment in thread["comments"]:
+                unique_id = comment.get("unique_id")
+                if unique_id is not None:
+                    thread_by_comment[unique_id] = thread
+
+        outcome = ResolveReviewThreadsResult()
+        thread_ids_to_resolve: set[ResourceId] = set()
+        already_resolved_ids: set[ResourceId] = set()
+        for comment_unique_id in comment_unique_ids:
+            owning_thread = thread_by_comment.get(comment_unique_id)
+            if owning_thread is None:
+                outcome.not_found += 1
+                continue
+            if owning_thread["is_resolved"]:
+                already_resolved_ids.add(owning_thread["id"])
+            else:
+                thread_ids_to_resolve.add(owning_thread["id"])
+
+        outcome.already_resolved = len(already_resolved_ids)
+        for thread_id in thread_ids_to_resolve:
+            scm_actions.resolve_review_thread(scm, str(pr_number), str(thread_id))
+            outcome.resolved += 1
+        return outcome
+    except Exception:
+        logger.exception("autofix.pr_iteration.completion_reaction.resolve_failed")
+        return ResolveReviewThreadsResult(failed=True)
 
 
 def _comment_pr_iteration_ineligible(
@@ -706,6 +782,7 @@ def _build_review_feedback(
             start_line=_diff_line_number(comment.get("start_line")),
             diff_hunk=comment.get("diff_hunk"),
             user=GithubPrCommentUser(login=author["username"] if author else None),
+            unique_id=comment.get("unique_id"),
         )
         source = GithubPrReviewCommentFeedbackSource(
             comment=review_comment,

@@ -34,6 +34,10 @@ class GithubPullRequestReviewComment(GithubIssueComment):
     line: int | None = None
     start_line: int | None = None
     diff_hunk: str | None = None
+    # GitHub GraphQL node id (``PRRC_…``) of the review comment, used at completion
+    # time to translate the comment to its review thread and resolve it (CW-1688).
+    # Optional so feedback serialized before this field predates it.
+    unique_id: str | None = None
 
 
 def _blocks_feedback(blocks: Sequence[Any]) -> list[Any]:

@@ -27,6 +27,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.sentry_apps.utils.webhooks import SeerActionType
+from sentry.tasks.seer.pr_iteration import ResolveReviewThreadsResult
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -897,9 +898,13 @@ class TestMaybeReactToCompletedIteration(TestCase):
             repo_name="owner/repo",
         )
 
-    def _review_source(self, comment_id: int = 222) -> GithubPrReviewCommentFeedbackSource:
+    def _review_source(
+        self, comment_id: int = 222, unique_id: str | None = "PRRC_222"
+    ) -> GithubPrReviewCommentFeedbackSource:
         return GithubPrReviewCommentFeedbackSource(
-            comment=GithubPullRequestReviewComment(id=comment_id, body="inline feedback"),
+            comment=GithubPullRequestReviewComment(
+                id=comment_id, body="inline feedback", unique_id=unique_id
+            ),
         )
 
     def _state_with(
@@ -923,13 +928,19 @@ class TestMaybeReactToCompletedIteration(TestCase):
         )
         return state
 
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
+    @patch(f"{REACT_PATH}._resolve_review_comment_threads")
     @patch(f"{REACT_PATH}.make_scm")
     @patch(f"{REACT_PATH}._add_comment_reaction")
-    def test_reacts_hooray_on_top_level_comment_only(self, mock_react, mock_make_scm):
+    def test_reacts_hooray_on_top_level_comment_only(
+        self, mock_react, mock_make_scm, mock_resolve, mock_sensitive
+    ):
         # A review comment is present alongside the top-level comment; only the
-        # top-level one is acked (review comments are handled by CW-1688).
+        # top-level one is acked with :tada: while the review comment's thread is
+        # resolved (CW-1688).
         scm = MagicMock()
         mock_make_scm.return_value = scm
+        mock_resolve.return_value = ResolveReviewThreadsResult(resolved=1)
         state = self._state_with([self._top_level_source(111), self._review_source(222)])
 
         with self.feature("organizations:autofix-pr-iteration"):
@@ -943,6 +954,9 @@ class TestMaybeReactToCompletedIteration(TestCase):
         assert mock_react.call_args.kwargs["comment_id"] == 111
         assert mock_react.call_args.kwargs["reaction"] == "hooray"
         assert mock_react.call_args.kwargs["pr_number"] == 7
+
+        # The review comment's thread is resolved alongside the top-level :tada:.
+        mock_resolve.assert_called_once()
 
     @patch(f"{REACT_PATH}.make_scm")
     @patch(f"{REACT_PATH}._add_comment_reaction")
@@ -1087,11 +1101,12 @@ class TestMaybeReactToCompletedIteration(TestCase):
         assert mock_delete_eyes.call_args.kwargs["comment_id"] == 111
 
     @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
+    @patch(f"{REACT_PATH}._resolve_review_comment_threads")
     @patch(f"{REACT_PATH}._delete_own_comment_eyes_reaction")
     @patch(f"{REACT_PATH}.make_scm")
     @patch(f"{REACT_PATH}._add_comment_reaction")
     def test_deletes_own_eyes_on_review_comment_without_hooray(
-        self, mock_react, mock_make_scm, mock_delete_eyes, mock_sensitive
+        self, mock_react, mock_make_scm, mock_delete_eyes, mock_resolve, mock_sensitive
     ):
         # An inline review comment gets its trigger-time :eyes: removed, but no
         # :tada: (its thread is resolved separately, CW-1688).
@@ -1137,3 +1152,173 @@ class TestMaybeReactToCompletedIteration(TestCase):
         # :tada: is still added, but the eyes-delete is skipped entirely.
         assert mock_react.call_args.kwargs["reaction"] == "hooray"
         mock_delete_eyes.assert_not_called()
+
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
+    @patch(f"{REACT_PATH}._resolve_review_comment_threads")
+    @patch(f"{REACT_PATH}._delete_own_comment_eyes_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_resolves_review_comment_thread(
+        self, mock_react, mock_make_scm, mock_delete_eyes, mock_resolve, mock_sensitive
+    ):
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        mock_resolve.return_value = ResolveReviewThreadsResult(resolved=1)
+        state = self._state_with(
+            [self._top_level_source(111), self._review_source(222, unique_id="PRRC_222")]
+        )
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+
+        # Top-level :tada: is unaffected.
+        assert mock_react.call_count == 1
+        assert mock_react.call_args.kwargs["comment_id"] == 111
+
+        mock_resolve.assert_called_once()
+        assert mock_resolve.call_args.args[0] is scm
+        assert mock_resolve.call_args.kwargs["pr_number"] == 7
+        assert mock_resolve.call_args.kwargs["comment_unique_ids"] == ["PRRC_222"]
+
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
+    @patch(f"{REACT_PATH}._resolve_review_comment_threads")
+    @patch(f"{REACT_PATH}._delete_own_comment_eyes_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_batches_multiple_review_comments_per_pr(
+        self, mock_react, mock_make_scm, mock_delete_eyes, mock_resolve, mock_sensitive
+    ):
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        mock_resolve.return_value = ResolveReviewThreadsResult(resolved=2)
+        state = self._state_with(
+            [
+                self._review_source(222, unique_id="PRRC_222"),
+                self._review_source(333, unique_id="PRRC_333"),
+            ]
+        )
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+
+        # One call per PR carrying every unique_id, not one call per comment.
+        mock_resolve.assert_called_once()
+        assert mock_resolve.call_args.kwargs["pr_number"] == 7
+        assert mock_resolve.call_args.kwargs["comment_unique_ids"] == ["PRRC_222", "PRRC_333"]
+
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
+    @patch(f"{REACT_PATH}._resolve_review_comment_threads")
+    @patch(f"{REACT_PATH}._delete_own_comment_eyes_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_skips_review_resolve_when_repo_ambiguous_multi_repo(
+        self, mock_react, mock_make_scm, mock_delete_eyes, mock_resolve, mock_sensitive
+    ):
+        # Review-comment sources don't carry ``repo_name``; with more than one repo
+        # in the run their repo can't be inferred, so resolution is skipped.
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        state = run_state(
+            blocks=[
+                self._synced_pr_iteration_block([self._review_source(222, unique_id="PRRC_222")])
+            ]
+        )
+        state.repo_pr_states = {
+            "owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7, commit_sha="synced-sha"),
+            "owner/other": RepoPRState(
+                repo_name="owner/other", pr_number=9, commit_sha="other-sha"
+            ),
+        }
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+
+        mock_resolve.assert_not_called()
+
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
+    @patch(f"{REACT_PATH}._resolve_review_comment_threads")
+    @patch(f"{REACT_PATH}._delete_own_comment_eyes_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_skips_resolve_for_legacy_source_without_unique_id(
+        self, mock_react, mock_make_scm, mock_delete_eyes, mock_resolve, mock_sensitive
+    ):
+        # A source serialized before unique_id was stored still gets :eyes: removed
+        # but is not resolvable.
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        state = self._state_with([self._review_source(222, unique_id=None)])
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+
+        mock_resolve.assert_not_called()
+        # :eyes: removal still happens for the inline comment.
+        assert mock_delete_eyes.call_count == 1
+        assert mock_delete_eyes.call_args.kwargs["comment_id"] == 222
+
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=True)
+    @patch(f"{REACT_PATH}._resolve_review_comment_threads")
+    @patch(f"{REACT_PATH}._delete_own_comment_eyes_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_skips_resolve_for_rate_limit_sensitive_org(
+        self, mock_react, mock_make_scm, mock_delete_eyes, mock_resolve, mock_sensitive
+    ):
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        state = self._state_with([self._review_source(222, unique_id="PRRC_222")])
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+
+        mock_resolve.assert_not_called()
+
+    @patch(f"{REACT_PATH}._resolve_review_comment_threads")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_noop_resolve_when_feature_disabled(self, mock_react, mock_make_scm, mock_resolve):
+        state = self._state_with([self._review_source(222, unique_id="PRRC_222")])
+        AutofixOnCompletionHook._maybe_react_to_completed_iteration(self.organization, 123, state)
+        mock_resolve.assert_not_called()
+
+    @patch(f"{REACT_PATH}._resolve_review_comment_threads")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_noop_resolve_on_error_status(self, mock_react, mock_make_scm, mock_resolve):
+        state = self._state_with([self._review_source(222, unique_id="PRRC_222")], status="error")
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+        mock_resolve.assert_not_called()
+
+    @patch(f"{REACT_PATH}._resolve_review_comment_threads")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_skips_resolve_when_repo_name_ambiguous(self, mock_react, mock_make_scm, mock_resolve):
+        self.create_repo(
+            project=self.project,
+            provider="integrations:gitlab",
+            external_id="456",
+            name="owner/repo",
+        )
+        state = self._state_with([self._review_source(222, unique_id="PRRC_222")])
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+
+        mock_make_scm.assert_not_called()
+        mock_resolve.assert_not_called()

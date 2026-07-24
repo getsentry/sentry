@@ -66,6 +66,7 @@ from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.tasks.seer.pr_iteration import (
     _add_comment_reaction,
     _delete_own_comment_eyes_reaction,
+    _resolve_review_comment_threads,
     consume_queued_autofix_feedback,
 )
 from sentry.utils import metrics
@@ -90,11 +91,12 @@ STOPPING_POINT_TO_STEP: dict[AutofixStoppingPoint, AutofixStep] = {
 }
 
 
-def _record_completion_reaction(outcome: str) -> None:
+def _record_completion_reaction(outcome: str, amount: int = 1) -> None:
     """Record where a completion-reaction attempt exited so silent drop-offs of
     the :tada: ack are visible in aggregate rather than invisible."""
     metrics.incr(
         "autofix.on_completion_hook.completion_reaction",
+        amount=amount,
         tags={"outcome": outcome},
     )
 
@@ -245,14 +247,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         run_id: int,
         state: SeerRunState,
     ) -> None:
-        """React :tada: on the comment(s) that triggered a completed iteration and
-        remove the trigger-time :eyes:.
+        """Acknowledge the comment(s) that triggered a completed iteration.
 
-        Only top-level ``@sentry`` PR comments are acked with :tada: — inline review
-        comments are resolvable threads acked separately (CW-1688). The trigger-time
-        :eyes: is removed from both, since both received it, completing the
-        :eyes:->:tada: swap on top-level comments and clearing the lingering :eyes:
-        on inline ones.
+        Top-level ``@sentry`` PR comments are acked with :tada:. Inline review
+        comments are acked by resolving their review thread (CW-1688), in addition
+        to the trigger-time :eyes: being removed. The :eyes: is removed from both
+        comment types, since both received it, completing the :eyes:->:tada: swap on
+        top-level comments and clearing the lingering :eyes: on inline ones.
         """
         if not features.has("organizations:autofix-pr-iteration", organization=organization):
             return
@@ -290,10 +291,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             _record_completion_reaction("no_pr_comment_sources")
             return
 
-        # Rate-limit-sensitive orgs skip the extra reaction-delete API calls.
-        delete_eyes = not is_github_rate_limit_sensitive(organization.slug)
+        # Rate-limit-sensitive orgs skip the extra reaction-delete / resolve API calls.
+        rate_limit_sensitive = is_github_rate_limit_sensitive(organization.slug)
+        delete_eyes = not rate_limit_sensitive
 
         scm_by_repo: dict[str, SourceCodeManager] = {}
+        # Inline review-comment node ids to resolve, grouped by (repo, PR) so we
+        # fetch each PR's threads once and resolve each shared thread once.
+        resolve_by_repo_pr: dict[tuple[str, int], list[str]] = {}
         for source in sources:
             comment_id = source.comment.id
             if comment_id is None:
@@ -344,8 +349,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             pr_number = pr_state.pr_number
 
             source_type = source.type
-            # Inline review comments are acked by resolving the thread (CW-1688),
-            # not with :tada:; only top-level PR comments get the :tada:.
+            # Only top-level PR comments get the :tada:; inline review comments are
+            # acked by resolving their thread after this loop (CW-1688).
             if source_type == "github-pr-comment":
                 _add_comment_reaction(
                     scm,
@@ -355,6 +360,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     reaction="hooray",
                 )
                 _record_completion_reaction("reacted")
+            elif source_type == "github-pr-review-comment" and not rate_limit_sensitive:
+                unique_id = getattr(source.comment, "unique_id", None)
+                if unique_id is None:
+                    _record_completion_reaction("resolve_no_unique_id")
+                else:
+                    resolve_by_repo_pr.setdefault((repo_name, pr_number), []).append(unique_id)
             if delete_eyes:
                 _delete_own_comment_eyes_reaction(
                     scm,
@@ -362,6 +373,31 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     pr_number=pr_number,
                     comment_id=comment_id,
                 )
+
+        if rate_limit_sensitive and any(
+            source.type == "github-pr-review-comment" for source in sources
+        ):
+            _record_completion_reaction("resolve_rate_limited")
+
+        for (repo_name, pr_number), unique_ids in resolve_by_repo_pr.items():
+            result = _resolve_review_comment_threads(
+                scm_by_repo[repo_name],
+                pr_number=pr_number,
+                comment_unique_ids=unique_ids,
+            )
+            if result.unsupported_provider:
+                _record_completion_reaction("resolve_unsupported_provider")
+            elif result.failed:
+                _record_completion_reaction("resolve_failed")
+            else:
+                if result.resolved:
+                    _record_completion_reaction("resolved", result.resolved)
+                if result.already_resolved:
+                    _record_completion_reaction(
+                        "resolve_skipped_already_resolved", result.already_resolved
+                    )
+                if result.not_found:
+                    _record_completion_reaction("resolve_thread_not_found", result.not_found)
 
     @classmethod
     def find_latest_artifact_for_step(cls, state: SeerRunState, key: str) -> Artifact | None:
