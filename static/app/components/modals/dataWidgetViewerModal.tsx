@@ -118,6 +118,7 @@ import {Actions} from 'sentry/views/discover/table/cellAction';
 import {TransactionLink} from 'sentry/views/discover/table/tableView';
 import {
   decodeColumnOrder,
+  getDiscoverDeprecation,
   getTargetForTransactionSummaryLink,
 } from 'sentry/views/discover/utils';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -938,7 +939,9 @@ function OpenButton({
       return null;
     case WidgetType.DISCOVER:
     default:
-      openLabel = t('Open in Discover');
+      openLabel = getDiscoverDeprecation(organization)
+        ? t('Open in Explore')
+        : t('Open in Discover');
       path = getWidgetDiscoverUrl(
         {...widget, queries: [widget.queries[selectedQueryIndex]!]},
         dashboardFilters,

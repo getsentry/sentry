@@ -600,11 +600,11 @@ export class Results extends Component<Props, State> {
 
   getDocumentTitle(): string {
     const {eventView} = this.state;
-    const {isHomepage} = this.props;
+    const {isHomepage, organization} = this.props;
     if (!eventView) {
       return '';
     }
-    return generateTitle({eventView, isHomepage});
+    return generateTitle({eventView, isHomepage, organization});
   }
 
   setError = (error: string, errorCode: number) => {

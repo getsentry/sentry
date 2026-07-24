@@ -18,6 +18,7 @@ import {withApi} from 'sentry/utils/withApi';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {getWidgetDiscoverUrl} from 'sentry/views/dashboards/utils';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 export type DashboardWidgetQuerySelectorModalOptions = {
   dashboardFilters: DashboardFilters | undefined;
@@ -65,7 +66,11 @@ function DashboardWidgetQuerySelectorModal(props: Props) {
                     widget_type: widget.displayType,
                   });
                 }}
-                aria-label={t('Open in Discover')}
+                aria-label={
+                  getDiscoverDeprecation(organization)
+                    ? t('Open in Explore')
+                    : t('Open in Discover')
+                }
               />
             </Link>
           </Flex>
@@ -82,9 +87,13 @@ function DashboardWidgetQuerySelectorModal(props: Props) {
       </Header>
       <Body>
         <p>
-          {t(
-            'Multiple queries were used to create this widget visualization. Which query would you like to view in Discover?'
-          )}
+          {getDiscoverDeprecation(organization)
+            ? t(
+                'Multiple queries were used to create this widget visualization. Which query would you like to view in Explore?'
+              )
+            : t(
+                'Multiple queries were used to create this widget visualization. Which query would you like to view in Discover?'
+              )}
         </p>
         {renderQueries()}
       </Body>
