@@ -121,25 +121,28 @@ def generate_ai_conversation_title(
     metrics.incr("ai_monitoring.conversation_title.written", tags={"result": "created"})
 
 
-def spawn_conversation_title_generation(spans: Sequence[Mapping[str, Any]]) -> None:
-    """
-    Entrypoint that spawns one title-generation task per conversation,
-    using the earliest span that has a user message.
-    """
+def spawn_conversation_title_generation(
+    spans: Sequence[Mapping[str, Any]], project: Project
+) -> None:
+    """Spawn one title-generation task per conversation (earliest user message wins)."""
+    organization = project.organization
+    if not features.has(
+        "organizations:gen-ai-conversation-title-generation", organization
+    ) or organization.get_option("sentry:hide_ai_features"):
+        return
+
     earliest_by_conversation: dict[str, ConversationTitleSpanData] = {}
-    seen_conversation_ids: set[str] = set()
 
     for span in spans:
         conversation_id = conversation_id_from_span(span)
         if conversation_id is None:
             continue
-        seen_conversation_ids.add(conversation_id)
 
         source_timestamp = span_source_timestamp(span)
         if source_timestamp is None:
             continue
 
-        # A later-or-equal span can't win; skip the costly message extraction.
+        # Later/equal spans cannot win; skip costly message extraction.
         current = earliest_by_conversation.get(conversation_id)
         if current is not None and source_timestamp >= current.source_timestamp:
             continue
@@ -153,30 +156,6 @@ def spawn_conversation_title_generation(spans: Sequence[Mapping[str, Any]]) -> N
             source_timestamp=source_timestamp,
             first_user_message=first_user_message,
         )
-
-    if seen_conversation_ids:
-        metrics.incr(
-            "spans.consumers.process_segments.gen_ai_conversation",
-            len(seen_conversation_ids),
-        )
-
-    if not earliest_by_conversation:
-        return
-
-    # All spans in a segment share a project; the first one is enough.
-    project_id = spans[0].get("project_id")
-    if not isinstance(project_id, int):
-        return
-    try:
-        project = Project.objects.get_from_cache(id=project_id)
-    except Project.DoesNotExist:
-        return
-
-    organization = project.organization
-    if not features.has("organizations:gen-ai-conversation-title-generation", organization):
-        return
-    if organization.get_option("sentry:hide_ai_features"):
-        return
 
     for data in earliest_by_conversation.values():
         generate_ai_conversation_title.delay(
