@@ -185,11 +185,7 @@ export function initializeSdk(config: Config) {
     },
 
     beforeSend(event, hint) {
-      if (
-        isFilteredRequestErrorEvent(event) ||
-        isEventWithFileUrl(event) ||
-        isNullTupleUnhandledRejectionEvent(hint)
-      ) {
+      if (isFilteredRequestErrorEvent(event) || isEventWithFileUrl(event)) {
         return null;
       }
 
@@ -277,21 +273,6 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
 
 export function isEventWithFileUrl(event: Event): boolean {
   return !!event.request?.url?.startsWith('file://');
-}
-
-/**
- * Ignore unhandled rejections of `[null, null]`. The SDK keeps the original
- * array in the hint until after `beforeSend`, then normalizes it to the
- * `[null,null]` message shown in the stored event.
- */
-function isNullTupleUnhandledRejectionEvent(hint: Sentry.EventHint): boolean {
-  const originalException = hint.originalException;
-
-  return (
-    Array.isArray(originalException) &&
-    originalException.length === 2 &&
-    originalException.every(value => value === null)
-  );
 }
 
 /** Tag and set fingerprint for UndefinedResponseBodyError events */
