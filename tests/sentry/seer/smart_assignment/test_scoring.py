@@ -12,7 +12,7 @@ from sentry.seer.smart_assignment.scoring import (
     record_prediction,
 )
 from sentry.testutils.cases import TestCase
-from sentry.types.activity import ActivityIntegration, ActivityType
+from sentry.types.activity import ActivityType
 
 METRICS_PATH = "sentry.seer.smart_assignment.scoring.metrics"
 
