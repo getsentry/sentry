@@ -40,6 +40,7 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
+from sentry.options.rollout import in_random_rollout
 from sentry.services.eventstore.query_preprocessing import get_all_merged_group_ids
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
@@ -1415,6 +1416,9 @@ def _log_request_query(req: Request) -> None:
 RawResult = tuple[str, urllib3.response.HTTPResponse, Translator, Translator]
 
 
+SNUBA_JSON_RESP_COMPRESSION_ROLLOUT = "snuba.json-response-compression.rollout"
+
+
 def _snuba_query(
     params: tuple[
         sentry_sdk.Scope,
@@ -1427,8 +1431,15 @@ def _snuba_query(
     thread_isolation_scope, thread_current_scope, snuba_request = params
     with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
         with sentry_sdk.scope.use_scope(thread_current_scope):
-            headers = snuba_request.headers
             request = snuba_request.request
+            headers = snuba_request.headers
+            # conditionally add compression encoding headers
+            should_compress = not isinstance(request.query, DeleteQuery) and in_random_rollout(
+                SNUBA_JSON_RESP_COMPRESSION_ROLLOUT
+            )
+            if should_compress:
+                headers = {**headers, "Accept-Encoding": "zstd"}
+
             try:
                 referrer = headers.get("referer", "unknown")
 

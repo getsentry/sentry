@@ -151,6 +151,25 @@ class ActionSource(StrEnum):
     )
 
 
+COMMIT_ACTION_TYPES = {
+    GroupActionType.SET_RESOLVED_IN_COMMIT.value,
+    GroupActionType.REFERENCED_IN_COMMIT.value,
+}
+
+ACTION_TYPES_WITH_COMMIT_DATA = {
+    *COMMIT_ACTION_TYPES,
+    GroupActionType.SET_RESOLVED_IN_RELEASE.value,
+}
+
+PULL_REQUEST_ACTION_TYPES = {
+    GroupActionType.RESOLVED_IN_PULL_REQUEST.value,
+    GroupActionType.PULL_REQUEST_CLOSED.value,
+    GroupActionType.PULL_REQUEST_REOPENED.value,
+    GroupActionType.PULL_REQUEST_MERGED.value,
+    GroupActionType.PULL_REQUEST_UNLINKED.value,
+}
+
+
 class GroupAction(BaseModel, abc.ABC):
     """Typed payload for a group action log entry. Frozen after construction."""
 
@@ -354,6 +373,7 @@ class MarkReviewedAction(GroupAction):
 
 class TriggerAutofixAction(GroupAction):
     user_visible = True
+    referrer: Optional[str] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -565,6 +585,7 @@ class CreateIssueAction(GroupAction):
 class SetResolvedInReleaseAction(GroupAction):
     user_visible = True
     version: Optional[str] = None
+    current_release_version: Optional[str] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:

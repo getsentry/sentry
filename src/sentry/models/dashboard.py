@@ -314,6 +314,25 @@ class DashboardFavoriteUser(DefaultFieldsModel):
 
 
 @cell_silo_model
+class DashboardLastVisited(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+    last_visited = models.DateTimeField(null=False, default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardlastvisited"
+        constraints = [
+            UniqueConstraint(
+                fields=["user_id", "dashboard_id"],
+                name="sentry_dashboardlastvisited_unique_per_user_dashboard",
+            )
+        ]
+
+
+@cell_silo_model
 class Dashboard(Model):
     """
     A dashboard.
@@ -408,7 +427,7 @@ class Dashboard(Model):
             )
 
     @classmethod
-    def incremental_title(cls, organization, name):
+    def incremental_title(cls, organization: Organization, name: str) -> str:
         """
         Given a dashboard name that migh already exist, returns a new unique name that does not exist, by appending the word "copy" and an integer if necessary.
         """

@@ -35,6 +35,7 @@ from sentry.seer.autofix.artifact_schemas import (
     SolutionArtifact,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.prompts import (
     PromptBuilder,
@@ -286,6 +287,7 @@ def get_autofix_agent_client(
     reasoning_effort: Literal["low", "medium", "high"] | None = None,
     enable_coding: bool = False,
     code_review_enabled: bool = False,
+    enable_bash_tools: bool = False,
     enable_pr_context_tools: bool = False,
     user: User | RpcUser | AnonymousUser | None = None,
 ) -> SeerAgentClient:
@@ -305,6 +307,7 @@ def get_autofix_agent_client(
         on_completion_hook=AutofixOnCompletionHook,
         enable_coding=enable_coding,
         code_review_enabled=code_review_enabled,
+        enable_bash_tools=enable_bash_tools,
         enable_pr_context_tools=enable_pr_context_tools,
     )
 
@@ -381,6 +384,7 @@ def trigger_autofix_agent(
     insert_index: int | None = None,
     feedback: Sequence[Feedback] | None = None,
     user: User | RpcUser | AnonymousUser | None = None,
+    enable_bash_tools: bool = False,
 ) -> int:
     """
     Start or continue an agent-based autofix run.
@@ -410,6 +414,7 @@ def trigger_autofix_agent(
 
     client = get_autofix_agent_client(
         group,
+        enable_bash_tools=enable_bash_tools,
         enable_coding=config.enable_coding,
         enable_pr_context_tools=is_iteration_step,
         user=user,
@@ -798,13 +803,17 @@ def trigger_coding_agent_handoff(
     return cast(AutofixHandoffResponse, coding_agents)
 
 
+def _should_open_autofix_pr_as_draft(organization: Organization) -> bool:
+    """Draft Autofix PRs when the green-CI undraft / review-request flow is on."""
+    return features.has(REVIEW_REQUEST_FLAG, organization)
+
+
 def trigger_push_changes(
     group: Group,
     run_id: int,
     referrer: AutofixReferrer,
     state: SeerRunState | None = None,
     repo_name: str | None = None,
-    ready_for_review: bool = True,
 ):
     if not group.organization.get_option(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
@@ -828,11 +837,12 @@ def trigger_push_changes(
         )
     )
 
+    # Draft when review-request/CI-green is enabled; mark ready once green fires.
     client.push_changes(
         run_id,
         repo_name=repo_name,
         pr_description_suffix=build_pr_description_suffix(group),
-        ready_for_review=ready_for_review,
+        ready_for_review=not _should_open_autofix_pr_as_draft(group.organization),
         blocking=False,
     )
 

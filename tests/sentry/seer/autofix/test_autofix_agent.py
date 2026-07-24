@@ -1419,6 +1419,35 @@ class TestTriggerPushChanges(TestCase):
         issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})
         expected = f"Fixes [{self.group.qualified_short_id}]({issue_url})"
         assert body["payload"]["pr_description_suffix"] == expected
+        assert body["payload"]["ready_for_review"] is True
+
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_opens_as_draft_when_review_request_enabled(self, mock_post):
+        mock_post.return_value = MagicMock(status=200)
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+            metadata={"group_id": self.group.id},
+        )
+
+        with self.feature(
+            {
+                "organizations:gen-ai-features": True,
+                "organizations:autofix-pr-iteration-review-request": True,
+            }
+        ):
+            trigger_push_changes(
+                group=self.group,
+                run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
+                state=state,
+            )
+
+        body = mock_post.call_args[0][0]
+        assert body["payload"]["ready_for_review"] is False
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_pr_description_suffix_includes_linear_issue(self, mock_post):

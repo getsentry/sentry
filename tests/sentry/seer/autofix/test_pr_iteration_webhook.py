@@ -73,6 +73,7 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         feedback = Feedback.parse_raw(kwargs["feedback"])
         assert isinstance(feedback.source, GithubPrCommentFeedbackSource)
         assert feedback.source.comment.id == 999
+        assert feedback.source.repo_name == self.repo.name
         assert feedback.text == "fix it"
         assert feedback.ui_text == "fix it"
 

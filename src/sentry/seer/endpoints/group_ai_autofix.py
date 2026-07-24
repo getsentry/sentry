@@ -32,12 +32,13 @@ from sentry.apidocs.response_types import (
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import (
-    publish_action,
+    action_context_scope,
     resolve_action_actor,
     resolve_action_source,
 )
-from sentry.issues.action_log.types import TriggerAutofixAction
+from sentry.issues.action_log.types import GroupActorType
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix_agent import (
@@ -77,6 +78,7 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
 from sentry.seer.models import SeerPermissionError
 from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
+from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils.http import is_mcp_request
@@ -166,6 +168,11 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         help_text="Referrer identifying where the issue fix was triggered from.",
     )
+    enable_bash_tools = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Override bash mode tools.",
+    )
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         stopping_point = data.get("stopping_point", None)
@@ -253,9 +260,22 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
         sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")
+        legacy_run_id_param = data.get("run_id")
         run_ref: str | int | None = (
-            str(sentry_run_id_param) if sentry_run_id_param is not None else data.get("run_id")
+            str(sentry_run_id_param) if sentry_run_id_param is not None else legacy_run_id_param
         )
+
+        if sentry_run_id_param is None and legacy_run_id_param is not None:
+            logger.info(
+                "group_ai_autofix.legacy_integer_run_id",
+                extra={
+                    "run_id": legacy_run_id_param,
+                    "referrer": data.get("referrer"),
+                    "is_mcp_request": is_mcp_request(request),
+                    "user_agent": request.META.get("HTTP_USER_AGENT", "")[:256],
+                    "organization_id": group.organization.id,
+                },
+            )
 
         resolved_run_id: int | None = None
         resolved_sentry_run_id: str | None = None
@@ -401,6 +421,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         user_context=user_context,
                         insert_index=data.get("insert_index"),
                         user=request.user,
+                        enable_bash_tools=data.get("enable_bash_tools", False),
                     )
                 except NoSeerQuotaException:
                     return Response(
@@ -412,13 +433,20 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
                 if is_autofix_kickoff:
-                    publish_action(
-                        TriggerAutofixAction(),
+                    actor = resolve_action_actor(request)
+                    with action_context_scope(
                         source=resolve_action_source(request),
-                        group_id=group.id,
-                        project=group.project,
-                        actor=resolve_action_actor(request),
-                    )
+                        actor=actor,
+                    ):
+                        Activity.objects.create_group_activity(
+                            group,
+                            ActivityType.TRIGGER_AUTOFIX,
+                            user_id=(
+                                actor.actor_id if actor.actor_type == GroupActorType.USER else None
+                            ),
+                            data={"referrer": referrer.value},
+                            send_notification=False,
+                        )
                     run = get_seer_run(run_id, group.organization)
                     sentry_run_id = str(run.uuid) if run else None
                 else:

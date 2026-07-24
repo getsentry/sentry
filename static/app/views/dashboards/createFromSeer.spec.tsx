@@ -69,7 +69,7 @@ const MOCKED_PROCESSING_SESSION = {
 
 describe('CreateFromSeer', () => {
   const organization = OrganizationFixture({
-    features: ['dashboards-edit', 'dashboards-ai-generate'],
+    features: ['dashboards-edit'],
   });
 
   beforeEach(() => {

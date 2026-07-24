@@ -123,6 +123,38 @@ class TestIssueOwnersActivityAlertStrategy(TestCase):
         emails = [t.resource_id for t in targets]
         assert emails.count(self.user.email) == 1
 
+    def test_seer_suggested_owner_notified_when_no_assignee(self) -> None:
+        seer_user = self.create_user(email="seer-pick@example.com")
+        self.create_member(organization=self.organization, user=seer_user)
+        self.create_group_owner(
+            group=self.group,
+            type=GroupOwnerType.SEER_SUGGESTED.value,
+            user_id=seer_user.id,
+        )
+
+        strategy = IssueOwnersActivityAlertStrategy(group=self.group)
+        targets = strategy.get_targets()
+
+        assert len(targets) == 1
+        assert targets[0].resource_id == "seer-pick@example.com"
+
+    def test_assignee_supersedes_seer_suggested_owner(self) -> None:
+        seer_user = self.create_user(email="seer-pick@example.com")
+        self.create_member(organization=self.organization, user=seer_user)
+        self.create_group_owner(
+            group=self.group,
+            type=GroupOwnerType.SEER_SUGGESTED.value,
+            user_id=seer_user.id,
+        )
+        GroupAssignee.objects.assign(self.group, self.user)
+
+        strategy = IssueOwnersActivityAlertStrategy(group=self.group)
+        targets = strategy.get_targets()
+
+        emails = {t.resource_id for t in targets}
+        assert self.user.email in emails
+        assert "seer-pick@example.com" not in emails
+
     def test_no_assignee_no_owners_returns_empty(self) -> None:
         strategy = IssueOwnersActivityAlertStrategy(group=self.group)
         assert strategy.get_targets() == []

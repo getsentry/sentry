@@ -14,6 +14,7 @@ import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -78,7 +79,9 @@ function NewQueryTokens({
         <Stack as="span" gap="xs" overflow="hidden">
           {visualizations.map((visualization, vIdx) =>
             visualization.yAxes.map(yAxis => (
-              <ExploreVisualizes key={`${vIdx}-${yAxis}`}>{yAxis}</ExploreVisualizes>
+              <ExploreVisualizes key={`${vIdx}-${yAxis}`}>
+                {isEquation(yAxis) ? stripEquationPrefix(yAxis) : yAxis}
+              </ExploreVisualizes>
             ))
           )}
         </Stack>
@@ -152,12 +155,15 @@ function NewQueryTokens({
   }
 
   if (sort && sort.length > 0) {
+    const descending = sort[0] === '-';
+    const rawSort = descending ? sort.slice(1) : sort;
+    const formattedSort = isEquation(rawSort) ? stripEquationPrefix(rawSort) : rawSort;
     tokens.push(
       <Stack key="sort">
         <ExploreParamTitle>{t('Sort')}</ExploreParamTitle>
         <Stack as="span" gap="xs" overflow="hidden">
           <ExploreGroupBys>
-            {sort[0] === '-' ? sort.slice(1) + ' Desc' : sort + ' Asc'}
+            {formattedSort + (descending ? ' Desc' : ' Asc')}
           </ExploreGroupBys>
         </Stack>
       </Stack>
