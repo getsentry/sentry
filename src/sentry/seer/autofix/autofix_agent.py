@@ -478,8 +478,7 @@ def trigger_autofix_agent(
             group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
         )
     else:
-        # Resolve the mirror before touching Seer so a missing run fails without
-        # advancing it.
+        # Resolve before continue_run so a missing run fails without advancing it.
         existing = SeerRun.objects.filter(
             organization_id=group.organization.id,
             seer_run_state_id=run_id,

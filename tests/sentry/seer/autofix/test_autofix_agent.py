@@ -681,8 +681,6 @@ class TestTriggerAutofixAgent(TestCase):
                 run_id=99999,
             )
 
-        # The run is resolved before Seer is called, so a missing mirror fails
-        # without advancing the run.
         mock_client.continue_run.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")

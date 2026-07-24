@@ -40,7 +40,6 @@ class TestDeliverNightShiftResult(TestCase):
         return seer_run.uuid
 
     def _triggered_run(self, seer_run_state_id: int, organization: Organization) -> SeerRun:
-        """A SeerRun standing in for trigger_autofix_agent's return value."""
         return self.create_seer_run(organization=organization, seer_run_state_id=seer_run_state_id)
 
     def test_missing_run_logs_warning(self) -> None:
