@@ -323,35 +323,40 @@ def is_pr_tracked(pull_request: PullRequest) -> bool:
     return PullRequestAttribution.objects.filter(pull_request=pull_request, is_valid=True).exists()
 
 
-def _repo_external_identity(pull_request: PullRequest) -> tuple[str | None, str | None]:
-    """The PR repo's provider ``external_id`` (GitHub repo id) and normalized
-    provider slug. ``external_id`` is None when the repo row is gone or never had
-    one — the PR then can't be identified by its provider-side identity.
+def _repo_external_identity(
+    pull_request: PullRequest,
+) -> tuple[str | None, str | None, int | None]:
+    """The PR repo's provider ``external_id`` (repo id), normalized provider slug, and
+    ``integration_id``. ``external_id``/``integration_id`` are None when the repo row
+    is gone or lacks them. ``integration_id`` (the shared installation) distinguishes
+    the same numeric ``external_id`` across different provider hosts.
     """
     repo = (
         Repository.objects.filter(id=pull_request.repository_id)
-        .values_list("external_id", "provider")
+        .values_list("external_id", "provider", "integration_id")
         .first()
     )
     if repo is None:
-        return None, None
-    external_id, provider = repo
-    return external_id, normalize_scm_provider(provider)
+        return None, None, None
+    external_id, provider, integration_id = repo
+    return external_id, normalize_scm_provider(provider), integration_id
 
 
 def _deduplication_key(
-    pull_request: PullRequest, external_id: str | None, provider: str | None
+    pull_request: PullRequest, external_id: str | None, integration_id: int | None
 ) -> str:
     """Opaque key identifying this row's provider-side PR, for deduping emitted rows.
 
     A repo shared across orgs emits one row per org, all hashing to the same key, so
-    a consumer can collapse the duplicates by grouping on it. Opaque by contract --
-    dedupe by equality only, never parse -- so the identity composition can change
-    without a schema change. With no external id the PR can't be identified globally,
-    so the key falls back to the row's own identity (its own group, never merged).
+    a consumer can collapse the duplicates by grouping on it. Keyed on the shared
+    ``integration_id`` (not provider) so a numeric ``external_id`` reused across
+    provider hosts -- e.g. two GitHub Enterprise instances -- can't collide. Opaque by
+    contract -- dedupe by equality only, never parse -- so the identity composition
+    can change without a schema change. When the repo has no external id or
+    integration, the key falls back to the row's own identity (its own group).
     """
-    if external_id is not None:
-        identity = f"pr:{provider or ''}:{external_id}:{pull_request.key}"
+    if external_id is not None and integration_id is not None:
+        identity = f"pr:{integration_id}:{external_id}:{pull_request.key}"
     else:
         identity = f"row:{pull_request.organization_id}:{pull_request.id}"
     return sha1(identity.encode()).hexdigest()
@@ -528,12 +533,12 @@ def build_pr_metrics_row(
     review = review_activity(pull_request)
 
     # One repo read serves both the provider slug and the dedup key's identity.
-    repo_external_id, repo_provider = _repo_external_identity(pull_request)
+    repo_external_id, repo_provider, integration_id = _repo_external_identity(pull_request)
 
     return PrCloseMetricsEvent(
         organization_id=pull_request.organization_id,
         repository_id=pull_request.repository_id,
-        deduplication_key=_deduplication_key(pull_request, repo_external_id, repo_provider),
+        deduplication_key=_deduplication_key(pull_request, repo_external_id, integration_id),
         repository_provider=repo_provider,
         repository_is_public=_repo_is_public(pull_request),
         pull_request_id=pull_request.id,

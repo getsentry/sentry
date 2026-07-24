@@ -1295,18 +1295,27 @@ class DeduplicationKeyTest(TestCase):
     opaque deduplication_key so a consumer can collapse them."""
 
     def setUp(self) -> None:
-        self.pull_request = self._mergeable_pr(self._repo(self.project), self.organization)
+        # One shared installation across both orgs -> both rows carry the same
+        # integration_id, so the same provider PR keys identically.
+        self.integration = self.create_integration(
+            organization=self.organization, external_id="shared-install", provider="github"
+        )
+        self.pull_request = self._mergeable_pr(
+            self._repo(self.project, self.integration.id), self.organization
+        )
         sibling_org = self.create_organization()
         self.sibling_pull_request = self._mergeable_pr(
-            self._repo(self.create_project(organization=sibling_org)), sibling_org
+            self._repo(self.create_project(organization=sibling_org), self.integration.id),
+            sibling_org,
         )
 
-    def _repo(self, project: Any) -> Any:
+    def _repo(self, project: Any, integration_id: int) -> Any:
         return self.create_repo(
             project,
             name="getsentry/sentry",
             provider="integrations:github",
             external_id=EXTERNAL_ID,
+            integration_id=integration_id,
         )
 
     def _mergeable_pr(self, repo: Any, organization: Any) -> Any:
@@ -1318,17 +1327,24 @@ class DeduplicationKeyTest(TestCase):
         pull_request.save()
         return pull_request
 
+    def _key_for(self, pull_request: Any) -> str:
+        return build_pr_metrics_row(
+            pull_request=pull_request, close_action="merged", attributions=[], group_ids=[]
+        ).deduplication_key
+
     def test_deduplication_key_shared_across_sibling_rows(self) -> None:
-        # Build each sibling's row directly: the same provider PR must yield one
-        # identical, non-empty opaque key so a cross-cell consumer can collapse the
-        # one-row-per-cell duplicates.
-        key_a = build_pr_metrics_row(
-            pull_request=self.pull_request, close_action="merged", attributions=[], group_ids=[]
-        ).deduplication_key
-        key_b = build_pr_metrics_row(
-            pull_request=self.sibling_pull_request,
-            close_action="merged",
-            attributions=[],
-            group_ids=[],
-        ).deduplication_key
-        assert key_a == key_b != ""
+        # The same provider PR must yield one identical, non-empty opaque key so a
+        # cross-cell consumer can collapse the one-row-per-cell duplicates.
+        assert self._key_for(self.pull_request) == self._key_for(self.sibling_pull_request) != ""
+
+    def test_deduplication_key_differs_across_installations(self) -> None:
+        # Same external_id + PR number under a *different* installation (e.g. a second
+        # GitHub Enterprise host, where repo ids can collide) must not share a key.
+        other_integration = self.create_integration(
+            organization=self.organization, external_id="other-install", provider="github"
+        )
+        other_org = self.create_organization()
+        other_pr = self._mergeable_pr(
+            self._repo(self.create_project(organization=other_org), other_integration.id), other_org
+        )
+        assert self._key_for(self.pull_request) != self._key_for(other_pr)
