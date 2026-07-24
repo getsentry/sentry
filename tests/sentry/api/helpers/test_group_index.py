@@ -30,7 +30,9 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.issue_search import parse_search_query
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -703,6 +705,53 @@ class UpdateGroupsTest(TestCase):
         assert group.status == GroupStatus.RESOLVED
         resolution = group.groupresolution_set.get()
         assert resolution.release == open_release
+
+    def test_resolve_in_next_release_activity_from_action_log(self) -> None:
+        self.create_release(project=self.project, version="test@1.0.0.0")
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        GroupActionLogEntry.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            type=GroupActionType.RESOLVE.value,
+            actor_type=GroupActorType.USER.value,
+            actor_id=self.user.id,
+            source="web",
+            data={},
+        )
+
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data={"status": "resolvedInNextRelease"})
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        with self.feature("projects:issue-action-log-activity"):
+            response = update_groups(request, group_list)
+
+        activity = response.data["activity"]
+        assert [entry["type"] for entry in activity] == ["set_resolved", "first_seen"]
+        assert activity[-1]["id"] == "0"
+
+    def test_resolve_in_next_release_no_activity_without_action_log(self) -> None:
+        self.create_release(project=self.project, version="test@1.0.0.0")
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data={"status": "resolvedInNextRelease"})
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        with (
+            self.feature("projects:issue-action-log-activity"),
+            self.assertLogs("sentry.api.helpers.group_index.update", level="INFO") as logs,
+        ):
+            response = update_groups(request, group_list)
+
+        assert any(
+            record.message == "group_index.groupactionlogentry.not_found" for record in logs.records
+        )
+        assert response is not None
+        assert "activity" not in response.data
+        assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 0
 
 
 class MergeGroupsTest(TestCase):
