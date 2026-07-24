@@ -21,7 +21,7 @@ export function EmptyState({
   const textAlign = isVertical ? ('center' as const) : undefined;
 
   const copy = (
-    <Stack gap="md" maxWidth={360}>
+    <Stack gap="md" maxWidth="360px">
       <Text bold size="lg" align={textAlign}>
         {title}
       </Text>
