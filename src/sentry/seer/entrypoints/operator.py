@@ -215,13 +215,16 @@ class SeerAutofixOperator[CachePayloadT]:
 
             try:
                 if not run_id:
-                    run_id = trigger_autofix_agent(
+                    run = trigger_autofix_agent(
                         group=group,
                         step=AutofixStep.ROOT_CAUSE,
                         referrer=AutofixReferrer.SLACK,
                         run_id=None,
                         user=user,
                     )
+                    # A fresh kickoff always mirrors, so run is never None here.
+                    assert run is not None
+                    run_id = run.seer_run_state_id
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
                     trigger_push_changes(
                         group,

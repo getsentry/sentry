@@ -385,7 +385,7 @@ def trigger_autofix_agent(
     feedback: Sequence[Feedback] | None = None,
     user: User | RpcUser | AnonymousUser | None = None,
     enable_bash_tools: bool = False,
-) -> int:
+) -> SeerRun | None:
     """
     Start or continue an agent-based autofix run.
 
@@ -396,7 +396,8 @@ def trigger_autofix_agent(
         stopping_point: Where to stop the automated pipeline (only used for new runs)
 
     Returns:
-        The run ID
+        The run's SeerRun mirror (carrying both seer_run_state_id and uuid). None
+        only when continuing a legacy run that predates SeerRun mirroring.
     """
     # check billing quota for triggering a new autofix run
     if run_id is None:
@@ -568,7 +569,7 @@ def trigger_autofix_agent(
         },
     )
 
-    return run_id
+    return run
 
 
 def get_autofix_agent_state(organization: Organization, group_id: int):

@@ -145,7 +145,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_triggers_autofix_agent(self, mock_trigger_explorer):
         group = self.create_group()
-        mock_trigger_explorer.return_value = 123
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -162,7 +163,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_post_kickoff_returns_sentry_run_id(self, mock_trigger_explorer):
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=777)
-        mock_trigger_explorer.return_value = 777
+        mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -176,7 +177,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_post_continue_with_sentry_run_id_resolves_to_numeric_id(self, mock_trigger_explorer):
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
-        mock_trigger_explorer.return_value = 555
+        mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -194,7 +195,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         """The legacy numeric run_id field keeps working unchanged."""
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=321)
-        mock_trigger_explorer.return_value = 321
+        mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -239,7 +240,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_post_from_mcp_defaults_referrer_to_mcp(self, mock_trigger_explorer):
         """A request from the Sentry MCP server defaults the referrer to api.mcp."""
         group = self.create_group()
-        mock_trigger_explorer.return_value = 123
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -259,7 +261,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_post_explicit_referrer_overrides_mcp_default(self, mock_trigger_explorer):
         """An explicitly supplied referrer takes precedence over the MCP default."""
         group = self.create_group()
-        mock_trigger_explorer.return_value = 123
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -276,7 +279,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_stopping_point(self, mock_trigger_explorer):
         """Stopping point forces the step to be root_cause"""
         group = self.create_group()
-        mock_trigger_explorer.return_value = 123
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -303,7 +307,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_insert_index_passed_through(self, mock_trigger_explorer):
         """POST passes insert_index to trigger_autofix_agent for retry-from-step."""
         group = self.create_group()
-        mock_trigger_explorer.return_value = 123
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -329,7 +334,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_kickoff_emits_trigger_autofix_action(self, mock_trigger):
         # A kickoff (no run_id) records the action.
         group = self.create_group()
-        mock_trigger.return_value = 123
+        mock_trigger.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123
+        )
 
         self.login_as(user=self.user)
         with capture_action_log() as action_log:
@@ -350,7 +357,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_kickoff_creates_trigger_autofix_activity(self, mock_trigger):
         group = self.create_group()
-        mock_trigger.return_value = 123
+        mock_trigger.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123
+        )
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -368,7 +377,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_advancing_existing_run_skips_action(self, mock_trigger):
         # Advancing an existing run (run_id provided) is steering, not a new trigger.
         group = self.create_group()
-        mock_trigger.return_value = 42
+        mock_trigger.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=42
+        )
 
         self.login_as(user=self.user)
         with capture_action_log() as action_log:

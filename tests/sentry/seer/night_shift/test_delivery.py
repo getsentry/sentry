@@ -10,6 +10,7 @@ from sentry.seer.models.night_shift import (
     SeerNightShiftRunResult,
     SeerNightShiftRunShard,
 )
+from sentry.seer.models.run import SeerRun
 from sentry.seer.night_shift.delivery import REASON_MAX_CHARS, deliver_night_shift_result
 from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
@@ -37,6 +38,10 @@ class TestDeliverNightShiftResult(TestCase):
         seer_run = run.shards.get().seer_run
         assert seer_run is not None
         return seer_run.uuid
+
+    def _triggered_run(self, seer_run_state_id: int, organization: Organization) -> SeerRun:
+        """A SeerRun standing in for trigger_autofix_agent's return value."""
+        return self.create_seer_run(organization=organization, seer_run_state_id=seer_run_state_id)
 
     def test_missing_run_logs_warning(self) -> None:
         """When run_uuid doesn't match any SeerNightShiftRun, log and return."""
@@ -93,7 +98,10 @@ class TestDeliverNightShiftResult(TestCase):
             result=None,
             error="shard failed",
         )
-        with patch("sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=1):
+        with patch(
+            "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+            return_value=self._triggered_run(1, org),
+        ):
             deliver_night_shift_result(
                 organization_id=org.id,
                 run_uuid=ok_seer_run.uuid,
@@ -184,7 +192,8 @@ class TestDeliverNightShiftResult(TestCase):
         }
 
         with patch(
-            "sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=42
+            "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+            return_value=self._triggered_run(42, org),
         ) as mock_trigger:
             deliver_night_shift_result(
                 organization_id=org.id,
@@ -404,10 +413,12 @@ class TestDeliverNightShiftResult(TestCase):
             ]
         }
 
-        def trigger_side_effect(**kwargs: Any) -> int:
+        ok_run = self._triggered_run(7, org)
+
+        def trigger_side_effect(**kwargs: Any) -> SeerRun:
             if kwargs["group"].id == failing_group.id:
                 raise RuntimeError("trigger failed")
-            return 7
+            return ok_run
 
         with (
             patch(
@@ -470,7 +481,8 @@ class TestDeliverNightShiftResult(TestCase):
                 side_effect=rate_limited_side_effect,
             ),
             patch(
-                "sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=7
+                "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+                return_value=self._triggered_run(7, org),
             ) as mock_trigger,
         ):
             deliver_night_shift_result(
@@ -514,7 +526,8 @@ class TestDeliverNightShiftResult(TestCase):
                 return_value=True,
             ),
             patch(
-                "sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=1
+                "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+                return_value=self._triggered_run(1, org),
             ) as mock_trigger,
         ):
             deliver_night_shift_result(
@@ -586,7 +599,8 @@ class TestDeliverNightShiftResult(TestCase):
         }
 
         with patch(
-            "sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=1
+            "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+            return_value=self._triggered_run(1, org),
         ) as mock_trigger:
             deliver_night_shift_result(
                 organization_id=org.id,
@@ -613,7 +627,10 @@ class TestDeliverNightShiftResult(TestCase):
             ]
         }
 
-        with patch("sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=1):
+        with patch(
+            "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+            return_value=self._triggered_run(1, org),
+        ):
             deliver_night_shift_result(
                 organization_id=org.id,
                 run_uuid=self._run_uuid(run),
@@ -640,7 +657,8 @@ class TestDeliverNightShiftResult(TestCase):
         }
 
         with patch(
-            "sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=11
+            "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+            return_value=self._triggered_run(11, org),
         ) as mock_trigger:
             for _ in range(2):
                 deliver_night_shift_result(
@@ -704,7 +722,10 @@ class TestDeliverNightShiftResult(TestCase):
             ]
         }
 
-        with patch("sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=99):
+        with patch(
+            "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+            return_value=autofix_seer_run,
+        ):
             deliver_night_shift_result(
                 organization_id=org.id,
                 run_uuid=self._run_uuid(run),
@@ -760,7 +781,8 @@ class TestDeliverNightShiftResult(TestCase):
         }
 
         with patch(
-            "sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=1
+            "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+            return_value=self._triggered_run(1, org),
         ) as mock_trigger:
             deliver_night_shift_result(
                 organization_id=org.id,

@@ -410,7 +410,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
             case _:
                 try:
-                    run_id = trigger_autofix_agent(
+                    run = trigger_autofix_agent(
                         group=group,
                         step=AutofixStep(step),
                         referrer=referrer,
@@ -432,6 +432,12 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         return Response(status=status.HTTP_404_NOT_FOUND)
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
+                # Kickoff always yields a fresh run; continue always has a
+                # resolved_run_id (a legacy run with no mirror leaves run None).
+                triggered_run_id = run.seer_run_state_id if run is not None else resolved_run_id
+                assert triggered_run_id is not None
+                run_id = triggered_run_id
+
                 if is_autofix_kickoff:
                     actor = resolve_action_actor(request)
                     with action_context_scope(
@@ -447,7 +453,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                             data={"referrer": referrer.value},
                             send_notification=False,
                         )
-                    run = get_seer_run(run_id, group.organization)
                     sentry_run_id = str(run.uuid) if run else None
                 else:
                     sentry_run_id = resolved_sentry_run_id

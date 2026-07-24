@@ -466,7 +466,7 @@ class TestTriggerAutofixAgent(TestCase):
             run_id=67890,
         )
 
-        assert result == 67890
+        assert result == seer_run
         # Verify started webhook was sent with the existing run_id and uuid
         mock_broadcast.assert_called_once()
         call_kwargs = mock_broadcast.call_args.kwargs
@@ -648,15 +648,18 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
         mock_client.continue_run.return_value = 67890
+        seer_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
 
-        run_id = trigger_autofix_agent(
+        run = trigger_autofix_agent(
             group=self.group,
             step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.UNKNOWN,
             run_id=67890,
         )
 
-        assert run_id == 67890
+        assert run == seer_run
         mock_client.continue_run.assert_called_once()
         mock_check_quota.assert_not_called()
         mock_record_run.assert_not_called()
