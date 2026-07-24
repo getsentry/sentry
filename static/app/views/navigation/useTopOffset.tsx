@@ -1,10 +1,8 @@
-import {createContext, useContext, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {useDimensions} from 'sentry/utils/useDimensions';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -18,27 +16,11 @@ interface TopOffset {
   barTop: string;
   /** The total offset where content below the bar should start */
   contentTop: string;
-  /** The measured height of global alerts above the page frame */
-  globalAlertsRegionHeight: number;
-}
-
-const GlobalAlertsRegionContext = createContext(0);
-
-export const GlobalAlertsRegionProvider = GlobalAlertsRegionContext.Provider;
-
-export function useGlobalAlertsRegion() {
-  const globalAlertsRegionRef = useRef<HTMLDivElement>(null);
-  const {height: globalAlertsRegionHeight} = useDimensions({
-    elementRef: globalAlertsRegionRef,
-  });
-
-  return {globalAlertsRegionRef, globalAlertsRegionHeight};
 }
 
 export function useTopOffset(): TopOffset {
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
-  const globalAlertsRegionHeight = useContext(GlobalAlertsRegionContext);
   const isMobile = !useMedia(`(min-width: ${theme.breakpoints.md})`);
   const showSuperuserWarning =
     isActiveSuperuser() &&
@@ -53,6 +35,5 @@ export function useTopOffset(): TopOffset {
   return {
     barTop: `${superuserOffset}px`,
     contentTop: `${superuserOffset + headerHeight}px`,
-    globalAlertsRegionHeight,
   };
 }

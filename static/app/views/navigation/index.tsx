@@ -51,7 +51,7 @@ function CommandPaletteSlotOutlets() {
   );
 }
 
-function UserAndOrganizationNavigation() {
+function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
   const {layout} = usePrimaryNavigation();
   const {visible} = useModal();
   const {view, setView} = useSecondaryNavigation();
@@ -68,7 +68,7 @@ function UserAndOrganizationNavigation() {
   );
 
   return (
-    <NavigationLayout>
+    <NavigationLayout pageBannerHeight={pageBannerHeight}>
       <CommandPaletteHotkeys />
       <CommandPaletteSlotOutlets />
       <GlobalCommandPaletteActions />
@@ -91,12 +91,19 @@ function UserOnlyNavigation() {
   );
 }
 
-function NavigationLayout({children}: {children: React.ReactNode}) {
+interface NavigationProps {
+  pageBannerHeight?: number;
+}
+
+function NavigationLayout({
+  children,
+  pageBannerHeight = 0,
+}: NavigationProps & {children: React.ReactNode}) {
   const theme = useTheme();
   const {layout} = usePrimaryNavigation();
   const {currentStepId} = useNavigationTour();
   const hoverProps = useResetActiveNavigationGroup();
-  const {barTop, globalAlertsRegionHeight} = useTopOffset();
+  const {barTop} = useTopOffset();
 
   return (
     <Flex
@@ -107,7 +114,7 @@ function NavigationLayout({children}: {children: React.ReactNode}) {
       height={
         layout === 'mobile'
           ? undefined
-          : `calc(100dvh - max(${barTop}, ${globalAlertsRegionHeight}px))`
+          : `calc(100dvh - max(${barTop}, ${pageBannerHeight}px))`
       }
       style={{
         zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
@@ -120,7 +127,7 @@ function NavigationLayout({children}: {children: React.ReactNode}) {
   );
 }
 
-export function Navigation() {
+export function Navigation({pageBannerHeight = 0}: NavigationProps) {
   const organization = useOrganization({allowNull: true});
 
   if (!organization) {
@@ -136,7 +143,7 @@ export function Navigation() {
     <HoverOverlayGroupProvider>
       <NavigationTourProvider>
         <SkipLink />
-        <UserAndOrganizationNavigation />
+        <UserAndOrganizationNavigation pageBannerHeight={pageBannerHeight} />
       </NavigationTourProvider>
     </HoverOverlayGroupProvider>
   );
