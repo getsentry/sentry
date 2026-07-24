@@ -5,7 +5,7 @@ from typing import TypedDict
 
 from django.db import router, transaction
 
-from sentry.models.activity import Activity
+from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -70,11 +70,18 @@ def _ground_truth_updates(
     """Build the ground-truth mirror updates for an activity, or ``None`` when it
     carries no useful signal.
 
-    For an assignment we mirror the current assignee (user and/or team). For a
-    user-driven resolution we record the resolver as the assumed assignee only when no
-    explicit assignee has been recorded -- an assignment is better truth.
+    For an assignment we mirror the current assignee (user and/or team), unless it is
+    our own auto-assignment (tagged with the ``SEER_SUGGESTED`` integration by
+    ProjectOwnership.handle_auto_assignment, which would score us against ourselves).
+    For a user-driven resolution we record the resolver as the assumed assignee only
+    when no explicit assignee has been recorded -- an assignment is better truth.
     """
     if activity_type == ActivityType.ASSIGNED:
+        if (
+            activity is not None
+            and (activity.data or {}).get("integration") == ActivityIntegration.SEER_SUGGESTED.value
+        ):
+            return None
         return _assignment_updates(group)
     if activity_type in RESOLUTION_ACTIVITIES:
         if activity is None or activity.user_id is None:

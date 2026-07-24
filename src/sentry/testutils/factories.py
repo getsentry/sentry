@@ -108,6 +108,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
@@ -1825,6 +1826,27 @@ class Factories:
             service_type=service_type,
             display_name=display_name,
             web_url=web_url,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_resolution(group, release, **kwargs):
+        return GroupResolution.objects.create(
+            group=group,
+            release=release,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_link(group, linked_id, linked_type=None, relationship=None, **kwargs):
+        return GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=linked_type or GroupLink.LinkedType.commit,
+            linked_id=linked_id,
+            relationship=relationship or GroupLink.Relationship.references,
+            **kwargs,
         )
 
     @staticmethod

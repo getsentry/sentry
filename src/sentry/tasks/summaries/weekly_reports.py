@@ -844,16 +844,16 @@ def render_template_context(
     def past_issues():
         def all_past_issues():
             for project_ctx in user_projects:
-                for group, count, has_linked_pr_or_commit in project_ctx.past_resolved_issues:
+                for group, count, resolution_label in project_ctx.past_resolved_issues:
                     display = get_group_display(group)
                     yield {
                         "count": count,
                         "group": group,
                         "title": display["title"],
                         "message": display["message"],
-                        "has_linked_pr_or_commit": has_linked_pr_or_commit,
+                        "resolution_label": resolution_label,
                         "_relevance": count
-                        * (PAST_ISSUES_LINK_BOOST if has_linked_pr_or_commit else 1),
+                        * (PAST_ISSUES_LINK_BOOST if resolution_label != "Resolved" else 1),
                     }
 
         return heapq.nlargest(3, all_past_issues(), lambda d: d["_relevance"])

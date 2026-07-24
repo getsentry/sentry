@@ -13,7 +13,7 @@ from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.ourlogs import OurLogs
-from sentry.snuba.rpc_dataset_common import RPCBase, TableQuery
+from sentry.snuba.rpc_dataset_common import LimitBy, RPCBase, TableQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
@@ -267,6 +267,96 @@ def test_table_orderby_rejects_hidden_remapped_virtual_context_sort_attribute() 
             InvalidSearchQuery, match="orderby must also be in the selected columns or groupby"
         ),
     ):
+        RPCBase.get_table_rpc_request(table_query)
+
+
+@django_db_all
+def test_table_limit_by_builds_rpc_request() -> None:
+    owner = Factories.create_user()
+    organization = Factories.create_organization(owner=owner)
+    project = Factories.create_project(organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(start=start, end=end, organization=organization, projects=[project])
+    resolver = Spans.get_resolver(snuba_params, SearchResolverConfig())
+
+    table_query = TableQuery(
+        "",
+        ["span.op", "count()"],
+        None,
+        0,
+        50,
+        "TestReferrer",
+        None,
+        resolver,
+        limit_by=LimitBy(columns=["span.op"], limit=5),
+    )
+    rpc_request = RPCBase.get_table_rpc_request(table_query).rpc_request
+
+    assert rpc_request.HasField("limit_by")
+    assert rpc_request.limit_by.limit == 5
+    expected_key = resolver.resolve_column("span.op")[0].proto_definition
+    assert [column.key for column in rpc_request.limit_by.columns] == [expected_key]
+
+
+@pytest.mark.parametrize(
+    ["limit_by", "sampling_mode", "match"],
+    [
+        pytest.param(
+            LimitBy(columns=["span.description"], limit=5),
+            None,
+            "must be a selected non-aggregate column",
+            id="not-selected",
+        ),
+        pytest.param(
+            LimitBy(columns=["count()"], limit=5),
+            None,
+            "must be a selected non-aggregate column",
+            id="aggregate",
+        ),
+        pytest.param(
+            LimitBy(columns=["span.op"], limit=0),
+            None,
+            "greater than 0",
+            id="zero-limit",
+        ),
+        pytest.param(
+            LimitBy(columns=[], limit=5),
+            None,
+            "at least one column",
+            id="no-columns",
+        ),
+        pytest.param(
+            LimitBy(columns=["span.op"], limit=5),
+            "HIGHEST_ACCURACY_FLEX_TIME",
+            "flextime",
+            id="flextime",
+        ),
+    ],
+)
+@django_db_all
+def test_table_limit_by_rejects_invalid_input(limit_by, sampling_mode, match) -> None:
+    owner = Factories.create_user()
+    organization = Factories.create_organization(owner=owner)
+    project = Factories.create_project(organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(start=start, end=end, organization=organization, projects=[project])
+    resolver = Spans.get_resolver(snuba_params, SearchResolverConfig())
+
+    table_query = TableQuery(
+        "",
+        ["span.op", "count()"],
+        None,
+        0,
+        50,
+        "TestReferrer",
+        sampling_mode,
+        resolver,
+        limit_by=limit_by,
+    )
+
+    with pytest.raises(InvalidSearchQuery, match=match):
         RPCBase.get_table_rpc_request(table_query)
 
 

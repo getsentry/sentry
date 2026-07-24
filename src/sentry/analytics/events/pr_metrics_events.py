@@ -30,9 +30,7 @@ class PrCloseMetricsEvent(analytics.Event):
     # Group (issue) IDs this PR resolves, from the resolving GroupLink rows
     # (parsed from the PR title/message). Empty when the PR resolves nothing.
     group_ids: list[int]
-    close_action: Literal["closed", "merged"]
-    # Always present on a close/merge webhook — read fail-fast so a malformed
-    # payload errors loudly instead of emitting a silent null.
+    close_action: Literal["closed", "merged", "abandoned"]
     head_commit_sha: str
     closed_at: str
     # Null when Sentry never saw the PR open (late-installed integration, missed
@@ -99,7 +97,9 @@ class PrCloseMetricsEvent(analytics.Event):
     opened_and_closed_by_same_actor: bool | None = None
     # The point-in-time attribution snapshot at emit time: a JSON-encoded list of
     # the active (is_valid=True) attributions, each {signal_type, source,
-    # signal_details}, ordered by attribution priority (highest-confidence first).
+    # signal_details}. A PR can carry more than one; all are emitted equally, with
+    # no ranking between them — each is a definite attribution, not a probabilistic
+    # guess. List order carries no meaning and isn't guaranteed; don't rely on it.
     attributions: str = "[]"
     # Distinct ``AutofixReferrer`` values (e.g. "slack", "night_shift") behind the
     # Seer runs that produced this PR's attributions, resolved via ``SeerRun`` at

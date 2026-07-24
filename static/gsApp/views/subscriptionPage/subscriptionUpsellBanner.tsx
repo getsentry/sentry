@@ -16,6 +16,7 @@ import {
   hasPartnerMigrationFeature,
   hasPerformance,
   isBizPlanFamily,
+  isTrial,
 } from 'getsentry/utils/billing';
 import {TrialBadge} from 'getsentry/views/subscriptionPage/trial/badge';
 
@@ -89,7 +90,7 @@ function useIsSubscriptionUpsellHidden(
     !subscription.canSelfServe ||
     (hasPerformance(subscription.planDetails) &&
       isBizPlanFamily(subscription.planDetails)) ||
-    subscription.isTrial ||
+    isTrial(subscription) ||
     isLegacyUpsell ||
     hasEndingPartnerPlan ||
     isBizPlanFamily(subscription.pendingChanges?.planDetails)

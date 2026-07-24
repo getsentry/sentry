@@ -138,8 +138,8 @@ describe('ScmIntegrationConnect', () => {
 
     await waitFor(() =>
       expect(trackAnalyticsSpy).toHaveBeenCalledWith(
-        'project_creation.scm_connect_integration_selected',
-        expect.objectContaining({provider: 'github', source: 'default'})
+        'project_creation.connect_integration_selected',
+        expect.objectContaining({provider: 'github', source: 'default', variant: 'scm'})
       )
     );
   });
@@ -169,8 +169,8 @@ describe('ScmIntegrationConnect', () => {
 
     await waitFor(() =>
       expect(trackAnalyticsSpy).toHaveBeenCalledWith(
-        'project_creation.scm_connect_integration_selected',
-        expect.objectContaining({provider: 'gitlab', source: 'manual'})
+        'project_creation.connect_integration_selected',
+        expect.objectContaining({provider: 'gitlab', source: 'manual', variant: 'scm'})
       )
     );
   });
@@ -195,7 +195,7 @@ describe('ScmIntegrationConnect', () => {
     expect(onClearDerivedState).not.toHaveBeenCalled();
 
     const integrationSelectedCalls = trackAnalyticsSpy.mock.calls.filter(
-      ([event]) => event === 'project_creation.scm_connect_integration_selected'
+      ([event]) => event === 'project_creation.connect_integration_selected'
     );
     expect(integrationSelectedCalls).toHaveLength(1);
     expect(integrationSelectedCalls[0]![1]).toEqual(

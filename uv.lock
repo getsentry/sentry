@@ -2405,7 +2405,7 @@ requires-dist = [
     { name = "requests-oauthlib", specifier = ">=1.2.0" },
     { name = "rfc3339-validator", specifier = ">=0.1.2" },
     { name = "rfc3986-validator", specifier = ">=0.1.1" },
-    { name = "sentry-arroyo", specifier = ">=2.41.4" },
+    { name = "sentry-arroyo", specifier = ">=2.42.0" },
     { name = "sentry-conventions", specifier = ">=0.17.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=2.2.0" },
@@ -2426,7 +2426,7 @@ requires-dist = [
     { name = "stripe", specifier = ">=6.7.0" },
     { name = "structlog", specifier = ">=22.1.0" },
     { name = "symbolic", specifier = ">=13.1.1" },
-    { name = "taskbroker-client", specifier = ">=0.20.13" },
+    { name = "taskbroker-client", specifier = ">=0.20.12" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
     { name = "tokenizers", specifier = ">=0.22.0" },
@@ -2498,13 +2498,13 @@ dev = [
 
 [[package]]
 name = "sentry-arroyo"
-version = "2.41.4"
+version = "2.42.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.41.4-py3-none-any.whl", hash = "sha256:3c7a836a431688d9e3688a37ffa60f100ed72a0fa64a60fd7df9feaddba2190b" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.42.0-py3-none-any.whl", hash = "sha256:7f5229fbbf8f52c9b02aaf75e36c2e3206f9ffc49a12d547fa9d437a3254af7a" },
 ]
 
 [[package]]
@@ -2819,7 +2819,7 @@ wheels = [
 
 [[package]]
 name = "taskbroker-client"
-version = "0.20.13"
+version = "0.20.12"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka" },
@@ -2836,7 +2836,7 @@ dependencies = [
     { name = "zstandard" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.13-py3-none-any.whl", hash = "sha256:d21c0e794abe384954e1264311dfc76ceb0088481a2fe9d6611df38aa03613c7" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.12-py3-none-any.whl", hash = "sha256:9fcf1a609b98684c8356f980bf157d7ccf061dba0e26c8848ec0ecad890093da" },
 ]
 
 [[package]]

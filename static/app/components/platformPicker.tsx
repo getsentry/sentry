@@ -67,6 +67,11 @@ interface PlatformPickerProps {
   showOther?: boolean;
   source?: string;
   /**
+   * For project-creation picker events, `source` identifies the flow and `variant`
+   * identifies the SCM or legacy experience.
+   */
+  variant?: 'scm' | 'legacy';
+  /**
    * When `false`, hides the close button and does not display a custom background color.
    */
   visibleSelection?: boolean;
@@ -82,6 +87,7 @@ export function PlatformPicker({
   navClassName,
   organization,
   source,
+  variant,
   visibleSelection = true,
   loading = false,
   showFilterBar = true,
@@ -155,12 +161,20 @@ export function PlatformPicker({
     filter,
     platformList,
     source,
+    variant,
     organization,
     category,
   });
 
   useEffect(() => {
-    latestValuesRef.current = {filter, platformList, source, organization, category};
+    latestValuesRef.current = {
+      filter,
+      platformList,
+      source,
+      variant,
+      organization,
+      category,
+    };
   });
 
   const debounceSearch = useRef(
@@ -169,6 +183,7 @@ export function PlatformPicker({
         filter: currentFilter,
         platformList: currentPlatformList,
         source: currentSource,
+        variant: currentVariant,
         organization: currentOrganization,
         category: currentCategory,
       } = latestValuesRef.current;
@@ -180,6 +195,7 @@ export function PlatformPicker({
         search: currentFilter.toLowerCase(),
         num_results: currentPlatformList.length,
         source: currentSource,
+        variant: currentVariant,
         organization: currentOrganization ?? null,
       });
 
@@ -209,6 +225,7 @@ export function PlatformPicker({
               trackAnalytics('growth.platformpicker_category', {
                 category: val,
                 source,
+                variant,
                 organization: organization ?? null,
               });
               setCategory(val);
@@ -251,7 +268,9 @@ export function PlatformPicker({
                 onClick={() => {
                   trackAnalytics('growth.select_platform', {
                     platform_id: item.id,
+                    selection_source: 'manual',
                     source,
+                    variant,
                     organization: organization ?? null,
                   });
 

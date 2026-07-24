@@ -208,7 +208,9 @@ export function formatUsageWithUnits(
     }
     return options.isAbbreviated
       ? displayNumber(usageProfileHours, 1)
-      : usageProfileHours.toLocaleString(undefined, {maximumFractionDigits: 1});
+      : usageProfileHours.toLocaleString(undefined, {
+          maximumFractionDigits: 1,
+        });
   }
   return options.isAbbreviated
     ? displayNumber(usageQuantity, 0)
@@ -331,16 +333,18 @@ export const isBizPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.BUS
 
 export const isTeamPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.TEAM);
 
+/**
+ * Whether the subscription is currently on a trial, derived from `trialPlan`
+ * (non-null iff trialing).
+ */
+export const isTrial = (subscription: Subscription) => defined(subscription.trialPlan);
+
 export const isBusinessTrial = (subscription: Subscription) => {
-  return (
-    subscription.isTrial &&
-    !subscription.isPerformancePlanTrial &&
-    !subscription.isEnterpriseTrial
-  );
+  return isTrial(subscription) && !subscription.isEnterpriseTrial;
 };
 
 export function hasJustStartedPlanTrial(subscription: Subscription) {
-  return subscription.isTrial && subscription.isTrialStarted;
+  return isTrial(subscription) && subscription.isTrialStarted;
 }
 
 export const displayBudgetName = (
