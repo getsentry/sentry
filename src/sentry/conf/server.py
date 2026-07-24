@@ -1232,6 +1232,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
         "schedule": crontab("0", "0", "*", "1,15", "*"),
     },
+    "heal-stale-derived-data": {
+        "task": "issues:sentry.issues.derived.tasks.heal_stale_derived_data",
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
+    },
 }
 
 TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
@@ -2260,7 +2264,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.7.0"
+SELF_HOSTED_STABLE_VERSION = "26.7.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

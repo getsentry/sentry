@@ -1,4 +1,6 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -10,6 +12,8 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Sticky} from 'sentry/components/sticky';
 import {t} from 'sentry/locale';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {indexMembersByProject} from 'sentry/utils/members/shared';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -18,6 +22,7 @@ import {SectionIssueCard} from './sectionIssueCard';
 import {STATUS_GROUP_META, StatusGroupTooltip, type StatusGroupKey} from './statusGroups';
 import type {OverviewView, SortValue} from './types';
 import {SECTION_LIMIT, useAutofixSections} from './useAutofixSections';
+import {useValidPrIssues} from './useValidPrIssues';
 
 function formatSectionCount(count: number | undefined) {
   if (count === undefined) {
@@ -27,6 +32,7 @@ function formatSectionCount(count: number | undefined) {
 }
 
 export function SectionList({
+  assignee,
   collapsedGroups,
   enabled,
   onToggleGroup,
@@ -42,6 +48,7 @@ export function SectionList({
   projects: number[];
   sort: SortValue;
   view: OverviewView;
+  assignee?: string;
 }) {
   const organization = useOrganization();
   const {projects: orgProjects} = useProjects();
@@ -50,6 +57,27 @@ export function SectionList({
     projects,
     sort: sort === 'events' ? 'freq' : 'date',
     statsPeriod: period,
+    assignee,
+  });
+  const memberProjectIds = useMemo(() => projects.map(String), [projects]);
+  const hasCardIssues =
+    view === 'cards' && sections.some(section => section.issues.length > 0);
+  const memberQuery = useQuery({
+    ...useProjectMembersQueryOptions(memberProjectIds),
+    select: response => indexMembersByProject(response.json),
+    enabled: enabled && hasCardIssues,
+  });
+
+  // Cards in the review bucket sometimes have no PR behind them (the run's
+  // PR creation never completed). Hide those and count only what's left; the
+  // per-issue state queries here share cache keys with the cards' own
+  // enrichment, so nothing is fetched twice.
+  const reviewPrSection = sections.find(section => section.key === 'review_pr');
+  const {validIssues, isPending: prFilterPending} = useValidPrIssues({
+    enabled: Boolean(
+      enabled && reviewPrSection && !reviewPrSection.isPending && !reviewPrSection.isError
+    ),
+    issues: reviewPrSection?.issues ?? [],
   });
 
   const firstLoad = isPending && sections.every(section => section.isPending);
@@ -57,7 +85,8 @@ export function SectionList({
     section => !section.isPending && !section.isError && section.issues.length === 0
   );
   const hasProjectFilter = projects.length > 0 && orgProjects.length > 1;
-  const hasNonDefaultFilters = hasProjectFilter || period !== DEFAULT_STATS_PERIOD;
+  const hasNonDefaultFilters =
+    hasProjectFilter || period !== DEFAULT_STATS_PERIOD || Boolean(assignee);
 
   if (isError) {
     return <LoadingError onRetry={refetch} />;
@@ -82,6 +111,15 @@ export function SectionList({
       {sections.map(section => {
         const meta = STATUS_GROUP_META[section.key];
         const expanded = !collapsedGroups.includes(section.key);
+        const isReviewPr = section.key === 'review_pr';
+        const issues = isReviewPr ? validIssues : section.issues;
+        const count = isReviewPr
+          ? prFilterPending
+            ? undefined
+            : issues.length
+          : section.count;
+        const contentPending =
+          section.isPending || (isReviewPr && prFilterPending && issues.length === 0);
         return (
           <StatusGroup
             key={section.key}
@@ -100,16 +138,16 @@ export function SectionList({
                     <meta.Icon size="sm" aria-hidden />
                   </Tooltip>
                   <Text bold>{meta.label}</Text>
-                  <Badge variant="muted">{formatSectionCount(section.count)}</Badge>
+                  <Badge variant="muted">{formatSectionCount(count)}</Badge>
                 </Flex>
               </Disclosure.Title>
             </GroupHeader>
             <Disclosure.Content data-view={view}>
               {section.isError ? (
                 <LoadingError onRetry={section.refetch} />
-              ) : section.isPending ? (
+              ) : contentPending ? (
                 <LoadingIndicator />
-              ) : section.issues.length === 0 ? (
+              ) : issues.length === 0 ? (
                 <Container padding="md">
                   <Text as="p" variant="muted" size="sm">
                     {t('No issues')}
@@ -121,10 +159,16 @@ export function SectionList({
                   paddingTop={view === 'cards' ? 'sm' : '0'}
                   data-view={view}
                 >
-                  {section.issues.map(issue => (
+                  {issues.map(issue => (
                     <SectionIssueCard
                       key={issue.id}
                       issue={issue}
+                      memberList={
+                        memberQuery.isError
+                          ? undefined
+                          : (memberQuery.data?.get(issue.project.slug) ?? [])
+                      }
+                      memberListLoading={memberQuery.isPending}
                       orgSlug={organization.slug}
                       sectionKey={section.key}
                       view={view}

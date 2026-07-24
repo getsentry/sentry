@@ -9,7 +9,12 @@ import type {Organization} from 'sentry/types/organization';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {getTrialDaysLeft, getTrialLength, hasPerformance} from 'getsentry/utils/billing';
+import {
+  getTrialDaysLeft,
+  getTrialLength,
+  hasPerformance,
+  isTrial,
+} from 'getsentry/utils/billing';
 
 import {Details} from './details';
 
@@ -20,8 +25,8 @@ type Props = ModalRenderProps & {
 };
 
 function UpsellModal({source, organization, subscription}: Props) {
-  const canTrial = subscription.canTrial && !subscription.isTrial;
-  const headerMessage = subscription.isTrial ? (
+  const canTrial = subscription.canTrial && !isTrial(subscription);
+  const headerMessage = isTrial(subscription) ? (
     <div>
       <Subheader>
         {tn(

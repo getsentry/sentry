@@ -1,32 +1,33 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import NewProject from 'sentry/views/projectInstall/newProject';
 
-describe('NewProjectPlatform', () => {
-  const organization = OrganizationFixture();
-  const integrations = [
-    OrganizationIntegrationsFixture({
-      name: "Moo Deng's Workspace",
-      status: 'active',
-    }),
-  ];
+jest.mock('sentry/views/projectInstall/createProject', () => ({
+  CreateProject: () => <div>Legacy project creation</div>,
+}));
 
-  beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/`,
-      body: integrations,
-      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+jest.mock('sentry/views/projectInstall/scmCreateProject', () => ({
+  ScmCreateProject: () => <div>SCM project creation</div>,
+}));
+
+describe('NewProject', () => {
+  it('renders the legacy flow when SCM project creation is disabled', () => {
+    render(<NewProject />, {organization: OrganizationFixture({features: []})});
+
+    expect(screen.getByText('Legacy project creation')).toBeInTheDocument();
+    expect(screen.queryByText('SCM project creation')).not.toBeInTheDocument();
+  });
+
+  it('renders the SCM flow when SCM project creation is enabled', () => {
+    render(<NewProject />, {
+      organization: OrganizationFixture({
+        features: ['onboarding-scm-project-creation'],
+      }),
     });
-  });
 
-  afterEach(() => {
-    MockApiClient.clearMockResponses();
-  });
-
-  it('should render', () => {
-    render(<NewProject />);
+    expect(screen.getByText('SCM project creation')).toBeInTheDocument();
+    expect(screen.queryByText('Legacy project creation')).not.toBeInTheDocument();
   });
 });
