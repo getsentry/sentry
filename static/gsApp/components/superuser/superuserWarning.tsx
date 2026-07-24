@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -12,6 +12,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
+import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 import {SUPERUSER_MARQUEE_HEIGHT} from 'sentry/views/navigation/constants';
 
 const POLICY_URL =
@@ -68,6 +69,7 @@ type Props = {
 };
 
 export function SuperuserWarning({organization}: Props) {
+  const {addAlert} = useGlobalAlerts();
   const isExcludedOrg = shouldExcludeOrg(organization);
 
   const stripRef = useRef<HTMLDivElement>(null);
@@ -92,6 +94,19 @@ export function SuperuserWarning({organization}: Props) {
       });
     },
   });
+
+  useEffect(() => {
+    if (!isExcludedOrg) {
+      addAlert({
+        id: 'superuser-warning',
+        message: WARNING_MESSAGE,
+        variant: 'danger',
+        opaque: true,
+        neverExpire: true,
+        noDuplicates: true,
+      });
+    }
+  }, [isExcludedOrg, addAlert]);
 
   if (isExcludedOrg) {
     return null;

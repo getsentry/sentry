@@ -1,8 +1,10 @@
+import {useRef, useState} from 'react';
 import {Outlet, ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {DemoHeader} from 'sentry/components/demo/demoHeader';
@@ -26,6 +28,7 @@ import {SystemAlerts} from 'sentry/views/app/systemAlerts';
 import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import {Navigation} from 'sentry/views/navigation';
+import {SUPERUSER_MARQUEE_HEIGHT} from 'sentry/views/navigation/constants';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
@@ -87,18 +90,30 @@ function AppDrawers() {
 
 function AppLayout({organization}: LayoutProps) {
   useSeerExplorerDocumentTitle();
+  const topRegionRef = useRef<HTMLDivElement>(null);
+  const [topRegionHeight, setTopRegionHeight] = useState(0);
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
     !getOverride('component:superuser-warning-excluded')?.(organization);
 
+  useResizeObserver({
+    ref: topRegionRef,
+    onResize() {
+      setTopRegionHeight(topRegionRef.current?.offsetHeight ?? 0);
+    },
+  });
+
   return (
     <PrimaryNavigationContextProvider>
       <Stack flex="1" minWidth="0" minHeight="100dvh">
-        {showSuperuserWarning && (
-          <Override name="component:superuser-warning" organization={organization} />
-        )}
-        <SystemAlerts className="messages-container" />
+        <Container ref={topRegionRef}>
+          {showSuperuserWarning && <Container height={`${SUPERUSER_MARQUEE_HEIGHT}px`} />}
+          {showSuperuserWarning && (
+            <Override name="component:superuser-warning" organization={organization} />
+          )}
+          <SystemAlerts className="messages-container" />
+        </Container>
         <Flex
           flex="1"
           minWidth="0"
@@ -106,7 +121,7 @@ function AppLayout({organization}: LayoutProps) {
           direction={{'screen:sm': 'column', 'screen:md': 'row'}}
           position="relative"
         >
-          <Navigation />
+          <Navigation viewportTop={topRegionHeight} />
           <SeerExplorerSidebarLayout>
             {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
             <ContentStack

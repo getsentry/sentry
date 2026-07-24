@@ -51,7 +51,7 @@ function CommandPaletteSlotOutlets() {
   );
 }
 
-function UserAndOrganizationNavigation() {
+function UserAndOrganizationNavigation({viewportTop}: NavigationProps) {
   const {layout} = usePrimaryNavigation();
   const {visible} = useModal();
   const {view, setView} = useSecondaryNavigation();
@@ -68,7 +68,7 @@ function UserAndOrganizationNavigation() {
   );
 
   return (
-    <NavigationLayout>
+    <NavigationLayout viewportTop={viewportTop}>
       <CommandPaletteHotkeys />
       <CommandPaletteSlotOutlets />
       <GlobalCommandPaletteActions />
@@ -91,7 +91,14 @@ function UserOnlyNavigation() {
   );
 }
 
-function NavigationLayout({children}: {children: React.ReactNode}) {
+interface NavigationProps {
+  viewportTop?: number;
+}
+
+function NavigationLayout({
+  children,
+  viewportTop = 0,
+}: NavigationProps & {children: React.ReactNode}) {
   const theme = useTheme();
   const {layout} = usePrimaryNavigation();
   const {currentStepId} = useNavigationTour();
@@ -104,7 +111,11 @@ function NavigationLayout({children}: {children: React.ReactNode}) {
       left={0}
       position={currentStepId ? undefined : 'sticky'}
       bottom={layout === 'mobile' ? undefined : 0}
-      height={layout === 'mobile' ? undefined : `calc(100dvh - ${barTop})`}
+      height={
+        layout === 'mobile'
+          ? undefined
+          : `calc(100dvh - max(${barTop}, ${viewportTop}px))`
+      }
       style={{
         zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
         userSelect: 'none',
@@ -116,7 +127,7 @@ function NavigationLayout({children}: {children: React.ReactNode}) {
   );
 }
 
-export function Navigation() {
+export function Navigation({viewportTop = 0}: NavigationProps) {
   const organization = useOrganization({allowNull: true});
 
   if (!organization) {
@@ -132,7 +143,7 @@ export function Navigation() {
     <HoverOverlayGroupProvider>
       <NavigationTourProvider>
         <SkipLink />
-        <UserAndOrganizationNavigation />
+        <UserAndOrganizationNavigation viewportTop={viewportTop} />
       </NavigationTourProvider>
     </HoverOverlayGroupProvider>
   );
