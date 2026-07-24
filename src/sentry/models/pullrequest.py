@@ -46,7 +46,6 @@ class PullRequestAttributionSignalType(models.TextChoices):
     SEER_DELEGATED_CLAUDE_CODE = "seer_delegated:claude_code"
     SEER_DELEGATED_UNKNOWN = "seer_delegated:unknown"
     MCP = "mcp"
-    UNKNOWN = "unknown"
 
 
 class PullRequestAttributionSource(models.TextChoices):

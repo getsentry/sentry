@@ -29,7 +29,6 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics import activity_doc
-from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
 from sentry.pr_metrics.contracts import (
     CLOSE_ACTION_CLOSED,
     CLOSE_ACTION_MERGED,
@@ -323,19 +322,18 @@ def is_pr_tracked(pull_request: PullRequest) -> bool:
 
 
 def active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
-    """The PR's valid attribution signals, highest-confidence first.
+    """The PR's valid attribution signals — all of them, unranked.
 
     Each entry carries the ``signal_type``, ``source``, and ``signal_details`` so
-    the consumer sees the full picture, ordered by attribution priority so the
-    primary attribution leads. Ties break on ``signal_type`` then ``source`` for
-    a deterministic order. Shared by emission and the Seer judge forward so both
-    hand the consumer the same ordered snapshot.
+    the consumer sees the full picture. A PR can carry more than one valid signal
+    and every one is emitted equally — each is a definite attribution, so no
+    signal outranks another and the list order carries no meaning. Shared by
+    emission and the Seer judge forward so both hand the consumer the same set.
     """
     attributions = PullRequestAttribution.objects.filter(pull_request=pull_request, is_valid=True)
-    ordered = sorted(
-        attributions,
-        key=lambda a: (-SIGNAL_TYPE_CONFIDENCE.get(a.signal_type, -1), a.signal_type, a.source),
-    )
+    # Sorted only so the emitted list is reproducible run-to-run; the order isn't
+    # a contract (see above) and consumers must not read significance into it.
+    ordered = sorted(attributions, key=lambda a: (a.signal_type, a.source))
     return [
         {"signal_type": a.signal_type, "source": a.source, "signal_details": a.signal_details}
         for a in ordered

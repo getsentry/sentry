@@ -30,19 +30,6 @@ from sentry.models.pullrequest import (
 
 logger = logging.getLogger(__name__)
 
-# Precedence for picking a PR's primary attribution when more than one valid
-# signal is present (highest first): direct agent-authored signals rank above
-# weaker heuristics like a bare issue reference.
-SIGNAL_TYPE_CONFIDENCE: dict[str, int] = {
-    PullRequestAttributionSignalType.SENTRY_APP: 100,
-    PullRequestAttributionSignalType.SEER_DELEGATED_CURSOR: 80,
-    PullRequestAttributionSignalType.SEER_DELEGATED_GITHUB_COPILOT: 80,
-    PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE: 80,
-    PullRequestAttributionSignalType.SEER_DELEGATED_UNKNOWN: 70,
-    PullRequestAttributionSignalType.MCP: 50,
-    PullRequestAttributionSignalType.UNKNOWN: 0,
-}
-
 
 class SentryAppSignalDetails(BaseModel):
     """Typed signal_details for SENTRY_APP attribution signals.
@@ -164,23 +151,6 @@ def record_attribution_signal(
             attribution.save(update_fields=["signal_details", "is_valid", "date_updated"])
 
         return attribution
-
-
-def recompute_pull_request_attribution(pull_request: PullRequest) -> str | None:
-    """Return the highest-confidence valid attribution signal for a PR.
-
-    Returns the winning ``signal_type``, or ``None`` when the PR has no valid
-    signals.
-    """
-    valid_signal_types = PullRequestAttribution.objects.filter(
-        pull_request=pull_request, is_valid=True
-    ).values_list("signal_type", flat=True)
-
-    return max(
-        valid_signal_types,
-        key=lambda signal_type: SIGNAL_TYPE_CONFIDENCE.get(signal_type, -1),
-        default=None,
-    )
 
 
 def _log_unresolved_reported_pull_request(

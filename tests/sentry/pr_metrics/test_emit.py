@@ -665,22 +665,23 @@ class PrMetricsEmissionTest(TestCase):
         )
         assert active_attributions(self.pull_request) == [SENTRY_APP_ATTRIBUTION]
 
-    def test_active_attributions_ordered_by_priority_with_source_and_details(self) -> None:
-        # Lower-confidence signal recorded first, but ordered second.
+    def test_active_attributions_returns_all_valid_signals(self) -> None:
+        # A PR can carry more than one valid signal; all are returned, unranked.
+        # Order carries no meaning, so this asserts membership, not position.
+        self._track(PullRequestAttributionSignalType.SENTRY_APP)
         self._track(
             PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
             source=PullRequestAttributionSource.WEBHOOK_DATA,
             signal_details={"group_ids": [7]},
         )
-        self._track(PullRequestAttributionSignalType.SENTRY_APP)
-        assert active_attributions(self.pull_request) == [
-            SENTRY_APP_ATTRIBUTION,
-            {
-                "signal_type": "seer_delegated:claude_code",
-                "source": "webhook_data",
-                "signal_details": {"group_ids": [7]},
-            },
-        ]
+        result = active_attributions(self.pull_request)
+        assert len(result) == 2
+        assert SENTRY_APP_ATTRIBUTION in result
+        assert {
+            "signal_type": "seer_delegated:claude_code",
+            "source": "webhook_data",
+            "signal_details": {"group_ids": [7]},
+        } in result
 
     def test_resolve_autofix_referrers_empty_without_run_id(self) -> None:
         assert resolve_autofix_referrers(self.pull_request, [SENTRY_APP_ATTRIBUTION]) == []
