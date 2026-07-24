@@ -470,6 +470,62 @@ class PrMetricsEmissionTest(TestCase):
         )
         assert row.repository_is_public is True
 
+    def test_build_row_raises_when_stored_lifecycle_missing(self) -> None:
+        # A close/merge row needs a persisted head_commit_sha and closed_at;
+        # abandoned is exempt since the PR never reached a terminal state.
+        self.pull_request.closed_at = None
+
+        with pytest.raises(ValueError):
+            build_pr_metrics_row(
+                pull_request=self.pull_request,
+                close_action="merged",
+                attributions=[],
+                group_ids=[],
+            )
+
+        with pytest.raises(ValueError):
+            build_pr_metrics_row(
+                pull_request=self.pull_request,
+                close_action="closed",
+                attributions=[],
+                group_ids=[],
+            )
+
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="abandoned",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.closed_at is not None
+
+    def test_build_row_raises_when_head_commit_sha_missing(self) -> None:
+        self.pull_request.head_commit_sha = None
+
+        with pytest.raises(ValueError):
+            build_pr_metrics_row(
+                pull_request=self.pull_request,
+                close_action="merged",
+                attributions=[],
+                group_ids=[],
+            )
+
+        with pytest.raises(ValueError):
+            build_pr_metrics_row(
+                pull_request=self.pull_request,
+                close_action="closed",
+                attributions=[],
+                group_ids=[],
+            )
+
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="abandoned",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.head_commit_sha == "unknown"
+
     def test_build_row_repository_is_public_false_for_private_repo(self) -> None:
         PullRequestActivity.objects.create(
             pull_request=self.pull_request,
@@ -584,18 +640,6 @@ class PrMetricsEmissionTest(TestCase):
         )
         assert row.opened_at is None
 
-    def test_build_row_raises_when_stored_lifecycle_missing(self) -> None:
-        # A close/merge row needs a persisted head_commit_sha and closed_at; a
-        # null means emit ran on a PR that never reached a terminal state.
-        self.pull_request.closed_at = None
-        with pytest.raises(ValueError):
-            build_pr_metrics_row(
-                pull_request=self.pull_request,
-                close_action="merged",
-                attributions=[],
-                group_ids=[],
-            )
-
     def test_build_row_for_close_omits_merge_commit_sha(self) -> None:
         # The webhook persists null merge fields for a closed-but-unmerged PR.
         self.pull_request.merge_commit_sha = None
@@ -665,22 +709,23 @@ class PrMetricsEmissionTest(TestCase):
         )
         assert active_attributions(self.pull_request) == [SENTRY_APP_ATTRIBUTION]
 
-    def test_active_attributions_ordered_by_priority_with_source_and_details(self) -> None:
-        # Lower-confidence signal recorded first, but ordered second.
+    def test_active_attributions_returns_all_valid_signals(self) -> None:
+        # A PR can carry more than one valid signal; all are returned, unranked.
+        # Order carries no meaning, so this asserts membership, not position.
+        self._track(PullRequestAttributionSignalType.SENTRY_APP)
         self._track(
             PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
             source=PullRequestAttributionSource.WEBHOOK_DATA,
             signal_details={"group_ids": [7]},
         )
-        self._track(PullRequestAttributionSignalType.SENTRY_APP)
-        assert active_attributions(self.pull_request) == [
-            SENTRY_APP_ATTRIBUTION,
-            {
-                "signal_type": "seer_delegated:claude_code",
-                "source": "webhook_data",
-                "signal_details": {"group_ids": [7]},
-            },
-        ]
+        result = active_attributions(self.pull_request)
+        assert len(result) == 2
+        assert SENTRY_APP_ATTRIBUTION in result
+        assert {
+            "signal_type": "seer_delegated:claude_code",
+            "source": "webhook_data",
+            "signal_details": {"group_ids": [7]},
+        } in result
 
     def test_resolve_autofix_referrers_empty_without_run_id(self) -> None:
         assert resolve_autofix_referrers(self.pull_request, [SENTRY_APP_ATTRIBUTION]) == []

@@ -4,8 +4,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import AccountDetails from 'sentry/views/settings/account/accountDetails';
 
-jest.mock('scroll-to-element', () => 'scroll-to-element');
-
 function mockUserDetails(params?: any) {
   MockApiClient.clearMockResponses();
 

@@ -304,11 +304,35 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
             {head_metrics.id: comparison},
             {head_artifact.id: base_artifact},
             {head_artifact.id: True},
+            approval_requirements_by_artifact_id={head_artifact.id: True},
             project=self.project,
         )
 
         assert "Needs approval" in result
         assert "?selectedTypes=added,removed,changed,renamed" in result
+
+    def test_reported_changes_without_required_approval_show_changes_detected(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics()
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+        comparison = self._create_comparison(
+            head_metrics,
+            base_metrics,
+            images_added=4,
+            images_unchanged=5,
+        )
+
+        result = format_snapshot_pr_comment(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            {head_artifact.id: base_artifact},
+            {head_artifact.id: True},
+            approval_requirements_by_artifact_id={head_artifact.id: False},
+            project=self.project,
+        )
+
+        assert "Changes detected" in result
+        assert "Needs approval" not in result
 
     def test_approved_shows_approved_status(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -328,7 +352,8 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
             {head_metrics.id: comparison},
             {head_artifact.id: base_artifact},
             {head_artifact.id: True},
-            approvals_map={head_artifact.id: approval},
+            approvals_by_artifact_id={head_artifact.id: approval},
+            approval_requirements_by_artifact_id={head_artifact.id: True},
             project=self.project,
         )
 

@@ -1,5 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {IssueCategory, IssueType, PriorityLevel} from 'sentry/types/group';
 import {
   deriveCardAction,
   IssuePrimaryAction,
@@ -17,9 +18,13 @@ function makeRow(overrides: Partial<OverviewRow> = {}): OverviewRow {
     assignedTo: null,
     eventCount: 1,
     id: '2',
+    issueCategory: IssueCategory.ERROR,
+    issueType: IssueType.ERROR,
     lastActivityAt: '2026-07-14T10:00:00Z',
     lastSeen: '2026-07-14T09:00:00Z',
     level: 'error',
+    priority: PriorityLevel.MEDIUM,
+    priorityLockedAt: null,
     project: {id: '2', slug: 'proj'},
     runStatus: null,
     shortId: 'PROJ-1',
@@ -125,7 +130,7 @@ describe('IssuePrimaryAction', () => {
     {type: 'merged', label: 'Merged'},
     {type: 'code_changes_ready', label: 'Draft PR'},
     {type: 'solution_ready', label: 'Generate code'},
-    {type: 'needs_investigation', label: 'Approve Root Cause'},
+    {type: 'needs_investigation', label: 'Create Plan'},
   ] as Array<{label: string; type: Exclude<CardAction['type'], 'review_pr'>}>)(
     'renders the $label action for a completed $type card',
     ({type, label}) => {
@@ -138,7 +143,7 @@ describe('IssuePrimaryAction', () => {
   it.each([
     {type: 'code_changes_ready', label: 'Draft PR'},
     {type: 'solution_ready', label: 'Generate code'},
-    {type: 'needs_investigation', label: 'Approve Root Cause'},
+    {type: 'needs_investigation', label: 'Create Plan'},
   ] as Array<{label: string; type: Exclude<CardAction['type'], 'review_pr'>}>)(
     'opens the run drawer when the $label action is clicked',
     async ({type, label}) => {
@@ -174,7 +179,7 @@ describe('IssuePrimaryAction', () => {
     },
     {
       action: {type: 'needs_investigation'} as CardAction,
-      label: 'Approve Root Cause',
+      label: 'Create Plan',
       row: makeRow({runStatus: 'completed'}),
     },
     {

@@ -52,7 +52,10 @@ export function ScmAlertFrequencySection({
     <ScmCollapsibleReveal
       open={alertRuleConfig.alertSetting !== RuleAction.CREATE_ALERT_LATER}
     >
-      <ScmIssueAlertNotificationOptions {...notificationProps} />
+      <ScmIssueAlertNotificationOptions
+        {...notificationProps}
+        analyticsFlow={analyticsFlow}
+      />
     </ScmCollapsibleReveal>
   );
 

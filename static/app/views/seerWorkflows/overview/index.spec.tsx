@@ -187,8 +187,8 @@ describe('AutofixOverview', () => {
       body: [ProjectFixture()],
     });
 
-    // One issue lives in the review bucket (X-Hits 3 exceeds the returned
-    // body, proving the count comes from the header); the other four are empty.
+    // One issue lives in the review bucket (its count reflects the rendered
+    // valid-PR cards, not the X-Hits header); the other four are empty.
     mockSection(SECTION_QUERIES.review_pr, {body: [issue], hits: '3'});
     mockSection(SECTION_QUERIES.code_changes_ready);
     mockSection(SECTION_QUERIES.solution_ready);
@@ -243,28 +243,28 @@ describe('AutofixOverview', () => {
   it('renders the five status sections with server-provided counts', async () => {
     renderPage();
 
-    // Every section renders, in order, with its X-Hits count in the badge.
+    // Every section renders, in order. The review bucket counts only its
+    // cards with a real PR behind them (here 1, despite X-Hits 3); the other
+    // buckets show their X-Hits count.
     const reviewHeader = await screen.findByRole('button', {
-      name: 'Awaiting your review 3',
+      name: 'Review Open PRs 1',
     });
+    expect(screen.getByRole('button', {name: 'Create PR 0'})).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'Code changes ready 0'})
+      screen.getByRole('button', {name: 'Generate code changes 0'})
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'Ready to generate code 0'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Needs investigation 0'})
+      screen.getByRole('button', {name: 'Confirm Root Cause 0'})
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Merged 0'})).toBeInTheDocument();
 
     // The headers render in pipeline (SECTION_ORDER) order; reordering the
     // PIPELINE table reorders these and fails here.
     const orderedHeaders = [
-      /Awaiting your review/,
-      /Code changes ready/,
-      /Ready to generate code/,
-      /Needs investigation/,
+      /Review Open PRs/,
+      /Create PR/,
+      /Generate code changes/,
+      /Confirm Root Cause/,
       /Merged/,
     ].map(name => screen.getByRole('button', {name}));
     for (let index = 0; index < orderedHeaders.length - 1; index++) {
@@ -279,7 +279,7 @@ describe('AutofixOverview', () => {
     const titleLink = await screen.findByRole('link', {
       name: 'Proxy requests fail without Authorization header',
     });
-    const codeHeader = screen.getByRole('button', {name: 'Code changes ready 0'});
+    const codeHeader = screen.getByRole('button', {name: 'Create PR 0'});
     expect(
       reviewHeader.compareDocumentPosition(titleLink) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
@@ -364,6 +364,10 @@ describe('AutofixOverview', () => {
 
     expect(
       screen.getByRole('button', {name: 'Modify issue assignee'})
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('button', {name: 'Modify issue priority'})
     ).toBeInTheDocument();
 
     // Identity sits in the tail: short id + exactly one level marker.
@@ -452,7 +456,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     const reviewHeader = await screen.findByRole('button', {
-      name: 'Awaiting your review 3',
+      name: 'Review Open PRs 1',
     });
     expect(
       await screen.findByRole('link', {
@@ -501,14 +505,14 @@ describe('AutofixOverview', () => {
     many.forEach(group => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
-        body: {autofix: null},
+        body: {autofix: makeAutofixState()},
       });
     });
     mockSection(SECTION_QUERIES.review_pr, {body: many, hits: '30'});
 
     renderPage();
 
-    await screen.findByRole('button', {name: 'Awaiting your review 30'});
+    await screen.findByRole('button', {name: 'Review Open PRs 30'});
     expect(screen.getAllByRole('link', {name: /Bulk issue/})).toHaveLength(30);
     expect(
       screen.queryByRole('button', {name: /Show \d+ more issue/})
@@ -518,13 +522,40 @@ describe('AutofixOverview', () => {
   it('caps the section count badge at 100+ when hits exceed the fetch limit', async () => {
     // Only 100 issues are ever fetched per section, so an exact total above
     // that would overstate what scrolling can reveal.
-    mockSection(SECTION_QUERIES.review_pr, {body: [issue], hits: '150'});
+    mockSection(SECTION_QUERIES.code_changes_ready, {body: [issue], hits: '150'});
 
     renderPage();
 
     expect(
-      await screen.findByRole('button', {name: 'Awaiting your review 100+'})
+      await screen.findByRole('button', {name: 'Create PR 100+'})
     ).toBeInTheDocument();
+  });
+
+  it('hides review cards without a valid PR and counts only the rest', async () => {
+    const invalidIssue = GroupFixture({
+      id: '5',
+      shortId: 'PROJ-5',
+      title: 'Run with no PR behind it',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/5/autofix/`,
+      body: {autofix: makeAutofixState({repo_pr_states: {}})},
+    });
+    mockSection(SECTION_QUERIES.review_pr, {body: [issue, invalidIssue], hits: '2'});
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Review Open PRs 1'})
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'Run with no PR behind it'})
+    ).not.toBeInTheDocument();
   });
 
   it('surfaces the blocking question when a run awaits user input', async () => {
@@ -646,7 +677,7 @@ describe('AutofixOverview', () => {
     // Focus mode hides the section list and offers the way back, keeping the
     // other params.
     expect(
-      screen.queryByRole('button', {name: /Awaiting your review/})
+      screen.queryByRole('button', {name: /Review Open PRs/})
     ).not.toBeInTheDocument();
     const backLink = screen.getByRole('button', {name: 'All issues'});
     expect(backLink).toHaveAttribute('href', expect.not.stringContaining('id=2'));
@@ -667,7 +698,7 @@ describe('AutofixOverview', () => {
     expect(await screen.findByText('No completed autofix runs yet.')).toBeInTheDocument();
     // The section list is replaced entirely by the empty state.
     expect(
-      screen.queryByRole('button', {name: /Awaiting your review/})
+      screen.queryByRole('button', {name: /Review Open PRs/})
     ).not.toBeInTheDocument();
   });
 
@@ -703,9 +734,7 @@ describe('AutofixOverview', () => {
       await screen.findByText('There was an error loading data.')
     ).toBeInTheDocument();
     expect(screen.queryByText('No completed autofix runs yet.')).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: /Awaiting your review/})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /Review Open PRs/})).toBeInTheDocument();
   });
 
   it('surfaces a per-section error while other sections still load', async () => {
@@ -771,7 +800,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('button', {name: 'Awaiting your review 1'})
+      await screen.findByRole('button', {name: 'Review Open PRs 1'})
     ).toBeInTheDocument();
   });
 
