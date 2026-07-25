@@ -155,9 +155,11 @@ export class WaterfallModel {
           'description',
         ]);
 
+        const MAX_SEARCH_STRING_LENGTH = 5000;
+
         const basicValues = Object.values(pickedSpan)
           .filter(value => !!value)
-          .map(String);
+          .map(value => String(value).slice(0, MAX_SEARCH_STRING_LENGTH));
 
         indexed.push(...basicValues);
 
@@ -168,8 +170,10 @@ export class WaterfallModel {
         const tags = span?.tags;
 
         if (tags) {
-          tagKeys = Object.keys(tags);
-          tagValues = Object.values(tags);
+          tagKeys = Object.keys(tags).map(k => k.slice(0, MAX_SEARCH_STRING_LENGTH));
+          tagValues = Object.values(tags).map(v =>
+            String(v).slice(0, MAX_SEARCH_STRING_LENGTH)
+          );
         }
 
         const data: Record<string, any> | undefined = span?.data ?? {};
@@ -177,9 +181,9 @@ export class WaterfallModel {
         let dataKeys: string[] = [];
         let dataValues: string[] = [];
         if (data) {
-          dataKeys = Object.keys(data);
+          dataKeys = Object.keys(data).map(k => k.slice(0, MAX_SEARCH_STRING_LENGTH));
           dataValues = Object.values(data).map(
-            value => JSON.stringify(value, null, 4) || ''
+            value => (JSON.stringify(value, null, 4) || '').slice(0, MAX_SEARCH_STRING_LENGTH)
           );
         }
 
