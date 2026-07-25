@@ -365,7 +365,9 @@ def execute_table_query(
     except client.ApiError as e:
         # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
-            logger.warning("execute_table_query: bad request", extra={"org_id": org_id}, exc_info=True)
+            logger.warning(
+                "execute_table_query: bad request", extra={"org_id": org_id}, exc_info=True
+            )
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
             return ExecuteQueryErrorResponse(
                 error=str(error_detail) if error_detail is not None else str(e.body)
@@ -458,7 +460,11 @@ def execute_timeseries_query(
         # Use a reserved "_seer_error_detail" key so it can't collide with a
         # group_by value (which becomes a top-level key in grouped responses below).
         if e.status_code == 400:
-            logger.warning("execute_timeseries_query: bad request", extra={"org_id": org_id}, exc_info=True)
+            logger.warning(
+                "execute_timeseries_query: bad request",
+                extra={"org_id": org_id},
+                exc_info=True,
+            )
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
             return ExecuteTimeseriesQueryErrorResponse(
                 seer_error_detail=(str(error_detail) if error_detail is not None else str(e.body))
