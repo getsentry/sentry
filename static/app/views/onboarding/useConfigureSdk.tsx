@@ -47,12 +47,11 @@ export function useConfigureSdk({
       }
 
       const projectSlug = selectedPlatform.platformId ?? selectedPlatform.key;
-      const createProjectForPlatform = projects.some(p => p.slug === projectSlug)
-        ? undefined
-        : selectedPlatform;
+      const existingProject = projects.find(p => p.slug === projectSlug);
 
-      if (!createProjectForPlatform) {
+      if (existingProject) {
         onboardingContext.setSelectedPlatform(selectedPlatform);
+        onboardingContext.setCreatedProjectSlug(existingProject.slug);
 
         trackAnalytics('growth.onboarding_set_up_your_project', {
           platform: selectedPlatform.key,
@@ -65,17 +64,18 @@ export function useConfigureSdk({
 
       try {
         addLoadingMessage(t('Loading SDK configuration\u2026'));
-        await createProject.mutateAsync({
-          name: createProjectForPlatform.platformId ?? createProjectForPlatform.key,
-          platform: createProjectForPlatform,
+        const createdProject = await createProject.mutateAsync({
+          name: projectSlug,
+          platform: selectedPlatform,
           firstTeamSlug,
         });
-        onboardingContext.setSelectedPlatform(createProjectForPlatform);
+        onboardingContext.setSelectedPlatform(selectedPlatform);
+        onboardingContext.setCreatedProjectSlug(createdProject.slug);
         trackAnalytics('growth.onboarding_set_up_your_project', {
-          platform: createProjectForPlatform.key,
+          platform: selectedPlatform.key,
           organization,
         });
-        setTimeout(() => onComplete(createProjectForPlatform));
+        setTimeout(() => onComplete(selectedPlatform));
       } catch (error) {
         addErrorMessage(t('Failed to load SDK configuration'));
         Sentry.captureException(error);

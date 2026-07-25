@@ -69,6 +69,7 @@ describe('useConfigureSdk', () => {
     sessionStorageWrapper.clear();
     ProjectsStore.loadInitialData([ProjectFixture()]);
 
+    mockCreateProject.mockResolvedValue(ProjectFixture({slug: 'other'}));
     createProjectInstance = mockCreateProjectHook();
     mockUseCreateProject.mockReturnValue(
       createProjectInstance as unknown as ReturnType<typeof useCreateProject>
@@ -119,6 +120,7 @@ describe('useConfigureSdk', () => {
   });
 
   it('uses the selected platform id for an aliased SDK project name', async () => {
+    mockCreateProject.mockResolvedValue(ProjectFixture({slug: 'expo'}));
     const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}), {
       additionalWrapper: OnboardingContextProvider,
     });
@@ -138,6 +140,35 @@ describe('useConfigureSdk', () => {
 
     expect(mockCreateProject).toHaveBeenCalledWith(
       expect.objectContaining({name: 'expo', platform: expoPlatform})
+    );
+    expect(JSON.parse(sessionStorageWrapper.getItem('onboarding')!)).toEqual(
+      expect.objectContaining({createdProjectSlug: 'expo'})
+    );
+  });
+
+  it('stores the slug of an existing aliased SDK project', async () => {
+    const expoProject = ProjectFixture({slug: 'expo'});
+    ProjectsStore.loadInitialData([expoProject]);
+    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}), {
+      additionalWrapper: OnboardingContextProvider,
+    });
+    const expoPlatform: OnboardingSelectedSDK = {
+      key: 'react-native',
+      platformId: 'expo',
+      type: 'framework',
+      language: 'react-native',
+      name: 'Expo',
+      category: 'mobile',
+      link: 'https://docs.sentry.io/platforms/react-native/guides/expo/',
+    };
+
+    await act(async () => {
+      await result.current.configureSdk(expoPlatform);
+    });
+
+    expect(mockCreateProject).not.toHaveBeenCalled();
+    expect(JSON.parse(sessionStorageWrapper.getItem('onboarding')!)).toEqual(
+      expect.objectContaining({createdProjectSlug: 'expo'})
     );
   });
 
