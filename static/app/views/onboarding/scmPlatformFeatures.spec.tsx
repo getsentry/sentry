@@ -861,5 +861,4 @@ describe('ScmPlatformFeatures', () => {
       });
     });
   });
-
 });

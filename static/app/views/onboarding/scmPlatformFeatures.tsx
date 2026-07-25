@@ -124,9 +124,7 @@ export function ScmPlatformFeatures({
       return;
     }
 
-    const firstAdminTeam = teams.find((team: Team) =>
-      team.access.includes('team:admin')
-    );
+    const firstAdminTeam = teams.find((team: Team) => team.access.includes('team:admin'));
 
     try {
       const project = await createProject.mutateAsync({
