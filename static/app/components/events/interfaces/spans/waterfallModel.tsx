@@ -182,8 +182,8 @@ export class WaterfallModel {
         let dataValues: string[] = [];
         if (data) {
           dataKeys = Object.keys(data).map(k => k.slice(0, MAX_SEARCH_STRING_LENGTH));
-          dataValues = Object.values(data).map(
-            value => (JSON.stringify(value, null, 4) || '').slice(0, MAX_SEARCH_STRING_LENGTH)
+          dataValues = Object.values(data).map(value =>
+            (JSON.stringify(value, null, 4) || '').slice(0, MAX_SEARCH_STRING_LENGTH)
           );
         }
 
