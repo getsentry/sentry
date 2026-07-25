@@ -46,20 +46,27 @@ export function SelectAsync<TData = unknown>({
 }: SelectAsyncControlProps<TData> & {placeholder?: React.ReactNode}) {
   const [inputQuery, setInputQuery] = useState('');
   const debouncedQuery = useDebouncedValue(inputQuery, DEBOUNCE_MS);
-  const [options, setOptions] = useState<Result[]>([]);
+  const defaultOptionsList = Array.isArray(defaultOptions) ? defaultOptions : [];
+  const [options, setOptions] = useState(defaultOptionsList);
   const onResultsRef = useRef(onResults);
   onResultsRef.current = onResults;
+  const defaultOptionsListRef = useRef(defaultOptionsList);
+  defaultOptionsListRef.current = defaultOptionsList;
 
   const queryParams =
     typeof onQuery === 'function' ? onQuery(debouncedQuery) : {query: debouncedQuery};
+  // Matches react-select's own AsyncSelect semantics: `defaultOptions={true}`
+  // auto-fetches on mount; `false` or an array of preset options waits for
+  // the user to type before fetching.
+  const enabled = defaultOptions === true || debouncedQuery.length > 0;
 
-  const {data, isPending, isError, error} = useQuery({
+  const {data, isPending, isFetching, isError, error} = useQuery({
     // `url` is a dynamic prop (not a KnownSentryApiUrl), so we bypass the branded
     // ApiQueryKey constraint with a double cast — the same pattern used in the codebase
     // for runtime URLs (e.g. useAskSeerPolling.tsx).
     queryKey: normalizeQueryKey([url, {query: queryParams}] as unknown as ApiQueryKey),
     queryFn: apiFetch<TData>,
-    enabled: defaultOptions !== false || debouncedQuery.length > 0,
+    enabled,
     staleTime: 0,
   });
 
@@ -74,6 +81,13 @@ export function SelectAsync<TData = unknown>({
   }, [isError, error]);
 
   useEffect(() => {
+    if (!enabled) {
+      // The query is intentionally not fetching (e.g. defaultOptions={false}
+      // and the input is empty) — fall back to the caller's default options
+      // rather than showing stale results from a previous search.
+      setOptions(defaultOptionsListRef.current);
+      return;
+    }
     if (!data) {
       return;
     }
@@ -88,7 +102,7 @@ export function SelectAsync<TData = unknown>({
         ? currentOnResults(data.json)
         : (data.json as unknown as Result[])
     );
-  }, [data]);
+  }, [enabled, data]);
 
   return (
     <Select
@@ -100,7 +114,7 @@ export function SelectAsync<TData = unknown>({
       // Disable client-side filtering: the server already filters by the query,
       // and local re-filtering would discard valid results during debounce transitions.
       filterOption={() => true}
-      isLoading={isPending || inputQuery !== debouncedQuery}
+      isLoading={(isPending && isFetching) || inputQuery !== debouncedQuery}
       onInputChange={(newQuery, actionMeta) => {
         if (actionMeta.action === 'input-change') {
           setInputQuery(newQuery);
