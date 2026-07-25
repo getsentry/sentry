@@ -1,4 +1,4 @@
-import {forwardRef, useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -26,8 +26,7 @@ export interface SelectAsyncControlProps<TData = any> {
   url: string;
   value: ControlProps['value'];
   defaultOptions?: boolean | GeneralSelectValue[];
-  forwardedRef?: React.Ref<typeof ReactSelect<GeneralSelectValue>>;
-  placeholder?: React.ReactNode;
+  ref?: React.Ref<typeof ReactSelect<GeneralSelectValue>>;
 }
 
 const DEBOUNCE_MS = 250;
@@ -35,28 +34,26 @@ const DEBOUNCE_MS = 250;
 /**
  * Performs an API request to `url` to fetch the options
  */
-function SelectAsyncControl<TData = unknown>({
+export function SelectAsync<TData = unknown>({
   url,
   value,
   onQuery,
   onResults,
-  forwardedRef,
+  ref,
   placeholder = '--',
   defaultOptions = true,
   ...props
-}: SelectAsyncControlProps<TData>) {
+}: SelectAsyncControlProps<TData> & {placeholder?: React.ReactNode}) {
   const [inputQuery, setInputQuery] = useState('');
   const debouncedQuery = useDebouncedValue(inputQuery, DEBOUNCE_MS);
+  const [options, setOptions] = useState<Result[]>([]);
+  const onResultsRef = useRef(onResults);
+  onResultsRef.current = onResults;
 
   const queryParams =
     typeof onQuery === 'function' ? onQuery(debouncedQuery) : {query: debouncedQuery};
 
-  const {
-    data: options = [],
-    isPending,
-    isError,
-    error,
-  } = useQuery({
+  const {data, isPending, isError, error} = useQuery({
     // `url` is a dynamic prop (not a KnownSentryApiUrl), so we bypass the branded
     // ApiQueryKey constraint with a double cast — the same pattern used in the codebase
     // for runtime URLs (e.g. useAskSeerPolling.tsx).
@@ -64,8 +61,6 @@ function SelectAsyncControl<TData = unknown>({
     queryFn: apiFetch<TData>,
     enabled: defaultOptions !== false || debouncedQuery.length > 0,
     staleTime: 0,
-    select: ({json}) =>
-      typeof onResults === 'function' ? onResults(json) : (json as unknown as Result[]),
   });
 
   useEffect(() => {
@@ -78,10 +73,27 @@ function SelectAsyncControl<TData = unknown>({
     console.error(error);
   }, [isError, error]);
 
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+    // `onResults` is called here (in an effect) rather than in `select`, since
+    // callers (e.g. SelectAsyncField) update state on a *different* component
+    // from within it — `select` can run during render, which React disallows
+    // for cross-component state updates. `onResultsRef` keeps this effect from
+    // re-firing when callers pass a new `onResults` closure every render.
+    const currentOnResults = onResultsRef.current;
+    setOptions(
+      typeof currentOnResults === 'function'
+        ? currentOnResults(data.json)
+        : (data.json as unknown as Result[])
+    );
+  }, [data]);
+
   return (
     <Select
       key={String(value)}
-      ref={forwardedRef}
+      ref={ref}
       value={value}
       placeholder={placeholder}
       options={options}
@@ -98,7 +110,3 @@ function SelectAsyncControl<TData = unknown>({
     />
   );
 }
-
-export const SelectAsync = forwardRef((p: any, ref: any) => {
-  return <SelectAsyncControl {...p} forwardedRef={ref} />;
-});
