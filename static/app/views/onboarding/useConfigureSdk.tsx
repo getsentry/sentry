@@ -47,7 +47,10 @@ export function useConfigureSdk({
       }
 
       const projectSlug = selectedPlatform.platformId ?? selectedPlatform.key;
-      const existingProject = projects.find(p => p.slug === projectSlug);
+      const existingProject = projects.find(
+        project =>
+          project.slug === projectSlug && project.platforms.includes(selectedPlatform.key)
+      );
 
       if (existingProject) {
         onboardingContext.setSelectedPlatform(selectedPlatform);

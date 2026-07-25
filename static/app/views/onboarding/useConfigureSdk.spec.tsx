@@ -147,7 +147,7 @@ describe('useConfigureSdk', () => {
   });
 
   it('stores the slug of an existing aliased SDK project', async () => {
-    const expoProject = ProjectFixture({slug: 'expo'});
+    const expoProject = ProjectFixture({slug: 'expo', platforms: ['react-native']});
     ProjectsStore.loadInitialData([expoProject]);
     const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}), {
       additionalWrapper: OnboardingContextProvider,
@@ -169,6 +169,31 @@ describe('useConfigureSdk', () => {
     expect(mockCreateProject).not.toHaveBeenCalled();
     expect(JSON.parse(sessionStorageWrapper.getItem('onboarding')!)).toEqual(
       expect.objectContaining({createdProjectSlug: 'expo'})
+    );
+  });
+
+  it('does not reuse a project with the same slug but a different platform', async () => {
+    const unrelatedProject = ProjectFixture({slug: 'expo', platforms: ['javascript']});
+    ProjectsStore.loadInitialData([unrelatedProject]);
+    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}), {
+      additionalWrapper: OnboardingContextProvider,
+    });
+    const expoPlatform: OnboardingSelectedSDK = {
+      key: 'react-native',
+      platformId: 'expo',
+      type: 'framework',
+      language: 'react-native',
+      name: 'Expo',
+      category: 'mobile',
+      link: 'https://docs.sentry.io/platforms/react-native/guides/expo/',
+    };
+
+    await act(async () => {
+      await result.current.configureSdk(expoPlatform);
+    });
+
+    expect(mockCreateProject).toHaveBeenCalledWith(
+      expect.objectContaining({name: 'expo', platform: expoPlatform})
     );
   });
 
