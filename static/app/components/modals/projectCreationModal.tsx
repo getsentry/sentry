@@ -1,7 +1,6 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
@@ -22,8 +21,8 @@ import {
 import {
   type Category,
   type Platform,
-  getSdkPlatformKey,
   PlatformPicker,
+  toOnboardingSelectedSdk,
 } from 'sentry/components/platformPicker';
 import type {TeamOption} from 'sentry/components/teamSelector';
 import {TeamSelector} from 'sentry/components/teamSelector';
@@ -89,10 +88,7 @@ export default function ProjectCreationModal({
       return;
     }
 
-    setPlatform({
-      ...omit(selectedPlatform, 'id', 'sdkKey'),
-      key: getSdkPlatformKey(selectedPlatform),
-    });
+    setPlatform(toOnboardingSelectedSdk(selectedPlatform));
   }
 
   const createProject = async () => {
@@ -171,7 +167,7 @@ export default function ProjectCreationModal({
             defaultCategory={platform?.category ?? defaultCategory}
             setPlatform={handlePlatformChange}
             organization={organization}
-            platform={platform?.key}
+            platform={platform?.platformId ?? platform?.key}
           />
         </Fragment>
       )}
@@ -195,7 +191,10 @@ export default function ProjectCreationModal({
             <div>
               <Label>{t('Project slug')}</Label>
               <Container position="relative">
-                <StyledPlatformIcon platform={platform?.key ?? 'other'} size={20} />
+                <StyledPlatformIcon
+                  platform={platform?.platformId ?? platform?.key ?? 'other'}
+                  size={20}
+                />
                 <ProjectNameInput
                   type="text"
                   name="project-name"

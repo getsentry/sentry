@@ -274,6 +274,14 @@ describe('CreateProject', () => {
     await userEvent.click(screen.getByRole('tab', {name: 'Mobile'}));
     await userEvent.click(screen.getByTestId('platform-expo'));
     expect(screen.getByPlaceholderText('project-slug')).toHaveValue('expo');
+    expect(
+      screen.getByTestId('platform-expo').querySelector('button[aria-label="Clear"]')
+    ).toBeInTheDocument();
+    expect(
+      screen
+        .getByTestId('platform-react-native')
+        .querySelector('button[aria-label="Clear"]')
+    ).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
 

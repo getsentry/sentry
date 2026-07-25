@@ -46,7 +46,8 @@ export function useConfigureSdk({
         return;
       }
 
-      const createProjectForPlatform = projects.some(p => p.slug === selectedPlatform.key)
+      const projectSlug = selectedPlatform.platformId ?? selectedPlatform.key;
+      const createProjectForPlatform = projects.some(p => p.slug === projectSlug)
         ? undefined
         : selectedPlatform;
 
@@ -65,7 +66,7 @@ export function useConfigureSdk({
       try {
         addLoadingMessage(t('Loading SDK configuration\u2026'));
         await createProject.mutateAsync({
-          name: createProjectForPlatform.key,
+          name: createProjectForPlatform.platformId ?? createProjectForPlatform.key,
           platform: createProjectForPlatform,
           firstTeamSlug,
         });

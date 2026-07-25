@@ -118,6 +118,29 @@ describe('useConfigureSdk', () => {
     expect(mockCreateProject).toHaveBeenCalled();
   });
 
+  it('uses the selected platform id for an aliased SDK project name', async () => {
+    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}), {
+      additionalWrapper: OnboardingContextProvider,
+    });
+    const expoPlatform: OnboardingSelectedSDK = {
+      key: 'react-native',
+      platformId: 'expo',
+      type: 'framework',
+      language: 'react-native',
+      name: 'Expo',
+      category: 'mobile',
+      link: 'https://docs.sentry.io/platforms/react-native/guides/expo/',
+    };
+
+    await act(async () => {
+      await result.current.configureSdk(expoPlatform);
+    });
+
+    expect(mockCreateProject).toHaveBeenCalledWith(
+      expect.objectContaining({name: 'expo', platform: expoPlatform})
+    );
+  });
+
   it('creates project only once even if called multiple times', async () => {
     const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}), {
       additionalWrapper: OnboardingContextProvider,

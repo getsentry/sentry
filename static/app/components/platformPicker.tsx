@@ -2,6 +2,7 @@ import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
@@ -44,6 +45,14 @@ const selectablePlatforms = platforms.filter(platform =>
 
 export function getSdkPlatformKey(platform: PlatformIntegration) {
   return platform.sdkKey ?? platform.id;
+}
+
+export function toOnboardingSelectedSdk(platform: Platform) {
+  return {
+    ...omit(platform, 'id', 'sdkKey'),
+    key: getSdkPlatformKey(platform),
+    platformId: platform.id,
+  };
 }
 
 function startsWithPunctuation(name: string) {
