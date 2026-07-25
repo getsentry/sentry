@@ -147,7 +147,7 @@ describe('useConfigureSdk', () => {
   });
 
   it('stores the slug of an existing aliased SDK project', async () => {
-    const expoProject = ProjectFixture({slug: 'expo', platforms: ['react-native']});
+    const expoProject = ProjectFixture({slug: 'expo', platform: 'react-native'});
     ProjectsStore.loadInitialData([expoProject]);
     const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}), {
       additionalWrapper: OnboardingContextProvider,
@@ -173,7 +173,7 @@ describe('useConfigureSdk', () => {
   });
 
   it('does not reuse a project with the same slug but a different platform', async () => {
-    const unrelatedProject = ProjectFixture({slug: 'expo', platforms: ['javascript']});
+    const unrelatedProject = ProjectFixture({slug: 'expo', platform: 'javascript'});
     ProjectsStore.loadInitialData([unrelatedProject]);
     const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}), {
       additionalWrapper: OnboardingContextProvider,

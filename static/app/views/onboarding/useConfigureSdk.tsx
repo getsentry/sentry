@@ -49,7 +49,7 @@ export function useConfigureSdk({
       const projectSlug = selectedPlatform.platformId ?? selectedPlatform.key;
       const existingProject = projects.find(
         project =>
-          project.slug === projectSlug && project.platforms.includes(selectedPlatform.key)
+          project.slug === projectSlug && project.platform === selectedPlatform.key
       );
 
       if (existingProject) {
