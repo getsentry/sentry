@@ -40,9 +40,7 @@ class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
         )
 
     def test_formats_failure_rate_as_percentage_for_comparison_alert(self) -> None:
-        alert_rule = self.create_alert_rule(
-            aggregate="failure_rate()", comparison_delta=60 * 60
-        )
+        alert_rule = self.create_alert_rule(aggregate="failure_rate()", comparison_delta=60)
 
         assert (
             get_incident_status_text(
