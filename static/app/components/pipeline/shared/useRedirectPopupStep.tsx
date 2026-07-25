@@ -121,7 +121,10 @@ export function useRedirectPopupStep({
       if (!event.data || typeof event.data !== 'object') {
         return;
       }
-      if (event.data._pipeline_source !== PIPELINE_SOURCE) {
+
+      // MessageEvent.data is typed as `any`; narrow once so locals stay typed.
+      const data = event.data as Record<string, unknown>;
+      if (data._pipeline_source !== PIPELINE_SOURCE) {
         return;
       }
 
@@ -136,8 +139,8 @@ export function useRedirectPopupStep({
       }
 
       const expectedNonce = nonceRef.current;
-      const messageNonce =
-        typeof event.data._pipeline_nonce === 'string' ? event.data._pipeline_nonce : null;
+      const messageNonce: string | null =
+        typeof data._pipeline_nonce === 'string' ? data._pipeline_nonce : null;
       const nonceMatches = Boolean(
         expectedNonce && messageNonce && messageNonce === expectedNonce
       );
@@ -157,7 +160,7 @@ export function useRedirectPopupStep({
 
       setPopupStatus('not-open');
       const {_pipeline_source: _source, _pipeline_nonce: _nonce, ...callbackData} =
-        event.data as Record<string, string>;
+        data as Record<string, string>;
       onCallback(callbackData);
     }
 
