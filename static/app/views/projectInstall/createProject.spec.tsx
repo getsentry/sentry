@@ -279,7 +279,7 @@ describe('CreateProject', () => {
     ).toBeInTheDocument();
     expect(
       screen
-        .getByTestId('platform-react-native')
+        .queryByTestId('platform-react-native')
         .querySelector('button[aria-label="Clear"]')
     ).not.toBeInTheDocument();
 
