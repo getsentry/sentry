@@ -54,7 +54,7 @@ describe('Framework suggestion modal', () => {
 
     expect(screen.getByText(languageDescriptions.javascript!)).toBeInTheDocument();
 
-    expect(screen.getByRole('radio', {name: 'Nope, Vanilla'})).toBeChecked();
+    expect(screen.getByRole('radio', {name: 'javascript Nope, Vanilla'})).toBeChecked();
 
     const frameworks = platforms.filter(
       platform => platform.type === 'framework' && platform.language === 'javascript'
@@ -63,7 +63,9 @@ describe('Framework suggestion modal', () => {
     await userEvent.click(screen.getByRole('button', {name: /Hidden Frameworks/}));
 
     for (const framework of frameworks) {
-      expect(screen.getByRole('radio', {name: framework.name})).toBeInTheDocument();
+      expect(
+        screen.getByRole('radio', {name: `${framework.id} ${framework.name}`})
+      ).toBeInTheDocument();
     }
 
     // check that the top frameworks are in the correct order
@@ -125,7 +127,7 @@ describe('Framework suggestion modal', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('radio', {name: 'React'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'javascript-react React'}));
     await userEvent.click(screen.getByRole('button', {name: 'Configure SDK'}));
 
     expect(trackAnalyticsSpy).toHaveBeenCalledWith(
