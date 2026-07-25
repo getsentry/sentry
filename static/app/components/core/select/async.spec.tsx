@@ -1,9 +1,10 @@
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {selectEvent} from 'sentry-test/selectEvent';
+
 import {SelectAsync} from '@sentry/scraps/select';
 
 import {SelectAsyncField} from 'sentry/components/forms/fields/selectAsyncField';
 import {Form} from 'sentry/components/forms/form';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {selectEvent} from 'sentry-test/selectEvent';
 
 describe('SelectAsync', () => {
   it('calls onResults once per completed request, not on every render', async () => {
