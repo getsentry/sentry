@@ -665,6 +665,7 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
 
         with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution"):
             run_id = run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
+        assert run_id is not None
 
         run = SeerNightShiftRun.objects.get(id=run_id)
         pytest.raises(
@@ -708,10 +709,10 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
 
         run_night_shift_for_org(org.id, schedule_id=schedule_id)
 
-        run.refresh_from_db()
-        assert run.date_completed is not None
-        assert run.extras.get("error_message") is None
-        assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
+        resumed_run = SeerNightShiftRun.objects.get(id=run.id)
+        assert resumed_run.date_completed is not None
+        assert resumed_run.extras.get("error_message") is None
+        assert not SeerNightShiftRunResult.objects.filter(run=resumed_run).exists()
 
     def test_filters_recently_skipped_groups(self) -> None:
         org = self.create_organization()
@@ -760,9 +761,9 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         ):
             run_night_shift_for_org(org.id, schedule_id=schedule_id)
 
-        run.refresh_from_db()
-        assert run.date_completed is not None
-        assert run.extras.get("error_message") is None
+        resumed_run = SeerNightShiftRun.objects.get(id=run.id)
+        assert resumed_run.date_completed is not None
+        assert resumed_run.extras.get("error_message") is None
 
     def test_max_candidates_defaults_to_global_option(self) -> None:
         org = self.create_organization()
@@ -1143,10 +1144,10 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             )
 
             run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
-            run.refresh_from_db()
-            assert run.date_completed is not None
-            assert run.extras.get("error_message") is None
-            assert run.shards.filter(seer_run__isnull=True).count() == 0
+            resumed_run = SeerNightShiftRun.objects.get(id=run.id)
+            assert resumed_run.date_completed is not None
+            assert resumed_run.extras.get("error_message") is None
+            assert resumed_run.shards.filter(seer_run__isnull=True).count() == 0
             assert (
                 SeerRun.objects.filter(organization=org, type=SeerRunType.FEATURE_RUN).count() == 2
             )
