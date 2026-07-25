@@ -39,8 +39,8 @@ interface UseRedirectPopupStepResult {
   popupStatus: PopupStatus;
 }
 
-export const PIPELINE_SOURCE = 'sentry-pipeline';
-export const PIPELINE_POPUP_NAME_PREFIX = 'pipeline_popup_';
+const PIPELINE_SOURCE = 'sentry-pipeline';
+const PIPELINE_POPUP_NAME_PREFIX = 'pipeline_popup_';
 
 function createPopupNonce(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
