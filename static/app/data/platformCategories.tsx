@@ -717,11 +717,15 @@ export const replayMobilePlatforms: PlatformKey[] = [
   'cocoa-swift',
 ];
 
+// These are the gaming/engine platforms that can set up replay.
+export const replayGamingPlatforms: PlatformKey[] = ['unreal'];
+
 // These are all the platforms that can set up replay.
 export const replayPlatforms: readonly PlatformKey[] = [
   ...replayFrontendPlatforms,
   ...replayBackendPlatforms,
   ...replayMobilePlatforms,
+  ...replayGamingPlatforms,
 ];
 
 /**
