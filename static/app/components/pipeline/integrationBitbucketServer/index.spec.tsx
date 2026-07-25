@@ -122,7 +122,7 @@ describe('Bitbucket Server OAuthCallbackStep', () => {
 
     expect(window.open).toHaveBeenCalledWith(
       oauthUrl,
-      'pipeline_popup',
+      expect.stringMatching(/^pipeline_popup_/),
       expect.any(String)
     );
 

@@ -131,7 +131,7 @@ describe('GHE AppInstallRedirectStep', () => {
 
     expect(window.open).toHaveBeenCalledWith(
       'https://github.example.com/github-apps/sentry-app',
-      'pipeline_popup',
+      expect.stringMatching(/^pipeline_popup_/),
       expect.any(String)
     );
 
