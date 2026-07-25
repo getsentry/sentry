@@ -737,6 +737,25 @@ class AIDetectedGeneralGroupType(GroupType):
 
 
 @dataclass(frozen=True)
+class AgentRedundantToolCallsGroupType(GroupType):
+    """
+    An agent called the same tool repeatedly with equivalent arguments without making
+    progress. Detected deterministically from gen_ai spans, not by an LLM, but it shares
+    the AI_DETECTED category since that's where agent issues surface today.
+    """
+
+    type_id = 3509
+    slug = "agent_redundant_tool_calls"
+    description = "Redundant Agent Tool Calls"
+    category = GroupCategory.AI_DETECTED.value
+    noise_config = NoiseConfig(ignore_limit=5)
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
 class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     type_id = 5002
     slug = "replay_click_rage"

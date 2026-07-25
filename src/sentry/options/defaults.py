@@ -1957,6 +1957,11 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "performance.issues.agent_redundant_tool_calls.problem-creation",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register(
@@ -2069,6 +2074,16 @@ register(
     default=10,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "performance.issues.agent_redundant_tool_calls.count_threshold",
+    default=3,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.issues.agent_redundant_tool_calls.total_duration_threshold",
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
 
 # Adjusting some time buffers in the trace endpoint
 register(

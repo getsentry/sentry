@@ -24,6 +24,7 @@ from sentry.utils.tracing import set_span_tag, start_span
 from sentry.workflow_engine.models import Detector
 
 from .base import DetectorType, PerformanceDetector
+from .detectors.agent_redundant_tool_calls_detector import AgentRedundantToolCallsDetector
 from .detectors.consecutive_db_detector import ConsecutiveDBSpanDetector
 from .detectors.consecutive_http_detector import ConsecutiveHTTPSpanDetector
 from .detectors.http_overhead_detector import HTTPOverheadDetector
@@ -236,6 +237,12 @@ def get_merged_settings(
             "performance.issues.sql_injection.query_value_length_threshold"
         ),
         "web_vitals_count": options.get("performance.issues.web_vitals.count_threshold"),
+        "agent_redundant_tool_calls_count_threshold": options.get(
+            "performance.issues.agent_redundant_tool_calls.count_threshold"
+        ),
+        "agent_redundant_tool_calls_total_duration_threshold": options.get(
+            "performance.issues.agent_redundant_tool_calls.total_duration_threshold"
+        ),
     }
 
     default_project_settings = (
@@ -656,6 +663,16 @@ def get_detection_settings(
         DetectorType.QUERY_INJECTION: {
             "detection_enabled": settings["db_query_injection_detection_enabled"]
         },
+        DetectorType.AGENT_REDUNDANT_TOOL_CALLS: {
+            "count_threshold": settings["agent_redundant_tool_calls_count_threshold"],
+            "total_duration_threshold": settings[
+                "agent_redundant_tool_calls_total_duration_threshold"
+            ],  # ms
+            # Jaccard similarity over argument tokens, above which two calls are treated as
+            # asking the same question.
+            "argument_similarity_threshold": 0.9,
+            "detection_enabled": settings["agent_redundant_tool_calls_detection_enabled"],
+        },
     }
 
 
@@ -674,6 +691,7 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     HTTPOverheadDetector,
     SQLInjectionDetector,
     QueryInjectionDetector,
+    AgentRedundantToolCallsDetector,
 ]
 
 

@@ -18,6 +18,7 @@ from sentry.issue_detection.performance_detection import (
     update_performance_settings,
 )
 from sentry.issues.grouptype import (
+    AgentRedundantToolCallsGroupType,
     AIDetectedGeneralGroupType,
     GroupType,
     PerformanceConsecutiveDBQueriesGroupType,
@@ -93,6 +94,9 @@ class ConfigurableThresholds(Enum):
     AI_DETECTED_SECURITY = "ai_detected_security_enabled"
     AI_DETECTED_CODE_HEALTH = "ai_detected_code_health_enabled"
     AI_DETECTED_GENERAL = "ai_detected_general_enabled"
+    AGENT_REDUNDANT_TOOL_CALLS = "agent_redundant_tool_calls_detection_enabled"
+    AGENT_REDUNDANT_TOOL_CALLS_COUNT = "agent_redundant_tool_calls_count_threshold"
+    AGENT_REDUNDANT_TOOL_CALLS_DURATION = "agent_redundant_tool_calls_total_duration_threshold"
 
 
 project_settings_to_group_map: dict[str, type[GroupType]] = {
@@ -112,6 +116,7 @@ project_settings_to_group_map: dict[str, type[GroupType]] = {
     ConfigurableThresholds.DB_QUERY_INJECTION.value: QueryInjectionVulnerabilityGroupType,
     ConfigurableThresholds.WEB_VITALS.value: WebVitalsGroup,
     ConfigurableThresholds.AI_ISSUE_DETECTION.value: AIDetectedGeneralGroupType,
+    ConfigurableThresholds.AGENT_REDUNDANT_TOOL_CALLS.value: AgentRedundantToolCallsGroupType,
 }
 """
 A mapping of the management settings to the group type that the detector spawns.
@@ -140,6 +145,8 @@ thresholds_to_manage_map: dict[str, str] = {
     ConfigurableThresholds.AI_DETECTED_SECURITY.value: ConfigurableThresholds.AI_ISSUE_DETECTION.value,
     ConfigurableThresholds.AI_DETECTED_CODE_HEALTH.value: ConfigurableThresholds.AI_ISSUE_DETECTION.value,
     ConfigurableThresholds.AI_DETECTED_GENERAL.value: ConfigurableThresholds.AI_ISSUE_DETECTION.value,
+    ConfigurableThresholds.AGENT_REDUNDANT_TOOL_CALLS_COUNT.value: ConfigurableThresholds.AGENT_REDUNDANT_TOOL_CALLS.value,
+    ConfigurableThresholds.AGENT_REDUNDANT_TOOL_CALLS_DURATION.value: ConfigurableThresholds.AGENT_REDUNDANT_TOOL_CALLS.value,
 }
 """
 A mapping of threshold setting to the parent setting that manages it's detection.
@@ -221,6 +228,15 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     ai_detected_security_enabled = serializers.BooleanField(required=False)
     ai_detected_code_health_enabled = serializers.BooleanField(required=False)
     ai_detected_general_enabled = serializers.BooleanField(required=False)
+    agent_redundant_tool_calls_detection_enabled = serializers.BooleanField(required=False)
+    agent_redundant_tool_calls_count_threshold = serializers.IntegerField(
+        required=False, min_value=2, max_value=50
+    )
+    agent_redundant_tool_calls_total_duration_threshold = serializers.IntegerField(
+        required=False,
+        min_value=100,
+        max_value=TEN_SECONDS,  # ms
+    )
     sql_injection_query_value_length_threshold = serializers.IntegerField(
         required=False, min_value=3, max_value=10
     )

@@ -29,6 +29,7 @@ class DetectorType(Enum):
     HTTP_OVERHEAD = "http_overhead"
     SQL_INJECTION = "sql_injection"
     QUERY_INJECTION = "query_injection"
+    AGENT_REDUNDANT_TOOL_CALLS = "agent_redundant_tool_calls"
 
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -47,6 +48,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.HTTP_OVERHEAD: "performance.issues.http_overhead.problem-creation",
     DetectorType.SQL_INJECTION: "performance.issues.sql_injection.problem-creation",
     DetectorType.QUERY_INJECTION: "performance.issues.query_injection.problem-creation",
+    DetectorType.AGENT_REDUNDANT_TOOL_CALLS: "performance.issues.agent_redundant_tool_calls.problem-creation",
 }
 
 

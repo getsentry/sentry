@@ -21,6 +21,7 @@ class Span(TypedDict, total=False):
     op: str
     description: str
     hash: str
+    status: str
     parent_span_id: str
     data: dict[str, Any] | None
     tags: dict[str, Any] | None
