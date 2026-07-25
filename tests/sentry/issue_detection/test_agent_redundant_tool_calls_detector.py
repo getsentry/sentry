@@ -362,6 +362,24 @@ class AgentRedundantToolCallsDetectorTest(TestCase):
 
         assert self.find_problems(create_event(spans)) == []
 
+    def test_skips_tool_input_that_cannot_be_serialized(self) -> None:
+        spans = [agent_span()]
+        for index, span_id in enumerate(("b", "c", "d")):
+            span = create_span(
+                "gen_ai.execute_tool",
+                1000.0,
+                "execute_tool searchDocumentation",
+                "hash1",
+                data={
+                    "gen_ai.tool.name": "searchDocumentation",
+                    "gen_ai.tool.input": object(),
+                },
+            )
+            span["span_id"] = span_id * 16
+            spans.append(modify_span_start(span, index * 1000))
+
+        assert self.find_problems(create_event(spans)) == []
+
     def test_ignores_events_without_agent_spans(self) -> None:
         spans = [create_span("db", 2000.0, "SELECT * FROM users", "hash3")]
 

@@ -392,7 +392,11 @@ def _first_string(data: dict[str, Any], keys: tuple[str, ...]) -> str:
             return value
         if value is not None and not isinstance(value, str):
             # Some SDKs attach the raw object rather than a serialized payload.
-            return json.dumps(value)
+            try:
+                return json.dumps(value)
+            except Exception:
+                # Nothing comparable to work with, so the call is skipped.
+                return ""
     return ""
 
 
