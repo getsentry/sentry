@@ -736,6 +736,7 @@ export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   ...replayFrontendPlatforms.filter(p => !['javascript-backbone'].includes(p)),
   ...replayBackendPlatforms,
   ...replayMobilePlatforms,
+  ...replayGamingPlatforms,
 ];
 
 // These are the supported replay platforms that can also be set up using the JS loader.
