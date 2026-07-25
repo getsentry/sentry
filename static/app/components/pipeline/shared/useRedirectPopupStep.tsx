@@ -39,11 +39,27 @@ interface UseRedirectPopupStepResult {
   popupStatus: PopupStatus;
 }
 
+export const PIPELINE_SOURCE = 'sentry-pipeline';
+export const PIPELINE_POPUP_NAME_PREFIX = 'pipeline_popup_';
+
+function createPopupNonce(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 /**
  * Manages a popup window for pipeline steps that redirect to an external
  * service (e.g. GitHub OAuth, GitHub App installation). Listens for a
  * postMessage callback from the trampoline page, and calls onCallback
  * with the received data.
+ *
+ * Auth messages are accepted when origin + `_pipeline_source` match and either:
+ * - `_pipeline_nonce` matches the nonce embedded in the popup `window.name`
+ *   (preferred; survives Safari WindowProxy identity churn after cross-origin
+ *   navigations), or
+ * - `event.source === popupRef.current` (fallback for older trampolines / tests)
  *
  * Usage in a step component:
  * ```tsx
@@ -65,6 +81,7 @@ export function useRedirectPopupStep({
   popup,
 }: UseRedirectPopupStepOptions): UseRedirectPopupStepResult {
   const popupRef = useRef<Window | null>(null);
+  const nonceRef = useRef<string | null>(null);
   const [popupStatus, setPopupStatus] = useState<PopupStatus>('not-open');
 
   const width = popup?.width ?? 650;
@@ -80,7 +97,14 @@ export function useRedirectPopupStep({
       const top = Math.round(window.screenY + (window.outerHeight - height) / 2);
       const features = `popup,width=${width},height=${height},left=${left},top=${top}`;
 
-      const opened = window.open(url, 'pipeline_popup', features);
+      // Embed a one-shot nonce in the popup target name. `window.name` survives
+      // cross-origin navigations (GitHub → trampoline), so the trampoline can
+      // echo it back via postMessage without relying on WindowProxy identity.
+      const nonce = createPopupNonce();
+      nonceRef.current = nonce;
+      const windowName = `${PIPELINE_POPUP_NAME_PREFIX}${nonce}`;
+
+      const opened = window.open(url, windowName, features);
       popupRef.current = opened;
 
       setPopupStatus(opened ? 'popup-open' : 'failed-to-open');
@@ -97,7 +121,7 @@ export function useRedirectPopupStep({
       if (!event.data || typeof event.data !== 'object') {
         return;
       }
-      if (event.data._pipeline_source !== 'sentry-pipeline') {
+      if (event.data._pipeline_source !== PIPELINE_SOURCE) {
         return;
       }
 
@@ -110,7 +134,18 @@ export function useRedirectPopupStep({
       if (!validOrigins.includes(event.origin)) {
         return;
       }
-      if (event.source !== popupRef.current) {
+
+      const expectedNonce = nonceRef.current;
+      const messageNonce =
+        typeof event.data._pipeline_nonce === 'string' ? event.data._pipeline_nonce : null;
+      const nonceMatches = Boolean(
+        expectedNonce && messageNonce && messageNonce === expectedNonce
+      );
+      const sourceMatches = event.source === popupRef.current;
+
+      // Prefer nonce (Safari-safe). Keep source equality as a fallback so older
+      // trampolines and existing tests that only mock event.source still work.
+      if (!nonceMatches && !sourceMatches) {
         return;
       }
 
@@ -118,9 +153,11 @@ export function useRedirectPopupStep({
         popupRef.current.close();
       }
       popupRef.current = null;
+      nonceRef.current = null;
 
       setPopupStatus('not-open');
-      const {_pipeline_source, ...callbackData} = event.data as Record<string, string>;
+      const {_pipeline_source: _source, _pipeline_nonce: _nonce, ...callbackData} =
+        event.data as Record<string, string>;
       onCallback(callbackData);
     }
 

@@ -31,6 +31,12 @@ TRAMPOLINE_HTML = """\
     flex-direction:column;padding:2rem">
 <script type="module" nonce="{nonce}">
   const data = {data_json};
+  // Echo the popup window.name nonce when present. The opener embeds a one-shot
+  // nonce in the target name (pipeline_popup_<nonce>) so auth callbacks can be
+  // validated without relying on WindowProxy identity after cross-origin nav.
+  if (typeof window.name === "string" && window.name.startsWith("pipeline_popup_")) {{
+    data._pipeline_nonce = window.name.slice("pipeline_popup_".length);
+  }}
   if (window.opener) {{
     window.opener.postMessage(data, {origin});
     window.close();

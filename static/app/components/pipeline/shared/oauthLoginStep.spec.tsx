@@ -78,7 +78,7 @@ describe('OAuthLoginStep', () => {
 
     expect(window.open).toHaveBeenCalledWith(
       'https://gitlab.com/oauth/authorize',
-      'pipeline_popup',
+      expect.stringMatching(/^pipeline_popup_/),
       expect.any(String)
     );
   });
