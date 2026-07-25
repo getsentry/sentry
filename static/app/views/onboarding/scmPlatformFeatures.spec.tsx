@@ -624,7 +624,7 @@ describe('ScmPlatformFeatures', () => {
     });
   });
 
-  describe('project-details step skipped (control group)', () => {
+  describe('auto-creating the project on Continue', () => {
     const adminTeam = TeamFixture({slug: 'admin-team', access: ['team:admin']});
     const nextJsPlatform = {
       key: 'javascript-nextjs' as const,
@@ -862,48 +862,4 @@ describe('ScmPlatformFeatures', () => {
     });
   });
 
-  describe('project-details step enabled (experiment group)', () => {
-    const experimentOrganization = OrganizationFixture({
-      features: [
-        'performance-view',
-        'session-replay',
-        'profiling-view',
-        'onboarding-scm-project-details-experiment',
-      ],
-    });
-    const nextJsPlatform = {
-      key: 'javascript-nextjs' as const,
-      name: 'Next.js',
-      language: 'javascript' as const,
-      link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
-      type: 'framework' as const,
-      category: 'browser' as const,
-    };
-
-    it('advances without creating a project on Continue', async () => {
-      const createRequest = MockApiClient.addMockResponse({
-        url: `/teams/${experimentOrganization.slug}/team-slug/projects/`,
-        method: 'POST',
-        body: ProjectFixture(),
-      });
-
-      const props = defaultProps({
-        selectedPlatform: nextJsPlatform,
-        selectedFeatures: [ProductSolution.ERROR_MONITORING],
-      });
-      render(<ScmPlatformFeatures {...props} />, {
-        organization: experimentOrganization,
-      });
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
-      });
-      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-
-      await waitFor(() => {
-        expect(props.onComplete).toHaveBeenCalledWith();
-      });
-      expect(createRequest).not.toHaveBeenCalled();
-    });
-  });
 });
