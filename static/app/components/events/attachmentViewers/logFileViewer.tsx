@@ -2,7 +2,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import Ansi from 'ansi-to-react';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {PreviewPanelItem} from 'sentry/components/events/attachmentViewers/previewPanelItem';
 import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
