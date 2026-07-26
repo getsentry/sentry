@@ -94,7 +94,7 @@ function ConfigureIntegration() {
     {staleTime: 0}
   );
 
-  const provider = config.providers.find(p => p.key === integration?.provider.key);
+  const provider = config.providers.find(p => p.key === integration?.provider?.key);
   const {projects} = useProjects();
 
   useRouteAnalyticsEventNames(
