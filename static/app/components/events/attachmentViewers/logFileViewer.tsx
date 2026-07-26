@@ -45,13 +45,17 @@ export function LogFileViewer(props: ViewerProps) {
   return (
     <PreviewPanelItem>
       {isTruncated && (
-        <Alert type="warning" showIcon>
-          {t(
-            'This log file is too large to display in full. Showing the first %s characters. ',
-            MAX_LOG_DISPLAY_SIZE.toLocaleString()
-          )}
-          <a href={`${getAttachmentUrl(props)}?download=true`}>{t('Download full file')}</a>
-        </Alert>
+        <Alert.Container>
+          <Alert variant="warning">
+            {t(
+              'This log file is too large to display in full. Showing the first %s characters. ',
+              MAX_LOG_DISPLAY_SIZE.toLocaleString()
+            )}
+            <a href={`${getAttachmentUrl(props)}?download=true`}>
+              {t('Download full file')}
+            </a>
+          </Alert>
+        </Alert.Container>
       )}
       <CodeWrapper>
         <SentryStyleAnsi useClasses>{displayData}</SentryStyleAnsi>
