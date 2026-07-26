@@ -366,7 +366,9 @@ def execute_table_query(
         # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
             logger.warning(
-                "execute_table_query: bad request", extra={"org_id": org_id}, exc_info=True
+                "execute_table_query: bad request",
+                extra={"org_id": org_id},
+                exc_info=True,
             )
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
             return ExecuteQueryErrorResponse(
@@ -566,7 +568,9 @@ def execute_trace_table_query(
         # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
             logger.warning(
-                "execute_trace_table_query: bad request", extra={"org_id": organization_id}, exc_info=True
+                "execute_trace_table_query: bad request",
+                extra={"org_id": organization_id},
+                exc_info=True,
             )
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
             return ExecuteQueryErrorResponse(
