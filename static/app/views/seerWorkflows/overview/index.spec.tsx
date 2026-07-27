@@ -719,6 +719,9 @@ describe('AutofixOverview', () => {
   it('falls back to a per-card runs call once the batch settles without a group', async () => {
     const {fallback, partialBatchBody} = mockFallbackPair();
     const batch = mockBatchedRuns(['300', '301'], partialBatchBody);
+    // The covered group's own fallback shape, so a spurious per-card call for it
+    // is caught here instead of being absorbed by the catch-all mock.
+    const [coveredFallback] = mockPerCardRuns(['300']);
 
     renderPage();
 
@@ -743,6 +746,74 @@ describe('AutofixOverview', () => {
     // The covered card is served by the batch alone — it never falls back.
     expect(await screen.findByText('cause A')).toBeInTheDocument();
     expect(batch).toHaveBeenCalledTimes(1);
+    expect(coveredFallback).not.toHaveBeenCalled();
+  });
+
+  it('stops fetching runs once a section is collapsed', async () => {
+    const many = mockBulkIssues(30);
+    const ids = many.map(group => group.id);
+    // The batch covers every visible id, so any per-card call would be a leak
+    // rather than a legitimate reaction to a settled miss.
+    const batch = mockBatchedRuns(
+      ids.slice(0, 10),
+      ids
+        .slice(0, 10)
+        .map(groupId => makeRun({id: `run-${groupId}`, groupId, outputs: []}))
+    );
+    const perCard = mockPerCardRuns(ids);
+
+    renderPage();
+
+    expect(await screen.findByRole('link', {name: /Bulk issue 0/})).toBeInTheDocument();
+    await waitFor(() => expect(batch).toHaveBeenCalledTimes(1));
+
+    // Collapse everything, so the toolbar flips and gives a deterministic point
+    // after the collapse has been committed.
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse all'}));
+    expect(await screen.findByRole('button', {name: 'Expand all'})).toBeInTheDocument();
+
+    // Disclosure.Content only hides its panel, and LazyRender never re-hides an
+    // already-hydrated card, so a collapsed section that stayed mounted would
+    // fan out one runs call per card the batch no longer covers.
+    expect(screen.queryByRole('link', {name: /Bulk issue/})).not.toBeInTheDocument();
+    expect(batch).toHaveBeenCalledTimes(1);
+    perCard.forEach(request => expect(request).not.toHaveBeenCalled());
+  });
+
+  it('fetches no runs for a section that starts collapsed', async () => {
+    localStorage.setItem(
+      'seer-autofix-overview:collapsed-groups',
+      JSON.stringify(['review_pr'])
+    );
+    const many = mockBulkIssues(30);
+    const ids = many.map(group => group.id);
+    const batch = mockBatchedRuns(
+      ids.slice(0, 10),
+      ids
+        .slice(0, 10)
+        .map(groupId => makeRun({id: `run-${groupId}`, groupId, outputs: []}))
+    );
+    const perCard = mockPerCardRuns(ids);
+
+    renderPage();
+
+    const reviewHeader = await screen.findByRole('button', {
+      name: 'Review Open PRs 30',
+    });
+    // The other four sections are expanded and empty, so this settles the page
+    // without ever revealing a review_pr card.
+    expect(await screen.findAllByText('No issues')).toHaveLength(4);
+    expect(screen.queryByRole('link', {name: /Bulk issue/})).not.toBeInTheDocument();
+    expect(batch).not.toHaveBeenCalled();
+    perCard.forEach(request => expect(request).not.toHaveBeenCalled());
+
+    // Expanding pays for the batch exactly once, and still never per card.
+    await userEvent.click(reviewHeader);
+
+    expect(await screen.findByRole('link', {name: /Bulk issue 0/})).toBeInTheDocument();
+    await waitFor(() => expect(batch).toHaveBeenCalledTimes(1));
+    expectBatchedRunsCall(batch, ids.slice(0, 10));
+    perCard.forEach(request => expect(request).not.toHaveBeenCalled());
   });
 
   it('resets a grown section when the filters change but not when it collapses', async () => {

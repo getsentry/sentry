@@ -219,28 +219,35 @@ export function SectionList({
                 </Flex>
               </Disclosure.Title>
             </GroupHeader>
+            {/* Disclosure.Content only toggles `hidden`, so its children stay
+                mounted while collapsed. The body is unmounted explicitly to keep
+                a closed section from fetching runs for issues nobody asked to
+                see; the page counts live in SectionList, so reopening restores
+                whatever page the section had grown to. */}
             <Disclosure.Content data-view={view}>
-              {section.isError ? (
-                <LoadingError onRetry={section.refetch} />
-              ) : section.isPending ? (
-                <LoadingIndicator />
-              ) : section.issues.length === 0 ? (
-                <Container padding="md">
-                  <Text as="p" variant="muted" size="sm">
-                    {t('No issues')}
-                  </Text>
-                </Container>
-              ) : (
-                <SectionBody
-                  section={section}
-                  visibleCount={visibleCounts[section.key] ?? PAGE_SIZE}
-                  onShowMore={() => showMore(section.key)}
-                  memberQuery={memberQuery}
-                  orgSlug={organization.slug}
-                  view={view}
-                  period={period}
-                />
-              )}
+              {expanded ? (
+                section.isError ? (
+                  <LoadingError onRetry={section.refetch} />
+                ) : section.isPending ? (
+                  <LoadingIndicator />
+                ) : section.issues.length === 0 ? (
+                  <Container padding="md">
+                    <Text as="p" variant="muted" size="sm">
+                      {t('No issues')}
+                    </Text>
+                  </Container>
+                ) : (
+                  <SectionBody
+                    section={section}
+                    visibleCount={visibleCounts[section.key] ?? PAGE_SIZE}
+                    onShowMore={() => showMore(section.key)}
+                    memberQuery={memberQuery}
+                    orgSlug={organization.slug}
+                    view={view}
+                    period={period}
+                  />
+                )
+              ) : null}
             </Disclosure.Content>
           </StatusGroup>
         );

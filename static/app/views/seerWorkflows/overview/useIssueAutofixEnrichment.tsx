@@ -16,7 +16,10 @@ interface IssueAutofixEnrichment {
 
 export function useIssueAutofixEnrichment(
   issueId: string,
-  options?: {batchPending?: boolean; injectedRun?: SeerRun | null}
+  // batchPending is required whenever options are passed: an omitted flag reads
+  // as "settled" for pending and as "batched" for fallback, leaving a card
+  // permanently blank with no request in flight.
+  options?: {batchPending: boolean; injectedRun?: SeerRun | null}
 ): IssueAutofixEnrichment {
   const organization = useOrganization();
 
@@ -24,8 +27,7 @@ export function useIssueAutofixEnrichment(
   // while it is in flight every group looks absent, so firing here would double
   // every card's runs request. Once settled, a still-absent group (the rare
   // multi-run miss) fetches its own. Callers without options have no batch.
-  const fallbackActive =
-    !options || (options.batchPending === false && !options.injectedRun);
+  const fallbackActive = !options || (!options.batchPending && !options.injectedRun);
 
   const runsQuery = useQuery({
     ...apiOptions.as<SeerRun[]>()('/organizations/$organizationIdOrSlug/seer/runs/', {
