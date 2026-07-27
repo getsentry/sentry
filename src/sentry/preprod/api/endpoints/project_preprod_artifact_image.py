@@ -71,6 +71,9 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
 
         try:
             result = session.get(object_key)
+            if result is None:
+                return Response({"detail": "Image not found"}, status=404)
+
             # Read the entire stream at once (necessary for content_type)
             image_data = result.payload.read()
 
@@ -81,9 +84,7 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
             if content_disposition:
                 response["Content-Disposition"] = content_disposition
             return response
-        except RequestError as e:
-            if e.status == 404:
-                return Response({"detail": "Image not found"}, status=404)
+        except RequestError:
             logger.exception(
                 "Unexpected error retrieving image",
                 extra={
