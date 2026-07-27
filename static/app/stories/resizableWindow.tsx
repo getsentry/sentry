@@ -1,12 +1,4 @@
-import {
-  type Ref,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import {type Ref, type ReactNode, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
@@ -48,49 +40,11 @@ export function ResizableWindow({
       <Handle data-edge="right" onPointerDown={e => handlePointerDown(e, 'right')} />
       <Handle data-edge="bottom" onPointerDown={e => handlePointerDown(e, 'bottom')} />
       <Handle data-edge="corner" onPointerDown={e => handlePointerDown(e, 'corner')} />
+      {/* -2 offsets the parent's top border so children align flush */}
       <Container height="inherit" flex="1" overflow="hidden" style={{marginTop: -2}}>
         {children}
       </Container>
     </WindowRoot>
-  );
-}
-
-export function useElementSize(ref: React.RefObject<HTMLElement | null>) {
-  const sizeRef = useRef({width: 0, height: 0});
-  const roRef = useRef<ResizeObserver | null>(null);
-
-  const subscribe = useCallback(
-    (onStoreChange: () => void) => {
-      roRef.current?.disconnect();
-      roRef.current = new ResizeObserver(entries => {
-        const rect = entries[0]?.contentRect;
-        if (!rect) {
-          return;
-        }
-        if (
-          rect.width !== sizeRef.current.width ||
-          rect.height !== sizeRef.current.height
-        ) {
-          sizeRef.current = {width: rect.width, height: rect.height};
-          onStoreChange();
-        }
-      });
-      return () => roRef.current?.disconnect();
-    },
-    [sizeRef]
-  );
-
-  useEffect(() => {
-    const el = ref.current;
-    if (el && roRef.current) {
-      roRef.current.observe(el);
-    }
-  });
-
-  return useSyncExternalStore(
-    subscribe,
-    () => sizeRef.current,
-    () => ({width: 0, height: 0})
   );
 }
 
@@ -131,11 +85,13 @@ function useDragResize(
       const onPointerUp = () => {
         document.removeEventListener('pointermove', onPointerMove);
         document.removeEventListener('pointerup', onPointerUp);
+        document.removeEventListener('pointercancel', onPointerUp);
         setDragging(false);
       };
 
       document.addEventListener('pointermove', onPointerMove);
       document.addEventListener('pointerup', onPointerUp);
+      document.addEventListener('pointercancel', onPointerUp);
       setDragging(edge);
     },
     [containerRef]

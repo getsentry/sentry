@@ -4,7 +4,9 @@ import styled from '@emotion/styled';
 import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {ResizableWindow, useElementSize} from './resizableWindow';
+import {useDimensions} from 'sentry/utils/useDimensions';
+
+import {ResizableWindow} from './resizableWindow';
 
 interface DemoProps extends FlexProps {
   resizable?: boolean;
@@ -12,7 +14,7 @@ interface DemoProps extends FlexProps {
 
 export function Demo({resizable, ...props}: DemoProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const width = useElementSize(containerRef);
+  const dimensions = useDimensions({elementRef: containerRef});
 
   if (!resizable) {
     return (
@@ -42,6 +44,7 @@ export function Demo({resizable, ...props}: DemoProps) {
     );
   }
 
+  // -1lh collapses the gap between the demo chrome and the next content block
   return (
     <DemoChrome marginTop="md" position="relative" style={{marginBottom: '-1lh'}}>
       <Ruler containerRef={containerRef} />
@@ -54,20 +57,20 @@ export function Demo({resizable, ...props}: DemoProps) {
         bottom="16px"
         gap="sm"
       >
-        <Text display="inline-block" style={{width: '4ch'}} align="right">
-          {getActiveBreakpoint(width.width)}
-        </Text>{' '}
+        <Container display="inline-block" width="4ch">
+          <Text align="right">{getActiveBreakpoint(dimensions.width)}</Text>
+        </Container>
         <Text variant="muted" tabular>
-          ({Math.round(width.width)}px)
+          ({Math.round(dimensions.width)}px)
         </Text>
         <Text monospace variant="muted">
-          {' × '}
+          ×
         </Text>
-        <Text display="inline-block" style={{width: '4ch'}} align="right">
-          {getActiveBreakpoint(width.height)}
-        </Text>{' '}
+        <Container display="inline-block" width="4ch">
+          <Text align="right">{getActiveBreakpoint(dimensions.height)}</Text>
+        </Container>
         <Text variant="muted" tabular>
-          ({Math.round(width.height)}px)
+          ({Math.round(dimensions.height)}px)
         </Text>
       </Flex>
       <Flex align="center" justify="center" padding="xl">
@@ -104,10 +107,10 @@ const CONTAINER_BREAKPOINTS: Array<[string, number]> = [
   ['5xl', 1280],
 ];
 
-function getActiveBreakpoint(width: number): string {
+function getActiveBreakpoint(size: number): string {
   for (let i = CONTAINER_BREAKPOINTS.length - 1; i >= 0; i--) {
     const bp = CONTAINER_BREAKPOINTS[i];
-    if (bp && width >= bp[1]) {
+    if (bp && size >= bp[1]) {
       return bp[0];
     }
   }
@@ -118,6 +121,7 @@ function Ruler({containerRef}: {containerRef: React.RefObject<HTMLDivElement | n
   const snapTo = (px: number) => {
     const el = containerRef.current;
     if (el) {
+      // +2 compensates for the container's left and right border
       el.style.width = `${px + 2}px`;
     }
   };
@@ -135,7 +139,7 @@ function Ruler({containerRef}: {containerRef: React.RefObject<HTMLDivElement | n
           key={name}
           type="button"
           onClick={() => snapTo(px)}
-          style={{width: px, zIndex: 10 - i}}
+          style={{width: px, zIndex: CONTAINER_BREAKPOINTS.length - 1 - i}}
           data-breakpoint={name}
         />
       ))}
