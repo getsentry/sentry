@@ -79,12 +79,14 @@ class ObjectstoreEndpointTest(TransactionTestCase):
         assert object_key is not None
 
         retrieved = session.get(object_key)
+        assert retrieved is not None
         assert retrieved.payload.read() == b"test data"
 
         new_key = session.put(b"new data", key=object_key)
         assert new_key == object_key
 
         retrieved = session.get(object_key)
+        assert retrieved is not None
         assert retrieved.payload.read() == b"new data"
 
         session.delete(object_key)
@@ -98,6 +100,7 @@ class ObjectstoreEndpointTest(TransactionTestCase):
         assert object_key is not None
 
         retrieved = session.get(object_key)
+        assert retrieved is not None
         assert retrieved.payload.read() == b"test data"
 
     def test_accept_encoding_passthrough(self) -> None:
@@ -154,6 +157,7 @@ class ObjectstoreEndpointTest(TransactionTestCase):
         assert object_key is not None
 
         retrieved = session.get(object_key)
+        assert retrieved is not None
         assert retrieved.payload.read() == data
 
 
