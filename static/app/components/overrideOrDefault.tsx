@@ -62,10 +62,17 @@ export function OverrideOrDefault<H extends OverrideName>({
     return defaultComponent;
   }
 
-  const ResolvedComponent: React.ComponentType<any> | undefined =
-    getOverride(overrideName)?.() ?? getDefaultComponent();
+  // Overrides are registered asynchronously during app bootstrap;
+  // resolving too early can permanently miss them.
+  let ResolvedComponent: React.ComponentType<any> | undefined;
+  let isResolved = false;
 
   function OverrideOrDefaultComponent(props: Props) {
+    if (!isResolved) {
+      ResolvedComponent = getOverride(overrideName)?.() ?? getDefaultComponent();
+      isResolved = true;
+    }
+
     if (!ResolvedComponent) {
       return null;
     }
