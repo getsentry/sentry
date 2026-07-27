@@ -216,7 +216,7 @@ describe('InboxPage', () => {
       name: 'Issue preview',
     });
     const issueLink = await within(
-      screen.getByRole('region', {name: 'Fix Proposed'})
+      screen.getByRole('region', {name: 'PR Created'})
     ).findByRole('link', {name: /Fix proposed issue/});
 
     await userEvent.click(issueLink);
@@ -229,9 +229,9 @@ describe('InboxPage', () => {
 
     render(<InboxPage />, {organization, initialRouterConfig});
 
-    expect(screen.getByLabelText('Loading Fix Proposed issues')).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading PR Created issues')).toBeInTheDocument();
     expect(screen.getByLabelText('Loading Diagnosed issues')).toBeInTheDocument();
-    expect(screen.getByLabelText('Loading Assigned issues')).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading Triaged issues')).toBeInTheDocument();
 
     expect(await screen.findByText('Fix proposed issue')).toBeInTheDocument();
     expect(await screen.findByText('Diagnosed issue')).toBeInTheDocument();
@@ -263,12 +263,12 @@ describe('InboxPage', () => {
       expect(requests[index]).toHaveBeenCalledTimes(1);
     }
 
-    const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
+    const fixSection = screen.getByRole('region', {name: 'PR Created'});
     const diagnosedSection = screen.getByRole('region', {name: 'Diagnosed'});
-    const assignedSection = screen.getByRole('region', {name: 'Assigned'});
+    const assignedSection = screen.getByRole('region', {name: 'Triaged'});
     expect(
       within(fixSection).getByRole('heading', {
-        name: 'Fix Proposed',
+        name: 'PR Created',
         level: 3,
       })
     ).toBeInTheDocument();
@@ -300,9 +300,9 @@ describe('InboxPage', () => {
     render(<InboxPage />, {organization, initialRouterConfig});
 
     const fixProposedButton = screen.getByRole('button', {
-      name: 'Fix Proposed',
+      name: 'PR Created',
     });
-    const assignedButton = screen.getByRole('button', {name: 'Assigned'});
+    const assignedButton = screen.getByRole('button', {name: 'Triaged'});
     const fixProposedIssue = await screen.findByText('Fix proposed issue');
     const assignedIssue = screen.getByText('Assigned issue');
 
@@ -389,7 +389,7 @@ describe('InboxPage', () => {
 
     render(<InboxPage />, {organization, initialRouterConfig});
 
-    const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
+    const fixSection = screen.getByRole('region', {name: 'PR Created'});
     expect(await within(fixSection).findByText('Fix proposed issue')).toBeInTheDocument();
     const loadMoreButton = within(fixSection).getByRole('button', {
       name: 'Show 5 more',
@@ -422,7 +422,7 @@ describe('InboxPage', () => {
       within(preview).queryByRole('button', {name: 'Open Issue'})
     ).not.toBeInTheDocument();
 
-    const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
+    const fixSection = screen.getByRole('region', {name: 'PR Created'});
     const issueLink = await within(fixSection).findByRole('link', {
       name: /Fix proposed issue/,
     });
@@ -657,7 +657,7 @@ describe('InboxPage', () => {
       name: 'Issue preview',
     });
     const issueLink = await within(
-      screen.getByRole('region', {name: 'Fix Proposed'})
+      screen.getByRole('region', {name: 'PR Created'})
     ).findByRole('link', {name: /Fix proposed issue/});
     await userEvent.click(issueLink);
 

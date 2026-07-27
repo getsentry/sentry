@@ -1178,7 +1178,7 @@ describe('ActivitySection', () => {
       }
     );
 
-    expect(screen.getByRole('img', {name: 'Fix Applied'})).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'PR Merged'})).toBeInTheDocument();
     expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
   });
 

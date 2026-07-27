@@ -27,7 +27,7 @@ describe('StatusBanner', () => {
     );
 
     expect(screen.getByText('Resolved')).toBeInTheDocument();
-    expect(screen.getByRole('img', {name: 'Fix Applied'})).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'PR Merged'})).toBeInTheDocument();
     expect(screen.queryByTestId('icon-check-mark')).not.toBeInTheDocument();
   });
 

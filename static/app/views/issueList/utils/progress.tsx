@@ -8,12 +8,18 @@ import {ProgressState} from 'sentry/types/group';
 import type {TagVariant} from 'sentry/utils/theme';
 import type {IconSize} from 'sentry/utils/theme/types';
 
+/**
+ * Display names only — the underlying `ProgressState` values are persisted in
+ * `GroupDerivedData` and are the public `issue.progress:` search values, so they
+ * intentionally keep their original names. Expect labels and values to read
+ * differently (e.g. `fix_proposed` displays as "PR Created").
+ */
 const PROGRESS_STATE_LABELS: Record<ProgressState, string> = {
   [ProgressState.IDENTIFIED]: t('Identified'),
-  [ProgressState.ASSIGNED]: t('Assigned'),
+  [ProgressState.ASSIGNED]: t('Triaged'),
   [ProgressState.DIAGNOSED]: t('Diagnosed'),
-  [ProgressState.FIX_PROPOSED]: t('Fix Proposed'),
-  [ProgressState.FIX_APPLIED]: t('Fix Applied'),
+  [ProgressState.FIX_PROPOSED]: t('PR Created'),
+  [ProgressState.FIX_APPLIED]: t('PR Merged'),
 };
 
 export function formatProgressState(state: ProgressState | null): string {
@@ -47,7 +53,7 @@ const PROGRESS_STATE_TAG_VARIANTS: Record<ProgressState, TagVariant> = {
   [ProgressState.FIX_APPLIED]: 'success',
 };
 
-/** Progress state as a colored tag with a leading icon (e.g. a green "Fix Proposed"). */
+/** Progress state as a colored tag with a leading icon (e.g. a green "PR Created"). */
 export function IssueProgressTag({state}: {state: ProgressState | null}) {
   if (!state) {
     return null;

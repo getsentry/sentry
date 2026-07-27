@@ -30,7 +30,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
+import {
+  formatProgressState,
+  getProgressIcon,
+} from 'sentry/views/issueList/utils/progress';
 
 const TITLE = t('Inbox');
 const ISSUE_LIMIT = 5;
@@ -43,7 +46,6 @@ interface InboxSectionConfig {
   defaultExpanded: boolean;
   emptyMessage: string;
   key: string;
-  label: string;
   progress: ProgressState;
   query: string;
 }
@@ -51,7 +53,6 @@ interface InboxSectionConfig {
 const SECTIONS: InboxSectionConfig[] = [
   {
     key: 'fix-proposed',
-    label: t('Fix Proposed'),
     query: 'issue.progress:fix_proposed',
     emptyMessage: t('No issues with a proposed fix'),
     progress: ProgressState.FIX_PROPOSED,
@@ -59,7 +60,6 @@ const SECTIONS: InboxSectionConfig[] = [
   },
   {
     key: 'diagnosed',
-    label: t('Diagnosed'),
     query: 'issue.progress:diagnosed',
     emptyMessage: t('No diagnosed issues'),
     progress: ProgressState.DIAGNOSED,
@@ -67,7 +67,6 @@ const SECTIONS: InboxSectionConfig[] = [
   },
   {
     key: 'assigned',
-    label: t('Assigned'),
     query: 'issue.progress:assigned',
     emptyMessage: t('No assigned issues'),
     progress: ProgressState.ASSIGNED,
@@ -211,11 +210,12 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
   const count = queryResult.data?.pages[0]?.headers['X-Hits'] ?? groups.length;
   const {data: members = []} = useMembers();
   const membersById = new Map(members.map(member => [member.id, member]));
+  const label = formatProgressState(section.progress);
 
   return (
     <Disclosure
       as="section"
-      aria-label={section.label}
+      aria-label={label}
       defaultExpanded={section.defaultExpanded}
       size="sm"
     >
@@ -225,7 +225,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
             <Flex align="center" gap="sm">
               {getProgressIcon(section.progress)}
               <Heading as="h3" size="md">
-                {section.label}
+                {label}
               </Heading>
             </Flex>
           </Disclosure.Title>
@@ -233,11 +233,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
       </Container>
       <InboxSectionContent>
         {queryResult.isPending ? (
-          <Stack
-            aria-label={t('Loading %s issues', section.label)}
-            gap="xs"
-            padding="0 xs"
-          >
+          <Stack aria-label={t('Loading %s issues', label)} gap="xs" padding="0 xs">
             {Array.from({length: ISSUE_LIMIT}).map((_, index) => (
               <Placeholder key={index} height="76px" />
             ))}
