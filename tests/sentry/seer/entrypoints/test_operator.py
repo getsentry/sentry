@@ -675,7 +675,7 @@ class SeerOperatorTest(TestCase):
                     event_type=seer_event,
                     event_payload=event_payload,
                     organization_id=self.organization.id,
-                    activity_referrer=AutofixReferrer.GITHUB_PR_COMMENT.value,
+                    activity_attribution={"referrer": AutofixReferrer.GITHUB_PR_COMMENT.value},
                 )
                 assert Activity.objects.filter(
                     group=self.group, type=expected_activity_type.value

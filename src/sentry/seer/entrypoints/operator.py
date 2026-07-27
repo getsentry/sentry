@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, TypedDict
 
 from sentry import features, options
 from sentry.constants import DataCategory
@@ -51,6 +51,11 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_ITERATION_STARTED: ActivityType.SEER_ITERATION_STARTED,
     SentryAppEventType.SEER_ITERATION_COMPLETED: ActivityType.SEER_ITERATION_COMPLETED,
 }
+
+
+class SeerActivityAttribution(TypedDict):
+    referrer: str
+
 
 ITERATION_REFERRER_TO_ACTION_SOURCE: dict[AutofixReferrer, ActionSource] = {
     AutofixReferrer.GROUP_AUTOFIX_ENDPOINT: ActionSource.API,
@@ -588,7 +593,7 @@ def _create_seer_activity(
     group: Group,
     event_type: SentryAppEventType,
     event_payload: dict[str, Any],
-    activity_referrer: str | None = None,
+    activity_attribution: SeerActivityAttribution | None = None,
 ) -> None:
     activity_type = SEER_EVENT_TO_ACTIVITY_TYPE.get(event_type)
     if not activity_type:
@@ -603,8 +608,8 @@ def _create_seer_activity(
     if run_id is not None:
         activity_data["run_id"] = run_id
 
-    if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_referrer is not None:
-        activity_data["referrer"] = activity_referrer
+    if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution is not None:
+        activity_data["referrer"] = activity_attribution["referrer"]
     elif event_type == SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
         root_cause = event_payload.get("root_cause")
         if root_cause:
@@ -647,7 +652,7 @@ def process_autofix_updates(
     event_type: SentryAppEventType,
     event_payload: dict[str, Any],
     organization_id: int,
-    activity_referrer: str | None = None,
+    activity_attribution: SeerActivityAttribution | None = None,
 ) -> None:
     """
     Use the registry to iterate over all entrypoints and check if this payload's run_id or group_id
@@ -688,12 +693,9 @@ def process_autofix_updates(
             return
 
         action_source = ActionSource.SEER_EXPLORER
-        if (
-            event_type == SentryAppEventType.SEER_ITERATION_STARTED
-            and activity_referrer is not None
-        ):
+        if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution:
             try:
-                referrer = AutofixReferrer(activity_referrer)
+                referrer = AutofixReferrer(activity_attribution["referrer"])
             except ValueError:
                 pass
             else:
@@ -703,7 +705,7 @@ def process_autofix_updates(
 
         try:
             with action_context_scope(action_source, SYSTEM_ACTOR):
-                _create_seer_activity(group, event_type, event_payload, activity_referrer)
+                _create_seer_activity(group, event_type, event_payload, activity_attribution)
         except Exception:
             logger.exception(
                 "seer.activity_creation_failed",
