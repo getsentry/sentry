@@ -130,7 +130,7 @@ function FormWrapper({children}: {children: React.ReactNode}) {
       noValidate
       data-test-id={form.formId}
       id={form.formId}
-      style={{width: '100%', flexGrow: 1}}
+      style={{width: '100%'}}
       onSubmit={e => {
         e.preventDefault();
         form.handleSubmit();
