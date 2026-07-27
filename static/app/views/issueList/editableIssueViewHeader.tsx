@@ -64,7 +64,7 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
           stopEditing={() => setIsEditing(false)}
         />
       ) : (
-        <PageFrameViewTitleWrapper>
+        <ViewTitleWrapper>
           <ViewTitle onDoubleClick={handleBeginEditing}>{view.name}</ViewTitle>
           <Button
             icon={<IconEdit />}
@@ -73,7 +73,7 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
             size="sm"
             variant="transparent"
           />
-        </PageFrameViewTitleWrapper>
+        </ViewTitleWrapper>
       )}
     </TopBar.Slot>
   );
@@ -127,7 +127,7 @@ function EditingViewTitle({
   );
 }
 
-const PageFrameViewTitleWrapper = styled('div')`
+const ViewTitleWrapper = styled('div')`
   display: flex;
   align-items: center;
 

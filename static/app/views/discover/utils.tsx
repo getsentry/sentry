@@ -148,15 +148,17 @@ export function generateTitle({
   eventView,
   event,
   isHomepage,
+  organization,
 }: {
   eventView: EventView;
+  organization: Organization;
   event?: Event;
   isHomepage?: boolean;
 }) {
-  const titles = [t('Discover')];
+  const titles = [getDiscoverDeprecation(organization) ? t('Errors') : t('Discover')];
 
   if (isHomepage) {
-    return t('Discover');
+    return getDiscoverDeprecation(organization) ? t('Errors') : t('Discover');
   }
 
   const eventViewName = eventView.name;

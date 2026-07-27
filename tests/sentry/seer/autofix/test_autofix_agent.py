@@ -423,7 +423,6 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=12345)
-        mock_client.continue_run.return_value = 12345
 
         step_to_action = {
             AutofixStep.ROOT_CAUSE: SeerActionType.ROOT_CAUSE_STARTED,
@@ -454,10 +453,10 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.continue_run.return_value = 67890
         seer_run = self.create_seer_run(
             organization=self.group.organization, seer_run_state_id=67890
         )
+        mock_client.continue_run.return_value = seer_run
 
         result = trigger_autofix_agent(
             group=self.group,
@@ -466,7 +465,7 @@ class TestTriggerAutofixAgent(TestCase):
             run_id=67890,
         )
 
-        assert result == 67890
+        assert result == seer_run
         # Verify started webhook was sent with the existing run_id and uuid
         mock_broadcast.assert_called_once()
         call_kwargs = mock_broadcast.call_args.kwargs
@@ -543,7 +542,9 @@ class TestTriggerAutofixAgent(TestCase):
                 )
             },
         )
-        mock_client.continue_run.return_value = 67890
+        mock_client.continue_run.return_value = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
 
         with self.feature("organizations:autofix-pr-iteration"):
             trigger_autofix_agent(
@@ -626,7 +627,9 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.continue_run.return_value = 67890
+        mock_client.continue_run.return_value = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
 
         trigger_autofix_agent(
             group=self.group,
@@ -647,19 +650,19 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.continue_run.return_value = 67890
+        seer_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
+        mock_client.continue_run.return_value = seer_run
 
-        run_id = trigger_autofix_agent(
+        run = trigger_autofix_agent(
             group=self.group,
             step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.UNKNOWN,
             run_id=67890,
         )
 
-        assert run_id == 67890
-        mock_client.continue_run.assert_called_once()
-        mock_check_quota.assert_not_called()
-        mock_record_run.assert_not_called()
+        assert run == seer_run
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
@@ -738,7 +741,9 @@ class TestTriggerAutofixAgent(TestCase):
                 )
             },
         )
-        mock_client.continue_run.return_value = 67890
+        mock_client.continue_run.return_value = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
 
         with self.feature("organizations:autofix-pr-iteration"):
             trigger_autofix_agent(

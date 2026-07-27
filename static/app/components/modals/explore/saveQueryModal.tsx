@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Grid, type GridProps, Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 
 import {
@@ -130,14 +130,14 @@ function SaveQueryModal({
       </Body>
 
       <Footer>
-        <StyledButtonBar gap="lg">
+        <Flex gap="lg" justify="end">
           <Button onClick={closeModal} disabled={isSaving}>
             {t('Cancel')}
           </Button>
           <Button onClick={onSave} disabled={!name || isSaving} variant="primary">
             {defined(initialName) ? t('Save Changes') : t('Create a New Query')}
           </Button>
-        </StyledButtonBar>
+        </Flex>
       </Footer>
     </Fragment>
   );
@@ -153,20 +153,6 @@ const StarredWrapper = styled('div')`
 
   > h6 {
     margin-bottom: 0;
-  }
-`;
-
-const StyledButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  @media (max-width: ${props => props.theme.breakpoints.sm}) {
-    grid-template-rows: repeat(2, 1fr);
-    gap: ${p => p.theme.space.lg};
-    width: 100%;
-
-    > button {
-      width: 100%;
-    }
   }
 `;
 
