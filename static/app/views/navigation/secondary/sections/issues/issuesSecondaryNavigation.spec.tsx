@@ -42,15 +42,13 @@ describe('IssuesSecondaryNavigation', () => {
 
     expect(await screen.findByText('12')).toBeInTheDocument();
 
-    // A separate Snuba search runs per `query` param, so all three progress
-    // states have to travel as one query rather than one query each.
+    // One query, since a separate Snuba search runs per `query` param.
     const [[, options]] = request.mock.calls;
     expect(options.query.query).toHaveLength(1);
     const [query] = options.query.query;
     expect(query).toContain('fix_proposed');
     expect(query).toContain('diagnosed');
     expect(query).toContain('assigned');
-    // `my_teams` already resolves to the user as well, so nothing is summed.
     expect(query).toContain('assigned:[me,my_teams]');
   });
 
