@@ -2712,6 +2712,7 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     desc: t('Status of the snapshot in the comparison pipeline'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
     values: [
       'approved',
       'auto_approved',
