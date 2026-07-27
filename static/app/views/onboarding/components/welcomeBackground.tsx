@@ -78,9 +78,16 @@ export function WelcomeBackgroundNewUi() {
   );
 }
 
+// Hidden per-illustration rather than on the wrapper, because the wrapper is
+// the query container and an element can't query itself. The wrapper draws
+// nothing on its own, so an empty one is invisible either way.
 const Illustration = styled(motion.div)`
   position: absolute;
   height: auto;
+
+  @container (max-width: ${p => p.theme.container.xl}) {
+    display: none;
+  }
 `;
 
 const BugA = styled(Illustration)`
@@ -102,10 +109,7 @@ const Container = styled(motion.div)`
   max-width: 100vw;
   width: 300%;
   top: -25%;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
+  container-type: inline-size;
 `;
 
 const ContainerNewUi = styled(motion.div)`
@@ -113,8 +117,5 @@ const ContainerNewUi = styled(motion.div)`
   position: absolute;
   height: 100%;
   width: 100%;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
+  container-type: inline-size;
 `;

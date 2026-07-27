@@ -3,8 +3,14 @@ import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {
+  Container,
+  Flex,
+  type FlexProps,
+  Grid,
+  type GridProps,
+} from '@sentry/scraps/layout';
+import {Link, type LinkProps} from '@sentry/scraps/link';
 
 import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
 import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
@@ -83,6 +89,9 @@ export function FirstEventFooter({
         </SkipOnboardingLink>
       )}
       <StatusWrapper
+        align="center"
+        justify="center"
+        display={{zero: 'none', xl: 'flex'}}
         initial="initial"
         animate="animate"
         exit="exit"
@@ -178,27 +187,25 @@ const WaitingIndicator = styled(motion.div)`
   background-color: ${p => p.theme.colors.pink400};
 `;
 
-const StatusWrapper = styled(motion.div)`
-  display: flex;
-  align-items: center;
+// Sets the font size its text children inherit — the global base is smaller.
+const StatusWrapper = styled(motion.create(Flex))`
   font-size: ${p => p.theme.font.size.md};
-  justify-content: center;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
 
-const LeadingSlot = styled('div')`
-  display: flex;
-  align-items: center;
-  margin: auto ${p => p.theme.space['3xl']};
-`;
+function LeadingSlot(props: FlexProps) {
+  return <Flex align="center" margin="auto 3xl" {...props} />;
+}
 
-const SkipOnboardingLink = styled(Link)`
-  margin: auto ${p => p.theme.space['3xl']};
-  white-space: nowrap;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
-`;
+// Container's render-prop form styles the Link's own anchor rather than wrapping
+// it, so the responsive display lands on the element that has to disappear.
+function SkipOnboardingLink(props: LinkProps) {
+  return (
+    <Container
+      display={{zero: 'none', xl: 'block'}}
+      margin="auto 3xl"
+      whiteSpace="nowrap"
+    >
+      {({className}) => <Link className={className} {...props} />}
+    </Container>
+  );
+}

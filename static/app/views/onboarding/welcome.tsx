@@ -7,7 +7,14 @@ import {motion} from 'framer-motion';
 import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {Text} from '@sentry/scraps/text';
+import {Image} from '@sentry/scraps/image';
+import {
+  Container,
+  type ContainerProps,
+  Stack,
+  type StackProps,
+} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {FallingError} from 'sentry/views/onboarding/components/fallingError';
@@ -34,15 +41,26 @@ type TextWrapperProps = {
   title: React.ReactNode;
 };
 
+// Centered while the card is narrow, left-aligned once it widens — the same
+// container breakpoint TextWrapper's margins flip on.
+const textAlign = {zero: 'center', sm: 'left'} as const;
+
 function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   return (
     <Fragment>
-      <ActionImage src={src} />
+      <Image src={src} alt="" height="100px" />
       <TextWrapper>
-        <ActionTitle>{title}</ActionTitle>
-        <Text variant="muted">{subText}</Text>
+        {/* size follows base.less's h5 (20px); Heading's h5 default is smaller. */}
+        <Heading as="h5" size="xl" align={textAlign}>
+          {title}
+        </Heading>
+        <Text variant="muted" align={textAlign}>
+          {subText}
+        </Text>
       </TextWrapper>
-      <ButtonWrapper>{cta}</ButtonWrapper>
+      <Container margin="md" position="relative">
+        {cta}
+      </Container>
     </Fragment>
   );
 }
@@ -100,12 +118,18 @@ export function TargetedOnboardingWelcome(props: StepProps) {
   );
 }
 
-const PositionedFallingError = styled('span')`
-  display: block;
-  position: absolute;
-  right: 0px;
-  top: 30px;
-`;
+function PositionedFallingError(props: ContainerProps<'span'>) {
+  return (
+    <Container
+      as="span"
+      display="block"
+      position="absolute"
+      right={0}
+      top="30px"
+      {...props}
+    />
+  );
+}
 
 const Wrapper = styled(motion.div)`
   position: relative;
@@ -124,6 +148,10 @@ const Wrapper = styled(motion.div)`
   }
 `;
 
+// The card deliberately overflows its 400px-max Wrapper to 680px, so no
+// ancestor measures what this switch needs and the card can't query itself —
+// the grid/flex flip stays viewport-driven. It is a query container for its own
+// contents, which do have a real width to respond to (680px wide vs 400px).
 const ActionItem = styled(motion.div)`
   min-height: 120px;
   border-radius: ${p => p.theme.space.xs};
@@ -131,6 +159,11 @@ const ActionItem = styled(motion.div)`
   margin-bottom: ${p => p.theme.space.xl};
   justify-content: space-around;
   border: 1px solid ${p => p.theme.tokens.border.primary};
+  container-type: inline-size;
+  /* Inline-size containment stops the contents from sizing the card, so without
+     an explicit width it collapses. Declared here, not in the max-width branch,
+     so the 680px below still wins at exactly sm, where both queries apply. */
+  width: 100%;
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: grid;
     grid-template-columns: 125px auto 125px;
@@ -143,34 +176,28 @@ const ActionItem = styled(motion.div)`
   }
 `;
 
-const TextWrapper = styled('div')`
-  text-align: left;
-  margin: auto ${p => p.theme.space['2xl']};
-  min-height: 70px;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    text-align: center;
-    margin: ${p => p.theme.space.md} ${p => p.theme.space.md};
-    margin-top: ${p => p.theme.space['2xl']};
-  }
-`;
+// The card only has two widths — its content box is 366px narrow and 646px wide
+// — so the threshold just has to separate them. sm sits near the middle of that
+// gap; lg (640px) also matches today but clears the wide state by only 6px.
+// Margins rather than gap: they differ per side and flip with the breakpoint.
+// Text alignment lives on the Text/Heading children — layout primitives have no
+// text-align prop, and the original set it here only to be inherited.
+function TextWrapper(props: StackProps) {
+  return (
+    <Stack
+      gap="xs"
+      minHeight="70px"
+      margin={{zero: '2xl md md', sm: 'auto 2xl'}}
+      {...props}
+    />
+  );
+}
 
-const ActionTitle = styled('h5')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin: 0 0 ${p => p.theme.space.xs};
-  color: ${p => p.theme.tokens.content.primary};
-`;
-
+// Stays an h6: base.less renders it at 18px and the type scale has no 18px
+// token, so Heading would resize it (16px or 20px). Out of scope for a
+// migration that should be visually neutral.
 const SubHeaderText = styled(motion.h6)`
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const ButtonWrapper = styled('div')`
-  margin: ${p => p.theme.space.md};
-  position: relative;
-`;
-
-const ActionImage = styled('img')`
-  height: 100px;
 `;
 
 const ButtonWithFill = styled(Button)`

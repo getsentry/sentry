@@ -1,10 +1,10 @@
-import {useCallback, useEffect, useState, type PropsWithChildren} from 'react';
+import {Fragment, useCallback, useEffect, useState, type PropsWithChildren} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {Container, Flex, Grid, type GridProps, Stack} from '@sentry/scraps/layout';
+import {Link, type LinkProps} from '@sentry/scraps/link';
 
 import {LogoSentry} from 'sentry/components/logoSentry';
 import {
@@ -36,6 +36,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
 import {useHasNewWelcomeUI} from 'sentry/views/onboarding/useHasNewWelcomeUI';
 
+import {FOOTER_HEIGHT} from './components/genericFooter';
 import {NewWelcomeUI} from './components/newWelcome';
 import {OnboardingSkipButton} from './components/onboardingSkipButton';
 import {PlatformSelection} from './platformSelection';
@@ -212,14 +213,41 @@ function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
 
   if (newWelcomeUIStep && !props.hasScmOnboarding) {
     return (
-      <OnboardingContainerNewWelcomeUI hasFooter>
-        {props.children}
-      </OnboardingContainerNewWelcomeUI>
+      <Fragment>
+        {/*
+          Padding follows the viewport, not a container: this box holds the
+          step's `position: fixed` footer, so making it a query container would
+          re-anchor that footer to it instead of the viewport.
+        */}
+        <Stack
+          flexGrow={1}
+          justify="center"
+          position="relative"
+          background="primary"
+          overflow="hidden"
+          padding={{'screen:2xs': '3xl 2xl', 'screen:md': '2xl'}}
+          width="100%"
+          marginLeft="auto"
+          marginRight="auto"
+        >
+          {props.children}
+        </Stack>
+        {/*
+          Reserves the space the fixed footer overlays. A sibling with a height,
+          rather than bottom spacing on the box above: the spacing props only
+          take space-scale tokens, which stop well short of the footer.
+        */}
+        <Container flexShrink={0} height={FOOTER_HEIGHT} />
+      </Fragment>
     );
   }
 
   return (
     <OnboardingContainer
+      flexGrow={1}
+      width="100%"
+      marginLeft="auto"
+      marginRight="auto"
       hasFooter={props.hasFooter}
       hasScmOnboarding={props.hasScmOnboarding}
     >
@@ -235,15 +263,15 @@ interface OnboardingStepVariableProps {
 }
 
 function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableProps>) {
-  const Component =
+  const centered =
     props.hasNewWelcomeUI &&
     props.id === OnboardingStepId.WELCOME &&
-    !props.hasScmOnboarding
-      ? OnboardingStepNewUi
-      : OnboardingStep;
+    !props.hasScmOnboarding;
 
   return (
-    <Component
+    <OnboardingStep
+      flexGrow={1}
+      justify={centered ? 'center' : undefined}
       initial="initial"
       animate="animate"
       exit="exit"
@@ -254,7 +282,7 @@ function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableP
       data-test-id={`onboarding-step-${props.id}`}
     >
       {props.children}
-    </Component>
+    </OnboardingStep>
   );
 }
 
@@ -462,10 +490,7 @@ export function OnboardingWithoutContext() {
   return (
     <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
-      <Header
-        columns={{'screen:2xs': 'repeat(2, 1fr)', 'screen:md': 'repeat(3, 1fr)'}}
-        as="header"
-      >
+      <Header columns={{'screen:2xs': 'repeat(2, 1fr)', 'screen:md': 'repeat(3, 1fr)'}}>
         <LogoSvg showWordmark={!hasScmOnboarding} />
         {stepIndex !== -1 && (
           <Flex
@@ -506,13 +531,26 @@ export function OnboardingWithoutContext() {
         hasScmOnboarding={hasScmOnboarding}
       >
         {hasScmOnboarding ? null : (
-          <AdaptivePageCorners
-            // Controls the current corner variant
-            animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
-          />
+          // Query container for the corner scale below. It wraps only the
+          // decorations, so its containment can't re-anchor the `position:
+          // fixed` step footers that also live in OnboardingContainer.
+          <Container
+            position="absolute"
+            inset={0}
+            pointerEvents="none"
+            containerType="inline-size"
+          >
+            <AdaptivePageCorners
+              // Controls the current corner variant
+              animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
+            />
+          </Container>
         )}
         {stepIndex > 0 && !hasScmOnboarding && (
           <BackMotionDiv
+            position="absolute"
+            top="40px"
+            left="20px"
             initial="initial"
             animate="visible"
             variants={{
@@ -571,54 +609,38 @@ function Onboarding() {
   );
 }
 
-const OnboardingContainerNewWelcomeUI = styled('div')<{
-  hasFooter: boolean;
-}>`
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  position: relative;
-  background: ${p => p.theme.tokens.background.primary};
-  padding: ${p => p.theme.space['2xl']};
-  overflow: hidden;
-
-  width: 100%;
-  margin: 0 auto;
-  margin-bottom: ${p => p.hasFooter && '72px'};
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.space['3xl']} ${p => p.theme.space['2xl']};
-  }
-`;
-
-const OnboardingContainer = styled('div')<{
+// Stays a styled component: its vertical padding (60/120px) and footer
+// clearance are all off the space scale, so converting the handful of
+// remaining declarations to props would split one rule across two mechanisms
+// for no gain.
+const OnboardingContainer = styled(Stack)<{
   hasFooter: boolean;
   hasScmOnboarding: boolean;
 }>`
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
   position: relative;
   overflow-x: hidden;
   background: ${p => p.theme.tokens.background.primary};
   padding: ${p => (p.hasScmOnboarding ? '60px' : '120px')} ${p => p.theme.space['2xl']};
-  width: 100%;
-  margin: 0 auto;
-  padding-bottom: ${p => p.hasFooter && '72px'};
-  margin-bottom: ${p => p.hasFooter && '72px'};
+  padding-bottom: ${p => p.hasFooter && FOOTER_HEIGHT};
+  margin-bottom: ${p => p.hasFooter && FOOTER_HEIGHT};
 `;
 
-const Header = styled(Grid)`
-  background: ${p => p.theme.tokens.background.primary};
-  padding-left: ${p => p.theme.space['3xl']};
-  padding-right: ${p => p.theme.space['3xl']};
-  position: sticky;
-  height: 80px;
-  align-items: center;
-  top: 0;
+// Only the stacking order isn't a Grid prop.
+const Header = styled((props: GridProps<'header'>) => (
+  <Grid
+    as="header"
+    background="primary"
+    paddingLeft="3xl"
+    paddingRight="3xl"
+    position="sticky"
+    height="80px"
+    align="center"
+    top={0}
+    borderBottom="secondary"
+    {...props}
+  />
+))`
   z-index: 100;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const LogoSvg = styled(LogoSentry)`
@@ -626,39 +648,30 @@ const LogoSvg = styled(LogoSentry)`
   color: ${p => p.theme.tokens.content.primary};
 `;
 
-const OnboardingStep = styled(motion.div)`
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-`;
-
-const OnboardingStepNewUi = styled(motion.div)`
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-`;
+const OnboardingStep = motion.create(Stack);
 
 const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;
   overflow: hidden;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     --corner-scale: 0.5;
   }
 `;
 
-const BackMotionDiv = styled(motion.div)`
-  position: absolute;
-  top: 40px;
-  left: 20px;
-
+// Sizes the button it wraps, which a descendant selector can do and a prop
+// can't — the Button is supplied by the caller.
+const BackMotionDiv = styled(motion.create(Container))`
   button {
     font-size: ${p => p.theme.font.size.sm};
   }
 `;
 
-const SkipOnboardingLink = styled(Link)`
-  margin: auto ${p => p.theme.space['3xl']};
-`;
+function SkipOnboardingLink(props: LinkProps) {
+  return (
+    <Container margin="auto 3xl">
+      {({className}) => <Link className={className} {...props} />}
+    </Container>
+  );
+}
 
 export default Onboarding;
