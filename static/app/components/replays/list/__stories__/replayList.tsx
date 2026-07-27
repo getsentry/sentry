@@ -59,14 +59,16 @@ export function ReplayList({onSelect, queryResult}: Props) {
 function NoReplays() {
   return (
     <Container padding="3xl">
-      <Stack align="center" gap="md">
+      <Stack align="center">
         <img src={waitingForEventImg} alt={t('A person waiting for a phone to ring')} />
-        <Text as="div" size={{zero: 'md', xl: 'xl'}} bold variant="secondary">
-          {t('Inbox Zero')}
-        </Text>
-        <Text as="p" size="md" variant="secondary">
-          {t('You have two options: take a nap or be productive.')}
-        </Text>
+        <Stack align="center" gap="md">
+          <Text as="div" size="xl" bold variant="secondary">
+            {t('Inbox Zero')}
+          </Text>
+          <Text as="p" size="md" variant="secondary">
+            {t('You have two options: take a nap or be productive.')}
+          </Text>
+        </Stack>
       </Stack>
     </Container>
   );
