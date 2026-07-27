@@ -6,16 +6,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
-// Long enough that scrolling the list doesn't fire a request per row.
 const PREFETCH_DELAY_MS = 300;
 
 /**
  * Warms the group request while hovering an inbox row, so clicking renders the
- * preview from cache instead of waiting on the network.
- *
- * Uses the same options factory as `useGroup` so the query keys match — notably
- * `expandDerivedData`, which is part of the key, so building the request by hand
- * would warm an entry the preview never reads.
+ * preview from cache. Reuses `useGroup`'s options factory so the query keys
+ * match; `expandDerivedData` is part of the key.
  */
 export function useInboxPreviewPrefetch(groupId: string) {
   const organization = useOrganization();

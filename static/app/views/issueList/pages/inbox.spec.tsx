@@ -475,8 +475,8 @@ describe('InboxPage', () => {
 
     await waitFor(() => expect(groupRequest).toHaveBeenCalledTimes(1));
 
-    // Clicking reads the warmed cache rather than fetching the group again,
-    // which only holds if the prefetch used the same query key as the preview.
+    // Reads the warmed cache, which only holds if the prefetch used the same
+    // query key as the preview.
     await userEvent.click(issueLink);
 
     const preview = screen.getByRole('complementary', {name: 'Issue preview'});
