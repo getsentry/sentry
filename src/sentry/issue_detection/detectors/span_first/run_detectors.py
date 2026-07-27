@@ -273,7 +273,7 @@ def _collect_single_problem_diffs(
             f"{fingerprint}: {', '.join(sorted(non_shared_keys))}"
         )
 
-    for key, control_value in control_problem_dict["evidence_data"].items():
+    for key, control_evidence_data_value in control_problem_dict["evidence_data"].items():
         if key not in span_first_problem_dict["evidence_data"]:
             continue
         if key in {"op", "parent_span_ids", "cause_span_ids", "offender_span_ids"}:
@@ -284,15 +284,18 @@ def _collect_single_problem_diffs(
 
         if key == "span_evidence_key_value":
             if not _are_equivalent_lists(
-                [f"{d['key']}{d['value']}{d.get('is_multi_value')}" for d in control_value],
+                [
+                    f"{d['key']}{d['value']}{d.get('is_multi_value')}"
+                    for d in control_evidence_data_value
+                ],
                 [f"{d['key']}{d['value']}{d.get('is_multi_value')}" for d in span_first_value],
             ):
                 diffs[f"evidence_data.{key}"].append(fingerprint)
-        elif isinstance(control_value, (int, float, str, NoneType)):
-            if control_value != span_first_value:
+        elif isinstance(control_evidence_data_value, (int, float, str, NoneType)):
+            if control_evidence_data_value != span_first_value:
                 diffs[f"evidence_data.{key}"].append(fingerprint)
-        elif isinstance(control_value, list):
-            if not _are_equivalent_lists(control_value, span_first_value):
+        elif isinstance(control_evidence_data_value, list):
+            if not _are_equivalent_lists(control_evidence_data_value, span_first_value):
                 diffs[f"evidence_data.{key}"].append(fingerprint)
 
 
