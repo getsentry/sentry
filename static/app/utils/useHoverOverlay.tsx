@@ -409,6 +409,13 @@ function useHoverOverlay({
   // Sync the plain ref into React state. useLayoutEffect fires synchronously
   // during the commit phase (inside act() in tests), so no act() warning is
   // triggered even when the element changes during unmount.
+  //
+  // This intentionally has no dependency array so it runs after every render.
+  // We need it to run after the ref callback fires (which updates
+  // triggerElementRef.current during the commit phase, before state is
+  // updated). The guard below prevents the infinite-update loop that eslint
+  // would otherwise warn about.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     if (triggerElement !== triggerElementRef.current) {
       setTriggerElement(triggerElementRef.current);
