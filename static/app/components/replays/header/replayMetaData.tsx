@@ -120,7 +120,7 @@ const KeyMetrics = styled('dl')`
   color: ${p => p.theme.tokens.content.secondary};
   margin: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     justify-self: flex-end;
   }
 `;

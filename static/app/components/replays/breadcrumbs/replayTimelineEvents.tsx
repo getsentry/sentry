@@ -126,7 +126,7 @@ function Event({
     max-width: ${tooltipWidth}px !important;
     width: ${tooltipWidth}px;
 
-    @media screen and (max-width: ${theme.breakpoints.sm}) {
+    @container (max-width: ${theme.container.xl}) {
       max-width: ${mobileMaxWidth}px !important;
     }
   `;

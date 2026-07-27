@@ -9,7 +9,7 @@ import {PlatformIcon} from 'platformicons';
 import {LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {InfoText} from '@sentry/scraps/info';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -37,7 +37,6 @@ import {
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -139,8 +138,7 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
   interactive: false,
   sortKey: 'browser.name',
   Component: ({replay, showDropdownFilters}) => {
-    const theme = useTheme();
-    const isLargeBreakpoint = useMedia(`(min-width: ${theme.breakpoints.lg})`);
+    const isLargeContainer = useResponsivePropValue({zero: false, '4xl': true});
 
     if (replay.is_archived) {
       return null;
@@ -160,7 +158,7 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
 
     const icon = generatePlatformIconName(
       name ?? '',
-      version && isLargeBreakpoint ? version : undefined
+      version && isLargeContainer ? version : undefined
     );
 
     const nameOrUnknown = name ?? t('Unknown');
@@ -365,8 +363,7 @@ export const ReplayOSColumn: ReplayTableColumn = {
   interactive: false,
   sortKey: 'os.name',
   Component: ({replay, showDropdownFilters}) => {
-    const theme = useTheme();
-    const isLargeBreakpoint = useMedia(`(min-width: ${theme.breakpoints.lg})`);
+    const isLargeContainer = useResponsivePropValue({zero: false, '4xl': true});
 
     if (replay.is_archived) {
       return null;
@@ -374,7 +371,7 @@ export const ReplayOSColumn: ReplayTableColumn = {
     const {name, version} = replay.os;
     const icon = generatePlatformIconName(
       name ?? '',
-      version && isLargeBreakpoint ? version : undefined
+      version && isLargeContainer ? version : undefined
     );
 
     const nameOrUnknown = name ?? t('Unknown');
