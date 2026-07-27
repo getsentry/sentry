@@ -226,84 +226,83 @@ def _collect_single_problem_diffs(
     """
     fingerprint = control_problem_dict["fingerprint"]
 
-    if control_problem_dict["op"] != span_first_problem_dict["op"]:
-        diffs["op"].append(fingerprint)
+    for key in control_problem_dict:
+        control_value: Any = control_problem_dict.get(key)
+        span_first_value: Any = span_first_problem_dict.get(key)
 
-    if control_problem_dict["desc"] != span_first_problem_dict["desc"]:
-        diffs["desc"].append(fingerprint)
+        if key in {"op", "desc"} and control_value != span_first_value:
+            diffs[key].append(fingerprint)
 
-    if control_problem_dict["type"] != span_first_problem_dict["type"]:
-        diffs["type"].append(fingerprint)
+        elif key in {
+            "parent_span_ids",
+            "cause_span_ids",
+            "offender_span_ids",
+        } and not _are_equivalent_lists(control_value, span_first_value):
+            diffs[key].append(fingerprint)
 
-    if not _are_equivalent_lists(
-        control_problem_dict["parent_span_ids"], span_first_problem_dict["parent_span_ids"]
-    ):
-        diffs["parent_span_ids"].append(fingerprint)
+        elif key == "evidence_display" and not _are_equivalent_lists(
+            # The value under this key is a list of dictionaries. Since under the hood we use sets
+            # to do the list comparison, the list values need to be hashable, so convert each dict
+            # to a string before running the comparison.
+            [f"{c['name']}{c['value']}{c['important']}" for c in control_value],
+            [f"{sf['name']}{sf['value']}{sf['important']}" for sf in span_first_value],
+        ):
+            diffs[key].append(fingerprint)
 
-    if not _are_equivalent_lists(
-        control_problem_dict["cause_span_ids"], span_first_problem_dict["cause_span_ids"]
-    ):
-        diffs["cause_span_ids"].append(fingerprint)
+        elif key == "evidence_data":
+            control_evidence_data_dict = control_value
+            span_first_evidence_data_dict = span_first_value
 
-    if not _are_equivalent_lists(
-        control_problem_dict["offender_span_ids"], span_first_problem_dict["offender_span_ids"]
-    ):
-        diffs["offender_span_ids"].append(fingerprint)
+            control_evidence_data_keys = set(control_evidence_data_dict)
+            span_first_evidence_data_keys = set(span_first_evidence_data_dict)
+            shared_evidence_data_keys = control_evidence_data_keys.intersection(
+                span_first_evidence_data_keys
+            )
+            non_shared_evidence_data_keys = control_evidence_data_keys.symmetric_difference(
+                span_first_evidence_data_keys
+            )
 
-    if not _are_equivalent_lists(
-        [
-            f"{e['name']}{e['value']}{e['important']}"
-            for e in control_problem_dict["evidence_display"]
-        ],
-        [
-            f"{e['name']}{e['value']}{e['important']}"
-            for e in span_first_problem_dict["evidence_display"]
-        ],
-    ):
-        diffs["evidence_display"].append(fingerprint)
+            if non_shared_evidence_data_keys:
+                diffs["evidence_data.non_shared_keys"].append(
+                    f"{fingerprint}: {', '.join(sorted(non_shared_evidence_data_keys))}"
+                )
 
-    if (
-        control_problem_dict["evidence_data"].keys()
-        != span_first_problem_dict["evidence_data"].keys()
-    ):
-        non_shared_evidence_data_keys = set(
-            control_problem_dict["evidence_data"].keys()
-        ).symmetric_difference(span_first_problem_dict["evidence_data"].keys())
-        diffs["evidence_data.non_shared_keys"].append(
-            f"{fingerprint}: {', '.join(sorted(non_shared_evidence_data_keys))}"
-        )
+            for evidence_data_key in shared_evidence_data_keys:
+                if evidence_data_key in {
+                    "op",
+                    "parent_span_ids",
+                    "cause_span_ids",
+                    "offender_span_ids",
+                }:
+                    # These values have already been checked at the top level of the problem
+                    continue
 
-    for evidence_data_key, control_evidence_data_value in control_problem_dict[
-        "evidence_data"
-    ].items():
-        if evidence_data_key not in span_first_problem_dict["evidence_data"]:
-            continue
-        if evidence_data_key in {"op", "parent_span_ids", "cause_span_ids", "offender_span_ids"}:
-            # These values have already been checked at the top level of the problem
-            continue
+                control_evidence_data_value = control_evidence_data_dict.get(evidence_data_key)
+                span_first_evidence_data_value = span_first_evidence_data_dict.get(
+                    evidence_data_key
+                )
 
-        span_first_evidence_data_value = span_first_problem_dict["evidence_data"][evidence_data_key]
+                if isinstance(control_evidence_data_value, (int, float, str, NoneType)):
+                    if control_evidence_data_value != span_first_evidence_data_value:
+                        diffs[f"evidence_data.{evidence_data_key}"].append(fingerprint)
 
-        if evidence_data_key == "span_evidence_key_value":
-            if not _are_equivalent_lists(
-                [
-                    f"{d['key']}{d['value']}{d.get('is_multi_value')}"
-                    for d in control_evidence_data_value
-                ],
-                [
-                    f"{d['key']}{d['value']}{d.get('is_multi_value')}"
-                    for d in span_first_evidence_data_value
-                ],
-            ):
-                diffs[f"evidence_data.{evidence_data_key}"].append(fingerprint)
-        elif isinstance(control_evidence_data_value, (int, float, str, NoneType)):
-            if control_evidence_data_value != span_first_evidence_data_value:
-                diffs[f"evidence_data.{evidence_data_key}"].append(fingerprint)
-        elif isinstance(control_evidence_data_value, list):
-            if not _are_equivalent_lists(
-                control_evidence_data_value, span_first_evidence_data_value
-            ):
-                diffs[f"evidence_data.{evidence_data_key}"].append(fingerprint)
+                elif isinstance(control_evidence_data_value, list):
+                    if evidence_data_key == "span_evidence_key_value":
+                        # As with `evidence_display` above, flatten each list of dicts into a list
+                        # of strings before running the comparison
+                        control_evidence_data_value = [
+                            f"{c['key']}{c['value']}{c.get('is_multi_value')}"
+                            for c in control_evidence_data_value
+                        ]
+                        span_first_evidence_data_value = [
+                            f"{sf['key']}{sf['value']}{sf.get('is_multi_value')}"
+                            for sf in span_first_evidence_data_value
+                        ]
+
+                    if not _are_equivalent_lists(
+                        control_evidence_data_value, span_first_evidence_data_value
+                    ):
+                        diffs[f"evidence_data.{evidence_data_key}"].append(fingerprint)
 
 
 def _are_equivalent_lists(list1: Sequence[Any], list2: Sequence[Any]) -> bool:
