@@ -374,9 +374,7 @@ def _detect_transaction_change_points(
     _vc_scope = contextlib.nullcontext()
     if transaction_pairs:
         project = transaction_pairs[0][0]
-        _vc_scope = viewer_context_scope(
-            ViewerContext(organization_id=project.organization_id, project_id=project.id)
-        )
+        _vc_scope = viewer_context_scope(ViewerContext(organization_id=project.organization_id))
 
     with _vc_scope:
         regressions = EndpointRegressionDetector.detect_regressions(
@@ -385,13 +383,13 @@ def _detect_transaction_change_points(
             "p95(transaction.duration)",
             TIMESERIES_PER_BATCH,
         )
-    regressions = EndpointRegressionDetector.save_regressions_with_versions(regressions)
+        regressions = EndpointRegressionDetector.save_regressions_with_versions(regressions)
 
-    breakpoint_count = 0
+        breakpoint_count = 0
 
-    for regression in regressions:
-        breakpoint_count += 1
-        send_regression_to_platform(regression)
+        for regression in regressions:
+            breakpoint_count += 1
+            send_regression_to_platform(regression)
 
     metrics.incr(
         "statistical_detectors.breakpoint.emitted",
@@ -475,9 +473,7 @@ def _detect_function_change_points(
     _vc_scope = contextlib.nullcontext()
     if function_pairs:
         project = function_pairs[0][0]
-        _vc_scope = viewer_context_scope(
-            ViewerContext(organization_id=project.organization_id, project_id=project.id)
-        )
+        _vc_scope = viewer_context_scope(ViewerContext(organization_id=project.organization_id))
 
     with _vc_scope:
         regressions = FunctionRegressionDetector.detect_regressions(
@@ -486,14 +482,14 @@ def _detect_function_change_points(
             "p95()",
             TIMESERIES_PER_BATCH,
         )
-    regressions = FunctionRegressionDetector.save_regressions_with_versions(regressions)
+        regressions = FunctionRegressionDetector.save_regressions_with_versions(regressions)
 
-    breakpoint_count = 0
-    emitted_count = 0
+        breakpoint_count = 0
+        emitted_count = 0
 
-    for regression_chunk in chunked(regressions, 100):
-        breakpoint_count += len(regression_chunk)
-        emitted_count += emit_function_regression_issue(projects_by_id, regression_chunk, start)
+        for regression_chunk in chunked(regressions, 100):
+            breakpoint_count += len(regression_chunk)
+            emitted_count += emit_function_regression_issue(projects_by_id, regression_chunk, start)
 
     metrics.incr(
         "statistical_detectors.breakpoint.detected",

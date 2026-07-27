@@ -993,31 +993,30 @@ class SeerAgentClient:
         )
         with viewer_context_scope(self.viewer_context):
             response = make_agent_update_request(update_body)
-        if response.status >= 400:
-            raise SeerApiError("Seer request failed", response.status)
+            if response.status >= 400:
+                raise SeerApiError("Seer request failed", response.status)
 
-        if not blocking:
-            return None
+            if not blocking:
+                return None
 
-        # Poll until PR creation completes
-        start_time = time.time()
+            # Poll until PR creation completes
+            start_time = time.time()
 
-        while True:
-            with viewer_context_scope(self.viewer_context):
+            while True:
                 state = fetch_run_status(run_id, self.organization)
 
-            # Check if any PRs are still being created
-            any_creating = any(
-                pr.pr_creation_status == "creating" for pr in state.repo_pr_states.values()
-            )
+                # Check if any PRs are still being created
+                any_creating = any(
+                    pr.pr_creation_status == "creating" for pr in state.repo_pr_states.values()
+                )
 
-            if not any_creating:
-                return state
+                if not any_creating:
+                    return state
 
-            if time.time() - start_time > poll_timeout:
-                raise TimeoutError(f"PR creation timed out after {poll_timeout}s")
+                if time.time() - start_time > poll_timeout:
+                    raise TimeoutError(f"PR creation timed out after {poll_timeout}s")
 
-            time.sleep(poll_interval)
+                time.sleep(poll_interval)
 
     def launch_coding_agents(
         self,
