@@ -9,7 +9,7 @@ import {PlatformIcon} from 'platformicons';
 import {LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {InfoText} from '@sentry/scraps/info';
-import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -138,8 +138,6 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
   interactive: false,
   sortKey: 'browser.name',
   Component: ({replay, showDropdownFilters}) => {
-    const isLargeContainer = useResponsivePropValue({zero: false, '4xl': true});
-
     if (replay.is_archived) {
       return null;
     }
@@ -156,10 +154,7 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
       );
     }
 
-    const icon = generatePlatformIconName(
-      name ?? '',
-      version && isLargeContainer ? version : undefined
-    );
+    const icon = generatePlatformIconName(name ?? '', version ?? undefined);
 
     const nameOrUnknown = name ?? t('Unknown');
     const versionOrBlank = version ?? '';
@@ -363,16 +358,11 @@ export const ReplayOSColumn: ReplayTableColumn = {
   interactive: false,
   sortKey: 'os.name',
   Component: ({replay, showDropdownFilters}) => {
-    const isLargeContainer = useResponsivePropValue({zero: false, '4xl': true});
-
     if (replay.is_archived) {
       return null;
     }
     const {name, version} = replay.os;
-    const icon = generatePlatformIconName(
-      name ?? '',
-      version && isLargeContainer ? version : undefined
-    );
+    const icon = generatePlatformIconName(name ?? '', version ?? undefined);
 
     const nameOrUnknown = name ?? t('Unknown');
     const versionOrBlank = version ?? '';
