@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
-import type {Alignments} from 'sentry/components/tables/gridEditable';
+import type {ColumnAlign} from 'sentry/components/tables/gridEditable';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
@@ -1459,12 +1459,12 @@ export function fieldAlignment(
   columnName: string,
   columnType?: ColumnValueType,
   metadata?: Record<string, ColumnValueType>
-): Alignments {
+): ColumnAlign {
   if (columnName === SpanFields.IS_STARRED_TRANSACTION) {
     return 'right';
   }
 
-  let align: Alignments = 'left';
+  let align: ColumnAlign = 'left';
 
   if (columnType) {
     align = alignedTypes.includes(columnType) ? 'right' : 'left';
