@@ -355,6 +355,12 @@ class BackfillGroupPullRequestLifecycleTest(TestCase):
             project_id=self.project.id,
         )
 
+    def _backfill_pr_lifecycle(self) -> int:
+        return backfill_group_pr_lifecycle(
+            group_id=self.group.id,
+            project_id=self.project.id,
+        )
+
     def test_backfills_merged_pull_request(self) -> None:
         merged_at = self.now - timedelta(minutes=1)
         pull_request = self._create_linked_pull_request(
@@ -362,13 +368,7 @@ class BackfillGroupPullRequestLifecycleTest(TestCase):
             merged_at=merged_at,
         )
 
-        assert (
-            backfill_group_pr_lifecycle(
-                group_id=self.group.id,
-                project_id=self.project.id,
-            )
-            == 1
-        )
+        assert self._backfill_pr_lifecycle() == 1
 
         entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
         assert entry.type == GroupActionType.PULL_REQUEST_MERGED
@@ -395,13 +395,7 @@ class BackfillGroupPullRequestLifecycleTest(TestCase):
             closed_at=closed_at,
         )
 
-        assert (
-            backfill_group_pr_lifecycle(
-                group_id=self.group.id,
-                project_id=self.project.id,
-            )
-            == 2
-        )
+        assert self._backfill_pr_lifecycle() == 2
 
         entries = list(GroupActionLogEntry.objects.filter(group_id=self.group.id))
         assert {entry.type for entry in entries} == {GroupActionType.PULL_REQUEST_CLOSED}
@@ -416,13 +410,7 @@ class BackfillGroupPullRequestLifecycleTest(TestCase):
         self._create_linked_pull_request(state=PullRequestLifecycleState.OPEN)
         self._create_linked_pull_request(state=PullRequestLifecycleState.LOCKED)
 
-        assert (
-            backfill_group_pr_lifecycle(
-                group_id=self.group.id,
-                project_id=self.project.id,
-            )
-            == 0
-        )
+        assert self._backfill_pr_lifecycle() == 0
         assert not GroupActionLogEntry.objects.filter(group_id=self.group.id).exists()
 
     def test_open_sibling_keeps_fix_pr_open(self) -> None:
@@ -433,10 +421,7 @@ class BackfillGroupPullRequestLifecycleTest(TestCase):
         self._create_linked_pull_request(state=PullRequestLifecycleState.OPEN)
         self._backfill_resolved_action(closed_pull_request)
 
-        backfill_group_pr_lifecycle(
-            group_id=self.group.id,
-            project_id=self.project.id,
-        )
+        self._backfill_pr_lifecycle()
         derived = process_group_log(self.group.id)
 
         closed_entry = GroupActionLogEntry.objects.get(
@@ -454,10 +439,7 @@ class BackfillGroupPullRequestLifecycleTest(TestCase):
         )
         self._backfill_resolved_action(pull_request)
 
-        backfill_group_pr_lifecycle(
-            group_id=self.group.id,
-            project_id=self.project.id,
-        )
+        self._backfill_pr_lifecycle()
         derived = process_group_log(self.group.id)
 
         assert derived.data["has_open_fix_pr"] is False
@@ -466,33 +448,145 @@ class BackfillGroupPullRequestLifecycleTest(TestCase):
     def test_skips_terminal_pull_request_without_timestamp(self) -> None:
         self._create_linked_pull_request(state=PullRequestLifecycleState.MERGED)
 
-        assert (
-            backfill_group_pr_lifecycle(
-                group_id=self.group.id,
-                project_id=self.project.id,
-            )
-            == 0
-        )
+        assert self._backfill_pr_lifecycle() == 0
         assert not GroupActionLogEntry.objects.filter(group_id=self.group.id).exists()
 
-    def test_skips_pull_request_with_existing_lifecycle_entry(self) -> None:
+    def test_skips_pull_request_whose_latest_action_matches_state(self) -> None:
         pull_request = self._create_linked_pull_request(
             state=PullRequestLifecycleState.CLOSED,
             closed_at=self.now - timedelta(minutes=1),
         )
         self.create_group_action_log_entry(
             group=self.group,
-            type=GroupActionType.PULL_REQUEST_REOPENED,
-            data={"pull_request": str(pull_request.id)},
+            type=GroupActionType.PULL_REQUEST_CLOSED,
+            data={"pull_request": str(pull_request.id), "has_other_open_prs": False},
+            date_added=self.now - timedelta(minutes=1),
         )
 
-        assert (
-            backfill_group_pr_lifecycle(
-                group_id=self.group.id,
-                project_id=self.project.id,
-            )
-            == 0
+        assert self._backfill_pr_lifecycle() == 0
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+
+    def test_backfills_merge_after_stale_closed_action(self) -> None:
+        merged_at = self.now - timedelta(minutes=1)
+        pull_request = self._create_linked_pull_request(
+            state=PullRequestLifecycleState.MERGED,
+            closed_at=merged_at,
+            merged_at=merged_at,
         )
+        # PULL_REQUEST_CLOSED was logged before the other lifecycle actions existed,
+        # so the log's last word on this pull request is a stale close.
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.PULL_REQUEST_CLOSED,
+            data={"pull_request": pull_request.id, "has_other_open_prs": False},
+            date_added=self.now - timedelta(minutes=30),
+        )
+
+        assert self._backfill_pr_lifecycle() == 1
+
+        merged_entry = GroupActionLogEntry.objects.get(
+            group_id=self.group.id,
+            type=GroupActionType.PULL_REQUEST_MERGED,
+        )
+        assert merged_entry.data == {
+            "pull_request": pull_request.id,
+            "has_other_open_prs": False,
+        }
+        assert merged_entry.date_added == merged_at
+        assert self._backfill_pr_lifecycle() == 0
+
+    def test_backfills_close_after_stale_reopened_action(self) -> None:
+        closed_at = self.now - timedelta(minutes=1)
+        pull_request = self._create_linked_pull_request(
+            state=PullRequestLifecycleState.CLOSED,
+            closed_at=closed_at,
+        )
+        self._backfill_resolved_action(pull_request)
+        # The pull request was closed, reopened, then closed again — only the reopen
+        # made it into the log, so derived data still sees an open fix pull request.
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.PULL_REQUEST_REOPENED,
+            data={"pull_request": pull_request.id},
+            date_added=self.now - timedelta(seconds=90),
+        )
+
+        assert self._backfill_pr_lifecycle() == 1
+
+        closed_entry = GroupActionLogEntry.objects.get(
+            group_id=self.group.id,
+            type=GroupActionType.PULL_REQUEST_CLOSED,
+        )
+        assert closed_entry.date_added == closed_at
+        derived = process_group_log(self.group.id)
+        assert derived.data["has_open_fix_pr"] is False
+
+    def test_backfills_reopen_after_stale_closed_action(self) -> None:
+        pull_request = self._create_linked_pull_request(state=PullRequestLifecycleState.OPEN)
+        self._backfill_resolved_action(pull_request)
+        # The pull request was closed and later reopened, but only the close was logged,
+        # so derived data no longer sees the open fix pull request.
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.PULL_REQUEST_CLOSED,
+            data={"pull_request": pull_request.id, "has_other_open_prs": False},
+            date_added=self.now - timedelta(seconds=90),
+        )
+
+        assert self._backfill_pr_lifecycle() == 1
+
+        # PullRequest has no reopened timestamp, so the entry is dated now.
+        reopened_entry = GroupActionLogEntry.objects.get(
+            group_id=self.group.id,
+            type=GroupActionType.PULL_REQUEST_REOPENED,
+        )
+        assert reopened_entry.data == {"pull_request": pull_request.id}
+        assert reopened_entry.date_added >= self.now
+        assert reopened_entry.source == BACKFILL_PR_LIFECYCLE_SOURCE
+
+        derived = process_group_log(self.group.id)
+        assert derived.data["has_open_fix_pr"] is True
+        assert derived.progress == IssueProgressState.FIX_PROPOSED
+
+        assert self._backfill_pr_lifecycle() == 0
+
+    def test_backfills_reopen_for_locked_pull_request(self) -> None:
+        pull_request = self._create_linked_pull_request(state=PullRequestLifecycleState.LOCKED)
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.PULL_REQUEST_CLOSED,
+            data={"pull_request": str(pull_request.id), "has_other_open_prs": False},
+            date_added=self.now - timedelta(seconds=90),
+        )
+
+        assert self._backfill_pr_lifecycle() == 1
+        assert GroupActionLogEntry.objects.filter(
+            group_id=self.group.id,
+            type=GroupActionType.PULL_REQUEST_REOPENED,
+        ).exists()
+
+    def test_skips_reopen_for_open_pull_request_without_terminal_action(self) -> None:
+        pull_request = self._create_linked_pull_request(state=PullRequestLifecycleState.OPEN)
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.PULL_REQUEST_REOPENED,
+            data={"pull_request": pull_request.id},
+            date_added=self.now - timedelta(minutes=1),
+        )
+
+        assert self._backfill_pr_lifecycle() == 0
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+
+    def test_skips_reopen_for_pull_request_with_unknown_state(self) -> None:
+        pull_request = self._create_linked_pull_request(state=None)
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.PULL_REQUEST_CLOSED,
+            data={"pull_request": pull_request.id, "has_other_open_prs": False},
+            date_added=self.now - timedelta(minutes=1),
+        )
+
+        assert self._backfill_pr_lifecycle() == 0
         assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
 
     def test_idempotent_on_rerun(self) -> None:
@@ -501,14 +595,8 @@ class BackfillGroupPullRequestLifecycleTest(TestCase):
             merged_at=self.now - timedelta(minutes=1),
         )
 
-        first_count = backfill_group_pr_lifecycle(
-            group_id=self.group.id,
-            project_id=self.project.id,
-        )
-        second_count = backfill_group_pr_lifecycle(
-            group_id=self.group.id,
-            project_id=self.project.id,
-        )
+        first_count = self._backfill_pr_lifecycle()
+        second_count = self._backfill_pr_lifecycle()
 
         assert first_count == 1
         assert second_count == 0
@@ -521,10 +609,4 @@ class BackfillGroupPullRequestLifecycleTest(TestCase):
             merged_at=self.now - timedelta(minutes=1),
         )
 
-        assert (
-            backfill_group_pr_lifecycle(
-                group_id=self.group.id,
-                project_id=self.project.id,
-            )
-            == 0
-        )
+        assert self._backfill_pr_lifecycle() == 0

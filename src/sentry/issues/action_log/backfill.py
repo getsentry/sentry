@@ -23,6 +23,7 @@ from sentry.issues.action_log.types import (
     GroupActionType,
     PullRequestClosedAction,
     PullRequestMergedAction,
+    PullRequestReopenedAction,
 )
 from sentry.issues.derived.processing import invalidate_group_derived_data
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -46,6 +47,14 @@ _PR_LIFECYCLE_ACTION_TYPES = (
     GroupActionType.PULL_REQUEST_REOPENED,
     GroupActionType.PULL_REQUEST_MERGED,
     GroupActionType.PULL_REQUEST_UNLINKED,
+)
+
+# Lifecycle actions that leave a pull request finished as far as the log is concerned.
+# When one of these is the last action logged for a pull request that is open, the
+# reopen went unlogged and is reconstructed by the backfill.
+_TERMINAL_PR_LIFECYCLE_ACTION_TYPES = (
+    GroupActionType.PULL_REQUEST_CLOSED,
+    GroupActionType.PULL_REQUEST_MERGED,
 )
 
 
@@ -222,12 +231,39 @@ def backfill_group_activities(
     return total_created
 
 
-def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
-    """Backfill terminal lifecycle actions for pull requests that resolve a group.
+def _latest_pr_lifecycle_action_types(*, group_id: int, project_id: int) -> dict[int, int]:
+    """Map pull request id to the type of its most recently logged lifecycle action.
 
-    Only current terminal states with reliable timestamps can be reconstructed. A
-    pull request with any existing lifecycle action is skipped so this backfill
-    does not duplicate actions emitted by the live signal path.
+    Entries are scanned oldest first so the last write per pull request wins.
+    """
+    latest_action_types: dict[int, int] = {}
+    logged_entries = (
+        GroupActionLogEntry.objects.filter(
+            group_id=group_id,
+            project_id=project_id,
+            type__in=_PR_LIFECYCLE_ACTION_TYPES,
+        )
+        .order_by("date_added", "id")
+        .values_list("type", "data")
+    )
+    for action_type, data in logged_entries:
+        if not isinstance(data, dict):
+            continue
+        try:
+            pull_request_id = int(data["pull_request"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        latest_action_types[pull_request_id] = action_type
+    return latest_action_types
+
+
+def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
+    """Backfill missing pull request lifecycle actions for a group.
+
+    Each resolving pull request's current state is compared with its latest logged
+    lifecycle action. Closed and merged actions use their persisted timestamps. An
+    open pull request with a stale terminal action gets a synthetic reopen dated
+    now because pull requests do not store a reopened timestamp.
     """
     pull_request_ids = list(
         GroupLink.objects.filter(
@@ -251,26 +287,15 @@ def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
         if is_open_pull_request_state(state)
     }
 
-    already_logged_pull_request_ids: set[int] = set()
-    existing_data = GroupActionLogEntry.objects.filter(
-        group_id=group_id,
-        project_id=project_id,
-        type__in=_PR_LIFECYCLE_ACTION_TYPES,
-    ).values_list("data", flat=True)
-    for data in existing_data:
-        if not isinstance(data, dict):
-            continue
-        try:
-            already_logged_pull_request_ids.add(int(data["pull_request"]))
-        except (KeyError, TypeError, ValueError):
-            continue
+    latest_action_types = _latest_pr_lifecycle_action_types(
+        group_id=group_id, project_id=project_id
+    )
 
     entries: list[BackfillEntry] = []
     for pull_request_id, state, closed_at, merged_at in pull_requests:
-        if pull_request_id in already_logged_pull_request_ids:
-            continue
+        latest_action_type = latest_action_types.get(pull_request_id)
 
-        action: PullRequestClosedAction | PullRequestMergedAction
+        action: PullRequestClosedAction | PullRequestMergedAction | PullRequestReopenedAction
         date_added: datetime | None
         has_other_open_prs = bool(open_pull_request_ids - {pull_request_id})
         match state:
@@ -286,8 +311,43 @@ def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
                     has_other_open_prs=has_other_open_prs,
                 )
                 date_added = closed_at
+            case PullRequestLifecycleState.OPEN | PullRequestLifecycleState.LOCKED:
+                # The pull request is open, so a terminal action being the last thing
+                # logged means its reopen was never recorded. There is no reopened
+                # timestamp to recover, so use the current time
+                if latest_action_type not in _TERMINAL_PR_LIFECYCLE_ACTION_TYPES:
+                    continue
+                action = PullRequestReopenedAction(pull_request=pull_request_id)
+                date_added = timezone.now()
+                logger.info(
+                    "backfill_group_pr_lifecycle.synthetic_reopen",
+                    extra={
+                        "group_id": group_id,
+                        "project_id": project_id,
+                        "pull_request_id": pull_request_id,
+                        "state": state,
+                        "latest_action_type": latest_action_type,
+                    },
+                )
             case _:
+                # A null state is a legacy/unsynced pull request whose real state we
+                # don't know, so we can't tell a stale terminal action from a correct
+                # one. Leave the log alone rather than inventing a reopen.
+                logger.info(
+                    "backfill_group_pr_lifecycle.unknown_state",
+                    extra={
+                        "group_id": group_id,
+                        "project_id": project_id,
+                        "pull_request_id": pull_request_id,
+                        "state": state,
+                        "latest_action_type": latest_action_type,
+                    },
+                )
                 continue
+
+        action_type = action.get_type()
+        if latest_action_type == action_type:
+            continue
 
         if date_added is None:
             logger.info(
@@ -299,10 +359,6 @@ def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
                     "state": state,
                 },
             )
-            metrics.incr(
-                "issues.action_log.backfill_pr_lifecycle.skipped",
-                tags={"reason": "missing_timestamp"},
-            )
             continue
 
         entries.append(
@@ -311,7 +367,7 @@ def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
                 actor=SYSTEM_ACTOR,
                 source=BACKFILL_PR_LIFECYCLE_SOURCE,
                 date_added=date_added,
-                idempotency_key=f"pr-lifecycle:{pull_request_id}:{action.get_type().value}",
+                idempotency_key=f"pr-lifecycle:{pull_request_id}:{action_type.value}",
             )
         )
 
