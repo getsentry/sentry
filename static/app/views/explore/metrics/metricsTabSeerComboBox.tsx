@@ -34,8 +34,10 @@ import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from 'sentry/views/explore/metrics/con
 import {
   defaultAggregateSortBys,
   encodeMetricQueryParams,
+  type BaseMetricQuery,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
+import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {isTraceMetricTypeValue} from 'sentry/views/explore/metrics/types';
@@ -66,6 +68,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   const organization = useOrganization();
   const {projects} = useProjects();
   const queryParams = useQueryParams();
+  const metricQueries = useMultiMetricsQueryParams();
   const analyticsArea = useAnalyticsArea();
   const {askSeerSuggestedQueryRef, enableAISearch} = useSearchQueryBuilderAI();
 
@@ -245,7 +248,9 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
 
       // When Seer returns equations, replace all panels with the parsed
       // equation components + equation row. Apply the seer query, group bys,
-      // and sort to each row so they reflect the full seer response.
+      // and sort to the equation row because that's the focus of the request.
+      // Since the equation may reference other metrics, applying all of the group
+      // bys to unrelated metrics would be incorrect.
       let newEncodedMetrics: string[];
       if (seerEquationMetricQueries.length > 0) {
         newEncodedMetrics = seerEquationMetricQueries
@@ -272,12 +277,18 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
           })
           .filter(Boolean);
       } else {
-        newEncodedMetrics = [
-          encodeMetricQueryParams({
-            metric: nextMetric,
-            queryParams: newQueryParams,
-          }),
-        ].filter(Boolean);
+        newEncodedMetrics = metricQueries
+          .map((mq: BaseMetricQuery) => {
+            if (mq.queryParams === queryParams) {
+              return encodeMetricQueryParams({
+                ...mq,
+                metric: nextMetric,
+                queryParams: newQueryParams,
+              });
+            }
+            return encodeMetricQueryParams(mq);
+          })
+          .filter(Boolean);
       }
 
       const selection = {
@@ -331,6 +342,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       analyticsArea,
       askSeerSuggestedQueryRef,
       location,
+      metricQueries,
       navigate,
       organization,
       pageFilters.selection,
