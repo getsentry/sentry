@@ -39,7 +39,7 @@ const SELECTED_ISSUE_QUERY_PARAM = 'preview';
 const ASSIGNMENT_QUERY_PARAM = 'assignment';
 const ASSIGNMENT_FILTERS = ['me', 'my_teams', 'all'] as const;
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
-const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
+export const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   me: ' assigned:me',
   my_teams: ' assigned:[me,my_teams]',
   all: '',
@@ -54,7 +54,7 @@ interface InboxSectionConfig {
   query: string;
 }
 
-const SECTIONS: InboxSectionConfig[] = [
+export const SECTIONS: InboxSectionConfig[] = [
   {
     key: 'fix-proposed',
     label: t('Fix Proposed'),
