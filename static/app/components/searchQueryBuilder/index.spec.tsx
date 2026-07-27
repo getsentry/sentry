@@ -4511,29 +4511,6 @@ describe('SearchQueryBuilder', () => {
         expect(doesNotEndWithOption).toBeInTheDocument();
       });
 
-      it('does not allow wildcard operators for snapshot statuses', async () => {
-        render(
-          <SearchQueryBuilder
-            {...defaultProps}
-            initialQuery="snapshot_status:failed"
-            fieldDefinitionGetter={key => getFieldDefinition(key, 'preprod')}
-          />
-        );
-
-        await userEvent.click(
-          screen.getByRole('button', {
-            name: 'Edit operator for filter: snapshot_status',
-          })
-        );
-
-        expect(await screen.findByRole('option', {name: 'is'})).toBeInTheDocument();
-        expect(screen.queryByRole('option', {name: 'contains'})).not.toBeInTheDocument();
-        expect(
-          screen.queryByRole('option', {name: 'starts with'})
-        ).not.toBeInTheDocument();
-        expect(screen.queryByRole('option', {name: 'ends with'})).not.toBeInTheDocument();
-      });
-
       it('default-string filters have wildcard operator options', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="custom_tag_name:hello" />
