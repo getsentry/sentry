@@ -37,6 +37,7 @@ class DataConditionEvaluation(
         of the evaluation.
     - data: Any - The value that was used in the data conditions evaluation
     - error: ConditionError - Set when there's an error while evaluating a condition
+    - triggered: bool - If the evaluation should consider this condition "triggered" or not.
     """
 
     result: DataConditionResult = None

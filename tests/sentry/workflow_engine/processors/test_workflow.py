@@ -21,10 +21,7 @@ from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHist
 from sentry.workflow_engine.processors.data_condition_group import (
     get_data_conditions_for_group,
 )
-from sentry.workflow_engine.processors.evaluations import (
-    DataConditionGroupEvaluation,
-    TriggerResult,
-)
+from sentry.workflow_engine.processors.evaluations import DataConditionGroupEvaluation
 from sentry.workflow_engine.processors.workflow import (
     EvaluationStats,
     enqueue_workflows,
@@ -39,6 +36,16 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
 ERR = ConditionError(msg="test")
+
+
+def _triggered_when_eval(error: ConditionError | None = None) -> DataConditionGroupEvaluation:
+    """A triggered WHEN-group evaluation, as passed to evaluate_workflows_action_filters."""
+    return DataConditionGroupEvaluation(
+        result=True,
+        triggered=True,
+        error=error,
+        data={"condition_evaluations": [], "logic_type": DataConditionGroup.Type.ANY},
+    )
 
 
 class TestProcessWorkflows(BaseWorkflowTest):
@@ -691,6 +698,7 @@ class TestTaintTracking(BaseWorkflowTest):
         mock_process.return_value = (
             DataConditionGroupEvaluation(
                 result=False,
+                triggered=False,
                 data={"condition_evaluations": [], "logic_type": DataConditionGroup.Type.ANY},
                 error=ERR,
             ),
@@ -705,12 +713,12 @@ class TestTaintTracking(BaseWorkflowTest):
 
     def test_action_filter_stats_from_trigger_result(self) -> None:
         _, _, stats, _ = evaluate_workflows_action_filters(
-            {self.workflow: TriggerResult.TRUE}, self.event_data, {}, FROZEN_TIME
+            {self.workflow: _triggered_when_eval()}, self.event_data, {}, FROZEN_TIME
         )
         assert stats == EvaluationStats(tainted=0, untainted=1)
 
         _, _, stats, _ = evaluate_workflows_action_filters(
-            {self.workflow: TriggerResult.TRUE.with_error(ERR)}, self.event_data, {}, FROZEN_TIME
+            {self.workflow: _triggered_when_eval(error=ERR)}, self.event_data, {}, FROZEN_TIME
         )
         assert stats == EvaluationStats(tainted=1, untainted=0)
 
@@ -719,6 +727,7 @@ class TestTaintTracking(BaseWorkflowTest):
         mock_process.return_value = (
             DataConditionGroupEvaluation(
                 result=False,
+                triggered=False,
                 data={"condition_evaluations": [], "logic_type": DataConditionGroup.Type.ANY},
                 error=ERR,
             ),
@@ -726,7 +735,7 @@ class TestTaintTracking(BaseWorkflowTest):
         )
 
         _, _, stats, _ = evaluate_workflows_action_filters(
-            {self.workflow: TriggerResult.TRUE}, self.event_data, {}, FROZEN_TIME
+            {self.workflow: _triggered_when_eval()}, self.event_data, {}, FROZEN_TIME
         )
         assert stats == EvaluationStats(tainted=1, untainted=0)
 
@@ -738,7 +747,7 @@ class TestTaintTracking(BaseWorkflowTest):
         )
 
         _, queue_items, stats, _ = evaluate_workflows_action_filters(
-            {self.workflow: TriggerResult.TRUE}, self.event_data, {}, FROZEN_TIME
+            {self.workflow: _triggered_when_eval()}, self.event_data, {}, FROZEN_TIME
         )
         assert self.workflow in queue_items
         assert stats == EvaluationStats(tainted=0, untainted=0)
@@ -996,7 +1005,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
 
     def test_basic__no_filter(self) -> None:
         triggered_action_filters, _, _, _ = evaluate_workflows_action_filters(
-            {self.workflow: TriggerResult.TRUE}, self.event_data, {}, FROZEN_TIME
+            {self.workflow: _triggered_when_eval()}, self.event_data, {}, FROZEN_TIME
         )
         assert set(triggered_action_filters) == {self.action_group}
 
@@ -1009,7 +1018,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
 
         triggered_action_filters, _, _, _ = evaluate_workflows_action_filters(
-            {self.workflow: TriggerResult.TRUE}, self.event_data, {}, FROZEN_TIME
+            {self.workflow: _triggered_when_eval()}, self.event_data, {}, FROZEN_TIME
         )
         assert set(triggered_action_filters) == {self.action_group}
 
@@ -1021,7 +1030,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
 
         triggered_action_filters, _, _, _ = evaluate_workflows_action_filters(
-            {self.workflow: TriggerResult.TRUE}, self.event_data, {}, FROZEN_TIME
+            {self.workflow: _triggered_when_eval()}, self.event_data, {}, FROZEN_TIME
         )
         assert not triggered_action_filters
 
@@ -1043,7 +1052,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         self.action_group.save()
 
         triggered_action_filters, _, _, _ = evaluate_workflows_action_filters(
-            {self.workflow: TriggerResult.TRUE}, self.event_data, {}, FROZEN_TIME
+            {self.workflow: _triggered_when_eval()}, self.event_data, {}, FROZEN_TIME
         )
 
         assert self.action_group.conditions.count() == 2
@@ -1061,8 +1070,8 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         ]
 
         workflows = {
-            self.workflow: TriggerResult.TRUE,
-            workflow_two: TriggerResult.TRUE,
+            self.workflow: _triggered_when_eval(),
+            workflow_two: _triggered_when_eval(),
         }
         evaluate_workflows_action_filters(workflows, self.event_data, {}, FROZEN_TIME)
 
@@ -1102,7 +1111,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
 
         _, queue_items, _, _ = evaluate_workflows_action_filters(
-            {self.workflow: TriggerResult.TRUE}, self.event_data, {}, FROZEN_TIME
+            {self.workflow: _triggered_when_eval()}, self.event_data, {}, FROZEN_TIME
         )
 
         assert not queue_items

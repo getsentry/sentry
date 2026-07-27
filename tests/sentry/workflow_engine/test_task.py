@@ -12,10 +12,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
-from sentry.workflow_engine.processors.evaluations import (
-    DataConditionGroupEvaluation,
-    TriggerResult,
-)
+from sentry.workflow_engine.processors.evaluations import DataConditionGroupEvaluation
 from sentry.workflow_engine.processors.workflow import EvaluationStats
 from sentry.workflow_engine.tasks.utils import fetch_event
 from sentry.workflow_engine.tasks.workflows import process_workflow_activity
@@ -197,16 +194,16 @@ class TestProcessWorkflowActivity(TestCase):
             workflow=self.workflow,
         )
 
+        trigger_eval = DataConditionGroupEvaluation(
+            result=True,
+            triggered=True,
+            data={"condition_evaluations": [], "logic_type": "any"},
+        )
         mock_evaluate_workflow_triggers.return_value = (
-            {self.workflow: TriggerResult.TRUE},
+            {self.workflow: trigger_eval},
             {},
             EvaluationStats(),
-            {
-                self.workflow: DataConditionGroupEvaluation(
-                    result=True,
-                    data={"condition_evaluations": [], "logic_type": "any"},
-                )
-            },
+            {self.workflow: trigger_eval},
         )
         process_workflow_activity(
             activity_id=self.activity.id,
