@@ -1,8 +1,9 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -11,7 +12,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Sticky} from 'sentry/components/sticky';
-import {t} from 'sentry/locale';
+import {IconChevron} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -20,14 +22,92 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {DEFAULT_STATS_PERIOD} from './periods';
 import {SectionIssueCard} from './sectionIssueCard';
 import {STATUS_GROUP_META, StatusGroupTooltip, type StatusGroupKey} from './statusGroups';
-import type {OverviewView, SortValue} from './types';
+import type {AutofixStateKey, OverviewView, SortValue} from './types';
 import {SECTION_LIMIT, useAutofixSections} from './useAutofixSections';
+import {useSectionRuns} from './useSectionRuns';
+
+const PAGE_SIZE = 10;
 
 function formatSectionCount(count: number | undefined) {
   if (count === undefined) {
     return '…';
   }
   return count > SECTION_LIMIT ? `${SECTION_LIMIT}+` : count;
+}
+
+function useMemberQuery(memberProjectIds: string[], enabled: boolean) {
+  return useQuery({
+    ...useProjectMembersQueryOptions(memberProjectIds),
+    select: response => indexMembersByProject(response.json),
+    enabled,
+  });
+}
+
+function SectionBody({
+  section,
+  visibleCount,
+  onShowMore,
+  memberQuery,
+  orgSlug,
+  view,
+  period,
+}: {
+  memberQuery: ReturnType<typeof useMemberQuery>;
+  onShowMore: () => void;
+  orgSlug: string;
+  period: string;
+  section: ReturnType<typeof useAutofixSections>['sections'][number];
+  view: OverviewView;
+  visibleCount: number;
+}) {
+  const visibleIssues = useMemo(
+    () => section.issues.slice(0, visibleCount),
+    [section.issues, visibleCount]
+  );
+  const groupIds = useMemo(() => visibleIssues.map(issue => issue.id), [visibleIssues]);
+  // runMap is recreated on every render, so it must never be a hook dependency.
+  const {runMap} = useSectionRuns(groupIds);
+  const remaining = section.issues.length - visibleIssues.length;
+
+  return (
+    <SectionRows
+      gap={view === 'cards' ? 'md' : '0'}
+      paddingTop={view === 'cards' ? 'sm' : '0'}
+      data-view={view}
+    >
+      {visibleIssues.map(issue => (
+        <SectionIssueCard
+          key={issue.id}
+          issue={issue}
+          injectedRun={runMap.get(issue.id) ?? null}
+          // The batch didn't cover this group; let the card fetch its own run.
+          runMissing={!runMap.has(issue.id)}
+          memberList={
+            memberQuery.isError
+              ? undefined
+              : (memberQuery.data?.get(issue.project.slug) ?? [])
+          }
+          memberListLoading={memberQuery.isPending}
+          orgSlug={orgSlug}
+          sectionKey={section.key}
+          view={view}
+          statsPeriod={period}
+        />
+      ))}
+      {remaining > 0 && (
+        <Flex justify="center" padding="sm">
+          <Button
+            size="sm"
+            variant="transparent"
+            icon={<IconChevron direction="down" />}
+            onClick={onShowMore}
+          >
+            {tct('Show [count] more', {count: Math.min(PAGE_SIZE, remaining)})}
+          </Button>
+        </Flex>
+      )}
+    </SectionRows>
+  );
 }
 
 export function SectionList({
@@ -61,11 +141,28 @@ export function SectionList({
   const memberProjectIds = useMemo(() => projects.map(String), [projects]);
   const hasCardIssues =
     view === 'cards' && sections.some(section => section.issues.length > 0);
-  const memberQuery = useQuery({
-    ...useProjectMembersQueryOptions(memberProjectIds),
-    select: response => indexMembersByProject(response.json),
-    enabled: enabled && hasCardIssues,
-  });
+  const memberQuery = useMemberQuery(memberProjectIds, enabled && hasCardIssues);
+
+  const [visibleCounts, setVisibleCounts] = useState<
+    Partial<Record<AutofixStateKey, number>>
+  >({});
+
+  // A fresh issues query (any filter/sort/period/project change) means fresh
+  // pages — reset every section back to the first PAGE_SIZE.
+  const resetKey = useMemo(
+    () => JSON.stringify({projects, sort, period, assignee}),
+    [projects, sort, period, assignee]
+  );
+  useEffect(() => {
+    setVisibleCounts({});
+  }, [resetKey]);
+
+  const showMore = (key: AutofixStateKey) => {
+    setVisibleCounts(prev => ({
+      ...prev,
+      [key]: (prev[key] ?? PAGE_SIZE) + PAGE_SIZE,
+    }));
+  };
 
   const firstLoad = isPending && sections.every(section => section.isPending);
   const allSectionsEmpty = sections.every(
@@ -132,29 +229,15 @@ export function SectionList({
                   </Text>
                 </Container>
               ) : (
-                <SectionRows
-                  gap={view === 'cards' ? 'md' : '0'}
-                  paddingTop={view === 'cards' ? 'sm' : '0'}
-                  data-view={view}
-                >
-                  {section.issues.map(issue => (
-                    <SectionIssueCard
-                      key={issue.id}
-                      issue={issue}
-                      memberList={
-                        memberQuery.isError
-                          ? undefined
-                          : (memberQuery.data?.get(issue.project.slug) ?? [])
-                      }
-                      memberListLoading={memberQuery.isPending}
-                      orgSlug={organization.slug}
-                      runMissing
-                      sectionKey={section.key}
-                      view={view}
-                      statsPeriod={period}
-                    />
-                  ))}
-                </SectionRows>
+                <SectionBody
+                  section={section}
+                  visibleCount={visibleCounts[section.key] ?? PAGE_SIZE}
+                  onShowMore={() => showMore(section.key)}
+                  memberQuery={memberQuery}
+                  orgSlug={organization.slug}
+                  view={view}
+                  period={period}
+                />
               )}
             </Disclosure.Content>
           </StatusGroup>
