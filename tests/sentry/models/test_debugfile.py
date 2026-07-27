@@ -13,7 +13,6 @@ from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
-from objectstore_client import RequestError
 
 from sentry.models.debugfile import (
     DifMeta,
@@ -317,8 +316,7 @@ class DebugFileObjectstoreTest(TestCase):
         dif.delete()
 
         assert not ProjectDebugFile.objects.filter(id=dif_id).exists()
-        with pytest.raises(RequestError):
-            self._get_session().get(storage_path)
+        assert self._get_session().get(storage_path) is None
 
 
 class CreateDebugFileTest(APITestCase):
@@ -429,8 +427,8 @@ class CreateDebugFileTest(APITestCase):
         dif.delete()
 
         assert not File.objects.filter(id=file_id).exists()
-        with pytest.raises(RequestError):
-            get_debug_files_session(self.organization.id, self.project.id).get(storage_path)
+        session = get_debug_files_session(self.organization.id, self.project.id)
+        assert session.get(storage_path) is None
 
     @requires_objectstore
     def test_read_gate_prefers_legacy_file_when_disabled(self) -> None:
