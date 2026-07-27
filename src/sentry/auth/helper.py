@@ -148,7 +148,7 @@ class AuthIdentityHandler:
             skip_internal=False,
         )
 
-        after_2fa_url = absolute_uri(reverse("sentry-auth-sso"))
+        after_2fa_url = self.request.build_absolute_uri(reverse("sentry-auth-sso"))
 
         user_was_logged_in = auth.login(
             self.request,
