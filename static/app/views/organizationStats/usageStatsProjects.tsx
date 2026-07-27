@@ -10,7 +10,7 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {SearchBar} from 'sentry/components/searchBar';
-import type {Alignments} from 'sentry/components/tables/gridEditable';
+import type {ColumnAlign} from 'sentry/components/tables/gridEditable';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import type {SortDirection} from 'sentry/components/tables/sortableHeaderCell';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -431,7 +431,7 @@ export function UsageStatsProjects({
               <SortLink
                 canSort
                 title={h.title}
-                align={h.align as Alignments}
+                align={h.align as ColumnAlign}
                 direction={h.direction}
                 generateSortLink={h.onClick}
               />
