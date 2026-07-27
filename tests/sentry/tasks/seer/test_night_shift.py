@@ -789,7 +789,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             category=OutboxCategory.SEER_RUN_CREATE, object_identifier=seer_run.id
         )
         assert outbox.payload is not None
-        assert outbox.payload["viewer_context"] == {"organization_id": org.id}
+        assert outbox.payload["viewer_context"] is None
 
         assert seer_run.mirror_status == SeerRunMirrorStatus.PENDING
         assert seer_run.seer_run_state_id is None

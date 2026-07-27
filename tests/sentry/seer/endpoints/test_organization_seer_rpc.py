@@ -225,10 +225,7 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         assert response.data["org_id"] == self.organization.id
         assert "tables" in response.data
         # org_id injected from URL, not from caller-supplied args
-        mock_request.assert_called_once_with(
-            {"org_id": self.organization.id},
-            viewer_context={"organization_id": self.organization.id},
-        )
+        mock_request.assert_called_once_with({"org_id": self.organization.id})
 
     @with_feature("organizations:seer-public-rpc")
     @patch("sentry.seer.agent.snapshot_indexes.make_agent_export_indexes_request")
@@ -250,10 +247,7 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         response = self.client.post(path, data={"args": {"org_id": 99999}}, format="json")
 
         assert response.status_code == 200
-        mock_request.assert_called_once_with(
-            {"org_id": self.organization.id},
-            viewer_context={"organization_id": self.organization.id},
-        )
+        mock_request.assert_called_once_with({"org_id": self.organization.id})
 
     @with_feature("organizations:seer-public-rpc")
     def test_get_issue_committers_with_project_access(self) -> None:

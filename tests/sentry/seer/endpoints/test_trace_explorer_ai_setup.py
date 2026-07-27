@@ -24,10 +24,6 @@ class TraceExplorerAISetupTest(APITestCase):
         mock_fire_setup_request.assert_called_once_with(
             self.organization.id,
             [self.project.id],
-            viewer_context={
-                "organization_id": self.organization.id,
-                "user_id": self.user.id,
-            },
         )
 
     @with_feature("organizations:gen-ai-features")
@@ -79,10 +75,6 @@ class TraceExplorerAISetupTest(APITestCase):
         mock_fire_setup_request.assert_called_once_with(
             self.organization.id,
             [],
-            viewer_context={
-                "organization_id": self.organization.id,
-                "user_id": self.user.id,
-            },
         )
 
     def test_requires_feature_flag(self) -> None:

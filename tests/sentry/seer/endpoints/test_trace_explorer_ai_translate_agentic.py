@@ -53,10 +53,6 @@ class SearchAgentTranslateEndpointTest(APITestCase):
             strategy="Traces",
             model_name=None,
             metric_context=None,
-            viewer_context={
-                "organization_id": self.organization.id,
-                "user_id": self.user.id,
-            },
         )
 
     @patch(

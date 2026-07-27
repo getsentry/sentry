@@ -5,26 +5,25 @@ import pytest
 from sentry.seer.endpoints.search_agent_start import send_search_agent_start_request
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.testutils.cases import TestCase
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 
 class SendSearchAgentStartRequestTest(TestCase):
     @patch("sentry.receivers.outbox.cell.make_search_agent_start_request")
     def test_outbox_path_creates_run_and_flushes(self, mock_request: Mock) -> None:
         mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 42}))
-        viewer_context = SeerViewerContext(
-            organization_id=self.organization.id, user_id=self.user.id
-        )
 
-        result = send_search_agent_start_request(
-            organization=self.organization,
-            user_id=self.user.id,
-            project_ids=[self.project.id],
-            natural_language_query="errors today",
-            strategy="Issues",
-            viewer_context=viewer_context,
-        )
+        with viewer_context_scope(
+            ViewerContext(organization_id=self.organization.id, user_id=self.user.id)
+        ):
+            result = send_search_agent_start_request(
+                organization=self.organization,
+                user_id=self.user.id,
+                project_ids=[self.project.id],
+                natural_language_query="errors today",
+                strategy="Issues",
+            )
 
         assert isinstance(result, SeerRun)
         assert result.type == SeerRunType.ASSISTED_QUERY
@@ -36,31 +35,32 @@ class SendSearchAgentStartRequestTest(TestCase):
         assert sent_body["natural_language_query"] == "errors today"
 
     def test_outbox_flush_error_raises(self) -> None:
-        viewer_context = SeerViewerContext(
-            organization_id=self.organization.id, user_id=self.user.id
-        )
-
-        with pytest.raises(SeerApiError):
+        with (
+            viewer_context_scope(
+                ViewerContext(organization_id=self.organization.id, user_id=self.user.id)
+            ),
+            pytest.raises(SeerApiError),
+        ):
             send_search_agent_start_request(
                 organization=self.organization,
                 user_id=self.user.id,
                 project_ids=[self.project.id],
                 natural_language_query="errors today",
-                viewer_context=viewer_context,
             )
 
     @patch("sentry.receivers.outbox.cell.make_search_agent_start_request")
     def test_terminal_seer_failure_raises(self, mock_request: Mock) -> None:
         mock_request.return_value = Mock(status=400, json=Mock(return_value={}))
-        viewer_context = SeerViewerContext(
-            organization_id=self.organization.id, user_id=self.user.id
-        )
 
-        with pytest.raises(SeerApiError):
+        with (
+            viewer_context_scope(
+                ViewerContext(organization_id=self.organization.id, user_id=self.user.id)
+            ),
+            pytest.raises(SeerApiError),
+        ):
             send_search_agent_start_request(
                 organization=self.organization,
                 user_id=self.user.id,
                 project_ids=[self.project.id],
                 natural_language_query="errors today",
-                viewer_context=viewer_context,
             )

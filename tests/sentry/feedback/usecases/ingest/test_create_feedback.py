@@ -782,7 +782,6 @@ def test_create_feedback_issue_title(
         long_message,
         default_project.organization_id,
         False,
-        viewer_context={"organization_id": default_project.organization_id},
     )
     assert mock_produce_occurrence_to_kafka.call_count == 1
     call_args = mock_produce_occurrence_to_kafka.call_args
@@ -818,7 +817,6 @@ def test_create_feedback_issue_title_from_seer(
         "The login button is broken and the UI is slow",
         default_project.organization_id,
         True,
-        viewer_context={"organization_id": default_project.organization_id},
     )
 
     assert mock_produce_occurrence_to_kafka.call_count == 1

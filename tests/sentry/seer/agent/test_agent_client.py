@@ -555,9 +555,7 @@ class TestSeerAgentClient(TestCase):
 
         assert result.run_id == 123
         assert result.status == "processing"
-        mock_fetch.assert_called_once_with(
-            123, self.organization, viewer_context=client.viewer_context
-        )
+        mock_fetch.assert_called_once_with(123, self.organization)
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.poll_until_done")
@@ -577,9 +575,7 @@ class TestSeerAgentClient(TestCase):
 
         assert result.run_id == 123
         assert result.status == "completed"
-        mock_poll.assert_called_once_with(
-            123, self.organization, 1.0, 30.0, viewer_context=client.viewer_context
-        )
+        mock_poll.assert_called_once_with(123, self.organization, 1.0, 30.0)
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.fetch_run_status")
@@ -1376,7 +1372,7 @@ class TestStartFeatureRun(TestCase):
         assert body["feature_id"] == "night_shift"
         # ref/external_idempotency_key are stamped by the handler at dispatch, not enqueue.
         assert "ref" not in body
-        assert outbox.payload["viewer_context"]["organization_id"] == self.organization.id
+        assert outbox.payload["viewer_context"] is None
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
