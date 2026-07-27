@@ -69,7 +69,7 @@ const SortKeys = {
   title: {asc: 'title', desc: '-title'},
   dateCreated: {asc: 'dateCreated', desc: '-dateCreated'},
   createdBy: {asc: 'mydashboards', desc: 'mydashboards'},
-  lastVisited: {asc: 'recentlyViewed', desc: '-recentlyViewed'},
+  lastVisited: {asc: '-recentlyViewed', desc: 'recentlyViewed'},
 };
 
 type FavoriteButtonProps = {
@@ -145,6 +145,9 @@ function DashboardTable({
     'dashboards-user-last-visited'
   );
 
+  // TODO: When `dashboards-user-last-visited` is fully rolled out, delete the
+  // flag-off `columnOrder` branch below, the `createdBy` SortKeys entry and its
+  // special case in `renderHeadCell`, and the `mydashboards` default/fallback.
   const columnOrder: Array<GridColumnOrder<ResponseKeys>> = hasUserLastVisited
     ? [
         {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
@@ -228,19 +231,16 @@ function DashboardTable({
 
   function renderHeadCell(column: GridColumnOrder<string>) {
     if (column.key in SortKeys) {
+      const sortKey = SortKeys[column.key as keyof typeof SortKeys];
       const urlSort = decodeScalar(
         location.query.sort,
         hasUserLastVisited ? 'recentlyViewed' : 'mydashboards'
       );
-      const isCurrentSort =
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        urlSort === SortKeys[column.key].asc || urlSort === SortKeys[column.key].desc;
+      const currentDirection =
+        urlSort === sortKey.asc ? 'asc' : urlSort === sortKey.desc ? 'desc' : undefined;
+      const isCurrentSort = currentDirection !== undefined;
       const sortDirection =
-        !isCurrentSort || column.key === 'createdBy'
-          ? undefined
-          : urlSort.startsWith('-')
-            ? 'desc'
-            : 'asc';
+        !isCurrentSort || column.key === 'createdBy' ? undefined : currentDirection;
 
       return (
         <SortLink
@@ -249,14 +249,8 @@ function DashboardTable({
           direction={sortDirection}
           canSort
           generateSortLink={() => {
-            const newSort = isCurrentSort
-              ? sortDirection === 'asc'
-                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  SortKeys[column.key].desc
-                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  SortKeys[column.key].asc
-              : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                SortKeys[column.key].asc;
+            const newSort =
+              isCurrentSort && currentDirection === 'asc' ? sortKey.desc : sortKey.asc;
             return {
               ...location,
               query: {...location.query, sort: newSort},
