@@ -720,6 +720,14 @@ export const replayMobilePlatforms: PlatformKey[] = [
 // These are the gaming/engine platforms that can set up replay.
 export const replayGamingPlatforms: PlatformKey[] = ['unreal'];
 
+// These are the platforms whose replays are recorded as video (mobile SDKs +
+// gaming engines). They share the same native replay UI: video-only table
+// columns and platform-specific onboarding rather than the browser (rrweb) flow.
+export const replayVideoPlatforms: readonly PlatformKey[] = [
+  ...replayMobilePlatforms,
+  ...replayGamingPlatforms,
+];
+
 // These are all the platforms that can set up replay.
 export const replayPlatforms: readonly PlatformKey[] = [
   ...replayFrontendPlatforms,

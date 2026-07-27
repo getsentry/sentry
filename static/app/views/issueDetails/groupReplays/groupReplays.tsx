@@ -27,7 +27,7 @@ import {
   ReplaySessionColumn,
 } from 'sentry/components/replays/table/replayTableColumns';
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
-import {replayMobilePlatforms} from 'sentry/data/platformCategories';
+import {replayVideoPlatforms} from 'sentry/data/platformCategories';
 import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -96,7 +96,7 @@ function GroupReplaysContent({group}: Props) {
     organization,
   });
 
-  const isMobilePlatform = replayMobilePlatforms.includes(
+  const isVideoReplayPlatform = replayVideoPlatforms.includes(
     group.project.platform ?? 'other'
   );
 
@@ -130,7 +130,7 @@ function GroupReplaysContent({group}: Props) {
           </Flex>
         </Stack>
         <ReplayTable
-          columns={isMobilePlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
+          columns={isVideoReplayPlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
           error={fetchError}
           isPending={isFetching}
           replays={[]}

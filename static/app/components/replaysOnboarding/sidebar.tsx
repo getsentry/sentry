@@ -26,11 +26,10 @@ import {TextOverflow} from 'sentry/components/textOverflow';
 import {
   replayBackendPlatforms,
   replayFrontendPlatforms,
-  replayGamingPlatforms,
   replayJsLoaderInstructionsPlatformList,
-  replayMobilePlatforms,
   replayOnboardingPlatforms,
   replayPlatforms,
+  replayVideoPlatforms,
 } from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -217,14 +216,11 @@ function OnboardingContent({
 
   const backendPlatform =
     currentProject.platform && replayBackendPlatforms.includes(currentProject.platform);
-  const mobilePlatform =
-    currentProject.platform && replayMobilePlatforms.includes(currentProject.platform);
-  const gamingPlatform =
-    currentProject.platform && replayGamingPlatforms.includes(currentProject.platform);
   // Mobile SDKs and gaming engines record replays as video: they use their own
   // native replay onboarding (not the browser JS-loader flow) and don't expose
   // the rrweb mask/block toggles.
-  const nativeReplayPlatform = mobilePlatform || gamingPlatform;
+  const nativeReplayPlatform =
+    currentProject.platform && replayVideoPlatforms.includes(currentProject.platform);
   const npmOnlyFramework =
     currentProject.platform &&
     replayFrontendPlatforms
