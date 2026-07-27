@@ -48,3 +48,7 @@ class DebugFileObjectstoreMigrationModelTest(TestCase):
         enqueue_shard.assert_called_once()
         shard.refresh_from_db()
         assert shard.cursor_id == 42
+
+    def test_resume_missing_run_raises_value_error(self) -> None:
+        with pytest.raises(ValueError, match="does not exist"):
+            resume_migration(run_id=999_999_999)

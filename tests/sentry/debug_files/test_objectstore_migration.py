@@ -101,3 +101,16 @@ class DebugFileObjectstoreMigrationTest(TestCase):
 
         self.debug_file.refresh_from_db()
         assert self.debug_file.file_id is not None
+
+    def test_missing_project_skips_and_advances_cursor(self) -> None:
+        with patch(
+            "sentry.models.project.Project.objects.get_from_cache",
+            side_effect=self.project.__class__.DoesNotExist,
+        ):
+            size = self.migrate()
+
+        assert size == 0
+        self.debug_file.refresh_from_db()
+        self.shard.refresh_from_db()
+        assert self.debug_file.file_id is not None
+        assert self.shard.cursor_id == self.debug_file.id

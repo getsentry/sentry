@@ -86,7 +86,10 @@ def resume_migration(run_id: int, shard_ids: list[int] | None = None) -> int:
     ensure_migration_enabled()
     from sentry.debug_files.objectstore_migration_tasks import enqueue_shard_heads
 
-    run = DebugFileObjectstoreMigrationRun.objects.get(id=run_id)
+    try:
+        run = DebugFileObjectstoreMigrationRun.objects.get(id=run_id)
+    except DebugFileObjectstoreMigrationRun.DoesNotExist as error:
+        raise ValueError(f"Migration run {run_id} does not exist") from error
     return enqueue_shard_heads(run, shard_ids=shard_ids)
 
 
@@ -148,7 +151,12 @@ def _verify_object(
     )
 
 
-def _prepare_object(debug_file: ProjectDebugFile) -> VerifiedObject:
+def _prepare_object(debug_file: ProjectDebugFile) -> VerifiedObject | None:
+    """Ensure a verified Objectstore object exists for this debug file.
+
+    Returns None when the row cannot be migrated and should be skipped (e.g. the
+    owning project was deleted). Callers advance the shard cursor past skips.
+    """
     file = debug_file.file
     if file is None:
         raise ValueError("Debug file has no File to migrate")
@@ -157,7 +165,15 @@ def _prepare_object(debug_file: ProjectDebugFile) -> VerifiedObject:
 
     from sentry.models.project import Project
 
-    project = Project.objects.get_from_cache(id=debug_file.project_id)
+    try:
+        project = Project.objects.get_from_cache(id=debug_file.project_id)
+    except Project.DoesNotExist:
+        logger.info(
+            "debug_files.objectstore_migration.project_missing",
+            extra={"debug_file_id": debug_file.id, "project_id": debug_file.project_id},
+        )
+        return None
+
     session = get_debug_files_session(project.organization_id, project.id)
     date_created = file.timestamp
     verified = None
@@ -248,10 +264,8 @@ def _commit_result(
         # Lock only the shard row. The run is immutable after start; locking it
         # would serialize concurrent shard cutovers on a shared row.
         try:
-            shard = (
-                DebugFileObjectstoreMigrationShard.objects.select_for_update()
-                .select_related("run")
-                .get(run_id=run_id, shard_id=shard_id)
+            shard = DebugFileObjectstoreMigrationShard.objects.select_for_update().get(
+                run_id=run_id, shard_id=shard_id
             )
         except DebugFileObjectstoreMigrationShard.DoesNotExist as error:
             raise RuntimeError("Unknown migration run or shard") from error
@@ -262,15 +276,13 @@ def _commit_result(
             current = None
 
         size = 0
-        if current is not None and current.file_id is not None:
-            if verified is None:
-                raise ValueError("Missing verified Objectstore payload")
+        if current is not None and current.file_id is not None and verified is not None:
             current.storage_path = verified.storage_path
             current.content_type = verified.content_type
             current.file_size = verified.file_size
             current.date_created = verified.date_created
             current.checksum = verified.checksum
-            current.file_id = None
+            current.file = None
             current.save(
                 update_fields=[
                     "storage_path",
@@ -283,6 +295,7 @@ def _commit_result(
             )
             size = verified.file_size
 
+        # Always advance the cursor, including skips (missing project / already migrated).
         shard.cursor_id = max(shard.cursor_id, debug_file_id)
         shard.save(update_fields=["cursor_id", "date_updated"])
         return size
