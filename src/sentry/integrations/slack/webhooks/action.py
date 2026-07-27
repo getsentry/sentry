@@ -717,15 +717,18 @@ class SlackActionEndpoint(Endpoint):
                 continue
 
             if action_data.get("type") in ("static_select", "external_select"):
+                selected_option = action_data.get("selected_option")
+                if not isinstance(selected_option, dict):
+                    continue
                 action = BlockKitMessageAction(
                     name=action_name,
-                    label=action_data["selected_option"]["text"]["text"],
+                    label=selected_option["text"]["text"],
                     type=action_data["type"],
-                    value=action_data["selected_option"]["value"],
+                    value=selected_option["value"],
                     action_id=action_data["action_id"],
                     block_id=action_data["block_id"],
                     selected_options=[
-                        {"value": action_data.get("selected_option", {}).get("value")}
+                        {"value": selected_option.get("value")}
                     ],
                 )
                 # TODO: selected_options is kinda ridiculous, I think this is built to handle multi-select?
