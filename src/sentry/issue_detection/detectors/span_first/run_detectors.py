@@ -280,7 +280,7 @@ def _collect_single_problem_diffs(
             # These values have already been checked at the top level of the problem
             continue
 
-        span_first_value = span_first_problem_dict["evidence_data"][key]
+        span_first_evidence_data_value = span_first_problem_dict["evidence_data"][key]
 
         if key == "span_evidence_key_value":
             if not _are_equivalent_lists(
@@ -288,14 +288,19 @@ def _collect_single_problem_diffs(
                     f"{d['key']}{d['value']}{d.get('is_multi_value')}"
                     for d in control_evidence_data_value
                 ],
-                [f"{d['key']}{d['value']}{d.get('is_multi_value')}" for d in span_first_value],
+                [
+                    f"{d['key']}{d['value']}{d.get('is_multi_value')}"
+                    for d in span_first_evidence_data_value
+                ],
             ):
                 diffs[f"evidence_data.{key}"].append(fingerprint)
         elif isinstance(control_evidence_data_value, (int, float, str, NoneType)):
-            if control_evidence_data_value != span_first_value:
+            if control_evidence_data_value != span_first_evidence_data_value:
                 diffs[f"evidence_data.{key}"].append(fingerprint)
         elif isinstance(control_evidence_data_value, list):
-            if not _are_equivalent_lists(control_evidence_data_value, span_first_value):
+            if not _are_equivalent_lists(
+                control_evidence_data_value, span_first_evidence_data_value
+            ):
                 diffs[f"evidence_data.{key}"].append(fingerprint)
 
 
