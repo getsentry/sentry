@@ -25,7 +25,7 @@ import type {
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
 import {AGGREGATIONS, DEPRECATED_FIELDS} from 'sentry/utils/discover/fields';
-import type {FieldValueType} from 'sentry/utils/fields';
+import {classifyTagKey, isTypedTagKey, type FieldValueType} from 'sentry/utils/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
@@ -317,6 +317,18 @@ class _QueryField extends Component<Props> {
     const equationName = `equation:${name}`;
     if (fieldOptions[equationName]) {
       return fieldOptions[equationName].value;
+    }
+
+    // EAP attributes are stored with an explicit type, e.g. `tags[foo,number]`
+    // or `tags[foo,boolean]`, and their options are keyed by the attribute's
+    // FieldKind (`measurement:`/`boolean:`/`tag:`). Classify the key to find the
+    // matching option instead of relying on the generic `tag:` lookup below,
+    // which would keep the `,type` suffix and fail to match.
+    if (isTypedTagKey(name)) {
+      const typedTagName = `${classifyTagKey(name)}:${name}`;
+      if (fieldOptions[typedTagName]) {
+        return fieldOptions[typedTagName].value;
+      }
     }
 
     const tagName =

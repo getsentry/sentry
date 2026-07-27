@@ -3767,3 +3767,12 @@ export function prettifyTagKey(key: string): string {
   const result = key.match(TYPED_TAG_KEY_RE);
   return result?.[1] ?? key;
 }
+
+/**
+ * Whether a key uses the explicit typed form, e.g. `tags[foo,number]`.
+ * Shares the same pattern as `classifyTagKey`/`prettifyTagKey` so callers
+ * don't reinvent the regex.
+ */
+export function isTypedTagKey(key: string): boolean {
+  return TYPED_TAG_KEY_RE.test(key);
+}
