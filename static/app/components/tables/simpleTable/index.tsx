@@ -53,6 +53,7 @@ function HeaderCell({
   return (
     <ColumnHeaderCell
       {...props}
+      aria-sort={isSorted ? (sort === 'asc' ? 'ascending' : 'descending') : undefined}
       isSorted={isSorted}
       onClick={handleSortClick}
       role="columnheader"
