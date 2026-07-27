@@ -2261,11 +2261,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout, keyed on organization id, of the per-org sample rates
-# summary log: one line per org per cycle carrying the org, project and transaction
-# sample rates for both the EAP and generic metrics pipelines. The payload scales
-# with the number of projects and transactions in the org, so keep this low unless
-# you are actively comparing the two pipelines. 0.0 disables the log entirely.
 register(
     "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate",
     type=Float,
