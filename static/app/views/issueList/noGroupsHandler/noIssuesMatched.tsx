@@ -24,7 +24,7 @@ export function NoIssuesMatched() {
       data-test-id="empty-state"
       direction={{zero: 'column', xl: 'row'}}
       align={{zero: 'center', xl: 'stretch'}}
-      gap={{zero: '0', xl: '3xl'}}
+      gap="3xl"
       justify="center"
       padding="2xl"
       minHeight="260px"
