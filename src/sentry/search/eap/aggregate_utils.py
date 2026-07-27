@@ -142,9 +142,7 @@ def apply_combinators(
     combinator_aggregate_definitions: dict[str, AggregateDefinition] = {}
     for combinator, apply_combinator in combinators.items():
         for function, definition in definitions.items():
-            if not isinstance(function, ConditionalAggregateDefinition) and not function.endswith(
-                f"_{combinator}"
-            ):
+            if not isinstance(definition, ConditionalAggregateDefinition):
                 function_label = f"{function}_{combinator}"
                 if function_label not in definitions:
                     combinator_aggregate_definitions[function_label] = apply_combinator(definition)
