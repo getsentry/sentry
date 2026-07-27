@@ -286,6 +286,8 @@ class ProjectDebugFile(Model):
             assert self.storage_path is not None
             try:
                 response = self._get_objectstore_session().get(self.storage_path)
+                if response is None:
+                    raise FileNotFoundError("Debug file does not exist in objectstore")
                 return response.payload
             except Exception:
                 logger.exception("Failed to read debug file from Objectstore")
@@ -322,7 +324,10 @@ class ProjectDebugFile(Model):
             tmp_path = None
             try:
                 # Get the payload and save it to a temporary file.
-                stream = self._get_objectstore_session().get(self.storage_path).payload
+                response = self._get_objectstore_session().get(self.storage_path)
+                if response is None:
+                    raise FileNotFoundError("Debug file does not exist in objectstore")
+                stream = response.payload
                 try:
                     tmp = tempfile.NamedTemporaryFile(dir=base, delete=False)
                     tmp_path = tmp.name

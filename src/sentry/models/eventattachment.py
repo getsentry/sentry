@@ -182,6 +182,8 @@ class EventAttachment(Model):
             key = self.blob_path.removeprefix(V2_PREFIX)
             organization_id = _get_organization(self.project_id)
             response = get_attachments_session(organization_id, self.project_id).get(key)
+            if response is None:
+                raise FileNotFoundError("Attachment does not exist in objectstore")
             return response.payload
 
         raise NotImplementedError()
@@ -197,6 +199,8 @@ class EventAttachment(Model):
             key = self.blob_path.removeprefix(V2_PREFIX)
             session = get_attachments_session(_get_organization(self.project_id), self.project_id)
             response = session.get(key, accept_encoding=accept_encoding or None)
+            if response is None:
+                raise FileNotFoundError("Attachment does not exist in objectstore")
             return BlobStream(payload=response.payload, encoding=response.metadata.compression)
         else:
             return BlobStream(payload=self.getfile(), encoding=None)
