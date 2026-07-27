@@ -570,7 +570,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         _, kwargs = mock_trigger.call_args
         assert [f.text for f in kwargs["feedback"]] == ["fresh"]
         assert kwargs["referrer"] == AutofixReferrer.GITHUB_PR_COMMENT
-        assert kwargs["activity_user_id"] == self.user.id
+        assert kwargs["actor_user_id"] == self.user.id
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
