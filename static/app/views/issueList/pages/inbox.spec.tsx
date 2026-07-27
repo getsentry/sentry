@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {
   AutofixRepoPRStateFixture,
   ExplorerAutofixResponseFixture,
@@ -18,6 +19,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {GroupList} from 'sentry/components/issues/groupList';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProgressState} from 'sentry/types/group';
 
@@ -176,6 +178,12 @@ describe('InboxPage', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
       body: fixProposedGroup,
+    });
+    // Opening the preview marks the group seen.
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
+      method: 'PUT',
+      body: {hasSeen: true},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/setup/`,
@@ -396,6 +404,52 @@ describe('InboxPage', () => {
     for (const request of allRequests) {
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
     }
+  });
+
+  it('marks an issue as seen and clears its unread indicator when previewed', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    const markSeenRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
+      method: 'PUT',
+      body: {hasSeen: true},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-stats/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [fixProposedGroup],
+    });
+
+    // GroupList caches the issues URL as a plain list rather than as paginated
+    // pages. Rendering it alongside the inbox means the optimistic update has to
+    // cope with both cache shapes, as it does in the app.
+    render(
+      <Fragment>
+        <InboxPage />
+        <GroupList numPlaceholderRows={1} queryParams={{query: ''}} />
+      </Fragment>,
+      {organization, initialRouterConfig}
+    );
+
+    const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
+    expect(await within(fixSection).findByLabelText('Unread issue')).toBeInTheDocument();
+
+    await openFixProposedPreview();
+
+    await waitFor(() =>
+      expect(markSeenRequest).toHaveBeenCalledWith(
+        `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
+        expect.objectContaining({method: 'PUT', data: {hasSeen: true}})
+      )
+    );
+
+    // Clears from the patched cache, without waiting for a refetch.
+    await waitFor(() =>
+      expect(within(fixSection).queryByLabelText('Unread issue')).not.toBeInTheDocument()
+    );
   });
 
   it('loads and appends the next page of a section', async () => {
