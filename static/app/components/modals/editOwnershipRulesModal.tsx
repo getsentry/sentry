@@ -24,7 +24,7 @@ function EditOwnershipRulesModal({Body, Header, onSave, closeModal, ...props}: P
 }
 
 export const modalCss = (theme: Theme) => css`
-  @container (min-width: ${theme.container.xl}) {
+  @media (min-width: ${theme.breakpoints.sm}) {
     width: 80%;
   }
   [role='document'] {

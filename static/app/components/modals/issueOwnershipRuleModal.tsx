@@ -52,7 +52,7 @@ function IssueOwnershipRuleModal({
 }
 
 export const modalCss = (theme: Theme) => css`
-  @container (min-width: ${theme.container.xl}) {
+  @media (min-width: ${theme.breakpoints.sm}) {
     width: 80%;
   }
 `;
