@@ -13,7 +13,7 @@ from sentry.issue_detection.detectors.span_first.span_first_utils import (
     SpanFirstDetectorsRolloutController,
 )
 from sentry.issue_detection.performance_detection import get_detection_settings
-from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issue_detection.performance_problem import PerformanceProblem, PerformanceProblemDict
 from sentry.issue_detection.types import StandaloneSpan
 from sentry.issues.grouptype import (
     PerformanceNPlusOneAPICallsGroupType,
@@ -22,6 +22,7 @@ from sentry.issues.grouptype import (
 from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.rollout import SourceOfTruth
+from sentry.utils.sdk import sdk_logger
 
 logger = logging.getLogger(__name__)
 
@@ -342,3 +343,66 @@ def _strip_unnecessary_problem_data(
                 del evidence_data["repeating_spans_compact"]
 
     return problem_dict
+
+
+def _log_mismatch(
+    *,
+    problem_type: str,
+    control_problems: list[PerformanceProblemDict],
+    span_first_problems: list[PerformanceProblemDict],
+    shared_fingerprints: set[str],
+    non_shared_fingerprints: set[str],
+    # A mapping of locations where data differs to fingerprints of the problems which differ in
+    # those locations
+    diffs: dict[str, list[str]],
+    # Trace, project, and org ids/slugs
+    extra_metadata: dict[str, Any],
+) -> None:
+    # Remove duplicate data from each problem dict to make logs easier to parse
+    stripped_control_problems = [
+        _strip_unnecessary_problem_data(problem_dict, diffs) for problem_dict in control_problems
+    ]
+    stripped_span_first_problems = [
+        _strip_unnecessary_problem_data(problem_dict, diffs) for problem_dict in span_first_problems
+    ]
+
+    data = {
+        "problem_type": problem_type,
+        "raw_data": {
+            "control": (
+                stripped_control_problems[0]
+                if len(stripped_control_problems) == 1
+                else stripped_control_problems
+            ),
+            "span_first": (
+                stripped_span_first_problems[0]
+                if len(stripped_span_first_problems) == 1
+                else stripped_span_first_problems
+            ),
+        },
+        **extra_metadata,
+    }
+
+    # If there are any problems unique to one set or another, record that
+    if non_shared_fingerprints:
+        data["non_shared_fingerprints"] = ", ".join(sorted(non_shared_fingerprints))
+
+    # If there are any problems that appear in both the control set and the span-first set, record
+    # where they differ
+    if shared_fingerprints:
+        data["diff_keys"] = ", ".join(sorted(diffs.keys()))
+
+    # If either the control or span-first problem sets has multiple problems in it, record which of
+    # those problems the mismatches apply to
+    if len(control_problems) > 1 or len(span_first_problems) > 1:
+        # Make our diff set more compact by stringifying each list of fingerprints
+        data["diffs"] = {
+            diff_key: ", ".join(sorted(fingerprints)) for diff_key, fingerprints in diffs.items()
+        }
+
+    sdk_logger.info(
+        "span_first_detectors.problem_mismatch",
+        # Record all of our data under a single key so it doesn't get mixed in with all of the
+        # random metadata in the log display
+        attributes={"data": data},
+    )
