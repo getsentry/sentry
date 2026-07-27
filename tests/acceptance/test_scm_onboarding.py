@@ -139,7 +139,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 {
                     "organizations:onboarding-scm-experiment": True,
                     "organizations:onboarding-scm-project-details-experiment": True,
-                    "organizations:integrations-github-platform-detection": True,
                 }
             ),
             mock.patch(
@@ -226,7 +225,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 {
                     "organizations:onboarding-scm-experiment": True,
                     "organizations:onboarding-scm-project-details-experiment": True,
-                    "organizations:integrations-github-platform-detection": True,
                 }
             ),
             mock.patch(
@@ -330,7 +328,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 {
                     "organizations:onboarding-scm-experiment": True,
                     "organizations:onboarding-scm-project-details-experiment": True,
-                    "organizations:integrations-github-platform-detection": True,
                 }
             ),
             mock.patch(
@@ -478,7 +475,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 {
                     "organizations:onboarding-scm-experiment": True,
                     "organizations:onboarding-scm-project-details-experiment": True,
-                    "organizations:integrations-github-platform-detection": True,
                 }
             ),
             mock.patch(
@@ -614,7 +610,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 {
                     "organizations:onboarding-scm-experiment": True,
                     "organizations:onboarding-scm-project-details-experiment": True,
-                    "organizations:integrations-github-platform-detection": True,
                 }
             ),
             mock.patch(
@@ -891,7 +886,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 {
                     "organizations:onboarding-scm-experiment": True,
                     "organizations:onboarding-scm-project-details-experiment": False,
-                    "organizations:integrations-github-platform-detection": True,
                 }
             ),
             mock.patch(

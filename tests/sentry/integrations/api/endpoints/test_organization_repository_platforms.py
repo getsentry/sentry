@@ -10,7 +10,6 @@ from django.utils import timezone
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 
-FEATURE_FLAG = "organizations:integrations-github-platform-detection"
 ENDPOINT_MODULE = "sentry.integrations.api.endpoints.organization_repository_platforms"
 
 
@@ -41,10 +40,6 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             integration_id=self.integration.id,
         )
 
-    def test_feature_flag_required(self) -> None:
-        response = self.get_response(self.organization.slug, self.repo.id)
-        assert response.status_code == 404
-
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_detects_framework_and_language(self, get_jwt: mock.MagicMock) -> None:
@@ -65,10 +60,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             status=200,
         )
 
-        with self.feature(FEATURE_FLAG):
-            response = self.get_success_response(
-                self.organization.slug, self.repo.id, status_code=200
-            )
+        response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
 
         platforms = {p["platform"]: p for p in response.data["platforms"]}
         assert "python-django" in platforms
@@ -95,10 +87,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             status=409,
         )
 
-        with self.feature(FEATURE_FLAG):
-            response = self.get_success_response(
-                self.organization.slug, self.repo.id, status_code=200
-            )
+        response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
 
         assert response.data == {"platforms": []}
         assert mock_sentry_sdk.capture_exception.called
@@ -120,8 +109,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             status=500,
         )
 
-        with self.feature(FEATURE_FLAG):
-            response = self.get_response(self.organization.slug, self.repo.id)
+        response = self.get_response(self.organization.slug, self.repo.id)
 
         assert response.status_code == 502
         assert "Failed to detect" in response.data["detail"]
@@ -154,10 +142,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             status=200,
         )
 
-        with self.feature(FEATURE_FLAG):
-            response = self.get_success_response(
-                self.organization.slug, self.repo.id, status_code=200
-            )
+        response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
 
         assert response.data == {
             "platforms": [
@@ -202,10 +187,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             status=200,
         )
 
-        with self.feature(FEATURE_FLAG):
-            response = self.get_success_response(
-                self.organization.slug, self.repo.id, status_code=200
-            )
+        response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
 
         assert response.data == {
             "platforms": [
@@ -234,8 +216,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
         }
 
     def test_repo_not_found(self) -> None:
-        with self.feature(FEATURE_FLAG):
-            response = self.get_response(self.organization.slug, 99999)
+        response = self.get_response(self.organization.slug, 99999)
         assert response.status_code == 404
 
     def test_non_github_repo(self) -> None:
@@ -246,8 +227,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             external_id="456",
         )
 
-        with self.feature(FEATURE_FLAG):
-            response = self.get_response(self.organization.slug, repo.id)
+        response = self.get_response(self.organization.slug, repo.id)
         assert response.status_code == 400
         assert "only supported for GitHub" in response.data["detail"]
 
@@ -260,8 +240,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             integration_id=self.integration.id,
         )
 
-        with self.feature(FEATURE_FLAG):
-            response = self.get_response(self.organization.slug, repo.id)
+        response = self.get_response(self.organization.slug, repo.id)
         assert response.status_code == 400
         assert "only supported for GitHub" in response.data["detail"]
 
@@ -274,8 +253,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             integration_id=None,
         )
 
-        with self.feature(FEATURE_FLAG):
-            response = self.get_response(self.organization.slug, repo.id)
+        response = self.get_response(self.organization.slug, repo.id)
         assert response.status_code == 400
 
     def test_other_orgs_repo_not_accessible(self) -> None:
@@ -288,6 +266,5 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             integration_id=self.integration.id,
         )
 
-        with self.feature(FEATURE_FLAG):
-            response = self.get_response(self.organization.slug, other_repo.id)
+        response = self.get_response(self.organization.slug, other_repo.id)
         assert response.status_code == 404

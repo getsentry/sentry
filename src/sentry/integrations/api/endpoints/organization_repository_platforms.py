@@ -4,7 +4,6 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -34,13 +33,6 @@ class OrganizationRepositoryPlatformsEndpoint(OrganizationRepositoryEndpoint):
     }
 
     def get(self, request: Request, organization: Organization, repo: Repository) -> Response:
-        if not features.has(
-            "organizations:integrations-github-platform-detection",
-            organization,
-            actor=request.user,
-        ):
-            return Response(status=404)
-
         if (
             not repo.integration_id
             or repo.provider != f"integrations:{IntegrationProviderSlug.GITHUB}"
