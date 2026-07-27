@@ -18,6 +18,8 @@ class MonitorDeletionTask(ModelDeletionTask[Monitor]):
                 ModelDeletionTask,
                 # Skip marking as in progress for deletion since this can be a high volume delete
                 mark_in_progress=False,
+                # Rate limit check-in deletions so a large delete doesn't spike DB load
+                rate_limit_option="deletions.monitor-check-in.rate-limit",
             ),
             ModelRelation(models.MonitorEnvironment, {"monitor_id": instance.id}),
         ]
