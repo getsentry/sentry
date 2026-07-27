@@ -6,7 +6,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  NAVIGATION_MOBILE_CONTENT_HEIGHT,
   PRIMARY_HEADER_HEIGHT,
   SUPERUSER_MARQUEE_HEIGHT,
 } from 'sentry/views/navigation/constants';
@@ -29,7 +29,7 @@ export function useTopOffset(): TopOffset {
 
   const superuserOffset = showSuperuserWarning ? SUPERUSER_MARQUEE_HEIGHT : 0;
   const headerHeight = isMobile
-    ? NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME
+    ? NAVIGATION_MOBILE_CONTENT_HEIGHT
     : PRIMARY_HEADER_HEIGHT;
 
   return {

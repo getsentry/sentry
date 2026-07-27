@@ -22,7 +22,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  NAVIGATION_MOBILE_CONTENT_HEIGHT,
   PRIMARY_HEADER_HEIGHT,
 } from 'sentry/views/navigation/constants';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
@@ -75,7 +75,7 @@ function SidebarHeaderShell({
       align="center"
       gap="md"
       height={{
-        'screen:sm': `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
+        'screen:sm': `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`,
         'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
       }}
       padding="0 lg"

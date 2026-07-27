@@ -107,7 +107,7 @@ function ReplayDetailsContent() {
       } — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
-  const pageFrameContent = (
+  const pageContent = (
     <Fragment>
       {organization.features.includes('ui-migration-breadcrumbs') ? (
         <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
@@ -139,10 +139,10 @@ function ReplayDetailsContent() {
       <Stack flex={1} height="100%" minHeight="0" width="100%" overflow="hidden">
         {replay ? (
           <ReplayDetailsProviders replay={replay} projectSlug={readerResult.projectSlug}>
-            {pageFrameContent}
+            {pageContent}
           </ReplayDetailsProviders>
         ) : (
-          pageFrameContent
+          pageContent
         )}
       </Stack>
     </SentryDocumentTitle>
