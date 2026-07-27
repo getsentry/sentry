@@ -19,10 +19,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import {
-  buildIntegrationAction,
+  buildNotificationSelection,
   type IssueAlertNotificationProps,
   MultipleCheckboxOptions,
-  useCreateNotificationAction,
+  useScmNotificationAction,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
@@ -187,18 +187,20 @@ export function useScmProjectDetails({
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const createProjectAndRules = useCreateProjectAndRules();
 
-  const restoredNotificationOptionsRef = useRef(
-    projectDetailsForm?.notificationAction
-      ? {actions: [projectDetailsForm.notificationAction]}
-      : undefined
+  const restoredNotificationSelectionRef = useRef(
+    projectDetailsForm?.notificationSelection
   );
 
   // Provides the messaging-integration notification picker (notificationProps,
   // rendered in ScmAlertFrequencySection) and the side-effect that creates the
-  // chosen notification rule at project creation.
-  const {createNotificationAction, notificationProps} = useCreateNotificationAction(
-    restoredNotificationOptionsRef.current
-  );
+  // chosen notification rule at project creation. Restores directly from the
+  // raw provider/integrationId/channel fields stored in the wizard's form
+  // state, with no decoding step.
+  const {createNotificationAction, notificationProps} = useScmNotificationAction({
+    provider: restoredNotificationSelectionRef.current?.provider,
+    integrationId: restoredNotificationSelectionRef.current?.integrationId,
+    channel: restoredNotificationSelectionRef.current?.channel,
+  });
 
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const firstAdminTeam = accessTeams[0];
@@ -312,7 +314,9 @@ export function useScmProjectDetails({
 
   const submitTooltipText = getSubmitTooltipText(missingFields);
 
-  const notificationRestoreCompleteRef = useRef(!projectDetailsForm?.notificationAction);
+  const notificationRestoreCompleteRef = useRef(
+    !projectDetailsForm?.notificationSelection
+  );
 
   // Blocks canSubmit until a persisted notification selection settles, then latches open
   // so later edits don't re-block. No-op when there's no saved action.
@@ -364,8 +368,8 @@ export function useScmProjectDetails({
     alertRuleConfig.metric === savedAlert?.metric &&
     alertRuleConfig.threshold === savedAlert?.threshold &&
     isEqual(
-      hasNotificationAction ? buildIntegrationAction(notificationProps) : undefined,
-      savedForm?.notificationAction
+      hasNotificationAction ? buildNotificationSelection(notificationProps) : undefined,
+      savedForm?.notificationSelection
     );
 
   const submit = useCallback(async () => {
@@ -377,14 +381,14 @@ export function useScmProjectDetails({
 
     trackAnalytics(CREATE_CLICKED_EVENT[analyticsFlow], {organization});
 
-    const notificationAction = hasNotificationAction
-      ? buildIntegrationAction(notificationProps)
+    const notificationSelection = hasNotificationAction
+      ? buildNotificationSelection(notificationProps)
       : undefined;
     const submittedForm = {
       projectName: projectNameResolved,
       teamSlug: teamSlugResolved,
       alertRuleConfig,
-      notificationAction,
+      notificationSelection,
     };
 
     try {
