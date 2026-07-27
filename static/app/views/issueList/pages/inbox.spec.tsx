@@ -457,12 +457,16 @@ describe('InboxPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('prefetches the group on hover so opening the preview needs no new request', async () => {
+  it('prefetches the preview on hover so opening it needs no new request', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
     const groupRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
       body: fixProposedGroup,
+    });
+    const eventRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/events/recommended/`,
+      body: EventFixture(),
     });
 
     render(<InboxPage />, {organization, initialRouterConfig});
@@ -474,16 +478,17 @@ describe('InboxPage', () => {
     await userEvent.hover(issueLink);
 
     await waitFor(() => expect(groupRequest).toHaveBeenCalledTimes(1));
+    expect(eventRequest).toHaveBeenCalledTimes(1);
 
-    // Reads the warmed cache, which only holds if the prefetch used the same
-    // query key as the preview.
+    // Reads the warmed cache, which only holds if the query keys match.
     await userEvent.click(issueLink);
 
     const preview = screen.getByRole('complementary', {name: 'Issue preview'});
     expect(
-      await within(preview).findByRole('heading', {name: 'Fix proposed issue'})
+      await within(preview).findByRole('heading', {name: 'External Links'})
     ).toBeInTheDocument();
     expect(groupRequest).toHaveBeenCalledTimes(1);
+    expect(eventRequest).toHaveBeenCalledTimes(1);
   });
 
   it('stores selection in the URL, renders the embedded preview, and clears it', async () => {
