@@ -151,9 +151,24 @@ describe('InboxPage', () => {
 
   function mockSuccessfulSections() {
     return [
-      mockSection('issue.progress:fix_proposed assigned:me', [fixProposedGroup], 200, 2),
-      mockSection('issue.progress:diagnosed assigned:me', [diagnosedGroup], 200, 2),
-      mockSection('issue.progress:assigned assigned:me', [assignedGroup], 200, 12),
+      mockSection(
+        'issue.progress:fix_proposed assigned:[me,my_teams]',
+        [fixProposedGroup],
+        200,
+        2
+      ),
+      mockSection(
+        'issue.progress:diagnosed assigned:[me,my_teams]',
+        [diagnosedGroup],
+        200,
+        2
+      ),
+      mockSection(
+        'issue.progress:assigned assigned:[me,my_teams]',
+        [assignedGroup],
+        200,
+        12
+      ),
     ];
   }
 
@@ -241,9 +256,9 @@ describe('InboxPage', () => {
     expect(screen.getByRole('heading', {name: 'Issues', level: 2})).toBeInTheDocument();
 
     for (const [index, query] of [
-      'issue.progress:fix_proposed assigned:me',
-      'issue.progress:diagnosed assigned:me',
-      'issue.progress:assigned assigned:me',
+      'issue.progress:fix_proposed assigned:[me,my_teams]',
+      'issue.progress:diagnosed assigned:[me,my_teams]',
+      'issue.progress:assigned assigned:[me,my_teams]',
     ].entries()) {
       await waitFor(() =>
         expect(requests[index]).toHaveBeenCalledWith(
@@ -294,6 +309,26 @@ describe('InboxPage', () => {
     expect(screen.queryByRole('button', {name: '7D'})).not.toBeInTheDocument();
   });
 
+  it('shows a plus sign when a section count reaches the API cap', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      match: [
+        MockApiClient.matchQuery({
+          query: 'issue.progress:fix_proposed assigned:[me,my_teams]',
+        }),
+      ],
+      body: [fixProposedGroup],
+      headers: {'X-Hits': '1000', 'X-Max-Hits': '1000'},
+    });
+    mockSection('issue.progress:diagnosed assigned:[me,my_teams]', [diagnosedGroup]);
+    mockSection('issue.progress:assigned assigned:[me,my_teams]', [assignedGroup]);
+
+    render(<InboxPage />, {organization, initialRouterConfig});
+
+    const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
+    expect(await within(fixSection).findByText('1000+')).toBeInTheDocument();
+  });
+
   it('expands and collapses progress sections', async () => {
     mockSuccessfulSections();
 
@@ -322,10 +357,15 @@ describe('InboxPage', () => {
 
   it('filters sections by the selected assignee', async () => {
     mockSuccessfulSections();
-    const myTeamsRequests = [
-      mockSection('issue.progress:fix_proposed assigned:my_teams', [fixProposedGroup]),
-      mockSection('issue.progress:diagnosed assigned:my_teams', [diagnosedGroup]),
-      mockSection('issue.progress:assigned assigned:my_teams', [assignedGroup]),
+    const meRequests = [
+      mockSection('issue.progress:fix_proposed assigned:me', [fixProposedGroup]),
+      mockSection('issue.progress:diagnosed assigned:me', [diagnosedGroup]),
+      mockSection('issue.progress:assigned assigned:me', [assignedGroup]),
+    ];
+    const allRequests = [
+      mockSection('issue.progress:fix_proposed', [fixProposedGroup]),
+      mockSection('issue.progress:diagnosed', [diagnosedGroup]),
+      mockSection('issue.progress:assigned', [assignedGroup]),
     ];
 
     const {router} = render(<InboxPage />, {
@@ -335,15 +375,25 @@ describe('InboxPage', () => {
 
     const meFilter = screen.getByRole('radio', {name: 'Me'});
     const myTeamsFilter = screen.getByRole('radio', {name: 'My Teams'});
-    expect(meFilter).toBeChecked();
-    expect(myTeamsFilter).not.toBeChecked();
+    const allFilter = screen.getByRole('radio', {name: 'All'});
+    expect(meFilter).not.toBeChecked();
+    expect(myTeamsFilter).toBeChecked();
+    expect(allFilter).not.toBeChecked();
     expect(await screen.findByText('Fix proposed issue')).toBeInTheDocument();
 
-    await userEvent.click(myTeamsFilter);
+    await userEvent.click(meFilter);
 
-    expect(myTeamsFilter).toBeChecked();
-    expect(router.location.query.assignment).toBe('my_teams');
-    for (const request of myTeamsRequests) {
+    expect(meFilter).toBeChecked();
+    expect(router.location.query.assignment).toBe('me');
+    for (const request of meRequests) {
+      await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    }
+
+    await userEvent.click(allFilter);
+
+    expect(allFilter).toBeChecked();
+    expect(router.location.query.assignment).toBe('all');
+    for (const request of allRequests) {
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
     }
   });
@@ -363,7 +413,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: 'issue.progress:fix_proposed assigned:me',
+          query: 'issue.progress:fix_proposed assigned:[me,my_teams]',
         }),
       ],
       body: [fixProposedGroup],
@@ -376,7 +426,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: 'issue.progress:fix_proposed assigned:me',
+          query: 'issue.progress:fix_proposed assigned:[me,my_teams]',
           cursor: '0:5:0',
         }),
       ],
@@ -384,8 +434,8 @@ describe('InboxPage', () => {
       headers: {'X-Hits': '2'},
       asyncDelay: 100,
     });
-    mockSection('issue.progress:diagnosed assigned:me', [diagnosedGroup]);
-    mockSection('issue.progress:assigned assigned:me', [assignedGroup]);
+    mockSection('issue.progress:diagnosed assigned:[me,my_teams]', [diagnosedGroup]);
+    mockSection('issue.progress:assigned assigned:[me,my_teams]', [assignedGroup]);
 
     render(<InboxPage />, {organization, initialRouterConfig});
 
