@@ -68,16 +68,7 @@ export function MessagePlaceholder({content}: {content?: string}) {
   return (
     <MessageRow from="assistant">
       <Flex align="center" gap="md">
-        <Flex
-          display="inline-flex"
-          align="center"
-          justify="center"
-          width="12px"
-          height="12px"
-          flexShrink={0}
-        >
-          <Spinner role="status" aria-label={t('Loading')} />
-        </Flex>
+        <Spinner role="status" aria-label={t('Loading')} />
         {hasValidContent(content) && <SeerMarkdown raw={content} />}
       </Flex>
     </MessageRow>
