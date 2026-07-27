@@ -860,7 +860,9 @@ export function getGroupActivityItem(
       case GroupActivityType.SEER_ITERATION_STARTED:
         return {
           title: t('PR Iteration'),
-          message: t('Seer started iterating on the pull request'),
+          message: activity.data.referrer?.startsWith('github.')
+            ? t('Seer started iterating from GitHub')
+            : t('Seer started iterating on the pull request'),
         };
       case GroupActivityType.SEER_ITERATION_COMPLETED: {
         const {data: iterationData} = activity;

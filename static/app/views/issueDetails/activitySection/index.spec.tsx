@@ -1886,7 +1886,11 @@ describe('ActivitySection', () => {
           type: GroupActivityType.SEER_ITERATION_STARTED,
           id: 'seer-iteration-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {run_id: 456, iteration_index: 1},
+          data: {
+            run_id: 456,
+            iteration_index: 1,
+            referrer: 'github.pr_comment',
+          },
           user: null,
         },
       ],
@@ -1907,9 +1911,7 @@ describe('ActivitySection', () => {
       {organization: org}
     );
     expect(await screen.findAllByText('PR Iteration')).toHaveLength(2);
-    expect(
-      screen.getByText('Seer started iterating on the pull request')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Seer started iterating from GitHub')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'pull request'})).toHaveAttribute(
       'href',
       'https://github.com/org/repo/pull/42'

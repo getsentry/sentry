@@ -489,6 +489,7 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.SEER_ITERATION_STARTED:
       return {
         title: t('Pull request iteration started'),
+        details: activity.data.referrer?.startsWith('github.') ? t('from GitHub') : null,
       };
     case GroupActivityType.SEER_ITERATION_COMPLETED: {
       const pullRequest = activity.data.pull_requests?.[0];
