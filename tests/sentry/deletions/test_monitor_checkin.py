@@ -1,3 +1,6 @@
+from unittest import mock
+
+from sentry.deletions.base import ModelDeletionTask
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.environment import Environment
 from sentry.monitors.models import (
@@ -14,6 +17,96 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
+    def _spy_marked_models(self) -> tuple[mock._patch, list[str]]:
+        marked_models: list[str] = []
+        original = ModelDeletionTask.mark_deletion_in_progress
+
+        def spy(task: ModelDeletionTask, instance_list: object) -> None:
+            marked_models.append(task.model.__name__)
+            original(task, instance_list)  # type: ignore[arg-type]
+
+        patcher = mock.patch.object(
+            ModelDeletionTask, "mark_deletion_in_progress", autospec=True, side_effect=spy
+        )
+        return patcher, marked_models
+
+    def test_delete_monitor_does_not_mark_checkins_in_progress(self) -> None:
+        """
+        Deleting a Monitor should not mark its check-ins as
+        DELETION_IN_PROGRESS (an UPDATE per row) since the interim status is
+        meaningless for rows that are about to be deleted. Other models should
+        still be marked.
+        """
+        project = self.create_project(name="test")
+        env = Environment.objects.create(organization_id=project.organization_id, name="prod")
+
+        monitor = Monitor.objects.create(
+            organization_id=project.organization.id,
+            project_id=project.id,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+        monitor_env = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=env.id,
+        )
+        for status in (CheckInStatus.OK, CheckInStatus.ERROR, CheckInStatus.OK):
+            MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_env,
+                project_id=project.id,
+                status=status,
+            )
+
+        self.ScheduledDeletion.schedule(instance=monitor, days=0)
+
+        patcher, marked_models = self._spy_marked_models()
+        with patcher, self.tasks():
+            run_scheduled_deletions()
+
+        assert not MonitorCheckIn.objects.filter(monitor_id=monitor.id).exists()
+        assert "MonitorCheckIn" not in marked_models
+        assert "Monitor" in marked_models
+
+    def test_delete_checkin_directly_does_not_mark_in_progress(self) -> None:
+        """
+        Deleting a MonitorCheckIn directly should also skip marking it as
+        DELETION_IN_PROGRESS.
+        """
+        project = self.create_project(name="test")
+        env = Environment.objects.create(organization_id=project.organization_id, name="prod")
+
+        monitor = Monitor.objects.create(
+            organization_id=project.organization.id,
+            project_id=project.id,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+        monitor_env = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=env.id,
+        )
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_env,
+            project_id=project.id,
+            status=CheckInStatus.ERROR,
+        )
+        incident = MonitorIncident.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_env,
+            starting_checkin=checkin,
+        )
+
+        self.ScheduledDeletion.schedule(instance=checkin, days=0)
+
+        patcher, marked_models = self._spy_marked_models()
+        with patcher, self.tasks():
+            run_scheduled_deletions()
+
+        assert not MonitorCheckIn.objects.filter(id=checkin.id).exists()
+        assert not MonitorIncident.objects.filter(id=incident.id).exists()
+        assert "MonitorCheckIn" not in marked_models
+        assert "MonitorIncident" in marked_models
+
     def test_delete_checkin_directly(self) -> None:
         """
         Test that deleting a MonitorCheckIn directly (not via Monitor deletion)
