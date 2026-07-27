@@ -96,6 +96,7 @@ export function OrgOwnedAppsFixture(): SentryApp[] {
       status: 'internal',
       uuid: 'a806ab10-9608-4a4f-8dd9-ca6d6c09f9f5',
       verifyInstall: false,
+      webhookEvents: [],
       webhookUrl: 'https://myheadbandwasher.com',
       featureData: [],
       popularity: null,
@@ -118,6 +119,7 @@ export function OrgOwnedAppsFixture(): SentryApp[] {
       status: 'unpublished',
       uuid: 'a59c8fcc-2f27-49f8-af9e-02661fc3e8d7',
       verifyInstall: false,
+      webhookEvents: [],
       webhookUrl: 'https://lacroix.com',
       featureData: [
         {
@@ -145,6 +147,7 @@ export function OrgOwnedAppsFixture(): SentryApp[] {
       status: 'published',
       uuid: '5d547ecb-7eb8-4ed2-853b-40256177d526',
       verifyInstall: false,
+      webhookEvents: [],
       webhookUrl: 'http://localhost:7000',
       featureData: [
         {
@@ -178,6 +181,7 @@ export function PublishedAppsFixture(): SentryApp[] {
       popularity: 9,
       uuid: '5d547ecb-7eb8-4ed2-853b-40256177d526',
       verifyInstall: false,
+      webhookEvents: [],
       webhookUrl: 'http://localhost:7000',
       featureData: [
         {

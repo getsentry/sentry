@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 const EXCLUDED_CONDITIONS = [
   'event.type:error',
@@ -26,7 +27,8 @@ const EXCLUDED_CONDITIONS = [
 
 export function SampleDataAlert({query}: {query?: string}) {
   const user = useUser();
-  const {slug, isDynamicallySampled} = useOrganization();
+  const organization = useOrganization();
+  const {slug, isDynamicallySampled} = organization;
 
   const {dismiss, isDismissed} = useDismissAlert({
     key: `${slug}-${user.id}:sample-data-alert-dismissed`,
@@ -44,9 +46,13 @@ export function SampleDataAlert({query}: {query?: string}) {
     <Alert.Container>
       <Alert variant="warning">
         <AlertContent>
-          {t(
-            'Based on your search criteria and sample rate, the events available may be limited because Discover uses sampled data only.'
-          )}
+          {getDiscoverDeprecation(organization)
+            ? t(
+                'Based on your search criteria and sample rate, the events available may be limited because Errors uses sampled data only.'
+              )
+            : t(
+                'Based on your search criteria and sample rate, the events available may be limited because Discover uses sampled data only.'
+              )}
           <DismissButton
             variant="link"
             icon={<IconClose />}

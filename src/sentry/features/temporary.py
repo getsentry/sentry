@@ -79,12 +79,12 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-details-widget", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Insights to Dashboards UI migration
     manager.add("organizations:insights-to-dashboards-ui-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable AI-powered dashboard generation via Seer
-    manager.add("organizations:dashboards-ai-generate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI-powered dashboard editing via Seer
     manager.add("organizations:dashboards-ai-generate-edit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables starred dashboards functionality
     manager.add("organizations:dashboards-starred", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enables per-user "last visited" tracking and sorting for dashboards
+    manager.add("organizations:dashboards-user-last-visited", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy v2 (with Break the Glass feature)
@@ -146,6 +146,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:integrations-gitlab-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Temporary: log full Jira Cloud `issue.updated` webhook payloads so we can design project-change link rewriting.
     manager.add("organizations:jira-issue-updated-payload-logging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Lazy-load Jira statuses per-project instead of pre-fetching all, to fix duplicate statuses for large orgs.
+    manager.add("organizations:jira-lazy-status-sync", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Use the paginated project endpoint in Jira org config to avoid timeouts on large instances.
     manager.add("organizations:jira-paginated-project-config", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable inviting billing members to organizations at the member limit.
@@ -262,8 +264,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-night-shift", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Run the Seer smart assignment feature (predictions + ground truth) on issues
     manager.add("organizations:seer-smart-assignment-run", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Send notifications for Seer smart assignment predictions
-    manager.add("organizations:seer-smart-assignment-notifications", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Auto-assign the top Seer smart assignment pick when a verdict is delivered
+    manager.add("organizations:seer-smart-assignment-assign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display nightshift settings
     manager.add("organizations:seer-night-shift-settings", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display the Seer Night Shift UI
@@ -309,7 +311,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-autofix-introspection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the PR iteration feedback flow in the explorer autofix drawer
     manager.add("organizations:autofix-pr-iteration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Request review from the triggering user once a Seer PR's checks are green
+    # On green CI: mark ready for review and request review from the triggering user.
+    # Also opens Autofix PRs as draft until CI is green.
     manager.add("organizations:autofix-pr-iteration-review-request", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Assign the triggering user and post a status comment once a Seer PR exhausts its CI-fix iteration cap
     manager.add("organizations:autofix-pr-iteration-cap-assign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -450,6 +453,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tracemetrics-pii-scrubbing-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace waterfall time compression
     manager.add("organizations:trace-waterfall-time-compression", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the informational message re: moving the trace waterfall data source from transaction events to EAP spans
+    manager.add("organizations:trace-waterfall-version-message", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Conversation focused views in AI Insights
     manager.add("organizations:gen-ai-conversations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable selectable/filterable columns for the AI Conversations table

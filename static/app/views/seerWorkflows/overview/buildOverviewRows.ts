@@ -88,6 +88,10 @@ function extractPr(
   return pr ? {prUrl: pr.pr_url ?? undefined, prNumber: pr.pr_number ?? undefined} : {};
 }
 
+export function hasValidPr(state: ExplorerAutofixState | null): boolean {
+  return Boolean(extractPr(state).prUrl);
+}
+
 // The pending-input payload is untyped (Record<string, unknown>). The canonical
 // ask_user_question shape is {questions: [{question, options}]} (see
 // usePendingUserInput's AskUserQuestionData); fall back to a flat key otherwise.
@@ -227,6 +231,12 @@ export function buildOverviewRow(
     title: issue.title,
     level: issue.level,
     project: issue.project,
+    assignedTo: issue.assignedTo ?? null,
+    owners: issue.owners,
+    issueCategory: issue.issueCategory,
+    issueType: issue.issueType,
+    priority: issue.priority,
+    priorityLockedAt: issue.priorityLockedAt,
     eventCount: Number.isFinite(eventCount) ? eventCount : 0,
     userCount: issue.userCount,
     statsPeriod,

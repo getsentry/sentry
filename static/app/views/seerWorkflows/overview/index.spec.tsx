@@ -1,12 +1,17 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import AutofixOverview from 'sentry/views/seerWorkflows/overview';
 import {RUN_QUESTIONS} from 'sentry/views/seerWorkflows/overview/runQuestions';
 
@@ -150,6 +155,21 @@ describe('AutofixOverview', () => {
     });
   }
 
+  function mockAssigneeSections(assignee: string, reviewIssues: unknown[] = [issue]) {
+    const reviewRequest = mockSection(
+      `${SECTION_QUERIES.review_pr} assigned:${assignee}`,
+      {
+        body: reviewIssues,
+        hits: String(reviewIssues.length),
+      }
+    );
+    mockSection(`${SECTION_QUERIES.code_changes_ready} assigned:${assignee}`);
+    mockSection(`${SECTION_QUERIES.solution_ready} assigned:${assignee}`);
+    mockSection(`${SECTION_QUERIES.needs_investigation} assigned:${assignee}`);
+    mockSection(`${SECTION_QUERIES.merged} assigned:${assignee}`);
+    return reviewRequest;
+  }
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     // Collapsed status groups persist to localStorage; keep tests isolated.
@@ -160,18 +180,36 @@ describe('AutofixOverview', () => {
     // gated off.
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     ProjectsStore.loadInitialData([ProjectFixture()]);
+    OrganizationStore.onUpdate(organization, {replace: true});
+    TeamStore.reset();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [ProjectFixture()],
     });
 
-    // One issue lives in the review bucket (X-Hits 3 exceeds the returned
-    // body, proving the count comes from the header); the other four are empty.
+    // One issue lives in the review bucket (its count reflects the rendered
+    // valid-PR cards, not the X-Hits header); the other four are empty.
     mockSection(SECTION_QUERIES.review_pr, {body: [issue], hits: '3'});
     mockSection(SECTION_QUERIES.code_changes_ready);
     mockSection(SECTION_QUERIES.solution_ready);
     mockSection(SECTION_QUERIES.needs_investigation);
     mockSection(SECTION_QUERIES.merged);
+
+    // The assignee filter loads org members for its dropdown; teams come from
+    // the (empty here) TeamStore. Neither is needed for the default view.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
 
     // Per-card content: the IntersectionObserver override above reports every
     // card as in view, so these fire once per rendered card.
@@ -205,28 +243,28 @@ describe('AutofixOverview', () => {
   it('renders the five status sections with server-provided counts', async () => {
     renderPage();
 
-    // Every section renders, in order, with its X-Hits count in the badge.
+    // Every section renders, in order. The review bucket counts only its
+    // cards with a real PR behind them (here 1, despite X-Hits 3); the other
+    // buckets show their X-Hits count.
     const reviewHeader = await screen.findByRole('button', {
-      name: 'Awaiting your review 3',
+      name: 'Review Open PRs 1',
     });
+    expect(screen.getByRole('button', {name: 'Create PR 0'})).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'Code changes ready 0'})
+      screen.getByRole('button', {name: 'Generate code changes 0'})
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'Ready to generate code 0'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Needs investigation 0'})
+      screen.getByRole('button', {name: 'Confirm Root Cause 0'})
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Merged 0'})).toBeInTheDocument();
 
     // The headers render in pipeline (SECTION_ORDER) order; reordering the
     // PIPELINE table reorders these and fails here.
     const orderedHeaders = [
-      /Awaiting your review/,
-      /Code changes ready/,
-      /Ready to generate code/,
-      /Needs investigation/,
+      /Review Open PRs/,
+      /Create PR/,
+      /Generate code changes/,
+      /Confirm Root Cause/,
       /Merged/,
     ].map(name => screen.getByRole('button', {name}));
     for (let index = 0; index < orderedHeaders.length - 1; index++) {
@@ -241,7 +279,7 @@ describe('AutofixOverview', () => {
     const titleLink = await screen.findByRole('link', {
       name: 'Proxy requests fail without Authorization header',
     });
-    const codeHeader = screen.getByRole('button', {name: 'Code changes ready 0'});
+    const codeHeader = screen.getByRole('button', {name: 'Create PR 0'});
     expect(
       reviewHeader.compareDocumentPosition(titleLink) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
@@ -323,6 +361,14 @@ describe('AutofixOverview', () => {
     expect(
       screen.getAllByRole('time').map(element => element.getAttribute('datetime'))
     ).toEqual(['2019-04-11T01:08:59.000Z', '2026-07-14T10:00:00.000Z']);
+
+    expect(
+      screen.getByRole('button', {name: 'Modify issue assignee'})
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('button', {name: 'Modify issue priority'})
+    ).toBeInTheDocument();
 
     // Identity sits in the tail: short id + exactly one level marker.
     expect(screen.getByText('PROJ-1')).toBeVisible();
@@ -410,7 +456,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     const reviewHeader = await screen.findByRole('button', {
-      name: 'Awaiting your review 3',
+      name: 'Review Open PRs 1',
     });
     expect(
       await screen.findByRole('link', {
@@ -459,14 +505,14 @@ describe('AutofixOverview', () => {
     many.forEach(group => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
-        body: {autofix: null},
+        body: {autofix: makeAutofixState()},
       });
     });
     mockSection(SECTION_QUERIES.review_pr, {body: many, hits: '30'});
 
     renderPage();
 
-    await screen.findByRole('button', {name: 'Awaiting your review 30'});
+    await screen.findByRole('button', {name: 'Review Open PRs 30'});
     expect(screen.getAllByRole('link', {name: /Bulk issue/})).toHaveLength(30);
     expect(
       screen.queryByRole('button', {name: /Show \d+ more issue/})
@@ -476,13 +522,40 @@ describe('AutofixOverview', () => {
   it('caps the section count badge at 100+ when hits exceed the fetch limit', async () => {
     // Only 100 issues are ever fetched per section, so an exact total above
     // that would overstate what scrolling can reveal.
-    mockSection(SECTION_QUERIES.review_pr, {body: [issue], hits: '150'});
+    mockSection(SECTION_QUERIES.code_changes_ready, {body: [issue], hits: '150'});
 
     renderPage();
 
     expect(
-      await screen.findByRole('button', {name: 'Awaiting your review 100+'})
+      await screen.findByRole('button', {name: 'Create PR 100+'})
     ).toBeInTheDocument();
+  });
+
+  it('hides review cards without a valid PR and counts only the rest', async () => {
+    const invalidIssue = GroupFixture({
+      id: '5',
+      shortId: 'PROJ-5',
+      title: 'Run with no PR behind it',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/5/autofix/`,
+      body: {autofix: makeAutofixState({repo_pr_states: {}})},
+    });
+    mockSection(SECTION_QUERIES.review_pr, {body: [issue, invalidIssue], hits: '2'});
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('button', {name: 'Review Open PRs 1'})
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'Run with no PR behind it'})
+    ).not.toBeInTheDocument();
   });
 
   it('surfaces the blocking question when a run awaits user input', async () => {
@@ -511,30 +584,35 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
   });
 
-  it('scopes the section requests to the selected projects', async () => {
+  it('scopes section and member requests to the selected project', async () => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [2]}));
     const reviewRequest = mockSection(SECTION_QUERIES.review_pr, {
       body: [issue],
       hits: '3',
     });
+    const membersRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
 
     renderPage();
 
     expect(
-      await screen.findByRole('link', {
-        name: 'Proxy requests fail without Authorization header',
-      })
+      await screen.findByRole('button', {name: 'Modify issue assignee'})
     ).toBeInTheDocument();
-    // The selector's trigger reflects the selection (the card's project badge
-    // is a link, so the button role isolates the filter)…
-    expect(screen.getByRole('button', {name: 'project-slug'})).toBeInTheDocument();
-    // …and the section request carries it.
     expect(reviewRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/issues/`,
       expect.objectContaining({
         query: expect.objectContaining({project: [2]}),
       })
     );
+    expect(membersRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/users/`,
+      expect.objectContaining({
+        query: expect.objectContaining({project: ['2']}),
+      })
+    );
+    expect(membersRequest).toHaveBeenCalledTimes(1);
   });
 
   it('focuses a single card when id is present', async () => {
@@ -599,7 +677,7 @@ describe('AutofixOverview', () => {
     // Focus mode hides the section list and offers the way back, keeping the
     // other params.
     expect(
-      screen.queryByRole('button', {name: /Awaiting your review/})
+      screen.queryByRole('button', {name: /Review Open PRs/})
     ).not.toBeInTheDocument();
     const backLink = screen.getByRole('button', {name: 'All issues'});
     expect(backLink).toHaveAttribute('href', expect.not.stringContaining('id=2'));
@@ -620,7 +698,7 @@ describe('AutofixOverview', () => {
     expect(await screen.findByText('No completed autofix runs yet.')).toBeInTheDocument();
     // The section list is replaced entirely by the empty state.
     expect(
-      screen.queryByRole('button', {name: /Awaiting your review/})
+      screen.queryByRole('button', {name: /Review Open PRs/})
     ).not.toBeInTheDocument();
   });
 
@@ -656,9 +734,7 @@ describe('AutofixOverview', () => {
       await screen.findByText('There was an error loading data.')
     ).toBeInTheDocument();
     expect(screen.queryByText('No completed autofix runs yet.')).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: /Awaiting your review/})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /Review Open PRs/})).toBeInTheDocument();
   });
 
   it('surfaces a per-section error while other sections still load', async () => {
@@ -724,7 +800,7 @@ describe('AutofixOverview', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('button', {name: 'Awaiting your review 1'})
+      await screen.findByRole('button', {name: 'Review Open PRs 1'})
     ).toBeInTheDocument();
   });
 
@@ -752,6 +828,217 @@ describe('AutofixOverview', () => {
 
     expect(
       await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
+  });
+
+  it('selects a remote member, writes it to the URL, and filters sections', async () => {
+    const remoteUser = UserFixture({
+      id: '42',
+      name: 'Remote Member',
+      email: 'remote.member@example.com',
+      username: 'Jane Doe',
+    });
+    const remoteRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      match: [MockApiClient.matchQuery({query: remoteUser.username})],
+      body: [MemberFixture({id: '42', user: remoteUser})],
+    });
+    const reviewRequest = mockAssigneeSections('"Jane Doe"');
+    const {router} = renderPage();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Assignee None'}));
+    await userEvent.type(
+      screen.getByPlaceholderText('Search assignees…'),
+      remoteUser.username
+    );
+    await userEvent.click(await screen.findByRole('option', {name: remoteUser.name}));
+
+    expect(remoteRequest).toHaveBeenCalled();
+    expect(router.location.query.assignee).toBe(remoteUser.username);
+    await waitFor(() =>
+      expect(reviewRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/issues/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: `${SECTION_QUERIES.review_pr} assigned:"Jane Doe"`,
+          }),
+        })
+      )
+    );
+  });
+
+  it('finds remote teams by slug and writes the selected team to the URL', async () => {
+    const remoteTeam = TeamFixture({
+      id: '42',
+      name: 'Remote Team',
+      slug: 'remote-team',
+    });
+    const remoteRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      match: [MockApiClient.matchQuery({query: 'remote-team'})],
+      body: [remoteTeam],
+    });
+    mockAssigneeSections(`#${remoteTeam.slug}`);
+    const {router} = renderPage();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Assignee None'}));
+    await userEvent.type(
+      screen.getByPlaceholderText('Search assignees…'),
+      `#${remoteTeam.slug}`
+    );
+    await userEvent.click(
+      await screen.findByRole('option', {name: `#${remoteTeam.slug}`})
+    );
+
+    expect(remoteRequest).toHaveBeenCalled();
+    expect(router.location.query.assignee).toBe(`#${remoteTeam.slug}`);
+  });
+
+  it('refetches filtered sections after reassignment', async () => {
+    const nextAssignee = UserFixture({
+      id: '42',
+      name: 'Next Assignee',
+      email: 'next.assignee@example.com',
+    });
+    mockAssigneeSections('me');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [
+        MemberFixture({
+          id: '42',
+          projects: [issue.project.slug],
+          user: nextAssignee,
+        }),
+      ],
+    });
+    const assignRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${issue.id}/`,
+      method: 'PUT',
+      body: {
+        ...issue,
+        assignedTo: {id: nextAssignee.id, name: nextAssignee.name, type: 'user'},
+      },
+    });
+
+    renderPage({assignee: 'me'});
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Modify issue assignee'})
+    );
+
+    // The mutation's success callback immediately refetches all sections, so
+    // replace their responses before selecting the new assignee.
+    mockAssigneeSections('me', []);
+    await userEvent.click(await screen.findByRole('option', {name: /Next Assignee/}));
+
+    await waitFor(() => expect(assignRequest).toHaveBeenCalled());
+    expect(
+      await screen.findByText('No autofix runs match your filters.')
+    ).toBeInTheDocument();
+  });
+
+  it('refetches unfiltered sections after reassignment', async () => {
+    const nextAssignee = UserFixture({
+      id: '42',
+      name: 'Next Assignee',
+      email: 'next.assignee@example.com',
+    });
+    const reviewRequest = mockSection(SECTION_QUERIES.review_pr, {
+      body: [issue],
+      hits: '3',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [
+        MemberFixture({
+          id: '42',
+          projects: [issue.project.slug],
+          user: nextAssignee,
+        }),
+      ],
+    });
+    const assignRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${issue.id}/`,
+      method: 'PUT',
+      body: {
+        ...issue,
+        assignedTo: {id: nextAssignee.id, name: nextAssignee.name, type: 'user'},
+      },
+    });
+
+    renderPage();
+
+    await waitFor(() => expect(reviewRequest).toHaveBeenCalledTimes(1));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Modify issue assignee'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: /Next Assignee/}));
+
+    await waitFor(() => expect(assignRequest).toHaveBeenCalled());
+    await waitFor(() => expect(reviewRequest).toHaveBeenCalledTimes(2));
+  });
+
+  it('invalidates cached filtered sections after reassignment in focus mode', async () => {
+    const nextAssignee = UserFixture({
+      id: '42',
+      name: 'Next Assignee',
+      email: 'next.assignee@example.com',
+    });
+    mockAssigneeSections('me');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      match: [MockApiClient.matchQuery({group: [issue.id]})],
+      body: [issue],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [
+        MemberFixture({
+          id: nextAssignee.id,
+          projects: [issue.project.slug],
+          user: nextAssignee,
+        }),
+      ],
+    });
+    const assignRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${issue.id}/`,
+      method: 'PUT',
+      body: {
+        ...issue,
+        assignedTo: {id: nextAssignee.id, name: nextAssignee.name, type: 'user'},
+      },
+    });
+    const {router} = renderPage({assignee: 'me'});
+
+    expect(
+      await screen.findByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).toBeInTheDocument();
+    router.navigate(`${basePath}?assignee=me&id=${issue.id}`);
+    expect(await screen.findByRole('button', {name: 'All issues'})).toBeInTheDocument();
+
+    mockAssigneeSections('me', []);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      match: [MockApiClient.matchQuery({group: [issue.id]})],
+      body: [
+        {
+          ...issue,
+          assignedTo: {id: nextAssignee.id, name: nextAssignee.name, type: 'user'},
+        },
+      ],
+    });
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Modify issue assignee'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: /Next Assignee/}));
+    await waitFor(() => expect(assignRequest).toHaveBeenCalled());
+
+    await userEvent.click(screen.getByRole('button', {name: 'All issues'}));
+
+    expect(
+      await screen.findByText('No autofix runs match your filters.')
     ).toBeInTheDocument();
   });
 });

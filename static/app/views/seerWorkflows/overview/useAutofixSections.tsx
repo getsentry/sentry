@@ -1,5 +1,6 @@
 import {useQueries} from '@tanstack/react-query';
 
+import {escapeTagValue} from 'sentry/components/searchBar/utils';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -28,11 +29,13 @@ export function useAutofixSections({
   projects,
   sort,
   statsPeriod,
+  assignee,
 }: {
   enabled: boolean;
   projects: number[];
   sort: 'date' | 'freq';
   statsPeriod: string;
+  assignee?: string;
 }) {
   const organization = useOrganization();
 
@@ -43,11 +46,14 @@ export function useAutofixSections({
         {
           path: {organizationIdOrSlug: organization.slug},
           query: {
-            query: `${REQUIRED_ISSUE_FILTER} issue.autofix_state:${key}`,
+            query: `${REQUIRED_ISSUE_FILTER} issue.autofix_state:${key}${
+              assignee ? ` assigned:${escapeTagValue(assignee)}` : ''
+            }`,
             project: projects,
             statsPeriod,
             sort,
             limit: SECTION_LIMIT,
+            expand: ['owners'],
           },
           staleTime: QUERY_STALE_TIME,
         }

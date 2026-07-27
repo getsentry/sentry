@@ -6,6 +6,7 @@ import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConf
 import {
   AVERAGE_DURATION_TEXT,
   BASE_FILTER_STRING,
+  DASHBOARD_DESCRIPTION,
   DASHBOARD_TITLE,
   QUERIES_PER_MINUTE_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
@@ -16,6 +17,7 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DASHBOARD_TITLE,
+  description: DASHBOARD_DESCRIPTION,
   filters: {
     globalFilter: [
       {

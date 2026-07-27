@@ -2,6 +2,12 @@ import {Link} from '@sentry/scraps/link';
 
 import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import {
+  docsFlowVariantParams,
+  JS_LOADER_NPM_DOCS_SHOWN_EVENT,
+  resolveDocsFlowEvent,
+  SETUP_LOADER_DOCS_RENDERED_EVENT,
+} from 'sentry/components/onboarding/gettingStartedDoc/docsFlowAnalytics';
+import {
   StepType,
   type BasePlatformOptions,
   type ContentBlock,
@@ -344,13 +350,12 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   onPageLoad: params => {
     return () => {
       trackAnalytics(
-        params.hasScmOnboarding
-          ? 'onboarding.scm_setup_loader_docs_rendered'
-          : 'onboarding.setup_loader_docs_rendered',
+        resolveDocsFlowEvent(SETUP_LOADER_DOCS_RENDERED_EVENT, params.docsFlow),
         {
           organization: params.organization,
           platform: params.platformKey,
           project_id: params.project.id,
+          ...docsFlowVariantParams(params.docsFlow),
         }
       );
     };
@@ -358,13 +363,12 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   onPlatformOptionsChange: params => {
     return () => {
       trackAnalytics(
-        params.hasScmOnboarding
-          ? 'onboarding.scm_js_loader_npm_docs_shown'
-          : 'onboarding.js_loader_npm_docs_shown',
+        resolveDocsFlowEvent(JS_LOADER_NPM_DOCS_SHOWN_EVENT, params.docsFlow),
         {
           organization: params.organization,
           platform: params.platformKey,
           project_id: params.project.id,
+          ...docsFlowVariantParams(params.docsFlow),
         }
       );
     };
@@ -464,13 +468,12 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   onPageLoad: params => {
     return () => {
       trackAnalytics(
-        params.hasScmOnboarding
-          ? 'onboarding.scm_js_loader_npm_docs_shown'
-          : 'onboarding.js_loader_npm_docs_shown',
+        resolveDocsFlowEvent(JS_LOADER_NPM_DOCS_SHOWN_EVENT, params.docsFlow),
         {
           organization: params.organization,
           platform: params.platformKey,
           project_id: params.project.id,
+          ...docsFlowVariantParams(params.docsFlow),
         }
       );
     };
@@ -500,13 +503,12 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   onPlatformOptionsChange: params => {
     return () => {
       trackAnalytics(
-        params.hasScmOnboarding
-          ? 'onboarding.scm_setup_loader_docs_rendered'
-          : 'onboarding.setup_loader_docs_rendered',
+        resolveDocsFlowEvent(SETUP_LOADER_DOCS_RENDERED_EVENT, params.docsFlow),
         {
           organization: params.organization,
           platform: params.platformKey,
           project_id: params.project.id,
+          ...docsFlowVariantParams(params.docsFlow),
         }
       );
     };

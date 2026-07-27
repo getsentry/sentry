@@ -186,13 +186,18 @@ function DiscoverLanding() {
       features="discover-query"
       renderDisabled={() => <NoAccess />}
     >
-      <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
+      <SentryDocumentTitle
+        title={getDiscoverDeprecation(organization) ? t('Errors') : t('Discover')}
+        orgSlug={organization.slug}
+      >
         <Stack flex={1}>
           <TopBar.Slot name="title">
             <Breadcrumbs
               crumbs={[
                 {
-                  label: t('Discover'),
+                  label: getDiscoverDeprecation(organization)
+                    ? t('Errors')
+                    : t('Discover'),
                   to: getDiscoverLandingUrl(organization),
                 },
                 {label: t('Saved Queries')},
@@ -256,14 +261,18 @@ function DiscoverLanding() {
                         )}
                       </Alert>
                     ) : (
-                      <Alert variant="info">
-                        {tct(
-                          'Your saved transactions queries are also available in the new Explore UI. Try them out in [exploreLink:Explore] instead.',
-                          {
-                            exploreLink: <Link to="/explore/saved-queries/" />,
-                          }
-                        )}
-                      </Alert>
+                      organization.features.includes(
+                        'expose-migrated-discover-queries'
+                      ) && (
+                        <Alert variant="info">
+                          {tct(
+                            'Your saved transactions queries are also available in the new Explore UI. Try them out in [exploreLink:Explore] instead.',
+                            {
+                              exploreLink: <Link to="/explore/saved-queries/" />,
+                            }
+                          )}
+                        </Alert>
+                      )
                     ))}
                   <QueryList
                     pageLinks={savedQueriesPageLinks ?? ''}

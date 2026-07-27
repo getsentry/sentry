@@ -4,6 +4,7 @@ import {GitLabIntegrationProviderFixture} from 'sentry-fixture/gitlabIntegration
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as pipelineModal from 'sentry/components/pipeline/modal';
+import * as integrationUtil from 'sentry/utils/integrationUtil';
 
 import {ScmProviderPills} from './scmProviderPills';
 
@@ -39,7 +40,13 @@ describe('ScmProviderPills', () => {
       bitbucketProvider,
     ];
 
-    render(<ScmProviderPills providers={providers} onInstall={jest.fn()} />);
+    render(
+      <ScmProviderPills
+        analyticsFlow="project-creation"
+        providers={providers}
+        onInstall={jest.fn()}
+      />
+    );
 
     expect(screen.getByText('GitHub')).toBeInTheDocument();
     expect(screen.getByText('GitLab')).toBeInTheDocument();
@@ -54,7 +61,13 @@ describe('ScmProviderPills', () => {
       GitHubIntegrationProviderFixture(),
     ];
 
-    render(<ScmProviderPills providers={providers} onInstall={jest.fn()} />);
+    render(
+      <ScmProviderPills
+        analyticsFlow="project-creation"
+        providers={providers}
+        onInstall={jest.fn()}
+      />
+    );
 
     const buttons = screen.getAllByRole('button');
     expect(buttons[0]).toHaveTextContent('GitHub');
@@ -72,7 +85,13 @@ describe('ScmProviderPills', () => {
       azureDevOpsProvider,
     ];
 
-    render(<ScmProviderPills providers={providers} onInstall={jest.fn()} />);
+    render(
+      <ScmProviderPills
+        analyticsFlow="project-creation"
+        providers={providers}
+        onInstall={jest.fn()}
+      />
+    );
 
     // Primary providers are visible as buttons
     expect(screen.getByText('GitHub')).toBeInTheDocument();
@@ -100,7 +119,13 @@ describe('ScmProviderPills', () => {
 
     const providers = [GitHubIntegrationProviderFixture(), gitHubEnterpriseProvider];
 
-    render(<ScmProviderPills providers={providers} onInstall={jest.fn()} />);
+    render(
+      <ScmProviderPills
+        analyticsFlow="project-creation"
+        providers={providers}
+        onInstall={jest.fn()}
+      />
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'More'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'GitHub Enterprise'}));
@@ -108,10 +133,62 @@ describe('ScmProviderPills', () => {
     expect(openPipelineModalSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('fires the install start with the project-creation view + scm variant', async () => {
+    jest.spyOn(pipelineModal, 'openPipelineModal').mockImplementation(() => {});
+    const trackSpy = jest.spyOn(integrationUtil, 'trackIntegrationAnalytics');
+
+    const providers = [GitHubIntegrationProviderFixture(), gitHubEnterpriseProvider];
+
+    render(
+      <ScmProviderPills
+        analyticsFlow="project-creation"
+        providers={providers}
+        onInstall={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'More'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'GitHub Enterprise'}));
+
+    expect(trackSpy).toHaveBeenCalledWith(
+      'integrations.installation_start',
+      expect.objectContaining({view: 'project_creation', variant: 'scm'})
+    );
+  });
+
+  it('fires the install start with the onboarding view + scm variant', async () => {
+    jest.spyOn(pipelineModal, 'openPipelineModal').mockImplementation(() => {});
+    const trackSpy = jest.spyOn(integrationUtil, 'trackIntegrationAnalytics');
+
+    const providers = [GitHubIntegrationProviderFixture(), gitHubEnterpriseProvider];
+
+    render(
+      <ScmProviderPills
+        analyticsFlow="onboarding"
+        providers={providers}
+        onInstall={jest.fn()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'More'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'GitHub Enterprise'}));
+
+    expect(trackSpy).toHaveBeenCalledWith(
+      'integrations.installation_start',
+      expect.objectContaining({view: 'onboarding', variant: 'scm'})
+    );
+  });
+
   it('does not render "More" dropdown when all providers are primary', () => {
     const providers = [GitHubIntegrationProviderFixture()];
 
-    render(<ScmProviderPills providers={providers} onInstall={jest.fn()} />);
+    render(
+      <ScmProviderPills
+        analyticsFlow="project-creation"
+        providers={providers}
+        onInstall={jest.fn()}
+      />
+    );
 
     expect(screen.getByText('GitHub')).toBeInTheDocument();
     expect(screen.queryByText('More')).not.toBeInTheDocument();

@@ -251,7 +251,11 @@ class ProjectOwnership(Model):
 
         if ownership.auto_assignment:
             autoassignment_types.extend(
-                [GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value]
+                [
+                    GroupOwnerType.OWNERSHIP_RULE.value,
+                    GroupOwnerType.CODEOWNERS.value,
+                    GroupOwnerType.SEER_SUGGESTED.value,
+                ]
             )
         return autoassignment_types
 
@@ -330,6 +334,8 @@ class ProjectOwnership(Model):
             elif issue_owner.type == GroupOwnerType.OWNERSHIP_RULE.value:
                 activity_details["integration"] = ActivityIntegration.PROJECT_OWNERSHIP.value
                 activity_details["rule"] = (issue_owner.context or {}).get("rule", "")
+            elif issue_owner.type == GroupOwnerType.SEER_SUGGESTED.value:
+                activity_details["integration"] = ActivityIntegration.SEER_SUGGESTED.value
             else:
                 activity_details["integration"] = ActivityIntegration.CODEOWNERS.value
                 activity_details["rule"] = (issue_owner.context or {}).get("rule", "")

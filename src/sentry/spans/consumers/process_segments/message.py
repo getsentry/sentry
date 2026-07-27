@@ -12,6 +12,7 @@ from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry import options
+from sentry.ai_monitoring.tasks import spawn_conversation_title_generation
 from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
@@ -87,8 +88,33 @@ def _process_segment(
 ) -> list[CompatibleSpan]:
     _verify_compatibility(unprocessed_spans)
 
-    if any(attribute_value(s, ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID) for s in unprocessed_spans):
-        metrics.incr("spans.consumers.process_segments.gen_ai_conversation")
+    project = None
+    if unprocessed_spans:
+        project_id = unprocessed_spans[0].get("project_id")
+        if project_id is not None:
+            try:
+                with metrics.timer("spans.consumers.process_segments.get_project"):
+                    project = Project.objects.get_from_cache(id=project_id)
+                    project.set_cached_field_value(
+                        "organization",
+                        Organization.objects.get_from_cache(id=project.organization_id),
+                    )
+            except (Project.DoesNotExist, Organization.DoesNotExist):
+                return []
+
+    if project is None:
+        # If the project does not exist then it might have been deleted during ingestion.
+        return []
+
+    if killswitch_matches_context(
+        "spans.process-segments.drop-segments",
+        {"org_id": str(project.organization_id)},
+        emit_metrics=True,
+    ):
+        return []
+
+    # Always attempt title generation, even when enrichment is skipped below.
+    spawn_conversation_title_generation(unprocessed_spans, project)
 
     if skip_enrichment:
         return [make_compatible(span) for span in unprocessed_spans]
@@ -101,27 +127,6 @@ def _process_segment(
     segment_span, spans = _enrich_spans(unprocessed_spans)
     if segment_span is None:
         return spans
-
-    try:
-        with metrics.timer("spans.consumers.process_segments.get_project"):
-            project = Project.objects.get_from_cache(id=segment_span["project_id"])
-
-            project.set_cached_field_value(
-                "organization", Organization.objects.get_from_cache(id=project.organization_id)
-            )
-    except (Project.DoesNotExist, Organization.DoesNotExist):
-        # If the project does not exist then it might have been deleted during ingestion.
-        return []
-
-    # Check killswitch for dropping segments based on org_id
-    if killswitch_matches_context(
-        "spans.process-segments.drop-segments",
-        {
-            "org_id": str(project.organization_id),
-        },
-        emit_metrics=True,
-    ):
-        return []
 
     _add_segment_name(segment_span, spans)
     _compute_breakdowns(segment_span, spans, project)
