@@ -285,6 +285,33 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                     getattr(configuration, "sample_rate")
                 get_blended_sample_rate.assert_not_called()
 
+    def test_every_configuration_exposes_a_serving_sample_rate(self) -> None:
+        """The blended-100% serving gate must be reachable for every configuration type.
+
+        The scheduler needs to ask any configuration what the legacy path would actually
+        serve, so it can skip transaction balancing where legacy emits no transaction rules.
+        Today ``get_serving_sample_rate`` exists only on the AM2 configuration, so a
+        polymorphic call fails for the custom (AM3) ones.
+
+        For configurations with no blended rate the serving rate equals the balancing rate.
+        """
+        am3_org_mode = self.create_organization()
+        am3_org_mode.update_option("sentry:target_sample_rate", 0.3)
+
+        am3_project_mode = self.create_organization()
+        self.create_project(organization=am3_project_mode)
+        am3_project_mode.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            org_mode_configuration = get_configuration(am3_org_mode.id)
+            project_mode_configuration = get_configuration(am3_project_mode.id)
+
+        assert isinstance(org_mode_configuration, CustomDynamicSamplingOrganizationConfiguration)
+        assert org_mode_configuration.get_serving_sample_rate() == 0.3
+
+        assert isinstance(project_mode_configuration, NoDynamicSamplingConfiguration)
+        assert project_mode_configuration.get_serving_sample_rate() is None
+
     def test_project_mode_custom_dynamic_sampling_without_project_rates_is_disabled(
         self,
     ) -> None:

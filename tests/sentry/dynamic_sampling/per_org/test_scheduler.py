@@ -172,6 +172,149 @@ class RunCalculationsPerOrgTest(TestCase):
         transaction_balancing.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_run_calculations_per_org_skips_transaction_balancing_when_blended_rate_is_full(
+        self,
+    ) -> None:
+        """A blended (reserved-based) rate of 100% serves at 100% in the legacy path.
+
+        ``get_guarded_project_sample_rate`` returns 1.0 as soon as the blended rate is 1.0,
+        before it ever reads the boosted cache. Relay then receives a base rate of 1.0, and
+        ``_get_rules_of_enabled_biases`` only emits the boostLowVolumeTransactions rules when
+        ``0.0 < base_sample_rate < 1.0`` — so no transaction rule reaches Relay at all.
+
+        The per-org pipeline must reach the same conclusion. It currently does not: it reads
+        the ungated usage-based rate, rebalances the projects and then rebalances their
+        transactions, so it produces per-transaction rates the legacy path never serves.
+        """
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+        project_volumes = [_project_volume(project.id)]
+        # The usage-based rate is below 100%, so project balancing produces sub-100% rates.
+        # The legacy cache holds those too — only serving is gated.
+        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.25)]
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=1.0,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                return_value=OrganizationDataVolume(org_id=org.id, total=1000, indexed=250),
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.compute_sliding_window_sample_rate",
+                return_value=0.25,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
+                return_value=org_volume,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
+                return_value=project_volumes,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.run_project_balancing",
+                return_value=rebalanced_projects,
+            ) as project_balancing,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_cached_rebalanced_project_sample_rates",
+                return_value={},
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.compare_rebalanced_projects_with_cache"
+            ) as compare_rebalanced_projects,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes"
+            ) as get_transaction_volumes,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing"
+            ) as transaction_balancing,
+        ):
+            result = run_calculations_per_org_task(org.id)
+
+        assert result == DynamicSamplingStatus.ALL_PROJECTS_AT_FULL_SAMPLE_RATE
+        get_transaction_volumes.assert_not_called()
+        transaction_balancing.assert_not_called()
+        # Project balancing and its comparison stay ungated: they mirror the legacy cache,
+        # which is written from the usage-based rate regardless of the blended rate.
+        project_balancing.assert_called_once()
+        compare_rebalanced_projects.assert_called_once()
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_run_calculations_per_org_balances_transactions_below_full_blended_rate(self) -> None:
+        """Counterpart to the blended-100% gate: below 100% the transaction stage must run.
+
+        Guards against gating on the usage-based rate (0.25 here) instead of the blended one.
+        """
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+        project_volumes = [_project_volume(project.id)]
+        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.25)]
+        transaction_volumes = [
+            ProjectTransactionCounts(
+                org_id=org.id, project_id=project.id, transaction_counts=[("checkout", 1.0)]
+            )
+        ]
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=0.5,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                return_value=OrganizationDataVolume(org_id=org.id, total=1000, indexed=250),
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.compute_sliding_window_sample_rate",
+                return_value=0.25,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
+                return_value=org_volume,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
+                return_value=project_volumes,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.run_project_balancing",
+                return_value=rebalanced_projects,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_cached_rebalanced_project_sample_rates",
+                return_value={},
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.compare_rebalanced_projects_with_cache"
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
+                return_value=transaction_volumes,
+            ) as get_transaction_volumes,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
+                return_value={},
+            ) as transaction_balancing,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_cached_rebalanced_transaction_sample_rates",
+                return_value={},
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.compare_rebalanced_transactions_with_cache"
+            ),
+        ):
+            result = run_calculations_per_org_task(org.id)
+
+        assert result is None
+        get_transaction_volumes.assert_called_once()
+        transaction_balancing.assert_called_once()
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_returns_no_volume_without_project_volumes(self) -> None:
         org = self.create_organization()
         self.create_project(organization=org)
