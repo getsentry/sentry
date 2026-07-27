@@ -196,6 +196,7 @@ def log_sample_rates_summary(
         extra={
             "org_id": config.organization.id,
             "eap_org_sample_rate": config.get_sample_rate(),
+            "eap_org_serving_sample_rate": config.get_serving_sample_rate(),
             "generic_metrics_org_sample_rate": get_cached_organization_sample_rate(
                 config.organization.id
             ),
