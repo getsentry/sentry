@@ -294,10 +294,7 @@ export function getMargin(
  * to branch logic. Prefer those unless you're building a responsive prop of your
  * own.
  */
-type ResponsiveValue<T> = T extends Responsive<infer U> ? U : never;
-export function useResponsivePropValue<T extends Responsive<any>>(
-  prop: T
-): T | ResponsiveValue<T> {
+export function useResponsivePropValue<T>(prop: Responsive<T>): T {
   const viewportBreakpoint = useActiveBreakpoint();
   // No container ancestor → 'zero', the only value CSS applies in that case (the
   // plain base declaration), so JS and the @container rules stay in agreement.
@@ -320,7 +317,7 @@ export function useResponsivePropValue<T extends Responsive<any>>(
   const containerIndex = CONTAINER_ORDER.indexOf(containerBreakpoint);
   const viewportIndex = VIEWPORT_ORDER.findIndex(e => e.token === viewportBreakpoint);
 
-  let resolved: ResponsiveValue<T> | undefined;
+  let resolved: T | undefined;
   let first = true;
 
   // Read each axis with the same prop keys rc() emits — bare for the container
@@ -331,7 +328,7 @@ export function useResponsivePropValue<T extends Responsive<any>>(
       if (key === undefined) {
         continue;
       }
-      const value = (prop as Partial<Record<string, ResponsiveValue<T>>>)[key];
+      const value = (prop as Partial<Record<string, T>>)[key];
       if (value === undefined) {
         continue;
       }
