@@ -184,8 +184,12 @@ def _compare_problem_sets(
     span_first_problem_dicts: list[PerformanceProblemDict],
 ) -> tuple[set[str], set[str], dict[str, list[str]]]:
     """
-    Compare two lists of (hopefully matching) problems, and return a dictionary containing
-    information about where, if anywhere, they differ.
+    Compare the given problem sets, returning a tuple of the form
+
+        (shared_fingerprints, non_shared_fingerprints, diffs)
+
+    where `diffs` is a mapping of locations where the data differs to the fingerprints of the
+    problems which differ there.
     """
     diffs: dict[str, list[str]] = defaultdict(list)
 
