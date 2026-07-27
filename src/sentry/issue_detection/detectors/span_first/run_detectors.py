@@ -182,7 +182,7 @@ def compare_span_first_problems_to_control_data(
 def _compare_problem_sets(
     control_problem_dicts: list[PerformanceProblemDict],
     span_first_problem_dicts: list[PerformanceProblemDict],
-) -> dict[str, list[str]]:
+) -> tuple[set[str], set[str], dict[str, list[str]]]:
     """
     Compare two lists of (hopefully matching) problems, and return a dictionary containing
     information about where, if anywhere, they differ.
@@ -196,25 +196,20 @@ def _compare_problem_sets(
         problem["fingerprint"]: problem for problem in span_first_problem_dicts
     }
 
-    overall_diffs = {}
+    control_problem_fingerprints = set(control_problems_by_fingerprint)
+    span_first_problem_fingerprints = set(span_first_problems_by_fingerprint)
+    shared_fingerprints = control_problem_fingerprints.intersection(span_first_problem_fingerprints)
+    non_shared_fingerprints = control_problem_fingerprints.symmetric_difference(
+        span_first_problem_fingerprints
+    )
 
-    if control_problems_by_fingerprint.keys() != span_first_problems_by_fingerprint.keys():
-        non_shared_fingerprints = sorted(
-            set(control_problems_by_fingerprint.keys()).symmetric_difference(
-                span_first_problems_by_fingerprint.keys()
-            )
-        )
-        overall_diffs["non_shared_fingerprints"] = non_shared_fingerprints
-
-    for fingerprint, control_problem_dict in control_problems_by_fingerprint.items():
-        span_first_problem_dict = span_first_problems_by_fingerprint.get(fingerprint)
-
-        if not span_first_problem_dict:
-            continue
+    for fingerprint in shared_fingerprints:
+        control_problem_dict = control_problems_by_fingerprint[fingerprint]
+        span_first_problem_dict = span_first_problems_by_fingerprint[fingerprint]
 
         _collect_single_problem_diffs(control_problem_dict, span_first_problem_dict, diffs)
 
-    return diffs
+    return (shared_fingerprints, non_shared_fingerprints, diffs)
 
 
 def _collect_single_problem_diffs(
