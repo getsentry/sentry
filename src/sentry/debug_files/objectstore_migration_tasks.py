@@ -90,7 +90,6 @@ def _claim_shard(
     ).update(
         task_generation=F("task_generation") + 1,
         status=DebugFileObjectstoreMigrationShardStatus.RUNNING,
-        heartbeat_at=now,
         started_at=now,
     )
     if not updated:
@@ -179,7 +178,6 @@ def _complete_shard(shard: DebugFileObjectstoreMigrationShard) -> None:
         run__status=DebugFileObjectstoreMigrationRunStatus.RUNNING,
     ).update(
         status=DebugFileObjectstoreMigrationShardStatus.COMPLETED,
-        heartbeat_at=timezone.now(),
         finished_at=timezone.now(),
     )
 
@@ -204,7 +202,6 @@ def _fail_shard(
         task_generation=shard.task_generation,
     ).update(
         status=DebugFileObjectstoreMigrationShardStatus.FAILED,
-        heartbeat_at=timezone.now(),
         finished_at=timezone.now(),
         failing_debug_file_id=debug_file_id,
         last_error=f"{type(error).__name__}: {error}"[:256],

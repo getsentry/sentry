@@ -153,7 +153,6 @@ def resume_failed_shards(run_id: int, shard_ids: list[int] | None = None) -> int
             failing_debug_file_id=None,
             last_error=None,
             finished_at=None,
-            heartbeat_at=None,
         )
         incomplete = shards.count()
         if incomplete == 0:
@@ -373,11 +372,9 @@ def _commit_result(
             shard.files_skipped += 1
 
         shard.cursor_id = max(shard.cursor_id, debug_file_id)
-        shard.heartbeat_at = timezone.now()
         shard.save(
             update_fields=[
                 "cursor_id",
-                "heartbeat_at",
                 "files_migrated",
                 "files_skipped",
                 "bytes_migrated",

@@ -110,7 +110,6 @@ class Migration(CheckedMigration):
                         db_default=0, default=0
                     ),
                 ),
-                ("heartbeat_at", models.DateTimeField(null=True)),
                 ("started_at", models.DateTimeField(null=True)),
                 ("finished_at", models.DateTimeField(null=True)),
                 (

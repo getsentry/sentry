@@ -81,7 +81,6 @@ class DebugFileObjectstoreMigrationShard(DefaultFieldsModel):
     files_migrated = BoundedPositiveBigIntegerField(default=0, db_default=0)
     files_skipped = BoundedPositiveBigIntegerField(default=0, db_default=0)
     bytes_migrated = BoundedPositiveBigIntegerField(default=0, db_default=0)
-    heartbeat_at = models.DateTimeField(null=True)
     started_at = models.DateTimeField(null=True)
     finished_at = models.DateTimeField(null=True)
     failing_debug_file_id = BoundedBigIntegerField(null=True)
