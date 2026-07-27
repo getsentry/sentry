@@ -74,6 +74,7 @@ import {generateQueryWithTag} from 'sentry/utils/queryString';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -106,7 +107,6 @@ import {
 import Table from 'sentry/views/discover/table';
 import {
   generateTitle,
-  getDiscoverDeprecation,
   getDiscoverDeprecationEnabled,
   getTransactionsDeprecation,
   handleAddQueryToDashboard,
@@ -1404,6 +1404,7 @@ function DiscoverPageFilters({
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.ERRORS],
   });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
     location,
@@ -1439,13 +1440,7 @@ function DiscoverPageFilters({
       <PageFilterBar condensed>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
-        <DatePageFilter
-          maxPickableDays={
-            getDiscoverDeprecation(organization)
-              ? maxPickableDays.maxPickableDays
-              : undefined
-          }
-        />
+        <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <Flex gap="md" align="center">
         {!shouldHideCreateAlert && (
@@ -1598,9 +1593,7 @@ export default function ResultsContainer() {
       disablePersistence={
         organization.features.includes('discover-query') && !!location.query.id
       }
-      maxPickableDays={
-        getDiscoverDeprecation(organization) ? maxPickableDays.maxPickableDays : undefined
-      }
+      maxPickableDays={maxPickableDays.maxPickableDays}
       skipLoadLastUsed={false}
       // The Discover Results component will manage URL params, including page filters state
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
