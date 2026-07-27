@@ -24,25 +24,13 @@ def register_permanent_features(manager: FeatureManager) -> None:
 
     Organization Features that are part of sentry.io subscription plans
     Features here should ideally be enabled sentry/conf/server.py so that
-    self-hosted and single-tenant are aligned with sentry.io. Features here should
-    also be listed in SubscriptionPlanFeatureHandler in getsentry so that sentry.io
-    behaves correctly.
+    self-hosted and single-tenant are aligned with sentry.io.
     """
     permanent_organization_features = {
         # Enable advanced search features, like negation and wildcard matching.
         "organizations:advanced-search": True,
         # Denotes organizations on the AM3 billing tier
         "organizations:am3-tier": False,
-        # Enable anomaly detection alerts
-        "organizations:anomaly-detection-alerts": False,
-        # Enable change alerts for an org
-        "organizations:change-alerts": True,
-        # Enable alerting based on crash free sessions/users
-        "organizations:crash-rate-alerts": True,
-        # Allow organizations to configure custom external symbol sources.
-        "organizations:custom-symbol-sources": True,
-        # Enable data forwarding functionality for organizations.
-        "organizations:data-forwarding": True,
         # Enable discover 2 basic functions
         "organizations:discover-basic": True,
         # Enable discover 2 custom queries and saved queries
@@ -57,15 +45,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:integrations-alert-rule": True,
         # Enable integration functionality to work with alert rules (specifically chat integrations)
         "organizations:integrations-chat-unfurl": True,
-        # Enable the API to importing CODEOWNERS for a project
-        "organizations:integrations-codeowners": True,
-        # Enable interface functionality to receive event hooks.
-        "organizations:integrations-event-hooks": True,
-        # Enable integration functionality to work with enterprise alert rules
-        "organizations:integrations-enterprise-alert-rule": True,
-        # Enable integration functionality to work with enterprise alert rules (specifically incident
-        # management integrations)
-        "organizations:integrations-enterprise-incident-management": True,
         # Enable integration functionality to work with alert rules (specifically incident
         # management integrations)
         "organizations:integrations-incident-management": True,
@@ -77,17 +56,12 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:integrations-issue-sync": True,
         # Enable stacktrace linking
         "organizations:integrations-stacktrace-link": True,
-        # Allow orgs to automatically create Tickets in Issue Alerts
-        "organizations:integrations-ticket-rules": True,
         # Enable metric alert charts in email/slack
         "organizations:metric-alert-chartcuterie": False,
         # Enable Performance view
         "organizations:performance-view": True,
         # Enable profiling view
         "organizations:profiling-view": False,
-        # Enable usage of external relays, for use with Relay. See
-        # https://github.com/getsentry/relay.
-        "organizations:relay": True,
         # Enable core Session Replay backend APIs
         "organizations:session-replay": False,
         # Measure usage by spans instead of transactions
@@ -101,10 +75,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:sso-saml2": True,
         # Enable 'spans' category on the stats page
         "organizations:span-stats": False,
-        # Enable team insights page
-        "organizations:team-insights": True,
-        # Enable setting team-level roles and receiving permissions from them
-        "organizations:team-roles": True,
         # Enable the uptime monitoring features
         "organizations:uptime": True,
         # Feature flag for continuous profiling billing-related features.
@@ -119,14 +89,8 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:org-ingest-subdomains": False,
         # Replace the footer Sentry logo with a Sentry pride logo
         "organizations:sentry-pride-logo-footer": False,
-        # Enable priority calculations using Seer's severity endpoint
-        "organizations:seer-based-priority": False,
         # Enable Vercel integration - there is a custom handler in getsentry
         "organizations:integrations-vercel": True,
-        # Enable GitHub multi-org for users to connect many Sentry orgs to a single GitHub org.
-        "organizations:integrations-scm-multi-org": True,
-        # Enable issue view endpoints and UI
-        "organizations:issue-views": False,
         # Display profile durations on the stats page
         "organizations:continuous-profiling-stats": False,
     }
@@ -152,6 +116,44 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:init-sentry-toolbar": FlagpoleFeature(default=False, api_expose=True),
         # Opt orgs in to logging workflow evaluations (bypasses sample rate when enabled).
         "organizations:workflow-engine-log-evaluations": FlagpoleFeature(default=False),
+        # Enable anomaly detection alerts
+        "organizations:anomaly-detection-alerts": FlagpoleFeature(default=False, api_expose=True),
+        # Enable change alerts for an org
+        "organizations:change-alerts": FlagpoleFeature(default=True, api_expose=True),
+        # Enable alerting based on crash free sessions/users
+        "organizations:crash-rate-alerts": FlagpoleFeature(default=True, api_expose=True),
+        # Allow organizations to configure custom external symbol sources.
+        "organizations:custom-symbol-sources": FlagpoleFeature(default=True, api_expose=True),
+        # Enable data forwarding functionality for organizations.
+        "organizations:data-forwarding": FlagpoleFeature(default=True, api_expose=True),
+        # Enable the API to importing CODEOWNERS for a project
+        "organizations:integrations-codeowners": FlagpoleFeature(default=True, api_expose=True),
+        # Enable integration functionality to work with enterprise alert rules
+        "organizations:integrations-enterprise-alert-rule": FlagpoleFeature(
+            default=True, api_expose=True
+        ),
+        # Enable integration functionality to work with enterprise alert rules (specifically incident
+        # management integrations)
+        "organizations:integrations-enterprise-incident-management": FlagpoleFeature(
+            default=True, api_expose=True
+        ),
+        # Enable interface functionality to receive event hooks.
+        "organizations:integrations-event-hooks": FlagpoleFeature(default=True, api_expose=True),
+        # Enable GitHub multi-org for users to connect many Sentry orgs to a single GitHub org.
+        "organizations:integrations-scm-multi-org": FlagpoleFeature(default=True, api_expose=True),
+        # Allow orgs to automatically create Tickets in Issue Alerts
+        "organizations:integrations-ticket-rules": FlagpoleFeature(default=True, api_expose=True),
+        # Enable issue view endpoints and UI
+        "organizations:issue-views": FlagpoleFeature(default=False, api_expose=True),
+        # Enable usage of external relays, for use with Relay. See
+        # https://github.com/getsentry/relay.
+        "organizations:relay": FlagpoleFeature(default=True, api_expose=True),
+        # Enable priority calculations using Seer's severity endpoint
+        "organizations:seer-based-priority": FlagpoleFeature(default=False, api_expose=True),
+        # Enable team insights page
+        "organizations:team-insights": FlagpoleFeature(default=True, api_expose=True),
+        # Enable setting team-level roles and receiving permissions from them
+        "organizations:team-roles": FlagpoleFeature(default=True, api_expose=True),
     }
 
     # Flagpole cannot control system-scoped flags — keep these as INTERNAL.
