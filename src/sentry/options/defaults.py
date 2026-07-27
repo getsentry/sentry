@@ -2249,6 +2249,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window
 # sample rate comparison. Empty disables the comparison entirely.
 register(

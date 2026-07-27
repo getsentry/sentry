@@ -66,6 +66,11 @@ class BaseDynamicSamplingConfiguration(ABC):
     def get_sample_rate(self) -> TargetSampleRate:
         raise NotImplementedError
 
+    def get_serving_sample_rate(self) -> TargetSampleRate:
+        # For custom dynamic sampling the target rate is served as-is; only the automatic
+        # configuration applies a serving-time gate on top of it.
+        return self.get_sample_rate()
+
     def get_project_sample_rates(self) -> ProjectSampleRates:
         return self.project_sample_rates
 
