@@ -18,7 +18,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProgressState} from 'sentry/types/group';
 
@@ -124,12 +123,6 @@ describe('InboxPage', () => {
   beforeEach(() => {
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
-    PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState({
-      projects: [Number(project.id)],
-      environments: ['production'],
-      datetime: {period: '7d', start: null, end: null, utc: false},
-    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: [MemberFixture({id: assignedUser.id, user: assignedUser})],
@@ -257,15 +250,13 @@ describe('InboxPage', () => {
           expect.anything(),
           expect.objectContaining({
             method: 'GET',
-            query: expect.objectContaining({
-              project: [1],
-              environment: ['production'],
-              statsPeriod: '7d',
+            query: {
+              project: [-1],
               query,
               sort: 'progress',
               limit: 5,
-              expand: ['owners', 'derivedData'],
-            }),
+              collapse: ['stats', 'unhandled'],
+            },
           })
         )
       );
@@ -299,7 +290,8 @@ describe('InboxPage', () => {
     );
     expect(within(fixSection).getByLabelText('Unread issue')).toBeInTheDocument();
     expect(within(fixSection).queryByRole('checkbox')).not.toBeInTheDocument();
-    expect(fixSection.querySelectorAll('time')).toHaveLength(2);
+    expect(fixSection.querySelector('time')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: '7D'})).not.toBeInTheDocument();
   });
 
   it('expands and collapses progress sections', async () => {
@@ -444,20 +436,11 @@ describe('InboxPage', () => {
       })
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: '7D', expanded: false}));
-    await userEvent.click(screen.getByRole('option', {name: 'Last 30 days'}));
-
+    await userEvent.click(await screen.findByRole('button', {name: 'Back to inbox'}));
     expect(router.location.query.preview).toBeUndefined();
     expect(
       within(preview).queryByRole('heading', {name: 'Fix proposed issue'})
     ).not.toBeInTheDocument();
-
-    const updatedIssueLink = within(
-      screen.getByRole('region', {name: 'Fix Proposed'})
-    ).getByRole('link', {name: /Fix proposed issue/});
-    await userEvent.click(updatedIssueLink);
-    await userEvent.click(await screen.findByRole('button', {name: 'Back to inbox'}));
-    expect(router.location.query.preview).toBeUndefined();
   });
 
   it('starts finding the root cause in Autofix when there is no Autofix state', async () => {
