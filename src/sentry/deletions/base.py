@@ -67,8 +67,11 @@ class ModelRelation(BaseRelation):
         model: type[ModelT],
         query: Mapping[str, Any],
         task: type[BaseDeletionTask[Any]] | None = None,
+        mark_in_progress: bool | None = None,
     ) -> None:
-        params = {"model": model, "query": query}
+        params: dict[str, Any] = {"model": model, "query": query}
+        if mark_in_progress is not None:
+            params["mark_in_progress"] = mark_in_progress
 
         super().__init__(params=params, task=task)
 
@@ -81,6 +84,10 @@ class BaseDeletionTask(Generic[ModelT]):
 
     DEFAULT_CHUNK_SIZE = 100
 
+    # Whether to mark instances as ``ObjectStatus.DELETION_IN_PROGRESS`` before
+    # deleting them.
+    mark_in_progress_default = True
+
     def __init__(
         self,
         manager: DeletionTaskManager,
@@ -88,12 +95,16 @@ class BaseDeletionTask(Generic[ModelT]):
         transaction_id: str | None = None,
         actor_id: int | None = None,
         chunk_size: int | None = None,
+        mark_in_progress: bool | None = None,
     ):
         self.manager = manager
         self.skip_models = set(skip_models) if skip_models else None
         self.transaction_id = transaction_id
         self.actor_id = actor_id
         self.chunk_size = chunk_size if chunk_size is not None else self.DEFAULT_CHUNK_SIZE
+        self.mark_in_progress = (
+            mark_in_progress if mark_in_progress is not None else self.mark_in_progress_default
+        )
 
     def __repr__(self) -> str:
         return f"<{type(self)}: skip_models={self.skip_models} transaction_id={self.transaction_id} actor_id={self.actor_id}>"
@@ -139,7 +150,8 @@ class BaseDeletionTask(Generic[ModelT]):
         This **should** not be called with arbitrary types, but rather should
         be used for only the base type this task was instantiated against.
         """
-        self.mark_deletion_in_progress(instance_list)
+        if self.mark_in_progress:
+            self.mark_deletion_in_progress(instance_list)
 
         child_relations = self.get_child_relations_bulk(instance_list)
         child_relations = self.filter_relations(child_relations)
