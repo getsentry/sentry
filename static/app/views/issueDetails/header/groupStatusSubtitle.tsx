@@ -28,7 +28,7 @@ export function GroupStatusSubtitle({group, project}: GroupStatusSubtitleProps) 
   const statusProps = getBadgeProperties(group.status, group.substatus);
 
   return (
-    <Flex gap="md" align="center">
+    <Flex gap="md" align="center" minWidth={0}>
       {group.isUnhandled && (
         <Fragment>
           <UnhandledTag />

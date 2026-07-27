@@ -3,6 +3,8 @@ from sentry.monitors.models import MonitorCheckIn
 
 
 class MonitorCheckInDeletionTask(ModelDeletionTask[MonitorCheckIn]):
+    mark_in_progress_default = False
+
     def get_child_relations(self, instance: MonitorCheckIn) -> list[BaseRelation]:
         from sentry.monitors import models
 

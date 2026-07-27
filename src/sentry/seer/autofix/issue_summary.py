@@ -16,7 +16,9 @@ from sentry import features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import DataCategory
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.locks import locks
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.autofix import get_trace_tree_for_event
@@ -41,6 +43,7 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.models import SummarizeIssueResponse
+from sentry.seer.models.run import SeerRun
 from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     SummarizeIssueRequest,
@@ -51,6 +54,7 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
+from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.cache import cache
@@ -177,20 +181,29 @@ def _trigger_autofix_task(
             }
         )
 
-        run_id: int | None = None
+        run: SeerRun | None = None
         try:
-            run_id = trigger_autofix_agent(
+            run = trigger_autofix_agent(
                 group=group,
                 step=AutofixStep.ROOT_CAUSE,
                 referrer=referrer,
                 run_id=None,
                 stopping_point=stopping_point,
             )
+            with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
+                Activity.objects.create_group_activity(
+                    group,
+                    ActivityType.TRIGGER_AUTOFIX,
+                    data={"referrer": referrer.value},
+                    send_notification=False,
+                )
         except NoSeerQuotaException:
             pass
 
-        if run_id and SeerAutofixOperator.has_access(organization=group.project.organization):
-            SeerOperatorAutofixCache.migrate(from_group_id=group_id, to_run_id=run_id)
+        if run and SeerAutofixOperator.has_access(organization=group.project.organization):
+            SeerOperatorAutofixCache.migrate(
+                from_group_id=group_id, to_run_id=run.seer_run_state_id
+            )
 
 
 def _get_event(

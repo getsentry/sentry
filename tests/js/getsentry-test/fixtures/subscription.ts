@@ -83,7 +83,6 @@ export function SubscriptionFixture(props: Props): TSubscription {
     isOverMemberLimit: false,
     isPartner: false,
     isSelfServePartner: false,
-    isPerformancePlanTrial: false,
     lastTrialEnd: null,
     spendAllocationEnabled: false,
     status: 'active',

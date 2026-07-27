@@ -12,7 +12,7 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEventPermission
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpointBase,
-    adjust_start_end_window,
+    full_retention_window,
     resolve_attribute_values_referrer,
 )
 from sentry.api.serializers import serialize
@@ -103,9 +103,10 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
         except NoProjects:
             return Response({"detail": "No projects available."}, status=400)
 
-        adjusted_start, adjusted_end = adjust_start_end_window(
-            snuba_params.start_date, snuba_params.end_date
-        )
+        # Existence is a property of all the org's data, so always check against
+        # the full retention window and ignore any time range filters
+        # (`statsPeriod`/`start`/`end`) on the request.
+        adjusted_start, adjusted_end = full_retention_window()
         snuba_params.start = adjusted_start
         snuba_params.end = adjusted_end
 

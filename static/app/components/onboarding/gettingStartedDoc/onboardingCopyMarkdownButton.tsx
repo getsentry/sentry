@@ -126,34 +126,13 @@ export function OnboardingCopyMarkdownButton({
   );
 }
 
-type CopySetupInstructionsType = 'onboarding' | 'project_creation';
-
-const FEATURE_FLAGS: Record<CopySetupInstructionsType, string> = {
-  onboarding: 'onboarding-copy-setup-instructions',
-  project_creation: 'onboarding-copy-setup-instructions-project-creation',
-};
-
 /**
- * Returns whether the copy setup instructions button should be shown
- * for the given context type.
+ * Returns whether the "Copy setup instructions" button should be shown on the
+ * project creation onboarding flow.
  */
-export function useCopySetupInstructionsEnabled(
-  type: CopySetupInstructionsType = 'onboarding'
-): boolean {
+export function useCopySetupInstructionsProjectCreationEnabled(): boolean {
   const organization = useOrganization();
-  return organization.features.includes(FEATURE_FLAGS[type]);
-}
-
-export function CopySetupInstructionsGate({
-  children,
-  type,
-}: {
-  children: React.ReactNode;
-  type?: CopySetupInstructionsType;
-}) {
-  const enabled = useCopySetupInstructionsEnabled(type);
-  if (!enabled) {
-    return null;
-  }
-  return children;
+  return organization.features.includes(
+    'onboarding-copy-setup-instructions-project-creation'
+  );
 }

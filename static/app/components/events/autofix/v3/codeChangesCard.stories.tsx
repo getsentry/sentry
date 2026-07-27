@@ -77,10 +77,13 @@ function makePatch(repoName: string, path: string): ExplorerFilePatch {
 /**
  * A folded-in PR-iteration block. Its feedback drives one iteration and renders
  * as a `processed` item once the section is no longer processing.
+ *
+ * Pass an array to model a submitted review: its body + comments share this
+ * block's `iteration_index`, which is what lets them group under one header.
  */
 function makeFeedbackBlock(
   iterationIndex: number,
-  feedback: RawFeedback
+  feedback: RawFeedback | RawFeedback[]
 ): AutofixSection['blocks'][number] {
   return {
     id: `block-pr-${iterationIndex}`,
@@ -155,7 +158,12 @@ function githubPrCommentFeedback(text: string): RawFeedback {
   };
 }
 
-function githubPrReviewCommentFeedback(text: string): RawFeedback {
+// Pass a `reviewId` matching a review body's to group them; omit it for a
+// standalone "Add single comment" review, which stays flat.
+function githubPrReviewCommentFeedback(
+  text: string,
+  {reviewId, login = 'octocat'}: {login?: string; reviewId?: number} = {}
+): RawFeedback {
   return {
     text,
     timestamp: '2026-07-20T00:00:00Z',
@@ -163,8 +171,36 @@ function githubPrReviewCommentFeedback(text: string): RawFeedback {
       type: 'github-pr-review-comment',
       comment: {
         html_url: 'https://github.com/org/repo/pull/42#discussion_r1',
-        user: {login: 'octocat'},
+        user: {login},
       },
+      review_id: reviewId,
+    },
+  };
+}
+
+// The summary body of a submitted PR review; `reviewState` drives the header
+// badge and `reviewId` is the key inline comments group against.
+function githubPrReviewBodyFeedback({
+  body = '',
+  reviewId,
+  reviewState,
+  login = 'octocat',
+}: {
+  reviewState: string;
+  body?: string;
+  login?: string;
+  reviewId?: number;
+}): RawFeedback {
+  return {
+    text: body,
+    timestamp: '2026-07-20T00:00:00Z',
+    source: {
+      type: 'github-pr-review-body',
+      body,
+      html_url: 'https://github.com/org/repo/pull/42#pullrequestreview-1',
+      review_id: reviewId,
+      review_state: reviewState,
+      user: {login},
     },
   };
 }
@@ -277,6 +313,131 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
               groupId="1"
               autofix={makeAutofix([userUiFeedback('Make the button blue', user)])}
               section={makeSection('completed', [])}
+            />
+          </FeatureWrapper>
+        </StatusExample>
+      </Stack>
+    );
+  });
+
+  story('PR reviews', () => {
+    return (
+      <Stack gap="xl">
+        <Text size="sm" variant="muted">
+          A submitted GitHub review groups its summary body and inline comments under one
+          header. The header carries a state badge (<code>Approved</code>,{' '}
+          <code>Changes requested</code>, or <code>Reviewed</code>), and the review's
+          inline comments nest beneath it with a left rule. The body and its comments
+          share one iteration block (mirroring a single review webhook), which is what
+          keys them together on <code>(iterationIndex, reviewId)</code>.
+        </Text>
+
+        <StatusExample label="Changes requested — a review body plus two inline comments, grouped under a danger badge.">
+          <FeatureWrapper>
+            <CodeChangesCard
+              groupId="1"
+              autofix={makeAutofix()}
+              section={makeSection('completed', [
+                makeFeedbackBlock(0, [
+                  githubPrReviewBodyFeedback({
+                    reviewId: 100,
+                    reviewState: 'changes_requested',
+                    body: 'A couple of blockers before this can merge — see inline.',
+                    login: 'octocat',
+                  }),
+                  githubPrReviewCommentFeedback('This branch is never hit — remove it.', {
+                    reviewId: 100,
+                    login: 'octocat',
+                  }),
+                  githubPrReviewCommentFeedback(
+                    'Guard against the null user before dereferencing.',
+                    {reviewId: 100, login: 'octocat'}
+                  ),
+                ]),
+              ])}
+            />
+          </FeatureWrapper>
+        </StatusExample>
+
+        <StatusExample label="Approved — a review body with one inline comment, grouped under a success badge.">
+          <FeatureWrapper>
+            <CodeChangesCard
+              groupId="1"
+              autofix={makeAutofix()}
+              section={makeSection('completed', [
+                makeFeedbackBlock(0, [
+                  githubPrReviewBodyFeedback({
+                    reviewId: 200,
+                    reviewState: 'approved',
+                    body: 'LGTM! One tiny nit inline, feel free to ignore.',
+                    login: 'monalisa',
+                  }),
+                  githubPrReviewCommentFeedback('Nit: prefer `const` here.', {
+                    reviewId: 200,
+                    login: 'monalisa',
+                  }),
+                ]),
+              ])}
+            />
+          </FeatureWrapper>
+        </StatusExample>
+
+        <StatusExample label="Commented — a review left with only inline comments and a body, no explicit approve/reject, grouped under a muted badge.">
+          <FeatureWrapper>
+            <CodeChangesCard
+              groupId="1"
+              autofix={makeAutofix()}
+              section={makeSection('completed', [
+                makeFeedbackBlock(0, [
+                  githubPrReviewBodyFeedback({
+                    reviewId: 300,
+                    reviewState: 'commented',
+                    body: 'A few thoughts, nothing blocking.',
+                    login: 'octocat',
+                  }),
+                  githubPrReviewCommentFeedback(
+                    'Could this be extracted into a helper?',
+                    {reviewId: 300, login: 'octocat'}
+                  ),
+                ]),
+              ])}
+            />
+          </FeatureWrapper>
+        </StatusExample>
+
+        <StatusExample label="Body-only review — an approval with no inline comments renders as a single row with just the badge.">
+          <FeatureWrapper>
+            <CodeChangesCard
+              groupId="1"
+              autofix={makeAutofix()}
+              section={makeSection('completed', [
+                makeFeedbackBlock(0, [
+                  githubPrReviewBodyFeedback({
+                    reviewId: 400,
+                    reviewState: 'approved',
+                    body: 'Ship it 🚀',
+                    login: 'monalisa',
+                  }),
+                ]),
+              ])}
+            />
+          </FeatureWrapper>
+        </StatusExample>
+
+        <StatusExample label="Comment-only review — GitHub's “Add single comment” has no body, so there's no header or badge; the comment stays flat.">
+          <FeatureWrapper>
+            <CodeChangesCard
+              groupId="1"
+              autofix={makeAutofix()}
+              section={makeSection('completed', [
+                makeFeedbackBlock(
+                  0,
+                  githubPrReviewCommentFeedback(
+                    'Drive-by comment, not part of a submitted review.',
+                    {login: 'octocat'}
+                  )
+                ),
+              ])}
             />
           </FeatureWrapper>
         </StatusExample>

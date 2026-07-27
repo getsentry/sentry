@@ -1,11 +1,40 @@
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {syncEquationMetricQueries} from 'sentry/views/explore/metrics/equationBuilder/utils';
+import {
+  syncEquationMetricQueries,
+  unresolveExpression,
+} from 'sentry/views/explore/metrics/equationBuilder/utils';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+describe('unresolveExpression', () => {
+  it('replaces function calls with reference labels', () => {
+    const result = unresolveExpression(
+      'sum(value,metricA,counter,none) + avg(value,metricB,gauge,none)',
+      {
+        A: 'sum(value,metricA,counter,none)',
+        B: 'avg(value,metricB,gauge,none)',
+      }
+    );
+    expect(result).toBe('A + B');
+  });
+
+  it('removes extra whitespace from expression', () => {
+    const result = unresolveExpression('sum(value,metricA,counter,none)      + 2', {
+      A: 'sum(value,metricA,counter,none)',
+    });
+    expect(result).toBe('A + 2');
+    expect(result).not.toMatch(/^\s|\s$/);
+  });
+
+  it('returns original text when no references match', () => {
+    const result = unresolveExpression('sum(value,metricA,counter,none) + 2', {});
+    expect(result).toBe('sum(value,metricA,counter,none) + 2');
+  });
+});
 
 describe('syncEquationMetricQueries', () => {
   it('updates equations when a referenced metric with quoted query filter changes', () => {

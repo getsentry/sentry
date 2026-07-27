@@ -90,16 +90,121 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         pr_iteration_from_check_suite_listener(self._event(conclusion="cancelled"))
         mock_get_state.assert_not_called()
 
-    @patch(f"{CHECK_PATH}.request_review_for_green_check_suite")
+    @patch(f"{CHECK_PATH}.get_run_marker", return_value=None)
+    @patch(f"{CHECK_PATH}.request_review_from_context")
+    @patch(f"{CHECK_PATH}.mark_ready_for_review")
+    @patch(f"{CHECK_PATH}.confirm_green_check_suite")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
-    def test_green_conclusion_routes_to_review_request(
-        self, mock_get_state: MagicMock, mock_request_review: MagicMock
+    def test_green_conclusion_bootstraps_then_side_effects(
+        self,
+        mock_get_state: MagicMock,
+        mock_resolve: MagicMock,
+        mock_confirm: MagicMock,
+        mock_mark_ready: MagicMock,
+        mock_request_review: MagicMock,
+        _mock_marker: MagicMock,
     ) -> None:
         event = self._event(self._raw(), conclusion="success")
+        resolved = MagicMock()
+        ctx = MagicMock()
+        mock_resolve.return_value = resolved
+        mock_confirm.return_value = ctx
+        call_order: list[str] = []
+        mock_mark_ready.side_effect = lambda *_a, **_k: call_order.append("ready")
+        mock_request_review.side_effect = lambda *_a, **_k: call_order.append("review")
 
         pr_iteration_from_check_suite_listener(event)
 
-        mock_request_review.assert_called_once_with(event)
+        mock_resolve.assert_called_once_with(event)
+        mock_confirm.assert_called_once_with(resolved)
+        mock_mark_ready.assert_called_once_with(ctx)
+        mock_request_review.assert_called_once_with(ctx)
+        assert call_order == ["ready", "review"]
+        mock_get_state.assert_not_called()
+
+    @patch(f"{CHECK_PATH}.get_run_marker")
+    @patch(f"{CHECK_PATH}.request_review_from_context")
+    @patch(f"{CHECK_PATH}.mark_ready_for_review")
+    @patch(f"{CHECK_PATH}.confirm_green_check_suite")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    def test_green_conclusion_runs_only_needed_side_effects(
+        self,
+        mock_get_state: MagicMock,
+        mock_resolve: MagicMock,
+        mock_confirm: MagicMock,
+        mock_mark_ready: MagicMock,
+        mock_request_review: MagicMock,
+        mock_marker: MagicMock,
+    ) -> None:
+        from sentry.seer.autofix.pr_iteration.check_suites import (
+            READY_FOR_REVIEW_EXTRA,
+            REVIEW_REQUESTS_EXTRA,
+        )
+
+        resolved = MagicMock()
+        ctx = MagicMock()
+        mock_resolve.return_value = resolved
+        mock_confirm.return_value = ctx
+        # ready_for_review already marked; review_request still needed.
+        mock_marker.side_effect = lambda _run, extra_key, _repo: (
+            {"marked": True} if extra_key == READY_FOR_REVIEW_EXTRA else None
+        )
+
+        pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
+
+        mock_confirm.assert_called_once_with(resolved)
+        mock_mark_ready.assert_not_called()
+        mock_request_review.assert_called_once_with(ctx)
+        assert mock_marker.call_args_list[0].args[1] == READY_FOR_REVIEW_EXTRA
+        assert mock_marker.call_args_list[1].args[1] == REVIEW_REQUESTS_EXTRA
+        mock_get_state.assert_not_called()
+
+    @patch(f"{CHECK_PATH}.get_run_marker", return_value={"marked": True})
+    @patch(f"{CHECK_PATH}.request_review_from_context")
+    @patch(f"{CHECK_PATH}.mark_ready_for_review")
+    @patch(f"{CHECK_PATH}.confirm_green_check_suite")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    def test_green_conclusion_skips_scm_when_both_markers_set(
+        self,
+        mock_get_state: MagicMock,
+        mock_resolve: MagicMock,
+        mock_confirm: MagicMock,
+        mock_mark_ready: MagicMock,
+        mock_request_review: MagicMock,
+        _mock_marker: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = MagicMock()
+
+        pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
+
+        mock_confirm.assert_not_called()
+        mock_mark_ready.assert_not_called()
+        mock_request_review.assert_not_called()
+        mock_get_state.assert_not_called()
+
+    @patch(f"{CHECK_PATH}.get_run_marker", return_value=None)
+    @patch(f"{CHECK_PATH}.request_review_from_context")
+    @patch(f"{CHECK_PATH}.mark_ready_for_review")
+    @patch(f"{CHECK_PATH}.confirm_green_check_suite", return_value=None)
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    def test_green_conclusion_skips_side_effects_when_confirm_empty(
+        self,
+        mock_get_state: MagicMock,
+        mock_resolve: MagicMock,
+        _mock_confirm: MagicMock,
+        mock_mark_ready: MagicMock,
+        mock_request_review: MagicMock,
+        _mock_marker: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = MagicMock()
+        pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
+
+        mock_mark_ready.assert_not_called()
+        mock_request_review.assert_not_called()
         mock_get_state.assert_not_called()
 
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories", return_value=[])

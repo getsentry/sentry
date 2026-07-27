@@ -700,6 +700,17 @@ class PostSentryAppsTest(SentryAppsTest):
                 ]
             }
 
+    def test_cannot_create_with_granular_error_created_without_flag(self) -> None:
+        with Feature({"organizations:integrations-event-hooks": False}):
+            response = self.get_error_response(
+                **self.get_data(events=("error.created",)), status_code=403
+            )
+            assert response.data == {
+                "non_field_errors": [
+                    "Your organization does not have access to the 'error' resource subscription."
+                ]
+            }
+
     def test_can_create_with_granular_events(self) -> None:
         response = self.get_success_response(
             **self.get_data(events=("issue.resolved",)), status_code=201
