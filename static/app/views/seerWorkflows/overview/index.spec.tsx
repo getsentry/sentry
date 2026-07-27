@@ -13,7 +13,10 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import AutofixOverview from 'sentry/views/seerWorkflows/overview';
-import {RUN_QUESTIONS} from 'sentry/views/seerWorkflows/overview/runQuestions';
+import {
+  RUN_QUESTION_PROMPTS,
+  RUN_QUESTIONS,
+} from 'sentry/views/seerWorkflows/overview/runQuestions';
 
 describe('AutofixOverview', () => {
   const organization = OrganizationFixture({
@@ -153,6 +156,55 @@ describe('AutofixOverview', () => {
       body: options.body ?? [],
       ...(options.hits === undefined ? {} : {headers: {'X-Hits': options.hits}}),
     });
+  }
+
+  // The batched runs request puts its group ids inside the `query` string
+  // (`group:[a, b]`), never in a separate `group` param, so mocks for it are
+  // matched on that exact string.
+  function mockBatchedRuns(groupIds: string[], runs: unknown[]) {
+    return MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/runs/`,
+      match: [
+        MockApiClient.matchQuery({
+          query: `type:explorer source:autofix group:[${groupIds.join(', ')}]`,
+        }),
+      ],
+      body: runs,
+    });
+  }
+
+  function expectBatchedRunsCall(request: jest.Mock, groupIds: string[], times = 1) {
+    expect(request).toHaveBeenCalledTimes(times);
+    expect(request).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/seer/runs/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: `type:explorer source:autofix group:[${groupIds.join(', ')}]`,
+          question: RUN_QUESTION_PROMPTS,
+          per_page: groupIds.length,
+        }),
+      })
+    );
+  }
+
+  // Fills the review bucket with `count` issues, plus their (empty) autofix
+  // state mocks. `hits` defaults to the returned count.
+  function mockBulkIssues(count: number, hits?: string) {
+    const groups = Array.from({length: count}, (_, index) =>
+      GroupFixture({
+        id: `${100 + index}`,
+        shortId: `PROJ-${100 + index}`,
+        title: `Bulk issue ${index}`,
+      })
+    );
+    groups.forEach(group => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+        body: {autofix: null},
+      });
+    });
+    mockSection(SECTION_QUERIES.review_pr, {body: groups, hits: hits ?? String(count)});
+    return groups;
   }
 
   function mockAssigneeSections(assignee: string, reviewIssues: unknown[] = [issue]) {
@@ -492,29 +544,163 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders every fetched issue in a section', async () => {
-    const many = Array.from({length: 30}, (_, index) =>
-      GroupFixture({
-        id: `${100 + index}`,
-        shortId: `PROJ-${100 + index}`,
-        title: `Bulk issue ${index}`,
-      })
-    );
-    many.forEach(group => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
-        body: {autofix: null},
-      });
-    });
-    mockSection(SECTION_QUERIES.review_pr, {body: many, hits: '30'});
+  it('renders only the first page of a section behind a show-more button', async () => {
+    mockBulkIssues(30);
 
     renderPage();
 
     await screen.findByRole('button', {name: 'Review Open PRs 30'});
+    // A section never renders more than PAGE_SIZE cards up front, however many
+    // issues the fetch returned.
+    expect(screen.getAllByRole('link', {name: /Bulk issue/})).toHaveLength(10);
+    expect(screen.getByRole('link', {name: 'Bulk issue 9'})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Bulk issue 10'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Show 10 more'})).toBeInTheDocument();
+  });
+
+  it('reveals another page per click, batching runs for only the new ids', async () => {
+    const many = mockBulkIssues(30);
+    const ids = many.map(group => group.id);
+    // No outputs, so each card keeps its raw issue title to assert on.
+    const runsFor = (groupIds: string[]) =>
+      groupIds.map(groupId => makeRun({id: `run-${groupId}`, groupId, outputs: []}));
+
+    const firstBatch = mockBatchedRuns(ids.slice(0, 10), runsFor(ids.slice(0, 10)));
+
+    renderPage();
+
+    expect(await screen.findByRole('link', {name: /Bulk issue 0/})).toBeInTheDocument();
+    await waitFor(() => expect(firstBatch).toHaveBeenCalledTimes(1));
+    expectBatchedRunsCall(firstBatch, ids.slice(0, 10));
+
+    // Only the newly revealed ids are batched; the first page's chunk is served
+    // from cache rather than refetched.
+    const secondBatch = mockBatchedRuns(ids.slice(10, 20), runsFor(ids.slice(10, 20)));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show 10 more'}));
+
+    expect(await screen.findByRole('link', {name: /Bulk issue 19/})).toBeInTheDocument();
+    expect(screen.getAllByRole('link', {name: /Bulk issue/})).toHaveLength(20);
+    await waitFor(() => expect(secondBatch).toHaveBeenCalledTimes(1));
+    expectBatchedRunsCall(secondBatch, ids.slice(10, 20));
+    // One batched request per click — cards never fan out individually.
+    expect(firstBatch).toHaveBeenCalledTimes(1);
+
+    // Ten issues remain, so the button still offers a full page.
+    expect(screen.getByRole('button', {name: 'Show 10 more'})).toBeInTheDocument();
+
+    const thirdBatch = mockBatchedRuns(ids.slice(20, 30), runsFor(ids.slice(20, 30)));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show 10 more'}));
+
+    expect(await screen.findByRole('link', {name: /Bulk issue 29/})).toBeInTheDocument();
     expect(screen.getAllByRole('link', {name: /Bulk issue/})).toHaveLength(30);
+    await waitFor(() => expect(thirdBatch).toHaveBeenCalledTimes(1));
+    expectBatchedRunsCall(thirdBatch, ids.slice(20, 30));
+    // Everything is visible, so the button is gone.
+    expect(screen.queryByRole('button', {name: /Show \d+ more/})).not.toBeInTheDocument();
+  });
+
+  it('keeps the badge on the true hit count while paginating', async () => {
+    // Pagination is purely client-side, so the badge keeps reporting what the
+    // server said — not how many cards happen to be visible.
+    mockBulkIssues(30, '150');
+
+    renderPage();
+
     expect(
-      screen.queryByRole('button', {name: /Show \d+ more issue/})
-    ).not.toBeInTheDocument();
+      await screen.findByRole('button', {name: 'Review Open PRs 100+'})
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Show 10 more'}));
+
+    expect(screen.getAllByRole('link', {name: /Bulk issue/})).toHaveLength(20);
+    expect(
+      screen.getByRole('button', {name: 'Review Open PRs 100+'})
+    ).toBeInTheDocument();
+  });
+
+  it('falls back to a per-card runs call once the batch settles without a group', async () => {
+    const groupA = GroupFixture({id: '300', shortId: 'PROJ-300', title: 'Covered issue'});
+    const groupB = GroupFixture({id: '301', shortId: 'PROJ-301', title: 'Missing issue'});
+    [groupA, groupB].forEach(group => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+        body: {autofix: makeAutofixState()},
+      });
+    });
+    mockSection(SECTION_QUERIES.review_pr, {body: [groupA, groupB], hits: '2'});
+
+    // The batch covers both ids but answers for only one — the endpoint spends
+    // a slot on a duplicate when a group has several runs.
+    const batch = mockBatchedRuns(
+      ['300', '301'],
+      [
+        makeRun({
+          id: 'run-300',
+          groupId: '300',
+          outputs: [makeOutput(0, 'Headline A|cause A')],
+        }),
+      ]
+    );
+    const fallback = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/runs/`,
+      match: [
+        MockApiClient.matchQuery({query: 'type:explorer source:autofix group:301'}),
+      ],
+      body: [
+        makeRun({
+          id: 'run-301',
+          groupId: '301',
+          outputs: [makeOutput(0, 'Headline B|cause B')],
+        }),
+      ],
+    });
+
+    renderPage();
+
+    // The uncovered card still hydrates, from its own single-group request.
+    expect(await screen.findByText('cause B')).toBeInTheDocument();
+    expect(fallback).toHaveBeenCalledTimes(1);
+    expect(fallback).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/seer/runs/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'type:explorer source:autofix group:301',
+          question: RUN_QUESTION_PROMPTS,
+          per_page: 1,
+        }),
+      })
+    );
+    // The covered card is served by the batch alone.
+    expect(await screen.findByText('cause A')).toBeInTheDocument();
+    expect(batch).toHaveBeenCalledTimes(1);
+  });
+
+  it('resets a grown section when the filters change but not when it collapses', async () => {
+    mockBulkIssues(30);
+
+    const {router} = renderPage();
+
+    await screen.findByRole('button', {name: 'Review Open PRs 30'});
+    await userEvent.click(screen.getByRole('button', {name: 'Show 10 more'}));
+    expect(screen.getAllByRole('link', {name: /Bulk issue/})).toHaveLength(20);
+
+    // Collapsing unmounts the section body, but the page counts live in
+    // SectionList, so reopening restores the grown page.
+    const reviewHeader = screen.getByRole('button', {name: 'Review Open PRs 30'});
+    await userEvent.click(reviewHeader);
+    expect(screen.queryByRole('link', {name: /Bulk issue/})).not.toBeInTheDocument();
+    await userEvent.click(reviewHeader);
+    expect(await screen.findByRole('link', {name: /Bulk issue 19/})).toBeInTheDocument();
+    expect(screen.getAllByRole('link', {name: /Bulk issue/})).toHaveLength(20);
+
+    // A new period is a new issues query, so the pages start over.
+    router.navigate(`${basePath}?period=24h`);
+
+    await waitFor(() =>
+      expect(screen.getAllByRole('link', {name: /Bulk issue/})).toHaveLength(10)
+    );
+    expect(screen.getByRole('button', {name: 'Show 10 more'})).toBeInTheDocument();
   });
 
   it('caps the section count badge at 100+ when hits exceed the fetch limit', async () => {
