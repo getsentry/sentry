@@ -22,7 +22,6 @@ export function NoIssuesMatched() {
   return (
     <Flex
       data-test-id="empty-state"
-      className="empty-state"
       direction={{zero: 'column', xl: 'row'}}
       align={{zero: 'center', xl: 'stretch'}}
       gap={{zero: '0', xl: '3xl'}}
