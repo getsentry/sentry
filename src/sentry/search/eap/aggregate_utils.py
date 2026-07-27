@@ -11,6 +11,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     AggregateDefinition,
+    ConditionalAggregateDefinition,
     ResolvedArguments,
 )
 from sentry.search.eap.normalizer import unquote_literal
@@ -141,7 +142,9 @@ def apply_combinators(
     combinator_aggregate_definitions: dict[str, AggregateDefinition] = {}
     for combinator, apply_combinator in combinators.items():
         for function, definition in definitions.items():
-            if not function.endswith(f"_{combinator}"):
+            if not isinstance(function, ConditionalAggregateDefinition) and not function.endswith(
+                f"_{combinator}"
+            ):
                 function_label = f"{function}_{combinator}"
                 if function_label not in definitions:
                     combinator_aggregate_definitions[function_label] = apply_combinator(definition)
