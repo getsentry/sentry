@@ -77,9 +77,7 @@ class AuditLogEvent:
     def render(self, audit_log_entry: AuditLogEntry) -> str:
         if not self.template:
             return ""
-        return self.template.format_map(
-            collections.defaultdict(str, audit_log_entry.data)
-        )
+        return self.template.format_map(collections.defaultdict(str, audit_log_entry.data))
 
 
 class AuditLogEventManager:
