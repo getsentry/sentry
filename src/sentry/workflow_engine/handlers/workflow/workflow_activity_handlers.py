@@ -1,10 +1,13 @@
 import logging
 
+from sentry import features
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.seer.smart_assignment.models import RESOLUTION_ACTIVITIES
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
+from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.processors.detector import get_preferred_detector
 from sentry.workflow_engine.registry import workflow_activity_registry
@@ -12,6 +15,23 @@ from sentry.workflow_engine.tasks.workflows import process_workflow_activity
 from sentry.workflow_engine.types import DetectorId, WorkflowEventData
 
 logger = logging.getLogger(__name__)
+
+
+def _get_action_log_entry_id_for_activity(group: Group, activity: Activity) -> int | None:
+    """
+    Return the id of the GroupActionLogEntry corresponding to the activity, or None when
+    the `projects:issue-action-log-activity` feature is disabled for the project or no
+    matching entry exists.
+    """
+    if not features.has("projects:issue-action-log-activity", group.project):
+        return None
+
+    entry = GroupActionLogEntry.objects.filter(
+        group_id=group.id,
+        idempotency_key=activity_action_idempotency_key(activity),
+    ).first()
+    return entry.id if entry else None
+
 
 # Seer runs on an issue and reaches the stage...
 SEER_WORKFLOW_ACTIVITIES = [
@@ -89,6 +109,7 @@ def seer_activity_handler(
         activity_id=activity.id,
         group_id=group.id,
         detector_id=detector.id,
+        group_action_log_entry_id=_get_action_log_entry_id_for_activity(group, activity),
     )
     metrics.incr(
         "workflow_engine.seer_activity_handler.complete",
@@ -201,6 +222,7 @@ def activity_handler(
         activity_id=activity.id,
         group_id=group.id,
         detector_id=detector.id,
+        group_action_log_entry_id=_get_action_log_entry_id_for_activity(group, activity),
     )
 
     metrics.incr(

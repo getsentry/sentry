@@ -4,6 +4,7 @@ from sentry import nodestore
 from sentry.constants import ObjectStatus
 from sentry.eventstream.base import GroupState
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -113,11 +114,19 @@ def build_workflow_event_data_from_event(
 def build_workflow_event_data_from_activity(
     activity_id: int,
     group_id: int,
+    group_action_log_entry_id: int | None = None,
 ) -> WorkflowEventData:
     activity = Activity.objects.get(id=activity_id)
     group = Group.objects.get(id=group_id)
 
+    group_action_log_entry = (
+        GroupActionLogEntry.objects.get(id=group_action_log_entry_id)
+        if group_action_log_entry_id is not None
+        else None
+    )
+
     return WorkflowEventData(
         event=activity,
         group=group,
+        group_action_log_entry=group_action_log_entry,
     )

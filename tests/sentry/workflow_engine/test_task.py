@@ -136,6 +136,68 @@ class TestProcessWorkflowActivity(TestCase):
         )
 
     @mock.patch(
+        "sentry.workflow_engine.processors.workflow.evaluate_workflows_action_filters",
+        return_value=(set(), {}, EvaluationStats(), {}),
+    )
+    @mock.patch(
+        "sentry.workflow_engine.processors.workflow.evaluate_workflow_triggers",
+        return_value=({}, {}, EvaluationStats(), {}),
+    )
+    def test_process_workflow_activity__group_action_log_entry(
+        self, mock_evaluate: mock.MagicMock, mock_eval_actions: mock.MagicMock
+    ) -> None:
+        self.workflow = self.create_workflow(organization=self.organization)
+        self.create_detector_workflow(detector=self.detector, workflow=self.workflow)
+
+        # Without a GroupActionLogEntry id, none is attached to the event data.
+        process_workflow_activity(
+            activity_id=self.activity.id,
+            group_id=self.group.id,
+            detector_id=self.detector.id,
+        )
+        expected_event_data = WorkflowEventData(event=self.activity, group=self.group)
+        mock_evaluate.assert_called_once_with({self.workflow}, expected_event_data, mock.ANY)
+
+        # With a GroupActionLogEntry id, the entry is attached to the event data.
+        mock_evaluate.reset_mock()
+        entry = self.create_group_action_log_entry(group=self.group)
+        process_workflow_activity(
+            activity_id=self.activity.id,
+            group_id=self.group.id,
+            detector_id=self.detector.id,
+            group_action_log_entry_id=entry.id,
+        )
+        expected_event_data = WorkflowEventData(
+            event=self.activity, group=self.group, group_action_log_entry=entry
+        )
+        mock_evaluate.assert_called_once_with({self.workflow}, expected_event_data, mock.ANY)
+
+    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
+    def test_process_workflow_activity__missing_group_action_log_entry(
+        self, mock_logger: mock.MagicMock
+    ) -> None:
+        with mock.patch(
+            "sentry.workflow_engine.processors.workflow.process_workflows"
+        ) as mock_process_workflows:
+            process_workflow_activity(
+                activity_id=self.activity.id,
+                group_id=self.group.id,
+                detector_id=self.detector.id,
+                group_action_log_entry_id=999999,
+            )
+
+        mock_process_workflows.assert_not_called()
+        mock_logger.exception.assert_called_once_with(
+            "Unable to fetch data to process workflow activity",
+            extra={
+                "activity_id": self.activity.id,
+                "group_id": self.group.id,
+                "detector_id": self.detector.id,
+                "group_action_log_entry_id": 999999,
+            },
+        )
+
+    @mock.patch(
         "sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions",
         return_value=([], {}),
     )

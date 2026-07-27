@@ -345,6 +345,7 @@ class UpdateGroupsTest(TestCase):
             activity_id=activity.id,
             group_id=group.id,
             detector_id=detector.id,
+            group_action_log_entry_id=None,
         )
         # A plain resolve has no GroupResolution, so no ident is stamped.
         assert activity.ident is None
@@ -376,6 +377,7 @@ class UpdateGroupsTest(TestCase):
             activity_id=activity.id,
             group_id=group.id,
             detector_id=detector.id,
+            group_action_log_entry_id=None,
         )
         # The release resolution stamps the GroupResolution id onto the activity's ident.
         resolution = group.groupresolution_set.get()
@@ -410,6 +412,7 @@ class UpdateGroupsTest(TestCase):
             activity_id=activity.id,
             group_id=group.id,
             detector_id=detector.id,
+            group_action_log_entry_id=None,
         )
 
     @patch("sentry.signals.issue_ignored.send_robust")

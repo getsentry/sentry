@@ -43,12 +43,15 @@ def build_trigger_action_task_params(
     event_id = None
     activity_id = None
     occurrence_id = None
+    group_action_log_entry_id = None
 
     if isinstance(event_data.event, GroupEvent):
         event_id = event_data.event.event_id
         occurrence_id = event_data.event.occurrence_id
     elif isinstance(event_data.event, Activity):
         activity_id = event_data.event.id
+        if event_data.group_action_log_entry is not None:
+            group_action_log_entry_id = event_data.group_action_log_entry.id
 
     task_params = {
         "action_id": action.id,
@@ -60,6 +63,7 @@ def build_trigger_action_task_params(
         "group_state": event_data.group_state,
         "has_reappeared": False,  # TODO: remove when deployed trigger_action task doesn't expect it
         "has_escalated": event_data.has_escalated,
+        "group_action_log_entry_id": group_action_log_entry_id,
     }
 
     if workflow_id in workflow_uuid_map:
@@ -101,6 +105,7 @@ def trigger_action(
     group_state: GroupState,
     has_escalated: bool,
     notification_uuid: str | None = None,
+    group_action_log_entry_id: int | None = None,
     **kwargs: dict[str, object],
 ) -> None:
     import uuid
@@ -132,7 +137,9 @@ def trigger_action(
         )
     elif activity_id is not None:
         event_data = build_workflow_event_data_from_activity(
-            activity_id=activity_id, group_id=group_id
+            activity_id=activity_id,
+            group_id=group_id,
+            group_action_log_entry_id=group_action_log_entry_id,
         )
     else:
         # This should never happen, and if it does, need to investigate

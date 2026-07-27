@@ -8,6 +8,7 @@ from google.api_core.exceptions import RetryError
 from taskbroker_client.retry import Retry, retry_task
 
 from sentry.eventstream.base import GroupState
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -40,12 +41,19 @@ logger = log_context.get_logger(__name__)
     retry=Retry(times=3, delay=5, on=(Exception,)),
     silo_mode=SiloMode.CELL,
 )
-def process_workflow_activity(activity_id: int, group_id: int, detector_id: DetectorId) -> None:
+def process_workflow_activity(
+    activity_id: int,
+    group_id: int,
+    detector_id: DetectorId,
+    group_action_log_entry_id: int | None = None,
+) -> None:
     """
     Process a workflow task identified by the given activity, group, and detector.
 
     The task will get the Activity from the database, create a WorkflowEventData object,
-    and then process the data in `process_workflows`.
+    and then process the data in `process_workflows`. When the caller passes a
+    `group_action_log_entry_id` (only when `projects:issue-action-log-activity` is
+    enabled), the corresponding GroupActionLogEntry is attached to the WorkflowEventData.
     """
     from sentry.workflow_engine.processors.workflow import process_workflows
 
@@ -54,13 +62,24 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: Dete
             activity = Activity.objects.get(id=activity_id)
             group = Group.objects.get(id=group_id)
             detector = Detector.objects.get(id=detector_id)
-        except (Activity.DoesNotExist, Group.DoesNotExist, Detector.DoesNotExist):
+            group_action_log_entry = (
+                GroupActionLogEntry.objects.get(id=group_action_log_entry_id)
+                if group_action_log_entry_id is not None
+                else None
+            )
+        except (
+            Activity.DoesNotExist,
+            Group.DoesNotExist,
+            Detector.DoesNotExist,
+            GroupActionLogEntry.DoesNotExist,
+        ):
             logger.exception(
                 "Unable to fetch data to process workflow activity",
                 extra={
                     "activity_id": activity_id,
                     "group_id": group_id,
                     "detector_id": detector_id,
+                    "group_action_log_entry_id": group_action_log_entry_id,
                 },
             )
             return  # Exit execution that we cannot recover from
@@ -68,6 +87,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: Dete
     event_data = WorkflowEventData(
         event=activity,
         group=group,
+        group_action_log_entry=group_action_log_entry,
     )
     with quiet_redis_noise():
         batch_client = DelayedWorkflowClient()
