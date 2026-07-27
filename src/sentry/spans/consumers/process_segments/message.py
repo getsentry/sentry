@@ -420,9 +420,6 @@ def _maybe_run_span_first_detector_parity_check(
             segment_span["trace_id"],
             span_first_problems_by_grouptype,
             all_control_problems,
-            get_source_of_truth=lambda _: (
-                "control" if segment_span.get("_performance_issues_spans") else "neither"
-            ),
         )
     except Exception:
         logger.exception("span_first_detector_test.error")

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from types import NoneType
 from typing import Any
 
@@ -19,7 +19,6 @@ from sentry.issues.grouptype import (
 )
 from sentry.models.project import Project
 from sentry.utils import metrics
-from sentry.utils.rollout import SourceOfTruth
 from sentry.utils.sdk import sdk_logger
 
 logger = logging.getLogger(__name__)
@@ -107,7 +106,6 @@ def compare_span_first_problems_to_control_data(
     trace_id: str,
     span_first_problems_by_grouptype: dict[str, list[PerformanceProblem]],
     all_control_problems: Sequence[PerformanceProblem],
-    get_source_of_truth: Callable[[str], SourceOfTruth],
 ) -> None:
     """
     For each grouptype slug present in `span_first_problems_by_grouptype`, compare fingerprints
