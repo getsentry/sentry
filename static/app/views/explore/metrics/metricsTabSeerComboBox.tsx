@@ -254,21 +254,20 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
             const isEqRow = viz && isVisualizeEquation(viz);
             return encodeMetricQueryParams({
               ...metricQuery,
-              queryParams: metricQuery.queryParams.replace({
-                query: metricQuery.queryParams.query || cleanedQuery,
-                aggregateFields: [
-                  ...metricQuery.queryParams.aggregateFields,
-                  ...(isEqRow ? seerQuery.groupBys.map(groupBy => ({groupBy})) : []),
-                ],
-                ...(isEqRow
-                  ? {
+              ...(isEqRow
+                ? {
+                    queryParams: metricQuery.queryParams.replace({
+                      query: metricQuery.queryParams.query || cleanedQuery,
+                      aggregateFields: [
+                        ...metricQuery.queryParams.aggregateFields,
+                        ...seerQuery.groupBys.map(groupBy => ({groupBy})),
+                      ],
                       aggregateSortBys,
                       sortBys,
                       mode: seerQuery.mode,
-                      interval: seerQuery.interval,
-                    }
-                  : {}),
-              }),
+                    }),
+                  }
+                : {}),
             });
           })
           .filter(Boolean);
