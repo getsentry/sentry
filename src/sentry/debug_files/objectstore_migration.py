@@ -10,7 +10,6 @@ from datetime import datetime
 from django.db import OperationalError, router, transaction
 from django.db.models import F, Func, Max, QuerySet, Value
 from django.db.models.fields import IntegerField
-from django.utils import timezone
 from objectstore_client import RequestError, Session
 from urllib3.exceptions import HTTPError
 
@@ -113,7 +112,12 @@ def shard_candidates(
 
 
 def _verify_object(
-    session: Session, storage_path: str, expected_checksum: str, expected_size: int
+    session: Session,
+    storage_path: str,
+    *,
+    expected_checksum: str,
+    expected_size: int,
+    date_created: datetime,
 ) -> VerifiedObject | None:
     metadata = session.head(storage_path)
     if metadata is None:
@@ -138,7 +142,8 @@ def _verify_object(
         storage_path=storage_path,
         content_type=metadata.content_type or "application/octet-stream",
         file_size=size,
-        date_created=metadata.time_created or timezone.now(),
+        # Preserve the original File upload time; Objectstore time_created is migration time.
+        date_created=date_created,
         checksum=checksum,
     )
 
@@ -154,9 +159,16 @@ def _prepare_object(debug_file: ProjectDebugFile) -> VerifiedObject:
 
     project = Project.objects.get_from_cache(id=debug_file.project_id)
     session = get_debug_files_session(project.organization_id, project.id)
+    date_created = file.timestamp
     verified = None
     if debug_file.storage_path:
-        verified = _verify_object(session, debug_file.storage_path, file.checksum, file.size)
+        verified = _verify_object(
+            session,
+            debug_file.storage_path,
+            expected_checksum=file.checksum,
+            expected_size=file.size,
+            date_created=date_created,
+        )
     if verified is not None:
         return verified
 
@@ -166,7 +178,13 @@ def _prepare_object(debug_file: ProjectDebugFile) -> VerifiedObject:
         storage_path = _upload_dif_to_objectstore(
             session, source, content_type, file.size, filename
         )
-    verified = _verify_object(session, storage_path, file.checksum, file.size)
+    verified = _verify_object(
+        session,
+        storage_path,
+        expected_checksum=file.checksum,
+        expected_size=file.size,
+        date_created=date_created,
+    )
     if verified is None:
         raise RuntimeError("Uploaded Objectstore payload is missing")
     return verified
@@ -227,15 +245,15 @@ def _commit_result(
 ) -> int:
     database = router.db_for_write(ProjectDebugFile)
     with atomic_transaction(using=database):
+        # Lock only the shard row. The run is immutable after start; locking it
+        # would serialize concurrent shard cutovers on a shared row.
         try:
-            run = DebugFileObjectstoreMigrationRun.objects.select_for_update().get(id=run_id)
-            shard = DebugFileObjectstoreMigrationShard.objects.select_for_update().get(
-                run=run, shard_id=shard_id
+            shard = (
+                DebugFileObjectstoreMigrationShard.objects.select_for_update()
+                .select_related("run")
+                .get(run_id=run_id, shard_id=shard_id)
             )
-        except (
-            DebugFileObjectstoreMigrationRun.DoesNotExist,
-            DebugFileObjectstoreMigrationShard.DoesNotExist,
-        ) as error:
+        except DebugFileObjectstoreMigrationShard.DoesNotExist as error:
             raise RuntimeError("Unknown migration run or shard") from error
 
         try:
