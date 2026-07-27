@@ -124,7 +124,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
 
       const seerEquationMetricQueries = (result.visualizations ?? []).flatMap(viz =>
         viz.yAxes.filter(isEquation).flatMap(yAxis => {
-          const parsed = parseAggregateExpression(yAxis);
+          const parsed = parseAggregateExpression(yAxis, undefined, viz.chartType);
           return [
             ...parsed.metricQueries,
             ...(parsed.equationRow ? [parsed.equationRow] : []),
