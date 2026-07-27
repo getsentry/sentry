@@ -46,7 +46,7 @@ register(
 )
 register(
     "debug-files.objectstore-migration.killswitch",
-    default=True,
+    default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
