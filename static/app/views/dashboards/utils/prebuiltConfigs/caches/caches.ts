@@ -29,14 +29,14 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           aggregates: [
-            `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|count_if(\`${SpanFields.CACHE_HIT}:false\`) / count(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
           fields: [
-            `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|count_if(\`${SpanFields.CACHE_HIT}:false\`) / count(${SpanFields.SPAN_DURATION})`,
           ],
           conditions: BASE_CONDITION,
-          orderby: `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
+          orderby: `equation|count_if(\`${SpanFields.CACHE_HIT}:false\`) / count(${SpanFields.SPAN_DURATION})`,
         },
       ],
     },
@@ -75,13 +75,13 @@ const TRANSACTION_TABLE: PrebuiltWidget = {
         SpanFields.PROJECT,
         `avg(${SpanFields.CACHE_ITEM_SIZE})`,
         'epm()',
-        `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
+        `equation|count_if(\`${SpanFields.CACHE_HIT}:false\`) / count(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         `avg(${SpanFields.CACHE_ITEM_SIZE})`,
         'epm()',
-        `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
+        `equation|count_if(\`${SpanFields.CACHE_HIT}:false\`) / count(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.TRANSACTION, SpanFields.PROJECT],
