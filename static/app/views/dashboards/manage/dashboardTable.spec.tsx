@@ -305,4 +305,75 @@ describe('Dashboards - DashboardTable', () => {
     await userEvent.click(screen.queryAllByLabelText('Star')[0]!);
     expect(screen.queryAllByLabelText('Unstar')).toHaveLength(2);
   });
+
+  describe('with dashboards-user-last-visited feature flag', () => {
+    const organizationWithLastVisited = OrganizationFixture({
+      features: [
+        'dashboards-basic',
+        'dashboards-edit',
+        'discover-query',
+        'dashboards-user-last-visited',
+      ],
+    });
+
+    let lastVisitedDashboards: DashboardListItem[];
+
+    beforeEach(() => {
+      lastVisitedDashboards = [
+        DashboardListItemFixture({
+          id: '1',
+          title: 'Dashboard With Description',
+          description: 'Some accurate description about this dashboard.',
+          lastVisited: '2021-04-19T13:13:23.962105Z',
+          createdBy: UserFixture({id: '1'}),
+        }),
+        DashboardListItemFixture({
+          id: '2',
+          title: 'Dashboard Without Description',
+          createdBy: UserFixture({id: '1'}),
+        }),
+      ];
+    });
+
+    it('renders the reordered columns', async () => {
+      render(
+        <DashboardTable
+          onDashboardsChange={jest.fn()}
+          organization={organizationWithLastVisited}
+          dashboards={lastVisitedDashboards}
+          location={location}
+        />,
+        {organization: organizationWithLastVisited}
+      );
+
+      const headers = await screen.findAllByTestId('grid-head-cell');
+      expect(headers).toHaveLength(5);
+      expect(headers[0]).toHaveTextContent('Name');
+      expect(headers[1]).toHaveTextContent('Description');
+      expect(headers[2]).toHaveTextContent('Access');
+      expect(headers[3]).toHaveTextContent('Widgets');
+      expect(headers[4]).toHaveTextContent('Last Visited');
+
+      // Owner and Created columns are removed when the flag is on
+      // TODO: these can be removed once FF is cleaned up
+      expect(screen.queryByText('Owner')).not.toBeInTheDocument();
+      expect(screen.queryByText('Created')).not.toBeInTheDocument();
+    });
+
+    it('renders the description column', async () => {
+      render(
+        <DashboardTable
+          onDashboardsChange={jest.fn()}
+          organization={organizationWithLastVisited}
+          dashboards={lastVisitedDashboards}
+          location={location}
+        />,
+        {organization: organizationWithLastVisited}
+      );
+
+      expect(
+        await screen.findByText('Some accurate description about this dashboard.')
+      ).toBeInTheDocument();
+    });
+  });
 });
