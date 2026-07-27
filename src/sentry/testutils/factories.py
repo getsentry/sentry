@@ -1411,11 +1411,7 @@ class Factories:
         )
         DebugFileObjectstoreMigrationShard.objects.bulk_create(
             [
-                DebugFileObjectstoreMigrationShard(
-                    run=run,
-                    shard_id=shard_id,
-                    generation=run.generation,
-                )
+                DebugFileObjectstoreMigrationShard(run=run, shard_id=shard_id)
                 for shard_id in range(shard_count)
             ]
         )

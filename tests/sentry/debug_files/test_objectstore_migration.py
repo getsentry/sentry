@@ -7,7 +7,6 @@ import pytest
 from django.core.files.base import ContentFile
 
 from sentry.debug_files.objectstore_migration import migrate_debug_file
-from sentry.models.debugfile_migration import DebugFileObjectstoreMigrationRunStatus
 from sentry.models.files.file import File
 from sentry.objectstore import get_debug_files_session
 from sentry.testutils.cases import TestCase
@@ -32,18 +31,13 @@ class DebugFileObjectstoreMigrationTest(TestCase):
         self.debug_file = self.create_dif_file(project=self.project, file=file)
         self.migration_run = self.create_debug_file_objectstore_migration_run(
             high_water_mark=self.debug_file.id,
-            status=DebugFileObjectstoreMigrationRunStatus.RUNNING,
         )
         self.shard = self.migration_run.shards.get()
-        self.shard.task_generation = 1
-        self.shard.save(update_fields=["task_generation"])
 
     def migrate(self):
         return migrate_debug_file(
             run_id=self.migration_run.id,
             shard_id=self.shard.shard_id,
-            expected_generation=self.migration_run.generation,
-            task_generation=self.shard.task_generation,
             debug_file_id=self.debug_file.id,
         )
 
@@ -62,8 +56,6 @@ class DebugFileObjectstoreMigrationTest(TestCase):
         assert self.debug_file.date_created is not None
         assert self.debug_file.checksum is not None
         assert self.shard.cursor_id == self.debug_file.id
-        assert self.shard.files_migrated == 1
-        assert self.shard.bytes_migrated == len(b"debug-file-contents")
         assert File.objects.filter(id=file_id).exists()
 
     @requires_objectstore
@@ -95,17 +87,6 @@ class DebugFileObjectstoreMigrationTest(TestCase):
         self.shard.refresh_from_db()
         assert self.debug_file.file_id is not None
         assert self.shard.cursor_id == 0
-
-    @requires_objectstore
-    def test_stale_generation_does_not_cut_over(self) -> None:
-        self.migration_run.generation += 1
-        self.migration_run.save(update_fields=["generation"])
-
-        with pytest.raises(RuntimeError, match="Stale migration task"):
-            self.migrate()
-
-        self.debug_file.refresh_from_db()
-        assert self.debug_file.file_id is not None
 
     def test_retries_transient_failure(self) -> None:
         with (

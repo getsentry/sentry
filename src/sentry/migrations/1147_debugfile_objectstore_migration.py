@@ -39,28 +39,11 @@ class Migration(CheckedMigration):
                 ),
                 ("date_updated", models.DateTimeField(auto_now=True)),
                 ("date_added", models.DateTimeField(auto_now_add=True)),
-                ("status", models.SmallIntegerField(db_default=0, default=0)),
-                (
-                    "generation",
-                    sentry.db.models.fields.bounded.BoundedPositiveBigIntegerField(
-                        db_default=1, default=1
-                    ),
-                ),
                 ("high_water_mark", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
                 ("shard_count", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
-                ("config", models.JSONField(db_default={}, default=dict)),
-                ("started_at", models.DateTimeField(null=True)),
-                ("finished_at", models.DateTimeField(null=True)),
             ],
             options={
                 "db_table": "sentry_debugfileobjectstoremigrationrun",
-                "constraints": [
-                    models.UniqueConstraint(
-                        condition=models.Q(("status__in", (0, 1))),
-                        fields=("status",),
-                        name="sentry_debugfile_objectstore_migration_one_active_run",
-                    )
-                ],
             },
         ),
         migrations.CreateModel(
@@ -75,48 +58,10 @@ class Migration(CheckedMigration):
                 ("date_updated", models.DateTimeField(auto_now=True)),
                 ("date_added", models.DateTimeField(auto_now_add=True)),
                 ("shard_id", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
-                ("status", models.SmallIntegerField(db_default=0, default=0)),
-                (
-                    "generation",
-                    sentry.db.models.fields.bounded.BoundedPositiveBigIntegerField(
-                        db_default=1, default=1
-                    ),
-                ),
-                (
-                    "task_generation",
-                    sentry.db.models.fields.bounded.BoundedPositiveBigIntegerField(
-                        db_default=0, default=0
-                    ),
-                ),
                 (
                     "cursor_id",
                     sentry.db.models.fields.bounded.BoundedBigIntegerField(db_default=0, default=0),
                 ),
-                (
-                    "files_migrated",
-                    sentry.db.models.fields.bounded.BoundedPositiveBigIntegerField(
-                        db_default=0, default=0
-                    ),
-                ),
-                (
-                    "files_skipped",
-                    sentry.db.models.fields.bounded.BoundedPositiveBigIntegerField(
-                        db_default=0, default=0
-                    ),
-                ),
-                (
-                    "bytes_migrated",
-                    sentry.db.models.fields.bounded.BoundedPositiveBigIntegerField(
-                        db_default=0, default=0
-                    ),
-                ),
-                ("started_at", models.DateTimeField(null=True)),
-                ("finished_at", models.DateTimeField(null=True)),
-                (
-                    "failing_debug_file_id",
-                    sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
-                ),
-                ("last_error", models.CharField(max_length=256, null=True)),
                 (
                     "run",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
@@ -128,9 +73,6 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_debugfileobjectstoremigrationshard",
-                "indexes": [
-                    models.Index(fields=["run", "status"], name="sentry_debu_run_id_a88a27_idx")
-                ],
                 "constraints": [
                     models.UniqueConstraint(
                         fields=("run", "shard_id"),
@@ -138,21 +80,5 @@ class Migration(CheckedMigration):
                     )
                 ],
             },
-        ),
-        migrations.RemoveConstraint(
-            model_name="debugfileobjectstoremigrationrun",
-            name="sentry_debugfile_objectstore_migration_one_active_run",
-        ),
-        migrations.AddConstraint(
-            model_name="debugfileobjectstoremigrationrun",
-            constraint=models.UniqueConstraint(
-                models.Value(1),
-                condition=models.Q(("status__in", (0, 1))),
-                name="sentry_debugfile_objectstore_migration_one_active_run",
-            ),
-        ),
-        migrations.RemoveField(
-            model_name="debugfileobjectstoremigrationrun",
-            name="config",
         ),
     ]
