@@ -40,10 +40,6 @@ describe('OrganizationSettingsForm', () => {
       url: '/organizations/org-slug/members/',
       body: [{user: UserFixture()}],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [{user: UserFixture()}],
-    });
     onSave.mockReset();
   });
 
@@ -413,7 +409,7 @@ describe('OrganizationSettingsForm', () => {
     it('saves replayAccessMembers when a member is selected', async () => {
       const user = UserFixture();
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/users/`,
+        url: `/organizations/${organization.slug}/members/`,
         body: [{user}],
       });
       const replayPutMock = MockApiClient.addMockResponse({
