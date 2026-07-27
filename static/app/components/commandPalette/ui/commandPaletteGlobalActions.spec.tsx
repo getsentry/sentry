@@ -355,6 +355,37 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     ['SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
     ['sentry dsn', /Project Settings.*Client Keys \(DSN\)/],
     ['NEXT_PUBLIC_SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
+    // The Vite and Expo public-prefixed DSN env vars should also surface
+    // Client Keys (DSN), which is the SDK-setup destination.
+    ['VITE_SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
+    ['EXPO_PUBLIC_SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
+    ['sdk setup', /Project Settings.*Client Keys \(DSN\)/],
+    ['rate limits', /Project Settings.*Client Keys \(DSN\)/],
+    ['environment variables', /Project Settings.*Client Keys \(DSN\)/],
+    // Project general settings surfaces for slug/rename/transfer/auto-resolve
+    // and the SENTRY_PROJECT config token.
+    ['project slug', /Project Settings.*General Settings/],
+    ['transfer project', /Project Settings.*General Settings/],
+    ['auto resolve', /Project Settings.*General Settings/],
+    ['SENTRY_PROJECT', /Project Settings.*General Settings/],
+    // Org general settings surfaces for the SENTRY_ORG config token.
+    ['SENTRY_ORG', /Settings.*General Settings/],
+    // Token-creation phrasing should surface both token settings pages.
+    [
+      'create new token',
+      /Settings.*Organization Tokens/,
+      /Settings.*Personal Tokens/,
+    ],
+    [
+      'sentry auth token',
+      /Settings.*Organization Tokens/,
+      /Settings.*Personal Tokens/,
+    ],
+    ['access token', /Settings.*Organization Tokens/, /Settings.*Personal Tokens/],
+    ['auth key', /Settings.*Organization Tokens/, /Settings.*Personal Tokens/],
+    // Custom Integrations covers the plural and spaced webhook forms.
+    ['internal integrations', /Settings.*Custom Integrations/],
+    ['web hook', /Settings.*Custom Integrations/],
   ])('finds expected actions for %s', async (query, ...expectedOptions) => {
     renderPalette();
 
