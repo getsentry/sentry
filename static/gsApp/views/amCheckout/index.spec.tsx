@@ -159,7 +159,7 @@ describe('Default Tier Checkout', () => {
   let mockBillingConfigResponse: any;
 
   beforeEach(() => {
-    organization.features = ['ondemand-budgets', 'am3-billing'];
+    organization.features = ['ondemand-budgets'];
     MockApiClient.clearMockResponses();
     mockBillingConfigResponse = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
