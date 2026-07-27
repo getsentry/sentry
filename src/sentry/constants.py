@@ -198,6 +198,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "services",
         "settings",
         "signup",
+        "solutions",
         "sponsorship",
         "ssh",
         "sso",
