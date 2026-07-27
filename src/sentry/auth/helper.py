@@ -148,13 +148,7 @@ class AuthIdentityHandler:
             skip_internal=False,
         )
 
-        # Use the user's original destination (from _next) for 2FA redirect,
-        # falling back to current URL if not set or invalid
-        after_2fa_url = self.request.session.get("_next")
-        if not after_2fa_url or not auth.is_valid_redirect(
-            after_2fa_url, allowed_hosts=(self.request.get_host(),)
-        ):
-            after_2fa_url = self.request.build_absolute_uri()
+        after_2fa_url = self.request.build_absolute_uri(reverse("sentry-auth-sso"))
 
         user_was_logged_in = auth.login(
             self.request,
@@ -511,12 +505,14 @@ class AuthIdentityHandler:
 
     def _build_confirmation_response(self, is_new_account: bool) -> HttpResponse:
         existing_user, template = self._dispatch_to_confirmation(is_new_account)
+
         context = {
             "identity": self.identity,
             "provider": self.provider_name,
             "identity_display_name": self.identity.get("name") or self.identity.get("email"),
             "identity_identifier": self.identity.get("email") or self.identity.get("id"),
             "existing_user": existing_user,
+            "confirmation_url": reverse("sentry-auth-sso"),
         }
         if not self._logged_in_user:
             context["login_form"] = self._login_form
@@ -534,8 +530,7 @@ class AuthIdentityHandler:
         - Unauthenticated user who proved email ownership via verification link: auto-link.
         - Otherwise: show a confirmation page to merge, create, or log in.
         """
-        # IdP POST includes SAMLResponse; op only comes from Sentry's own confirmation form.
-        op = self.request.POST.get("op") if "SAMLResponse" not in self.request.POST else None
+        op = self.request.POST.get("op")
 
         # we don't trust all IDP email verification, so users can also confirm via one time email link
         is_account_verified = False

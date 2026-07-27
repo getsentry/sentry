@@ -12,6 +12,7 @@ from django.test import Client, RequestFactory
 
 from sentry import audit_log
 from sentry.analytics.events.user_signup import UserSignUpEvent
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.exceptions import AuthIdentityUserMismatch
 from sentry.auth.helper import (
     ERR_IDENTITY_CONFLICT,
@@ -683,22 +684,6 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert auth_identity.user_id == session_user.id
 
     @mock.patch("sentry.auth.helper.messages")
-    def test_saml_response_in_post_ignores_op(self, mock_messages: mock.MagicMock) -> None:
-        """When SAMLResponse is in POST, op from the POST body should be
-        ignored — op is only valid from Sentry's own confirmation form."""
-        session_user = self.create_user(email="session@example.com")
-        self.request.user = session_user
-        # No org membership — user is authenticated but not a member of this org.
-
-        self.request.POST = {"op": "confirm", "SAMLResponse": "fake-saml-data"}
-        response = self.handler.handle_unknown_identity(self.state)
-
-        assert not AuthIdentity.objects.filter(
-            auth_provider=self.auth_provider_inst, ident=self.identity["id"]
-        ).exists()
-        assert response.status_code == 200
-
-    @mock.patch("sentry.auth.helper.messages")
     @mock.patch("sentry.auth.helper.auth")
     def test_is_account_verified_auto_links_unauthenticated_user(
         self, mock_auth: mock.MagicMock, mock_messages: mock.MagicMock
@@ -835,6 +820,23 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
 
         assert response is mock_render.return_value
         mock_auth.log_auth_failure.assert_called_once()
+
+    def test_login_2fa_redirect_uses_request_host(self) -> None:
+        """The post-2FA redirect must resume the pipeline on the host the request
+        arrived on (e.g. a customer subdomain), not the system url-prefix host —
+        otherwise the pipeline session cookie isn't sent to the redirect target."""
+        user = self.create_user()
+        TotpInterface().enroll(user)
+
+        self.request = RequestFactory().post("/auth/sso/", SERVER_NAME="acme.testserver")
+        self.request.user = AnonymousUser()
+        self.request.session = Client().session
+
+        with override_options({"system.url-prefix": "https://system.example.com"}):
+            with pytest.raises(AuthIdentityHandler._NotCompletedSecurityChecks):
+                self.handler._login(user)
+
+        assert self.request.session["_after_2fa"] == "http://acme.testserver/auth/sso/"
 
 
 @control_silo_test
