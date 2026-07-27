@@ -44,6 +44,24 @@ register(
     default=30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "debug-files.objectstore-migration.killswitch",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "debug-files.objectstore-migration.coordinator-interval-seconds",
+    default=30,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "debug-files.objectstore-migration.stale-heartbeat-seconds",
+    default=600,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
 register("system.upload-url-prefix", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)

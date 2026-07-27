@@ -99,6 +99,10 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
 )
 from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.debugfile_migration import (
+    DebugFileObjectstoreMigrationRun,
+    DebugFileObjectstoreMigrationShard,
+)
 from sentry.models.environment import Environment
 from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
@@ -1395,6 +1399,27 @@ class Factories:
         with open(path) as f:
             file.putfile(f)
         return file
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_debug_file_objectstore_migration_run(**kwargs):
+        shard_count = kwargs.pop("shard_count", 1)
+        run = DebugFileObjectstoreMigrationRun.objects.create(
+            high_water_mark=kwargs.pop("high_water_mark", 0),
+            shard_count=shard_count,
+            **kwargs,
+        )
+        DebugFileObjectstoreMigrationShard.objects.bulk_create(
+            [
+                DebugFileObjectstoreMigrationShard(
+                    run=run,
+                    shard_id=shard_id,
+                    generation=run.generation,
+                )
+                for shard_id in range(shard_count)
+            ]
+        )
+        return run
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
