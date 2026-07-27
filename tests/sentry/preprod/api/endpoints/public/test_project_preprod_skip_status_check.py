@@ -76,7 +76,7 @@ class ProjectPreprodSkipStatusCheckEndpointTest(APITestCase):
             response = self._post({"sha": self.sha, "repository": "owner/repo"})
 
         assert response.status_code == 200
-        assert response.json() == {"checkId": "check_123"}
+        assert response.data is None
 
         mock_provider.create_status_check.assert_called_once()
         kwargs = mock_provider.create_status_check.call_args.kwargs
