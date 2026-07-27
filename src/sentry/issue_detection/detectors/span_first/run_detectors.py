@@ -207,14 +207,14 @@ def _compare_problem_sets(
         if not span_first_problem:
             continue
 
-        problem_diffs = _compare_problems(control_problem, span_first_problem)
+        problem_diffs = _collect_single_problem_diffs(control_problem, span_first_problem)
         if problem_diffs:
             overall_diffs[fingerprint] = problem_diffs
 
     return overall_diffs
 
 
-def _compare_problems(
+def _collect_single_problem_diffs(
     control_problem: PerformanceProblem, span_first_problem: PerformanceProblem
 ) -> list[str]:
     """
