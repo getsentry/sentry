@@ -390,6 +390,11 @@ function useHoverOverlay({
     }
   }, [isOpen]);
 
+  // Store the trigger element in a plain ref so that the ref callback never
+  // calls a React state setter directly. Calling setState from a ref callback
+  // during component unmount happens outside of act() in tests, which causes
+  // React 19 to log a console.error that fails jest-fail-on-console.
+  const triggerElementRef = useRef<HTMLElement | null>(null);
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [isOverflowing, setIsOverflowing] = useState(false);
   const isOverflowingRef = useRef(false);
@@ -399,6 +404,15 @@ function useHoverOverlay({
   const onOverflowChangeRef = useRef(onOverflowChange);
   useLayoutEffect(() => {
     onOverflowChangeRef.current = onOverflowChange;
+  });
+
+  // Sync the plain ref into React state. useLayoutEffect fires synchronously
+  // during the commit phase (inside act() in tests), so no act() warning is
+  // triggered even when the element changes during unmount.
+  useLayoutEffect(() => {
+    if (triggerElement !== triggerElementRef.current) {
+      setTriggerElement(triggerElementRef.current);
+    }
   });
 
   const updateOverflow = useCallback((element: HTMLElement | null) => {
@@ -414,7 +428,8 @@ function useHoverOverlay({
 
   const setTriggerElementRef = useCallback(
     (element: HTMLElement | null) => {
-      setTriggerElement(element);
+      // Store in plain ref only — state is synced via useLayoutEffect above.
+      triggerElementRef.current = element;
       updateOverflow(showOnlyOnOverflow ? element : null);
 
       if (!showOnlyOnOverflow || !element) {
@@ -434,7 +449,7 @@ function useHoverOverlay({
       return () => {
         resizeObserver.disconnect();
         mutationObserver.disconnect();
-        setTriggerElement(null);
+        triggerElementRef.current = null;
         updateOverflow(null);
       };
     },
