@@ -68,8 +68,7 @@ function getSortOptions({
   }
   options.push(
     {label: t('Most Popular'), value: 'mostPopular'},
-    {label: t('Recently Viewed (Newest)'), value: 'recentlyViewed'},
-    {label: t('Recently Viewed (Oldest)'), value: '-recentlyViewed'}
+    {label: t('Recently Viewed'), value: 'recentlyViewed'}
   );
 
   return options;
@@ -345,6 +344,7 @@ function ManageDashboards() {
         location={location}
         onDashboardsChange={invalidateDashboards}
         isLoading={isLoading}
+        isOnlyPrebuilt={isOnlyPrebuilt}
       />
     );
   }

@@ -48,6 +48,7 @@ import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 type Props = {
   api: Client;
   dashboards: DashboardListItem[] | undefined;
+  isOnlyPrebuilt: boolean;
   location: Location;
   onDashboardsChange: () => void;
   organization: Organization;
@@ -69,7 +70,6 @@ const SortKeys = {
   title: {asc: 'title', desc: '-title'},
   dateCreated: {asc: 'dateCreated', desc: '-dateCreated'},
   createdBy: {asc: 'mydashboards', desc: 'mydashboards'},
-  lastVisited: {asc: '-recentlyViewed', desc: 'recentlyViewed'},
 };
 
 type FavoriteButtonProps = {
@@ -134,6 +134,7 @@ function DashboardTable({
   dashboards,
   onDashboardsChange,
   isLoading,
+  isOnlyPrebuilt,
 }: Props) {
   const handleDuplicateDashboard = useDuplicateDashboard({
     onSuccess: onDashboardsChange,
@@ -151,13 +152,25 @@ function DashboardTable({
   const columnOrder: Array<GridColumnOrder<ResponseKeys>> = hasUserLastVisited
     ? [
         {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
-        {
-          key: ResponseKeys.DESCRIPTION,
-          name: t('Description'),
-          width: COL_WIDTH_UNDEFINED,
-        },
-        {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
+        ...(isOnlyPrebuilt
+          ? [
+              {
+                key: ResponseKeys.DESCRIPTION,
+                name: t('Description'),
+                width: COL_WIDTH_UNDEFINED,
+              },
+            ]
+          : []),
         {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
+        ...(isOnlyPrebuilt
+          ? []
+          : [{key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED}]),
+        {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
+        ...(isOnlyPrebuilt
+          ? []
+          : [
+              {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
+            ]),
         {
           key: ResponseKeys.LAST_VISITED,
           name: t('Last Visited'),
@@ -165,6 +178,7 @@ function DashboardTable({
         },
       ]
     : [
+        // Legacy layout; delete this when hasUserLastVisited is cleaned up
         {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
         {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
         {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
@@ -332,6 +346,8 @@ function DashboardTable({
       );
     }
 
+    // TODO: only last visited will show renderActions. Delete ternary below
+    // when hasUserLastVisited is cleaned up.
     if (column.key === ResponseKeys.CREATED) {
       return (
         <Flex justify="between" align="center" gap="3xl">
@@ -344,13 +360,11 @@ function DashboardTable({
               <DateStatus />
             )}
           </DateSelected>
-          {renderActions(dataRow)}
+          {hasUserLastVisited ? undefined : renderActions(dataRow)}
         </Flex>
       );
     }
 
-    // TODO: last visited and description will replace created and owner. Delete
-    // fields after FF is cleaned up.
     if (column.key === ResponseKeys.LAST_VISITED && hasUserLastVisited) {
       return (
         <Flex justify="between" align="center" gap="3xl">
