@@ -139,6 +139,7 @@ def migrate_shard(
             if not candidates:
                 _complete_shard(shard)
                 return
+            hit_activation_limit = False
             for debug_file in candidates:
                 if is_migration_killswitched():
                     return
@@ -153,7 +154,12 @@ def migrate_shard(
                 processed += 1
                 shard.cursor_id = debug_file.id
                 if processed >= _MAX_FILES_PER_ACTIVATION:
+                    hit_activation_limit = True
                     break
+            # Only treat a short batch as exhaustion when we consumed it fully.
+            # Hitting the activation limit mid-batch must self-chain instead.
+            if hit_activation_limit:
+                break
             if len(candidates) < _QUERY_BATCH_SIZE:
                 _complete_shard(shard)
                 return

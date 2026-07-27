@@ -51,6 +51,36 @@ class DebugFileObjectstoreMigrationTaskTest(TestCase):
         assert shard.status == DebugFileObjectstoreMigrationShardStatus.COMPLETED
         enqueue_successor.assert_not_called()
 
+    def test_activation_limit_self_chains_even_on_short_final_batch(self) -> None:
+        debug_files = [self.create_dif_file(project=self.project) for _ in range(3)]
+        run = self.create_debug_file_objectstore_migration_run(
+            high_water_mark=max(df.id for df in debug_files),
+            status=DebugFileObjectstoreMigrationRunStatus.RUNNING,
+        )
+        shard = run.shards.get()
+
+        with (
+            patch(
+                "sentry.debug_files.objectstore_migration_tasks._MAX_FILES_PER_ACTIVATION",
+                2,
+            ),
+            patch(
+                "sentry.debug_files.objectstore_migration_tasks._QUERY_BATCH_SIZE",
+                3,
+            ),
+            patch(
+                "sentry.debug_files.objectstore_migration_tasks.migrate_debug_file",
+            ) as migrate_one,
+            patch.object(migrate_shard, "apply_async") as enqueue_successor,
+        ):
+            migrate_shard(run.id, shard.shard_id, run.generation, shard.task_generation)
+
+        shard.refresh_from_db()
+        assert migrate_one.call_count == 2
+        # Cap hit mid-batch must not treat the short batch as shard exhaustion.
+        assert shard.status == DebugFileObjectstoreMigrationShardStatus.RUNNING
+        enqueue_successor.assert_called_once()
+
     def test_shard_failure_is_fail_fast(self) -> None:
         debug_file = self.create_dif_file(project=self.project)
         run = self.create_debug_file_objectstore_migration_run(
