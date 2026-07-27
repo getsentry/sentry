@@ -457,6 +457,28 @@ describe('InboxPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('reserves the external links section before the event loads', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/events/recommended/`,
+      body: EventFixture(),
+      asyncDelay: 200,
+    });
+
+    render(<InboxPage />, {organization, initialRouterConfig});
+
+    const preview = await openFixProposedPreview();
+
+    // Present while the event is still in flight, so its arrival doesn't push
+    // the activity feed down. Asserted against the activity heading, which is
+    // group-only, so the event cannot have resolved yet.
+    await within(preview).findByRole('heading', {name: 'Activity'});
+    expect(
+      within(preview).getByRole('heading', {name: 'External Links'})
+    ).toBeInTheDocument();
+  });
+
   it('stores selection in the URL, renders the embedded preview, and clears it', async () => {
     mockSuccessfulSections();
     mockIssuePreview();

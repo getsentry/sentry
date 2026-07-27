@@ -17,7 +17,7 @@ export function useSentryAppExternalIssues({
   group,
   event,
 }: {
-  event: Event;
+  event: Event | null;
   group: Group;
 }): GroupIntegrationIssueResult {
   const api = useApi();
@@ -86,13 +86,18 @@ export function useSentryAppExternalIssues({
         key: `sentryapp-${component.sentryApp.slug}`,
         displayName: appDisplayName,
         displayIcon,
-        disabled: Boolean(component.error),
-        disabledText: t('Unable to connect to %s', appDisplayName),
+        disabled: Boolean(component.error) || !event,
+        disabledText: component.error
+          ? t('Unable to connect to %s', appDisplayName)
+          : t('Loading\u2026'),
         actions: [
           {
             id: component.sentryApp.slug,
             name: 'Create Issue',
             onClick: () => {
+              if (!event) {
+                return;
+              }
               openSentryAppIssueModal({
                 organization,
                 group,

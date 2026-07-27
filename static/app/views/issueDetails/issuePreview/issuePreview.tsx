@@ -210,11 +210,9 @@ function IssuePreviewContent() {
             <TabPanels.Item key="activity">
               <Container paddingTop="md" paddingLeft="md" paddingRight="md">
                 <IssueDetailsContextProvider>
-                  {event && (
-                    <ErrorBoundary mini>
-                      <ExternalIssueSidebarList group={group} event={event} />
-                    </ErrorBoundary>
-                  )}
+                  <ErrorBoundary mini>
+                    <ExternalIssueSidebarList group={group} event={event ?? null} />
+                  </ErrorBoundary>
                   <ErrorBoundary mini>
                     <SidebarFoldSection
                       title={

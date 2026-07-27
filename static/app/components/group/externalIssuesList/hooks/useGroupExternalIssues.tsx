@@ -7,7 +7,7 @@ import {useIntegrationExternalIssues} from './useIntegrationExternalIssues';
 import {useSentryAppExternalIssues} from './useSentryAppExternalIssues';
 
 interface Props {
-  event: Event;
+  event: Event | null;
   group: Group;
 }
 
