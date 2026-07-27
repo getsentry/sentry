@@ -1,4 +1,4 @@
-import {useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -14,12 +14,19 @@ interface IssueAutofixEnrichment {
   statePending: boolean;
 }
 
-export function useIssueAutofixEnrichment(issueId: string): IssueAutofixEnrichment {
+export function useIssueAutofixEnrichment(
+  issueId: string,
+  options?: {injectedRun?: SeerRun | null; runMissing?: boolean}
+): IssueAutofixEnrichment {
   const organization = useOrganization();
+
+  // Fire the per-card runs query only when no batched run was injected
+  // (focus mode, or the rare batch miss when a group has multiple runs).
+  const fallbackActive = !options || options.runMissing === true;
 
   const runsQuery = useQuery({
     ...apiOptions.as<SeerRun[]>()('/organizations/$organizationIdOrSlug/seer/runs/', {
-      path: {organizationIdOrSlug: organization.slug},
+      path: fallbackActive ? {organizationIdOrSlug: organization.slug} : skipToken,
       query: {
         query: `${RUNS_QUERY} group:${issueId}`,
         question: RUN_QUESTION_PROMPTS,
@@ -40,10 +47,13 @@ export function useIssueAutofixEnrichment(issueId: string): IssueAutofixEnrichme
     ),
   });
 
+  const fallbackRun = runsQuery.data?.find(run => run.groupId === issueId) ?? null;
+  const run = fallbackActive ? fallbackRun : (options?.injectedRun ?? null);
+
   return {
-    run: runsQuery.data?.find(run => run.groupId === issueId) ?? null,
+    run,
     state: stateQuery.data?.autofix ?? null,
     statePending: stateQuery.isPending,
-    enrichmentPending: stateQuery.isPending || runsQuery.isPending,
+    enrichmentPending: stateQuery.isPending || (fallbackActive && runsQuery.isPending),
   };
 }
