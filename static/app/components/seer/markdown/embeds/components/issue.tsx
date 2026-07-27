@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {GroupListHeader} from 'sentry/components/issues/groupListHeader';
@@ -9,7 +9,9 @@ import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/re
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {StreamGroup} from 'sentry/components/stream/group';
 import {IconIssues} from 'sentry/icons';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import type {Group} from 'sentry/types/group';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const BLOCK_COLUMNS: GroupListColumn[] = [
   'graph',
@@ -20,7 +22,21 @@ const BLOCK_COLUMNS: GroupListColumn[] = [
 ];
 
 function IssueBlock({groupId}: {groupId: string}) {
-  const {data: group, isPending, isError} = useGroup({groupId});
+  const organization = useOrganization();
+  const {
+    data: group,
+    isPending,
+    isError,
+  } = useQuery(
+    apiOptions.as<Group>()('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+      path: {organizationIdOrSlug: organization.slug, issueId: groupId},
+      query: {
+        expand: ['inbox', 'owners'],
+        collapse: ['release', 'tags'],
+      },
+      staleTime: 30_000,
+    })
+  );
 
   if (isError) {
     return null;
@@ -31,7 +47,7 @@ function IssueBlock({groupId}: {groupId: string}) {
       <GroupListHeader withChart withColumns={BLOCK_COLUMNS} />
       <PanelBody>
         {isPending || !group ? (
-          <PlaceholderRow height="66px" />
+          <Placeholder height="66px" style={{margin: 'var(--space-md)', width: 'auto'}} />
         ) : (
           <StreamGroup
             group={group}
@@ -57,8 +73,3 @@ export const Issue = defineSeerEmbed({
     );
   },
 });
-
-const PlaceholderRow = styled(Placeholder)`
-  margin: ${p => p.theme.space.md};
-  width: auto;
-`;
