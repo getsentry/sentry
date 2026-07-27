@@ -38,7 +38,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
         with self.feature("organizations:workflow-engine-ui"):
             assert generate_monitor_overview_url(self.organization) == (
-                f"http://testserver/organizations/{self.organization.slug}/monitors/"
+                f"http://testserver/organizations/{self.organization.slug}/monitors/crons/"
             )
 
     def setUp(self) -> None:

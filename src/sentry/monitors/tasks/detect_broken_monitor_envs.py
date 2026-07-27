@@ -51,7 +51,7 @@ MAX_ENVIRONMENTS_IN_MONITOR_LINK = 10
 
 def generate_monitor_overview_url(organization: Organization):
     if features.has("organizations:workflow-engine-ui", organization):
-        return absolute_uri(f"/organizations/{organization.slug}/monitors/")
+        return absolute_uri(f"/organizations/{organization.slug}/monitors/crons/")
     return absolute_uri(reverse("sentry-organization-crons", args=[organization.slug]))
 
 
