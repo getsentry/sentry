@@ -186,7 +186,10 @@ class JiraIntegration(IssueSyncIntegration):
                     JiraProjectMapping(value=p["id"], label=p["name"])
                     for p in client.get_projects_list()
                 ]
-            self._set_status_choices_in_organization_config(configuration, projects)
+            if features.has("organizations:jira-lazy-status-sync", self.organization):
+                configuration[0].update(self._get_lazy_status_config())
+            else:
+                self._set_status_choices_in_organization_config(configuration, projects)
             configuration[0]["addDropdown"]["items"] = projects
         except ApiError:
             configuration[0]["disabled"] = True
@@ -262,6 +265,38 @@ class JiraIntegration(IssueSyncIntegration):
         }
 
         return configuration
+
+    def _get_lazy_status_config(self) -> dict[str, Any]:
+        """
+        Pre-load statuses only for already-configured projects.
+        """
+        client = self.get_client()
+
+        mapped_selectors: dict[str, Any] = {}
+        configured_projects = IntegrationExternalProject.objects.filter(
+            organization_integration_id=self.org_integration.id
+        )
+        for project in configured_projects:
+            try:
+                project_statuses = client.get_project_statuses(project.external_id).get(
+                    "values", []
+                )
+            except ApiError:
+                continue
+            statuses = [(c["id"], c["name"]) for c in project_statuses]
+            mapped_selectors[project.external_id] = {
+                "on_resolve": {"choices": statuses},
+                "on_unresolve": {"choices": statuses},
+            }
+
+        return {
+            "mappedSelectors": mapped_selectors,
+            "perItemMapping": True,
+            "statusUrl": reverse(
+                "sentry-extensions-jira-search",
+                args=[self.organization.slug, self.model.id],
+            ),
+        }
 
     def _get_organization_config_default_values(self) -> list[dict[str, Any]]:
         return [

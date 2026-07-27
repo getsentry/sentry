@@ -20,9 +20,12 @@ from sentry.pr_metrics.contracts import PrConversationAnalysis
 from sentry.pr_metrics.emit import (
     VerdictDeferral,
     _activity_derived_metrics,
+    _ci_failed_at_open,
+    _ci_failing_at_close,
+    _no_ci_events,
     active_attributions,
     build_pr_metrics_row,
-    ci_failing_at_close,
+    calculate_deterministic_diagnosis_labels,
     emit_pr_metrics_row,
     is_pr_tracked,
     resolve_autofix_referrers,
@@ -174,6 +177,16 @@ class PrMetricsEmissionTest(TestCase):
             payload={"review_state": review_state},
         )
 
+    def _add_check_run(
+        self, *, app_slug: str = "github-actions", conclusion: str = "success", webhook_id: str
+    ) -> None:
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id=webhook_id,
+            event_type=PullRequestActivityType.CHECK_RUN_COMPLETED,
+            payload={"conclusion": conclusion, "app_slug": app_slug, "check_name": "test"},
+        )
+
     def test_select_verdict_merged_without_later_commits_is_unchanged(self) -> None:
         # Merged with no SYNCHRONIZED activity: merge head == opened head.
         assert (
@@ -260,48 +273,40 @@ class PrMetricsEmissionTest(TestCase):
         mock_metrics.incr.assert_called_once_with("pr_metrics.select_verdict.activity_disabled")
 
     def test_ci_failing_at_close_no_check_activity_is_false(self) -> None:
-        assert ci_failing_at_close(self.pull_request) is False
+        assert _ci_failing_at_close(self.pull_request, doc=None) is False
 
     def test_ci_failing_at_close_all_success_is_false(self) -> None:
         self._add_check_suite(conclusion="success", webhook_id="check-1")
-        assert ci_failing_at_close(self.pull_request) is False
+        assert _ci_failing_at_close(self.pull_request, doc=None) is False
 
-    def test_ci_failing_at_close_failure_is_true(self) -> None:
-        self._add_check_suite(conclusion="failure", webhook_id="check-1")
-        assert ci_failing_at_close(self.pull_request) is True
-
-    def test_ci_failing_at_close_timed_out_is_true(self) -> None:
-        self._add_check_suite(conclusion="timed_out", webhook_id="check-1")
-        assert ci_failing_at_close(self.pull_request) is True
-
-    def test_ci_failing_at_close_startup_failure_is_true(self) -> None:
-        self._add_check_suite(conclusion="startup_failure", webhook_id="check-1")
-        assert ci_failing_at_close(self.pull_request) is True
-
-    def test_ci_failing_at_close_non_failure_conclusions_are_false(self) -> None:
-        # neutral/cancelled/skipped/stale/action_required never ran to a failure
-        # verdict, so none of them should trip the label.
+    def test_ci_failing_at_close_conclusion_vocabulary(self) -> None:
+        # _FAILING_CHECK_CONCLUSIONS is the enumerated failing set; every other
+        # GitHub check conclusion is not a failure for this label.
+        for conclusion in ("failure", "timed_out", "startup_failure"):
+            PullRequestActivity.objects.filter(pull_request=self.pull_request).delete()
+            self._add_check_suite(conclusion=conclusion, webhook_id="check-1")
+            assert _ci_failing_at_close(self.pull_request, doc=None) is True, conclusion
         for conclusion in ("neutral", "cancelled", "skipped", "stale", "action_required"):
             PullRequestActivity.objects.filter(pull_request=self.pull_request).delete()
             self._add_check_suite(conclusion=conclusion, webhook_id="check-1")
-            assert ci_failing_at_close(self.pull_request) is False, conclusion
+            assert _ci_failing_at_close(self.pull_request, doc=None) is False, conclusion
 
     def test_ci_failing_at_close_one_app_failing_among_others_is_true(self) -> None:
         self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-1")
         self._add_check_suite(app_slug="codecov", conclusion="failure", webhook_id="check-2")
-        assert ci_failing_at_close(self.pull_request) is True
+        assert _ci_failing_at_close(self.pull_request, doc=None) is True
 
     def test_ci_failing_at_close_rerun_success_after_failure_is_false(self) -> None:
         # A rerun with no new push (no SYNCHRONIZED row) still writes another
         # CHECK_SUITE_COMPLETED row for the same app; the latest one wins.
         self._add_check_suite(app_slug="github-actions", conclusion="failure", webhook_id="check-1")
         self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-2")
-        assert ci_failing_at_close(self.pull_request) is False
+        assert _ci_failing_at_close(self.pull_request, doc=None) is False
 
     def test_ci_failing_at_close_rerun_failure_after_success_is_true(self) -> None:
         self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-1")
         self._add_check_suite(app_slug="github-actions", conclusion="failure", webhook_id="check-2")
-        assert ci_failing_at_close(self.pull_request) is True
+        assert _ci_failing_at_close(self.pull_request, doc=None) is True
 
     def test_reviews_requested_count_no_activity_is_zero(self) -> None:
         assert review_activity(self.pull_request).requested_count == 0
@@ -345,6 +350,98 @@ class PrMetricsEmissionTest(TestCase):
             "changes_requested": 0,
             "commented": 0,
         }
+
+    # --- _ci_failed_at_open --------------------------------------------------
+
+    def test_ci_failed_at_open_no_check_activity_is_false(self) -> None:
+        assert _ci_failed_at_open(self.pull_request, doc=None) is False
+
+    def test_ci_failed_at_open_all_success_is_false(self) -> None:
+        self._add_check_suite(conclusion="success", webhook_id="check-1")
+        assert _ci_failed_at_open(self.pull_request, doc=None) is False
+
+    def test_ci_failed_at_open_failure_before_any_push_is_true(self) -> None:
+        # No SYNCHRONIZED row at all, so every recorded check belongs to the
+        # opening head — legacy-store approximation.
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        assert _ci_failed_at_open(self.pull_request, doc=None) is True
+
+    def test_ci_failed_at_open_failure_after_a_push_is_false(self) -> None:
+        # The failing check arrived after the first push, so it can't belong to
+        # the opening head under the legacy-store "before first sync" rule.
+        self._add_synchronize()
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        assert _ci_failed_at_open(self.pull_request, doc=None) is False
+
+    def test_ci_failed_at_open_failure_before_a_later_push_is_true(self) -> None:
+        # The failing check landed before the push — it's the opening head's,
+        # even though the PR went on to iterate afterward.
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        self._add_synchronize()
+        assert _ci_failed_at_open(self.pull_request, doc=None) is True
+
+    def test_ci_failed_at_open_check_run_alone_does_not_count(self) -> None:
+        # Suite-only read, same narrow signal as _ci_failing_at_close: a
+        # check_run-only app with no suite event doesn't count.
+        self._add_check_run(conclusion="failure", webhook_id="run-1")
+        assert _ci_failed_at_open(self.pull_request, doc=None) is False
+
+    def test_ci_failed_at_open_rerun_success_after_failure_is_false(self) -> None:
+        self._add_check_suite(app_slug="github-actions", conclusion="failure", webhook_id="check-1")
+        self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-2")
+        assert _ci_failed_at_open(self.pull_request, doc=None) is False
+
+    # --- _no_ci_events --------------------------------------------------------
+
+    def test_no_ci_events_true_when_no_checks_recorded(self) -> None:
+        assert _no_ci_events(self.pull_request, doc=None) is True
+
+    def test_no_ci_events_false_with_check_suite(self) -> None:
+        self._add_check_suite(conclusion="success", webhook_id="check-1")
+        assert _no_ci_events(self.pull_request, doc=None) is False
+
+    def test_no_ci_events_false_with_check_run(self) -> None:
+        self._add_check_run(conclusion="success", webhook_id="run-1")
+        assert _no_ci_events(self.pull_request, doc=None) is False
+
+    def test_no_ci_events_false_even_when_checks_only_follow_a_later_push(self) -> None:
+        # Scoped to the whole PR, unlike _ci_failed_at_open: CI activity recorded
+        # only against a later push still counts as "CI reported in".
+        self._add_synchronize()
+        self._add_check_suite(conclusion="success", webhook_id="check-1")
+        assert _no_ci_events(self.pull_request, doc=None) is False
+
+    # --- calculate_deterministic_diagnosis_labels ----------------------------
+
+    def test_calculate_deterministic_diagnosis_labels_no_ci_events(self) -> None:
+        assert calculate_deterministic_diagnosis_labels(
+            self.pull_request, PullRequestVerdict.CLOSED_UNMERGED
+        ) == ["no_ci_events"]
+
+    def test_calculate_deterministic_diagnosis_labels_closed_unmerged_with_ci_failure(self) -> None:
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        assert calculate_deterministic_diagnosis_labels(
+            self.pull_request, PullRequestVerdict.CLOSED_UNMERGED
+        ) == ["ci_failing_at_close", "ci_failed_at_open"]
+
+    def test_calculate_deterministic_diagnosis_labels_merged_with_ci_failure_at_open_only(
+        self,
+    ) -> None:
+        # _ci_failing_at_close is scoped to CLOSED_UNMERGED, but _ci_failed_at_open
+        # applies to a merge too.
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        assert calculate_deterministic_diagnosis_labels(
+            self.pull_request, PullRequestVerdict.MERGED_UNCHANGED
+        ) == ["ci_failed_at_open"]
+
+    def test_calculate_deterministic_diagnosis_labels_all_green_is_none(self) -> None:
+        self._add_check_suite(conclusion="success", webhook_id="check-1")
+        assert (
+            calculate_deterministic_diagnosis_labels(
+                self.pull_request, PullRequestVerdict.CLOSED_UNMERGED
+            )
+            is None
+        )
 
     def test_select_fallback_verdict_merged_without_later_commits_is_unchanged(self) -> None:
         assert select_fallback_verdict(self.pull_request) == PullRequestVerdict.MERGED_UNCHANGED
@@ -939,6 +1036,8 @@ class PrMetricsEmissionTest(TestCase):
                 attributions=json.dumps([SENTRY_APP_ATTRIBUTION]),
                 review_results=json.dumps({"approved": 0, "changes_requested": 0, "commented": 0}),
             ),
+            # Opaque hash, asserted on its own in MultiOrgEmissionDedupeTest.
+            exclude_fields=["deduplication_key"],
         )
 
     @patch("sentry.analytics.record")
@@ -1326,3 +1425,68 @@ class PrMetricsEmissionTest(TestCase):
         result = emit_pr_metrics_row(pull_request=self.pull_request)
         assert result is False
         mock_cleanup.delay.assert_not_called()
+
+
+EXTERNAL_ID = "556677"
+
+
+@cell_silo_test
+@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+class DeduplicationKeyTest(TestCase):
+    """The same provider PR, fanned out to one row per org, must build the same
+    opaque deduplication_key so a consumer can collapse them."""
+
+    def setUp(self) -> None:
+        # One shared installation across both orgs -> both rows carry the same
+        # integration_id, so the same provider PR keys identically.
+        self.integration = self.create_integration(
+            organization=self.organization, external_id="shared-install", provider="github"
+        )
+        self.pull_request = self._mergeable_pr(
+            self._repo(self.project, self.integration.id), self.organization
+        )
+        sibling_org = self.create_organization()
+        self.sibling_pull_request = self._mergeable_pr(
+            self._repo(self.create_project(organization=sibling_org), self.integration.id),
+            sibling_org,
+        )
+
+    def _repo(self, project: Any, integration_id: int) -> Any:
+        return self.create_repo(
+            project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id=EXTERNAL_ID,
+            integration_id=integration_id,
+        )
+
+    def _mergeable_pr(self, repo: Any, organization: Any) -> Any:
+        pull_request = self.create_pull_request(
+            repository_id=repo.id, organization_id=organization.id, key="42"
+        )
+        pull_request.head_commit_sha = HEAD_SHA
+        pull_request.closed_at = CLOSED_AT
+        pull_request.save()
+        return pull_request
+
+    def _key_for(self, pull_request: Any) -> str:
+        return build_pr_metrics_row(
+            pull_request=pull_request, close_action="merged", attributions=[], group_ids=[]
+        ).deduplication_key
+
+    def test_deduplication_key_shared_across_sibling_rows(self) -> None:
+        # The same provider PR must yield one identical, non-empty opaque key so a
+        # cross-cell consumer can collapse the one-row-per-cell duplicates.
+        assert self._key_for(self.pull_request) == self._key_for(self.sibling_pull_request) != ""
+
+    def test_deduplication_key_differs_across_installations(self) -> None:
+        # Same external_id + PR number under a *different* installation (e.g. a second
+        # GitHub Enterprise host, where repo ids can collide) must not share a key.
+        other_integration = self.create_integration(
+            organization=self.organization, external_id="other-install", provider="github"
+        )
+        other_org = self.create_organization()
+        other_pr = self._mergeable_pr(
+            self._repo(self.create_project(organization=other_org), other_integration.id), other_org
+        )
+        assert self._key_for(self.pull_request) != self._key_for(other_pr)

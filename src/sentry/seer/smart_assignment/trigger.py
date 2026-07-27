@@ -54,11 +54,14 @@ def trigger_smart_assignment(
     organization = group.organization
 
     if not features.has(FEATURE_FLAG, organization):
-        metrics.incr("smart_assignment.trigger.skipped", tags={"reason": "flag_disabled"})
         return
 
     if activity_type in RESOLUTION_ACTIVITIES and (activity is None or activity.user_id is None):
-        metrics.incr("smart_assignment.trigger.skipped", tags={"reason": "automatic_resolution"})
+        metrics.incr(
+            "smart_assignment.trigger.skipped",
+            tags={"reason": "automatic_resolution"},
+            sample_rate=1.0,
+        )
         return
 
     # Policy gate: today we predict at most once per issue, ever. This lives in app
@@ -94,7 +97,11 @@ def _dispatch_rate_limited(organization: Organization) -> bool:
         limit=options.get("seer.smart_assignment.max_dispatches_per_org_per_day"),
         window=_RATE_LIMIT_WINDOW,
     ):
-        metrics.incr("smart_assignment.trigger.skipped", tags={"reason": "org_rate_limited"})
+        metrics.incr(
+            "smart_assignment.trigger.skipped",
+            tags={"reason": "org_rate_limited"},
+            sample_rate=1.0,
+        )
         return True
 
     if ratelimiter.is_limited(
@@ -102,7 +109,11 @@ def _dispatch_rate_limited(organization: Organization) -> bool:
         limit=options.get("seer.smart_assignment.max_dispatches_per_day"),
         window=_RATE_LIMIT_WINDOW,
     ):
-        metrics.incr("smart_assignment.trigger.skipped", tags={"reason": "global_rate_limited"})
+        metrics.incr(
+            "smart_assignment.trigger.skipped",
+            tags={"reason": "global_rate_limited"},
+            sample_rate=1.0,
+        )
         return True
 
     return False
@@ -121,7 +132,11 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity | No
     try:
         client = SeerAgentClient(organization, project=group.project, group=group)
     except SeerPermissionError:
-        metrics.incr("smart_assignment.trigger.skipped", tags={"reason": "no_seer_access"})
+        metrics.incr(
+            "smart_assignment.trigger.skipped",
+            tags={"reason": "no_seer_access"},
+            sample_rate=1.0,
+        )
         return
 
     extras: dict[str, object] = {"trigger": activity_type.name}
@@ -145,7 +160,11 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity | No
     if activity is not None:
         _stamp_activity(activity, run, activity_type)
 
-    metrics.incr("smart_assignment.trigger.dispatched", tags={"trigger": activity_type.name})
+    metrics.incr(
+        "smart_assignment.trigger.dispatched",
+        tags={"trigger": activity_type.name},
+        sample_rate=1.0,
+    )
     logger.info(
         "smart_assignment.trigger.dispatched",
         extra={

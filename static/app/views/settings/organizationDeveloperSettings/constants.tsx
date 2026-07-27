@@ -9,11 +9,8 @@ export const EVENT_CHOICES = [
   'preprod_artifact',
 ] as const satisfies readonly WebhookEvent[];
 
-// The subscribable webhook vocabulary, mirroring EVENT_EXPANSION on the
-// backend (sentry_apps/utils/webhooks.py). A subscription is a whole resource
-// ("issue") or, with granular events enabled, an individual event
-// ("issue.created"). Needs to be backwards compatible with old stored
-// subscriptions.
+// The webhook subscription vocabulary, mirroring EVENT_EXPANSION in
+// sentry_apps/utils/webhooks.py.
 export const RESOURCE_EVENTS = {
   issue: [
     'issue.created',
@@ -41,11 +38,9 @@ export const RESOURCE_EVENTS = {
   ],
 } as const satisfies Record<WebhookEvent, readonly string[]>;
 
-export type WebhookGranularEvent = (typeof RESOURCE_EVENTS)[WebhookEvent][number];
+export type WebhookSubscription = (typeof RESOURCE_EVENTS)[WebhookEvent][number];
 
-export type WebhookSubscription = WebhookEvent | WebhookGranularEvent;
-
-export const WEBHOOK_GRANULAR_EVENT_CHOICES = [
+export const WEBHOOK_SUBSCRIPTION_CHOICES = [
   ...RESOURCE_EVENTS.issue,
   ...RESOURCE_EVENTS.error,
   ...RESOURCE_EVENTS.comment,
@@ -53,12 +48,12 @@ export const WEBHOOK_GRANULAR_EVENT_CHOICES = [
   ...RESOURCE_EVENTS.preprod_artifact,
 ] as const;
 
-const LEGACY_EVENT_ALIASES: Record<string, WebhookGranularEvent> = {
+const LEGACY_EVENT_ALIASES: Record<string, WebhookSubscription> = {
   'issue.archived': 'issue.ignored',
 };
 
 /** The granular events an app's stored subscriptions cover, whether stored as exact events or whole resources. */
-export function granularWebhookEvents(subscriptions: string[]): WebhookGranularEvent[] {
+export function granularWebhookEvents(subscriptions: string[]): WebhookSubscription[] {
   const stored = new Set<string>(
     subscriptions.map(subscription => LEGACY_EVENT_ALIASES[subscription] ?? subscription)
   );
@@ -69,16 +64,16 @@ export function granularWebhookEvents(subscriptions: string[]): WebhookGranularE
       }
     }
   }
-  return WEBHOOK_GRANULAR_EVENT_CHOICES.filter(event => stored.has(event));
+  return WEBHOOK_SUBSCRIPTION_CHOICES.filter(event => stored.has(event));
 }
 
-const EVENT_LABEL_OVERRIDES: Partial<Record<WebhookGranularEvent, string>> = {
+const EVENT_LABEL_OVERRIDES: Partial<Record<WebhookSubscription, string>> = {
   'issue.ignored': 'Archived', // the product renamed ignore → archive
   'comment.updated': 'Edited', // the product renamed update → edit
   'seer.pr_created': 'PR created', // the transform below would render "Pr created"
 };
 
-export function webhookEventLabel(event: WebhookGranularEvent): string {
+export function webhookEventLabel(event: WebhookSubscription): string {
   return (
     EVENT_LABEL_OVERRIDES[event] ??
     capitalize(event.slice(event.indexOf('.') + 1).replaceAll('_', ' '))
