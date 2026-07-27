@@ -11,6 +11,8 @@ from typing import Any, ClassVar, Literal, NotRequired, Optional, TypedDict
 
 from pydantic import BaseModel
 
+from sentry.seer.autofix.constants import AutofixReferrer
+
 
 class GroupActorType(IntEnum):
     SYSTEM = 0
@@ -778,7 +780,7 @@ class SeerPRCreatedAction(GroupAction):
 class SeerIterationStartedAction(GroupAction):
     user_visible = True
     run_id: Optional[int] = None
-    referrer: Optional[str] = None
+    referrer: Optional[AutofixReferrer] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
