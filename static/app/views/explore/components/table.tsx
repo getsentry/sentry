@@ -175,9 +175,3 @@ export const TableHeadCell = styled(GridHeadCell)<{align?: ColumnAlign}>`
       justify-content: ${p.align};
     `}
 `;
-export const TableHeadCellContent = styled('div')<{isFrozen?: boolean | undefined}>`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  cursor: ${p => (p.isFrozen ? 'default' : 'pointer')};
-`;
