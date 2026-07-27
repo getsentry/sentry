@@ -104,7 +104,7 @@ export type IssueAlertNotificationProps = {
  * Exported so callers can persist the action snapshot and use it as
  * `defaultActions` on the next mount to restore the selection.
  */
-export function buildIntegrationAction({
+function buildIntegrationAction({
   provider,
   integration,
   channel,
