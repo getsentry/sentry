@@ -60,7 +60,7 @@ function getSortOptions({
     {label: t('Dashboard Name (A-Z)'), value: 'title'},
     {label: t('Dashboard Name (Z-A)'), value: '-title'}
   );
-  if (!hasUserLastVisited) {
+  if (!hasUserLastVisited || !isOnlyPrebuilt) {
     options.push(
       {label: t('Date Created (Newest)'), value: '-dateCreated'},
       {label: t('Date Created (Oldest)'), value: 'dateCreated'}
