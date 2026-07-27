@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest import mock
 
 from sentry.deletions.base import ModelDeletionTask
@@ -17,11 +20,11 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
-    def _spy_marked_models(self) -> tuple[mock._patch, list[str]]:
+    def _spy_marked_models(self) -> tuple[mock._patch[mock.MagicMock], list[str]]:
         marked_models: list[str] = []
         original = ModelDeletionTask.mark_deletion_in_progress
 
-        def spy(task: ModelDeletionTask, instance_list: object) -> None:
+        def spy(task: ModelDeletionTask[Any], instance_list: object) -> None:
             marked_models.append(task.model.__name__)
             original(task, instance_list)  # type: ignore[arg-type]
 
