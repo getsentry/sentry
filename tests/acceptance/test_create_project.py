@@ -75,15 +75,21 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             "external_id": "12345",
         },
     ]
-    mock_platforms = [
-        {
-            "platform": "python-django",
-            "language": "Python",
-            "bytes": 50000,
-            "confidence": "high",
-            "priority": 1,
-        }
-    ]
+    mock_platforms = {
+        "platforms": [
+            {
+                "platform": "python-django",
+                "language": "Python",
+                "bytes": 50000,
+                "confidence": "high",
+                "priority": 1,
+            }
+        ],
+        "k_candidate": 0,
+        "k_reads_realized": 0,
+        "tree_entry_count": 0,
+        "is_truncated": False,
+    }
 
     def setUp(self) -> None:
         super().setUp()
@@ -161,7 +167,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
                 return_value={"id": "12345"},
             ),
             mock.patch(
-                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
                 return_value=self.mock_platforms,
             ),
             mock.patch(
@@ -263,7 +269,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
                 return_value={"id": "12345"},
             ),
             mock.patch(
-                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
                 return_value=self.mock_platforms,
             ),
         ):
