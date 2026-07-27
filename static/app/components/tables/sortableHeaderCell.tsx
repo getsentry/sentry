@@ -63,16 +63,15 @@ const Label = styled('div')`
 `;
 
 const HeaderCellContent = styled('div')<{type?: 'button'}>`
+  align-items: center;
   background: none;
   border: 0;
+  cursor: ${p => (p.onClick ? 'pointer' : 'default')};
+  display: flex;
   font: inherit;
+  gap: ${p => p.theme.space.xs};
+  overflow: hidden;
   padding: 0;
   text-align: inherit;
   text-transform: inherit;
-
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  cursor: ${p => (p.onClick ? 'pointer' : 'default')};
-  overflow: hidden;
 `;
