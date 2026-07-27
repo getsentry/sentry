@@ -21,7 +21,7 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  NAVIGATION_MOBILE_CONTENT_HEIGHT,
   PRIMARY_HEADER_HEIGHT,
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
@@ -55,7 +55,7 @@ function TopBarContent() {
     <Flex
       as="header"
       height={{
-        'screen:sm': `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
+        'screen:sm': `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`,
         'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
       }}
       justify="between"
