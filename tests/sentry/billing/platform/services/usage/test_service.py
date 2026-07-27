@@ -16,6 +16,9 @@ from sentry.billing.platform.services.usage.service import (
     UsageService as UsageServiceDirect,
 )
 
+# TODO(EAP-627): remove once `snuba.json-response-compression.rollout` completes.
+pytestmark = [pytest.mark.django_db]
+
 
 class TestUsageService:
     """Tests for the UsageService."""

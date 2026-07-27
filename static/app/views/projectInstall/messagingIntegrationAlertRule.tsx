@@ -5,6 +5,7 @@ import {Select, SelectOption} from '@sentry/scraps/select';
 
 import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -36,15 +37,20 @@ type ChannelListResponse = {
  *
  * @public Consumed by the SCM layout in a downstream PR.
  */
-export function useMessagingIntegrationAlertRule({
-  channel,
-  integration,
-  provider,
-  setChannel,
-  setIntegration,
-  setProvider,
-  providersToIntegrations,
-}: IssueAlertNotificationProps) {
+export function useMessagingIntegrationAlertRule(
+  {
+    channel,
+    integration,
+    provider,
+    setChannel,
+    setIntegration,
+    setProvider,
+    providersToIntegrations,
+  }: IssueAlertNotificationProps,
+  // For project creation, `variant` identifies the SCM or legacy experience.
+  // Other flows leave it undefined and do not emit these change events.
+  variant?: 'scm' | 'legacy'
+) {
   const organization = useOrganization();
 
   const {data: channels, isPending} = useApiQuery<ChannelListResponse>(
@@ -130,20 +136,45 @@ export function useMessagingIntegrationAlertRule({
       setIntegration(providersToIntegrations[option.value]![0]);
       setChannel(undefined);
       validateChannel.clear();
+      if (variant) {
+        trackAnalytics('project_creation.notify_provider_changed', {
+          organization,
+          provider: option.value,
+          variant,
+        });
+      }
     },
     onIntegrationChange: (option: any) => {
       setIntegration(option.value);
       setChannel(undefined);
       validateChannel.clear();
+      if (variant) {
+        trackAnalytics('project_creation.notify_integration_changed', {
+          organization,
+          variant,
+        });
+      }
     },
     onChannelChange: (option: {label: React.ReactNode; value: string} | null) => {
       setChannel(
         option ? {value: option.value, label: option.label, new: false} : undefined
       );
       validateChannel.clear();
+      if (variant) {
+        trackAnalytics('project_creation.notify_channel_changed', {
+          organization,
+          variant,
+        });
+      }
     },
     onCreateChannel: (newOption: string) => {
       setChannel({value: newOption, label: newOption, new: true});
+      if (variant) {
+        trackAnalytics('project_creation.notify_channel_changed', {
+          organization,
+          variant,
+        });
+      }
     },
   };
 }
@@ -224,7 +255,7 @@ export function MessagingIntegrationAlertRule(props: IssueAlertNotificationProps
     onIntegrationChange,
     onChannelChange,
     onCreateChannel,
-  } = useMessagingIntegrationAlertRule(props);
+  } = useMessagingIntegrationAlertRule(props, 'legacy');
 
   if (!provider) {
     return null;

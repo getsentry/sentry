@@ -1,95 +1,112 @@
-import {memo, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
-
-import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {ConversationContentLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
-  ConversationDetailPanel,
-  ConversationLeftPanel,
-  ConversationSplitLayout,
-  ConversationViewSkeleton,
-} from 'sentry/views/explore/conversations/components/conversationLayout';
+  CONVERSATION_SPAN_DETAIL_TABS,
+  ConversationSpanDetail,
+} from 'sentry/views/explore/conversations/components/conversationSpanDetail';
 import {MessagesPanel} from 'sentry/views/explore/conversations/components/messagesPanel';
 import {
   useConversation,
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
-import {
-  extractMessagesFromNodes,
-  messagesToMarkdown,
-} from 'sentry/views/explore/conversations/utils/conversationMessages';
-import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
+import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
+import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-type ConversationTab = 'messages' | 'trace';
+export type ConversationViewTab = 'transcript' | 'timeline';
+
+export const CONVERSATION_VIEW_TABS: readonly ConversationViewTab[] = [
+  'transcript',
+  'timeline',
+];
 
 interface ConversationViewContentProps {
+  activeTab: ConversationViewTab;
   conversation: UseConversationsOptions;
   focusedTool?: string | null;
+  onDeselectSpan?: () => void;
   onSelectSpan?: (spanId: string) => void;
+  onViewTimeline?: () => void;
   selectedSpanId?: string | null;
 }
 
-/**
- * Fetches conversation data and renders the full conversation view
- * with tab switching, span selection, and detail panel.
- * Used by both the detail page and the drawer.
- */
-export const ConversationViewContent = memo(function ConversationViewContent({
+export function ConversationViewContent({
   conversation,
+  activeTab,
   selectedSpanId,
   onSelectSpan,
+  onDeselectSpan,
+  onViewTimeline,
   focusedTool,
 }: ConversationViewContentProps) {
+  const isTimeline = activeTab === 'timeline';
+
   const {nodes, nodeTraceMap, isLoading, error} = useConversation(conversation);
+
+  const [detailState, setDetailState] = useQueryStates(
+    {
+      detailTab: parseAsStringLiteral(CONVERSATION_SPAN_DETAIL_TABS).withDefault('input'),
+    },
+    {history: 'replace'}
+  );
+
   const {selectedNode, handleSelectNode} = useConversationSelection({
     nodes,
     selectedSpanId,
     onSelectSpan,
     focusedTool,
     isLoading,
+    // The hook never auto-selects a default: `selectedNode` reflects only the
+    // sticky selection from the URL (a user click or a deep link), which is why
+    // it survives switching tabs. The timeline's default span is layered on
+    // below as view-local state so it never leaks back into the transcript.
+    autoSelectDefaultNode: false,
   });
 
-  return (
-    <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-      <ConversationView
-        nodes={nodes}
-        nodeTraceMap={nodeTraceMap}
-        selectedNode={selectedNode}
-        onSelectNode={handleSelectNode}
-        isLoading={isLoading}
-        error={error}
-      />
-    </TraceStateProvider>
-  );
-});
+  // The timeline opens on its first span by default; the transcript opens on
+  // nothing. This default is view-local (never written to the URL) so returning
+  // to the transcript only keeps a span open when one was selected manually.
+  const defaultTimelineNode = useMemo(() => getDefaultSelectedNode(nodes), [nodes]);
+  const [timelineDefaultDismissed, setTimelineDefaultDismissed] = useState(false);
 
-function ConversationView({
-  nodes,
-  nodeTraceMap,
-  selectedNode,
-  onSelectNode,
-  isLoading,
-  error,
-}: {
-  error: boolean;
-  isLoading: boolean;
-  nodeTraceMap: Map<string, string>;
-  nodes: AITraceSpanNode[];
-  onSelectNode: (node: AITraceSpanNode) => void;
-  selectedNode: AITraceSpanNode | undefined;
-}) {
-  const organization = useOrganization();
-  const [activeTab, setActiveTab] = useState<ConversationTab>('messages');
+  // Re-show the timeline default each time the user enters the timeline tab.
+  useEffect(() => {
+    setTimelineDefaultDismissed(false);
+  }, [activeTab]);
+
+  const displayedNode = useMemo(() => {
+    if (selectedNode) {
+      return selectedNode;
+    }
+    if (isTimeline && !timelineDefaultDismissed) {
+      return defaultTimelineNode;
+    }
+    return;
+  }, [selectedNode, isTimeline, timelineDefaultDismissed, defaultTimelineNode]);
+
+  const handleSelectAndOpenDetail = useCallback(
+    (node: AITraceSpanNode) => {
+      setTimelineDefaultDismissed(false);
+      handleSelectNode(node);
+    },
+    [handleSelectNode]
+  );
+
+  const handleCloseDetail = useCallback(() => {
+    // Dismiss the timeline default and clear any sticky selection so the pane
+    // closes on both tabs and does not spring back to the default.
+    setTimelineDefaultDismissed(true);
+    setDetailState({detailTab: null});
+    onDeselectSpan?.();
+  }, [onDeselectSpan, setDetailState]);
 
   useEffect(() => {
     if (!isLoading && !error && nodes.length === 0) {
@@ -99,102 +116,56 @@ function ConversationView({
     }
   }, [isLoading, error, nodes.length]);
 
-  const handleTabChange = (newTab: ConversationTab) => {
-    if (activeTab !== newTab) {
-      trackAnalytics('conversations.detail.tab-switch', {
-        organization,
-        fromTab: activeTab,
-        toTab: newTab,
-      });
-    }
-    setActiveTab(newTab);
-  };
-
-  const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
-
-  if (isLoading) {
-    return <ConversationViewSkeleton />;
-  }
+  const isTranscript = !isTimeline;
 
   if (error) {
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
   }
 
-  if (nodes.length === 0) {
+  if (!isLoading && nodes.length === 0) {
     return <EmptyMessage>{t('No AI spans found in this conversation')}</EmptyMessage>;
   }
 
   return (
-    <ConversationSplitLayout
-      left={
-        <ConversationLeftPanel>
-          <Stack flex="1" minHeight="0" width="100%" overflow="hidden">
-            <Flex
-              flexShrink={0}
-              align="center"
-              gap="sm"
-              paddingRight="sm"
-              borderBottom="primary"
-              background="primary"
-            >
-              <Flex flex={1}>
-                <Tabs value={activeTab} onChange={handleTabChange}>
-                  <TabList>
-                    <TabList.Item key="messages">{t('Chat')}</TabList.Item>
-                    <TabList.Item key="trace">{t('Spans')}</TabList.Item>
-                  </TabList>
-                </Tabs>
-              </Flex>
-              {activeTab === 'messages' && messages.length > 0 && (
-                <CopyAsDropdown
-                  size="xs"
-                  items={CopyAsDropdown.makeDefaultCopyAsOptions({
-                    markdown: () => {
-                      trackAnalytics('conversations.detail.copy-conversation', {
-                        organization,
-                      });
-                      return messagesToMarkdown(messages);
-                    },
-                    text: undefined,
-                    json: undefined,
-                  })}
-                />
-              )}
-            </Flex>
-            <Flex
-              flex="1"
-              minHeight="0"
-              width="100%"
-              overflowX="hidden"
-              overflowY="auto"
-              background="secondary"
-            >
-              {activeTab === 'messages' ? (
-                <MessagesPanel
-                  nodes={nodes}
-                  selectedNodeId={selectedNode?.id ?? null}
-                  onSelectNode={onSelectNode}
-                />
-              ) : (
-                <Container padding="md lg md lg" width="100%">
-                  <AISpanList
-                    nodes={nodes}
-                    selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
-                    onSelectNode={onSelectNode}
-                    compressGaps
-                  />
-                </Container>
-              )}
-            </Flex>
-          </Stack>
-        </ConversationLeftPanel>
-      }
-      right={
-        <ConversationDetailPanel
-          selectedNode={selectedNode}
-          nodeTraceMap={nodeTraceMap}
-        />
-      }
-    />
+    <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
+      <ConversationContentLayout
+        leftPadding={isTranscript ? '0' : 'md'}
+        left={
+          isTranscript ? (
+            <MessagesPanel
+              isLoading={isLoading}
+              nodes={nodes}
+              selectedNodeId={displayedNode?.id ?? null}
+              onSelectNode={handleSelectAndOpenDetail}
+              onViewTimeline={onViewTimeline}
+            />
+          ) : (
+            <AiSpanTimeline
+              isLoading={isLoading}
+              nodes={nodes}
+              selectedNodeKey={displayedNode?.id ?? ''}
+              onSelectNode={handleSelectAndOpenDetail}
+              compressGaps
+            />
+          )
+        }
+        right={
+          // Show the detail pane once a span is resolved: a deep link or manual
+          // selection (either tab), or the timeline's default span. While
+          // loading, only the deep-linked skeleton is known.
+          (isLoading ? Boolean(selectedSpanId) : Boolean(displayedNode)) ? (
+            <ConversationSpanDetail
+              isLoading={isLoading}
+              scrollResetKey={activeTab}
+              node={displayedNode ?? undefined}
+              traceId={displayedNode ? (nodeTraceMap?.get(displayedNode.id) ?? '') : ''}
+              activeTab={detailState.detailTab}
+              onTabChange={detailTab => setDetailState({detailTab})}
+              onClose={handleCloseDetail}
+            />
+          ) : null
+        }
+      />
+    </TraceStateProvider>
   );
 }

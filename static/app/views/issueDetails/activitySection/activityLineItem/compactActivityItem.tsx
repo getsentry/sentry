@@ -505,6 +505,17 @@ export function getCompactGroupActivityItem({
           : null,
       };
     }
+    case GroupActivityType.TRIGGER_AUTOFIX:
+      switch (activity.data.referrer) {
+        case 'slack':
+          return {title: t('Autofix triggered from Slack')};
+        case 'issue_summary.post_process_fixability':
+          return {title: t('Autofix triggered automatically after event ingestion')};
+        case 'night_shift':
+          return {title: t('Autofix triggered during agentic triage')};
+        default:
+          return {title: t('Autofix triggered')};
+      }
   }
 
   Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {

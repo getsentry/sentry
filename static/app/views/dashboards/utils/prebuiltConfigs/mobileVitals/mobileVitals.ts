@@ -14,7 +14,10 @@ import {
   TTID_CONDITION,
   WARM_START_CONDITION,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
-import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
+import {
+  DASHBOARD_DESCRIPTION,
+  DASHBOARD_TITLE,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
 import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
@@ -450,6 +453,7 @@ const SECOND_ROW_WIDGETS: PrebuiltWidget[] = [
 export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   title: DASHBOARD_TITLE,
+  description: DASHBOARD_DESCRIPTION,
   projects: [],
   widgets: [
     ...FIRST_ROW_WIDGETS,

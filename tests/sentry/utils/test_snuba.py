@@ -3,8 +3,9 @@ from datetime import datetime, timedelta
 from unittest import mock
 
 import pytest
+import sentry_sdk
 from django.utils import timezone
-from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
+from snuba_sdk import Column, Condition, DeleteQuery, Entity, Function, Op, Query, Request
 from urllib3 import HTTPConnectionPool
 from urllib3.exceptions import HTTPError, ReadTimeoutError
 from urllib3.response import HTTPResponse
@@ -15,9 +16,11 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.utils import json
 from sentry.utils.snuba import (
     ROUND_UP,
+    SNUBA_JSON_RESP_COMPRESSION_ROLLOUT,
     RateLimitExceeded,
     RetrySkipTimeout,
     SnubaQueryParams,
@@ -25,6 +28,7 @@ from sentry.utils.snuba import (
     UnqualifiedQueryError,
     _bulk_snuba_query,
     _prepare_query_params,
+    _snuba_query,
     get_json_type,
     get_query_params_to_update_for_projects,
     get_snuba_column_name,
@@ -754,3 +758,41 @@ class SnubaQueryRateLimitTest(TestCase):
             _bulk_snuba_query([make_request("ok"), make_request("rate_limited")])
 
         assert mock.call("allocation_policy.is_successful", True) not in mock_set_tag.call_args_list
+
+
+class SnubaResponseCompressionTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.mock_pool = mock.patch("sentry.utils.snuba._snuba_pool").start()
+        self.addCleanup(mock.patch.stopall)
+        self.mock_pool.urlopen.return_value = mock.Mock(status=200, data=b'{"data": []}')
+
+    def _run_query(self, query) -> None:
+        req = mock.Mock(dataset="events", query=query)
+        req.serialize.return_value = b"{}"
+        _snuba_query(
+            (
+                sentry_sdk.get_isolation_scope(),
+                sentry_sdk.get_current_scope(),
+                SnubaRequest(
+                    request=req, referrer="test", forward=lambda x: x, reverse=lambda x: x
+                ),
+            )
+        )
+
+    @override_options({SNUBA_JSON_RESP_COMPRESSION_ROLLOUT: 1.0})
+    def test_compresses_read_query_if_ff_on(self) -> None:
+        self._run_query(mock.Mock(spec=Query))
+        headers = self.mock_pool.urlopen.call_args.kwargs["headers"]
+        assert headers["Accept-Encoding"] == "zstd"
+
+    @override_options({SNUBA_JSON_RESP_COMPRESSION_ROLLOUT: 0.0})
+    def test_does_not_compresses_read_query_if_ff_off(self) -> None:
+        self._run_query(mock.Mock(spec=Query))
+        headers = self.mock_pool.urlopen.call_args.kwargs["headers"]
+        assert "Accept-Encoding" not in headers
+
+    @override_options({SNUBA_JSON_RESP_COMPRESSION_ROLLOUT: 1.0})
+    def test_skips_delete_query(self) -> None:
+        self._run_query(mock.Mock(spec=DeleteQuery, storage_name="events"))
+        headers = self.mock_pool.urlopen.call_args.kwargs["headers"]
+        assert "Accept-Encoding" not in headers

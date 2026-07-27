@@ -7,7 +7,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import PlanFeature from 'getsentry/components/features/planFeature';
 import type {Subscription} from 'getsentry/types';
-import {displayPlanName, hasPerformance} from 'getsentry/utils/billing';
+import {displayPlanName, hasPerformance, isTrial} from 'getsentry/utils/billing';
 
 import type {Feature} from './types';
 
@@ -42,7 +42,7 @@ export function HighlightedFeature({feature, organization, subscription}: Props)
                 strong: <strong />,
               }
             )}
-        {!subscription.isTrial &&
+        {!isTrial(subscription) &&
           tct(" You're currently on the [current] plan.", {
             current: subscription.planDetails.name,
           })}

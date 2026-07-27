@@ -25,8 +25,9 @@ from sentry.seer.code_review.models import SeerCodeReviewRepoDefinition
 # on the PR row disambiguates a merge from a plain close.
 CLOSE_ACTION_CLOSED: Final = "closed"
 CLOSE_ACTION_MERGED: Final = "merged"
+CLOSE_ACTION_ABANDONED: Final = "abandoned"
 
-CloseAction = Literal["closed", "merged"]
+CloseAction = Literal["closed", "merged", "abandoned"]
 
 
 class PrConversationAnalysis(BaseModel):

@@ -18,6 +18,7 @@ from sentry.tasks.summaries.utils import (
     project_event_counts_for_organization,
     project_key_performance_issues,
     project_past_resolved_issues,
+    spans_count_by_project,
 )
 from sentry.tasks.summaries.weekly_report_cache import read_project_metrics
 from sentry.types.group import GroupSubStatus
@@ -95,6 +96,7 @@ class OrganizationReportContextFactory:
 
             error_missed_project_ids: set[int] = set()
             issue_missed_project_ids: set[int] = set()
+            spans_missed_project_ids: set[int] = set()
 
             for project_id, values in cached.items():
                 project_ctx = ctx.projects_context_map[project_id]
@@ -106,10 +108,15 @@ class OrganizationReportContextFactory:
                     project_ctx.prev_week_total_substatus_count = values["i"]
                 else:
                     issue_missed_project_ids.add(project_id)
+                if "s" in values:
+                    ctx.prev_week_spans_count_by_project[project_id] = values["s"]
+                else:
+                    spans_missed_project_ids.add(project_id)
 
             no_cache_project_ids = set(project_ids) - set(cached.keys())
             error_missed_project_ids |= no_cache_project_ids
             issue_missed_project_ids |= no_cache_project_ids
+            spans_missed_project_ids |= no_cache_project_ids
 
             prev_start = ctx.start - (ctx.end - ctx.start)
             prev_end = ctx.start
@@ -142,6 +149,29 @@ class OrganizationReportContextFactory:
                         ctx.projects_context_map[
                             project_id
                         ].prev_week_total_substatus_count += item["total"]
+
+            if (
+                spans_missed_project_ids
+                and not ctx.organization.flags.enhanced_privacy
+                and features.has("organizations:weekly-report-spans-chart", ctx.organization)
+            ):
+                try:
+                    tx_projects = [
+                        pctx.project
+                        for pid, pctx in ctx.projects_context_map.items()
+                        if pid in spans_missed_project_ids and pctx.project.flags.has_transactions
+                    ]
+                    if tx_projects:
+                        fallback = spans_count_by_project(
+                            tx_projects,
+                            ctx.organization,
+                            prev_start,
+                            prev_end,
+                            Referrer.REPORTS_TOP_SPANS.value,
+                        )
+                        ctx.prev_week_spans_count_by_project.update(fallback)
+                except Exception:
+                    sentry_sdk.capture_exception()
 
     @metrics.wraps("weekly_report.create_context.issue_summaries")
     def _append_organization_project_issue_summaries(self, ctx: OrganizationReportContext) -> None:
