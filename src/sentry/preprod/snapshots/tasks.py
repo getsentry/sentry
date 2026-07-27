@@ -106,8 +106,15 @@ def _retry_objectstore[T](operation: Callable[[], T]) -> T:
     raise AssertionError("unreachable")
 
 
+def _read_objectstore(session: Session, key: str) -> bytes:
+    response = session.get(key)
+    if response is None:
+        raise FileNotFoundError("Object does not exist in objectstore")
+    return response.payload.read()
+
+
 def _get_json[T: BaseModel](session: Session, key: str, model_cls: type[T]) -> T:
-    return model_cls(**orjson.loads(_retry_objectstore(lambda: session.get(key).payload.read())))
+    return model_cls(**orjson.loads(_retry_objectstore(lambda: _read_objectstore(session, key))))
 
 
 def _put_json(session: Session, key: str, model: BaseModel) -> None:
@@ -267,7 +274,7 @@ def _fetch_batch_images(
     def fetch(image_hash: str) -> None:
         try:
             key = f"{key_prefix}/{image_hash}"
-            data = _retry_objectstore(lambda: session.get(key).payload.read())
+            data = _retry_objectstore(lambda: _read_objectstore(session, key))
             with lock:
                 cache[image_hash] = data
         except Exception:
@@ -378,7 +385,7 @@ def _try_auto_approve_snapshot(
 
     try:
         sibling_manifest = ComparisonManifest(
-            **orjson.loads(session.get(sibling_comparison_key).payload.read())
+            **orjson.loads(_read_objectstore(session, sibling_comparison_key))
         )
     except Exception:
         logger.exception(

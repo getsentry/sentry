@@ -9,7 +9,7 @@ import zstandard
 from django.db import connections
 from django.http import HttpResponse, StreamingHttpResponse
 from django.urls import reverse
-from objectstore_client import Client, RequestError, Session, Usecase
+from objectstore_client import Client, Session, Usecase
 from pytest_django.live_server_helper import LiveServer
 
 from sentry.hybridcloud.apigateway_async import proxy as proxy_mod
@@ -89,8 +89,7 @@ class ObjectstoreEndpointTest(TransactionTestCase):
 
         session.delete(object_key)
 
-        with pytest.raises(RequestError):
-            session.get(object_key)
+        assert session.get(object_key) is None
 
     def test_uncompressed(self) -> None:
         session = self.get_session()

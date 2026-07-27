@@ -223,6 +223,8 @@ def build_snapshot_images_zip(
 
 def _load_manifest(session: Session, manifest_key: str) -> SnapshotManifest:
     response = session.get(manifest_key)
+    if response is None:
+        raise FileNotFoundError("Manifest does not exist in objectstore")
     try:
         manifest_data = orjson.loads(response.payload.read())
     finally:

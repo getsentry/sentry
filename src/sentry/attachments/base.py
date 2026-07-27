@@ -74,7 +74,10 @@ class CachedAttachment:
         if self.stored_id:
             assert project
             session = get_attachments_session(project.organization_id, project.id)
-            return session.get(self.stored_id).payload.read()
+            response = session.get(self.stored_id)
+            if response is None:
+                raise FileNotFoundError("Attachment does not exist in objectstore")
+            return response.payload.read()
 
         if self._data is UNINITIALIZED_DATA and self._cache is not None:
             self._data = self._cache.get_data(self)
