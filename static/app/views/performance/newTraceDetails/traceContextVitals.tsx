@@ -52,9 +52,7 @@ export function TraceContextVitals({rootEventResults, tree}: Props) {
   const primaryCountByBreakpoint: Responsive<number> = isWeb
     ? {zero: 2, xl: totalCount}
     : {zero: 2, xl: 3};
-  const resolvedCount = useResponsivePropValue(primaryCountByBreakpoint);
-  const primaryVitalsCount =
-    typeof resolvedCount === 'number' ? resolvedCount : totalCount;
+  const primaryVitalsCount = useResponsivePropValue(primaryCountByBreakpoint);
 
   // TODO Abdullah Khan: Ignoring loading/error states for now
   if (!hasVitals || !rootEventResults.data || !traceNode) {

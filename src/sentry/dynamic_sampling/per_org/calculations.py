@@ -44,6 +44,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     generate_boost_low_volume_transactions_cache_key,
 )
+from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.utils import metrics
 
@@ -201,6 +202,17 @@ def apply_project_sample_rate_overrides(
         else item
         for item in rebalanced_projects
     ]
+
+
+def get_cached_organization_sample_rate(org_id: int) -> float | None:
+    """
+    The organization sample rate the legacy (generic metrics) pipeline would serve: the
+    cached sliding-window rate, or the target sample rate option for custom sampling orgs.
+    Returns None on a cache miss instead of falling back to the blended rate, so the
+    comparison logging can distinguish "no cached value" from "cached value equals blended".
+    """
+    sample_rate, _ = get_org_sample_rate(org_id=org_id, default_sample_rate=None)
+    return sample_rate
 
 
 def get_cached_rebalanced_project_sample_rates(org_id: int) -> dict[int, float | None]:
@@ -425,12 +437,19 @@ def get_cached_rebalanced_transaction_sample_rates(
     org_id: int, project_ids: Iterable[int]
 ) -> dict[int, tuple[dict[str, float], float] | None]:
     redis_client = get_redis_client_for_ds()
+    ordered_project_ids = list(project_ids)
+    if not ordered_project_ids:
+        return {}
+
+    with redis_client.pipeline(transaction=False) as pipeline:
+        for project_id in ordered_project_ids:
+            pipeline.get(
+                generate_boost_low_volume_transactions_cache_key(org_id=org_id, proj_id=project_id)
+            )
+        serialized_values = pipeline.execute()
+
     result: dict[int, tuple[dict[str, float], float] | None] = {}
-    for project_id in project_ids:
-        cache_key = generate_boost_low_volume_transactions_cache_key(
-            org_id=org_id, proj_id=project_id
-        )
-        serialized = redis_client.get(cache_key)
+    for project_id, serialized in zip(ordered_project_ids, serialized_values):
         if serialized is None:
             result[project_id] = None
             continue

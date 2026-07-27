@@ -825,7 +825,7 @@ function DataWidgetViewerModal(props: Props) {
                 </Header>
                 <Body>{renderWidgetViewer()}</Body>
                 <Footer>
-                  <ResultsContainer>
+                  <Flex align="center" justify="between" gap="md" flex="1">
                     {renderTotalResults(totalResults, widget.widgetType)}
                     <Grid flow="column" align="center" gap="md">
                       {onEdit && widget.id && (
@@ -869,7 +869,7 @@ function DataWidgetViewerModal(props: Props) {
                         />
                       )}
                     </Grid>
-                  </ResultsContainer>
+                  </Flex>
                 </Footer>
               </MEPSettingProvider>
             )}
@@ -1250,19 +1250,6 @@ const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
   display: ${p => p.display};
   gap: ${p => p.theme.space.md};
   flex: 1;
-`;
-
-const ResultsContainer = styled('div')`
-  display: flex;
-  flex-grow: 1;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    align-items: center;
-    flex-direction: row;
-    justify-content: space-between;
-  }
 `;
 
 const EmptyQueryContainer = styled('span')`

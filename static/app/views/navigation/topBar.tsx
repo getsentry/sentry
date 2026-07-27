@@ -21,7 +21,7 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  NAVIGATION_MOBILE_CONTENT_HEIGHT,
   PRIMARY_HEADER_HEIGHT,
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
@@ -30,16 +30,16 @@ const Slot = slot(['breadcrumbs', 'title', 'search', 'actions', 'feedback'] as c
 
 function TopBarContent() {
   const theme = useTheme();
-  const {barTop, contentTop} = useTopOffset();
+  const {pageContentTop} = useTopOffset();
 
   const organization = useOrganization({allowNull: true});
 
   useEffect(() => {
-    document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, contentTop);
+    document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, pageContentTop);
     return () => {
       document.documentElement.style.removeProperty(TOP_BAR_HEIGHT_CSS_VAR);
     };
-  }, [contentTop]);
+  }, [pageContentTop]);
 
   const {isOpen: isSeerExplorerOpen} = useSeerExplorerContext();
   const {runId: seerExplorerRunId} = useSeerExplorerChatState();
@@ -55,7 +55,7 @@ function TopBarContent() {
     <Flex
       as="header"
       height={{
-        'screen:sm': `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
+        'screen:sm': `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`,
         'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
       }}
       justify="between"
@@ -64,7 +64,7 @@ function TopBarContent() {
       padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
       position="sticky"
       borderBottom="primary"
-      top={barTop}
+      top={0}
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
