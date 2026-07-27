@@ -180,7 +180,8 @@ def compare_span_first_problems_to_control_data(
 
 
 def _compare_problem_sets(
-    control_problems: list[PerformanceProblem], span_first_problems: list[PerformanceProblem]
+    control_problem_dicts: list[PerformanceProblemDict],
+    span_first_problem_dicts: list[PerformanceProblemDict],
 ) -> dict[str, list[str]]:
     """
     Compare two lists of (hopefully matching) problems, and return a dictionary containing
@@ -188,9 +189,11 @@ def _compare_problem_sets(
     """
     diffs: dict[str, list[str]] = defaultdict(list)
 
-    control_problems_by_fingerprint = {problem.fingerprint: problem for problem in control_problems}
+    control_problems_by_fingerprint = {
+        problem["fingerprint"]: problem for problem in control_problem_dicts
+    }
     span_first_problems_by_fingerprint = {
-        problem.fingerprint: problem for problem in span_first_problems
+        problem["fingerprint"]: problem for problem in span_first_problem_dicts
     }
 
     overall_diffs = {}
@@ -203,13 +206,13 @@ def _compare_problem_sets(
         )
         overall_diffs["non_shared_fingerprints"] = non_shared_fingerprints
 
-    for fingerprint, control_problem in control_problems_by_fingerprint.items():
-        span_first_problem = span_first_problems_by_fingerprint.get(fingerprint)
+    for fingerprint, control_problem_dict in control_problems_by_fingerprint.items():
+        span_first_problem_dict = span_first_problems_by_fingerprint.get(fingerprint)
 
-        if not span_first_problem:
+        if not span_first_problem_dict:
             continue
 
-        _collect_single_problem_diffs(control_problem, span_first_problem, diffs)
+        _collect_single_problem_diffs(control_problem_dict, span_first_problem_dict, diffs)
 
     return diffs
 
