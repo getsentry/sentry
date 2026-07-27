@@ -66,7 +66,7 @@ export function FocusedIssue({id, period}: {id: string; period: string}) {
               key={issue.id}
               issue={issue}
               orgSlug={organization.slug}
-              runMissing
+              batchPending={false}
               view="cards"
               statsPeriod={period}
               lazy={false}

@@ -16,13 +16,16 @@ interface IssueAutofixEnrichment {
 
 export function useIssueAutofixEnrichment(
   issueId: string,
-  options?: {injectedRun?: SeerRun | null; runMissing?: boolean}
+  options?: {batchPending?: boolean; injectedRun?: SeerRun | null}
 ): IssueAutofixEnrichment {
   const organization = useOrganization();
 
-  // Fire the per-card runs query only when no batched run was injected
-  // (focus mode, or the rare batch miss when a group has multiple runs).
-  const fallbackActive = !options || options.runMissing === true;
+  // Batched callers must wait for their batch to settle before falling back:
+  // while it is in flight every group looks absent, so firing here would double
+  // every card's runs request. Once settled, a still-absent group (the rare
+  // multi-run miss) fetches its own. Callers without options have no batch.
+  const fallbackActive =
+    !options || (options.batchPending === false && !options.injectedRun);
 
   const runsQuery = useQuery({
     ...apiOptions.as<SeerRun[]>()('/organizations/$organizationIdOrSlug/seer/runs/', {
@@ -48,12 +51,15 @@ export function useIssueAutofixEnrichment(
   });
 
   const fallbackRun = runsQuery.data?.find(run => run.groupId === issueId) ?? null;
-  const run = fallbackActive ? fallbackRun : (options?.injectedRun ?? null);
+  const run = options?.injectedRun ?? fallbackRun;
 
   return {
     run,
     state: stateQuery.data?.autofix ?? null,
     statePending: stateQuery.isPending,
-    enrichmentPending: stateQuery.isPending || (fallbackActive && runsQuery.isPending),
+    enrichmentPending:
+      stateQuery.isPending ||
+      options?.batchPending === true ||
+      (fallbackActive && runsQuery.isPending),
   };
 }

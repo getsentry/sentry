@@ -19,13 +19,14 @@ function HydratedCard({
   memberList,
   memberListLoading,
   injectedRun,
-  runMissing,
+  batchPending,
 }: {
+  // Required so callers must decide explicitly. While a batched runs request is
+  // in flight the card waits; once settled it fetches its own run if the batch
+  // did not supply one. Callers with no batch pass false.
+  batchPending: boolean;
   issue: OverviewIssue;
   orgSlug: string;
-  // Required so callers must decide explicitly: when true the card fetches its
-  // own run, when false it relies solely on injectedRun.
-  runMissing: boolean;
   statsPeriod: string;
   view: 'cards' | 'table';
   injectedRun?: SeerRun | null;
@@ -37,7 +38,7 @@ function HydratedCard({
 }) {
   const {run, state, statePending, enrichmentPending} = useIssueAutofixEnrichment(
     issue.id,
-    {injectedRun, runMissing}
+    {injectedRun, batchPending}
   );
   const classificationPending = sectionKey ? statePending : enrichmentPending;
   const row = buildOverviewRow(issue, run, state, classificationPending, statsPeriod);
@@ -69,9 +70,9 @@ export function SectionIssueCard({
   lazy = true,
   ...props
 }: {
+  batchPending: boolean;
   issue: OverviewIssue;
   orgSlug: string;
-  runMissing: boolean;
   statsPeriod: string;
   view: 'cards' | 'table';
   injectedRun?: SeerRun | null;

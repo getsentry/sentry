@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
@@ -66,7 +66,7 @@ function SectionBody({
   );
   const groupIds = useMemo(() => visibleIssues.map(issue => issue.id), [visibleIssues]);
   // runMap is recreated on every render, so it must never be a hook dependency.
-  const {runMap} = useSectionRuns(groupIds);
+  const {runMap, runsPending} = useSectionRuns(groupIds);
   const remaining = section.issues.length - visibleIssues.length;
 
   return (
@@ -80,8 +80,10 @@ function SectionBody({
           key={issue.id}
           issue={issue}
           injectedRun={runMap.get(issue.id) ?? null}
-          // The batch didn't cover this group; let the card fetch its own run.
-          runMissing={!runMap.has(issue.id)}
+          // While the batch is in flight the card waits rather than fetching;
+          // once settled, a card the batch didn't cover falls back to its own
+          // request (only happens when a group has multiple runs).
+          batchPending={runsPending}
           memberList={
             memberQuery.isError
               ? undefined
@@ -143,24 +145,24 @@ export function SectionList({
     view === 'cards' && sections.some(section => section.issues.length > 0);
   const memberQuery = useMemberQuery(memberProjectIds, enabled && hasCardIssues);
 
-  const [visibleCounts, setVisibleCounts] = useState<
-    Partial<Record<AutofixStateKey, number>>
-  >({});
-
   // A fresh issues query (any filter/sort/period/project change) means fresh
-  // pages — reset every section back to the first PAGE_SIZE.
-  const resetKey = useMemo(
-    () => JSON.stringify({projects, sort, period, assignee}),
-    [projects, sort, period, assignee]
-  );
-  useEffect(() => {
-    setVisibleCounts({});
-  }, [resetKey]);
+  // pages — reset every section back to the first PAGE_SIZE. The key is stored
+  // with the counts and compared during render so a mount doesn't spend an
+  // extra render resetting state that is already empty.
+  const resetKey = JSON.stringify({projects, sort, period, assignee});
+  const [pages, setPages] = useState<{
+    counts: Partial<Record<AutofixStateKey, number>>;
+    key: string;
+  }>({counts: {}, key: resetKey});
+  const visibleCounts = pages.key === resetKey ? pages.counts : {};
+  if (pages.key !== resetKey) {
+    setPages({counts: {}, key: resetKey});
+  }
 
   const showMore = (key: AutofixStateKey) => {
-    setVisibleCounts(prev => ({
-      ...prev,
-      [key]: (prev[key] ?? PAGE_SIZE) + PAGE_SIZE,
+    setPages(prev => ({
+      key: prev.key,
+      counts: {...prev.counts, [key]: (prev.counts[key] ?? PAGE_SIZE) + PAGE_SIZE},
     }));
   };
 
