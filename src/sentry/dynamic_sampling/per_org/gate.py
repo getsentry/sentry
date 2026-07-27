@@ -13,6 +13,9 @@ PROJECT_BALANCING_DEBUG_PROJECT_IDS_LIMIT = 100
 SLIDING_WINDOW_COMPARISON_ORG_IDS_OPTION = (
     "dynamic-sampling.per_org.sliding-window-comparison-org-ids"
 )
+SAMPLE_RATES_SUMMARY_LOG_ROLLOUT_RATE_OPTION = (
+    "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate"
+)
 APPLY_IMPLICIT_SAMPLE_RATE_FLOOR_OPTION = (
     "dynamic-sampling.per_org.apply-implicit-sample-rate-floor"
 )
@@ -32,6 +35,10 @@ def is_rollout_enabled() -> bool:
 
 def is_org_in_rollout(org_id: int) -> bool:
     return in_rollout_group(ROLLOUT_RATE_OPTION, org_id)
+
+
+def is_org_in_sample_rates_summary_log_rollout(org_id: int) -> bool:
+    return in_rollout_group(SAMPLE_RATES_SUMMARY_LOG_ROLLOUT_RATE_OPTION, org_id)
 
 
 def metrics_sample_rate() -> float:
