@@ -11,6 +11,7 @@ from django.db import router, transaction
 from django.urls import reverse
 from django.utils import timezone as django_timezone
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -49,7 +50,9 @@ MAX_ENVIRONMENTS_IN_MONITOR_LINK = 10
 
 
 def generate_monitor_overview_url(organization: Organization):
-    return absolute_uri(f"/organizations/{organization.slug}/monitors/")
+    if features.has("organizations:workflow-engine-ui", organization):
+        return absolute_uri(f"/organizations/{organization.slug}/monitors/")
+    return absolute_uri(reverse("sentry-organization-crons", args=[organization.slug]))
 
 
 def generate_monitor_detail_url(
