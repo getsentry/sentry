@@ -719,7 +719,7 @@ export const replayMobilePlatforms: PlatformKey[] = [
 
 // These are the gaming/engine platforms that can set up replay. Only consumed
 // locally via replayVideoPlatforms / replayPlatforms / replayOnboardingPlatforms.
-const replayGamingPlatforms: PlatformKey[] = ['unreal'];
+const replayGamingPlatforms: readonly PlatformKey[] = ['unreal'];
 
 // These are the platforms whose replays are recorded as video (mobile SDKs +
 // gaming engines). They share the same native replay UI: video-only table

@@ -4,7 +4,7 @@ import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStarted
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-const getConfigureIniSnippet = () => `[/Script/Sentry.SentrySettings]
+const configureIniSnippet = `[/Script/Sentry.SentrySettings]
 AttachSessionReplay=True`;
 
 export const sessionReplay: OnboardingConfig = {
@@ -24,7 +24,6 @@ export const sessionReplay: OnboardingConfig = {
         {
           type: 'alert',
           alertType: 'info',
-          showIcon: false,
           text: t('Session Replay for Unreal Engine is currently experimental.'),
         },
       ],
@@ -50,7 +49,7 @@ export const sessionReplay: OnboardingConfig = {
         {
           type: 'code',
           language: 'ini',
-          code: getConfigureIniSnippet(),
+          code: configureIniSnippet,
         },
         {
           type: 'text',
@@ -66,7 +65,6 @@ export const sessionReplay: OnboardingConfig = {
         {
           type: 'alert',
           alertType: 'warning',
-          showIcon: false,
           text: t(
             'Unlike our browser and mobile SDKs, the Unreal Engine SDK does not automatically mask sensitive content in the recorded footage. Make sure no sensitive information is displayed while Session Replay is enabled.'
           ),
@@ -74,6 +72,19 @@ export const sessionReplay: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Once Session Replay is enabled, package and run your game and interact with it for a few moments. Then head to the [strong:Replays] page in Sentry to confirm your session was captured. It may take a few minutes for the first replay to appear.',
+            {strong: <strong />}
+          ),
+        },
+      ],
+    },
+  ],
   nextSteps: () => [],
 };

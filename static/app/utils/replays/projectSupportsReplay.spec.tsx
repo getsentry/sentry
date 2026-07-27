@@ -60,21 +60,15 @@ describe('projectSupportsReplay & projectCanLinkToReplay', () => {
     }
   );
 
-  it.each(['apple-macos' as PlatformKey])(
-    'should FAIL for Desktop framework %s',
-    platform => {
-      const project = mockProjectFixture(platform);
-      expect(projectSupportsReplay(project)).toBeFalsy();
-      expect(projectCanLinkToReplay(organization, project)).toBeFalsy();
-    }
-  );
+  it('should FAIL for Desktop framework apple-macos', () => {
+    const project = mockProjectFixture('apple-macos');
+    expect(projectSupportsReplay(project)).toBeFalsy();
+    expect(projectCanLinkToReplay(organization, project)).toBeFalsy();
+  });
 
-  it.each(['unreal' as PlatformKey])(
-    'should SUPPORT & LINK gaming platform %s',
-    platform => {
-      const project = mockProjectFixture(platform);
-      expect(projectSupportsReplay(project)).toBeTruthy();
-      expect(projectCanLinkToReplay(organization, project)).toBeTruthy();
-    }
-  );
+  it('should SUPPORT & LINK gaming platform unreal', () => {
+    const project = mockProjectFixture('unreal');
+    expect(projectSupportsReplay(project)).toBeTruthy();
+    expect(projectCanLinkToReplay(organization, project)).toBeTruthy();
+  });
 });
