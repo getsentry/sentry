@@ -33,6 +33,75 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         )
         return patcher, marked_models
 
+    def _create_monitor_with_checkins(self, num_checkins: int) -> tuple[Monitor, int]:
+        project = self.create_project(name="test")
+        env = Environment.objects.create(organization_id=project.organization_id, name="prod")
+        monitor = Monitor.objects.create(
+            organization_id=project.organization.id,
+            project_id=project.id,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+        monitor_env = MonitorEnvironment.objects.create(monitor=monitor, environment_id=env.id)
+        for _ in range(num_checkins):
+            MonitorCheckIn.objects.create(
+                monitor=monitor,
+                monitor_environment=monitor_env,
+                project_id=project.id,
+                status=CheckInStatus.OK,
+            )
+        return monitor, num_checkins
+
+    def test_checkin_deletion_is_rate_limited(self) -> None:
+        monitor, num_checkins = self._create_monitor_with_checkins(5)
+        self.ScheduledDeletion.schedule(instance=monitor, days=0)
+
+        with mock.patch("sentry.deletions.base.LeakyBucketRateLimiter") as mock_limiter_cls:
+            mock_limiter_cls.return_value.use_and_get_info.return_value = mock.Mock(wait_time=0)
+            with self.tasks():
+                run_scheduled_deletions()
+
+        assert not MonitorCheckIn.objects.filter(monitor_id=monitor.id).exists()
+        mock_limiter_cls.assert_called_with(
+            burst_limit=800,
+            drip_rate=800,
+            key="deletions.rate_limit:deletions.monitor-check-in.rate-limit",
+        )
+        # Every deleted check-in is charged to the bucket exactly once.
+        limiter = mock_limiter_cls.return_value
+        total_charged = sum(
+            call.kwargs["incr_by"] for call in limiter.use_and_get_info.call_args_list
+        )
+        assert total_charged == num_checkins
+
+    def test_checkin_deletion_rate_limit_disabled(self) -> None:
+        """A rate of 0 disables throttling entirely (limiter is never built)."""
+        monitor, _ = self._create_monitor_with_checkins(3)
+        self.ScheduledDeletion.schedule(instance=monitor, days=0)
+
+        with self.options({"deletions.monitor-check-in.rate-limit": 0}):
+            with mock.patch("sentry.deletions.base.LeakyBucketRateLimiter") as mock_limiter_cls:
+                with self.tasks():
+                    run_scheduled_deletions()
+
+        assert not MonitorCheckIn.objects.filter(monitor_id=monitor.id).exists()
+        mock_limiter_cls.assert_not_called()
+
+    def test_checkin_deletion_sleeps_when_throttled(self) -> None:
+        """When the bucket reports a wait, we sleep for it before retrying."""
+        monitor, _ = self._create_monitor_with_checkins(2)
+        self.ScheduledDeletion.schedule(instance=monitor, days=0)
+
+        # First reservation is throttled (wait 0.2s), second is admitted.
+        infos = [mock.Mock(wait_time=0.2), mock.Mock(wait_time=0)]
+        with mock.patch("sentry.deletions.base.LeakyBucketRateLimiter") as mock_limiter_cls:
+            mock_limiter_cls.return_value.use_and_get_info.side_effect = infos
+            with mock.patch("sentry.deletions.base.time.sleep") as mock_sleep:
+                with self.tasks():
+                    run_scheduled_deletions()
+
+        mock_sleep.assert_called_once_with(0.2)
+        assert not MonitorCheckIn.objects.filter(monitor_id=monitor.id).exists()
+
     def test_delete_monitor_does_not_mark_checkins_in_progress(self) -> None:
         """
         Deleting a Monitor should not mark its check-ins as
