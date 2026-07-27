@@ -389,12 +389,14 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         self,
         feedback: Feedback,
         referrer: AutofixReferrer = AutofixReferrer.GITHUB_PR_COMMENT,
+        actor_user_id: int | None = None,
     ) -> QueuedAutofixFeedback:
         return QueuedAutofixFeedback(
             organization_id=self.organization.id,
             group_id=self.group.id,
             feedback=feedback,
             referrer=referrer,
+            actor_user_id=actor_user_id,
         )
 
     def _iteration_block(self, idx: int) -> MemoryBlock:
@@ -550,8 +552,16 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             source=GithubPrCommentFeedbackSource(comment={"id": 777, "body": "@sentry fresh"})
         )
         mock_pop.return_value = [
-            self._queued(stale, AutofixReferrer.GITHUB_PR_REVIEW),
-            self._queued(fresh, AutofixReferrer.GITHUB_PR_COMMENT),
+            self._queued(
+                stale,
+                AutofixReferrer.GITHUB_PR_REVIEW,
+                actor_user_id=self.create_user().id,
+            ),
+            self._queued(
+                fresh,
+                AutofixReferrer.GITHUB_PR_COMMENT,
+                actor_user_id=self.user.id,
+            ),
         ]
 
         self._call()
@@ -560,6 +570,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         _, kwargs = mock_trigger.call_args
         assert [f.text for f in kwargs["feedback"]] == ["fresh"]
         assert kwargs["referrer"] == AutofixReferrer.GITHUB_PR_COMMENT
+        assert kwargs["activity_user_id"] == self.user.id
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")

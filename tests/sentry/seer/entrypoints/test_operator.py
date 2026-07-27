@@ -5,7 +5,6 @@ from unittest.mock import Mock, patch
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.issues.action_log.types import (
-    SYSTEM_ACTOR,
     ActionSource,
     GroupActionActor,
     SeerIterationStartedAction,
@@ -675,19 +674,26 @@ class SeerOperatorTest(TestCase):
                     event_type=seer_event,
                     event_payload=event_payload,
                     organization_id=self.organization.id,
-                    activity_attribution={"referrer": AutofixReferrer.GITHUB_PR_COMMENT},
+                    activity_attribution={
+                        "referrer": AutofixReferrer.WEB,
+                        "actor_user_id": self.user.id,
+                    },
                 )
                 assert Activity.objects.filter(
                     group=self.group, type=expected_activity_type.value
                 ).exists(), f"Activity not created for {seer_event}"
 
+        iteration_activity = Activity.objects.get(
+            group=self.group, type=ActivityType.SEER_ITERATION_STARTED.value
+        )
+        assert iteration_activity.user_id == self.user.id
         action_log.assert_logged(
             SeerIterationStartedAction,
             group_id=self.group.id,
-            source=ActionSource.GITHUB,
-            actor=SYSTEM_ACTOR,
+            source=ActionSource.WEB,
+            actor=GroupActionActor.user(self.user.id),
             run_id=MOCK_RUN_ID,
-            referrer=AutofixReferrer.GITHUB_PR_COMMENT.value,
+            referrer=AutofixReferrer.WEB.value,
         )
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)

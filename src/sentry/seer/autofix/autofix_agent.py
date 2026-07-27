@@ -387,6 +387,7 @@ def trigger_autofix_agent(
     feedback: Sequence[Feedback] | None = None,
     user: User | RpcUser | AnonymousUser | None = None,
     enable_bash_tools: bool = False,
+    actor_user_id: int | None = None,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -527,6 +528,8 @@ def trigger_autofix_agent(
                 activity_attribution: SeerActivityAttribution = {
                     "referrer": referrer,
                 }
+                if actor_user_id is not None:
+                    activity_attribution["actor_user_id"] = actor_user_id
                 task_kwargs["activity_attribution"] = activity_attribution
             process_autofix_updates.apply_async(kwargs=task_kwargs)
     except ValueError:
