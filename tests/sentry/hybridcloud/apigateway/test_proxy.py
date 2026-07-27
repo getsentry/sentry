@@ -1,6 +1,6 @@
 from collections.abc import Generator
 from typing import NoReturn
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from urllib.parse import urlencode
 
 import httpx
@@ -526,6 +526,62 @@ class ProxyTestCase(ApiGatewayTestCase):
         resp = proxy_request(request, self.organization.slug, url_name)
         close_streaming_response(resp)
         assert captured["content_encoding"] is None
+
+    @patch("sentry.hybridcloud.apigateway_async.proxy.metrics")
+    def test_async_orgslug_metrics_tagged_with_cell_on_success(self, mock_metrics: Mock) -> None:
+        request = RequestFactory().get("http://sentry.io/get")
+        resp = proxy_request(request, self.organization.slug, url_name)
+        close_streaming_response(resp)
+        assert resp.status_code == 200
+
+        mock_metrics.incr.assert_any_call(
+            "apigateway.proxy_request",
+            tags={
+                "url_name": url_name,
+                "kind": "orgslug",
+                "destination_cell": "us",
+                "request_method": "GET",
+            },
+        )
+        mock_metrics.incr.assert_any_call(
+            "apigateway.proxy.request_succeeded",
+            tags={
+                "destination_cell": "us",
+                "url_name": url_name,
+                "destination_host": "http://us.internal.sentry.io",
+                "request_method": "GET",
+            },
+        )
+
+    @patch("sentry.hybridcloud.apigateway_async.proxy.metrics")
+    def test_async_unresolved_org_does_not_emit_proxy_request(self, mock_metrics: Mock) -> None:
+        request = RequestFactory().get("http://sentry.io/get")
+        resp = proxy_request(request, "doesnotexist", url_name)
+        assert resp.status_code == 404
+
+        emitted = [c.args[0] for c in mock_metrics.incr.mock_calls]
+        assert "apigateway.proxy_request" not in emitted
+        assert "apigateway.proxy.request_succeeded" not in emitted
+
+    @patch("sentry.hybridcloud.apigateway_async.proxy.metrics")
+    def test_async_upstream_failure_emits_request_failed_not_succeeded(
+        self, mock_metrics: Mock
+    ) -> None:
+        def bad_gateway(request: httpx.Request) -> tuple[int, dict[str, str], bytes]:
+            return (503, {}, b"{}")
+
+        self.httpx_router.add_callback(
+            "GET", "http://us.internal.sentry.io/bad-gateway", bad_gateway
+        )
+
+        request = RequestFactory().get("http://sentry.io/bad-gateway")
+        resp = proxy_request(request, self.organization.slug, url_name)
+        close_streaming_response(resp)
+        assert resp.status_code == 503
+
+        emitted = [c.args[0] for c in mock_metrics.incr.mock_calls]
+        assert "apigateway.proxy.request_failed" in emitted
+        assert "apigateway.proxy.request_succeeded" not in emitted
 
 
 api_gateway_address_cell = Cell(
