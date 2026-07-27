@@ -901,7 +901,13 @@ def compare_snapshots(
         try:
             head_manifest = _get_json(session, head_manifest_key, SnapshotManifest)
             base_manifest = _get_json(session, base_manifest_key, SnapshotManifest)
-        except (orjson.JSONDecodeError, RequestError, ValidationError, TypeError):
+        except (
+            orjson.JSONDecodeError,
+            FileNotFoundError,
+            RequestError,
+            ValidationError,
+            TypeError,
+        ):
             logger.exception(
                 "compare_snapshots: failed to load or parse manifest",
                 extra={
@@ -1132,7 +1138,7 @@ def finalize_snapshot_comparison(
     plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
     try:
         plan = _get_json(session, plan_key, ComparisonPlan)
-    except (orjson.JSONDecodeError, RequestError, ValidationError, TypeError):
+    except (orjson.JSONDecodeError, FileNotFoundError, RequestError, ValidationError, TypeError):
         # Without the plan there are no chunks to assemble, so this is unrecoverable.
         # Fail the row cleanly instead of leaving it PROCESSING for the reaper to sweep
         # ~30min later (the chunk-result read below degrades for the same reason).
@@ -1165,7 +1171,13 @@ def finalize_snapshot_comparison(
             )
             try:
                 result = _get_json(session, chunk_result_key, ChunkResult)
-            except (orjson.JSONDecodeError, RequestError, ValidationError, TypeError):
+            except (
+                orjson.JSONDecodeError,
+                FileNotFoundError,
+                RequestError,
+                ValidationError,
+                TypeError,
+            ):
                 # A done chunk whose result blob is missing/evicted/corrupt must not crash
                 # finalize, otherwise the comparison stays PROCESSING forever and every retry
                 # re-raises. Degrade its candidates to errored, mirroring the failed branch.
