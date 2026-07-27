@@ -221,9 +221,6 @@ def _collect_single_problem_diffs(
     # those locations, to which any differences found will be added
     diffs: dict[str, list[str]],
 ) -> None:
-    """
-    Compare the data in the given problems, and return a list of spots in which the problems differ.
-    """
     fingerprint = control_problem_dict["fingerprint"]
 
     for key in control_problem_dict:
