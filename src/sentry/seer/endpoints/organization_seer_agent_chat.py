@@ -98,6 +98,11 @@ class SeerAgentChatSerializer(serializers.Serializer):
         default=None,
         help_text="The UI page name where the request originated (e.g., route string).",
     )
+    override_bash_mode_enabled = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Override bash mode tools.",
+    )
     override_ce_enable = serializers.BooleanField(
         required=False,
         default=True,
@@ -178,11 +183,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
         has_seer_access, _ = has_seer_access_with_detail(organization, request.user)
-        has_dashboards_ai_generate_access = has_seer_access and features.has(
-            "organizations:dashboards-ai-generate", organization, actor=request.user
-        )
 
-        if not has_access and not has_dashboards_ai_generate_access:
+        if not has_access and not has_seer_access:
             raise PermissionDenied(error)
 
         if not run_id:
@@ -231,13 +233,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
         has_seer_access, _ = has_seer_access_with_detail(organization, request.user)
-        has_dashboards_ai_generate_access = has_seer_access and features.has(
-            "organizations:dashboards-ai-generate", organization, actor=request.user
-        )
-        # Orgs with dashboards AI generate access can continue existing dashboard generate runs, but cannot start new runs from this endpoint.
-        can_continue_dashboards_generate_run = (
-            has_dashboards_ai_generate_access and run_id is not None
-        )
+        # Orgs with Seer access can continue existing dashboard generate runs, but cannot start new runs from this endpoint.
+        can_continue_dashboards_generate_run = has_seer_access and run_id is not None
 
         if not has_access and not can_continue_dashboards_generate_run:
             raise PermissionDenied(error)
@@ -251,6 +248,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         insert_index = validated_data.get("insert_index")
         on_page_context = validated_data.get("on_page_context")
         page_name = validated_data.get("page_name")
+        override_bash_mode_enabled = validated_data["override_bash_mode_enabled"]
         override_ce_enable = validated_data["override_ce_enable"]
         override_code_mode_enable = validated_data.get("override_code_mode_enable")
         ui_tools = (
@@ -276,6 +274,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             ) and features.has(
                 "organizations:seer-explorer-chat-coding", organization, actor=request.user
             )
+
             has_code_mode_feature = features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
             )
@@ -285,10 +284,12 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 enable_code_mode_tools = override_code_mode_enable
             else:
                 enable_code_mode_tools = "on"
+
             client = SeerAgentClient(
                 organization,
                 request.user,
                 is_interactive=True,
+                enable_bash_tools=override_bash_mode_enabled,
                 enable_coding=enable_coding,
                 enable_code_mode_tools=enable_code_mode_tools,
                 reasoning_effort="medium",

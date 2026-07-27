@@ -70,7 +70,6 @@ export function OverrideOrDefault<H extends OverrideName>({
     if (!OverrideComponent) {
       return null;
     }
-
     return <OverrideComponent {...props} />;
   }
 

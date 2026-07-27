@@ -1,5 +1,4 @@
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
 
 import {t} from 'sentry/locale';
 
@@ -7,8 +6,8 @@ export function NotOpRow() {
   const label = t('Assert NOT');
 
   return (
-    <Tooltip title={label} showOnlyOnOverflow>
-      <Text ellipsis>{label}</Text>
-    </Tooltip>
+    <InfoText title={label} mode="overflowOnly">
+      {label}
+    </InfoText>
   );
 }

@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
-from objectstore_client import RequestError
 
 from sentry.testutils.cases import APITestCase
 
@@ -250,7 +249,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
     def test_objectstore_404_returns_404(self, mock_get_session):
         mock_session = MagicMock()
-        mock_session.get.side_effect = RequestError(message="Not Found", status=404, response="")
+        mock_session.get.return_value = None
         mock_get_session.return_value = mock_session
 
         url = self._get_url()

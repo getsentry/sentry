@@ -3,7 +3,7 @@ import {AnimatePresence} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -60,24 +60,24 @@ interface PanelContentsProps {
 
 function PanelContents({onClick}: PanelContentsProps) {
   return (
-    <Flex direction="column" border="primary" height="100%" gap="md" padding="md">
+    <Stack border="primary" height="100%" gap="md" padding="md">
       <Button onClick={onClick}>Close Panel</Button>
       <Container>
         <Alert variant="warning">I took a very long time to render!</Alert>
         <ManySlowComponents />
       </Container>
-    </Flex>
+    </Stack>
   );
 }
 
 export function SkeletonPanelContents({onClick}: PanelContentsProps) {
   return (
-    <Flex direction="column" border="primary" height="100%" gap="md" padding="md">
+    <Stack border="primary" height="100%" gap="md" padding="md">
       <Button onClick={onClick}>Close Panel</Button>
       <Container>
         <Placeholder />
       </Container>
-    </Flex>
+    </Stack>
   );
 }
 

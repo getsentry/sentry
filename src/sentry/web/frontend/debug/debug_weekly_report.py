@@ -16,8 +16,19 @@ from sentry.issues.grouptype import (
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, ProjectContext
-from sentry.tasks.summaries.weekly_reports import get_group_display, render_template_context
+from sentry.tasks.summaries.utils import (
+    ONE_DAY,
+    SIX_HOURS,
+    OrganizationReportContext,
+    ProjectContext,
+)
+from sentry.tasks.summaries.weekly_reports import (
+    CHART_PALETTE,
+    _pct_change,
+    _top_spans_chart_url,
+    get_group_display,
+    render_template_context,
+)
 from sentry.types.group import GroupSubStatus
 from sentry.utils import loremipsum
 from sentry.utils.auth import AuthenticatedHttpRequest
@@ -107,24 +118,14 @@ class DebugWeeklyReportView(MailPreviewView):
                 start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum)
                 for i in range(0, 7)
             }
-            project_context.transaction_count_by_day = {
-                start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum)
-                for i in range(0, 7)
-            }
             project_context.issue_count_by_day = {
                 start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum // 10)
                 for i in range(0, 7)
             }
 
             project_context.accepted_error_count = sum(project_context.error_count_by_day.values())
-            project_context.accepted_transaction_count = sum(
-                project_context.transaction_count_by_day.values()
-            )
             project_context.prev_week_accepted_error_count = int(
                 project_context.accepted_error_count * random.uniform(0.5, 1.5)
-            )
-            project_context.prev_week_accepted_transaction_count = int(
-                project_context.accepted_transaction_count * random.uniform(0.5, 1.5)
             )
             substatuses = [
                 (GroupStatus.UNRESOLVED, GroupSubStatus.NEW),
@@ -133,7 +134,7 @@ class DebugWeeklyReportView(MailPreviewView):
                 (GroupStatus.RESOLVED, GroupSubStatus.NEW),
                 (GroupStatus.UNRESOLVED, GroupSubStatus.ONGOING),
             ]
-            project_context.key_errors_by_group = [
+            project_context.key_error_issues = [
                 (
                     make_debug_group(
                         group_id=10000 + (project.id * 100) + group_index,
@@ -206,12 +207,50 @@ class DebugWeeklyReportView(MailPreviewView):
                         substatus=GroupSubStatus.NEW,
                     ),
                     random.randint(100, 5000),
-                    random.choice([True, False]),
+                    random.choice(
+                        [
+                            "Resolved",
+                            "Resolved in PR",
+                            "Resolved in release",
+                            "Resolved in next release",
+                        ]
+                    ),
                 )
                 for group_index in range(3)
             ]
 
             ctx.projects_context_map[project.id] = project_context
+
+        span_names = [
+            "GET /api/0/organizations/{organization_slug}/issues/",
+            'db - SELECT "sentry_project"."id", "sentry_project"."name" FROM "sentry_project"',
+            "POST /api/0/organizations/{organization_slug}/events/",
+            "tasks.store.save_event",
+            "GET /api/0/projects/{organization_slug}/{project_slug}/stats/",
+        ]
+        all_project_ids = set(ctx.projects_context_map.keys())
+        ctx.top_spans = [
+            {
+                "name": name,
+                "p95": random.uniform(50, 500),
+                "sum": random.uniform(10000, 100000),
+            }
+            for name in span_names
+        ]
+        ctx.top_spans_projects = {name: next(iter(all_project_ids)) for name in span_names}
+        ctx.spans_count_by_project = {
+            pid: random.randint(100000, 1500000) for pid in all_project_ids
+        }
+        ctx.prev_week_spans_count_by_project = {
+            pid: int(ctx.spans_count_by_project[pid] * random.uniform(0.5, 1.5))
+            for pid in all_project_ids
+        }
+        intervals = 28
+        for name in span_names:
+            ctx.top_spans_timeseries[name] = {
+                int(start_timestamp + i * SIX_HOURS): random.uniform(50, 500)
+                for i in range(intervals)
+            }
 
         user_id = request.user.id
         ctx.project_ownership[user_id] = {pid for pid in ctx.projects_context_map}
@@ -221,9 +260,30 @@ class DebugWeeklyReportView(MailPreviewView):
                 request.GET.get("show_week_over_week_metric", "1") != "0"
             )
             context["show_past_issues"] = True
+            total_spans = sum(ctx.spans_count_by_project.values())
+            prev_total_spans = sum(ctx.prev_week_spans_count_by_project.values())
+            context["total_spans_count"] = total_spans
+            context["spans_pct_change"] = _pct_change(total_spans, prev_total_spans)
+            project_by_id = {pid: pctx.project for pid, pctx in ctx.projects_context_map.items()}
+            context["top_spans_table"] = [
+                {
+                    "name": span["name"],
+                    "p95": span["p95"],
+                    "sum": span["sum"],
+                    "project_slugs": project_by_id[ctx.top_spans_projects[span["name"]]].slug
+                    if ctx.top_spans_projects.get(span["name"]) in project_by_id
+                    else "",
+                    "url": "#",
+                    "color": CHART_PALETTE[i] if i < len(CHART_PALETTE) else "",
+                }
+                for i, span in enumerate(ctx.top_spans)
+            ]
+            chart_url = _top_spans_chart_url(context["top_spans_table"], ctx, None)
+            if chart_url:
+                context["spans_chart_url"] = chart_url
             past_issues: list[dict[str, Any]] = []
             for project_ctx in ctx.projects_context_map.values():
-                for group, count, has_link in project_ctx.past_resolved_issues:
+                for group, count, resolution_label in project_ctx.past_resolved_issues:
                     display = get_group_display(group)
                     past_issues.append(
                         {
@@ -231,7 +291,7 @@ class DebugWeeklyReportView(MailPreviewView):
                             "group": group,
                             "title": display["title"],
                             "message": display["message"],
-                            "has_linked_pr_or_commit": has_link,
+                            "resolution_label": resolution_label,
                         }
                     )
             past_issues.sort(key=lambda x: x["count"], reverse=True)

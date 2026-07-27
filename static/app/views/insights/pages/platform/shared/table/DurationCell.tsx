@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {Duration} from 'sentry/components/duration';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import type {CellThreshold} from 'sentry/views/insights/pages/platform/shared/table/ThresholdCell';

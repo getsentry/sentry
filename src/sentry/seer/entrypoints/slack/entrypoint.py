@@ -366,6 +366,9 @@ class SlackAutofixEntrypoint(
                         "current_point": AutofixStoppingPoint.ROOT_CAUSE,
                         "summary": summary,
                         "steps": steps,
+                        "reasoning": root_cause.get("five_whys", []),
+                        "reasoning_header": "Why did this happen?",
+                        "steps_header": "Reproduction Steps",
                         "handoff_target": cache_payload.get("handoff_target"),
                     }
                 )
@@ -386,6 +389,7 @@ class SlackAutofixEntrypoint(
                         "current_point": AutofixStoppingPoint.SOLUTION,
                         "summary": summary,
                         "steps": steps,
+                        "steps_header": "Steps to Resolve",
                     }
                 )
             case SentryAppEventType.SEER_CODING_COMPLETED:

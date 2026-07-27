@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {AlertLink} from '@sentry/scraps/alert';
 import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -84,7 +84,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
           "Receive notifications when your organization's usage exceeds a threshold"
         )}
       />
-      <Flex direction="column" gap="2xl">
+      <Stack gap="2xl">
         <AlertLink
           to="/settings/account/notifications/quota/"
           variant="info"
@@ -109,7 +109,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
         ) : (
           <ContactBillingMembers />
         )}
-      </Flex>
+      </Stack>
     </SubscriptionPageContainer>
   );
 }

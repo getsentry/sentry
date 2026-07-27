@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -37,7 +37,7 @@ function UsePipelineDemo() {
     : null;
 
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <DropdownMenu
         triggerLabel={parsed ? `${parsed.type} / ${parsed.provider}` : 'Select pipeline'}
         items={pipelineMenuItems}
@@ -46,7 +46,7 @@ function UsePipelineDemo() {
       {parsed && (
         <PipelineRunner key={selected} type={parsed.type} provider={parsed.provider} />
       )}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -79,9 +79,9 @@ function PipelineRunner({
   }
 
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <Container border="primary" padding="md">
-        <Flex direction="column" gap="sm">
+        <Stack gap="sm">
           <Flex gap="lg" align="center">
             <Flex gap="sm" align="center">
               <Text bold>Status:</Text>
@@ -109,7 +109,7 @@ function PipelineRunner({
               {String(!!pipeline.error)}
             </Text>
           </Flex>
-        </Flex>
+        </Stack>
       </Container>
 
       {pipeline.error && <Text variant="muted">Error: {pipeline.error}</Text>}
@@ -122,7 +122,7 @@ function PipelineRunner({
           <StructuredEventData data={pipeline.completionData} />
         </Fragment>
       )}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -130,7 +130,7 @@ function PipelineModalDemo() {
   const [result, setResult] = useState<CompletionDataFor<any, any> | null>(null);
 
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <DropdownMenu
         triggerLabel="Open pipeline modal"
         items={pipelineMenuItems}
@@ -150,7 +150,7 @@ function PipelineModalDemo() {
           <StructuredEventData data={result} />
         </Fragment>
       )}
-    </Flex>
+    </Stack>
   );
 }
 

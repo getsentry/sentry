@@ -1,4 +1,4 @@
-import type {FocusEvent, KeyboardEvent} from 'react';
+import type {FocusEvent, KeyboardEvent, RefObject} from 'react';
 import {useMemo, useRef} from 'react';
 import type {useComboBox} from '@react-aria/combobox';
 import {getItemId, listData} from '@react-aria/listbox';
@@ -24,7 +24,9 @@ import {t} from 'sentry/locale';
  * [1]: https://github.com/adobe/react-spectrum/pull/7829/files#diff-71a31c1ead10f8d488699920aeb3a0f81abcde0e849b8c36dbf10cf32f5881a6R346-R352
  */
 export function useSearchTokenCombobox<T>(
-  props: Parameters<typeof useComboBox<T>>[0],
+  props: Parameters<typeof useComboBox<T>>[0] & {
+    tabTargetRef?: RefObject<HTMLElement | null>;
+  },
   state: Parameters<typeof useComboBox<T>>[1]
 ): Pick<ReturnType<typeof useComboBox<T>>, 'inputProps' | 'listBoxProps' | 'labelProps'> {
   const {
@@ -36,6 +38,7 @@ export function useSearchTokenCombobox<T>(
     shouldFocusWrap,
     isReadOnly,
     isDisabled,
+    tabTargetRef,
   } = props;
   const backupBtnRef = useRef(null);
   const buttonRef = props.buttonRef ?? backupBtnRef;
@@ -86,13 +89,21 @@ export function useSearchTokenCombobox<T>(
     }
     switch (e.key) {
       case 'Enter':
-      case 'Tab':
         // Prevent form submission if menu is open since we may be selecting a option
-        if (state.isOpen && e.key === 'Enter') {
+        if (state.isOpen) {
           e.preventDefault();
         }
 
         state.commit();
+        break;
+      case 'Tab':
+        if (e.shiftKey || !tabTargetRef?.current) {
+          state.commit();
+          break;
+        }
+
+        e.preventDefault();
+        tabTargetRef.current.focus();
         break;
       case 'Escape':
         if (

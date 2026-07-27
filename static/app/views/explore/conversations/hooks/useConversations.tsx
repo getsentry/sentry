@@ -76,6 +76,7 @@ export function useConversations() {
   });
 
   const pageLinks = response?.headers.Link;
+  const isDirectHit = response?.headers['X-Sentry-Direct-Hit'] === '1';
 
   const data = useMemo(() => {
     return (response?.json ?? [])
@@ -105,5 +106,6 @@ export function useConversations() {
     error,
     pageLinks,
     setCursor,
+    isDirectHit,
   };
 }

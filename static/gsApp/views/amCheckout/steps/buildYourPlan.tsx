@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -13,6 +13,7 @@ import {
   isBizPlanFamily,
   isDeveloperPlan,
   isNewPayingCustomer,
+  isTrial,
 } from 'getsentry/utils/billing';
 import {PlanFeatures} from 'getsentry/views/amCheckout/components/planFeatures';
 import {PlanSelectCard} from 'getsentry/views/amCheckout/components/planSelectCard';
@@ -80,7 +81,7 @@ function PlanSubstep({
       const trialExpired = getDaysSinceDate(subscription.lastTrialEnd) > 0;
       return (
         <Tag variant="warning">
-          {subscription.isTrial && !trialExpired
+          {isTrial(subscription) && !trialExpired
             ? tct('Trial expires [lastTrialEnd]', {lastTrialEnd})
             : t('You trialed this plan')}
         </Tag>
@@ -90,7 +91,7 @@ function PlanSubstep({
   };
 
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       <Grid
         columns={{'screen:xs': '1fr', 'screen:lg': `repeat(${planOptions.length}, 1fr)`}}
         gap="lg"
@@ -122,7 +123,7 @@ function PlanSubstep({
         })}
       </Grid>
       <PlanFeatures planOptions={planOptions} activePlan={activePlan} />
-    </Flex>
+    </Stack>
   );
 }
 
@@ -133,16 +134,16 @@ function AdditionalProductsSubstep({
   subscription,
 }: AdditionalProductsSubstepProps) {
   return (
-    <Flex direction="column" gap="xl" paddingTop="3xl">
-      <Flex direction="column" gap="xl">
+    <Stack gap="xl" paddingTop="3xl">
+      <Stack gap="xl">
         <ProductSelect
           activePlan={activePlan}
           formData={formData}
           onUpdate={onUpdate}
           subscription={subscription}
         />
-      </Flex>
-    </Flex>
+      </Stack>
+    </Stack>
   );
 }
 

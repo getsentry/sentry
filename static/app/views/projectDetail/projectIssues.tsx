@@ -26,6 +26,7 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {appendQueryDatasetParam} from 'sentry/views/dashboards/utils';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {NoGroupsHandler} from 'sentry/views/issueList/noGroupsHandler';
 
 enum IssuesType {
@@ -257,7 +258,9 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
             to={getDiscoverUrl()}
             size="xs"
           >
-            {t('Open in Discover')}
+            {getDiscoverDeprecation(organization)
+              ? t('Open in Explore')
+              : t('Open in Discover')}
           </DiscoverButton>
           <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
         </OpenInButtonBar>

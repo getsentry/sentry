@@ -1035,17 +1035,6 @@ export function SentryAppExternalForm({
       if (!(error instanceof RequestError)) {
         addErrorMessage(t('Unable to %s %s issue.', action, appName));
       }
-      Sentry.captureException(error, {
-        tags: {
-          sentry_app: appName,
-          form_element: element,
-          form_action: action,
-        },
-        extra: {
-          sentryAppInstallationUuid,
-          configUri: config.uri,
-        },
-      });
     },
   });
 

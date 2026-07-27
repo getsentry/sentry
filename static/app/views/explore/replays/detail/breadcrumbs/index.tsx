@@ -2,7 +2,7 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
@@ -132,7 +132,7 @@ export function Breadcrumbs() {
   }, [virtualizer]);
 
   return (
-    <Flex direction="column" wrap="nowrap">
+    <Stack wrap="nowrap">
       <BreadcrumbFilters frames={frames} {...filterProps} />
       <TabItemContainer data-test-id="replay-details-breadcrumbs-tab">
         {frames ? (
@@ -186,7 +186,7 @@ export function Breadcrumbs() {
           />
         ) : null}
       </TabItemContainer>
-    </Flex>
+    </Stack>
   );
 }
 

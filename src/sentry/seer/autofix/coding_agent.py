@@ -23,15 +23,15 @@ from sentry.integrations.services.github_copilot_identity import github_copilot_
 from sentry.integrations.services.integration import integration_service
 from sentry.models.pullrequest import PullRequestAttributionSignalType
 from sentry.pr_metrics.attribution import attribute_delegated_agent_pull_request
+from sentry.seer.autofix.coding_agent_handoffs import sync_coding_agent_status
+from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.autofix.utils import (
     AutofixState,
     CodingAgentProviderType,
     CodingAgentResult,
     CodingAgentState,
-    CodingAgentStatus,
     StoreCodingAgentStatesRequest,
     make_store_coding_agent_states_request,
-    update_coding_agent_state,
 )
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext
@@ -145,6 +145,7 @@ def poll_github_copilot_agents(
     coding_agents: dict[str, Any] | None = None,
     organization_id: int = 0,
     run_id: int | None = None,
+    group_id: int | None = None,
 ) -> None:
     agents = coding_agents or (autofix_state.coding_agents if autofix_state else None)
     if not agents:
@@ -156,6 +157,11 @@ def poll_github_copilot_agents(
         autofix_state.request.organization_id if autofix_state else 0
     )
     run_id = run_id if run_id is not None else (autofix_state.run_id if autofix_state else None)
+    group_id = (
+        group_id
+        if group_id is not None
+        else (autofix_state.request.issue["id"] if autofix_state else None)
+    )
 
     user_access_token: str | None = None
 
@@ -261,9 +267,11 @@ def poll_github_copilot_agents(
                         branch_name=branch_name,
                     )
 
-                update_coding_agent_state(
+                sync_coding_agent_status(
                     agent_id=agent_id,
+                    organization_id=organization_id,
                     status=new_status,
+                    agent_url=task_status.html_url,
                     result=result,
                 )
 
@@ -277,6 +285,7 @@ def poll_github_copilot_agents(
                             pr_url=pr_url,
                             agent_id=agent_id,
                             run_id=run_id,
+                            group_ids=[group_id] if group_id is not None else None,
                         )
                     except Exception:
                         logger.exception(
@@ -307,6 +316,7 @@ def poll_claude_code_agents(
     organization_id: int | None = None,
     coding_agents: dict[str, Any] | None = None,
     run_id: int | None = None,
+    group_id: int | None = None,
 ) -> None:
     """
     Poll Claude Code Agent sessions for status updates.
@@ -331,13 +341,23 @@ def poll_claude_code_agents(
     clients: dict[int, Any] = {}
 
     run_id = run_id if run_id is not None else (autofix_state.run_id if autofix_state else None)
+    group_id = (
+        group_id
+        if group_id is not None
+        else (autofix_state.request.issue["id"] if autofix_state else None)
+    )
 
     for agent_id, agent_state in agents.items():
-        poll_claude_agent(clients, agent_id, org_id, agent_state, run_id=run_id)
+        poll_claude_agent(clients, agent_id, org_id, agent_state, run_id=run_id, group_id=group_id)
 
 
 def poll_claude_agent(
-    clients, agent_id, org_id, agent_state: CodingAgentState, run_id: int | None = None
+    clients,
+    agent_id,
+    org_id,
+    agent_state: CodingAgentState,
+    run_id: int | None = None,
+    group_id: int | None = None,
 ) -> None:
     if agent_state.provider != CodingAgentProviderType.CLAUDE_CODE_AGENT:
         return
@@ -369,8 +389,9 @@ def poll_claude_agent(
         )
 
         if new_status != agent_state.status:
-            update_coding_agent_state(
+            sync_coding_agent_status(
                 agent_id=agent_id,
+                organization_id=org_id,
                 status=new_status,
                 result=result,
             )
@@ -385,6 +406,7 @@ def poll_claude_agent(
                         pr_url=result.pr_url,
                         agent_id=agent_id,
                         run_id=run_id,
+                        group_ids=[group_id] if group_id is not None else None,
                     )
                 except Exception:
                     logger.exception(
@@ -404,12 +426,16 @@ def poll_claude_agent(
 
     elif last_event_type == ClaudeSessionEventStatus.RESCHEDULING:
         if agent_state.status != CodingAgentStatus.PENDING:
-            update_coding_agent_state(agent_id=agent_id, status=CodingAgentStatus.PENDING)
+            sync_coding_agent_status(
+                agent_id=agent_id, organization_id=org_id, status=CodingAgentStatus.PENDING
+            )
 
     else:
         # Any other event (status_running, agent, tool_result, etc.) means active.
         if agent_state.status != CodingAgentStatus.RUNNING:
-            update_coding_agent_state(agent_id=agent_id, status=CodingAgentStatus.RUNNING)
+            sync_coding_agent_status(
+                agent_id=agent_id, organization_id=org_id, status=CodingAgentStatus.RUNNING
+            )
 
 
 def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None) -> Any | None:

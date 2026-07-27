@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from functools import cached_property
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
-from sentry.workflow_engine.types import ConditionError, DataConditionResult
+from sentry.workflow_engine.types import DataConditionResult
 
 from .base import BaseWorkflowEngineEvaluation
-from .trigger_result import TriggerResult
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models.data_condition import DataCondition
@@ -17,33 +15,30 @@ class DataConditionEvaluationException(Exception):
     pass
 
 
+ConditionEvaluationData: TypeAlias = Any
+
+
 @dataclass(frozen=True, kw_only=True)
-class DataConditionEvaluation(BaseWorkflowEngineEvaluation[DataConditionResult, ConditionError]):
+class DataConditionEvaluation(
+    BaseWorkflowEngineEvaluation[DataConditionResult, ConditionEvaluationData]
+):
     """
     This class is used to track the evaluation of a DataCondition's logic.
 
     This is created by DataCondition.evaluate_value(value) as a result.
 
     Attributes
-    - value: Any - this is the value that was evaluated against.
     - condition: DataCondition - This is the condition that was evaluated.
+    - result - This is set as None by default here.
 
-    Inherits `result`, `error`, and `outcome`.
+    Inherits
+    - result: DataConditionResult - If the condition failed, this will be set to None.
+        Otherwise, it will use the `DataCondition.condition_result` or boolean representation
+        of the evaluation.
+    - data: Any - The value that was used in the data conditions evaluation
+    - error: ConditionError - Set when there's an error while evaluating a condition
+    - triggered: bool - If the evaluation should consider this condition "triggered" or not.
     """
 
-    value: Any
+    result: DataConditionResult = None
     condition: DataCondition
-
-    @cached_property
-    def outcome(self) -> TriggerResult:
-        """
-        TODO - @saponifi3d - The TriggerResult and the BaseWorkflowEngineEvaluation
-        can likely serve the same purpose, looking at the result / errors and providing
-        helpful interactions.
-
-        For now, using the `TriggerResult` to move a little faster through the refactoring.
-        """
-        return TriggerResult(
-            triggered=(self.result is not None),
-            error=self.error,
-        )
