@@ -525,7 +525,7 @@ def trigger_autofix_agent(
             }
             if is_iteration_step:
                 activity_attribution: SeerActivityAttribution = {
-                    "referrer": referrer.value,
+                    "referrer": referrer,
                 }
                 task_kwargs["activity_attribution"] = activity_attribution
             process_autofix_updates.apply_async(kwargs=task_kwargs)
