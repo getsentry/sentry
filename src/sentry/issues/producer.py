@@ -6,7 +6,7 @@ from typing import Any, cast
 from uuid import uuid4
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload, KafkaProducer
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Message, Value
 from confluent_kafka import KafkaException
 from django.conf import settings
@@ -17,7 +17,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.run import process_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.utils import json
-from sentry.utils.arroyo_producer import get_arroyo_producer
+from sentry.utils.arroyo_producer import get_arroyo_producer, get_producer
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.safe import get_path, set_path
 
@@ -44,8 +44,8 @@ def _get_occurrence_producer() -> KafkaProducer:
     )
 
 
-_occurrence_producer = FutureTrackingProducer(
-    name="sentry.issues.producer",
+_occurrence_producer = get_producer(
+    producer_name="sentry.issues.producer",
     producer_factory=_get_occurrence_producer,
 )
 
