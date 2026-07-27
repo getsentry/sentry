@@ -106,6 +106,7 @@ def run_detector(
 
 def compare_span_first_problems_to_control_data(
     project: Project,
+    trace_id: str,
     span_first_problems_by_grouptype: dict[str, list[PerformanceProblem]],
     all_control_problems: Sequence[PerformanceProblem],
     get_source_of_truth: Callable[[str], SourceOfTruth],
