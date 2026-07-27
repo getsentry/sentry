@@ -5,6 +5,7 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 from sentry.utils.query import RangeQuerySetWrapper
 
 
@@ -50,6 +51,13 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
+        # Drop an invalid index left by a prior run whose CREATE UNIQUE INDEX CONCURRENTLY
+        # failed on duplicates, so the AddConstraint below can rebuild it cleanly.
+        SafeRunSQL(
+            'DROP INDEX IF EXISTS "sentry_orgcont_unique_contributor"',
+            reverse_sql=migrations.RunSQL.noop,
+            hints={"tables": ["sentry_organizationcontributors"]},
+        ),
         migrations.RunPython(
             dedupe_organizationcontributors,
             migrations.RunPython.noop,
