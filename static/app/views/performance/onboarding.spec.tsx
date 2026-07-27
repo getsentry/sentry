@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -240,11 +240,10 @@ describe('Testing new onboarding ui', () => {
       },
     });
 
-    expect(
-      await screen.findByRole('button', {
-        name: 'Take me to my trace',
-      })
-    ).toHaveAttribute('aria-busy', 'false');
+    const traceButton = await screen.findByRole('button', {
+      name: 'Take me to my trace',
+    });
+    await waitFor(() => expect(traceButton).toHaveAttribute('aria-busy', 'false'));
 
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
 
