@@ -14,10 +14,10 @@ import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
  */
 function TaggedSticky(props: React.ComponentProps<'div'>) {
   const elementRef = useRef<HTMLDivElement>(null);
-  const {contentTop} = useTopOffset();
+  const {pageContentTop} = useTopOffset();
 
   const isStuck = useIsStuck(elementRef.current, {
-    offset: Number.parseInt(contentTop, 10) ?? 0,
+    offset: Number.parseInt(pageContentTop, 10) ?? 0,
   });
 
   const stuckProps = isStuck ? {'data-stuck': ''} : {};
