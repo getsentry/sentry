@@ -371,7 +371,7 @@ def _detect_transaction_change_points(
         (projects_by_id[item[0]], item[1]) for item in transactions if item[0] in projects_by_id
     ]
 
-    _vc_scope = contextlib.nullcontext()
+    _vc_scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
     if transaction_pairs:
         project = transaction_pairs[0][0]
         _vc_scope = viewer_context_scope(ViewerContext(organization_id=project.organization_id))
@@ -470,7 +470,7 @@ def _detect_function_change_points(
         (projects_by_id[item[0]], item[1]) for item in functions_list if item[0] in projects_by_id
     ]
 
-    _vc_scope = contextlib.nullcontext()
+    _vc_scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
     if function_pairs:
         project = function_pairs[0][0]
         _vc_scope = viewer_context_scope(ViewerContext(organization_id=project.organization_id))
