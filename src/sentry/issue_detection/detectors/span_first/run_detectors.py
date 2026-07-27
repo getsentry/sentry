@@ -266,11 +266,11 @@ def _collect_single_problem_diffs(
         control_problem_dict["evidence_data"].keys()
         != span_first_problem_dict["evidence_data"].keys()
     ):
-        non_shared_keys = set(control_problem_dict["evidence_data"].keys()).symmetric_difference(
-            span_first_problem_dict["evidence_data"].keys()
-        )
+        non_shared_evidence_data_keys = set(
+            control_problem_dict["evidence_data"].keys()
+        ).symmetric_difference(span_first_problem_dict["evidence_data"].keys())
         diffs["evidence_data.non_shared_keys"].append(
-            f"{fingerprint}: {', '.join(sorted(non_shared_keys))}"
+            f"{fingerprint}: {', '.join(sorted(non_shared_evidence_data_keys))}"
         )
 
     for evidence_data_key, control_evidence_data_value in control_problem_dict[
