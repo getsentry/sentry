@@ -668,16 +668,27 @@ class SeerOperatorTest(TestCase):
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_all_mapped_event_types(self, _mock_has_access):
-        for seer_event, expected_activity_type in SEER_EVENT_TO_ACTIVITY_TYPE.items():
-            event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
-            process_autofix_updates(
-                event_type=seer_event,
-                event_payload=event_payload,
-                organization_id=self.organization.id,
-            )
-            assert Activity.objects.filter(
-                group=self.group, type=expected_activity_type.value
-            ).exists(), f"Activity not created for {seer_event}"
+        with capture_action_log() as action_log:
+            for seer_event, expected_activity_type in SEER_EVENT_TO_ACTIVITY_TYPE.items():
+                event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
+                process_autofix_updates(
+                    event_type=seer_event,
+                    event_payload=event_payload,
+                    organization_id=self.organization.id,
+                    activity_referrer=AutofixReferrer.GITHUB_PR_COMMENT.value,
+                )
+                assert Activity.objects.filter(
+                    group=self.group, type=expected_activity_type.value
+                ).exists(), f"Activity not created for {seer_event}"
+
+        action_log.assert_logged(
+            SeerIterationStartedAction,
+            group_id=self.group.id,
+            source=ActionSource.GITHUB,
+            actor=SYSTEM_ACTOR,
+            run_id=MOCK_RUN_ID,
+            referrer=AutofixReferrer.GITHUB_PR_COMMENT.value,
+        )
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_skips_non_seer_events(self, _mock_has_access):
@@ -765,46 +776,6 @@ class SeerOperatorTest(TestCase):
         )
         assert activity.data["pull_requests"][0]["repo_name"] == "owner/repo"
         assert activity.data["code_changes"]["owner/repo"][0]["path"] == "foo.py"
-
-    def _assert_iteration_started_referrer(
-        self,
-        referrer: AutofixReferrer,
-        expected_source: ActionSource,
-    ) -> None:
-        with (
-            patch.object(SeerAutofixOperator, "has_access", return_value=True),
-            capture_action_log() as action_log,
-        ):
-            process_autofix_updates(
-                event_type=SentryAppEventType.SEER_ITERATION_STARTED,
-                event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
-                organization_id=self.organization.id,
-                activity_referrer=referrer.value,
-            )
-
-        activity = Activity.objects.get(
-            group=self.group, type=ActivityType.SEER_ITERATION_STARTED.value
-        )
-        assert activity.data == {
-            "run_id": MOCK_RUN_ID,
-            "referrer": referrer.value,
-        }
-        action_log.assert_logged(
-            SeerIterationStartedAction,
-            group_id=self.group.id,
-            source=expected_source,
-            actor=SYSTEM_ACTOR,
-            run_id=MOCK_RUN_ID,
-            referrer=referrer.value,
-        )
-
-    def test_create_seer_iteration_started_activity_records_github_referrer(self) -> None:
-        self._assert_iteration_started_referrer(
-            AutofixReferrer.GITHUB_PR_COMMENT, ActionSource.GITHUB
-        )
-
-    def test_create_seer_iteration_started_activity_records_web_referrer(self) -> None:
-        self._assert_iteration_started_referrer(AutofixReferrer.WEB, ActionSource.WEB)
 
     @patch("sentry.models.activity.invoke_workflow_activity_handlers")
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)

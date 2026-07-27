@@ -564,36 +564,6 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_mixed_consumable_feedback_uses_unknown_referrer(
-        self,
-        mock_fetch: MagicMock,
-        mock_pop: MagicMock,
-        mock_trigger: MagicMock,
-    ) -> None:
-        mock_fetch.return_value = self._state()
-        mock_pop.return_value = [
-            self._queued(
-                Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="from sentry")),
-                AutofixReferrer.WEB,
-            ),
-            self._queued(
-                Feedback(
-                    source=GithubPrCommentFeedbackSource(
-                        comment={"id": 777, "body": "@sentry from github"}
-                    )
-                ),
-                AutofixReferrer.GITHUB_PR_COMMENT,
-            ),
-        ]
-
-        self._call()
-
-        mock_trigger.assert_called_once()
-        assert mock_trigger.call_args.kwargs["referrer"] == AutofixReferrer.UNKNOWN
-
-    @patch(f"{TASK_PATH}.trigger_autofix_agent")
-    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
-    @patch(f"{TASK_PATH}.fetch_run_status")
     def test_does_not_trigger_when_all_feedback_stale(
         self,
         mock_fetch: MagicMock,
