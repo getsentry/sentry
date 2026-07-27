@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useRef} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {useQueryClient} from '@tanstack/react-query';
 
@@ -26,8 +26,6 @@ export function useInboxPreviewPrefetch(groupId: string) {
   const environments = useEnvironmentsFromUrl();
   const eventQuery = useEventQuery();
   const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-
-  useEffect(() => () => clearTimeout(timeoutRef.current), []);
 
   const {hoverProps} = useHover({
     onHoverStart: () => {
