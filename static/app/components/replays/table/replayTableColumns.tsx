@@ -37,7 +37,6 @@ import {
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -139,9 +138,6 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
   interactive: false,
   sortKey: 'browser.name',
   Component: ({replay, showDropdownFilters}) => {
-    const theme = useTheme();
-    const isLargeBreakpoint = useMedia(`(min-width: ${theme.breakpoints.lg})`);
-
     if (replay.is_archived) {
       return null;
     }
@@ -158,10 +154,7 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
       );
     }
 
-    const icon = generatePlatformIconName(
-      name ?? '',
-      version && isLargeBreakpoint ? version : undefined
-    );
+    const icon = generatePlatformIconName(name ?? '', version ?? undefined);
 
     const nameOrUnknown = name ?? t('Unknown');
     const versionOrBlank = version ?? '';
@@ -365,17 +358,11 @@ export const ReplayOSColumn: ReplayTableColumn = {
   interactive: false,
   sortKey: 'os.name',
   Component: ({replay, showDropdownFilters}) => {
-    const theme = useTheme();
-    const isLargeBreakpoint = useMedia(`(min-width: ${theme.breakpoints.lg})`);
-
     if (replay.is_archived) {
       return null;
     }
     const {name, version} = replay.os;
-    const icon = generatePlatformIconName(
-      name ?? '',
-      version && isLargeBreakpoint ? version : undefined
-    );
+    const icon = generatePlatformIconName(name ?? '', version ?? undefined);
 
     const nameOrUnknown = name ?? t('Unknown');
     const versionOrBlank = version ?? '';
