@@ -349,8 +349,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
       diff:
-        specifier: 8.0.3
-        version: 8.0.3
+        specifier: 9.0.0
+        version: 9.0.0
       dompurify:
         specifier: 3.4.12
         version: 3.4.12
@@ -5228,8 +5228,8 @@ packages:
     resolution: {integrity: sha512-vtcDfH3TOjP8UekytvnHH1o1P4FcUdt4eQ1Y+Abap1tk/OB2MWQvcwS2ClCd1zuIhc3JKOx6p3kod8Vfys3E+A==}
     engines: {node: '>=0.3.1'}
 
-  diff@8.0.3:
-    resolution: {integrity: sha512-qejHi7bcSD4hQAZE0tNAawRK1ZtafHDmMTMkrrIGgSLl7hTnQHmKCeB45xAcbfTqK2zowkM3j3bHt/4b/ARbYQ==}
+  diff@9.0.0:
+    resolution: {integrity: sha512-svtcdpS8CgJyqAjEQIXdb3OjhFVVYjzGAPO8WGCmRbrml64SPw/jJD4GoE98aR7r25A0XcgrK3F02yw9R/vhQw==}
     engines: {node: '>=0.3.1'}
 
   difflib@0.2.4:
@@ -14053,7 +14053,7 @@ snapshots:
 
   diff@5.2.2: {}
 
-  diff@8.0.3: {}
+  diff@9.0.0: {}
 
   difflib@0.2.4:
     dependencies:
