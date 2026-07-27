@@ -4,7 +4,13 @@ from typing import Any, TypedDict, cast
 from unittest.mock import Mock, patch
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
-from sentry.issues.action_log.types import ActionSource, GroupActionActor, TriggerAutofixAction
+from sentry.issues.action_log.types import (
+    SYSTEM_ACTOR,
+    ActionSource,
+    GroupActionActor,
+    SeerIterationStartedAction,
+    TriggerAutofixAction,
+)
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
@@ -759,6 +765,46 @@ class SeerOperatorTest(TestCase):
         )
         assert activity.data["pull_requests"][0]["repo_name"] == "owner/repo"
         assert activity.data["code_changes"]["owner/repo"][0]["path"] == "foo.py"
+
+    def _assert_iteration_started_referrer(
+        self,
+        referrer: AutofixReferrer,
+        expected_source: ActionSource,
+    ) -> None:
+        with (
+            patch.object(SeerAutofixOperator, "has_access", return_value=True),
+            capture_action_log() as action_log,
+        ):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ITERATION_STARTED,
+                event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
+                organization_id=self.organization.id,
+                activity_referrer=referrer.value,
+            )
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.SEER_ITERATION_STARTED.value
+        )
+        assert activity.data == {
+            "run_id": MOCK_RUN_ID,
+            "referrer": referrer.value,
+        }
+        action_log.assert_logged(
+            SeerIterationStartedAction,
+            group_id=self.group.id,
+            source=expected_source,
+            actor=SYSTEM_ACTOR,
+            run_id=MOCK_RUN_ID,
+            referrer=referrer.value,
+        )
+
+    def test_create_seer_iteration_started_activity_records_github_referrer(self) -> None:
+        self._assert_iteration_started_referrer(
+            AutofixReferrer.GITHUB_PR_COMMENT, ActionSource.GITHUB
+        )
+
+    def test_create_seer_iteration_started_activity_records_web_referrer(self) -> None:
+        self._assert_iteration_started_referrer(AutofixReferrer.WEB, ActionSource.WEB)
 
     @patch("sentry.models.activity.invoke_workflow_activity_handlers")
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)

@@ -185,6 +185,7 @@ def consume_queued_autofix_feedback(
         if not queued_items:
             return
 
+        consumable_items: list[QueuedAutofixFeedback] = []
         feedback_items = []
         # Keyed by (source class, id): issue-comment, review-comment, and review
         # (body) ids come from separate GitHub namespaces, so dedupe within each
@@ -226,6 +227,7 @@ def consume_queued_autofix_feedback(
                     continue
                 seen_check_suite_keys.add(suite_key)
 
+            consumable_items.append(item)
             feedback_items.append(item.feedback)
 
         if not feedback_items:
@@ -239,7 +241,7 @@ def consume_queued_autofix_feedback(
             trigger_autofix_agent(
                 group=group,
                 step=AutofixStep.PR_ITERATION,
-                referrer=_get_feedback_referrer(queued_items),
+                referrer=_get_feedback_referrer(consumable_items),
                 run_id=run_id,
                 user_context="\n\n".join(item.text for item in feedback_items),
                 feedback=feedback_items,

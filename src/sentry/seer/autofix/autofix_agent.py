@@ -514,13 +514,14 @@ def trigger_autofix_agent(
     try:
         sentry_app_event_type = SentryAppEventType(event_type)
         if SeerAutofixOperator.has_access(organization=group.organization):
-            process_autofix_updates.apply_async(
-                kwargs={
-                    "event_type": sentry_app_event_type,
-                    "event_payload": payload,
-                    "organization_id": group.organization.id,
-                }
-            )
+            task_kwargs: dict[str, Any] = {
+                "event_type": sentry_app_event_type,
+                "event_payload": payload,
+                "organization_id": group.organization.id,
+            }
+            if is_iteration_step:
+                task_kwargs["activity_referrer"] = referrer.value
+            process_autofix_updates.apply_async(kwargs=task_kwargs)
     except ValueError:
         logger.exception(
             "autofix.trigger.webhook_invalid_event_type",

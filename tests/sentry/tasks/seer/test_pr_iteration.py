@@ -385,12 +385,16 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             metadata={"group_id": self.group.id} if metadata is None else metadata,
         )
 
-    def _queued(self, feedback: Feedback) -> QueuedAutofixFeedback:
+    def _queued(
+        self,
+        feedback: Feedback,
+        referrer: AutofixReferrer = AutofixReferrer.GITHUB_PR_COMMENT,
+    ) -> QueuedAutofixFeedback:
         return QueuedAutofixFeedback(
             organization_id=self.organization.id,
             group_id=self.group.id,
             feedback=feedback,
-            referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+            referrer=referrer,
         )
 
     def _iteration_block(self, idx: int) -> MemoryBlock:
@@ -545,13 +549,47 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         fresh = Feedback(
             source=GithubPrCommentFeedbackSource(comment={"id": 777, "body": "@sentry fresh"})
         )
-        mock_pop.return_value = [self._queued(stale), self._queued(fresh)]
+        mock_pop.return_value = [
+            self._queued(stale, AutofixReferrer.GITHUB_PR_REVIEW),
+            self._queued(fresh, AutofixReferrer.GITHUB_PR_COMMENT),
+        ]
 
         self._call()
 
         mock_trigger.assert_called_once()
         _, kwargs = mock_trigger.call_args
         assert [f.text for f in kwargs["feedback"]] == ["fresh"]
+        assert kwargs["referrer"] == AutofixReferrer.GITHUB_PR_COMMENT
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_mixed_consumable_feedback_uses_unknown_referrer(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [
+            self._queued(
+                Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="from sentry")),
+                AutofixReferrer.WEB,
+            ),
+            self._queued(
+                Feedback(
+                    source=GithubPrCommentFeedbackSource(
+                        comment={"id": 777, "body": "@sentry from github"}
+                    )
+                ),
+                AutofixReferrer.GITHUB_PR_COMMENT,
+            ),
+        ]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        assert mock_trigger.call_args.kwargs["referrer"] == AutofixReferrer.UNKNOWN
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")

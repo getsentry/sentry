@@ -28,6 +28,7 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.models import SeerPermissionError
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
@@ -546,17 +547,33 @@ class TestTriggerAutofixAgent(TestCase):
             organization=self.group.organization, seer_run_state_id=67890
         )
 
-        with self.feature("organizations:autofix-pr-iteration"):
+        with (
+            self.feature("organizations:autofix-pr-iteration"),
+            patch(
+                "sentry.seer.autofix.autofix_agent.SeerAutofixOperator.has_access",
+                return_value=True,
+            ),
+            patch(
+                "sentry.seer.autofix.autofix_agent.process_autofix_updates.apply_async"
+            ) as mock_process_updates,
+        ):
             trigger_autofix_agent(
                 group=self.group,
                 step=AutofixStep.PR_ITERATION,
-                referrer=AutofixReferrer.UNKNOWN,
+                referrer=AutofixReferrer.GITHUB_PR_COMMENT,
                 run_id=67890,
             )
 
         call_kwargs = mock_broadcast.call_args.kwargs
         assert call_kwargs["event_name"] == SeerActionType.ITERATION_STARTED.value
         assert call_kwargs["payload"]["iteration_index"] == 2
+        assert "referrer" not in call_kwargs["payload"]
+        assert mock_process_updates.call_args.kwargs["kwargs"] == {
+            "event_type": SentryAppEventType.SEER_ITERATION_STARTED,
+            "event_payload": call_kwargs["payload"],
+            "organization_id": self.group.organization.id,
+            "activity_referrer": AutofixReferrer.GITHUB_PR_COMMENT.value,
+        }
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
