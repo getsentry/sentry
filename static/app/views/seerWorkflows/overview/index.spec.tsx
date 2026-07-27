@@ -173,8 +173,26 @@ describe('AutofixOverview', () => {
     });
   }
 
-  function expectBatchedRunsCall(request: jest.Mock, groupIds: string[], times = 1) {
-    expect(request).toHaveBeenCalledTimes(times);
+  // The single-group fallback shape: a bare `group:<id>` (no brackets) at
+  // per_page 1. Registered explicitly per id so it takes precedence over the
+  // catch-all `/seer/runs/` mock in beforeEach — without it a per-card fan-out
+  // would be silently served and no assertion would notice.
+  function mockPerCardRuns(groupIds: string[]) {
+    return groupIds.map(groupId =>
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/runs/`,
+        match: [
+          MockApiClient.matchQuery({
+            query: `type:explorer source:autofix group:${groupId}`,
+            per_page: 1,
+          }),
+        ],
+        body: [],
+      })
+    );
+  }
+
+  function expectBatchedRunsCall(request: jest.Mock, groupIds: string[]) {
     expect(request).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/runs/`,
       expect.objectContaining({
@@ -566,12 +584,18 @@ describe('AutofixOverview', () => {
       groupIds.map(groupId => makeRun({id: `run-${groupId}`, groupId, outputs: []}));
 
     const firstBatch = mockBatchedRuns(ids.slice(0, 10), runsFor(ids.slice(0, 10)));
+    // A dedicated mock per visible id, so any card that fetched its own run
+    // would register here instead of vanishing into the catch-all. These must
+    // stay at zero calls: the batch covers every visible card, and fanning out
+    // one request per card is the exact cost this feature exists to avoid.
+    const perCard = mockPerCardRuns(ids);
 
     renderPage();
 
     expect(await screen.findByRole('link', {name: /Bulk issue 0/})).toBeInTheDocument();
     await waitFor(() => expect(firstBatch).toHaveBeenCalledTimes(1));
     expectBatchedRunsCall(firstBatch, ids.slice(0, 10));
+    perCard.forEach(request => expect(request).not.toHaveBeenCalled());
 
     // Only the newly revealed ids are batched; the first page's chunk is served
     // from cache rather than refetched.
@@ -585,6 +609,7 @@ describe('AutofixOverview', () => {
     expectBatchedRunsCall(secondBatch, ids.slice(10, 20));
     // One batched request per click — cards never fan out individually.
     expect(firstBatch).toHaveBeenCalledTimes(1);
+    perCard.forEach(request => expect(request).not.toHaveBeenCalled());
 
     // Ten issues remain, so the button still offers a full page.
     expect(screen.getByRole('button', {name: 'Show 10 more'})).toBeInTheDocument();
@@ -599,6 +624,11 @@ describe('AutofixOverview', () => {
     expectBatchedRunsCall(thirdBatch, ids.slice(20, 30));
     // Everything is visible, so the button is gone.
     expect(screen.queryByRole('button', {name: /Show \d+ more/})).not.toBeInTheDocument();
+
+    // Three pages of cards cost exactly three runs requests in total.
+    expect(firstBatch).toHaveBeenCalledTimes(1);
+    expect(secondBatch).toHaveBeenCalledTimes(1);
+    perCard.forEach(request => expect(request).not.toHaveBeenCalled());
   });
 
   it('keeps the badge on the true hit count while paginating', async () => {
@@ -619,7 +649,9 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
   });
 
-  it('falls back to a per-card runs call once the batch settles without a group', async () => {
+  // Two issues in the review bucket, both with autofix state, for the
+  // batch-miss fallback tests below.
+  function mockFallbackPair() {
     const groupA = GroupFixture({id: '300', shortId: 'PROJ-300', title: 'Covered issue'});
     const groupB = GroupFixture({id: '301', shortId: 'PROJ-301', title: 'Missing issue'});
     [groupA, groupB].forEach(group => {
@@ -629,19 +661,7 @@ describe('AutofixOverview', () => {
       });
     });
     mockSection(SECTION_QUERIES.review_pr, {body: [groupA, groupB], hits: '2'});
-
-    // The batch covers both ids but answers for only one — the endpoint spends
-    // a slot on a duplicate when a group has several runs.
-    const batch = mockBatchedRuns(
-      ['300', '301'],
-      [
-        makeRun({
-          id: 'run-300',
-          groupId: '300',
-          outputs: [makeOutput(0, 'Headline A|cause A')],
-        }),
-      ]
-    );
+    // The single-group fallback for the group the batch will omit.
     const fallback = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/runs/`,
       match: [
@@ -655,6 +675,50 @@ describe('AutofixOverview', () => {
         }),
       ],
     });
+    // A run for the covered group only, as if the endpoint spent 301's slot on
+    // a duplicate of 300 (what happens when a group has several runs).
+    const partialBatchBody = [
+      makeRun({
+        id: 'run-300',
+        groupId: '300',
+        outputs: [makeOutput(0, 'Headline A|cause A')],
+      }),
+    ];
+    return {fallback, partialBatchBody};
+  }
+
+  it('holds every card off its own runs call while the batch is in flight', async () => {
+    const {fallback, partialBatchBody} = mockFallbackPair();
+    // Never settles within the test: while a batch is unsettled every group
+    // looks absent, so a card that fell back here would double the requests.
+    const batch = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/runs/`,
+      match: [
+        MockApiClient.matchQuery({
+          query: 'type:explorer source:autofix group:[300, 301]',
+        }),
+      ],
+      body: partialBatchBody,
+      asyncDelay: 100_000,
+    });
+
+    renderPage();
+
+    // Both cards are mounted, the batch is in flight, and the section has
+    // rendered its issues — the point at which an ungated card would fetch.
+    await waitFor(() => expect(batch).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('PROJ-301')).toBeInTheDocument();
+    expect(screen.getByText('PROJ-300')).toBeInTheDocument();
+    // Nothing fell back, and no narration is on screen yet, so the cards really
+    // are waiting on the batch rather than having been served by anything else.
+    expect(fallback).not.toHaveBeenCalled();
+    expect(screen.queryByText('cause A')).not.toBeInTheDocument();
+    expect(screen.queryByText('cause B')).not.toBeInTheDocument();
+  });
+
+  it('falls back to a per-card runs call once the batch settles without a group', async () => {
+    const {fallback, partialBatchBody} = mockFallbackPair();
+    const batch = mockBatchedRuns(['300', '301'], partialBatchBody);
 
     renderPage();
 
@@ -671,7 +735,12 @@ describe('AutofixOverview', () => {
         }),
       })
     );
-    // The covered card is served by the batch alone.
+    // The batch fires before the fallback it triggers: the fallback is a
+    // reaction to a settled miss, not a parallel request from mount.
+    expect(batch.mock.invocationCallOrder[0]).toBeLessThan(
+      fallback.mock.invocationCallOrder[0]!
+    );
+    // The covered card is served by the batch alone — it never falls back.
     expect(await screen.findByText('cause A')).toBeInTheDocument();
     expect(batch).toHaveBeenCalledTimes(1);
   });
