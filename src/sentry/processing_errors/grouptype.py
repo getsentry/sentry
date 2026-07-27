@@ -182,10 +182,7 @@ class ProcessingErrorDetectorHandler(
             data_value
         )
 
-        if (
-            detector_trigger_evaluations is None
-            or detector_trigger_evaluations.outcome.triggered is False
-        ):
+        if detector_trigger_evaluations is None or detector_trigger_evaluations.triggered is False:
             return GroupedDetectorEvaluationResult(result=results, tainted=False)
 
         # Only handle triggering (FAILURE → HIGH). Resolution is handled
