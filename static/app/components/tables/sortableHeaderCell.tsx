@@ -7,10 +7,6 @@ import {IconArrow} from 'sentry/icons';
 
 export type SortDirection = 'asc' | 'desc';
 
-/**
- * `aria-sort` has to sit on the element carrying the `columnheader` role, which
- * is each table shell's own head cell rather than this component.
- */
 export function getAriaSort(
   direction: SortDirection | undefined
 ): 'ascending' | 'descending' | undefined {
@@ -26,18 +22,8 @@ export function getAriaSort(
 
 interface SortableHeaderCellProps extends HTMLAttributes<HTMLDivElement> {
   children?: ReactNode;
-  /**
-   * Omit when this column is not the active sort.
-   */
   direction?: SortDirection;
-  /**
-   * Omit to render a non-interactive cell.
-   */
   onSort?: () => void;
-  /**
-   * Rendered before the label. Absolutely positioned decoration belongs here
-   * rather than in `children`, which is clipped for truncation.
-   */
   overlays?: ReactNode;
 }
 
