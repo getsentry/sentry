@@ -170,6 +170,7 @@ describe('AttributeBreakdownViewerModal', () => {
 
       expect(screen.getByRole('heading', {name: 'empty.attribute'})).toBeInTheDocument();
       expect(screen.queryByText('echarts mock')).not.toBeInTheDocument();
+      expect(screen.getByText('No data to plot')).toBeInTheDocument();
     });
   });
 
@@ -317,6 +318,7 @@ describe('AttributeBreakdownViewerModal', () => {
 
       expect(screen.getByRole('heading', {name: 'empty.attribute'})).toBeInTheDocument();
       expect(screen.queryByText('echarts mock')).not.toBeInTheDocument();
+      expect(screen.getByText('No data to plot')).toBeInTheDocument();
     });
   });
 

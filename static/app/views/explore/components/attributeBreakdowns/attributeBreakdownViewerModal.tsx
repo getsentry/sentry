@@ -19,6 +19,7 @@ import type {
   TabularColumn,
   TabularData,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
@@ -281,12 +282,24 @@ export default function AttributeBreakdownViewerModal(props: Props) {
     return transformTableToCategoricalSeries(chartQuery, slicedTableData);
   }, [computedData.tableData, computedData.mode]);
 
-  const hasPlottableValues = useMemo(() => {
-    return chartSeries.some(series => series.values.some(value => value.value !== null));
-  }, [chartSeries]);
-  const singleSeries = chartSeries[0];
-  const selectedSeries = chartSeries[0];
-  const baselineSeries = chartSeries[1];
+  const plottables = useMemo(() => {
+    if (computedData.mode === 'comparison') {
+      const [selectedSeries, baselineSeries] = chartSeries;
+      if (!selectedSeries || !baselineSeries) {
+        return [];
+      }
+      return [
+        new Bars(selectedSeries, {color: primaryColor, alias: 'selected'}),
+        new Bars(baselineSeries, {color: secondaryColor, alias: 'baseline'}),
+      ];
+    }
+
+    const [singleSeries] = chartSeries;
+    if (!singleSeries) {
+      return [];
+    }
+    return [new Bars(singleSeries, {color: primaryColor})];
+  }, [computedData.mode, chartSeries, primaryColor, secondaryColor]);
 
   return (
     <Fragment>
@@ -328,23 +341,14 @@ export default function AttributeBreakdownViewerModal(props: Props) {
         <Stack gap="2xl" height="600px">
           <Container height={`${MODAL_CHART_HEIGHT}px`}>
             <Container height={`${MODAL_CHART_HEIGHT}px`} position="relative">
-              {computedData.mode === 'single' && singleSeries && hasPlottableValues ? (
+              {plottablesCanBeVisualized(plottables) ? (
                 <CategoricalSeriesWidgetVisualization
-                  plottables={[new Bars(singleSeries, {color: primaryColor})]}
-                  showLegend="never"
+                  plottables={plottables}
+                  showLegend={computedData.mode === 'comparison' ? 'always' : 'never'}
                 />
-              ) : computedData.mode === 'comparison' &&
-                selectedSeries &&
-                baselineSeries &&
-                hasPlottableValues ? (
-                <CategoricalSeriesWidgetVisualization
-                  plottables={[
-                    new Bars(selectedSeries, {color: primaryColor, alias: 'selected'}),
-                    new Bars(baselineSeries, {color: secondaryColor, alias: 'baseline'}),
-                  ]}
-                  showLegend="always"
-                />
-              ) : null}
+              ) : (
+                <CategoricalSeriesWidgetVisualization.NoData />
+              )}
             </Container>
           </Container>
 
