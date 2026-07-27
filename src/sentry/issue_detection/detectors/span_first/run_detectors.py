@@ -215,7 +215,7 @@ def _compare_problem_sets(
 
 
 def _collect_single_problem_diffs(
-    control_problem: PerformanceProblem, span_first_problem: PerformanceProblem
+    control_problem_dict: PerformanceProblemDict, span_first_problem_dict: PerformanceProblemDict
 ) -> list[str]:
     """
     Compare the data in the given problems, and return a list of spots in which the problems differ.
@@ -223,50 +223,61 @@ def _collect_single_problem_diffs(
 
     diffs = []
 
-    if control_problem.op != span_first_problem.op:
+    if control_problem_dict["op"] != span_first_problem_dict["op"]:
         diffs.append("op")
 
-    if control_problem.desc != span_first_problem.desc:
+    if control_problem_dict["desc"] != span_first_problem_dict["desc"]:
         diffs.append("desc")
 
-    if control_problem.type.slug != span_first_problem.type.slug:
+    if control_problem_dict["type"] != span_first_problem_dict["type"]:
         diffs.append("type")
 
     if not _are_equivalent_lists(
-        control_problem.parent_span_ids, span_first_problem.parent_span_ids
+        control_problem_dict["parent_span_ids"], span_first_problem_dict["parent_span_ids"]
     ):
         diffs.append("parent_span_ids")
 
-    if not _are_equivalent_lists(control_problem.cause_span_ids, span_first_problem.cause_span_ids):
+    if not _are_equivalent_lists(
+        control_problem_dict["cause_span_ids"], span_first_problem_dict["cause_span_ids"]
+    ):
         diffs.append("cause_span_ids")
 
     if not _are_equivalent_lists(
-        control_problem.offender_span_ids, span_first_problem.offender_span_ids
+        control_problem_dict["offender_span_ids"], span_first_problem_dict["offender_span_ids"]
     ):
         diffs.append("offender_span_ids")
 
     if not _are_equivalent_lists(
-        [f"{e.name}{e.value}{e.important}" for e in control_problem.evidence_display],
-        [f"{e.name}{e.value}{e.important}" for e in span_first_problem.evidence_display],
+        [
+            f"{e['name']}{e['value']}{e['important']}"
+            for e in control_problem_dict["evidence_display"]
+        ],
+        [
+            f"{e['name']}{e['value']}{e['important']}"
+            for e in span_first_problem_dict["evidence_display"]
+        ],
     ):
         diffs.append("evidence_display")
 
-    if control_problem.evidence_data.keys() != span_first_problem.evidence_data.keys():
+    if (
+        control_problem_dict["evidence_data"].keys()
+        != span_first_problem_dict["evidence_data"].keys()
+    ):
         non_shared_keys = sorted(
-            set(control_problem.evidence_data.keys()).symmetric_difference(
-                span_first_problem.evidence_data.keys()
+            set(control_problem_dict["evidence_data"].keys()).symmetric_difference(
+                span_first_problem_dict["evidence_data"].keys()
             )
         )
         diffs.append(f"evidence_data.non_shared_keys: {', '.join(non_shared_keys)}")
 
-    for key, control_value in control_problem.evidence_data.items():
-        if key not in span_first_problem.evidence_data:
+    for key, control_value in control_problem_dict["evidence_data"].items():
+        if key not in span_first_problem_dict["evidence_data"]:
             continue
         if key in {"op", "parent_span_ids", "cause_span_ids", "offender_span_ids"}:
             # These values have already been checked at the top level of the problem
             continue
 
-        span_first_value = span_first_problem.evidence_data[key]
+        span_first_value = span_first_problem_dict["evidence_data"][key]
 
         if key == "span_evidence_key_value":
             if not _are_equivalent_lists(
