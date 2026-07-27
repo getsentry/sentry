@@ -151,7 +151,7 @@ function InboxContent() {
               <SegmentedControl.Item key="all">{t('All')}</SegmentedControl.Item>
             </SegmentedControl>
           </Flex>
-          <Stack flex={1} minHeight={0} overflowY="auto">
+          <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
             {SECTIONS.map(section => (
               <InboxSection
                 key={section.key}

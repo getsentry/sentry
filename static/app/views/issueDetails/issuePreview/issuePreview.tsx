@@ -67,7 +67,13 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
           ) : null}
         </Flex>
       </Container>
-      <Container flexGrow={1} minHeight={0} overflowY="auto" padding="lg 2xl">
+      <Container
+        flexGrow={1}
+        minHeight={0}
+        overflowY="auto"
+        overscrollBehavior="contain"
+        padding="lg 2xl"
+      >
         {isPending && <LoadingIndicator />}
         {isError && <LoadingError />}
         {group && project && (
