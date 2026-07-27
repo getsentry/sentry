@@ -23,7 +23,9 @@ type Props<SortableRecord extends BaseRecord> = {
 };
 
 const StyledIconInfo = styled(IconInfo)`
-  display: block;
+  margin-left: ${p => p.theme.space.xs};
+  margin-top: 1px;
+  vertical-align: text-top;
 `;
 
 function CatchClicks({children}: {children: ReactNode}) {
@@ -38,11 +40,9 @@ export function HeaderCell<T extends BaseRecord>({
   style,
   tooltipTitle,
 }: Props<T>) {
-  const isSorted = sortConfig.by === field;
-
   return (
     <HeaderButton
-      direction={isSorted ? (sortConfig.asc ? 'asc' : 'desc') : undefined}
+      direction={sortConfig.by === field ? (sortConfig.asc ? 'asc' : 'desc') : undefined}
       onSort={() => handleSort(field)}
       style={style}
     >
