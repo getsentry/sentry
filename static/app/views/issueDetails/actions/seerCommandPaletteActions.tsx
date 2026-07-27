@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
@@ -98,7 +99,7 @@ export function SeerCommandPaletteActions({
   }
 
   const {runState, isPolling} = autofix;
-  const runId = runState?.run_id;
+  const runId = getAutofixRunId(runState);
 
   const canContinue = !isPolling && defined(runId);
 

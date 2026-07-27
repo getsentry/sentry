@@ -109,6 +109,8 @@ export type PrebuiltWidget = Omit<Widget, 'layout'> & {
 
 export type PrebuiltDashboard = Omit<DashboardDetails, 'id' | 'widgets'> & {
   widgets: PrebuiltWidget[];
+  // Field was thought in mind to be table-only for the time being.
+  description?: string;
   onboarding?: OnboardingConfig;
 };
 

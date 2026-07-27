@@ -344,8 +344,12 @@ def filter_deploy_data(
     organization: Organization,
     user_id: int | None,
 ) -> DeployReleaseData:
-    if user_id is None or organization.flags.allow_joinleave:
+    if user_id is None:
         return data
+
+    user_settings_url = organization.absolute_url("settings/account/notifications/deploy/")
+    if organization.flags.allow_joinleave:
+        return data.copy(update={"user_settings_url": user_settings_url})
 
     user_team_ids = OrganizationMember.objects.get_teams_by_user(organization).get(user_id, [])
     user_project_slugs = (
@@ -357,4 +361,9 @@ def filter_deploy_data(
         rp for rp in data.release_projects if rp["project_slug"] in user_project_slugs
     ]
 
-    return data.copy(update={"release_projects": filtered_release_projects})
+    return data.copy(
+        update={
+            "release_projects": filtered_release_projects,
+            "user_settings_url": user_settings_url,
+        }
+    )

@@ -216,13 +216,14 @@ class SeerAutofixOperator[CachePayloadT]:
             try:
                 if not run_id:
                     with action_context_scope(ActionSource.SLACK, GroupActionActor.user(user.id)):
-                        run_id = trigger_autofix_agent(
+                        run = trigger_autofix_agent(
                             group=group,
                             step=AutofixStep.ROOT_CAUSE,
                             referrer=AutofixReferrer.SLACK,
                             run_id=None,
                             user=user,
                         )
+                        run_id = run.seer_run_state_id
                         Activity.objects.create_group_activity(
                             group,
                             ActivityType.TRIGGER_AUTOFIX,
@@ -532,7 +533,7 @@ class SeerAgentOperator[CachePayloadT]:
                         run_id=existing_runs[0].run_id,
                         prompt=prompt,
                         on_page_context=on_page_context,
-                    )
+                    ).seer_run_state_id
                     lifecycle.add_extra("continued", "true")
                 else:
                     run_id = client.start_run(

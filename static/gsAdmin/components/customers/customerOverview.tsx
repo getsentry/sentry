@@ -30,12 +30,18 @@ import {ExtendProductTrialAction} from 'admin/components/extendProductTrialActio
 import {getLogQuery} from 'admin/utils';
 import {BILLED_DATA_CATEGORY_INFO, UNLIMITED} from 'getsentry/constants';
 import type {
+  AddOn,
   Plan,
   ReservedBudget,
   ReservedBudgetMetricHistory,
   Subscription,
 } from 'getsentry/types';
-import {AddOnCategory, BillingType, OnDemandBudgetMode} from 'getsentry/types';
+import {
+  AddOnCategory,
+  BillingType,
+  OnDemandBudgetMode,
+  ReservedBudgetCategoryType,
+} from 'getsentry/types';
 import {
   displayBudgetName,
   formatBalance,
@@ -44,6 +50,7 @@ import {
   getBilledCategory,
   getProductTrial,
   isTrial,
+  normalizeMetricHistory,
   RETENTION_SETTINGS_CATEGORIES,
 } from 'getsentry/utils/billing';
 import {
@@ -247,7 +254,7 @@ function ReservedBudgetsData({customer}: ReservedDataProps) {
   }
 
   return (
-    <Fragment>
+    <div data-test-id="reserved-budgets-data">
       {customer.reservedBudgets.map(reservedBudget => {
         return (
           <Fragment key={reservedBudget.id}>
@@ -255,7 +262,7 @@ function ReservedBudgetsData({customer}: ReservedDataProps) {
           </Fragment>
         );
       })}
-    </Fragment>
+    </div>
   );
 }
 
@@ -292,6 +299,115 @@ function ReservedBudgetData({
         </DetailLabel>
       </DetailList>
     </Fragment>
+  );
+}
+
+function seerAddOnStatus(
+  addOn: AddOn | undefined,
+  onTrial: boolean
+): {active: boolean; label: string; variant: 'success' | 'warning' | 'muted'} | null {
+  if (!addOn) {
+    return null;
+  }
+  if (addOn.enabled) {
+    return {label: 'Enabled', variant: 'success', active: true};
+  }
+  if (onTrial) {
+    return {label: 'Trial', variant: 'warning', active: true};
+  }
+  return {
+    label: addOn.isAvailable ? 'Available' : 'Unavailable',
+    variant: 'muted',
+    active: false,
+  };
+}
+
+function SeerPlanSummary({customer}: {customer: Subscription}) {
+  const seerAddOn = customer.addOns?.[AddOnCategory.SEER];
+  const legacySeerAddOn = customer.addOns?.[AddOnCategory.LEGACY_SEER];
+  const trials = customer.productTrials ?? null;
+
+  const onSeatTrial = !!getActiveProductTrial(trials, DataCategory.SEER_USER);
+  const onLegacyTrial = !!getActiveProductTrial(trials, DataCategory.SEER_AUTOFIX);
+  const seatStatus = seerAddOnStatus(seerAddOn, onSeatTrial);
+  const legacyStatus = seerAddOnStatus(legacySeerAddOn, onLegacyTrial);
+
+  const seerUsers = normalizeMetricHistory(
+    DataCategory.SEER_USER,
+    customer.categories?.[DataCategory.SEER_USER]
+  );
+  const legacyBudget = customer.reservedBudgets?.find(
+    budget => budget.apiName === ReservedBudgetCategoryType.SEER
+  );
+
+  return (
+    <div data-test-id="seer-plan-summary">
+      <h6>Seer</h6>
+      <DetailList>
+        {!seatStatus && !legacyStatus && (
+          <DetailLabel title="Plan">
+            <Tag variant="muted">
+              {customer.planDetails?.name
+                ? `Not available on the ${customer.planDetails.name} plan`
+                : 'Not available on this plan'}
+            </Tag>
+          </DetailLabel>
+        )}
+        {seatStatus && (
+          <Fragment>
+            <DetailLabel title="Seat-based">
+              <Tag variant={seatStatus.variant}>{seatStatus.label}</Tag>
+            </DetailLabel>
+            {seatStatus.active && (
+              <Fragment>
+                <DetailLabel title="Reserved Seats">
+                  {formatReservedWithUnits(seerUsers.reserved, DataCategory.SEER_USER)}
+                </DetailLabel>
+                <DetailLabel title="Active Contributors (billed this period)">
+                  {seerUsers.usage.toLocaleString()}
+                </DetailLabel>
+                <DetailLabel title="Gifted Seats">
+                  {formatReservedWithUnits(seerUsers.free, DataCategory.SEER_USER, {
+                    isGifted: true,
+                  })}
+                </DetailLabel>
+                {typeof seerUsers.customPrice === 'number' && (
+                  <DetailLabel title="Custom Price">
+                    {displayPriceWithCents({cents: seerUsers.customPrice})}
+                  </DetailLabel>
+                )}
+              </Fragment>
+            )}
+          </Fragment>
+        )}
+        {legacyStatus && (
+          <Fragment>
+            <DetailLabel title="Legacy (budget)">
+              <Tag variant={legacyStatus.variant}>{legacyStatus.label}</Tag>
+            </DetailLabel>
+            {legacyStatus.active &&
+              (legacyBudget ? (
+                <Fragment>
+                  <DetailLabel title="Reserved Budget">
+                    {displayPriceWithCents({cents: legacyBudget.reservedBudget})}
+                  </DetailLabel>
+                  <DetailLabel title="Budget Used">
+                    {displayPriceWithCents({cents: legacyBudget.totalReservedSpend})} /{' '}
+                    {displayPriceWithCents({
+                      cents: legacyBudget.reservedBudget + legacyBudget.freeBudget,
+                    })}{' '}
+                    ({(legacyBudget.percentUsed * 100).toFixed(2)}%)
+                  </DetailLabel>
+                </Fragment>
+              ) : legacySeerAddOn?.enabled ? (
+                <DetailLabel title="Budget">
+                  <Tag variant="danger">Enabled but no budget data found</Tag>
+                </DetailLabel>
+              ) : null)}
+          </Fragment>
+        )}
+      </DetailList>
+    </div>
   );
 }
 
@@ -917,6 +1033,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             </tbody>
           </table>
         </Fragment>
+        <SeerPlanSummary customer={customer} />
       </div>
     </DetailsContainer>
   );

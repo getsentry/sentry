@@ -941,6 +941,14 @@ register(
     type=Int,
 )
 
+# Fraction of JSON (SnQL/MQL) snuba queries that request zstd response compression via Accept-Encoding.
+register(
+    "snuba.json-response-compression.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Refresh Bundle Indexes reported as used by symbolicator
 register(
@@ -2223,18 +2231,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout, keyed on organization id, of the per-project EAP
-# transaction volume query: the top N transactions of every root project via
-# LIMIT BY (N from dynamic-sampling.prioritise_transactions.num_explicit_large_transactions)
-# instead of a single org-wide query capped at 100 rows. 0.0 keeps the org-wide
-# query for every org; 1.0 uses the per-project query for every org.
-register(
-    "dynamic-sampling.per_org.transaction-volumes-per-project-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Sample rate for metrics emitted by the per-org dynamic sampling pipeline
 # (status counters, org_status counters, duration timer). 1.0 emits every
 # event; lower values drop events proportionally. Use this to reduce metric
@@ -2251,6 +2247,13 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window
@@ -3958,14 +3961,6 @@ register(
     "arroyo.producer.record_poll_metrics",
     type=Sequence,
     default=None,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# If True, FutureTrackingProducer will backpressure on produce futures
-register(
-    "arroyo.ftp.backpressure",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

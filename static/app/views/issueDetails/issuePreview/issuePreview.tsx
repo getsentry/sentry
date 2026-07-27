@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -7,9 +7,11 @@ import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getMessage, getTitle} from 'sentry/utils/events';
@@ -31,6 +33,7 @@ import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusS
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {IssuePreviewAutofix} from 'sentry/views/issueDetails/issuePreview/issuePreviewAutofix';
+import {IssuePreviewSeerActions} from 'sentry/views/issueDetails/issuePreview/issuePreviewSeerActions';
 import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/sidebar/externalIssueSidebarList';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -52,9 +55,16 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
 
   return (
     <Fragment>
-      <Container padding="md 2xl" borderBottom="muted">
+      <Container padding="xs 2xl" borderBottom="muted">
         <Flex align="center" flex="1" gap="md">
-          {group && project && <IssueIdBreadcrumb group={group} project={project} />}
+          {group && project ? (
+            <IssueIdBreadcrumb group={group} project={project} />
+          ) : isPending ? (
+            <Flex align="center" gap="md" height="36px">
+              <Placeholder width="16px" height="16px" shape="rect" />
+              <Placeholder width="80px" height="16px" shape="rect" />
+            </Flex>
+          ) : null}
         </Flex>
       </Container>
       <Container flexGrow={1} minHeight={0} overflowY="auto" padding="lg 2xl">
@@ -72,10 +82,16 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
   );
 }
 
+type IssuePreviewTab = 'activity' | 'autofix';
+
 function IssuePreviewContent() {
   const organization = useOrganization();
   const {group, project} = useGroupData();
   const {hasAutofix} = useAiConfig(group, project);
+  const [selectedTab, setSelectedTab] = useState<IssuePreviewTab>('activity');
+  const autofix = useExplorerAutofix(group, {
+    enabled: hasAutofix,
+  });
   const {data: event} = useGroupEvent({
     groupId: group.id,
     eventId: 'recommended',
@@ -149,12 +165,21 @@ function IssuePreviewContent() {
         wrap="wrap"
         gap="md"
       >
-        <GroupActions
-          group={group}
-          project={project}
-          disabled={disableActions}
-          event={null}
-        />
+        {hasAutofix ? (
+          <IssuePreviewSeerActions
+            autofix={autofix}
+            group={group}
+            disabled={disableActions}
+            onOpenAutofix={() => setSelectedTab('autofix')}
+          />
+        ) : (
+          <GroupActions
+            group={group}
+            project={project}
+            disabled={disableActions}
+            event={null}
+          />
+        )}
         <Flex align="center" wrap="wrap" gap="lg">
           <GroupPriority group={group} />
           <GroupHeaderAssigneeSelector
@@ -166,7 +191,7 @@ function IssuePreviewContent() {
         </Flex>
       </Flex>
       <Container paddingTop="md">
-        <Tabs>
+        <Tabs value={selectedTab} onChange={setSelectedTab}>
           <Container paddingBottom="md" borderBottom="muted">
             <TabList variant="floating">
               <TabList.Item key="activity">{t('Activity')}</TabList.Item>
@@ -209,7 +234,11 @@ function IssuePreviewContent() {
             {hasAutofix ? (
               <TabPanels.Item key="autofix">
                 <Container paddingTop="md">
-                  <IssuePreviewAutofix group={group} project={project} />
+                  <IssuePreviewAutofix
+                    autofix={autofix}
+                    group={group}
+                    project={project}
+                  />
                 </Container>
               </TabPanels.Item>
             ) : null}
