@@ -7,15 +7,18 @@ import orjson
 import pytest
 
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, TriggerAutofixAction
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.locks import locks
+from sentry.models.activity import Activity
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.issue_summary import (
     _apply_user_preference_upper_bound,
     _call_seer,
     _get_event,
     _get_stopping_point_from_fixability,
+    _trigger_autofix_task,
     get_and_update_group_fixability_score,
     get_automation_stopping_point,
     get_issue_summary,
@@ -25,15 +28,46 @@ from sentry.seer.autofix.issue_summary import (
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
+from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
+
+
+class TriggerAutofixTaskTest(TestCase):
+    @patch("sentry.seer.autofix.issue_summary.SeerAutofixOperator.has_access", return_value=False)
+    @patch("sentry.seer.autofix.issue_summary.trigger_autofix_agent", return_value=123)
+    def test_post_process_kickoff_creates_system_activity(
+        self, _mock_trigger_autofix, _mock_operator_access
+    ):
+        group = self.create_group()
+
+        with capture_action_log() as action_log:
+            _trigger_autofix_task(
+                group_id=group.id,
+                event_id="event-id",
+                user_id=self.user.id,
+                auto_run_source="issue_summary_on_post_process_fixability",
+                referrer="issue_summary.post_process_fixability",
+            )
+
+        activity = Activity.objects.get(group=group, type=ActivityType.TRIGGER_AUTOFIX.value)
+        assert activity.user_id is None
+        assert activity.data == {"referrer": "issue_summary.post_process_fixability"}
+        action_log.assert_logged(
+            TriggerAutofixAction,
+            group_id=group.id,
+            source=ActionSource.SYSTEM,
+            actor=SYSTEM_ACTOR,
+            referrer="issue_summary.post_process_fixability",
+        )
 
 
 @with_feature("organizations:gen-ai-features")
