@@ -47,6 +47,7 @@ function getPath(sdkName: string | null | undefined) {
     case 'sentry.cocoa.unreal': // Session Replay on iOS builds of Unreal Engine games via the embedded Cocoa SDK
       return 'apple/guides/ios'; // https://docs.sentry.io/platforms/apple/guides/ios/session-replay/
     case 'sentry.java.android':
+    case 'sentry.java.android.unreal': // Session Replay on Android builds of Unreal Engine games via the embedded Java Android SDK
       return 'android'; // https://docs.sentry.io/platforms/android/session-replay/
     case 'sentry.cocoa.flutter':
     case 'sentry.dart.flutter':
