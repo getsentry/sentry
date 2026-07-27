@@ -1,7 +1,16 @@
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
+import * as analytics from 'sentry/utils/analytics';
+import * as integrationUtil from 'sentry/utils/integrationUtil';
+import {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import {
   type IssueAlertNotificationProps,
   MultipleCheckboxOptions,
@@ -14,6 +23,8 @@ import {
 import {ScmAlertFrequencySection} from './scmAlertFrequencySection';
 
 type Props = React.ComponentProps<typeof ScmAlertFrequencySection>;
+
+const organization = OrganizationFixture();
 
 const notificationProps: IssueAlertNotificationProps = {
   actions: [MultipleCheckboxOptions.EMAIL],
@@ -39,11 +50,15 @@ function renderSection(overrides: Partial<Props> = {}) {
     ...overrides,
   };
 
-  render(<ScmAlertFrequencySection {...props} />, {organization: OrganizationFixture()});
+  render(<ScmAlertFrequencySection {...props} />, {organization});
   return props;
 }
 
 describe('ScmAlertFrequencySection', () => {
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.restoreAllMocks();
+  });
   it('makes the alert-frequency section a collapsible toggle in project creation', async () => {
     renderSection({analyticsFlow: 'project-creation'});
 
@@ -77,6 +92,7 @@ describe('ScmAlertFrequencySection', () => {
   });
 
   it('adds the integration action when the Integration checkbox is clicked', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     const setActions = jest.fn();
     renderSection({
       analyticsFlow: 'onboarding',
@@ -95,7 +111,77 @@ describe('ScmAlertFrequencySection', () => {
       MultipleCheckboxOptions.EMAIL,
       MultipleCheckboxOptions.INTEGRATION,
     ]);
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'project_creation.notify_integration_toggled',
+      expect.anything()
+    );
   });
+
+  it('tracks integration toggles in project creation', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    renderSection({analyticsFlow: 'project-creation'});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Alert frequency'}));
+    await userEvent.click(
+      screen.getByRole('checkbox', {
+        name: 'Integration (Slack, Discord, MS Teams, etc.)',
+      })
+    );
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.notify_integration_toggled',
+      expect.objectContaining({enabled: true, variant: 'scm'})
+    );
+  });
+
+  it.each([
+    ['onboarding', MessagingIntegrationAnalyticsView.ONBOARDING],
+    ['project-creation', MessagingIntegrationAnalyticsView.PROJECT_CREATION],
+  ] as const)(
+    'attributes SCM messaging installs to the %s flow',
+    async (analyticsFlow, expectedView) => {
+      for (const providerKey of ['slack', 'discord', 'msteams']) {
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/config/integrations/`,
+          body: {providers: [GitHubIntegrationProviderFixture({key: providerKey})]},
+          match: [MockApiClient.matchQuery({provider_key: providerKey})],
+        });
+      }
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/`,
+        body: [],
+        match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/pipeline/integration_pipeline/`,
+        method: 'POST',
+        body: {},
+      });
+      const trackIntegrationSpy = jest.spyOn(
+        integrationUtil,
+        'trackIntegrationAnalytics'
+      );
+
+      renderGlobalModal();
+      renderSection({
+        analyticsFlow,
+        notificationProps: {...notificationProps, shouldRenderSetupButton: true},
+      });
+      if (analyticsFlow === 'project-creation') {
+        await userEvent.click(screen.getByRole('button', {name: 'Alert frequency'}));
+      }
+      await userEvent.click(
+        await screen.findByRole('button', {name: /connect to messaging/i})
+      );
+      const addButtons = await screen.findAllByRole('button', {name: /add integration/i});
+      await userEvent.click(addButtons[0]!);
+
+      expect(trackIntegrationSpy).toHaveBeenCalledWith(
+        'integrations.installation_start',
+        expect.objectContaining({view: expectedView, variant: 'scm'})
+      );
+    }
+  );
 
   it('hides the notification options when alerts are turned off', () => {
     renderSection({

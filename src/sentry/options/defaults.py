@@ -941,6 +941,14 @@ register(
     type=Int,
 )
 
+# Fraction of JSON (SnQL/MQL) snuba queries that request zstd response compression via Accept-Encoding.
+register(
+    "snuba.json-response-compression.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Refresh Bundle Indexes reported as used by symbolicator
 register(
@@ -2239,6 +2247,13 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window

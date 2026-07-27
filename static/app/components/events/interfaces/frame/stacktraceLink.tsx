@@ -1,14 +1,15 @@
-import {useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CopyFrameLink} from 'sentry/components/events/interfaces/frame/copyFrameLink';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
+import {IconCode} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -217,55 +218,43 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
       return null;
     }
 
-    const sourceCodeProviders = match.integrations.filter(integration =>
+    const sourceCodeProvider = match.integrations.find(integration =>
       scmProviders.includes(integration.provider?.key)
     );
+    const handleSetupClick = (e: React.MouseEvent) => {
+      // Prevent from opening/closing the stack frame
+      e.stopPropagation();
+      trackAnalytics(
+        'integrations.stacktrace_start_setup',
+        {
+          view: 'stacktrace_issue_details',
+          platform: event.platform,
+          provider: sourceCodeProvider?.provider.key!,
+          setup_type: 'automatic',
+          organization,
+          ...getAnalyticsDataForEvent(event),
+        },
+        {startSession: true}
+      );
+      openModal(deps => (
+        <StacktraceLinkModal
+          onSubmit={refetch}
+          filename={filename}
+          module={frame.module ?? undefined}
+          absPath={frame.absPath ?? undefined}
+          platform={event.platform}
+          project={project}
+          organization={organization}
+          integrations={match.integrations}
+          {...deps}
+        />
+      ));
+    };
+
     return (
       <StacktraceLinkWrapper data-has-setup="true">
         <CopyFrameLink frame={frame} analyticsParams={copyFrameLinkAnalyticsParams} />
-        <Button
-          size={DEFAULT_BUTTON_SIZE}
-          variant="transparent"
-          icon={
-            sourceCodeProviders.length === 1
-              ? getIntegrationIcon(
-                  sourceCodeProviders[0]!.provider.key,
-                  DEFAULT_ICON_SIZE
-                )
-              : undefined
-          }
-          onClick={e => {
-            // Prevent from opening/closing the stack frame
-            e.stopPropagation();
-            trackAnalytics(
-              'integrations.stacktrace_start_setup',
-              {
-                view: 'stacktrace_issue_details',
-                platform: event.platform,
-                provider: sourceCodeProviders[0]?.provider.key!,
-                setup_type: 'automatic',
-                organization,
-                ...getAnalyticsDataForEvent(event),
-              },
-              {startSession: true}
-            );
-            openModal(deps => (
-              <StacktraceLinkModal
-                onSubmit={refetch}
-                filename={filename}
-                module={frame.module ?? undefined}
-                absPath={frame.absPath ?? undefined}
-                platform={event.platform}
-                project={project}
-                organization={organization}
-                integrations={match.integrations}
-                {...deps}
-              />
-            ));
-          }}
-        >
-          {t('Set up Code Mapping')}
-        </Button>
+        <SetupCodeMappingButton onClick={handleSetupClick} />
       </StacktraceLinkWrapper>
     );
   }
@@ -290,6 +279,39 @@ const FadeInStacktraceLinkWrapper = styled(Flex)`
     animation: ${fadeIn} 0.2s ease-in-out forwards;
   }
 `;
+
+function SetupCodeMappingButton({
+  onClick,
+}: {
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
+}) {
+  const label = t('Set up Code Mapping');
+
+  return (
+    <Fragment>
+      <Container display={{'2xs': 'none', md: 'contents'}}>
+        <Button
+          size={DEFAULT_BUTTON_SIZE}
+          variant="transparent"
+          icon={<IconCode />}
+          onClick={onClick}
+        >
+          {label}
+        </Button>
+      </Container>
+      <Container display={{'2xs': 'contents', md: 'none'}}>
+        <Button
+          size={DEFAULT_BUTTON_SIZE}
+          variant="transparent"
+          icon={<IconCode />}
+          aria-label={label}
+          tooltipProps={{title: label}}
+          onClick={onClick}
+        />
+      </Container>
+    </Fragment>
+  );
+}
 
 function StacktraceLinkWrapper({
   children,

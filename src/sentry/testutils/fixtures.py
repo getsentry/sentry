@@ -372,6 +372,21 @@ class Fixtures:
             group = self.group
         return Factories.create_group_activity(group, *args, **kwargs)
 
+    def create_group_link(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_link(group, **kwargs)
+
+    def create_group_resolution(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_resolution(group, **kwargs)
+
+    def create_group_subscription(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_subscription(group, **kwargs)
+
     def create_group_owner(self, group=None, **kwargs):
         if group is None:
             group = self.group
@@ -534,6 +549,9 @@ class Fixtures:
         return Factories.create_notification_action(
             organization=organization, projects=projects, **kwargs
         )
+
+    def create_notification_setting_option(self, *args, **kwargs):
+        return Factories.create_notification_setting_option(*args, **kwargs)
 
     def create_notification_settings_provider(self, *args, **kwargs):
         return Factories.create_notification_settings_provider(*args, **kwargs)

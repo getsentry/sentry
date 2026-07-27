@@ -17,10 +17,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
   TabSelectionScope,
@@ -53,6 +50,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
@@ -64,7 +62,6 @@ import {
   PYTHON_AGENT_INTEGRATIONS,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
-import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {
   BulletList,
   HeaderText,
@@ -98,7 +95,7 @@ function useConversationSpanWaiter(project: Project) {
         },
       },
     },
-    Referrer.CONVERSATIONS_ONBOARDING
+    Referrer.ONBOARDING
   );
 
   const hasEvents = Boolean(request.data?.length);
@@ -380,7 +377,6 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
-  const copyEnabled = useCopySetupInstructionsEnabled();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -472,7 +468,6 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     },
     platformOptions: selectedPlatformOptions,
     docsLocation: DocsPageLocation.PROFILING_PAGE,
-    newOrg: false,
     urlPrefix,
     isSelfHosted,
   };
@@ -524,7 +519,7 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
               isLastStep={index === steps.length - 1}
               onDismiss={onDismiss}
               trailingItems={
-                index === 0 && copyEnabled ? (
+                index === 0 ? (
                   <OnboardingCopyMarkdownButton
                     borderless
                     steps={steps}

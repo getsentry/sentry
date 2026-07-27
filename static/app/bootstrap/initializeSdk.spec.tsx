@@ -61,7 +61,8 @@ describe('initializeSdk', () => {
     expect(initConfig?.beforeSend).toBeDefined();
 
     const event = {
-      message: '[null,null]',
+      // The SDK has not normalized this to the stored `[null,null]` string yet.
+      message: [null, null] as unknown as string,
       exception: {
         values: [
           {
@@ -75,7 +76,7 @@ describe('initializeSdk', () => {
       },
     } as Sentry.ErrorEvent;
 
-    expect(initConfig?.beforeSend?.(event, {})).toBeNull();
+    expect(initConfig?.beforeSend?.(event, {originalException: [null, null]})).toBeNull();
   });
 });
 

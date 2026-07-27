@@ -50,7 +50,7 @@ export const AuthorField = withFieldGroup({
 
 // Mirrors CLAUDE_ROUTINE_URL_RE in src/sentry/utils/sentry_apps/webhooks.py;
 // payloads sent to matching URLs get a plain-text prompt added.
-const CLAUDE_ROUTINE_URL_REGEX =
+export const CLAUDE_ROUTINE_URL_REGEX =
   /^https:\/\/api\.anthropic\.com\/v1\/claude_code\/routines\/[^/?#]+\/fire\/?$/;
 
 const WEBHOOK_URL_DEFAULT_PROPS: {

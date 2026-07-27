@@ -377,6 +377,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         try:
             session = get_preprod_session(organization.id, artifact.project_id)
             get_response = session.get(manifest_key)
+            if get_response is None:
+                raise FileNotFoundError("Manifest does not exist in objectstore")
             with start_span(op="preprod.snapshot.read_manifest", name="read_head_manifest"):
                 raw_manifest = get_response.payload.read()
             with start_span(
@@ -426,10 +428,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             comparison_key = (comparison.extras or {}).get("comparison_key")
             if comparison_key:
                 try:
+                    response = session.get(comparison_key)
+                    if response is None:
+                        raise FileNotFoundError("Comparison manifest does not exist in objectstore")
                     with start_span(
                         op="preprod.snapshot.read_manifest", name="read_comparison_manifest"
                     ):
-                        raw_comparison_manifest = session.get(comparison_key).payload.read()
+                        raw_comparison_manifest = response.payload.read()
                     with start_span(
                         op="preprod.snapshot.parse_manifest", name="parse_comparison_manifest"
                     ) as span:
@@ -450,8 +455,11 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             base_manifest_key = (comparison.base_snapshot_metrics.extras or {}).get("manifest_key")
             if base_manifest_key:
                 try:
+                    response = session.get(base_manifest_key)
+                    if response is None:
+                        raise FileNotFoundError("Base manifest does not exist in objectstore")
                     with start_span(op="preprod.snapshot.read_manifest", name="read_base_manifest"):
-                        raw_base_manifest = session.get(base_manifest_key).payload.read()
+                        raw_base_manifest = response.payload.read()
                     with start_span(
                         op="preprod.snapshot.parse_manifest", name="parse_base_manifest"
                     ) as span:

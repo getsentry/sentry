@@ -20,9 +20,7 @@ export function DashboardEditSeerChat({
 }: DashboardEditSeerChatProps) {
   const organization = useOrganization();
 
-  const hasFeature =
-    organization.features.includes('dashboards-edit') &&
-    organization.features.includes('dashboards-ai-generate');
+  const hasFeature = organization.features.includes('dashboards-edit');
 
   const handleDashboardUpdate = useCallback(
     (data: {title: string; widgets: Widget[]}, seerRunId: number | null) => {
