@@ -15,6 +15,10 @@ from sentry.issue_detection.detectors.span_first.span_first_utils import (
 from sentry.issue_detection.performance_detection import get_detection_settings
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import StandaloneSpan
+from sentry.issues.grouptype import (
+    PerformanceNPlusOneAPICallsGroupType,
+    PerformanceNPlusOneGroupType,
+)
 from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.rollout import SourceOfTruth
@@ -283,3 +287,58 @@ def _are_equivalent_lists(list1: Sequence[Any], list2: Sequence[Any]) -> bool:
     Given two lists, check for equality, ignoring list order.
     """
     return set(list1) == set(list2)
+
+
+def _strip_unnecessary_problem_data(
+    problem_dict: Any,  # Have to type as Any to be able to delete from it
+    diffs: dict[str, list[str]],
+) -> dict[str, Any]:
+    """
+    Before passing it to the logger, strip duplicate data out of the given problem dictionary.
+    Mutates in place, but also returns the given dictionary for convenience.
+    """
+    fingerprint = problem_dict["fingerprint"]
+    problem_type_id = problem_dict["type"]
+
+    # We log the detector type separately, so no need to include it in every problem dict
+    del problem_dict["type"]
+
+    # The data in `evidence_display` is just a rejiggering of data included elsewhere, so unless we
+    # have a mismatch there, we can remove it
+    if "evidence_display" not in diffs or fingerprint not in diffs["evidence_display"]:
+        del problem_dict["evidence_display"]
+
+    evidence_data = problem_dict["evidence_data"]
+    # Iterate over a separate copy of the keys so we can delete freely
+    for evidence_data_key in set(evidence_data):
+        # These values have already been serialized at the top level of the problem
+        if evidence_data_key in {"op", "parent_span_ids", "cause_span_ids", "offender_span_ids"}:
+            del evidence_data[evidence_data_key]
+
+        # In most cases, `repeating_spans` and `repeating_spans_compact` contain essentially the
+        # same data, so we don't need them both. Check if we're dealing with one of the exceptions
+        # to that rule, but otherwise, delete the duplicate data unless there's a mismatch.
+        elif evidence_data_key == "repeating_spans_compact":
+            # In the N+1 API detector the values are totally different, so we want to keep them both
+            if problem_type_id == PerformanceNPlusOneAPICallsGroupType.type_id:
+                continue
+            # The same goes for the N+1 query detector, but here there's a wrinkle: Both the N+1 and
+            # MN+1 detectors create problems with the N+1 type, but only for the N+1 detector do we
+            # want to keep both values. Fortunately, the N+1 detector uses a string for
+            # `repeating_spans` while the MN+1 detector uses a list, so we can typecheck
+            # `repeating_spans` to decide which of the two detectors created the current problem.
+            if problem_type_id == PerformanceNPlusOneGroupType.type_id and isinstance(
+                evidence_data["repeating_spans"],
+                str,  # Must be N+1, not MN+1
+            ):
+                continue
+
+            # For all other detector types, the data is duplicative, so only keep it if we've found
+            # a mismatch
+            if (
+                "evidence_data.repeating_spans_compact" not in diffs
+                or fingerprint not in diffs["evidence_data.repeating_spans_compact"]
+            ):
+                del evidence_data["repeating_spans_compact"]
+
+    return problem_dict
