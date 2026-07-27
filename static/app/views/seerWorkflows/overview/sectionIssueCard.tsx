@@ -3,7 +3,7 @@ import type {User} from 'sentry/types/user';
 
 import {buildOverviewRow, deriveSectionKey} from './buildOverviewRows';
 import {IssueCard, IssueTableRow} from './issueCard';
-import type {AutofixStateKey, OverviewIssue} from './types';
+import type {AutofixStateKey, OverviewIssue, SeerRun} from './types';
 import {useIssueAutofixEnrichment} from './useIssueAutofixEnrichment';
 
 const CARD_PLACEHOLDER_HEIGHT = 180;
@@ -18,11 +18,17 @@ function HydratedCard({
   statsPeriod,
   memberList,
   memberListLoading,
+  injectedRun,
+  runMissing,
 }: {
   issue: OverviewIssue;
   orgSlug: string;
+  // Required so callers must decide explicitly: when true the card fetches its
+  // own run, when false it relies solely on injectedRun.
+  runMissing: boolean;
   statsPeriod: string;
   view: 'cards' | 'table';
+  injectedRun?: SeerRun | null;
   memberList?: User[];
   memberListLoading?: boolean;
   // The server-bucketed section. Absent in focus mode, where the issues
@@ -30,7 +36,8 @@ function HydratedCard({
   sectionKey?: AutofixStateKey;
 }) {
   const {run, state, statePending, enrichmentPending} = useIssueAutofixEnrichment(
-    issue.id
+    issue.id,
+    {injectedRun, runMissing}
   );
   const classificationPending = sectionKey ? statePending : enrichmentPending;
   const row = buildOverviewRow(issue, run, state, classificationPending, statsPeriod);
@@ -64,8 +71,10 @@ export function SectionIssueCard({
 }: {
   issue: OverviewIssue;
   orgSlug: string;
+  runMissing: boolean;
   statsPeriod: string;
   view: 'cards' | 'table';
+  injectedRun?: SeerRun | null;
   lazy?: boolean;
   memberList?: User[];
   memberListLoading?: boolean;

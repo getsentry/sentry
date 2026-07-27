@@ -148,6 +148,7 @@ export function SectionList({
                       }
                       memberListLoading={memberQuery.isPending}
                       orgSlug={organization.slug}
+                      runMissing
                       sectionKey={section.key}
                       view={view}
                       statsPeriod={period}
