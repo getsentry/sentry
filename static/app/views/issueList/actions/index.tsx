@@ -6,12 +6,7 @@ import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-m
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {
-  Flex,
-  Grid,
-  useHasContainerQuery,
-  useResponsivePropValue,
-} from '@sentry/scraps/layout';
+import {Flex, Grid, useHasContainerQuery} from '@sentry/scraps/layout';
 
 import {bulkDelete, mergeGroups} from 'sentry/actionCreators/group';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -34,6 +29,7 @@ import {
   useIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import {useIsIssueListContainerNarrow} from 'sentry/views/issueList/utils';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 import {ActionSet} from './actionSet';
@@ -108,11 +104,7 @@ function ActionsBarPriority({
 }) {
   const theme = useTheme();
   const hasContainerQuery = useHasContainerQuery();
-  const disableActionsInContainer = useResponsivePropValue({
-    zero: true,
-    '3xl': isSavedSearchesOpen,
-    '5xl': false,
-  }) as boolean;
+  const disableActionsInContainer = useIsIssueListContainerNarrow(isSavedSearchesOpen);
   const disableActionsInViewport = useMedia(
     `(width < ${isSavedSearchesOpen ? theme.container['5xl'] : theme.container['3xl']})`
   );
