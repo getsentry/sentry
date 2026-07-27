@@ -62,8 +62,8 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
 
         assert not MonitorCheckIn.objects.filter(monitor_id=monitor.id).exists()
         mock_limiter_cls.assert_called_with(
-            burst_limit=800,
-            drip_rate=800,
+            burst_limit=1000,
+            drip_rate=1000,
             key="deletions.rate_limit:deletions.monitor-check-in.rate-limit",
         )
         # Every deleted check-in is charged to the bucket exactly once.
