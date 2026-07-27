@@ -3,10 +3,10 @@
 from django.db import migrations, models
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
-from django.db.models import Q
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.new_migrations.monkey.special import SafeRunSQL
+from sentry.utils.query import RangeQuerySetWrapper
 
 
 def delete_null_organizationcontributors(
@@ -17,9 +17,9 @@ def delete_null_organizationcontributors(
     (getsentry-only) backfill job -- i.e. self-hosted, which aren't billed for Seer.
     """
     OrganizationContributors = apps.get_model("sentry", "OrganizationContributors")
-    OrganizationContributors.objects.filter(
-        Q(provider__isnull=True) | Q(hostname__isnull=True)
-    ).delete()
+    for contributor in RangeQuerySetWrapper(OrganizationContributors.objects.all()):
+        if contributor.provider is None or contributor.hostname is None:
+            contributor.delete()
 
 
 class Migration(CheckedMigration):
