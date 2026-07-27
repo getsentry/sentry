@@ -51,7 +51,6 @@ class Migration(CheckedMigration):
                 ("config", models.JSONField(db_default={}, default=dict)),
                 ("started_at", models.DateTimeField(null=True)),
                 ("finished_at", models.DateTimeField(null=True)),
-                ("last_coordinator_at", models.DateTimeField(null=True)),
             ],
             options={
                 "db_table": "sentry_debugfileobjectstoremigrationrun",

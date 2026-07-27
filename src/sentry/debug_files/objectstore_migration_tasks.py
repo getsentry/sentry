@@ -1,21 +1,17 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
 
-from django.db import router
-from django.db.models import Count, F, Func, IntegerField, Min, Value
+from django.db.models import F
 from django.utils import timezone
 from taskbroker_client.state import current_task
 
-from sentry import options
 from sentry.debug_files.objectstore_migration import (
     ensure_migration_enabled,
     is_migration_killswitched,
     migrate_debug_file,
     shard_candidates,
 )
-from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.debugfile_migration import (
     DebugFileObjectstoreMigrationRun,
     DebugFileObjectstoreMigrationRunStatus,
@@ -27,11 +23,9 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import debug_files_migration_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import metrics
-from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger(__name__)
 
-_COORDINATOR_TASK_KEY = "debug_files_objectstore_migration_coordinator"
 _SHARD_TASK_KEY = "debug_files_objectstore_migration_shard"
 _QUERY_BATCH_SIZE = 20
 _MAX_FILES_PER_ACTIVATION = 50
@@ -42,7 +36,7 @@ def _activation_id() -> str | None:
     return task.id if task else None
 
 
-def _enqueue_shard(shard: DebugFileObjectstoreMigrationShard) -> None:
+def enqueue_shard(shard: DebugFileObjectstoreMigrationShard) -> None:
     migrate_shard.apply_async(
         kwargs={
             "run_id": shard.run_id,
@@ -54,117 +48,24 @@ def _enqueue_shard(shard: DebugFileObjectstoreMigrationShard) -> None:
     )
 
 
-@instrumented_task(
-    name="sentry.debug_files.objectstore_migration.coordinate",
-    namespace=debug_files_migration_tasks,
-    processing_deadline_duration=5 * 60,
-    silo_mode=SiloMode.CELL,
-)
-def coordinate_migration(run_id: int, expected_generation: int, **kwargs: object) -> None:
+def enqueue_shard_heads(run: DebugFileObjectstoreMigrationRun) -> int:
+    """Enqueue one activation for each incomplete shard.
+
+    Used by start/resume (and later the control-plane job). Taskbroker worker
+    capacity limits concurrency; shards self-chain from there.
+    """
     ensure_migration_enabled()
-    activation_id = _activation_id()
-    if activation_id and already_spawned(_COORDINATOR_TASK_KEY, activation_id):
-        metrics.incr(
-            "taskworker.selfchain.duplicate_skipped",
-            tags={"task": _COORDINATOR_TASK_KEY},
-        )
-        return
-    try:
-        run = DebugFileObjectstoreMigrationRun.objects.get(id=run_id)
-    except DebugFileObjectstoreMigrationRun.DoesNotExist:
-        return
-    if (
-        run.generation != expected_generation
-        or run.status != DebugFileObjectstoreMigrationRunStatus.RUNNING
-    ):
-        metrics.incr("debug_files.objectstore_migration.stale_generation")
-        return
-
-    now = timezone.now()
-    stale_before = now - timedelta(
-        seconds=options.get("debug-files.objectstore-migration.stale-heartbeat-seconds")
-    )
-    run.last_coordinator_at = now
-    run.save(update_fields=["last_coordinator_at", "date_updated"])
-
-    shards = list(run.shards.all().order_by("shard_id"))
-    for shard in shards:
-        if shard.status == DebugFileObjectstoreMigrationShardStatus.PENDING or (
-            shard.status == DebugFileObjectstoreMigrationShardStatus.RUNNING
-            and (shard.heartbeat_at is None or shard.heartbeat_at < stale_before)
-        ):
-            _enqueue_shard(shard)
-
-    counts = dict(
-        run.shards.values_list("status").annotate(count=Count("id")).values_list("status", "count")
-    )
-    active = counts.get(DebugFileObjectstoreMigrationShardStatus.PENDING, 0) + counts.get(
-        DebugFileObjectstoreMigrationShardStatus.RUNNING, 0
-    )
-    if active == 0:
-        if counts.get(DebugFileObjectstoreMigrationShardStatus.FAILED, 0):
-            _finish_run(run, DebugFileObjectstoreMigrationRunStatus.FAILED)
-            return
-        if _reconcile_completed_run(run):
-            return
-
-    coordinate_migration.apply_async(
-        kwargs={"run_id": run.id, "expected_generation": run.generation},
-        countdown=options.get("debug-files.objectstore-migration.coordinator-interval-seconds"),
-        headers={"sentry-propagate-traces": False},
-    )
-    if activation_id:
-        mark_spawned(_COORDINATOR_TASK_KEY, activation_id)
-
-
-def _finish_run(
-    run: DebugFileObjectstoreMigrationRun, status: DebugFileObjectstoreMigrationRunStatus
-) -> None:
-    DebugFileObjectstoreMigrationRun.objects.filter(
-        id=run.id,
-        generation=run.generation,
-        status=DebugFileObjectstoreMigrationRunStatus.RUNNING,
-    ).update(status=status, finished_at=timezone.now())
-
-
-def _reconcile_completed_run(run: DebugFileObjectstoreMigrationRun) -> bool:
-    residuals = list(
-        ProjectDebugFile.objects.filter(id__lte=run.high_water_mark, file_id__isnull=False)
-        .annotate(
-            migration_shard=Func(
-                F("id"),
-                Value(run.shard_count),
-                function="MOD",
-                output_field=IntegerField(),
-            ),
-        )
-        .values("migration_shard")
-        .annotate(min_id=Min("id"))
-    )
-    if not residuals:
-        _finish_run(run, DebugFileObjectstoreMigrationRunStatus.COMPLETED)
-        return True
-
-    database = router.db_for_write(DebugFileObjectstoreMigrationShard)
-    with atomic_transaction(using=database):
-        locked_run = DebugFileObjectstoreMigrationRun.objects.select_for_update().get(id=run.id)
-        if (
-            locked_run.generation != run.generation
-            or locked_run.status != DebugFileObjectstoreMigrationRunStatus.RUNNING
-        ):
-            return True
-        for residual in residuals:
-            DebugFileObjectstoreMigrationShard.objects.filter(
-                run=locked_run,
-                shard_id=residual["migration_shard"],
-                generation=run.generation,
-            ).update(
-                status=DebugFileObjectstoreMigrationShardStatus.PENDING,
-                cursor_id=max(0, residual["min_id"] - 1),
-                heartbeat_at=None,
-                finished_at=None,
+    shards = list(
+        run.shards.filter(
+            status__in=(
+                DebugFileObjectstoreMigrationShardStatus.PENDING,
+                DebugFileObjectstoreMigrationShardStatus.RUNNING,
             )
-    return False
+        ).order_by("shard_id")
+    )
+    for shard in shards:
+        enqueue_shard(shard)
+    return len(shards)
 
 
 def _claim_shard(
@@ -263,15 +164,7 @@ def migrate_shard(
 
     if is_migration_killswitched():
         return
-    migrate_shard.apply_async(
-        kwargs={
-            "run_id": run_id,
-            "shard_id": shard_id,
-            "expected_generation": expected_generation,
-            "expected_task_generation": shard.task_generation,
-        },
-        headers={"sentry-propagate-traces": False},
-    )
+    enqueue_shard(shard)
     if activation_id:
         mark_spawned(_SHARD_TASK_KEY, activation_id)
 

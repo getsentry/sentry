@@ -97,6 +97,8 @@ def create_migration_run(*, shard_count: int) -> DebugFileObjectstoreMigrationRu
 
 def start_migration_run(run_id: int) -> DebugFileObjectstoreMigrationRun:
     ensure_migration_enabled()
+    from sentry.debug_files.objectstore_migration_tasks import enqueue_shard_heads
+
     database = router.db_for_write(DebugFileObjectstoreMigrationRun)
     with atomic_transaction(using=database):
         run = DebugFileObjectstoreMigrationRun.objects.select_for_update().get(id=run_id)
@@ -105,50 +107,69 @@ def start_migration_run(run_id: int) -> DebugFileObjectstoreMigrationRun:
         run.status = DebugFileObjectstoreMigrationRunStatus.RUNNING
         run.started_at = timezone.now()
         run.save(update_fields=["status", "started_at", "date_updated"])
-        generation = run.generation
-
-        from sentry.debug_files.objectstore_migration_tasks import coordinate_migration
-
+        started_run_id = run.id
         transaction.on_commit(
-            lambda: coordinate_migration.delay(run_id=run.id, expected_generation=generation),
+            lambda: enqueue_shard_heads(
+                DebugFileObjectstoreMigrationRun.objects.get(id=started_run_id)
+            ),
             using=database,
         )
     return run
 
 
 def resume_failed_shards(run_id: int, shard_ids: list[int] | None = None) -> int:
+    """Re-enqueue incomplete shards after failure or killswitch stop.
+
+    Failed shards are reset to pending (cursor preserved). Pending/running shards
+    are left as-is and re-seeded onto the queue. Completion/reconcile stays with
+    the future control-plane job.
+    """
     ensure_migration_enabled()
+    from sentry.debug_files.objectstore_migration_tasks import enqueue_shard_heads
+
     database = router.db_for_write(DebugFileObjectstoreMigrationRun)
     with atomic_transaction(using=database):
         run = DebugFileObjectstoreMigrationRun.objects.select_for_update().get(id=run_id)
-        if run.status != DebugFileObjectstoreMigrationRunStatus.FAILED:
-            raise ValueError("Only a failed migration run can be resumed")
+        if run.status not in (
+            DebugFileObjectstoreMigrationRunStatus.FAILED,
+            DebugFileObjectstoreMigrationRunStatus.RUNNING,
+        ):
+            raise ValueError("Only a failed or running migration run can be resumed")
+
         shards = DebugFileObjectstoreMigrationShard.objects.filter(
-            run=run, status=DebugFileObjectstoreMigrationShardStatus.FAILED
+            run=run,
+            status__in=(
+                DebugFileObjectstoreMigrationShardStatus.FAILED,
+                DebugFileObjectstoreMigrationShardStatus.PENDING,
+                DebugFileObjectstoreMigrationShardStatus.RUNNING,
+            ),
         )
         if shard_ids is not None:
             shards = shards.filter(shard_id__in=shard_ids)
-        updated = shards.update(
+
+        # Reset failed shards so they can be claimed again; leave cursors intact.
+        shards.filter(status=DebugFileObjectstoreMigrationShardStatus.FAILED).update(
             status=DebugFileObjectstoreMigrationShardStatus.PENDING,
             failing_debug_file_id=None,
             last_error=None,
             finished_at=None,
             heartbeat_at=None,
         )
-        if not updated:
-            raise ValueError("No failed migration shards matched")
+        incomplete = shards.count()
+        if incomplete == 0:
+            raise ValueError("No incomplete migration shards matched")
+
         run.status = DebugFileObjectstoreMigrationRunStatus.RUNNING
         run.finished_at = None
         run.save(update_fields=["status", "finished_at", "date_updated"])
-        generation = run.generation
-
-        from sentry.debug_files.objectstore_migration_tasks import coordinate_migration
-
+        resumed_run_id = run.id
         transaction.on_commit(
-            lambda: coordinate_migration.delay(run_id=run.id, expected_generation=generation),
+            lambda: enqueue_shard_heads(
+                DebugFileObjectstoreMigrationRun.objects.get(id=resumed_run_id)
+            ),
             using=database,
         )
-    return updated
+    return incomplete
 
 
 def supersede_migration_run(run_id: int) -> None:

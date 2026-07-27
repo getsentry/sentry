@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.debug_files.objectstore_migration_tasks import coordinate_migration, migrate_shard
+from sentry.debug_files.objectstore_migration_tasks import enqueue_shard_heads, migrate_shard
 from sentry.models.debugfile_migration import (
     DebugFileObjectstoreMigrationRunStatus,
     DebugFileObjectstoreMigrationShardStatus,
@@ -19,22 +19,24 @@ class DebugFileObjectstoreMigrationTaskTest(TestCase):
         with override_options({"debug-files.objectstore-migration.killswitch": False}):
             yield
 
-    def test_coordinator_enqueues_pending_shards(self) -> None:
+    def test_enqueue_shard_heads_enqueues_incomplete_shards(self) -> None:
         run = self.create_debug_file_objectstore_migration_run(
             shard_count=2,
             status=DebugFileObjectstoreMigrationRunStatus.RUNNING,
         )
+        completed = run.shards.get(shard_id=0)
+        completed.status = DebugFileObjectstoreMigrationShardStatus.COMPLETED
+        completed.save(update_fields=["status"])
 
-        with (
-            patch(
-                "sentry.debug_files.objectstore_migration_tasks.migrate_shard.apply_async"
-            ) as enqueue_shard,
-            patch.object(coordinate_migration, "apply_async") as enqueue_coordinator,
-        ):
-            coordinate_migration(run.id, run.generation)
+        with patch(
+            "sentry.debug_files.objectstore_migration_tasks.migrate_shard.apply_async"
+        ) as enqueue_shard:
+            asserted = enqueue_shard_heads(run)
 
-        assert enqueue_shard.call_count == 2
-        enqueue_coordinator.assert_called_once()
+        assert asserted == 1
+        assert enqueue_shard.call_count == 1
+        kwargs = enqueue_shard.call_args.kwargs["kwargs"]
+        assert kwargs["shard_id"] == 1
 
     def test_empty_shard_completes_without_successor(self) -> None:
         run = self.create_debug_file_objectstore_migration_run(

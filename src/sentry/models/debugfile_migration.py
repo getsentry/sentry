@@ -40,7 +40,6 @@ class DebugFileObjectstoreMigrationRun(DefaultFieldsModel):
     shard_count = BoundedPositiveIntegerField()
     started_at = models.DateTimeField(null=True)
     finished_at = models.DateTimeField(null=True)
-    last_coordinator_at = models.DateTimeField(null=True)
 
     class Meta:
         app_label = "sentry"

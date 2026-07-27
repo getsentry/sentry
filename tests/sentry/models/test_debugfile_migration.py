@@ -59,10 +59,13 @@ class DebugFileObjectstoreMigrationModelTest(TestCase):
         shard.last_error = "failed"
         shard.save()
 
-        with patch("sentry.debug_files.objectstore_migration_tasks.coordinate_migration.delay"):
+        with patch(
+            "sentry.debug_files.objectstore_migration_tasks.migrate_shard.apply_async"
+        ) as enqueue_shard:
             updated = resume_failed_shards(run.id)
 
         assert updated == 1
+        enqueue_shard.assert_called_once()
         run.refresh_from_db()
         shard.refresh_from_db()
         assert run.status == DebugFileObjectstoreMigrationRunStatus.RUNNING
