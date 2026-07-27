@@ -1,6 +1,6 @@
 """Request a human review on a Seer-authored PR once its CI is green.
 
-Called from the check-suite listener after ``bootstrap_green_check_suite``.
+Called from the check-suite listener after ``confirm_green_check_suite``.
 This module owns the review-request side effect: pick a reviewer, call SCM,
 and record a ``review_requests`` marker.
 

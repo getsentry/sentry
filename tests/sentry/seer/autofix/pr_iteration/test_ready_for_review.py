@@ -8,7 +8,8 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     READY_FOR_REVIEW_EXTRA,
     CheckRunsSweep,
     CheckSuiteAutofixRun,
-    bootstrap_green_check_suite,
+    confirm_green_check_suite,
+    resolve_green_check_suite,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_review
@@ -72,7 +73,10 @@ def _green_event(raw: dict | None = None) -> CheckSuiteEvent:
 
 
 def _mark_ready(event: CheckSuiteEvent | None = None) -> None:
-    ctx = bootstrap_green_check_suite(event or _green_event())
+    resolved = resolve_green_check_suite(event or _green_event())
+    if resolved is None:
+        return
+    ctx = confirm_green_check_suite(resolved)
     if ctx is None:
         return
     mark_ready_for_review(ctx)

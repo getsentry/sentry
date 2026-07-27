@@ -1,6 +1,6 @@
 """Undraft a Seer-authored PR once its tip is confirmed green.
 
-Called from the check-suite listener after ``bootstrap_green_check_suite``.
+Called from the check-suite listener after ``confirm_green_check_suite``.
 Own lock + ``ready_for_review`` marker — unlike ``review_requests``, these only
 skip duplicate GitHub undraft calls.
 

@@ -32,7 +32,6 @@ from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
-from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
@@ -158,6 +157,7 @@ def resolve_check_suite_repositories(event: GithubCheckSuiteEvent) -> list[Repos
             external_id=str(repository_id),
         ).exclude(status=ObjectStatus.HIDDEN)
     )
+
     logger.info(
         "autofix.pr_iteration.check_suite.repository.resolved",
         extra={
@@ -436,22 +436,6 @@ def confirm_green_check_suite(
         pull_request=pull_request,
         head_sha=head_match.head_sha,
     )
-
-
-def bootstrap_green_check_suite(
-    check_suite_event: CheckSuiteEvent,
-) -> GreenCheckSuiteContext | None:
-    """Resolve + confirm. Skips SCM when both green-path markers are already set."""
-    resolved = resolve_green_check_suite(check_suite_event)
-    if resolved is None:
-        return None
-    if (
-        get_run_marker(resolved.seer_run, READY_FOR_REVIEW_EXTRA, resolved.repo_name) is not None
-        and get_run_marker(resolved.seer_run, REVIEW_REQUESTS_EXTRA, resolved.repo_name) is not None
-    ):
-        _skip("already_complete", resolved.log_extra)
-        return None
-    return confirm_green_check_suite(resolved)
 
 
 def _skip(reason: str, log_extra: dict[str, Any]) -> None:
