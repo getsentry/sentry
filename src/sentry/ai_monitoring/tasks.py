@@ -20,11 +20,11 @@ from sentry.ai_monitoring.utils import (
     span_source_timestamp,
 )
 from sentry.models.project import Project
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ai_agent_monitoring_tasks
 from sentry.utils import metrics
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 
 def _is_earliest(source_ts: datetime) -> Q:
@@ -79,9 +79,10 @@ def generate_ai_conversation_title(
         metrics.incr("ai_monitoring.conversation_title.skip", tags={"reason": "later_or_equal_ts"})
         return
 
-    title = generate_conversation_title(
-        first_user_message, viewer_context=SeerViewerContext(organization_id=organization.id)
-    )
+    with viewer_context_scope(
+        ViewerContext(organization_id=organization.id, project_id=project_id)
+    ):
+        title = generate_conversation_title(first_user_message)
     stored_conversation_id = clamp_conversation_id_for_storage(conversation_id)
 
     # Update an existing row only if this span is still the earliest.
