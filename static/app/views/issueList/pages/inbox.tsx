@@ -25,6 +25,7 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
+import {QueryCount} from 'sentry/components/queryCount';
 import {IconArrow, IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {ProgressState, type Group} from 'sentry/types/group';
@@ -45,8 +46,13 @@ const TITLE = t('Inbox');
 const ISSUE_LIMIT = 5;
 const SELECTED_ISSUE_QUERY_PARAM = 'preview';
 const ASSIGNMENT_QUERY_PARAM = 'assignment';
-const ASSIGNMENT_FILTERS = ['me', 'my_teams'] as const;
+const ASSIGNMENT_FILTERS = ['me', 'my_teams', 'all'] as const;
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
+const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
+  me: ' assigned:me',
+  my_teams: ' assigned:[me,my_teams]',
+  all: '',
+};
 
 interface InboxSectionConfig {
   defaultExpanded: boolean;
@@ -107,7 +113,7 @@ function InboxContent() {
   const [assignmentFilter, setAssignmentFilter] = useQueryState(
     ASSIGNMENT_QUERY_PARAM,
     parseAsStringLiteral(ASSIGNMENT_FILTERS)
-      .withDefault('me')
+      .withDefault('my_teams')
       .withOptions({history: 'replace'})
   );
   const [selectedIssueId, setSelectedIssueId] = useQueryState(
@@ -163,6 +169,7 @@ function InboxContent() {
               <SegmentedControl.Item key="my_teams">
                 {t('My Teams')}
               </SegmentedControl.Item>
+              <SegmentedControl.Item key="all">{t('All')}</SegmentedControl.Item>
             </SegmentedControl>
           </Flex>
           <Stack flex={1} minHeight={0} overflowY="auto">
@@ -231,7 +238,7 @@ function InboxSection({
       query: {
         project: selection.projects,
         environment: selection.environments,
-        query: `${section.query} assigned:${assignmentFilter}`,
+        query: `${section.query}${ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter]}`,
         sort: IssueSortOptions.PROGRESS,
         limit: ISSUE_LIMIT,
         expand: ['owners', 'derivedData'],
@@ -247,6 +254,7 @@ function InboxSection({
   });
   const groups = queryResult.data?.pages.flatMap(page => page.json) ?? [];
   const count = queryResult.data?.pages[0]?.headers['X-Hits'] ?? groups.length;
+  const maxCount = queryResult.data?.pages[0]?.headers['X-Max-Hits'];
   const {data: members = []} = useMembers();
   const membersById = new Map(members.map(member => [member.id, member]));
 
@@ -259,7 +267,13 @@ function InboxSection({
     >
       <Container padding="xs" width="100%">
         <Container width="100%" padding="sm" background="secondary" radius="sm">
-          <Disclosure.Title trailingItems={<Badge variant="muted">{count}</Badge>}>
+          <Disclosure.Title
+            trailingItems={
+              <Badge variant="muted">
+                <QueryCount count={count} max={maxCount} hideIfEmpty={false} hideParens />
+              </Badge>
+            }
+          >
             <Flex align="center" gap="sm">
               {getProgressIcon(section.progress)}
               <Heading as="h3" size="md">
