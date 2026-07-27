@@ -143,9 +143,7 @@ export type NotificationSelection = {
 
 /**
  * Builds the raw {provider, integrationId, channel} snapshot of the current
- * messaging selection. For callers (the SCM wizard) that persist their own
- * selection directly rather than a flattened `IntegrationAction`. Returns
- * undefined if there's no provider/integration selected.
+ * messaging selection. Returns undefined if there's no provider/integration selected.
  */
 export function buildNotificationSelection({
   provider,
@@ -163,8 +161,7 @@ export function buildNotificationSelection({
 /**
  * Result of resolving the initial notification-picker selection, computed
  * from whatever restore source a caller-specific hook uses (a persisted
- * rule action, a raw stored selection, etc). `useNotificationPicker` applies
- * this uniformly so the restore logic itself can differ per caller.
+ * rule action, a raw stored selection, etc).
  */
 type RestoreOutcome =
   | {kind: 'auto'}
@@ -186,9 +183,7 @@ type RestoreResolver = (
  * Flow-agnostic base for the messaging-integration notification picker: owns
  * the integrations query, picker state, the once-only restore/auto-select
  * effect, and the create-rule side effect. Callers only supply how to
- * resolve the initial selection via `resolveRestore` — see
- * `useCreateNotificationAction` (restores from a persisted rule action) and
- * `useScmNotificationAction` (restores from a raw stored selection).
+ * resolve the initial selection via `resolveRestore`.
  */
 function useNotificationPicker(resolveRestore: RestoreResolver) {
   const organization = useOrganization();

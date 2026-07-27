@@ -193,9 +193,7 @@ export function useScmProjectDetails({
 
   // Provides the messaging-integration notification picker (notificationProps,
   // rendered in ScmAlertFrequencySection) and the side-effect that creates the
-  // chosen notification rule at project creation. Restores directly from the
-  // raw provider/integrationId/channel fields stored in the wizard's form
-  // state, with no decoding step.
+  // chosen notification rule at project creation.
   const {createNotificationAction, notificationProps} = useScmNotificationAction({
     provider: restoredNotificationSelectionRef.current?.provider,
     integrationId: restoredNotificationSelectionRef.current?.integrationId,
