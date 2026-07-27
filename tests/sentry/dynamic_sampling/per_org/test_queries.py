@@ -10,15 +10,11 @@ from sentry.dynamic_sampling.per_org.configuration import (
     BaseDynamicSamplingConfiguration,
     get_configuration,
 )
-from sentry.dynamic_sampling.per_org.gate import (
-    TRANSACTION_VOLUMES_PER_PROJECT_ROLLOUT_RATE_OPTION,
-)
 from sentry.dynamic_sampling.per_org.queries import (
     DynamicSamplingQueryFields,
     DynamicSamplingQueryFilters,
     ProjectTransactionCounts,
     ProjectVolume,
-    _get_eap_transaction_volumes_org_wide,
     get_eap_organization_volume,
     get_eap_project_volumes,
     get_eap_transaction_volumes,
@@ -463,13 +459,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ]
         )
 
-        with self.options({TRANSACTION_VOLUMES_PER_PROJECT_ROLLOUT_RATE_OPTION: 1.0}):
-            volumes = get_eap_transaction_volumes(self.get_config(organization))
-
-        org_wide_volumes = _get_eap_transaction_volumes_org_wide(
-            self.get_config(organization),
-            order_by_volume="desc",
-        )
+        volumes = get_eap_transaction_volumes(self.get_config(organization))
 
         expected = [
             ProjectTransactionCounts(
@@ -484,7 +474,6 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ),
         ]
         assert volumes == expected
-        assert org_wide_volumes == expected
 
     def test_get_eap_transaction_volumes_filters_by_root_projects(self) -> None:
         organization = self.create_organization()
@@ -534,28 +523,16 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             )
         ]
 
-        # Default rollout rate of 0.0 selects the org-wide query.
         volumes = get_eap_transaction_volumes(
             self.get_config(organization),
             root_projects=[project],
         )
         assert volumes == expected
 
-        with self.options({TRANSACTION_VOLUMES_PER_PROJECT_ROLLOUT_RATE_OPTION: 1.0}):
-            volumes = get_eap_transaction_volumes(
-                self.get_config(organization),
-                root_projects=[project],
-            )
-        assert volumes == expected
-
     def test_get_eap_transaction_volumes_without_projects(self) -> None:
         organization = self.create_organization()
 
         volumes = get_eap_transaction_volumes(self.get_config(organization))
-        assert volumes == []
-
-        with self.options({TRANSACTION_VOLUMES_PER_PROJECT_ROLLOUT_RATE_OPTION: 1.0}):
-            volumes = get_eap_transaction_volumes(self.get_config(organization))
         assert volumes == []
 
     def test_get_eap_transaction_volumes_attributes_to_originating_project(self) -> None:
@@ -591,12 +568,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             )
         ]
 
-        # Default rollout rate of 0.0 selects the org-wide query.
         volumes = get_eap_transaction_volumes(self.get_config(organization))
-        assert volumes == expected
-
-        with self.options({TRANSACTION_VOLUMES_PER_PROJECT_ROLLOUT_RATE_OPTION: 1.0}):
-            volumes = get_eap_transaction_volumes(self.get_config(organization))
         assert volumes == expected
 
     def test_get_eap_transaction_volumes_caps_transactions_per_project(self) -> None:
@@ -636,11 +608,10 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ]
         )
 
-        with self.options({TRANSACTION_VOLUMES_PER_PROJECT_ROLLOUT_RATE_OPTION: 1.0}):
-            volumes = get_eap_transaction_volumes(
-                self.get_config(organization),
-                max_transactions_per_project=2,
-            )
+        volumes = get_eap_transaction_volumes(
+            self.get_config(organization),
+            max_transactions_per_project=2,
+        )
 
         assert volumes == [
             ProjectTransactionCounts(
@@ -654,15 +625,6 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                 transaction_counts=[("delta", 1)],
             ),
         ]
-
-        # At the default rollout rate of 0.0 the org-wide query runs instead, which has
-        # no per-project cap: project/gamma is included.
-        volumes = get_eap_transaction_volumes(
-            self.get_config(organization),
-            max_transactions_per_project=2,
-        )
-        volumes_by_project = {volume.project_id: volume for volume in volumes}
-        assert ("gamma", 1) in volumes_by_project[project.id].transaction_counts
 
     def test_get_eap_transaction_volumes_reads_cap_from_legacy_option(self) -> None:
         organization = self.create_organization()
@@ -694,7 +656,6 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
 
         with self.options(
             {
-                TRANSACTION_VOLUMES_PER_PROJECT_ROLLOUT_RATE_OPTION: 1.0,
                 "dynamic-sampling.prioritise_transactions.num_explicit_large_transactions": 1,
             }
         ):
@@ -743,71 +704,14 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             spans.append(segment("quiet-high", quiet_project, 20 + i))
         self.store_spans(spans)
 
-        with self.options({TRANSACTION_VOLUMES_PER_PROJECT_ROLLOUT_RATE_OPTION: 1.0}):
-            volumes = get_eap_transaction_volumes(
-                self.get_config(organization),
-                max_transactions_per_project=3,
-            )
+        volumes = get_eap_transaction_volumes(
+            self.get_config(organization),
+            max_transactions_per_project=3,
+        )
 
         volumes_by_project = {volume.project_id: volume for volume in volumes}
         assert len(volumes_by_project[busy_project.id].transaction_counts) == 3
         assert volumes_by_project[quiet_project.id].transaction_counts == [
             ("quiet-high", 3),
             ("quiet-low", 2),
-        ]
-
-    def test_get_eap_transaction_volumes_org_wide_caps_total_rows(self) -> None:
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
-        other_project = self.create_project(organization=organization)
-        timestamp = before_now(minutes=15)
-
-        def segment(transaction, root_project_id, project, offset):
-            return self.create_span(
-                {
-                    "is_segment": True,
-                    "sentry_tags": {
-                        "transaction": transaction,
-                        "dsc.transaction": transaction,
-                        "dsc.project_id": str(root_project_id),
-                    },
-                },
-                organization=organization,
-                project=project,
-                start_ts=timestamp + timedelta(seconds=offset),
-            )
-
-        self.store_spans(
-            [
-                # project/alpha → count = 3
-                segment("alpha", project.id, project, 0),
-                segment("alpha", project.id, project, 1),
-                segment("alpha", project.id, project, 2),
-                # other_project/beta → count = 2
-                segment("beta", other_project.id, other_project, 3),
-                segment("beta", other_project.id, other_project, 4),
-                # project/gamma → count = 1 (excluded by the global cap)
-                segment("gamma", project.id, project, 5),
-            ]
-        )
-
-        volumes = _get_eap_transaction_volumes_org_wide(
-            self.get_config(organization),
-            order_by_volume="desc",
-            max_transactions=2,
-        )
-
-        # Top 2 rows globally: project/alpha (3) and other_project/beta (2);
-        # project/gamma is excluded by the cap.
-        assert volumes == [
-            ProjectTransactionCounts(
-                org_id=organization.id,
-                project_id=project.id,
-                transaction_counts=[("alpha", 3)],
-            ),
-            ProjectTransactionCounts(
-                org_id=organization.id,
-                project_id=other_project.id,
-                transaction_counts=[("beta", 2)],
-            ),
         ]

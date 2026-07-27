@@ -20,6 +20,7 @@ import {
 import {
   sentryAppApiOptions,
   sentryAppsApiOptions,
+  sentryAppTokensApiOptions,
 } from 'sentry/actionCreators/sentryApps';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
 import {Confirm} from 'sentry/components/confirm';
@@ -48,9 +49,7 @@ import type {
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -64,9 +63,8 @@ import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler'
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import type {WebhookSubscription} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {
-  EVENT_CHOICES,
   granularWebhookEvents,
-  WEBHOOK_GRANULAR_EVENT_CHOICES,
+  WEBHOOK_SUBSCRIPTION_CHOICES,
 } from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {
   getSentryAppTemplates,
@@ -120,9 +118,7 @@ const sentryAppBaseSchema = z.object({
   organization: z.string(),
   isInternal: z.boolean(),
   scopes: z.array(z.enum(ALLOWED_SCOPES)),
-  events: z.array(
-    z.union([z.enum(EVENT_CHOICES), z.enum(WEBHOOK_GRANULAR_EVENT_CHOICES)])
-  ),
+  events: z.array(z.enum(WEBHOOK_SUBSCRIPTION_CHOICES)),
 });
 
 type SentryAppFormValues = z.infer<typeof sentryAppBaseSchema>;
@@ -243,14 +239,6 @@ type SaveSentryAppPayload = {
 
 type RotateSecretResponse = {
   clientSecret: string;
-};
-
-const makeSentryAppApiTokensQueryKey = (appSlug: string): ApiQueryKey => {
-  return [
-    getApiUrl('/sentry-apps/$sentryAppIdOrSlug/api-tokens/', {
-      path: {sentryAppIdOrSlug: appSlug},
-    }),
-  ];
 };
 
 function getSchemaFieldValue(schema: SentryApp['schema'] | null | undefined) {
@@ -597,9 +585,8 @@ export default function SentryApplicationDetails() {
     },
   });
 
-  const {data: tokens = []} = useApiQuery<InternalAppApiToken[]>(
-    makeSentryAppApiTokensQueryKey(appSlug ?? ''),
-    {staleTime: 30_000, enabled: !!appSlug}
+  const {data: tokens = []} = useQuery(
+    sentryAppTokensApiOptions({appSlug: appSlug ?? null})
   );
 
   return (
@@ -796,6 +783,7 @@ function SentryAppEditForm({
 
   const isInternal = app.status === 'internal';
   const sentryAppQueryOptions = sentryAppApiOptions({appSlug: app.slug});
+  const sentryAppTokensQueryOptions = sentryAppTokensApiOptions({appSlug: app.slug});
 
   const [newTokens, setNewTokens] = useState<NewInternalAppApiToken[]>([]);
   const {handleSaveError, saveSentryAppMutation, scopeErrors} = useSaveSentryApp({
@@ -845,10 +833,7 @@ function SentryAppEditForm({
       }),
   });
 
-  // Older API responses only send the consolidated resource list
-  const initialEvents: WebhookSubscription[] = granularWebhookEvents(
-    app.webhookEvents ?? app.events
-  );
+  const initialEvents = granularWebhookEvents(app.webhookEvents);
 
   const hasTokenAccess = () => {
     return organization.access.includes('org:write');
@@ -867,14 +852,20 @@ function SentryAppEditForm({
   const handleFinishNewToken = (newToken: NewInternalAppApiToken) => {
     const updatedNewTokens = newTokens.filter(token => token.id !== newToken.id);
     const updatedTokens = tokens.concat(newToken);
-    setApiQueryData(queryClient, makeSentryAppApiTokensQueryKey(app.slug), updatedTokens);
+    queryClient.setQueryData(sentryAppTokensQueryOptions.queryKey, {
+      json: updatedTokens,
+      headers: {},
+    });
     setNewTokens(updatedNewTokens);
   };
 
   const onRemoveToken = async (token: InternalAppApiToken) => {
     const updatedTokens = tokens.filter(tok => tok.id !== token.id);
     await removeTokenMutation.mutateAsync({sentryAppSlug: app.slug, tokenId: token.id});
-    setApiQueryData(queryClient, makeSentryAppApiTokensQueryKey(app.slug), updatedTokens);
+    queryClient.setQueryData(sentryAppTokensQueryOptions.queryKey, {
+      json: updatedTokens,
+      headers: {},
+    });
   };
 
   const renderTokens = () => {
