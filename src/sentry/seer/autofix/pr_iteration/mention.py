@@ -73,7 +73,9 @@ def _dispatch_autofix_iteration_from_comment(
     log_extra: Mapping[str, Any],
 ) -> None:
     try:
-        feedback = Feedback(source=GithubPrCommentFeedbackSource(comment=comment))
+        feedback = Feedback(
+            source=GithubPrCommentFeedbackSource(comment=comment, repo_name=repo.name)
+        )
     except ValidationError:
         logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_command", extra=log_extra)
         return None

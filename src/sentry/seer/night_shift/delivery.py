@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from typing import Any
+from uuid import UUID
 
 import sentry_sdk
 
@@ -15,7 +16,12 @@ from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_agent
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.issue_summary import referrer_map
-from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    bulk_read_preferences_from_sentry_db,
+    is_seer_autotriggered_autofix_rate_limited_and_increment,
+    is_seer_seat_based_tier_enabled,
+)
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
     SeerNightShiftRunResult,
@@ -35,7 +41,7 @@ REASON_MAX_CHARS = 2048
 
 def deliver_night_shift_result(
     organization_id: int,
-    run_uuid: str,
+    run_uuid: UUID,
     status: FeatureRunStatus,
     result: dict[str, Any] | None,
     error: str | None,
@@ -174,7 +180,8 @@ def _process_verdicts(
         )
 
     reason_by_group_id = {v.group_id: v.reason for v in verdicts}
-    state_id_by_group: dict[int, int] = {}
+    run_by_group: dict[int, SeerRun] = {}
+    rate_limited_group_ids: set[int] = set()
     if not dry_run and fixable_groups:
         # Cache organization on each group's project to avoid N+1 queries
         for group in groups_by_id.values():
@@ -194,7 +201,17 @@ def _process_verdicts(
         }
 
         referrer = referrer_map[SeerAutomationSource.NIGHT_SHIFT]
+
+        # Rate limit only applies to legacy org plans
+        check_rate_limit = not is_seer_seat_based_tier_enabled(organization)
+
         for group in fixable_groups:
+            if check_rate_limit and is_seer_autotriggered_autofix_rate_limited_and_increment(
+                group.project, organization
+            ):
+                rate_limited_group_ids.add(group.id)
+                continue
+
             reason = reason_by_group_id[group.id]
             user_context = (
                 f"Night-shift triage already investigated this issue and concluded:\n{reason}"
@@ -202,7 +219,7 @@ def _process_verdicts(
                 else None
             )
             try:
-                state_id_by_group[group.id] = trigger_autofix_agent(
+                run_by_group[group.id] = trigger_autofix_agent(
                     group=group,
                     step=AutofixStep.ROOT_CAUSE,
                     referrer=referrer,
@@ -215,13 +232,15 @@ def _process_verdicts(
                     extra={**log_extra, "group_id": group.id},
                 )
 
-        sentry_sdk.metrics.count("night_shift.autofix_triggered", len(state_id_by_group))
-
-    # TODO: have trigger_autofix_agent return the SeerRun directly to avoid this lookup.
-    seer_run_by_state_id = {
-        sr.seer_run_state_id: sr
-        for sr in SeerRun.objects.filter(seer_run_state_id__in=state_id_by_group.values())
-    }
+        sentry_sdk.metrics.count("night_shift.autofix_triggered", len(run_by_group))
+        if rate_limited_group_ids:
+            sentry_sdk.metrics.count(
+                "night_shift.autofix_rate_limited", len(rate_limited_group_ids)
+            )
+            logger.info(
+                "night_shift.autofix_rate_limited",
+                extra={**log_extra, "num_rate_limited": len(rate_limited_group_ids)},
+            )
 
     rows: list[SeerNightShiftRunResult] = []
     for v in verdicts:
@@ -233,12 +252,14 @@ def _process_verdicts(
         seer_run_id: str | None = None
         result_seer_run: SeerRun | None = None
         if v.action == TriageAction.AUTOFIX and not dry_run:
-            state_id = state_id_by_group.get(v.group_id)
-            if state_id is None:
-                extras["trigger_error"] = True
+            result_seer_run = run_by_group.get(v.group_id)
+            if result_seer_run is None:
+                if v.group_id in rate_limited_group_ids:
+                    extras["rate_limited"] = True
+                else:
+                    extras["trigger_error"] = True
             else:
-                seer_run_id = str(state_id)
-                result_seer_run = seer_run_by_state_id.get(state_id)
+                seer_run_id = str(result_seer_run.seer_run_state_id)
         rows.append(
             SeerNightShiftRunResult(
                 run=run,
@@ -265,8 +286,8 @@ def _process_verdicts(
                     "group_id": v.group_id,
                     "action": v.action,
                     "seer_run_id": (
-                        str(state_id)
-                        if (state_id := state_id_by_group.get(v.group_id)) is not None
+                        str(r.seer_run_state_id)
+                        if (r := run_by_group.get(v.group_id)) is not None
                         else None
                     ),
                 }

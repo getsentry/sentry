@@ -13,6 +13,7 @@ import {
   getAlertRuleMetricsUrl,
 } from 'sentry/views/alerts/rules/utils';
 import {getMetricRuleDiscoverUrl} from 'sentry/views/alerts/utils/getMetricRuleDiscoverUrl';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface PresetCta {
@@ -52,7 +53,9 @@ export function makeDefaultCta({
 }: PresetCtaOpts): PresetCta {
   if (!rule) {
     return {
-      buttonText: t('Open in Discover'),
+      buttonText: getDiscoverDeprecation(organization)
+        ? t('Open in Explore')
+        : t('Open in Discover'),
       to: '',
     };
   }
@@ -96,7 +99,9 @@ export function makeDefaultCta({
   };
 
   return {
-    buttonText: t('Open in Discover'),
+    buttonText: getDiscoverDeprecation(organization)
+      ? t('Open in Explore')
+      : t('Open in Discover'),
     to: getMetricRuleDiscoverUrl({
       organization,
       projects,

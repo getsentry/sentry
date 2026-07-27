@@ -20,6 +20,7 @@ type AssignmentSource =
   | 'codeowners'
   | 'ownershipRule'
   | 'projectOwnership'
+  | 'seerSuggested'
   | 'suspectCommit'
   | 'suspectCommitter';
 
@@ -112,6 +113,8 @@ function getAssignmentSourceLabel(source: AssignmentDetails['source']) {
     case 'suspectCommit':
     case 'suspectCommitter':
       return t('Based on commit data');
+    case 'seerSuggested':
+      return t('Seer Suggestion');
     default:
       return null;
   }

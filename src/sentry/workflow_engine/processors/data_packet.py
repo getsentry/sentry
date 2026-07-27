@@ -1,12 +1,13 @@
 from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.processors.data_source import process_data_source
 from sentry.workflow_engine.processors.detector import process_detectors
-from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorGroupKey
+from sentry.workflow_engine.types import DetectorGroupKey
 
 
 def process_data_packet[T](
     data_packet: DataPacket[T], query_type: str
-) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
+) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]]:
     """
     This method ties the two main pre-processing methods together to process
     the incoming data and create issue occurrences.

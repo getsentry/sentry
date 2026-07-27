@@ -9,14 +9,22 @@ from scm import actions as scm_actions
 from scm.errors import ResourceNotFound
 from scm.manager import SourceCodeManager
 from scm.types import (
+    Author,
     CreatePullRequestCommentReactionProtocol,
     CreateReviewCommentReactionProtocol,
+    DeletePullRequestCommentReactionProtocol,
+    DeleteReviewCommentReactionProtocol,
     DiffLine,
+    GetAuthenticatedActorProtocol,
+    GetPullRequestCommentReactionsProtocol,
     GetPullRequestReviewProtocol,
     GetRepositoryUserPermissionProtocol,
+    GetReviewCommentReactionsProtocol,
     GetReviewCommentsProtocol,
     PaginationParams,
     Reaction,
+    ReactionResult,
+    ResourceId,
     Review,
     ReviewComment,
 )
@@ -294,6 +302,69 @@ def _add_comment_reaction(
             )
     except Exception as e:
         sentry_sdk.capture_exception(e)
+
+
+def _delete_own_comment_eyes_reaction(
+    scm: SourceCodeManager,
+    *,
+    source_type: GithubPrCommentFeedbackType,
+    pr_number: int,
+    comment_id: int,
+) -> None:
+    """Remove the :eyes: we added at trigger time, completing the :eyes:->:tada: swap.
+
+    Both top-level PR comments and inline review comments get the trigger-time
+    :eyes:, so both are cleaned up here. GitHub keeps issue-comment and
+    review-comment reactions in separate namespaces, so the get/delete calls are
+    dispatched off ``source_type``.
+    """
+    if not isinstance(scm, GetAuthenticatedActorProtocol):
+        logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
+        return
+
+    def _own_eyes_reaction_ids(reactions: list[ReactionResult], actor_id: ResourceId) -> list[str]:
+        return [
+            str(reaction["id"])
+            for reaction in reactions
+            if reaction["content"] == "eyes"
+            and (author := reaction.get("author")) is not None
+            and author["id"] == actor_id
+        ]
+
+    try:
+        actor = scm_actions.get_authenticated_actor(scm)
+        actor_id = actor["data"]["id"]
+
+        # GitHub keeps issue-comment and review-comment reactions in separate
+        # namespaces, so the get/delete calls are dispatched off ``source_type``.
+        if source_type == "github-pr-review-comment":
+            if not (
+                isinstance(scm, GetReviewCommentReactionsProtocol)
+                and isinstance(scm, DeleteReviewCommentReactionProtocol)
+            ):
+                logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
+                return
+            result = scm_actions.get_review_comment_reactions(scm, str(pr_number), str(comment_id))
+            for reaction_id in _own_eyes_reaction_ids(result["data"], actor_id):
+                scm_actions.delete_review_comment_reaction(
+                    scm, str(pr_number), str(comment_id), reaction_id
+                )
+        else:
+            if not (
+                isinstance(scm, GetPullRequestCommentReactionsProtocol)
+                and isinstance(scm, DeletePullRequestCommentReactionProtocol)
+            ):
+                logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
+                return
+            result = scm_actions.get_pull_request_comment_reactions(
+                scm, str(pr_number), str(comment_id)
+            )
+            for reaction_id in _own_eyes_reaction_ids(result["data"], actor_id):
+                scm_actions.delete_pull_request_comment_reaction(
+                    scm, str(pr_number), str(comment_id), reaction_id
+                )
+    except Exception:
+        logger.exception("autofix.pr_iteration.completion_reaction.delete_eyes_failed")
 
 
 def _comment_pr_iteration_ineligible(
@@ -601,13 +672,18 @@ def _build_review_feedback(
     *,
     review_id: int,
     review_html_url: str | None,
+    review_state: str | None,
+    review_author: Author | None,
     author_is_bot: bool,
 ) -> list[Feedback]:
     """Normalize a submitted review into feedback items.
 
     Each inline comment becomes an anchored ``GithubPrReviewCommentFeedbackSource``
     (command gate relaxed) and the review's summary body, if any, becomes its own
-    non-anchored ``GithubPrReviewBodyFeedbackSource``.
+    non-anchored ``GithubPrReviewBodyFeedbackSource``. Every item carries the
+    shared ``review_id`` so the UI can group them under one review; the review's
+    ``review_state`` (approved / changes requested / commented) lives on the body
+    source, the review's own representation.
 
     ``author_is_bot`` marks the resulting feedback as automated so it counts
     toward the automated-iteration streak cap (see ``automated_iteration_cap_reached``).
@@ -632,15 +708,19 @@ def _build_review_feedback(
             user=GithubPrCommentUser(login=author["username"] if author else None),
         )
         source = GithubPrReviewCommentFeedbackSource(
-            comment=review_comment, author_is_bot=author_is_bot
+            comment=review_comment,
+            review_id=review_id,
+            author_is_bot=author_is_bot,
         )
         feedback.append(Feedback(source=source))
 
     if review_body:
         body_source = GithubPrReviewBodyFeedbackSource(
             review_id=review_id,
+            review_state=review_state,
             body=review_body,
             html_url=review_html_url,
+            user=GithubPrCommentUser(login=review_author["username"] if review_author else None),
             author_is_bot=author_is_bot,
         )
         feedback.append(Feedback(source=body_source))
@@ -768,6 +848,8 @@ def trigger_pr_iteration_from_review(
     review = _fetch_review_body(scm, pr_number=pr_number, review_id=review_id)
     review_body = (review.get("body") or "").strip() if review else None
     review_html_url = review.get("html_url") if review else None
+    review_state = review.get("state") if review else None
+    review_author = review.get("author") if review else None
 
     # Skip genuinely empty reviews — no body text AND no inline comments — there
     # is nothing to act on (e.g. a bare approve with no message). A review with
@@ -781,6 +863,8 @@ def trigger_pr_iteration_from_review(
         review_body,
         review_id=review_id,
         review_html_url=review_html_url,
+        review_state=review_state,
+        review_author=review_author,
         author_is_bot=author_is_bot,
     )
     if not feedback_items:
