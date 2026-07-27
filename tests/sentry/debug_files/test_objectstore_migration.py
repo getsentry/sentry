@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 from unittest.mock import patch
 
 import pytest
@@ -16,7 +17,7 @@ from sentry.testutils.skips import requires_objectstore
 
 class DebugFileObjectstoreMigrationTest(TestCase):
     @pytest.fixture(autouse=True)
-    def enable_migration(self):
+    def enable_migration(self) -> Generator[None]:
         with override_options({"debug-files.objectstore-migration.killswitch": False}):
             yield
 
@@ -29,19 +30,19 @@ class DebugFileObjectstoreMigrationTest(TestCase):
         )
         file.putfile(ContentFile(b"debug-file-contents"))
         self.debug_file = self.create_dif_file(project=self.project, file=file)
-        self.run = self.create_debug_file_objectstore_migration_run(
+        self.migration_run = self.create_debug_file_objectstore_migration_run(
             high_water_mark=self.debug_file.id,
             status=DebugFileObjectstoreMigrationRunStatus.RUNNING,
         )
-        self.shard = self.run.shards.get()
+        self.shard = self.migration_run.shards.get()
         self.shard.task_generation = 1
         self.shard.save(update_fields=["task_generation"])
 
     def migrate(self):
         return migrate_debug_file(
-            run_id=self.run.id,
+            run_id=self.migration_run.id,
             shard_id=self.shard.shard_id,
-            expected_generation=self.run.generation,
+            expected_generation=self.migration_run.generation,
             task_generation=self.shard.task_generation,
             debug_file_id=self.debug_file.id,
         )
@@ -97,8 +98,8 @@ class DebugFileObjectstoreMigrationTest(TestCase):
 
     @requires_objectstore
     def test_stale_generation_does_not_cut_over(self) -> None:
-        self.run.generation += 1
-        self.run.save(update_fields=["generation"])
+        self.migration_run.generation += 1
+        self.migration_run.save(update_fields=["generation"])
 
         with pytest.raises(RuntimeError, match="Stale migration task"):
             self.migrate()

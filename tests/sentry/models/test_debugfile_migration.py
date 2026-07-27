@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 from unittest.mock import patch
 
 import pytest
@@ -21,7 +22,7 @@ from sentry.testutils.helpers.options import override_options
 
 class DebugFileObjectstoreMigrationModelTest(TestCase):
     @pytest.fixture(autouse=True)
-    def enable_migration(self):
+    def enable_migration(self) -> Generator[None]:
         with override_options({"debug-files.objectstore-migration.killswitch": False}):
             yield
 

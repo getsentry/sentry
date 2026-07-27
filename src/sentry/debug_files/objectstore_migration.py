@@ -215,6 +215,8 @@ def _verify_object(
     digest = hashlib.sha1()
     size = 0
     response = session.get(storage_path)
+    if response is None:
+        return None
     try:
         while chunk := response.payload.read(1024 * 1024):
             digest.update(chunk)
