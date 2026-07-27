@@ -8,7 +8,7 @@ import type {Alignments} from 'sentry/components/tables/gridEditable';
 import {IconArrow} from 'sentry/icons';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-export type Directions = 'desc' | 'asc' | undefined;
+export type ColumnSort = 'desc' | 'asc' | undefined;
 
 type Props = {
   align: Alignments;
