@@ -99,11 +99,7 @@ export function ReleaseCardProjectRow({
   );
 
   const crashFreeRate = getHealthData.getCrashFreeRate(releaseVersion, id, activeDisplay);
-  const releaseCount = getHealthData.getCountByRelease(
-    releaseVersion,
-    id,
-    activeDisplay
-  );
+  const releaseCount = getHealthData.getCountByRelease(releaseVersion, id, activeDisplay);
   const get24hCountByProject = getHealthData.get24hCountByProject(id, activeDisplay);
   const timeSeries = getHealthData.getTimeSeries(releaseVersion, id, activeDisplay);
   const adoption = getHealthData.getAdoption(releaseVersion, id, activeDisplay);

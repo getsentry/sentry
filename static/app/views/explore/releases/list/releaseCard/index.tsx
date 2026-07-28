@@ -226,9 +226,7 @@ export function ReleaseCard({
             </AdoptionColumn>
             <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
             <CountColumn>
-              {activeDisplay === ReleasesDisplayOption.USERS
-                ? t('Users')
-                : t('Sessions')}
+              {activeDisplay === ReleasesDisplayOption.USERS ? t('Users') : t('Sessions')}
             </CountColumn>
             <DisplaySmallCol>{t('Crashes')}</DisplaySmallCol>
             <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
