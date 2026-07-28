@@ -172,10 +172,28 @@ describe('InboxPage', () => {
     ];
   }
 
-  function mockIssuePreview() {
+  function mockIssuePreview({
+    markSeenResponse = {...fixProposedGroup, hasSeen: true},
+    markSeenStatusCode = 200,
+  }: {
+    markSeenResponse?: typeof fixProposedGroup;
+    markSeenStatusCode?: number;
+  } = {}) {
+    let previewHasSeen = fixProposedGroup.hasSeen;
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
-      body: fixProposedGroup,
+      body: () => ({...fixProposedGroup, hasSeen: previewHasSeen}),
+    });
+    const markSeenRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
+      method: 'PUT',
+      body: () => {
+        if (markSeenStatusCode < 400) {
+          previewHasSeen = markSeenResponse.hasSeen;
+        }
+        return markSeenResponse;
+      },
+      statusCode: markSeenStatusCode,
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/setup/`,
@@ -217,6 +235,8 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/users/',
       body: [],
     });
+
+    return markSeenRequest;
   }
 
   function mockAutofixResponse(body: ReturnType<typeof ExplorerAutofixResponseFixture>) {
@@ -396,6 +416,62 @@ describe('InboxPage', () => {
     for (const request of allRequests) {
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
     }
+  });
+
+  it('marks an issue as seen and clears its unread indicator when previewed', async () => {
+    const sectionRequests = mockSuccessfulSections();
+    const markSeenRequest = mockIssuePreview();
+
+    render(<InboxPage />, {organization, initialRouterConfig});
+
+    const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
+    expect(await within(fixSection).findByLabelText('Unread issue')).toBeInTheDocument();
+
+    await openFixProposedPreview();
+
+    await waitFor(() =>
+      expect(markSeenRequest).toHaveBeenCalledWith(
+        `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
+        expect.objectContaining({method: 'PUT', data: {hasSeen: true}})
+      )
+    );
+
+    await waitFor(() =>
+      expect(within(fixSection).queryByLabelText('Unread issue')).not.toBeInTheDocument()
+    );
+    expect(sectionRequests[0]).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps an issue unread when marking it seen fails', async () => {
+    mockSuccessfulSections();
+    const markSeenRequest = mockIssuePreview({markSeenStatusCode: 500});
+
+    render(<InboxPage />, {organization, initialRouterConfig});
+
+    const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
+    expect(await within(fixSection).findByLabelText('Unread issue')).toBeInTheDocument();
+
+    await openFixProposedPreview();
+
+    await waitFor(() => expect(markSeenRequest).toHaveBeenCalledTimes(1));
+    expect(within(fixSection).getByLabelText('Unread issue')).toBeInTheDocument();
+  });
+
+  it('keeps an issue unread when the server does not mark it seen', async () => {
+    mockSuccessfulSections();
+    const markSeenRequest = mockIssuePreview({
+      markSeenResponse: {...fixProposedGroup, hasSeen: false},
+    });
+
+    render(<InboxPage />, {organization, initialRouterConfig});
+
+    const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
+    expect(await within(fixSection).findByLabelText('Unread issue')).toBeInTheDocument();
+
+    await openFixProposedPreview();
+
+    await waitFor(() => expect(markSeenRequest).toHaveBeenCalledTimes(1));
+    expect(within(fixSection).getByLabelText('Unread issue')).toBeInTheDocument();
   });
 
   it('loads and appends the next page of a section', async () => {

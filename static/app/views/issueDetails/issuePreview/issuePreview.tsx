@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -14,6 +14,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Group} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -37,6 +38,7 @@ import {IssuePreviewSeerActions} from 'sentry/views/issueDetails/issuePreview/is
 import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/sidebar/externalIssueSidebarList';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
+import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
@@ -48,10 +50,23 @@ interface IssuePreviewProps {
   groupId: string;
 }
 
+function useMarkPreviewedGroupSeen(group: Group | undefined) {
+  const {mutate: markGroupSeen} = useMarkGroupSeen();
+  const groupId = group && !group.hasSeen ? group.id : undefined;
+
+  useEffect(() => {
+    if (groupId) {
+      markGroupSeen(groupId);
+    }
+  }, [groupId, markGroupSeen]);
+}
+
 export function IssuePreview({groupId}: IssuePreviewProps) {
   const {data: group, isPending, isError} = useGroup({groupId});
   const {projects} = useProjects();
   const project = projects.find(p => p.id === group?.project.id) ?? group?.project;
+
+  useMarkPreviewedGroupSeen(group);
 
   return (
     <Fragment>
