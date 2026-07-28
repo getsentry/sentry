@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from django.db.models import F
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_sdk import trace
 
@@ -81,6 +82,32 @@ def clamp_conversation_id_for_storage(conversation_id: str) -> str:
     if len(conversation_id) <= CONVERSATION_ID_MAX_LENGTH:
         return conversation_id
     return conversation_id[:CONVERSATION_ID_TRUNCATE_TO] + "..."
+
+
+def fetch_conversation_title(
+    conversation_id: str,
+    project_ids: Collection[int],
+) -> AIConversationMetadata | None:
+    """Look up the titled metadata row for one conversation across the given projects.
+
+    A conversation id is only unique within a project, so the same id can be titled in
+    several projects. The earliest title wins: titles come from the first user message,
+    so the smallest ``title_source_timestamp`` is the one closest to the start of the
+    conversation. Ordering happens in the database; ``project_id`` only breaks ties.
+    """
+    if not project_ids:
+        return None
+
+    return (
+        AIConversationMetadata.objects.filter(
+            project_id__in=set(project_ids),
+            conversation_id_hash=conversation_id_hash(conversation_id),
+            title__isnull=False,
+        )
+        .exclude(title="")
+        .order_by(F("title_source_timestamp").asc(nulls_last=True), "project_id")
+        .first()
+    )
 
 
 def fetch_conversation_titles(
