@@ -25,7 +25,6 @@ from .dashboard import *  # NOQA
 from .dashboard_permissions import *  # NOQA
 from .dashboard_widget import *  # NOQA
 from .debugfile import *  # NOQA
-from .debugfile_migration import *  # NOQA
 from .deletedentry import *  # NOQA
 from .deletedorganization import *  # NOQA
 from .deletedproject import *  # NOQA

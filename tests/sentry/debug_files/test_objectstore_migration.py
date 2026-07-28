@@ -6,7 +6,12 @@ from unittest.mock import patch
 import pytest
 from django.core.files.base import ContentFile
 
-from sentry.debug_files.objectstore_migration import migrate_debug_file
+from sentry.debug_files.objectstore_migration import (
+    ObjectstoreIntegrityError,
+    freeze_high_water_mark,
+    migrate_debug_file,
+    start_migration,
+)
 from sentry.models.files.file import File
 from sentry.objectstore import get_debug_files_session
 from sentry.testutils.cases import TestCase
@@ -29,17 +34,9 @@ class DebugFileObjectstoreMigrationTest(TestCase):
         )
         file.putfile(ContentFile(b"debug-file-contents"))
         self.debug_file = self.create_dif_file(project=self.project, file=file)
-        self.migration_run = self.create_debug_file_objectstore_migration_run(
-            high_water_mark=self.debug_file.id,
-        )
-        self.shard = self.migration_run.shards.get()
 
-    def migrate(self):
-        return migrate_debug_file(
-            run_id=self.migration_run.id,
-            shard_id=self.shard.shard_id,
-            debug_file_id=self.debug_file.id,
-        )
+    def migrate(self) -> int:
+        return migrate_debug_file(debug_file_id=self.debug_file.id)
 
     @requires_objectstore
     def test_migrates_file_and_preserves_legacy_file(self) -> None:
@@ -48,14 +45,12 @@ class DebugFileObjectstoreMigrationTest(TestCase):
         self.migrate()
 
         self.debug_file.refresh_from_db()
-        self.shard.refresh_from_db()
         assert self.debug_file.file_id is None
         assert self.debug_file.storage_path is not None
         assert self.debug_file.file_size == len(b"debug-file-contents")
         assert self.debug_file.content_type == "application/x-mach-binary"
         assert self.debug_file.date_created is not None
         assert self.debug_file.checksum is not None
-        assert self.shard.cursor_id == self.debug_file.id
         assert File.objects.filter(id=file_id).exists()
 
     @requires_objectstore
@@ -73,20 +68,24 @@ class DebugFileObjectstoreMigrationTest(TestCase):
         self.debug_file.refresh_from_db()
         assert self.debug_file.storage_path == storage_path
 
-    @requires_objectstore
-    def test_checksum_mismatch_does_not_cut_over(self) -> None:
-        session = get_debug_files_session(self.organization.id, self.project.id)
-        storage_path = session.put(b"wrong-contents", content_type="application/x-mach-binary")
-        self.debug_file.storage_path = storage_path
-        self.debug_file.save(update_fields=["storage_path"])
-
-        with pytest.raises(ValueError, match="does not match"):
+    def test_post_upload_integrity_failure_retries_and_does_not_cut_over(self) -> None:
+        # Force post-upload verify to keep failing so the outer retry policy kicks in.
+        with (
+            patch(
+                "sentry.debug_files.objectstore_migration._verify_object",
+                side_effect=ObjectstoreIntegrityError("post-upload mismatch"),
+            ),
+            patch("sentry.utils.retries.time.sleep"),
+            patch(
+                "sentry.debug_files.objectstore_migration._upload_dif_to_objectstore",
+                return_value="uploaded-key",
+            ),
+            pytest.raises(ObjectstoreIntegrityError),
+        ):
             self.migrate()
 
         self.debug_file.refresh_from_db()
-        self.shard.refresh_from_db()
         assert self.debug_file.file_id is not None
-        assert self.shard.cursor_id == 0
 
     def test_retries_transient_failure(self) -> None:
         with (
@@ -102,7 +101,7 @@ class DebugFileObjectstoreMigrationTest(TestCase):
         self.debug_file.refresh_from_db()
         assert self.debug_file.file_id is not None
 
-    def test_missing_project_skips_and_advances_cursor(self) -> None:
+    def test_missing_project_skips(self) -> None:
         with patch(
             "sentry.models.project.Project.objects.get_from_cache",
             side_effect=self.project.__class__.DoesNotExist,
@@ -111,6 +110,41 @@ class DebugFileObjectstoreMigrationTest(TestCase):
 
         assert size == 0
         self.debug_file.refresh_from_db()
-        self.shard.refresh_from_db()
         assert self.debug_file.file_id is not None
-        assert self.shard.cursor_id == self.debug_file.id
+
+    def test_start_migration_enqueues_shards_with_hwm(self) -> None:
+        high_water_mark = freeze_high_water_mark()
+
+        with patch(
+            "sentry.debug_files.objectstore_migration_tasks.migrate_shard.apply_async"
+        ) as enqueue:
+            asserted = start_migration(shard_count=3)
+
+        assert asserted == 3
+        assert enqueue.call_count == 3
+        kwargs_list = [call.kwargs["kwargs"] for call in enqueue.call_args_list]
+        assert {k["shard_id"] for k in kwargs_list} == {0, 1, 2}
+        for kwargs in kwargs_list:
+            assert kwargs["shard_count"] == 3
+            assert kwargs["high_water_mark"] == high_water_mark
+            assert kwargs["cursor_id"] == 0
+
+    def test_start_migration_resume_preserves_cursors(self) -> None:
+        with patch(
+            "sentry.debug_files.objectstore_migration_tasks.migrate_shard.apply_async"
+        ) as enqueue:
+            asserted = start_migration(
+                shard_count=2,
+                high_water_mark=99,
+                cursors={0: 40, 1: 41},
+                shard_ids=[0, 1],
+            )
+
+        assert asserted == 2
+        kwargs_by_shard = {
+            call.kwargs["kwargs"]["shard_id"]: call.kwargs["kwargs"]
+            for call in enqueue.call_args_list
+        }
+        assert kwargs_by_shard[0]["cursor_id"] == 40
+        assert kwargs_by_shard[1]["cursor_id"] == 41
+        assert kwargs_by_shard[0]["high_water_mark"] == 99

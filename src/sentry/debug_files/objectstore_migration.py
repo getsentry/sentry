@@ -4,10 +4,11 @@ import hashlib
 import logging
 import os
 import random
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
-from django.db import OperationalError, router, transaction
+from django.db import OperationalError, router
 from django.db.models import F, Func, Max, QuerySet, Value
 from django.db.models.fields import IntegerField
 from objectstore_client import RequestError, Session
@@ -19,10 +20,7 @@ from sentry.models.debugfile import (
     _dif_file_extension,
     _upload_dif_to_objectstore,
 )
-from sentry.models.debugfile_migration import (
-    DebugFileObjectstoreMigrationRun,
-    DebugFileObjectstoreMigrationShard,
-)
+from sentry.models.project import Project
 from sentry.objectstore import get_debug_files_session
 from sentry.utils.db import atomic_transaction
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
@@ -32,6 +30,21 @@ logger = logging.getLogger(__name__)
 KILLSWITCH_OPTION = "debug-files.objectstore-migration.killswitch"
 MAX_RETRIES = 3
 RETRY_BASE_DELAY_SECONDS = 2
+
+_CUTOVER_FIELDS = (
+    "storage_path",
+    "content_type",
+    "file_size",
+    "date_created",
+    "checksum",
+    "file",
+)
+
+_RETRIABLE_ERRORS = (RequestError, HTTPError, OperationalError, OSError)
+
+
+class ObjectstoreIntegrityError(Exception):
+    """Objectstore payload checksum/size did not match the legacy File."""
 
 
 def is_migration_killswitched() -> bool:
@@ -52,63 +65,61 @@ class VerifiedObject:
     checksum: str
 
 
-def start_migration(*, shard_count: int) -> DebugFileObjectstoreMigrationRun:
-    """Create a run, freeze the high-water mark, and enqueue all shard heads."""
+def freeze_high_water_mark() -> int:
+    return ProjectDebugFile.objects.aggregate(max_id=Max("id"))["max_id"] or 0
+
+
+def start_migration(
+    *,
+    shard_count: int,
+    high_water_mark: int | None = None,
+    cursors: Mapping[int, int] | None = None,
+    shard_ids: Sequence[int] | None = None,
+) -> int:
+    """Freeze the high-water mark (unless provided) and enqueue shard heads.
+
+    Progress lives only in task kwargs: each shard activation carries
+    ``cursor_id`` and re-enqueues itself with an advanced cursor. Pass
+    ``cursors`` / ``high_water_mark`` to resume a previous campaign from logs.
+    """
     ensure_migration_enabled()
     if shard_count < 1:
         raise ValueError("shard_count must be positive")
 
+    # Lazy import: tasks import from this module.
     from sentry.debug_files.objectstore_migration_tasks import enqueue_shard_heads
 
-    database = router.db_for_write(DebugFileObjectstoreMigrationRun)
-    with atomic_transaction(using=database):
-        high_water_mark = ProjectDebugFile.objects.aggregate(max_id=Max("id"))["max_id"] or 0
-        run = DebugFileObjectstoreMigrationRun.objects.create(
-            high_water_mark=high_water_mark,
-            shard_count=shard_count,
-        )
-        DebugFileObjectstoreMigrationShard.objects.bulk_create(
-            [
-                DebugFileObjectstoreMigrationShard(run=run, shard_id=shard_id)
-                for shard_id in range(shard_count)
-            ]
-        )
-        run_id = run.id
-        transaction.on_commit(
-            lambda: enqueue_shard_heads(DebugFileObjectstoreMigrationRun.objects.get(id=run_id)),
-            using=database,
-        )
-    return run
+    if high_water_mark is None:
+        high_water_mark = freeze_high_water_mark()
 
-
-def resume_migration(run_id: int, shard_ids: list[int] | None = None) -> int:
-    """Re-enqueue shard heads for an existing run (cursors preserved)."""
-    ensure_migration_enabled()
-    from sentry.debug_files.objectstore_migration_tasks import enqueue_shard_heads
-
-    try:
-        run = DebugFileObjectstoreMigrationRun.objects.get(id=run_id)
-    except DebugFileObjectstoreMigrationRun.DoesNotExist as error:
-        raise ValueError(f"Migration run {run_id} does not exist") from error
-    return enqueue_shard_heads(run, shard_ids=shard_ids)
+    return enqueue_shard_heads(
+        shard_count=shard_count,
+        high_water_mark=high_water_mark,
+        cursors=cursors,
+        shard_ids=shard_ids,
+    )
 
 
 def shard_candidates(
-    shard: DebugFileObjectstoreMigrationShard, *, limit: int
+    *,
+    shard_id: int,
+    shard_count: int,
+    high_water_mark: int,
+    cursor_id: int,
+    limit: int,
 ) -> QuerySet[ProjectDebugFile]:
-    run = shard.run
     return (
         ProjectDebugFile.objects.filter(
-            id__gt=shard.cursor_id,
-            id__lte=run.high_water_mark,
+            id__gt=cursor_id,
+            id__lte=high_water_mark,
             file_id__isnull=False,
         )
         .annotate(
             _migration_shard=Func(
-                F("id"), Value(run.shard_count), function="MOD", output_field=IntegerField()
+                F("id"), Value(shard_count), function="MOD", output_field=IntegerField()
             )
         )
-        .filter(_migration_shard=shard.shard_id)
+        .filter(_migration_shard=shard_id)
         .select_related("file")
         .order_by("id")[:limit]
     )
@@ -122,15 +133,17 @@ def _verify_object(
     expected_size: int,
     date_created: datetime,
 ) -> VerifiedObject | None:
-    metadata = session.head(storage_path)
-    if metadata is None:
+    """Download and checksum an Objectstore object.
+
+    Returns None when the key is missing. Raises ObjectstoreIntegrityError when
+    the payload is present but does not match the legacy File.
+    """
+    response = session.get(storage_path)
+    if response is None:
         return None
 
     digest = hashlib.sha1()
     size = 0
-    response = session.get(storage_path)
-    if response is None:
-        return None
     try:
         while chunk := response.payload.read(1024 * 1024):
             digest.update(chunk)
@@ -140,10 +153,14 @@ def _verify_object(
 
     checksum = digest.hexdigest()
     if checksum != expected_checksum or size != expected_size:
-        raise ValueError("Objectstore payload does not match File")
+        raise ObjectstoreIntegrityError(
+            f"Objectstore payload does not match File "
+            f"(checksum={checksum!r} expected={expected_checksum!r}, "
+            f"size={size} expected={expected_size})"
+        )
     return VerifiedObject(
         storage_path=storage_path,
-        content_type=metadata.content_type or "application/octet-stream",
+        content_type=response.metadata.content_type or "application/octet-stream",
         file_size=size,
         # Preserve the original File upload time; Objectstore time_created is migration time.
         date_created=date_created,
@@ -163,8 +180,6 @@ def _prepare_object(debug_file: ProjectDebugFile) -> VerifiedObject | None:
     if not file.checksum:
         raise ValueError("Debug File source has no checksum")
 
-    from sentry.models.project import Project
-
     try:
         project = Project.objects.get_from_cache(id=debug_file.project_id)
     except Project.DoesNotExist:
@@ -176,24 +191,42 @@ def _prepare_object(debug_file: ProjectDebugFile) -> VerifiedObject | None:
 
     session = get_debug_files_session(project.organization_id, project.id)
     date_created = file.timestamp
-    verified = None
-    if debug_file.storage_path:
-        verified = _verify_object(
-            session,
-            debug_file.storage_path,
-            expected_checksum=file.checksum,
-            expected_size=file.size,
-            date_created=date_created,
-        )
-    if verified is not None:
-        return verified
-
     content_type = file.headers.get("Content-Type", "application/octet-stream")
-    filename = f"{os.path.basename(debug_file.debug_id)}{_dif_file_extension(debug_file.file_format, debug_file.file_type)}"
+
+    # Prefer an already-copied object when present and intact. A corrupt or
+    # partial prior copy falls through to a fresh upload.
+    if debug_file.storage_path:
+        try:
+            verified = _verify_object(
+                session,
+                debug_file.storage_path,
+                expected_checksum=file.checksum,
+                expected_size=file.size,
+                date_created=date_created,
+            )
+        except ObjectstoreIntegrityError:
+            logger.info(
+                "debug_files.objectstore_migration.reusing_corrupt_object",
+                extra={
+                    "debug_file_id": debug_file.id,
+                    "storage_path": debug_file.storage_path,
+                },
+            )
+            verified = None
+        if verified is not None:
+            return verified
+
+    filename = (
+        f"{os.path.basename(debug_file.debug_id)}"
+        f"{_dif_file_extension(debug_file.file_format, debug_file.file_type)}"
+    )
     with file.getfile() as source:
         storage_path = _upload_dif_to_objectstore(
             session, source, content_type, file.size, filename
         )
+
+    # Integrity mismatches and missing keys after upload are retriable: the
+    # outer ConditionalRetryPolicy will re-run prepare+cutover.
     verified = _verify_object(
         session,
         storage_path,
@@ -202,7 +235,7 @@ def _prepare_object(debug_file: ProjectDebugFile) -> VerifiedObject | None:
         date_created=date_created,
     )
     if verified is None:
-        raise RuntimeError("Uploaded Objectstore payload is missing")
+        raise ObjectstoreIntegrityError("Uploaded Objectstore payload is missing")
     return verified
 
 
@@ -211,91 +244,49 @@ def _retry_delay(base_delay: float):
     return lambda attempt: random.uniform(delay(attempt), delay(attempt) * 2)
 
 
-def migrate_debug_file(
-    *,
-    run_id: int,
-    shard_id: int,
-    debug_file_id: int,
-) -> int | None:
-    def attempt() -> int | None:
+def migrate_debug_file(*, debug_file_id: int) -> int:
+    """Migrate one debug file. Returns cutover size, or 0 when skipped."""
+
+    def attempt() -> int:
         try:
             debug_file = ProjectDebugFile.objects.select_related("file").get(id=debug_file_id)
         except ProjectDebugFile.DoesNotExist:
-            return _commit_result(
-                run_id=run_id,
-                shard_id=shard_id,
-                debug_file_id=debug_file_id,
-                verified=None,
-            )
+            return 0
 
         if debug_file.file_id is None:
-            return _commit_result(
-                run_id=run_id,
-                shard_id=shard_id,
-                debug_file_id=debug_file_id,
-                verified=None,
-            )
+            return 0
 
         verified = _prepare_object(debug_file)
-        return _commit_result(
-            run_id=run_id,
-            shard_id=shard_id,
-            debug_file_id=debug_file_id,
-            verified=verified,
-        )
+        if verified is None:
+            return 0
+
+        return _commit_cutover(debug_file_id=debug_file_id, verified=verified)
 
     policy = ConditionalRetryPolicy(
         test_function=lambda attempt_number, error: attempt_number <= MAX_RETRIES
-        and isinstance(error, (RequestError, HTTPError, OperationalError, OSError)),
+        and isinstance(error, (*_RETRIABLE_ERRORS, ObjectstoreIntegrityError)),
         delay_function=_retry_delay(RETRY_BASE_DELAY_SECONDS),
     )
     return policy(attempt)
 
 
-def _commit_result(
-    *,
-    run_id: int,
-    shard_id: int,
-    debug_file_id: int,
-    verified: VerifiedObject | None,
-) -> int:
+def _commit_cutover(*, debug_file_id: int, verified: VerifiedObject) -> int:
     database = router.db_for_write(ProjectDebugFile)
     with atomic_transaction(using=database):
-        # Lock only the shard row. The run is immutable after start; locking it
-        # would serialize concurrent shard cutovers on a shared row.
-        try:
-            shard = DebugFileObjectstoreMigrationShard.objects.select_for_update().get(
-                run_id=run_id, shard_id=shard_id
-            )
-        except DebugFileObjectstoreMigrationShard.DoesNotExist as error:
-            raise RuntimeError("Unknown migration run or shard") from error
-
         try:
             current = ProjectDebugFile.objects.select_for_update().get(id=debug_file_id)
         except ProjectDebugFile.DoesNotExist:
-            current = None
+            return 0
 
-        size = 0
-        if current is not None and current.file_id is not None and verified is not None:
-            current.storage_path = verified.storage_path
-            current.content_type = verified.content_type
-            current.file_size = verified.file_size
-            current.date_created = verified.date_created
-            current.checksum = verified.checksum
-            current.file = None
-            current.save(
-                update_fields=[
-                    "storage_path",
-                    "content_type",
-                    "file_size",
-                    "date_created",
-                    "checksum",
-                    "file",
-                ]
-            )
-            size = verified.file_size
+        # Already cut over (or raced with another worker).
+        if current.file_id is None:
+            return 0
 
-        # Always advance the cursor, including skips (missing project / already migrated).
-        shard.cursor_id = max(shard.cursor_id, debug_file_id)
-        shard.save(update_fields=["cursor_id", "date_updated"])
-        return size
+        current.storage_path = verified.storage_path
+        current.content_type = verified.content_type
+        current.file_size = verified.file_size
+        current.date_created = verified.date_created
+        current.checksum = verified.checksum
+        current.file = None
+        current.save(update_fields=list(_CUTOVER_FIELDS))
+        return verified.file_size

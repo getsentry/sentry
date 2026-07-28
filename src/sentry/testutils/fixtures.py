@@ -435,9 +435,6 @@ class Fixtures:
     def create_file_from_path(self, *args, **kwargs):
         return Factories.create_file_from_path(*args, **kwargs)
 
-    def create_debug_file_objectstore_migration_run(self, **kwargs):
-        return Factories.create_debug_file_objectstore_migration_run(**kwargs)
-
     def create_dif_file(self, project: Project | None = None, *args, **kwargs):
         if project is None:
             project = self.project

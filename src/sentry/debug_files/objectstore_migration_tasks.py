@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 
 from taskbroker_client.state import current_task
 
@@ -9,10 +10,6 @@ from sentry.debug_files.objectstore_migration import (
     is_migration_killswitched,
     migrate_debug_file,
     shard_candidates,
-)
-from sentry.models.debugfile_migration import (
-    DebugFileObjectstoreMigrationRun,
-    DebugFileObjectstoreMigrationShard,
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -32,25 +29,45 @@ def _activation_id() -> str | None:
     return task.id if task else None
 
 
-def enqueue_shard(run_id: int, shard_id: int) -> None:
+def enqueue_shard(
+    *,
+    shard_id: int,
+    shard_count: int,
+    high_water_mark: int,
+    cursor_id: int = 0,
+) -> None:
     migrate_shard.apply_async(
-        kwargs={"run_id": run_id, "shard_id": shard_id},
+        kwargs={
+            "shard_id": shard_id,
+            "shard_count": shard_count,
+            "high_water_mark": high_water_mark,
+            "cursor_id": cursor_id,
+        },
         headers={"sentry-propagate-traces": False},
     )
 
 
 def enqueue_shard_heads(
-    run: DebugFileObjectstoreMigrationRun,
-    shard_ids: list[int] | None = None,
+    *,
+    shard_count: int,
+    high_water_mark: int,
+    cursors: Mapping[int, int] | None = None,
+    shard_ids: Sequence[int] | None = None,
 ) -> int:
     """Enqueue one activation per shard. Worker pool size bounds concurrency."""
     ensure_migration_enabled()
-    shards = run.shards.all().order_by("shard_id")
-    if shard_ids is not None:
-        shards = shards.filter(shard_id__in=shard_ids)
+    targets = range(shard_count) if shard_ids is None else shard_ids
     count = 0
-    for shard in shards:
-        enqueue_shard(run.id, shard.shard_id)
+    for shard_id in targets:
+        if shard_id < 0 or shard_id >= shard_count:
+            raise ValueError(f"shard_id {shard_id} out of range for shard_count={shard_count}")
+        cursor_id = 0 if cursors is None else cursors.get(shard_id, 0)
+        enqueue_shard(
+            shard_id=shard_id,
+            shard_count=shard_count,
+            high_water_mark=high_water_mark,
+            cursor_id=cursor_id,
+        )
         count += 1
     return count
 
@@ -61,7 +78,17 @@ def enqueue_shard_heads(
     processing_deadline_duration=15 * 60,
     silo_mode=SiloMode.CELL,
 )
-def migrate_shard(run_id: int, shard_id: int, **kwargs: object) -> None:
+def migrate_shard(
+    shard_id: int,
+    shard_count: int,
+    high_water_mark: int,
+    cursor_id: int = 0,
+    **kwargs: object,
+) -> None:
+    """Process one shard of DIFs, self-chaining with an advanced cursor_id.
+
+    All campaign state lives in these kwargs — there is no DB run/shard table.
+    """
     ensure_migration_enabled()
     activation_id = _activation_id()
     if activation_id and already_spawned(_SHARD_TASK_KEY, activation_id):
@@ -71,87 +98,70 @@ def migrate_shard(run_id: int, shard_id: int, **kwargs: object) -> None:
         )
         return
 
-    try:
-        shard = DebugFileObjectstoreMigrationShard.objects.select_related("run").get(
-            run_id=run_id, shard_id=shard_id
-        )
-    except DebugFileObjectstoreMigrationShard.DoesNotExist:
-        logger.info(
-            "debug_files.objectstore_migration.shard_missing",
-            extra={"run_id": run_id, "shard_id": shard_id},
-        )
-        return
+    def log_extra(**extra: int) -> dict[str, int]:
+        return {
+            "shard_id": shard_id,
+            "shard_count": shard_count,
+            "cursor_id": cursor_id,
+            "high_water_mark": high_water_mark,
+            **extra,
+        }
 
     processed = 0
     try:
         while processed < _MAX_FILES_PER_ACTIVATION:
             ensure_migration_enabled()
-            candidates = list(shard_candidates(shard, limit=_QUERY_BATCH_SIZE))
+            remaining = _MAX_FILES_PER_ACTIVATION - processed
+            batch_limit = min(_QUERY_BATCH_SIZE, remaining)
+            candidates = list(
+                shard_candidates(
+                    shard_id=shard_id,
+                    shard_count=shard_count,
+                    high_water_mark=high_water_mark,
+                    cursor_id=cursor_id,
+                    limit=batch_limit,
+                )
+            )
             if not candidates:
                 logger.info(
                     "debug_files.objectstore_migration.shard_completed",
-                    extra={
-                        "run_id": run_id,
-                        "shard_id": shard_id,
-                        "cursor_id": shard.cursor_id,
-                        "high_water_mark": shard.run.high_water_mark,
-                    },
+                    extra=log_extra(),
                 )
                 return
 
-            hit_activation_limit = False
             for debug_file in candidates:
                 ensure_migration_enabled()
-                migrate_debug_file(
-                    run_id=run_id,
-                    shard_id=shard_id,
-                    debug_file_id=debug_file.id,
-                )
+                migrate_debug_file(debug_file_id=debug_file.id)
                 processed += 1
-                shard.cursor_id = debug_file.id
-                if processed >= _MAX_FILES_PER_ACTIVATION:
-                    hit_activation_limit = True
-                    break
+                cursor_id = debug_file.id
 
             logger.info(
                 "debug_files.objectstore_migration.shard_progress",
-                extra={
-                    "run_id": run_id,
-                    "shard_id": shard_id,
-                    "cursor_id": shard.cursor_id,
-                    "processed_this_activation": processed,
-                    "high_water_mark": shard.run.high_water_mark,
-                },
+                extra=log_extra(processed_this_activation=processed),
             )
 
-            # Only treat a short batch as exhaustion when we consumed it fully.
-            if hit_activation_limit:
-                break
-            if len(candidates) < _QUERY_BATCH_SIZE:
+            # A short batch means we drained this shard; don't self-chain.
+            if len(candidates) < batch_limit:
                 logger.info(
                     "debug_files.objectstore_migration.shard_completed",
-                    extra={
-                        "run_id": run_id,
-                        "shard_id": shard_id,
-                        "cursor_id": shard.cursor_id,
-                        "high_water_mark": shard.run.high_water_mark,
-                    },
+                    extra=log_extra(),
                 )
                 return
     except Exception:
         logger.exception(
             "debug_files.objectstore_migration.shard_failed",
-            extra={
-                "run_id": run_id,
-                "shard_id": shard_id,
-                "cursor_id": shard.cursor_id,
-            },
+            extra=log_extra(),
         )
         raise
 
     if is_migration_killswitched():
         raise RuntimeError("Debug file Objectstore migration is killswitched")
 
-    enqueue_shard(run_id, shard_id)
+    enqueue_shard(
+        shard_id=shard_id,
+        shard_count=shard_count,
+        high_water_mark=high_water_mark,
+        cursor_id=cursor_id,
+    )
     if activation_id:
         mark_spawned(_SHARD_TASK_KEY, activation_id)
