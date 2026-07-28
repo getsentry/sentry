@@ -94,8 +94,7 @@ export function ReplayAccessMembersField({
     () => (organization.replayAccessMembers ?? []).map(String),
     [organization.replayAccessMembers]
   );
-  // Tracked separately from the form value so selected members can be resolved by
-  // id: a search that no longer returns them would otherwise drop their label.
+
   const [selectedIds, setSelectedIds] = useState(initialValue);
   const {data: selectedMembers = []} = useMembers({ids: selectedIds});
 
