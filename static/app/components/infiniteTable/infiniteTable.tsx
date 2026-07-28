@@ -1,12 +1,12 @@
 import type {ReactNode} from 'react';
-import {Fragment, useLayoutEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {UseInfiniteQueryResult} from '@tanstack/react-query';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {Table as TableShell, useTableElement} from 'sentry/components/tables/table';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 
 function Body<TData = unknown, TSelect = unknown>({
   children,
@@ -21,28 +21,14 @@ function Body<TData = unknown, TSelect = unknown>({
 }) {
   const tableRef = useTableElement();
   const selectedData = select(queryResult.data);
-  const virtualizer = useVirtualizer({
+  const {paddingBottom, paddingTop, virtualItems, virtualizer} = useVirtualRows({
     count: selectedData.length,
-    getScrollElement: () => tableRef.current,
     estimateSize,
-    overscan: 5,
+    getScrollElement: () => tableRef.current,
   });
 
-  useLayoutEffect(() => {
-    virtualizer.measure();
-  }, [virtualizer]);
-
-  const virtualItems = virtualizer.getVirtualItems();
-  const firstItem = virtualItems[0];
-  const lastItem = virtualItems[virtualItems.length - 1];
-
   return (
-    <VirtualBody
-      style={{
-        paddingTop: firstItem?.start ?? 0,
-        paddingBottom: lastItem ? virtualizer.getTotalSize() - lastItem.end : 0,
-      }}
-    >
+    <VirtualBody style={{paddingBottom, paddingTop}}>
       {virtualItems.map(virtualItem => {
         const item = selectedData[virtualItem.index];
 

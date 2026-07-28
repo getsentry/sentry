@@ -67,7 +67,6 @@ export function useExploreTableProps({
     columns,
     getColumnTrack,
     headRowHeight: TABLE_HEAD_ROW_HEIGHT,
-    lastColumnFlexible: false,
     minimumColumnWidth,
     prependColumnWidths,
   };

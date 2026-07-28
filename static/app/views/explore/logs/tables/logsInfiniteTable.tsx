@@ -2,7 +2,6 @@ import {
   Fragment,
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -12,7 +11,6 @@ import {
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -25,6 +23,7 @@ import {
   getAriaSort,
   SortableHeaderCell,
 } from 'sentry/components/tables/sortableHeaderCell';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -315,23 +314,15 @@ export function LogsInfiniteTable({
     [data]
   );
 
-  const virtualizer = useVirtualizer<HTMLElement, Element>({
+  const {paddingBottom, paddingTop, virtualItems, virtualizer} = useVirtualRows({
     count: data?.length ?? 0,
     estimateSize,
-    overscan: 35,
-    getScrollElement: () => tableBodyRef?.current,
     getItemKey,
+    getScrollElement: () => tableBodyRef?.current,
+    overscan: 35,
   });
 
-  useLayoutEffect(() => {
-    virtualizer.measure();
-  }, [virtualizer]);
-
-  const virtualItems = virtualizer.getVirtualItems();
-
-  const firstItem = virtualItems[0]?.start;
   const firstItemIndex = virtualItems[0]?.index;
-  const lastItem = virtualItems[virtualItems.length - 1]?.end;
   const lastItemIndex = virtualItems[virtualItems.length - 1]?.index;
 
   const handleScrollToRow = useCallback(
@@ -382,14 +373,6 @@ export function LogsInfiniteTable({
     showJumpDownButton,
     showJumpUpButton,
   } = replayJumpButtons;
-
-  const [paddingTop, paddingBottom] =
-    defined(firstItem) && defined(lastItem)
-      ? [
-          Math.max(0, firstItem - virtualizer.options.scrollMargin),
-          Math.max(0, virtualizer.getTotalSize() - lastItem),
-        ]
-      : [0, 0];
 
   const {scrollDirection, scrollOffset, isScrolling} = virtualizer;
 

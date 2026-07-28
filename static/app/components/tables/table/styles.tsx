@@ -4,7 +4,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 export const TABLE_HEAD_ROW_HEIGHT = 45;
-export const TABLE_BODY_ROW_HEIGHT = 42;
 
 const Z_INDEX_RESIZER = 1;
 
@@ -28,44 +27,29 @@ export const TableGrid = styled('table')<{
       overflow-y: scroll;
     `}
 
-  /* Pin the header to a definite track height in both layouts; a content-based
-     header track lets Safari mis-size the <thead> on back/forward navigation.
-     Body track: 1fr absorbs slack when a height is given, else auto. */
   ${p =>
-    p.headRowHeight &&
-    (p.height
-      ? css`
-          height: 100%;
-          max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height};
-          flex: 1;
-          min-height: 0;
-
-          &:has(> thead + tbody) {
-            grid-template-rows: ${p.headRowHeight}px 1fr;
-          }
-
-          &:has(> thead + tbody + tbody) {
-            grid-template-rows: ${p.headRowHeight}px fit-content(100%) 1fr;
-          }
-        `
-      : css`
-          &:has(> thead + tbody) {
-            grid-template-rows: ${p.headRowHeight}px auto;
-          }
-
-          &:has(> thead + tbody + tbody) {
-            grid-template-rows: ${p.headRowHeight}px fit-content(100%) auto;
-          }
-        `)}
-
-  ${p =>
-    !p.headRowHeight &&
     p.height &&
     css`
       height: 100%;
       max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height};
       flex: 1;
       min-height: 0;
+    `}
+
+  /* Pin the header to a definite track height; a content-based header track lets
+     Safari mis-size the <thead> on back/forward navigation. */
+  ${p =>
+    p.headRowHeight &&
+    css`
+      &:has(> thead + tbody) {
+        grid-template-rows: ${p.headRowHeight}px ${p.height ? '1fr' : 'auto'};
+      }
+
+      &:has(> thead + tbody + tbody) {
+        grid-template-rows: ${p.headRowHeight}px fit-content(100%) ${p.height
+            ? '1fr'
+            : 'auto'};
+      }
     `}
 
   min-width: ${p => p.fit};
@@ -125,19 +109,14 @@ export const TableStatusCell = styled('td')`
   justify-content: center;
 `;
 
-export const TableResizer = styled('div')<{dataRows: number; headRowHeight?: number}>`
+export const TableResizer = styled('div')<{headRowHeight?: number}>`
   position: absolute;
   top: 0px;
   right: -6px;
   width: 11px;
 
-  height: ${p => {
-    const headRowHeight = p.headRowHeight ?? TABLE_HEAD_ROW_HEIGHT;
-    // 1px for the border
-    const fixedBodyHeight = p.dataRows * (TABLE_BODY_ROW_HEIGHT + 1);
-
-    return `var(--table-resizer-height, ${headRowHeight + fixedBodyHeight}px)`;
-  }};
+  height: ${p =>
+    `var(--table-resizer-height, ${p.headRowHeight ?? TABLE_HEAD_ROW_HEIGHT}px)`};
 
   padding-left: 5px;
   padding-right: 5px;

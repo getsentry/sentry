@@ -1,4 +1,5 @@
 import type {
+  ComponentProps,
   CSSProperties,
   HTMLAttributes,
   ReactNode,
@@ -20,7 +21,6 @@ import {useColumnResize} from 'sentry/components/tables/useColumnResize';
 import {defined} from 'sentry/utils/defined';
 
 import {
-  TABLE_BODY_ROW_HEIGHT,
   TABLE_HEAD_ROW_HEIGHT,
   TableBody,
   TableCell,
@@ -32,7 +32,7 @@ import {
   TableStatusCell,
 } from './styles';
 
-export {TABLE_BODY_ROW_HEIGHT, TABLE_HEAD_ROW_HEIGHT};
+export {TABLE_HEAD_ROW_HEIGHT};
 
 export const COL_WIDTH_UNDEFINED = -1;
 
@@ -47,16 +47,10 @@ export interface TableColumnConfig {
 
 type ResolvedWidth = number | string | undefined;
 
-export function getDefaultColumnTrack(
+function getDefaultColumnTrack(
   width: ResolvedWidth,
-  {
-    isLast,
-    lastColumnFlexible,
-    minimumColumnWidth,
-  }: {isLast: boolean; lastColumnFlexible: boolean; minimumColumnWidth: number}
+  {flexible, minimumColumnWidth}: {flexible: boolean; minimumColumnWidth: number}
 ): string {
-  const flexible = isLast && lastColumnFlexible;
-
   if (typeof width === 'string') {
     return width;
   }
@@ -74,7 +68,6 @@ export function getDefaultColumnTrack(
 
 interface TableContextValue {
   columnIndexByKey: Map<string, number>;
-  dataRows: number;
   lastColumnIndex: number;
   onResetColumnSize: (event: React.MouseEvent, index: number) => void;
   onResizeMouseDown: (event: React.MouseEvent, index: number) => void;
@@ -103,7 +96,6 @@ export interface TableProps extends Omit<
 > {
   children: ReactNode;
   columns?: TableColumnConfig[];
-  dataRows?: number;
   fit?: 'max-content';
   getColumnTrack?: (
     width: ResolvedWidth,
@@ -113,38 +105,26 @@ export interface TableProps extends Omit<
   gridTemplateColumns?: string;
   headRowHeight?: number;
   height?: CSSProperties['height'];
-  /**
-   * Whether the last column absorbs slack via `minmax()`.
-   *
-   * @default true
-   */
-  lastColumnFlexible?: boolean;
   minimumColumnWidth?: number;
   onColumnResize?: (index: number, width: number) => void;
   prependColumnWidths?: string[];
   ref?: RefObject<HTMLTableElement | null>;
   scrollable?: boolean;
-  stickyHeader?: boolean;
-  writeResizerHeightVar?: boolean;
 }
 
 export function Table({
   children,
   columns = EMPTY_COLUMNS,
-  dataRows = 0,
   fit,
   getColumnTrack,
   gridTemplateColumns,
   headRowHeight,
   height,
-  lastColumnFlexible = true,
   minimumColumnWidth = COL_WIDTH_MINIMUM,
   onColumnResize,
   prependColumnWidths,
   ref,
   scrollable,
-  stickyHeader: _stickyHeader,
-  writeResizerHeightVar = true,
   ...props
 }: TableProps) {
   const internalRef = useRef<HTMLTableElement>(null);
@@ -167,8 +147,7 @@ export function Table({
         return getColumnTrack
           ? getColumnTrack(width, column, index)
           : getDefaultColumnTrack(width, {
-              isLast: index === columns.length - 1,
-              lastColumnFlexible,
+              flexible: index === columns.length - 1,
               minimumColumnWidth,
             });
       });
@@ -183,7 +162,6 @@ export function Table({
       columns,
       getColumnTrack,
       gridTemplateColumns,
-      lastColumnFlexible,
       minimumColumnWidth,
       prependColumnWidths,
       resolveWidth,
@@ -204,7 +182,7 @@ export function Table({
         setInternalWidths(current => ({...current, [key]: width}));
       }
     },
-    writeResizerHeightVar,
+    writeResizerHeightVar: true,
   });
 
   const onResetColumnSize = useCallback(
@@ -230,7 +208,7 @@ export function Table({
 
   useEffect(() => {
     redraw();
-  }, [redraw, dataRows]);
+  }, [redraw]);
 
   useEffect(() => {
     window.addEventListener('resize', redraw);
@@ -240,7 +218,6 @@ export function Table({
   const contextValue = useMemo<TableContextValue>(
     () => ({
       columnIndexByKey: new Map(columns.map((column, index) => [column.key, index])),
-      dataRows,
       headRowHeight,
       lastColumnIndex: columns.length - 1,
       onResetColumnSize,
@@ -248,7 +225,7 @@ export function Table({
       resizableByIndex: columns.map(column => column.resizable !== false),
       tableRef: gridRef,
     }),
-    [columns, dataRows, gridRef, headRowHeight, onResetColumnSize, onResizeMouseDown]
+    [columns, gridRef, headRowHeight, onResetColumnSize, onResizeMouseDown]
   );
 
   return (
@@ -268,50 +245,17 @@ export function Table({
   );
 }
 
-interface SectionProps extends HTMLAttributes<HTMLTableSectionElement> {
-  ref?:
-    | RefObject<HTMLTableSectionElement | null>
-    | ((node: HTMLTableSectionElement | null) => void);
+function withRole<C extends React.ElementType>(Component: C, role: string) {
+  return function RoleComponent(props: ComponentProps<C>) {
+    const Tag: React.ElementType = Component;
+    return <Tag role={role} {...props} />;
+  };
 }
 
-function Head({
-  children,
-  sticky,
-  stickyZIndex,
-  ...props
-}: SectionProps & {sticky?: boolean; stickyZIndex?: number}) {
-  return (
-    <TableHead {...props} role="rowgroup" sticky={sticky} stickyZIndex={stickyZIndex}>
-      {children}
-    </TableHead>
-  );
-}
-
-function Body({children, ...props}: SectionProps) {
-  return (
-    <TableBody {...props} role="rowgroup">
-      {children}
-    </TableBody>
-  );
-}
-
-function Row({
-  children,
-  divider,
-  ref,
-  ...props
-}: HTMLAttributes<HTMLTableRowElement> & {
-  divider?: boolean;
-  ref?:
-    | RefObject<HTMLTableRowElement | null>
-    | ((node: HTMLTableRowElement | null) => void);
-}) {
-  return (
-    <TableRow {...props} divider={divider} ref={ref} role="row">
-      {children}
-    </TableRow>
-  );
-}
+const Head = withRole(TableHead, 'rowgroup');
+const Body = withRole(TableBody, 'rowgroup');
+const Row = withRole(TableRow, 'row');
+const Cell = withRole(TableCell, 'cell');
 
 interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
   column?: string;
@@ -335,7 +279,6 @@ function HeadCell({children, column, columnIndex, ...props}: HeadCellProps) {
       {showResizer && (
         <TableResizer
           data-test-id="table-column-resizer"
-          dataRows={context.dataRows}
           headRowHeight={context.headRowHeight}
           onContextMenu={event => context.onResizeMouseDown(event, index)}
           onDoubleClick={event => context.onResetColumnSize(event, index)}
@@ -346,29 +289,21 @@ function HeadCell({children, column, columnIndex, ...props}: HeadCellProps) {
   );
 }
 
-function Cell({children, ...props}: TdHTMLAttributes<HTMLTableCellElement>) {
-  return (
-    <TableCell {...props} role="cell">
-      {children}
-    </TableCell>
-  );
-}
-
 function Status({children, ...props}: TdHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <TableRow role="row">
+    <Row>
       <TableStatusCell {...props} role="cell">
         {children}
       </TableStatusCell>
-    </TableRow>
+    </Row>
   );
 }
 
-function StatusBody({children, ...props}: TdHTMLAttributes<HTMLTableCellElement>) {
+function StatusBody(props: TdHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <TableBody role="rowgroup">
-      <Status {...props}>{children}</Status>
-    </TableBody>
+    <Body>
+      <Status {...props} />
+    </Body>
   );
 }
 

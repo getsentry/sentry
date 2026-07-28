@@ -240,7 +240,6 @@ export function GridEditable<
             aria-label={ariaLabel}
             columns={columns}
             data-test-id="grid-editable"
-            dataRows={!error && !isLoading && data ? data.length : 0}
             fit={fit}
             headRowHeight={TABLE_HEAD_ROW_HEIGHT}
             height={height}
