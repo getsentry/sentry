@@ -18,13 +18,31 @@ import type {
 } from './row';
 
 interface KeyValueBaseProps {
+  /**
+   * `list` suits short scalar values: one line each, ellipsised, right aligned. `detail`
+   * suits long content: monospace, wrapping across as many lines as it needs.
+   */
   layout: KeyValueLayout;
+  /**
+   * Wraps the list in a panel: border, background and padding.
+   */
   card?: boolean;
   className?: string;
   'data-test-id'?: string;
+  /**
+   * How much of the available width the key column takes: an equal split, `wide` for
+   * roughly twice the value column, or `fit` to shrink to the widest key.
+   */
   keyColumn?: KeyValueKeyColumn;
+  /**
+   * Orders entries by `key` (case-insensitive) or `subject`. Leaving this unset preserves
+   * the order of `items`.
+   */
   sort?: 'key' | 'subject';
   title?: React.ReactNode;
+  /**
+   * Number of entries to show before a "Show more" toggle appears.
+   */
   truncateLength?: number;
   /**
    * Defaults to `formatted` when `card` is set and `raw` otherwise.
@@ -32,6 +50,10 @@ interface KeyValueBaseProps {
   valueDisplay?: KeyValueValueDisplay;
 }
 
+/**
+ * Entries either come from `items` or are composed as `KeyValue.Row` children. Sorting and
+ * truncation only apply to `items`.
+ */
 type KeyValueContent =
   | {children: React.ReactNode; items?: never}
   | {items: KeyValueEntry[]; children?: never};
