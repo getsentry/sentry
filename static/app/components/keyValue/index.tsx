@@ -17,6 +17,8 @@ import type {
   KeyValueValueDisplay,
 } from './row';
 
+type KeyValueSort = 'key' | 'subject';
+
 interface KeyValueBaseProps {
   /**
    * `list` suits short scalar values: one line each, ellipsised, right aligned. `detail`
@@ -38,7 +40,7 @@ interface KeyValueBaseProps {
    * Orders entries by `key` (case-insensitive) or `subject`. Leaving this unset preserves
    * the order of `items`.
    */
-  sort?: 'key' | 'subject';
+  sort?: KeyValueSort;
   title?: React.ReactNode;
   /**
    * Number of entries to show before a "Show more" toggle appears.
@@ -50,10 +52,6 @@ interface KeyValueBaseProps {
   valueDisplay?: KeyValueValueDisplay;
 }
 
-/**
- * Entries either come from `items` or are composed as `KeyValue.Row` children. Sorting and
- * truncation only apply to `items`.
- */
 type KeyValueContent =
   | {children: React.ReactNode; items?: never}
   | {items: KeyValueEntry[]; children?: never};
@@ -134,10 +132,6 @@ function KeyValueRoot({
   );
 }
 
-/**
- * Conditionally rendered children must resolve to `null` rather than rendering a
- * `KeyValue` that returns `null`, otherwise empty cards are counted when sizing columns.
- */
 function KeyValueContainer({children}: {children: ReactNode}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useColumnCount(containerRef);
@@ -174,15 +168,16 @@ function KeyValueTitle({children}: {children: React.ReactNode}) {
   );
 }
 
-function sortEntries(entries: KeyValueEntry[], sort: KeyValueProps['sort']) {
+function sortEntries(entries: KeyValueEntry[], sort: KeyValueSort) {
   switch (sort) {
     case 'key':
-      return [...entries].sort((a, b) => {
-        const [aKey, bKey] = [a.key.toLowerCase(), b.key.toLowerCase()];
+      return entries.toSorted((a, b) => {
+        const aKey = a.key.toLowerCase();
+        const bKey = b.key.toLowerCase();
         return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
       });
     case 'subject':
-      return [...entries].sort((a, b) =>
+      return entries.toSorted((a, b) =>
         (a.subject ?? a.key).localeCompare(b.subject ?? b.key)
       );
     default:
