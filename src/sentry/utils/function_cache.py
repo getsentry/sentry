@@ -50,6 +50,8 @@ def clear_cache_for_cached_func(
     **kwargs: object,
 ) -> None:
     func_args = arg_getter(instance)
+    if func_args is None:
+        return
     cache_key = cache_key_for_cached_func(cached_func, *func_args)
     if recalculate:
         try:
