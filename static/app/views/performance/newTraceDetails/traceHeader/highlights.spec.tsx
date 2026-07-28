@@ -150,6 +150,26 @@ describe('Highlights', () => {
     expect(screen.queryByText('18.0.0')).not.toBeInTheDocument();
   });
 
+  it('does not pair a runtime name with a version from the other attribute family', () => {
+    const rootEventResults = {
+      data: makeTraceItemDetailsResponse([
+        {name: 'process.runtime.name', type: 'str', value: 'CPython'},
+        {name: 'runtime.version', type: 'str', value: '18.0.0'},
+      ]),
+    } as TraceRootEventQueryResults;
+
+    render(
+      <Highlights
+        rootEventResults={rootEventResults}
+        organization={organization}
+        project={project}
+      />
+    );
+
+    expect(screen.getByText('CPython')).toBeInTheDocument();
+    expect(screen.queryByText('18.0.0')).not.toBeInTheDocument();
+  });
+
   it('does not render os, browser, or runtime highlights when name attribute is missing', () => {
     const rootEventResults = {
       data: makeTraceItemDetailsResponse([

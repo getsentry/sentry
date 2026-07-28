@@ -42,12 +42,15 @@ function AttributesHighlights({
     {
       key: 'runtime',
       getSummary: () => {
-        const name =
-          findSpanAttributeValue(attributes, 'process.runtime.name') ??
-          findSpanAttributeValue(attributes, 'runtime.name');
-        const version =
-          findSpanAttributeValue(attributes, 'process.runtime.version') ??
-          findSpanAttributeValue(attributes, 'runtime.version');
+        // Resolve the name and version as a pair so a span that has only part of
+        // each family can't report a version belonging to a different runtime.
+        const otelName = findSpanAttributeValue(attributes, 'process.runtime.name');
+        const [name, version] = otelName
+          ? [otelName, findSpanAttributeValue(attributes, 'process.runtime.version')]
+          : [
+              findSpanAttributeValue(attributes, 'runtime.name'),
+              findSpanAttributeValue(attributes, 'runtime.version'),
+            ];
 
         if (!name) {
           return null;
