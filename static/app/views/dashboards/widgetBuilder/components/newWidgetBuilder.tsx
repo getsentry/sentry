@@ -322,11 +322,7 @@ export function WidgetPreviewContainer({
   return (
     <DashboardsMEPProvider>
       <MetricsCardinalityProvider organization={organization} location={location}>
-        <MetricsDataSwitcher
-          organization={organization}
-          location={location}
-          hideLoadingIndicator
-        >
+        <MetricsDataSwitcher location={location}>
           {metricsDataSide => (
             <MEPSettingProvider
               location={location}

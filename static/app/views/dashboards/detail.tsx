@@ -1136,11 +1136,7 @@ class DashboardDetail extends Component<Props, State> {
                   organization={organization}
                   location={location}
                 >
-                  <MetricsDataSwitcher
-                    organization={organization}
-                    location={location}
-                    hideLoadingIndicator
-                  >
+                  <MetricsDataSwitcher location={location}>
                     {metricsDataSide => (
                       <MEPSettingProvider
                         location={location}
@@ -1282,11 +1278,7 @@ class DashboardDetail extends Component<Props, State> {
                     organization={organization}
                     location={location}
                   >
-                    <MetricsDataSwitcher
-                      organization={organization}
-                      location={location}
-                      hideLoadingIndicator
-                    >
+                    <MetricsDataSwitcher location={location}>
                       {metricsDataSide => (
                         <MEPSettingProvider
                           location={location}

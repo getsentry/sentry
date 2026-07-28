@@ -480,11 +480,7 @@ function AddToDashboardModal({
         </Container>
         {!hasMultipleWidgets && (
           <MetricsCardinalityProvider organization={organization} location={location}>
-            <MetricsDataSwitcher
-              organization={organization}
-              location={location}
-              hideLoadingIndicator
-            >
+            <MetricsDataSwitcher location={location}>
               {metricsDataSide => (
                 <DashboardsMEPProvider>
                   <MEPSettingProvider
