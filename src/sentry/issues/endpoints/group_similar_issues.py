@@ -32,7 +32,11 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-similar"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-similar",
+        url_names=["sentry-api-0-group-similar"],
+    )
     def get(self, request: Request, group: Group) -> Response:
         # Any project using embeddings-based grouping will not work with this endpoint
         if group.project.get_option("sentry:similarity_backfill_completed"):

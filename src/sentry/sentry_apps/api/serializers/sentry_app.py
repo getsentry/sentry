@@ -48,7 +48,12 @@ class OwnerResponseField(TypedDict):
 class SentryAppSerializerResponse(TypedDict):
     allowedOrigins: list[str]
     avatars: list[SentryAppAvatarSerializerResponse]
+    # Webhook subscriptions were originally to whole resources ("issue") but can
+    # now also be to individual events ("issue.resolved"). `events` keeps the
+    # original resource-level view by consolidating the stored events;
+    # `webhookEvents` is the exact stored list.
     events: set[str]
+    webhookEvents: list[str]
     featureData: list[str]
     isAlertable: bool
     metadata: str
@@ -146,6 +151,7 @@ class SentryAppSerializer(Serializer):
                 serializer=ResponseSentryAppAvatarSerializer(),
             ),
             events=consolidate_events(obj.events),
+            webhookEvents=sorted(obj.events),
             featureData=[],
             isAlertable=obj.is_alertable,
             isDisabled=obj.is_disabled,

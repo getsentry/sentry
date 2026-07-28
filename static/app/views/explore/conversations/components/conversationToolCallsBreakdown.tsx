@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -46,13 +47,12 @@ export function ConversationToolCallsBreakdown({
         <Fragment key={tool.toolName}>
           <Tag
             variant={tool.hasError ? 'danger' : 'muted'}
-            title={tool.toolName}
             // Cap long tool names; the inner Text truncates with an ellipsis.
             style={{justifySelf: 'start', maxWidth: 200, minWidth: 0}}
           >
-            <Text ellipsis variant="inherit">
+            <InfoText title={tool.toolName} mode="overflowOnly" variant="inherit">
               {tool.toolName}
-            </Text>
+            </InfoText>
           </Tag>
           <Text size="sm" tabular>
             <Count value={tool.calls} /> {tn('call', 'calls', tool.calls)}

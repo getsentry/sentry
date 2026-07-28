@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {IconFire, IconStats} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -250,10 +250,9 @@ export function UsageAlert({subscription, usage}: Props) {
     return null;
   }
 
-  const hasExceeded =
-    Object.values(subscription.categories).some(({usageExceeded}) => usageExceeded) ||
-    // TODO: Remove when mmx plans have error BillingMetricHistory
-    subscription.usageExceeded;
+  const hasExceeded = Object.values(subscription.categories).some(
+    ({usageExceeded}) => usageExceeded
+  );
   const projectedOverages = getProjectedOverages();
   const hasOverage = hasExceeded || !!projectedOverages.length;
 
@@ -265,10 +264,10 @@ export function UsageAlert({subscription, usage}: Props) {
   const showProjected = !hasExceeded;
 
   return (
-    <Flex direction="column" gap="xl" data-test-id="usage-alert">
+    <Stack gap="xl" data-test-id="usage-alert">
       {hasExceeded && renderExceededInfo()}
       {showProjected && renderProjectedInfo(projectedOverages)}
-    </Flex>
+    </Stack>
   );
 }
 

@@ -1,15 +1,16 @@
 import {useCallback, useMemo, useState, type ReactNode} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
@@ -34,9 +35,15 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {defined} from 'sentry/utils/defined';
 import {useIntegrations} from 'sentry/utils/integrations/useIntegrations';
+import {
+  getSeerProjectReposInfiniteQueryOptions,
+  isGitHubProvider,
+} from 'sentry/utils/seer/seerProjectRepos';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 import {getProviderPermissionsUrl} from 'sentry/views/settings/organizationRepositories/getProviderConfigUrl';
 
 interface SeerDrawerNextStepProps {
@@ -46,7 +53,7 @@ interface SeerDrawerNextStepProps {
 }
 
 export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextStepProps) {
-  const runId = autofix.runState?.run_id;
+  const runId = getAutofixRunId(autofix.runState);
   const section = sections[sections.length - 1];
   const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
@@ -135,7 +142,7 @@ function PullRequestNextStep({autofix, group, runId, referrer}: NextStepProps) {
 interface NextStepProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
-  runId: number;
+  runId: SeerExplorerRunId;
   section: AutofixSection;
   referrer?: string;
 }
@@ -144,13 +151,14 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
   const organization = useOrganization();
   const {isPolling, startStep} = autofix;
 
-  const {codingAgentIntegrations, handleCodingAgentHandoff} = useCodingAgents({
-    autofix,
-    runId,
-    group,
-    step: 'root_cause',
-    referrer,
-  });
+  const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
+    useCodingAgents({
+      autofix,
+      runId,
+      group,
+      step: 'root_cause',
+      referrer,
+    });
 
   const handleYesClick = () => {
     startStep('solution', {runId});
@@ -201,6 +209,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
       rethinkPrompt={t('How can this root cause be improved?')}
       labelRethink={t('Rethink root cause')}
       codingAgentIntegrations={codingAgentIntegrations}
+      codingAgentDisabledReason={codingAgentDisabledReason}
       onCodingAgentHandoff={handleCodingAgentHandoff}
     />
   );
@@ -210,13 +219,14 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   const organization = useOrganization();
   const {isPolling, startStep} = autofix;
 
-  const {codingAgentIntegrations, handleCodingAgentHandoff} = useCodingAgents({
-    autofix,
-    runId,
-    group,
-    step: 'solution',
-    referrer,
-  });
+  const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
+    useCodingAgents({
+      autofix,
+      runId,
+      group,
+      step: 'solution',
+      referrer,
+    });
 
   const handleYesClick = () => {
     startStep('code_changes', {runId});
@@ -267,6 +277,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
       rethinkPrompt={t('How can this plan be improved?')}
       labelRethink={t('Rethink plan')}
       codingAgentIntegrations={codingAgentIntegrations}
+      codingAgentDisabledReason={codingAgentDisabledReason}
       onCodingAgentHandoff={handleCodingAgentHandoff}
     />
   );
@@ -476,6 +487,7 @@ interface NextStepTemplateProps {
   prompt: ReactNode;
   rethinkPrompt: ReactNode;
   yesButton: ReactNode;
+  codingAgentDisabledReason?: string;
   codingAgentIntegrations?: CodingAgentIntegration[];
   onCodingAgentHandoff?: (integration: CodingAgentIntegration) => void;
 }
@@ -491,6 +503,7 @@ function NextStepTemplate({
   rethinkPrompt,
   labelRethink,
   codingAgentIntegrations,
+  codingAgentDisabledReason,
   onCodingAgentHandoff,
 }: NextStepTemplateProps) {
   const organization = useOrganization();
@@ -521,7 +534,7 @@ function NextStepTemplate({
 
   if (clickedNo) {
     return (
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Text>{rethinkPrompt}</Text>
         <TextArea
           autosize
@@ -540,12 +553,12 @@ function NextStepTemplate({
             {labelRethink}
           </Button>
         </Flex>
-      </Flex>
+      </Stack>
     );
   }
 
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <Text>{prompt}</Text>
       <Flex gap="md">
         <Button disabled={isProcessing} onClick={() => handleClickedNo(true)}>
@@ -556,11 +569,12 @@ function NextStepTemplate({
           {codingAgentIntegrations === undefined ? null : (
             <DropdownMenu
               items={codingAgentOptions}
-              isDisabled={false}
+              isDisabled={defined(codingAgentDisabledReason)}
               trigger={(triggerProps, isOpen) => (
                 <Button
                   {...triggerProps}
-                  disabled={isProcessing}
+                  disabled={isProcessing || defined(codingAgentDisabledReason)}
+                  tooltipProps={{title: codingAgentDisabledReason}}
                   variant="primary"
                   icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
                   aria-label={t('More code fix options')}
@@ -582,7 +596,7 @@ function NextStepTemplate({
           )}
         </ButtonBar>
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -590,7 +604,7 @@ interface UseCodingAgentsOptions {
   autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
   referrer: string | undefined;
-  runId: number;
+  runId: SeerExplorerRunId;
   step: 'root_cause' | 'solution';
 }
 
@@ -607,10 +621,35 @@ function useCodingAgents({
   const {data: codingAgentResponse} = useQuery(
     organizationIntegrationsCodingAgents(organization)
   );
+
+  const reposQuery = useInfiniteQuery({
+    ...getSeerProjectReposInfiniteQueryOptions({organization, project: group.project}),
+    select: ({pages}) => pages.flatMap(page => page.json),
+  });
+  useFetchAllPages({result: reposQuery});
+  const repos = reposQuery.data ?? [];
+
+  // `useFetchAllPages` streams pages in across renders, so `isPending` alone only
+  // means "page 1 arrived" — not that every repo is loaded. Wait until pagination is
+  // fully drained so the gate below is computed over the complete repo list.
+  const isReposLoading =
+    reposQuery.isPending || reposQuery.isFetchingNextPage || reposQuery.hasNextPage;
+
+  // Disable handoff when the project has no connected repos, or when a non-GitHub repo
+  // (e.g. GitLab) is connected — coding agents only operate on GitHub repositories.
+  const hasNoRepos = repos.length === 0;
+  const hasNonGithubRepo = repos.some(repo => !isGitHubProvider(repo.provider));
+
   const codingAgentIntegrations = useMemo(
-    () => codingAgentResponse?.integrations,
-    [codingAgentResponse?.integrations]
+    () => (isReposLoading ? undefined : codingAgentResponse?.integrations),
+    [codingAgentResponse?.integrations, isReposLoading]
   );
+
+  const codingAgentDisabledReason = hasNoRepos
+    ? t('Connect a GitHub repository to hand off to a coding agent.')
+    : hasNonGithubRepo
+      ? t('Handing off to a coding agent requires a connected GitHub repository.')
+      : undefined;
 
   const handleCodingAgentHandoff = useCallback(
     (integration: CodingAgentIntegration) => {
@@ -633,5 +672,5 @@ function useCodingAgents({
     [triggerCodingAgentHandoff, organization, runId, group, step, referrer]
   );
 
-  return {codingAgentIntegrations, handleCodingAgentHandoff};
+  return {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff};
 }

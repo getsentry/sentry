@@ -61,21 +61,42 @@ const truncatedTextRenderer = (props: CustomRenderersProps) => {
   return ellipsize(props.item.value, 100);
 };
 
-export function Attributes({
-  node,
-  attributes,
-  theme,
-  location,
-  organization,
-  project,
-}: {
+interface AttributesProps {
   attributes: TraceItemResponseAttribute[];
   location: Location;
   node: EapSpanNode | UptimeCheckNode;
   organization: Organization;
   project: Project | undefined;
   theme: Theme;
-}) {
+}
+
+export function AttributesSection(props: AttributesProps) {
+  return (
+    <FoldSection
+      sectionKey={SectionKey.SPAN_ATTRIBUTES}
+      title={
+        <TraceDrawerComponents.SectionTitleWithQuestionTooltip
+          title={t('Attributes')}
+          tooltipText={t(
+            'These attributes are indexed and can be queried in the Trace Explorer.'
+          )}
+        />
+      }
+      disableCollapsePersistence
+    >
+      <AttributesContent {...props} />
+    </FoldSection>
+  );
+}
+
+export function AttributesContent({
+  node,
+  attributes,
+  theme,
+  location,
+  organization,
+  project,
+}: AttributesProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const {selection} = usePageFilters();
   const currentLocation = useLocation();
@@ -207,51 +228,38 @@ export function Attributes({
   }
 
   return (
-    <FoldSection
-      sectionKey={SectionKey.SPAN_ATTRIBUTES}
-      title={
-        <TraceDrawerComponents.SectionTitleWithQuestionTooltip
-          title={t('Attributes')}
-          tooltipText={t(
-            'These attributes are indexed and can be queried in the Trace Explorer.'
-          )}
-        />
-      }
-      disableCollapsePersistence
-    >
-      <Stack gap="lg" maxWidth="100%">
-        <BaseSearchBar
-          placeholder={t('Search')}
-          onChange={query => setSearchQuery(query)}
-          query={searchQuery}
-          size="sm"
-        />
-        {sortedAndFilteredAttributes.length > 0 ? (
-          <div>
-            <AttributesTree
-              columnCount={columnCount}
-              attributes={sortedAndFilteredAttributes}
-              renderers={customRenderers}
-              rendererExtra={{
-                theme,
-                location,
-                navigate,
-                organization,
-              }}
-              getCustomActions={getTraceAttributesTreeActions({
-                location,
-                organization,
-                projectIds: findSpanAttributeValue(attributes, 'project_id'),
-              })}
-            />
-          </div>
-        ) : (
-          <NoAttributesMessage>
-            <p>{t('No matching attributes found')}</p>
-          </NoAttributesMessage>
-        )}
-      </Stack>
-    </FoldSection>
+    <Stack gap="lg" maxWidth="100%">
+      <BaseSearchBar
+        placeholder={t('Search')}
+        onChange={query => setSearchQuery(query)}
+        query={searchQuery}
+        size="sm"
+      />
+      {sortedAndFilteredAttributes.length > 0 ? (
+        <div>
+          <AttributesTree
+            columnCount={columnCount}
+            attributes={sortedAndFilteredAttributes}
+            renderers={customRenderers}
+            rendererExtra={{
+              theme,
+              location,
+              navigate,
+              organization,
+            }}
+            getCustomActions={getTraceAttributesTreeActions({
+              location,
+              organization,
+              projectIds: findSpanAttributeValue(attributes, 'project_id'),
+            })}
+          />
+        </div>
+      ) : (
+        <NoAttributesMessage>
+          <p>{t('No matching attributes found')}</p>
+        </NoAttributesMessage>
+      )}
+    </Stack>
   );
 }
 

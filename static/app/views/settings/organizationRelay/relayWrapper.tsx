@@ -74,9 +74,6 @@ export function RelayWrapper() {
   const [relays, setRelays] = useState(organization.trustedRelays ?? []);
 
   const disabled = !organization.access.includes('org:write');
-  const hasRelayDsnEndpointOverrideFeature = organization.features.includes(
-    'relay-dsn-endpoint-override'
-  );
 
   const handleOpenAddDialog = () => {
     openModal(modalProps => (
@@ -162,39 +159,37 @@ export function RelayWrapper() {
             </field.Layout.Row>
           )}
         </AutoSaveForm>
-        {hasRelayDsnEndpointOverrideFeature && (
-          <AutoSaveForm
-            name="relayDsnEndpoint"
-            schema={relayDsnEndpointSchema}
-            initialValue={organization.relayDsnEndpoint ?? ''}
-            mutationOptions={{
-              mutationFn: data =>
-                fetchMutation<Organization>({
-                  url: `/organizations/${organization.slug}/`,
-                  method: 'PUT',
-                  data: {relayDsnEndpoint: data.relayDsnEndpoint},
-                }),
-              onSuccess: updatedOrg => {
-                OrganizationStore.onUpdate(updatedOrg);
-              },
-            }}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('DSN Endpoint Override')}
-                hintText={t(
-                  "Use a Relay base URL when displaying Client Key DSNs. Leave blank to use Sentry's default ingest endpoint."
-                )}
-              >
-                <field.Input
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={disabled}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
-        )}
+        <AutoSaveForm
+          name="relayDsnEndpoint"
+          schema={relayDsnEndpointSchema}
+          initialValue={organization.relayDsnEndpoint ?? ''}
+          mutationOptions={{
+            mutationFn: data =>
+              fetchMutation<Organization>({
+                url: `/organizations/${organization.slug}/`,
+                method: 'PUT',
+                data: {relayDsnEndpoint: data.relayDsnEndpoint},
+              }),
+            onSuccess: updatedOrg => {
+              OrganizationStore.onUpdate(updatedOrg);
+            },
+          }}
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('DSN Endpoint Override')}
+              hintText={t(
+                "Use a Relay base URL when displaying Client Key DSNs. Leave blank to use Sentry's default ingest endpoint."
+              )}
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                disabled={disabled}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
       </FieldGroup>
       {relays.length === 0 ? (
         <EmptyState />

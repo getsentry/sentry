@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ipaddress
 import logging
-import random
 import socket
 from collections.abc import Mapping
 from hashlib import sha256
@@ -122,12 +121,7 @@ class CellSiloClient(BaseApiClient):
         self.cell = get_cell_by_name(cell.name)
         self.base_url = self.cell.address
 
-        gateway_rollout = options.get("apigateway.proxy.cell-rollout")
-        if (
-            self.cell.api_gateway_address
-            and isinstance(gateway_rollout, dict)
-            and random.random() < gateway_rollout.get(cell.name, 0.0)
-        ):
+        if self.cell.api_gateway_address:
             self.base_url = self.cell.api_gateway_address
         self.retry = retry
 

@@ -149,17 +149,6 @@ export type PerformanceEventParameters = {
   };
   'performance_views.summary.tag_explorer.visit_tag_key': Record<string, unknown>;
   'performance_views.summary.view_in_transaction_events': Record<string, unknown>;
-  'performance_views.tags.change_aggregate_column': {
-    value: string;
-  };
-  'performance_views.tags.change_tag': {
-    from_tag: string;
-    is_other_tag: boolean;
-    to_tag: string;
-  };
-  'performance_views.tags.interaction': Record<string, unknown>;
-  'performance_views.tags.jump_to_release': Record<string, unknown>;
-  'performance_views.tags.tags_tab_clicked': PageLayoutParams;
   'performance_views.team_key_transaction.set': {
     action: string;
   };
@@ -295,12 +284,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Transaction Summary status breakdown option clicked',
   'performance_views.all_events.open_in_discover':
     'Performance Views: All Events page open in Discover button clicked',
-  'performance_views.tags.change_aggregate_column':
-    'Performance Views: Tags page changed aggregate column',
-  'performance_views.tags.change_tag':
-    'Performance Views: Tags Page changed selected tag',
-  'performance_views.tags.jump_to_release':
-    'Performance Views: Tags Page link to release in table clicked',
   'performance_views.team_key_transaction.set':
     'Performance Views: Set Team Key Transaction',
   'performance_views.trends.widget_interaction':
@@ -324,14 +307,12 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Select Relative Breakdown',
   'performance_views.mep.metrics_outcome': 'Performance Views: Metrics Outcome',
   'performance_views.vitals.vitals_tab_clicked': 'Performance Views: Vitals tab clicked',
-  'performance_views.tags.tags_tab_clicked': 'Performance Views: Tags tab clicked',
   'performance_views.events.events_tab_clicked': 'Performance Views: Events tab clicked',
   'performance_views.spans.spans_tab_clicked': 'Performance Views: Spans tab clicked',
   'performance_views.summary.view_in_transaction_events':
     'Performance Views: View in All Events from Transaction Summary',
   'performance_views.summary.open_issues':
     'Performance Views: Open issues from transaction summary',
-  'performance_views.tags.interaction': 'Performance Views: Tag Page - Interaction',
   'performance_views.vitals.filter_changed': 'Performance Views: Change vitals filter',
   'performance_views.vitals.reset_view': 'Performance Views: Reset vitals view',
   'performance_views.trends.change_parameter': 'Performance Views: Change Parameter',

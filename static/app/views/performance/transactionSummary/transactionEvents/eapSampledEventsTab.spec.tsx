@@ -1,4 +1,3 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -7,7 +6,6 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {EventView} from 'sentry/utils/discover/eventView';
 import {TransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 
 import {EAPSampledEventsTab} from './eapSampledEventsTab';
@@ -107,24 +105,10 @@ describe('EAPSampledEventsTab', () => {
   });
 
   it('renders the filter bar and table', async () => {
-    const eventView = EventView.fromNewQueryWithLocation(
-      {
-        id: undefined,
-        version: 2,
-        name: 'test',
-        fields: ['span_id', 'span.duration', 'trace', 'timestamp'],
-        query: '',
-        projects: [Number(project.id)],
-        orderby: '-timestamp',
-      },
-      LocationFixture({pathname: '/'})
-    );
-
     render(
       <TransactionSummaryContext
         value={{
           organization,
-          eventView,
           transactionName: '/api/test',
           projectId: project.id,
           projects: [project],

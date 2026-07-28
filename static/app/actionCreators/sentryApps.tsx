@@ -9,6 +9,7 @@ import {
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
+import type {InternalAppApiToken} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 export function sentryAppsApiOptions({
@@ -33,6 +34,16 @@ export function sentryAppApiOptions({appSlug}: {appSlug: string | null}) {
     path: appSlug ? {sentryAppIdOrSlug: appSlug} : skipToken,
     staleTime: 0,
   });
+}
+
+export function sentryAppTokensApiOptions({appSlug}: {appSlug: string | null}) {
+  return apiOptions.as<InternalAppApiToken[]>()(
+    '/sentry-apps/$sentryAppIdOrSlug/api-tokens/',
+    {
+      path: appSlug ? {sentryAppIdOrSlug: appSlug} : skipToken,
+      staleTime: 30_000,
+    }
+  );
 }
 
 /**

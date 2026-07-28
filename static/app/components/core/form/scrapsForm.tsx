@@ -24,7 +24,13 @@ import {SelectAsyncField} from './field/selectAsyncField';
 import {SelectField} from './field/selectField';
 import {SwitchField} from './field/switchField';
 import {TextAreaField} from './field/textAreaField';
-import {fieldContext, formContext, useFormContext} from './formContext';
+import {
+  FormElementContext,
+  fieldContext,
+  formContext,
+  useFormContext,
+  useIsInsideFormElement,
+} from './formContext';
 
 export const defaultFormOptions = formOptions({
   onSubmitInvalid({formApi}: {formApi: {formId: string}}) {
@@ -73,14 +79,15 @@ const {useAppForm, withFieldGroup, withForm} = createFormHook({
 
 function SubmitButton(props: ButtonProps) {
   const form = useFormContext();
+  const isInsideForm = useIsInsideFormElement();
   return (
     <form.Subscribe selector={state => state.isSubmitting}>
       {isSubmitting => (
         <Button
-          {...props}
           variant="primary"
+          {...props}
           type="submit"
-          form={form.formId}
+          form={isInsideForm ? undefined : form.formId}
           busy={isSubmitting || props.busy}
           disabled={isSubmitting || props.disabled}
         />
@@ -123,13 +130,13 @@ function FormWrapper({children}: {children: React.ReactNode}) {
       noValidate
       data-test-id={form.formId}
       id={form.formId}
-      style={{width: '100%', flexGrow: 1}}
+      style={{width: '100%'}}
       onSubmit={e => {
         e.preventDefault();
         form.handleSubmit();
       }}
     >
-      {children}
+      <FormElementContext.Provider value>{children}</FormElementContext.Provider>
     </form>
   );
 }

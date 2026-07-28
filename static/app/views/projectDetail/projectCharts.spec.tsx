@@ -6,7 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {PlatformKey} from 'sentry/types/platform';
-import ProjectCharts from 'sentry/views/projectDetail/projectCharts';
+import {ProjectCharts} from 'sentry/views/projectDetail/projectCharts';
 
 function renderProjectCharts(platform?: PlatformKey, chartDisplay?: string) {
   const {organization, project} = initializeOrg({
@@ -103,6 +103,22 @@ describe('ProjectDetail > ProjectCharts', () => {
 
     expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
     expect(screen.queryByText('ANR Rate')).not.toBeInTheDocument();
+  });
+
+  it('does not refetch sessions when the summary total updates', async () => {
+    // Sessions display mode issues a single sessions request. When the request
+    // resolves it reports the total back up to ProjectCharts, which updates the
+    // summary state and re-renders. A stable onTotalValuesChange handler ensures
+    // this re-render does not trip ProjectSessionsChartRequest's prop comparison
+    // into refetching.
+    renderProjectCharts('python', 'sessions');
+
+    // 492 is the total sessions count derived from the fixture.
+    expect(await screen.findByText('492')).toBeInTheDocument();
+
+    // Give any erroneous refetch triggered by the summary re-render a chance to fire.
+    await waitFor(() => expect(mockSessions).toHaveBeenCalled());
+    expect(mockSessions).toHaveBeenCalledTimes(1);
   });
 
   it('makes the right ANR sessions request', async () => {

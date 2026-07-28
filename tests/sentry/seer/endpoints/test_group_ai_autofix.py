@@ -1,15 +1,20 @@
 import uuid
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
-from sentry.issues.action_log.types import TriggerAutofixAction
+from sentry.integrations.services.integration import RpcIntegration
+from sentry.issues.action_log.types import GroupActionActor, TriggerAutofixAction
+from sentry.models.activity import Activity
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.autofix_agent import AutofixStep, NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
+from sentry.types.activity import ActivityType
 
 # Note: Detailed tests for the implementation of functions in seer/autofix.py
 # have been moved to tests/sentry/seer/test_autofix.py
@@ -80,10 +85,68 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["blocks"][0]["message"]["metadata"] is None
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_out_of_date_github_permissions")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_no_warnings_when_no_missing_permissions(
+        self, mock_get_explorer_state, mock_get_perms
+    ):
+        group = self.create_group()
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+        mock_get_perms.return_value = {}
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        assert response.data["autofix"]["warnings"] == []
+        mock_get_perms.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_out_of_date_github_permissions")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_returns_github_permission_warnings(self, mock_get_explorer_state, mock_get_perms):
+        group = self.create_group()
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+        mock_get_perms.return_value = {
+            "getsentry/sentry": MissingGithubPermissions(
+                integration=RpcIntegration(
+                    id=42,
+                    provider="github",
+                    external_id="9999",
+                    name="octocat",
+                    metadata={},
+                    status=0,
+                ),
+                missing_scopes=["contents"],
+            )
+        }
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        assert response.data["autofix"]["warnings"] == [
+            {
+                "warning_type": "github_app_permissions",
+                "repo_name": "getsentry/sentry",
+                "installation_id": "9999",
+            }
+        ]
+
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_triggers_autofix_agent(self, mock_trigger_explorer):
         group = self.create_group()
-        mock_trigger_explorer.return_value = 123
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -100,7 +163,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_post_kickoff_returns_sentry_run_id(self, mock_trigger_explorer):
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=777)
-        mock_trigger_explorer.return_value = 777
+        mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -114,7 +177,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_post_continue_with_sentry_run_id_resolves_to_numeric_id(self, mock_trigger_explorer):
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
-        mock_trigger_explorer.return_value = 555
+        mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -132,7 +195,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         """The legacy numeric run_id field keeps working unchanged."""
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=321)
-        mock_trigger_explorer.return_value = 321
+        mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -177,7 +240,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_post_from_mcp_defaults_referrer_to_mcp(self, mock_trigger_explorer):
         """A request from the Sentry MCP server defaults the referrer to api.mcp."""
         group = self.create_group()
-        mock_trigger_explorer.return_value = 123
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -197,7 +261,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_post_explicit_referrer_overrides_mcp_default(self, mock_trigger_explorer):
         """An explicitly supplied referrer takes precedence over the MCP default."""
         group = self.create_group()
-        mock_trigger_explorer.return_value = 123
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -214,7 +279,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_stopping_point(self, mock_trigger_explorer):
         """Stopping point forces the step to be root_cause"""
         group = self.create_group()
-        mock_trigger_explorer.return_value = 123
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -233,13 +299,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             run_id=None,
             user_context=None,
             insert_index=None,
+            user=ANY,
+            enable_bash_tools=False,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_insert_index_passed_through(self, mock_trigger_explorer):
         """POST passes insert_index to trigger_autofix_agent for retry-from-step."""
         group = self.create_group()
-        mock_trigger_explorer.return_value = 123
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
         response = self.client.post(
@@ -257,68 +326,97 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             run_id=42,
             user_context=None,
             insert_index=3,
+            user=ANY,
+            enable_bash_tools=False,
         )
 
-    @patch("sentry.seer.endpoints.group_ai_autofix.publish_action", autospec=True)
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_kickoff_emits_trigger_autofix_action(self, mock_trigger, mock_publish):
+    def test_kickoff_emits_trigger_autofix_action(self, mock_trigger):
         # A kickoff (no run_id) records the action.
         group = self.create_group()
-        mock_trigger.return_value = 123
+        mock_trigger.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123
+        )
+
+        self.login_as(user=self.user)
+        with capture_action_log() as action_log:
+            response = self.client.post(
+                self._get_url(group.id),
+                data={"step": "root_cause"},
+                format="json",
+            )
+
+        assert response.status_code == 202, response.data
+        action_log.assert_logged(
+            TriggerAutofixAction,
+            group_id=group.id,
+            actor=GroupActionActor.user(self.user.id),
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value,
+        )
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_kickoff_creates_trigger_autofix_activity(self, mock_trigger):
+        group = self.create_group()
+        mock_trigger.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123
+        )
 
         self.login_as(user=self.user)
         response = self.client.post(
             self._get_url(group.id),
-            data={"step": "root_cause"},
+            data={"step": "root_cause", "referrer": AutofixReferrer.WEB.value},
             format="json",
         )
 
         assert response.status_code == 202, response.data
-        mock_publish.assert_called_once()
-        assert isinstance(mock_publish.call_args.args[0], TriggerAutofixAction)
-        assert mock_publish.call_args.kwargs["group_id"] == group.id
-        assert mock_publish.call_args.kwargs["actor"].actor_id == self.user.id
+        activity = Activity.objects.get(group=group, type=ActivityType.TRIGGER_AUTOFIX.value)
+        assert activity.user_id == self.user.id
+        assert activity.data == {"referrer": AutofixReferrer.WEB.value}
 
-    @patch("sentry.seer.endpoints.group_ai_autofix.publish_action", autospec=True)
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
-    def test_advancing_existing_run_skips_action(self, mock_trigger, mock_publish):
+    def test_advancing_existing_run_skips_action(self, mock_trigger):
         # Advancing an existing run (run_id provided) is steering, not a new trigger.
         group = self.create_group()
-        mock_trigger.return_value = 42
-
-        self.login_as(user=self.user)
-        response = self.client.post(
-            self._get_url(group.id),
-            data={"step": "solution", "run_id": 42},
-            format="json",
+        mock_trigger.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=42
         )
 
-        assert response.status_code == 202, response.data
-        mock_publish.assert_not_called()
+        self.login_as(user=self.user)
+        with capture_action_log() as action_log:
+            response = self.client.post(
+                self._get_url(group.id),
+                data={"step": "solution", "run_id": 42},
+                format="json",
+            )
 
-    @patch("sentry.seer.endpoints.group_ai_autofix.publish_action", autospec=True)
+        assert response.status_code == 202, response.data
+        action_log.assert_not_logged(TriggerAutofixAction, group_id=group.id)
+
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_coding_agent_handoff")
-    def test_coding_agent_handoff_skips_action(self, mock_handoff, mock_publish):
+    def test_coding_agent_handoff_skips_action(self, mock_handoff):
         # The handoff path returns before the built-in-step branch, so it must not log.
         mock_handoff.return_value = {"successes": [], "failures": []}
         group = self.create_group()
 
         self.login_as(user=self.user)
-        response = self.client.post(
-            self._get_url(group.id),
-            data={"step": "coding_agent_handoff", "run_id": 123, "integration_id": 456},
-            format="json",
-        )
+        with capture_action_log() as action_log:
+            response = self.client.post(
+                self._get_url(group.id),
+                data={"step": "coding_agent_handoff", "run_id": 123, "integration_id": 456},
+                format="json",
+            )
 
         assert response.status_code == 202, response.data
-        mock_publish.assert_not_called()
+        action_log.assert_not_logged(TriggerAutofixAction, group_id=group.id)
 
     @with_feature("organizations:autofix-pr-iteration")
     @patch("sentry.seer.endpoints.group_ai_autofix.consume_queued_autofix_feedback")
-    @patch("sentry.seer.endpoints.group_ai_autofix.enqueue_autofix_feedback")
+    @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
-    def test_pr_iteration(self, mock_run_state, mock_trigger_explorer, mock_enqueue, mock_consume):
+    def test_pr_iteration(
+        self, mock_run_state, mock_trigger_explorer, mock_try_enqueue, mock_consume
+    ):
         group = self.create_group()
         mock_run_state.return_value = SeerRunState(
             run_id=123,
@@ -338,15 +436,15 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         assert response.data["run_id"] == 123
         mock_trigger_explorer.assert_not_called()
-        mock_enqueue.assert_called_once()
-        assert mock_enqueue.call_args.kwargs["run_id"] == 123
-        assert mock_enqueue.call_args.kwargs["group_id"] == group.id
+        mock_try_enqueue.assert_called_once()
+        assert mock_try_enqueue.call_args.kwargs["run_id"] == 123
+        assert mock_try_enqueue.call_args.kwargs["group_id"] == group.id
         mock_consume.apply_async.assert_called_once()
 
     @with_feature({"organizations:autofix-pr-iteration": False})
     @patch("sentry.seer.endpoints.group_ai_autofix.consume_queued_autofix_feedback")
-    @patch("sentry.seer.endpoints.group_ai_autofix.enqueue_autofix_feedback")
-    def test_pr_iteration_requires_feature_flag(self, mock_enqueue, mock_consume):
+    @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
+    def test_pr_iteration_requires_feature_flag(self, mock_try_enqueue, mock_consume):
         group = self.create_group()
 
         self.login_as(user=self.user)
@@ -358,7 +456,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 400, response.data
         assert response.data["detail"] == "PR iteration is not enabled for this organization"
-        mock_enqueue.assert_not_called()
+        mock_try_enqueue.assert_not_called()
 
     @with_feature("organizations:autofix-pr-iteration")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
@@ -376,9 +474,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_trigger_explorer.assert_not_called()
 
     @with_feature("organizations:autofix-pr-iteration")
-    @patch("sentry.seer.endpoints.group_ai_autofix.enqueue_autofix_feedback")
+    @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
-    def test_pr_iteration_requires_existing_pr(self, mock_run_state, mock_enqueue):
+    def test_pr_iteration_requires_existing_pr(self, mock_run_state, mock_try_enqueue):
         group = self.create_group()
         mock_run_state.return_value = SeerRunState(
             run_id=123,
@@ -397,7 +495,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 400, response.data
         assert response.data["detail"] == "Cannot iterate on a PR before one has been created"
-        mock_enqueue.assert_not_called()
+        mock_try_enqueue.assert_not_called()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_continue_unknown_run_returns_404(self, mock_trigger_explorer):

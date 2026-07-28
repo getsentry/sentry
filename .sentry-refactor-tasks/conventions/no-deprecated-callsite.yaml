@@ -1,0 +1,59 @@
+name: no-deprecated-callsite
+severity: warning
+tags: [migration, deprecation, typescript]
+
+why: |
+  Every call to an `@deprecated` symbol is code that must eventually move to its
+  replacement. Left in place, deprecated APIs accumulate: the old symbol can't
+  be removed while callers remain, new code copies the pattern from existing
+  usages, and the migration note on the declaration goes unread. Each callsite
+  is a small, well-scoped migration whose target is already documented on the
+  symbol itself.
+
+  Fixing callsites — not just annotating declarations — is what actually lets a
+  deprecated symbol be deleted.
+
+  See: https://typescript-eslint.io/rules/no-deprecated/
+
+detect: |
+  Detected by the type-aware eslint rule `@typescript-eslint/no-deprecated`.
+  The TypeScript checker resolves each referenced symbol across files, so the
+  rule reports any use of a symbol whose declaration carries an `@deprecated`
+  JSDoc tag — and includes that tag's migration text in the message. Runs via
+  detect_command; no LLM needed.
+
+fix: |
+  Replace the deprecated symbol at this callsite with the migration target named
+  in the deprecation note. That note is shown in the "Problem" section above —
+  it is the text following "is deprecated."
+
+  Steps:
+    1. Read the migration instruction in the finding's message. It names the
+       symbol, hook, component, option, or import to move to.
+    2. Apply that replacement at this callsite, adjusting imports as needed.
+    3. If the note names no replacement (a bare `@deprecated`), find the intended
+       target from the symbol's declaration or its surrounding docs before
+       changing anything — do not guess.
+
+  Verify the fix by re-running eslint on the changed file (type information is
+  required, so run from the repo root):
+    pnpm eslint --rule '{"@typescript-eslint/no-deprecated": "error"}' <file>
+
+  Gotchas:
+    1. Update the import when the replacement lives in a different module.
+    2. Some deprecations are conditional ("remove once the API returns X") —
+       follow the note's instruction rather than assuming a drop-in symbol.
+    3. Replacing one deprecated symbol with another just moves the problem —
+       confirm the target is not itself deprecated.
+
+examples:
+  bad:
+    - "import {browserHistory} from 'sentry/utils/browserHistory'; browserHistory.push('/foo/');"
+    - 'const organization = useLegacyOrganization();'
+    - '<LegacyButton onClick={handleClick} />'
+  good:
+    - "const navigate = useNavigate(); navigate('/foo/');"
+    - 'const organization = useOrganization();'
+    - '<Button onClick={handleClick} />'
+
+detect_command: 'bash {convention_dir}/no-deprecated-callsite.detect.sh {repo_path}'

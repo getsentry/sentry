@@ -249,7 +249,6 @@ type GetsentryEventParameters = {
   'upgrade_now.modal.viewed': UpdateProps & {
     has_price_change: undefined | boolean;
   };
-  'usage_exceeded_modal.seen': HasSub;
 };
 
 export type AM2UpdateSurfaces =
@@ -295,7 +294,6 @@ const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
   'performance.quota_exceeded_alert.displayed':
     'Performance: Quota Exceeded Alert Displayed',
   'trial_ended_notice.dismissed_understood': 'Trial Ended Notice: Dismissed understood',
-  'usage_exceeded_modal.seen': 'Usage Exceeded Modal Seen',
   'past_due_modal.seen': 'Past Due Modal Seen',
   'deactivated_member_alert.snoozed': 'Deactivated Member Alert: Snoozed',
   'deactivated_member_alert.upgrade_link_clicked':

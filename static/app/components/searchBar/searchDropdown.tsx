@@ -571,7 +571,6 @@ const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
     return '';
   }}
 
-
   display: flex;
   flex-direction: row;
   justify-content: space-between;

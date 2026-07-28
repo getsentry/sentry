@@ -11,6 +11,9 @@ import {
   OnboardingContextProvider,
   useOnboardingContext,
 } from 'sentry/components/onboarding/onboardingContext';
+import {PageCorners} from 'sentry/components/onboarding/pageCorners';
+import {Stepper} from 'sentry/components/onboarding/stepper';
+import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import {Override} from 'sentry/components/override';
 import {Redirect} from 'sentry/components/redirect';
@@ -30,21 +33,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {PageCorners} from 'sentry/views/onboarding/components/pageCorners';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
-import {useHasNewWelcomeUI} from 'sentry/views/onboarding/useHasNewWelcomeUI';
-import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import {NewWelcomeUI} from './components/newWelcome';
 import {OnboardingSkipButton} from './components/onboardingSkipButton';
-import {Stepper} from './components/stepper';
 import {PlatformSelection} from './platformSelection';
 import {ScmConnect} from './scmConnect';
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
 import {ScmProjectDetails} from './scmProjectDetails';
 import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
-import {TargetedOnboardingWelcome} from './welcome';
 
 // Genuine new-org onboarding happens shortly after org creation. Existing orgs
 // only reach /onboarding via stale links + login replay and are far older than
@@ -55,7 +53,7 @@ const legacyOnboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
     title: t('Welcome'),
-    Component: WelcomeVariable,
+    Component: NewWelcomeUI,
     cornerVariant: 'top-right',
   },
   {
@@ -159,7 +157,7 @@ const scmOnboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
     title: t('Welcome'),
-    Component: WelcomeVariable,
+    Component: NewWelcomeUI,
     cornerVariant: 'top-right',
   },
   {
@@ -190,25 +188,14 @@ const scmOnboardingSteps: StepDescriptor[] = [
   },
 ];
 
-function WelcomeVariable(props: StepProps) {
-  const hasNewWelcomeUI = useHasNewWelcomeUI();
-
-  if (hasNewWelcomeUI) {
-    return <NewWelcomeUI {...props} />;
-  }
-
-  return <TargetedOnboardingWelcome {...props} />;
-}
-
 interface ContainerVariableProps {
   hasFooter: boolean;
-  hasNewWelcomeUI: boolean;
   hasScmOnboarding: boolean;
   id: OnboardingStepId;
 }
 
 function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
-  const newWelcomeUIStep = props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME;
+  const newWelcomeUIStep = props.id === OnboardingStepId.WELCOME;
 
   if (newWelcomeUIStep && !props.hasScmOnboarding) {
     return (
@@ -229,16 +216,13 @@ function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
 }
 
 interface OnboardingStepVariableProps {
-  hasNewWelcomeUI: boolean;
   hasScmOnboarding: boolean;
   id: OnboardingStepId;
 }
 
 function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableProps>) {
   const Component =
-    props.hasNewWelcomeUI &&
-    props.id === OnboardingStepId.WELCOME &&
-    !props.hasScmOnboarding
+    props.id === OnboardingStepId.WELCOME && !props.hasScmOnboarding
       ? OnboardingStepNewUi
       : OnboardingStep;
 
@@ -266,8 +250,6 @@ export function OnboardingWithoutContext() {
   const onboardingContext = useOnboardingContext();
   const selectedProjectSlug =
     onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
-
-  const hasNewWelcomeUI = useHasNewWelcomeUI();
 
   // Only report experiment exposure for genuine new-org onboarding. Existing
   // orgs can land on /onboarding via stale links, which would
@@ -502,7 +484,6 @@ export function OnboardingWithoutContext() {
       <ContainerVariable
         hasFooter={containerHasFooter}
         id={stepObj.id}
-        hasNewWelcomeUI={hasNewWelcomeUI}
         hasScmOnboarding={hasScmOnboarding}
       >
         {hasScmOnboarding ? null : (
@@ -539,7 +520,6 @@ export function OnboardingWithoutContext() {
           <OnboardingStepVariable
             key={stepObj.id}
             id={stepObj.id}
-            hasNewWelcomeUI={hasNewWelcomeUI}
             hasScmOnboarding={hasScmOnboarding}
           >
             {stepObj.Component && (
@@ -600,6 +580,7 @@ const OnboardingContainer = styled('div')<{
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow-x: hidden;
   background: ${p => p.theme.tokens.background.primary};
   padding: ${p => (p.hasScmOnboarding ? '60px' : '120px')} ${p => p.theme.space['2xl']};
   width: 100%;

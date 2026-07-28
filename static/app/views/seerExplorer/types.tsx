@@ -110,11 +110,10 @@ export interface Block {
 }
 
 export interface ExplorerSession {
-  created_at: string;
-  last_triggered_at: string;
-  run_id: number;
-  title: string;
-  sentry_run_id?: string | null;
+  dateCreated: string;
+  id: string;
+  lastTriggeredAt: string;
+  title: string | null;
 }
 
 export interface Artifact<T = Record<string, unknown>> {

@@ -18,11 +18,6 @@ describe('AIContentRenderer', () => {
     expect(screen.getByText('key')).toBeInTheDocument();
   });
 
-  it('renders fixed JSON with truncated indicator', () => {
-    render(<AIContentRenderer text='{"key": "value", "nested": {"inner": "trun' />);
-    expect(screen.getByText('Truncated')).toBeInTheDocument();
-  });
-
   it('renders Python dict as JSON', () => {
     render(<AIContentRenderer text="{'name': 'test', 'flag': True}" />);
     expect(screen.getByText('name')).toBeInTheDocument();
@@ -59,5 +54,36 @@ describe('AIContentRenderer', () => {
   it('wraps plain text in MultilineText by default', () => {
     render(<AIContentRenderer text="simple text" />);
     expect(screen.getByText('simple text')).toBeInTheDocument();
+  });
+
+  it('renders collapsible XML tags with tag name label', () => {
+    const text = '<thinking>\nsome thought\n</thinking>';
+    render(<AIContentRenderer text={text} inline collapsibleXmlTags />);
+
+    expect(screen.getByText('thinking')).toBeInTheDocument();
+  });
+
+  it('renders nested collapsible XML with hierarchy', () => {
+    const text = '<outer>\n<inner>nested content</inner>\n</outer>';
+    render(<AIContentRenderer text={text} inline collapsibleXmlTags />);
+
+    expect(screen.getByText('outer')).toBeInTheDocument();
+    expect(screen.getByText('inner')).toBeInTheDocument();
+    expect(screen.getByText('nested content')).toBeInTheDocument();
+  });
+
+  it('falls back to raw text when markdown renders nothing (empty code fence)', () => {
+    render(<AIContentRenderer text="```" inline />);
+    expect(screen.getByText('```')).toBeInTheDocument();
+  });
+
+  it('falls back to raw text for non-inline empty markdown (span Output "Pretty")', () => {
+    render(<AIContentRenderer text="```" />);
+    expect(screen.getByText('```')).toBeInTheDocument();
+  });
+
+  it('still renders a code fence that has real content', async () => {
+    render(<AIContentRenderer text={'```\nconst x = 1;\n```'} inline />);
+    expect(await screen.findByText(/const x = 1;/)).toBeInTheDocument();
   });
 });

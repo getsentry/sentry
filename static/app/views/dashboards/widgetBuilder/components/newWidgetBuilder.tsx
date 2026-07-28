@@ -423,7 +423,7 @@ const SampleWidgetCard = styled(motion.div)`
   }
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) and (min-width: ${p =>
-      p.theme.breakpoints.md}) {
+    p.theme.breakpoints.md}) {
     width: 30vw;
     min-width: 100px;
   }
@@ -512,7 +512,7 @@ const FilterBarContainer = styled(motion.div)`
   }
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) and (min-width: ${p =>
-      p.theme.breakpoints.md}) {
+    p.theme.breakpoints.md}) {
     width: 30vw;
     min-width: 100px;
   }

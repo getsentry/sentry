@@ -71,6 +71,9 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         non_member_om = self.create_member(organization=self.org, user=non_member)
         self.login_as(user=non_member)
 
+        response = self.client.put(self.url, {"sourceRoot": ""})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
         response = self.make_put({"sourceRoot": "newRoot"})
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -101,6 +104,40 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data["id"] == str(self.config.id)
         assert resp.data["sourceRoot"] == "newRoot"
+
+    def test_edit_rejects_missing_required_fields(self) -> None:
+        resp = self.client.put(self.url, {"sourceRoot": ""})
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.data == {
+            "projectId": ["This field is required."],
+            "repositoryId": ["This field is required."],
+            "stackRoot": ["This field is required."],
+        }
+
+    def test_edit_snake_case_project_id_is_access_checked(self) -> None:
+        member = self.create_user()
+        self.create_member(
+            organization=self.org, user=member, has_global_access=False, teams=[self.team]
+        )
+        self.login_as(user=member)
+
+        # every key is snake_case so `projectId` never appears in the body, but the
+        # serializer still reads it as project_id and would move the mapping
+        resp = self.client.put(
+            self.url,
+            {
+                "repository_id": self.repo.id,
+                "project_id": self.project2.id,
+                "stack_root": "/stack/root",
+                "source_root": "/source/root",
+                "default_branch": "master",
+            },
+        )
+
+        assert resp.status_code == status.HTTP_403_FORBIDDEN
+        self.config.refresh_from_db()
+        assert self.config.project_repository.project_id == self.project.id
 
     def test_basic_edit_from_member_permissions(self) -> None:
         self.login_as(user=self.user2)

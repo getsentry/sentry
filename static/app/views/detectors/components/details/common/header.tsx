@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -19,30 +20,64 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 type DetectorDetailsHeaderProps = {
   detector: Detector;
-  project: Project;
   useLocalDetailActions?: boolean;
 };
 
 function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
   const organization = useOrganization();
+
+  if (!organization.features.includes('ui-migration-breadcrumbs')) {
+    return (
+      <Breadcrumbs
+        crumbs={[
+          {
+            label: t('Monitors'),
+            to: makeMonitorBasePathname(organization.slug),
+          },
+          {
+            label: getDetectorTypeLabel(detector.type),
+            to: makeMonitorTypePathname(organization.slug, detector.type),
+          },
+          {label: detector.name},
+        ]}
+      />
+    );
+  }
+
   return (
-    <Breadcrumbs
-      crumbs={[
+    <BreadcrumbList
+      items={[
         {
+          type: 'link',
           label: t('Monitors'),
           to: makeMonitorBasePathname(organization.slug),
         },
         {
+          type: 'link',
           label: getDetectorTypeLabel(detector.type),
           to: makeMonitorTypePathname(organization.slug, detector.type),
         },
-        {label: detector.name},
       ]}
     />
   );
 }
 
 function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
+  const organization = useOrganization();
+
+  if (organization.features.includes('ui-migration-breadcrumbs')) {
+    return (
+      <Fragment>
+        <TopBar.Slot name="breadcrumbs">
+          <DetectorDetailsBreadcrumbs detector={detector} />
+        </TopBar.Slot>
+        <TopBar.Slot name="title">
+          <BreadcrumbList.Title item={{type: 'page-title', label: detector.name}} />
+        </TopBar.Slot>
+      </Fragment>
+    );
+  }
+
   return (
     <TopBar.Slot name="title">
       <DetectorDetailsBreadcrumbs detector={detector} />

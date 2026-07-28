@@ -40,12 +40,6 @@ describe('ResultsSearchQueryBuilder', () => {
         onSearch={jest.fn()}
         onChange={jest.fn()}
         projectIds={[]}
-        supportedTags={{
-          environment: {key: 'environment', name: 'environment', kind: FieldKind.FIELD},
-          p50: {key: 'p50', name: 'p50', kind: FieldKind.FUNCTION},
-          transaction: {key: 'transaction', name: 'transaction', kind: FieldKind.FIELD},
-          user: {key: 'user', name: 'user', kind: FieldKind.FIELD},
-        }}
         recentSearches={SavedSearchType.EVENT}
         // This fields definition is what caused p50 to appear as a function tag
         fields={[{field: 'p50(transaction.duration)'}]}
@@ -77,12 +71,6 @@ describe('ResultsSearchQueryBuilder', () => {
         onSearch={jest.fn()}
         onChange={jest.fn()}
         projectIds={[]}
-        supportedTags={{
-          environment: {key: 'environment', name: 'environment', kind: FieldKind.FIELD},
-          p50: {key: 'p50', name: 'p50', kind: FieldKind.FUNCTION},
-          transaction: {key: 'transaction', name: 'transaction', kind: FieldKind.FIELD},
-          user: {key: 'user', name: 'user', kind: FieldKind.FIELD},
-        }}
         recentSearches={SavedSearchType.EVENT}
         // This fields definition is what caused p50 to appear as a function tag
         fields={[{field: 'p50(transaction.duration)'}]}

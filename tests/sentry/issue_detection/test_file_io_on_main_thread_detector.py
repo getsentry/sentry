@@ -19,6 +19,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.issue_detection.event_generators import get_event
 from sentry.testutils.objectstore import debug_files_test_both_backends
+from sentry.utils import json
 
 PROGUARD_SOURCE = b"""\
 # compiler: R8
@@ -178,4 +179,52 @@ class FileIOMainThreadDetectorTest(TestCase):
             "054ba3a3a4d54ab2",
             "054ba3a3a4d54ab3",
             "054ba3a3a4d54ab4",
+        ]
+
+    def test_handles_stringified_callstack(self) -> None:
+        event = get_event("file-io-on-main-thread/file-io-on-main-thread")
+        event["spans"][0]["data"]["call_stack"] = json.dumps(
+            event["spans"][0]["data"]["call_stack"]
+        )
+
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint=f"1-{PerformanceFileIOMainThreadGroupType.type_id}-153198dd61706844cf3d9a922f6f82543df8125f",
+                op="file.write",
+                desc="1669031858711_file.txt (4.0 kB)",
+                type=PerformanceFileIOMainThreadGroupType,
+                parent_span_ids=["b93d2be92cd64fd5"],
+                cause_span_ids=[],
+                offender_span_ids=["054ba3a374d543eb"],
+                evidence_data={
+                    "op": "file.write",
+                    "parent_span_ids": ["b93d2be92cd64fd5"],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["054ba3a374d543eb"],
+                },
+                evidence_display=[],
+            )
+        ]
+
+    def test_no_crash_on_non_json_string_callstack(self) -> None:
+        event = get_event("file-io-on-main-thread/file-io-on-main-thread")
+        event["spans"][0]["data"]["call_stack"] = "dogs are great"
+
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint=f"1-{PerformanceFileIOMainThreadGroupType.type_id}-da39a3ee5e6b4b0d3255bfef95601890afd80709",
+                op="file.write",
+                desc="1669031858711_file.txt (4.0 kB)",
+                type=PerformanceFileIOMainThreadGroupType,
+                parent_span_ids=["b93d2be92cd64fd5"],
+                cause_span_ids=[],
+                offender_span_ids=["054ba3a374d543eb"],
+                evidence_data={
+                    "op": "file.write",
+                    "parent_span_ids": ["b93d2be92cd64fd5"],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["054ba3a374d543eb"],
+                },
+                evidence_display=[],
+            )
         ]

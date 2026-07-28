@@ -25,7 +25,7 @@ export function PullRequestChip({pullRequest}: {pullRequest: PullRequest}) {
 
   return (
     <ExternalLink href={pullRequest.externalUrl}>
-      <InlineChip>
+      <InlineChip interactive>
         <IconPullRequest size="xs" />
         {displayId}
       </InlineChip>
@@ -45,7 +45,7 @@ export function SeerPullRequestChip({
 }) {
   return (
     <ExternalLink href={pullRequest.pull_request.pr_url}>
-      <InlineChip>
+      <InlineChip interactive>
         <IconPullRequest size="xs" />
         {formatPullRequestId(pullRequest.pull_request.pr_number)}
       </InlineChip>

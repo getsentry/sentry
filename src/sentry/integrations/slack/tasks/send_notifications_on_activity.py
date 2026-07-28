@@ -28,7 +28,7 @@ def send_activity_notifications_to_slack_threads(activity_id) -> None:
     log_params = {"activity_id": activity_id}
 
     try:
-        activity = Activity.objects.get(pk=activity_id)
+        activity = Activity.objects.select_related("project", "group").get(pk=activity_id)
     except Activity.DoesNotExist:
         _default_logger.info("activity does not exist", extra=log_params)
         return

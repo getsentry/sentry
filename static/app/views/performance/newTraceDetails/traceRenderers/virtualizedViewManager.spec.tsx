@@ -1,5 +1,6 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import {TraceTimeCompression} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
@@ -507,6 +508,56 @@ describe('VirtualizedViewManger', () => {
           indicatorPlacement
         )
       ).toBe(true);
+    });
+  });
+
+  describe('vertical indicator labels', () => {
+    function setupIndicator(start: number) {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+
+      const indicatorRef = document.createElement('div');
+      const labelRef = document.createElement('div');
+      manager.indicators[0] = {
+        ref: indicatorRef,
+        indicator: {start} as TraceTree['indicators'][0],
+      };
+      manager.vertical_indicator_labels[0] = labelRef;
+
+      return {manager, indicatorRef, labelRef};
+    }
+
+    it('keeps the line and label visible when the indicator is at the right edge', () => {
+      const {manager, indicatorRef, labelRef} = setupIndicator(1000);
+      // Simulate a prior draw pass having culled the line and label to opacity 0.
+      indicatorRef.style.opacity = '0';
+      labelRef.style.opacity = '0';
+
+      manager.draw();
+
+      expect(labelRef).toHaveStyle({opacity: '1'});
+      expect(indicatorRef).toHaveStyle({opacity: '1'});
+    });
+
+    it('keeps the line and label visible when the indicator is at the left edge', () => {
+      const {manager, indicatorRef, labelRef} = setupIndicator(0);
+      indicatorRef.style.opacity = '0';
+      labelRef.style.opacity = '0';
+
+      manager.draw();
+
+      expect(labelRef).toHaveStyle({opacity: '1'});
+      expect(indicatorRef).toHaveStyle({opacity: '1'});
     });
   });
 

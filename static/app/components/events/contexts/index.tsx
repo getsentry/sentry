@@ -2,6 +2,7 @@ import {useCallback, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {ContextDataSection} from 'sentry/components/events/contexts/contextDataSection';
+import {eventHasSyntheticTrace} from 'sentry/components/events/interfaces/performance/utils';
 import type {Event, EventContexts as EventContextValues} from 'sentry/types/event';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -62,7 +63,10 @@ export function getOrderedContextItems(event: Event): ContextItem[] {
   ]);
 
   const items = orderedContext
-    .filter(([_k, ctxValue]) => {
+    .filter(([alias, ctxValue]) => {
+      if (alias === 'trace' && eventHasSyntheticTrace(event)) {
+        return false;
+      }
       const contextKeys = Object.keys(ctxValue ?? {});
       const isInvalid =
         // Empty context

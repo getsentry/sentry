@@ -1,11 +1,9 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import type {EventView} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
@@ -36,10 +34,8 @@ export interface TraceMetadataHeaderProps {
   metrics: {count: number} | undefined;
   organization: Organization;
   rootEventResults: TraceRootEventQueryResults;
-  traceEventView: EventView;
   traceSlug: string;
   tree: TraceTree;
-  project?: Project;
 }
 
 const traceViewFeedbackOptions = {
@@ -115,29 +111,32 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
           </FeedbackButton>
         </TopBar.Slot>
 
-        <TraceHeaderComponents.HeaderRow>
-          <Title representativeEvent={rep} rootEventResults={props.rootEventResults} />
-          <Meta
-            organization={props.organization}
-            tree={props.tree}
-            meta={props.metaResults.data}
-            representativeEvent={rep}
-            logs={props.logs}
-            metrics={props.metrics}
-            logsEnabled={logsEnabled}
-            metricsEnabled={metricsEnabled}
-          />
-        </TraceHeaderComponents.HeaderRow>
-        <TraceHeaderComponents.HeaderRow>
-          <Highlights
-            rootEventResults={props.rootEventResults}
-            project={project}
-            organization={props.organization}
-          />
-          <Flex align="center" gap="md">
+        <TraceHeaderComponents.HeaderGrid>
+          <Container area="title" minWidth={0}>
+            <Title representativeEvent={rep} rootEventResults={props.rootEventResults} />
+          </Container>
+          <Container area="meta" justifySelf={{zero: 'start', xl: 'end'}}>
+            <Meta
+              tree={props.tree}
+              meta={props.metaResults.data}
+              representativeEvent={rep}
+              logs={props.logs}
+              metrics={props.metrics}
+              logsEnabled={logsEnabled}
+              metricsEnabled={metricsEnabled}
+            />
+          </Container>
+          <Container area="highlights" minWidth={0}>
+            <Highlights
+              rootEventResults={props.rootEventResults}
+              project={project}
+              organization={props.organization}
+            />
+          </Container>
+          <Container area="projects" justifySelf={{zero: 'start', xl: 'end'}}>
             <Projects projects={projects} logs={props.logs} tree={props.tree} />
-          </Flex>
-        </TraceHeaderComponents.HeaderRow>
+          </Container>
+        </TraceHeaderComponents.HeaderGrid>
       </TraceHeaderComponents.HeaderContent>
     </TraceHeaderComponents.HeaderLayout>
   );

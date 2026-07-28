@@ -22,7 +22,6 @@ export function MetricHistoryFixture(
     onDemandSpendUsed: 0,
     paygCpe: 0,
     onDemandQuantity: 0,
-    sentUsageWarning: false,
     softCapType: null,
     order,
     prepaid: 5_000,

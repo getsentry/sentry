@@ -572,7 +572,7 @@ export function CommandPalette({
 
   const content = (
     <Fragment>
-      <Flex direction="column" align="start" gap="md">
+      <Stack align="start" gap="md">
         <Flex position="relative" direction="row" align="center" gap="xs" width="100%">
           {p => {
             return (
@@ -616,6 +616,7 @@ export function CommandPalette({
                 <StyledInputGroupInput
                   seerEnabled={seerExplorerEnabled}
                   autoFocus
+                  data-1p-ignore
                   ref={state.input}
                   value={state.query}
                   aria-label={t('Search commands')}
@@ -659,7 +660,7 @@ export function CommandPalette({
             );
           }}
         </Flex>
-      </Flex>
+      </Stack>
 
       {treeState.collection.size === 0 ? (
         isEmptyPromptQuery || isLoading ? null : (
@@ -1230,14 +1231,7 @@ function CommandPaletteHints() {
 
 function CommandPaletteNoResults() {
   return (
-    <Flex
-      direction="column"
-      align="center"
-      justify="center"
-      gap="lg"
-      padding="2xl lg"
-      height="400px"
-    >
+    <Stack align="center" justify="center" gap="lg" padding="2xl lg" height="400px">
       <Image src={errorIllustration} alt="No results" width="400px" />
       <Stack align="center" gap="md">
         <Container padding="0 2xl">
@@ -1261,7 +1255,7 @@ function CommandPaletteNoResults() {
           />
         </Container>
       </Stack>
-    </Flex>
+    </Stack>
   );
 }
 

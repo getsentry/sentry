@@ -16,7 +16,7 @@ import {normalizePropertyName} from '../utils/normalizePropertyName';
 import {getStyledCallInfo} from '../utils/styled';
 
 import type {ExtractorContext, StyleDeclaration} from './types';
-import {decomposeValue} from './value-decomposer';
+import {decomposeValue} from './valueDecomposer';
 
 /**
  * Creates the styled/css extractor with ESLint visitors.

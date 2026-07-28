@@ -1,5 +1,7 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
+import {useContainerBreakpoint} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -32,6 +34,10 @@ export enum IssueSortOptions {
   USER = 'user',
   INBOX = 'inbox',
   RECOMMENDED = 'recommended',
+  // Escape hatches for comparing the two recommended scorers regardless of
+  // which one the org's flag serves behind RECOMMENDED. Only reachable via the
+  // sort query param.
+  RECOMMENDED_V1 = 'recommended_v1',
   RECOMMENDED_EXPERIMENTAL = 'recommended_v2',
   PROGRESS = 'progress',
 }
@@ -51,9 +57,9 @@ export function getSortLabel(key: string) {
     case IssueSortOptions.INBOX:
       return t('Date Added');
     case IssueSortOptions.RECOMMENDED:
-      return t('Recommended');
+    case IssueSortOptions.RECOMMENDED_V1:
     case IssueSortOptions.RECOMMENDED_EXPERIMENTAL:
-      return t('Recommended (Experimental)');
+      return t('Recommended');
     case IssueSortOptions.PROGRESS:
       return t('Progress');
     case IssueSortOptions.DATE:
@@ -88,6 +94,16 @@ export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
 
 export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
   'issue-stream-saved-searches-sidebar-open';
+
+export function useIsIssueListContainerNarrow(isSavedSearchesOpen: boolean) {
+  const breakpoint = useContainerBreakpoint();
+
+  if (isSavedSearchesOpen) {
+    return breakpoint !== '5xl';
+  }
+
+  return breakpoint !== '3xl' && breakpoint !== '4xl' && breakpoint !== '5xl';
+}
 
 const ISSUE_STREAM_SORT_LOCALSTORAGE_KEY = 'issue-stream-sort';
 

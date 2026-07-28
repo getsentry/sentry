@@ -1,14 +1,12 @@
 import logging
 
 from sentry.models.activity import Activity
-from sentry.models.group import Group
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.notifications.notification_action.registry import activity_handler_registry
 from sentry.notifications.platform.service import NotificationService
-from sentry.notifications.platform.templates.workflow_engine import (
+from sentry.notifications.platform.templates.activity.base import (
     ACTIVITY_TYPE_TO_SOURCE,
-    WorkflowEngineActivityAction,
+    ActivityNotificationData,
+    build_activity_notification_data,
 )
 from sentry.notifications.platform.types import NotificationTarget
 from sentry.types.activity import ActivityType
@@ -35,32 +33,15 @@ def get_supported_action_types() -> frozenset[Action.Type]:
     )
 
 
-def build_activity_data(
-    invocation: ActionInvocation, activity: Activity
-) -> WorkflowEngineActivityAction:
-    detector = invocation.detector
-
-    source = ACTIVITY_TYPE_TO_SOURCE.get(activity.type)
-    if source is None:
-        raise ValueError(f"No notification source for activity type: {activity.type}")
-
-    return WorkflowEngineActivityAction(
-        source=source,
-        workflow_id=invocation.workflow_id,
-        activity_type=activity.type,
-        activity_id=activity.id,
-        notification_uuid=invocation.notification_uuid,
-        detector_id=detector.id,
-    )
-
-
 def send_activity_notification(
     invocation: ActionInvocation,
     activity: Activity,
     target: NotificationTarget,
 ) -> None:
-    data = build_activity_data(invocation, activity)
-    NotificationService[WorkflowEngineActivityAction](data=data).notify_sync(targets=[target])
+    data = build_activity_notification_data(
+        activity, workflow_id=invocation.workflow_id, target=target
+    )
+    NotificationService[ActivityNotificationData](data=data).notify_target(target=target)
 
 
 def require_config(action: Action, key: str) -> str:
@@ -74,26 +55,3 @@ def require_integration_id(action: Action) -> int:
     if action.integration_id is None:
         raise ValueError(f"No integration_id for action {action.id}")
     return action.integration_id
-
-
-def extract_notification_models_by_activity(
-    activity_id: int,
-) -> tuple[Activity, Group, Project, Organization]:
-    try:
-        activity = Activity.objects.get(id=activity_id)
-    except Activity.DoesNotExist:
-        raise ValueError(f"Activity not found: {activity_id}")
-    try:
-        group = Group.objects.get_from_cache(id=activity.group_id)
-    except Group.DoesNotExist:
-        raise ValueError(f"Group not found: {activity.group_id}")
-    try:
-        project = Project.objects.get_from_cache(id=activity.project_id)
-    except Project.DoesNotExist:
-        raise ValueError(f"Project not found: {activity.project_id}")
-    try:
-        organization = Organization.objects.get_from_cache(id=project.organization_id)
-    except Organization.DoesNotExist:
-        raise ValueError(f"Organization not found: {project.organization_id}")
-
-    return activity, group, project, organization

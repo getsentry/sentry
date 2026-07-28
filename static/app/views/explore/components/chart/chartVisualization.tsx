@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {usePrevious} from 'sentry/utils/usePrevious';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -25,7 +26,6 @@ interface ChartVisualizationProps {
   chartInfo: ChartInfo;
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
-  notMerge?: boolean;
 }
 
 export function useChartVisualizationPlottables(chartInfo: ChartInfo) {
@@ -63,7 +63,6 @@ export function ChartVisualization({
   chartXRangeSelection,
   chartInfo,
   chartRef,
-  notMerge,
 }: ChartVisualizationProps) {
   const plottables = useChartVisualizationPlottables(chartInfo);
   const previousPlottables = usePrevious(
@@ -74,7 +73,7 @@ export function ChartVisualization({
   const isLoading = chartInfo.timeseriesResult.isPending;
   const activePlottables = isLoading ? previousPlottables : plottables;
 
-  if (isLoading && previousPlottables.length === 0) {
+  if (isLoading && !plottablesCanBeVisualized(previousPlottables)) {
     const loadingMessage =
       chartInfo.timeseriesResult.isFetching &&
       chartInfo.samplingMode === SAMPLING_MODE.HIGH_ACCURACY
@@ -98,13 +97,13 @@ export function ChartVisualization({
     );
   }
 
-  if (!isLoading && plottables.length === 0) {
+  if (!isLoading && !plottablesCanBeVisualized(plottables)) {
     // This happens when the `/events-stats/` endpoint returns a blank
     // response. This is a rare error condition that happens when
     // proxying to RPC. Adding explicit handling with a "better" message
     return (
       <Container position="absolute" inset={0}>
-        <Widget.WidgetError error={t('No data')} />
+        <TimeSeriesWidgetVisualization.NoData />
       </Container>
     );
   }
@@ -115,7 +114,6 @@ export function ChartVisualization({
         ref={chartRef}
         plottables={activePlottables}
         chartXRangeSelection={chartXRangeSelection}
-        notMerge={notMerge}
       />
     </StyledTransparentLoadingMask>
   );

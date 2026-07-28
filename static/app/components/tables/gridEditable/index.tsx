@@ -6,6 +6,7 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {GridEditableEmptyData} from 'sentry/components/tables/gridEditable/GridEditableEmptyData';
 import {GridEditableError} from 'sentry/components/tables/gridEditable/GridEditableError';
 import {GridEditableLoading} from 'sentry/components/tables/gridEditable/GridEditableLoading';
+import {getAriaSort} from 'sentry/components/tables/sortableHeaderCell';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 
 import {
@@ -91,8 +92,8 @@ type GridEditableProps<
    * based on this 3 main props.
    *
    * - `columnOrder` determines the columns to show, from left to right
-   * - `columnSortBy` is not used at the moment, however it might be better to
-   *   move sorting into Grid for performance
+   * - `columnSortBy` tells each header cell which sort state to announce; the
+   *   sort itself is still performed by the parent component
    */
   title?: ReactNode;
 };
@@ -299,6 +300,9 @@ export function GridEditable<
           // 1 levels under GridHeadCell
           props.columnOrder.map((column, i) => (
             <GridHeadCell
+              aria-sort={getAriaSort(
+                props.columnSortBy.find(sort => sort.key === column.key)?.order
+              )}
               data-test-id="grid-head-cell"
               key={`${i}.${String(column.key)}`}
               isFirst={i === 0}

@@ -102,14 +102,20 @@ function ReplayDetailsContent() {
   });
 
   const title = replayRecord
-    ? `${replayRecord.user.display_name ?? t('Anonymous User')} — Session Replay — ${orgSlug}`
+    ? `${
+        replayRecord.user.display_name ?? t('Anonymous User')
+      } — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
-  const pageFrameContent = (
+  const pageContent = (
     <Fragment>
-      <TopBar.Slot name="title">
+      {organization.features.includes('ui-migration-breadcrumbs') ? (
         <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-      </TopBar.Slot>
+      ) : (
+        <TopBar.Slot name="title">
+          <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+        </TopBar.Slot>
+      )}
       <ReplayDetailsHeaderActions readerResult={readerResult} />
       <Flex
         justify="between"
@@ -133,10 +139,10 @@ function ReplayDetailsContent() {
       <Stack flex={1} height="100%" minHeight="0" width="100%" overflow="hidden">
         {replay ? (
           <ReplayDetailsProviders replay={replay} projectSlug={readerResult.projectSlug}>
-            {pageFrameContent}
+            {pageContent}
           </ReplayDetailsProviders>
         ) : (
-          pageFrameContent
+          pageContent
         )}
       </Stack>
     </SentryDocumentTitle>

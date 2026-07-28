@@ -39,7 +39,7 @@
       <p>We found an existing Sentry account for {{ identity.email }}. Please confirm your credentials:</p>
     </div>
 
-    <form class="form-stacked" action="" method="post" autocomplete="off">
+    <form class="form-stacked" action="{{ confirmation_url }}" method="post" autocomplete="off">
       {% csrf_token %}
 
       {{ login_form|as_crispy_errors }}
@@ -54,7 +54,7 @@
       </fieldset>
     </form>
   {% else %}
-    <form class="form-stacked" action="" method="post">
+    <form class="form-stacked" action="{{ confirmation_url }}" method="post">
       {% csrf_token %}
       <div class="sso-link">
         <div class="sso-grid flex">

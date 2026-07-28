@@ -62,6 +62,7 @@ function useHasCrossEvents() {
 
 export function ExploreContent() {
   Sentry.setTag('explore.visited', 'yes');
+  Sentry.setAttribute('explore.visited', 'yes');
 
   return (
     <SpansQueryParamsProvider>

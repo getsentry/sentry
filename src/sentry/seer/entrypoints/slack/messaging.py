@@ -376,3 +376,34 @@ def send_halt_message(
         logger.exception("send_halt_message.error", extra=logging_ctx)
     else:
         logger.info("send_halt_message.success", extra=logging_ctx)
+
+
+@all_silo_function
+def send_not_org_member_message(
+    *,
+    integration_id: int,
+    slack_user_id: str,
+    channel_id: str,
+    thread_ts: str | None,
+    org_name: str,
+) -> None:
+    """Send an ephemeral message informing the user they are not a member of the organization."""
+    from sentry.integrations.slack.workspace import send_threaded_ephemeral_message
+
+    message = (
+        f"You must be a member of the *{org_name}* Sentry organization to use Seer Agent in Slack."
+    )
+    renderable = SlackRenderable(
+        blocks=[MarkdownBlock(text=message)],
+        text=message,
+    )
+    try:
+        send_threaded_ephemeral_message(
+            integration_id=integration_id,
+            channel_id=channel_id,
+            thread_ts=thread_ts,
+            renderable=renderable,
+            slack_user_id=slack_user_id,
+        )
+    except Exception as e:
+        logger.warning("seer.slack.send_not_org_member_message_failed", exc_info=e)

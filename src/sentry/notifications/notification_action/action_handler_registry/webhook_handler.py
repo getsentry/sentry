@@ -1,9 +1,7 @@
 import logging
 from typing import override
 
-from sentry import features
 from sentry.models.activity import Activity
-from sentry.models.organization import Organization
 from sentry.notifications.notification_action.utils import execute_via_activity_type_registry
 from sentry.sentry_apps.services.legacy_webhook.service import (
     get_triggering_rule_name,
@@ -61,11 +59,7 @@ class WebhookActionHandler(ActionHandler):
 
         if isinstance(invocation.event_data.event, Activity):
             try:
-                organization = Organization.objects.get_from_cache(id=organization.id)
-                if features.has(
-                    "organizations:workflow-engine-evaluate-seer-activities", organization
-                ):
-                    execute_via_activity_type_registry(invocation=invocation)
+                execute_via_activity_type_registry(invocation=invocation)
             except Exception:
                 logger.exception(
                     "Error executing via activity type registry",

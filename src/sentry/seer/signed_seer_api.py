@@ -5,12 +5,12 @@ from typing import Any, Literal, NotRequired, TypedDict
 from urllib.parse import urlparse
 
 import orjson
-import sentry_sdk
 from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
+from sentry.utils.tracing import trace
 from sentry.viewer_context import (
     ViewerContext,
     encode_viewer_context,
@@ -109,13 +109,14 @@ def _resolve_viewer_context(
 
     return ViewerContext(
         organization_id=org_id,
+        project_id=None if has_mismatch else (vc.project_id if vc else None),
         user_id=user_id,
         actor_type=vc.actor_type,
         token=None if has_mismatch else vc.token,
     )
 
 
-@sentry_sdk.tracing.trace
+@trace
 def make_signed_seer_api_request(
     connection_pool: HTTPConnectionPool,
     path: str,
@@ -240,6 +241,12 @@ class LlmGenerateRequest(TypedDict):
     response_schema: NotRequired[dict[str, Any]]
     timeout: NotRequired[float | None]
     reasoning: NotRequired[Literal["off", "low", "med", "high"] | None]
+    # Groups this call's gen_ai spans into a Sentry AI Monitoring conversation.
+    # Seer cannot infer identity for a proxied call, so omitting this means "not
+    # part of any conversation" and the spans carry no conversation id. Prefer a
+    # stable subject key (e.g. f"autofix_{run_id}"); omit for calls that are not
+    # conversations, such as classification, scoring, or telemetry processing.
+    conversation_id: NotRequired[str]
 
 
 class OneShotRunRequest(TypedDict):

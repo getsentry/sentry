@@ -82,7 +82,7 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
                 return component
 
         raise ValidationError(
-            f"Alert Rule Actions are not enabled for the {sentry_app_name} integration."
+            f"Alert Actions are not enabled for the {sentry_app_name} integration."
         )
 
     def get_custom_actions(self, project: Project) -> Sequence[Mapping[str, Any]]:

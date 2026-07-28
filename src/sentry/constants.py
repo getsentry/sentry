@@ -8,8 +8,8 @@ import os.path
 from collections import namedtuple
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
-from enum import Enum
-from typing import cast
+from enum import Enum, IntEnum
+from typing import Literal, cast
 
 import sentry_relay.consts
 import sentry_relay.processing
@@ -245,7 +245,19 @@ RESERVED_PROJECT_SLUGS = frozenset(
     )
 )
 
-LOG_LEVELS = {
+
+class LogLevel(IntEnum):
+    SAMPLE = logging.NOTSET
+    DEBUG = logging.DEBUG
+    INFO = logging.INFO
+    WARNING = logging.WARNING
+    ERROR = logging.ERROR
+    FATAL = logging.FATAL
+
+
+LogLevelStr = Literal["sample", "debug", "info", "warning", "error", "fatal"]
+
+LOG_LEVELS: dict[int, LogLevelStr] = {
     logging.NOTSET: "sample",
     logging.DEBUG: "debug",
     logging.INFO: "info",
@@ -255,7 +267,14 @@ LOG_LEVELS = {
 }
 DEFAULT_LOG_LEVEL = "error"
 DEFAULT_LOGGER_NAME = ""
-LOG_LEVELS_MAP = {v: k for k, v in LOG_LEVELS.items()}
+LOG_LEVELS_MAP: dict[str, LogLevel] = {level.name.lower(): level for level in LogLevel}
+
+
+def parse_log_level(level: str | None) -> LogLevel | None:
+    if level is None:
+        return None
+    return LOG_LEVELS_MAP.get(level)
+
 
 PLACEHOLDER_EVENT_TITLES = frozenset(["<untitled>", "<unknown>", "<unlabeled event>", "Error"])
 

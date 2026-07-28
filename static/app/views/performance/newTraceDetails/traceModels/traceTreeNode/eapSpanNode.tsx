@@ -4,8 +4,10 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import type {Measurement} from 'sentry/types/event';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {isBrowserRequestNode} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
+import {AiSpanDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/aiSpanDetails';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -335,6 +337,9 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   renderDetails<T extends BaseNode>(
     props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
+    if (getIsAiNode(this)) {
+      return <AiSpanDetails node={this} traceId={props.traceId} />;
+    }
     return <EAPSpanNodeDetails {...props} node={this} />;
   }
 

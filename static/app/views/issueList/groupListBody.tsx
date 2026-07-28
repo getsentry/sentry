@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {useHasContainerQuery} from '@sentry/scraps/layout';
+
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -16,10 +18,12 @@ import {aggregateSupergroupStats} from 'sentry/views/issueList/supergroups/aggre
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import {useIssueProgress} from 'sentry/views/issueList/useIssueProgress';
 
 import {NoGroupsHandler} from './noGroupsHandler';
-import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from './utils';
+import {
+  SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
+  useIsIssueListContainerNarrow,
+} from './utils';
 
 type GroupListBodyProps = {
   displayReprocessingLayout: boolean;
@@ -33,7 +37,6 @@ type GroupListBodyProps = {
   query: string;
   refetchGroups: () => void;
   selectedProjectIds: number[];
-  onGroupClick?: (group: Group) => void;
   supergroupLookup?: SupergroupLookup;
   withColumns?: GroupListColumn[];
 };
@@ -45,7 +48,6 @@ type GroupListProps = {
   memberList: IndexedMembersByProject | undefined;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   query: string;
-  onGroupClick?: (group: Group) => void;
   supergroupLookup?: SupergroupLookup;
   withColumns?: GroupListColumn[];
 };
@@ -99,7 +101,6 @@ export function GroupListBody({
   selectedProjectIds,
   pageSize,
   onActionTaken,
-  onGroupClick,
   supergroupLookup,
   withColumns,
 }: GroupListBodyProps) {
@@ -139,7 +140,6 @@ export function GroupListBody({
       displayReprocessingLayout={displayReprocessingLayout}
       groupStatsPeriod={groupStatsPeriod}
       onActionTaken={onActionTaken}
-      onGroupClick={onGroupClick}
       supergroupLookup={supergroupLookup}
       withColumns={columns}
     />
@@ -184,7 +184,6 @@ function GroupList({
   displayReprocessingLayout,
   groupStatsPeriod,
   onActionTaken,
-  onGroupClick,
   supergroupLookup,
   withColumns = DEFAULT_COLUMNS,
 }: GroupListProps) {
@@ -195,12 +194,15 @@ function GroupList({
     false
   );
   const topIssue = groupIds[0];
-  const selectDisabled = useMedia(
-    `(width < ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
+  const selectDisabledInContainer = useIsIssueListContainerNarrow(isSavedSearchesOpen);
+  const selectDisabledInViewport = useMedia(
+    `(width < ${isSavedSearchesOpen ? theme.container['5xl'] : theme.container['3xl']})`
   );
+  const selectDisabled = useHasContainerQuery()
+    ? selectDisabledInContainer
+    : selectDisabledInViewport;
 
   const showProgress = withColumns.includes('progress');
-  const {data: progressData} = useIssueProgress(showProgress ? groupIds : []);
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
   const renderItems = useMemo(
@@ -230,11 +232,8 @@ function GroupList({
         useFilteredStats
         canSelect={!selectDisabled}
         onPriorityChange={priority => onActionTaken([id], {priority})}
-        onGroupClick={onGroupClick}
         withColumns={columns}
-        progressState={
-          showProgress ? (progressData?.results[id]?.progress ?? null) : undefined
-        }
+        progressState={showProgress ? (group.derivedData?.progress ?? null) : undefined}
       />
     );
   };

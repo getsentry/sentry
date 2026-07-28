@@ -1,9 +1,12 @@
+import logging
+
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -22,12 +25,16 @@ from sentry.issues.action_log import (
 )
 from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import comment_deleted, comment_updated
 from sentry.types.activity import ActivityType
+from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
+
+logger = logging.getLogger(__name__)
 
 
 @cell_silo_endpoint
@@ -42,7 +49,11 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
     # an individual. Not sure if we'd want to allow an ApiKey
     # to delete/update other users' comments
     @extend_schema(responses={204: RESPONSE_NO_CONTENT})
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-note-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-note-details",
+        url_names=["sentry-api-0-group-note-details"],
+    )
     def delete(self, request: Request, group: Group, note_id: str) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to delete Note")
@@ -60,6 +71,20 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             raise ResourceDoesNotExist
         note = user_note[0]
 
+        # The Activity lookups above are what signal whether the note exists.
+        # When the write flag is on every note is mirrored to a GALE, so a missing
+        # entry means it's already gone -> 404 rather than deleting nothing and
+        # returning 204. With the write flag off the GALE is never written, so we
+        # fall through and rely on the Activity alone.
+        original_comment_log_action = GroupActionLogEntry.objects.filter(
+            group_id=group.id,
+            idempotency_key=activity_action_idempotency_key(note),
+        ).first()
+        if original_comment_log_action is None and features.has(
+            "projects:issue-action-log-write-to-db", group.project, actor=request.user
+        ):
+            raise ResourceDoesNotExist
+
         webhook_data = {
             "comment_id": note.id,
             "timestamp": note.datetime,
@@ -69,13 +94,16 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         note.delete()
 
-        publish_action(
-            CommentDeleteAction(comment_id=note_id_int),
-            source=resolve_action_source(request),
-            group_id=group.id,
-            project=group.project,
-            actor=GroupActionActor.user(request.user.id),
-        )
+        if original_comment_log_action is not None:
+            publish_action(
+                CommentDeleteAction(comment_id=original_comment_log_action.id),
+                source=resolve_action_source(request),
+                group_id=group.id,
+                project=group.project,
+                actor=GroupActionActor.user(request.user.id),
+            )
+        else:
+            logger.info("group_notes.groupactionlogentry.not_found", extra={"group_id": group.id})
 
         comment_deleted.send_robust(
             project=group.project,
@@ -101,7 +129,11 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             200: inline_sentry_response_serializer("UpdateGroupNote", ActivitySerializerResponse)
         },
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-note-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-note-details",
+        url_names=["sentry-api-0-group-note-details"],
+    )
     def put(self, request: Request, group: Group, note_id: str) -> Response:
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="Key doesn't have permission to edit Note")
@@ -121,19 +153,42 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             payload = serializer.validated_data
             # TODO: adding mentions to a note doesn't send notifications. Should it?
             # Remove mentions as they shouldn't go into the database
-            payload.pop("mentions", [])
+            mentions = [mention.dict() for mention in payload.pop("mentions", [])]
+
+            # The Activity fetched above is what signals whether the note exists.
+            # When the write flag is on every note is mirrored to a GALE, so a
+            # missing entry means it's already gone -> 404 rather than editing the
+            # Activity and returning 200. With the write flag off the GALE is never
+            # written, so we fall through and rely on the Activity alone.
+            original_comment_log_action = GroupActionLogEntry.objects.filter(
+                group_id=group.id,
+                idempotency_key=activity_action_idempotency_key(note),
+            ).first()
+            if original_comment_log_action is None and features.has(
+                "projects:issue-action-log-write-to-db", group.project, actor=request.user
+            ):
+                raise ResourceDoesNotExist
 
             # Would be nice to have a last_modified timestamp we could bump here
             note.data.update(dict(payload))
             note.save()
 
-            publish_action(
-                CommentEditAction(comment_id=note.id),
-                source=resolve_action_source(request),
-                group_id=group.id,
-                project=group.project,
-                actor=GroupActionActor.user(request.user.id),
-            )
+            if original_comment_log_action is not None:
+                publish_action(
+                    CommentEditAction(
+                        comment_id=original_comment_log_action.id,
+                        text=payload.get("text"),
+                        mentions=mentions,
+                    ),
+                    source=resolve_action_source(request),
+                    group_id=group.id,
+                    project=group.project,
+                    actor=GroupActionActor.user(request.user.id),
+                )
+            else:
+                logger.info(
+                    "group_notes.groupactionlogentry.not_found", extra={"group_id": group.id}
+                )
 
             if note.data.get("external_id"):
                 self.update_external_comment(request, group, note)
@@ -152,6 +207,25 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                 data=webhook_data,
                 sender="put",
             )
+
+            if features.has(
+                "projects:issue-action-log-activity", group.project, actor=request.user
+            ):
+                if original_comment_log_action is not None:
+                    # editing a note doesn't update its COMMENT entry (instead it
+                    # appends a separate COMMENT_EDIT entry), so patch in the fresh
+                    # text we just published to GALE; the Activity is used only for
+                    # the id below.
+                    original_comment_log_action.data = {
+                        **original_comment_log_action.data,
+                        "text": payload.get("text"),
+                    }
+                    serialized = serialize(original_comment_log_action, request.user)
+                    # Return the Activity id as `id`, matching the flag-off
+                    # contract so clients can edit/delete via note_id.
+                    serialized["id"] = str(note.id)
+                    return Response(serialized, status=200)
+
             return Response(serialize(note, request.user), status=200)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

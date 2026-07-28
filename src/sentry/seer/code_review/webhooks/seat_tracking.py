@@ -27,6 +27,12 @@ that are already opted in to GitLab code review. The downstream
 ``should_increment_contributor_seat`` check additionally requires
 ``organizations:seat-based-seer-enabled``.
 
+Both processors skip seeding when the webhook actor (``event.user``) is not the
+MR author (``object_attributes.author_id``): the row is keyed by the author but
+its ``alias`` defaults to the actor's username, so on a mismatch (e.g. a
+reviewer approving or a maintainer merging someone else's MR) we'd store the
+wrong alias. This is expected, high-volume traffic, so we skip silently.
+
 ``MergeEventWebhook.WEBHOOK_EVENT_PROCESSORS`` registers these
 **before** ``handle_merge_request_event`` so the contributor row exists when
 the code-review handler's preflight billing check runs. Without that
@@ -106,18 +112,17 @@ def track_gitlab_contributor_seat_processor(
 
     base_extra["integration_id"] = integration.id
 
-    debug_log(logger, organization, "processor_started", base_extra)
-
     if not features.has("organizations:seer-gitlab-support", organization):
         return
 
     if object_attributes.get("action") != "open":
-        debug_log(logger, organization, "skipped_non_open_action", base_extra)
         return
 
     try:
         user_id = object_attributes["author_id"]
-        user_username = event["user"]["username"]
+        event_user = event["user"]
+        event_actor_id = event_user["id"]
+        user_username = event_user["username"]
         iid = object_attributes["iid"]
     except KeyError as e:
         debug_log(
@@ -130,6 +135,14 @@ def track_gitlab_contributor_seat_processor(
         return
 
     base_extra["author_id"] = user_id
+
+    # Skip when the webhook actor isn't the MR author: alias comes from the actor
+    # but the row is keyed by the author, so seeding would store the wrong alias.
+    # Runs before the dedup mark so a skipped mismatch doesn't block a later,
+    # matching delivery from seeding the author. This is expected traffic (a
+    # reviewer/maintainer/bot acting on someone else's MR), so we skip silently.
+    if user_id != event_actor_id:
+        return
 
     # Resolve the Organization before marking the delivery as seen so a missing
     # org does not poison the dedup window and block GitLab redeliveries from
@@ -145,25 +158,17 @@ def track_gitlab_contributor_seat_processor(
         debug_log(logger, organization, "duplicate_delivery_skipped", base_extra)
         return
 
-    debug_log(
-        logger,
-        organization,
-        "tracking_contributor_seat",
-        {**base_extra, "author_username": user_username},
-    )
     track_contributor_seat(
         organization=org,
         repo=repo,
-        integration_id=integration.id,
+        integration=integration,
         user_id=user_id,
         user_username=user_username,
-        provider="gitlab",
         logs_extra={
             "pr_number": str(iid),
             "github_event_action": object_attributes.get("action"),
         },
     )
-    debug_log(logger, organization, "contributor_seat_tracked", base_extra)
 
 
 def track_gitlab_contributor_action_processor(
@@ -183,9 +188,18 @@ def track_gitlab_contributor_action_processor(
     object_attributes = event.get("object_attributes") or {}
     try:
         user_id = object_attributes["author_id"]
-        user_username = event["user"]["username"]
+        event_user = event["user"]
+        event_actor_id = event_user["id"]
+        user_username = event_user["username"]
         iid = object_attributes["iid"]
     except KeyError:
+        return
+
+    # Skip when the webhook actor isn't the MR author, to avoid seeding the wrong
+    # alias against the author's row (see track_gitlab_contributor_seat_processor).
+    # Expected traffic (reviewer/maintainer/bot acting on someone else's MR), so
+    # we skip silently.
+    if user_id != event_actor_id:
         return
 
     try:
@@ -199,10 +213,9 @@ def track_gitlab_contributor_action_processor(
     record_contributor_action(
         organization=org,
         repo=repo,
-        integration_id=integration.id,
+        integration=integration,
         user_id=user_id,
         user_username=user_username,
-        provider="gitlab",
         pr_number=iid,
         is_opened=object_attributes.get("action") == "open",
         tags={"is_private": visibility_level == 0},

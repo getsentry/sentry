@@ -111,21 +111,10 @@ class TestExecuteViaActivityTypeRegistry(ActivityHandlerTest):
 
 class TestExecuteViaGroupTypeRegistryActivityPath(ActivityHandlerTest):
     @mock.patch("sentry.notifications.notification_action.utils.execute_via_activity_type_registry")
-    def test_option_enabled_uses_registry(self, mock_execute: mock.MagicMock) -> None:
+    def test_activity_uses_registry(self, mock_execute: mock.MagicMock) -> None:
         invocation = self._make_invocation(self._make_activity())
-        with self.feature({"organizations:workflow-engine-evaluate-seer-activities": True}):
-            execute_via_group_type_registry(invocation)
+        execute_via_group_type_registry(invocation)
         mock_execute.assert_called_once_with(invocation=invocation)
-
-    def test_option_disabled_falls_through_to_send_notification(self) -> None:
-        activity = self._make_activity()
-        invocation = self._make_invocation(activity)
-        with (
-            self.feature({"organizations:workflow-engine-evaluate-seer-activities": False}),
-            mock.patch.object(activity, "send_notification") as mock_send,
-        ):
-            execute_via_group_type_registry(invocation)
-            mock_send.assert_called_once_with()
 
     @mock.patch("sentry.notifications.notification_action.utils.execute_via_activity_type_registry")
     def test_registry_error_falls_through_to_send_notification(
@@ -134,9 +123,6 @@ class TestExecuteViaGroupTypeRegistryActivityPath(ActivityHandlerTest):
         mock_execute.side_effect = RuntimeError("handler failed")
         activity = self._make_activity()
         invocation = self._make_invocation(activity)
-        with (
-            self.feature({"organizations:workflow-engine-evaluate-seer-activities": True}),
-            mock.patch.object(activity, "send_notification") as mock_send,
-        ):
+        with mock.patch.object(activity, "send_notification") as mock_send:
             execute_via_group_type_registry(invocation)
             mock_send.assert_called_once_with()

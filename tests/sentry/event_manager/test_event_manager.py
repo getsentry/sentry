@@ -1325,39 +1325,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
 
-    @mock.patch("sentry.models.Group.is_resolved")
-    def test_unresolves_group_with_auto_resolve(self, mock_is_resolved: mock.MagicMock) -> None:
-        ts = before_now(minutes=5).isoformat()
-        mock_is_resolved.return_value = False
-        manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
-        with self.tasks():
-            event = manager.save(self.project.id)
-        assert event.group is not None
-
-        resolved_at = before_now(minutes=4)
-        Activity.objects.create(
-            group=event.group,
-            project=event.group.project,
-            type=ActivityType.SET_RESOLVED.value,
-            datetime=resolved_at,
-        )
-
-        mock_is_resolved.return_value = True
-        manager = EventManager(
-            make_event(
-                event_id="b" * 32, checksum="a" * 32, timestamp=before_now(minutes=3).isoformat()
-            )
-        )
-        with self.tasks():
-            event2 = manager.save(self.project.id)
-        assert event2.group is not None
-        assert event.group_id == event2.group_id
-
-        group = Group.objects.get(id=event.group.id)
-        assert group.active_at
-        assert group.active_at.replace(second=0) == event2.datetime.replace(second=0)
-        assert group.active_at.replace(second=0) != event.datetime.replace(second=0)
-
     def test_invalid_transaction(self) -> None:
         dict_input = {"messages": "foo"}
         manager = EventManager(make_event(transaction=dict_input))
@@ -1443,6 +1410,44 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert not event.group.first_release
             assert Release.objects.filter(projects__in=[self.project.id]).count() == 0
             assert Release.objects.filter(organization_id=self.project.organization_id).count() == 0
+
+    def test_release_auto_creation_disabled(self) -> None:
+        # With the feature flag enabled and the project opting out, an ingested event
+        # with a brand-new release must not create a Release model.
+        self.project.update_option("sentry:enable_auto_release_creation", False)
+        with self.feature("organizations:auto-release-creation"):
+            event = self.make_release_event("1.0", self.project.id)
+
+        assert event.group is not None
+        assert not event.group.first_release
+        assert Release.objects.filter(organization_id=self.project.organization_id).count() == 0
+        assert not any(k == "sentry:release" for k, _ in event.tags)
+
+    def test_release_auto_creation_disabled_associates_existing_release(self) -> None:
+        # A release created out-of-band (e.g. via the CLI) is still associated even
+        # when auto-creation is disabled.
+        self.project.update_option("sentry:enable_auto_release_creation", False)
+        release = Release.objects.create(version="1.0", organization=self.project.organization)
+        release.add_project(self.project)
+
+        with self.feature("organizations:auto-release-creation"):
+            event = self.make_release_event("1.0", self.project.id)
+
+        assert event.group is not None
+        assert event.group.first_release is not None
+        assert event.group.first_release.id == release.id
+        release_tag = [v for k, v in event.tags if k == "sentry:release"][0]
+        assert release_tag == "1.0"
+
+    def test_release_auto_creation_disabled_without_feature_flag(self) -> None:
+        # Without the feature flag the project option is ignored and the release is
+        # auto-created as before.
+        self.project.update_option("sentry:enable_auto_release_creation", False)
+        event = self.make_release_event("1.0", self.project.id)
+
+        assert event.group is not None
+        assert event.group.first_release is not None
+        assert event.group.first_release.version == "1.0"
 
     def test_first_release(self) -> None:
         project_id = self.project.id

@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import styled from '@emotion/styled';
 
 import replaysInlineOnboarding from 'sentry-images/spot/replay-onboarding-backend.svg';

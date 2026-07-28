@@ -4,15 +4,12 @@ import partition from 'lodash/partition';
 import {PlatformIcon} from 'platformicons';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  CopyMarkdownButton,
-  CopySetupInstructionsGate,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -263,7 +260,7 @@ export function MonitorQuickStartGuide({monitorSlug, project}: Props) {
   };
 
   return (
-    <Flex gap="xl" direction="column">
+    <Stack gap="xl">
       <Text>
         {tct(
           'Select an integration method for your monitor. For in-depth instructions on integrating Crons, view [docsLink:our complete documentation].',
@@ -285,17 +282,15 @@ export function MonitorQuickStartGuide({monitorSlug, project}: Props) {
           onChange={({value}) => setSelectedGuide(value)}
           size="sm"
         />
-        <CopySetupInstructionsGate>
-          <CopyMarkdownButton
-            borderless
-            getMarkdown={getGuideMarkdown}
-            source="crons_onboarding"
-          />
-        </CopySetupInstructionsGate>
+        <CopyMarkdownButton
+          borderless
+          getMarkdown={getGuideMarkdown}
+          source="crons_onboarding"
+        />
       </Flex>
       <div ref={guideContainerRef}>
         <Guide {...guideProps} />
       </div>
-    </Flex>
+    </Stack>
   );
 }
