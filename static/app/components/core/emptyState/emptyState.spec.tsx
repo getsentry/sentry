@@ -33,10 +33,9 @@ describe('EmptyState', () => {
     expect(screen.getByRole('button', {name: 'Add repository'})).toBeInTheDocument();
   });
 
-  it('renders horizontal orientation', () => {
+  it('renders all props together', () => {
     render(
       <EmptyState
-        orientation="horizontal"
         title="Connect a repository"
         description="Autofix requires a connected repo."
         illustration={<img src="test.svg" alt="illo" />}

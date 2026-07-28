@@ -1,12 +1,11 @@
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
-import {Heading, Text, type TextProps} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 interface EmptyStateProps extends Omit<FlexProps, 'title' | 'children'> {
   title: React.ReactNode;
   action?: React.ReactNode;
   description?: React.ReactNode;
   illustration?: React.ReactNode;
-  orientation?: 'vertical' | 'horizontal';
 }
 
 export function EmptyState({
@@ -14,56 +13,38 @@ export function EmptyState({
   description,
   illustration,
   action,
-  orientation = 'vertical',
   ...props
 }: EmptyStateProps) {
-  const isVertical = orientation === 'vertical';
-  const textAlign: TextProps<'p'>['align'] = isVertical ? 'center' : undefined;
-
-  const copy = (
-    <Stack gap="md" maxWidth="360px">
-      <Heading as="h3" size="lg" align={textAlign}>
-        {title}
-      </Heading>
-      {description && (
-        <Text as="p" size="md" variant="muted" align={textAlign} textWrap="balance">
-          {description}
-        </Text>
-      )}
-    </Stack>
-  );
-
-  if (!isVertical) {
-    return (
-      <Flex
-        align="center"
-        gap="2xl"
-        justify="center"
-        data-test-id="empty-state"
-        {...props}
-      >
-        {illustration && (
-          <Flex justify="center" align="center" overflow="hidden" flexShrink={0}>
-            {illustration}
-          </Flex>
-        )}
-        <Stack gap="xl">
-          {copy}
-          {action}
-        </Stack>
-      </Flex>
-    );
-  }
+  const textAlign = {xs: 'center' as const, sm: undefined};
 
   return (
-    <Stack align="center" gap="xl" data-test-id="empty-state" {...props}>
+    <Flex
+      containerType="inline-size"
+      direction={{xs: 'column', sm: 'row'}}
+      align="center"
+      gap={{xs: 'xl', sm: '2xl'}}
+      justify={{sm: 'center'}}
+      data-test-id="empty-state"
+      {...props}
+    >
       {illustration && (
-        <Flex justify="center" overflow="hidden">
+        <Flex justify="center" align="center" overflow="hidden" flexShrink={0}>
           {illustration}
         </Flex>
       )}
-      {copy}
-      {action}
-    </Stack>
+      <Stack gap="xl">
+        <Stack gap="md" maxWidth="360px">
+          <Heading as="h3" size="lg" align={textAlign}>
+            {title}
+          </Heading>
+          {description && (
+            <Text as="p" size="md" variant="muted" align={textAlign} textWrap="balance">
+              {description}
+            </Text>
+          )}
+        </Stack>
+        {action}
+      </Stack>
+    </Flex>
   );
 }

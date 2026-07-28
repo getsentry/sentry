@@ -253,7 +253,6 @@ export function DetectorListTable({
         {isSuccess && detectors.length === 0 && (
           <SimpleTable.Empty>
             <EmptyState
-              padding="xl"
               title={t('No monitors found.')}
               description={t("Sorry, we couldn't find what you were looking for.")}
               illustration={<img src={NoAlertsImage} />}
