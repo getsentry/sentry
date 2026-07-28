@@ -117,7 +117,7 @@ def can_edit_detector_workflow_connections(detector: Detector, request: Request)
     which is slightly different from full edit access which differs by detector type.
     """
     return request.access.has_any_project_scope(
-        detector.project, USER_CREATED_DETECTOR_REQUIRED_SCOPES
+        detector.linked_project, USER_CREATED_DETECTOR_REQUIRED_SCOPES
     )
 
 
