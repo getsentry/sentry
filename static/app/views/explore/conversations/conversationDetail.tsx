@@ -24,7 +24,6 @@ import {
   extractMessagesFromNodes,
   messagesToMarkdown,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
-import {TopBar} from 'sentry/views/navigation/topBar';
 
 function useConversationDetailQueryState() {
   return useQueryStates(
@@ -80,9 +79,9 @@ function ConversationDetailPage() {
 
   return (
     <ViewportConstrainedPage background="secondary">
-      <TopBar.Slot name="title">
-        <ConversationsBreadcrumbs conversationId={conversationId} project={project} />
-      </TopBar.Slot>
+      {/* Owns its own TopBar slots — the new breadcrumbs split across the
+          `breadcrumbs` and `title` slots. */}
+      <ConversationsBreadcrumbs conversationId={conversationId} project={project} />
       <Container flexShrink={0} background="primary" borderBottom="primary" padding="xl">
         <ConversationSummary
           nodes={nodes}

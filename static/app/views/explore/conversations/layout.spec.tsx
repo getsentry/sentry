@@ -13,7 +13,8 @@ const organization = OrganizationFixture({
 
 function renderLayout(
   location: {pathname: string; query?: Record<string, string | number | string[]>},
-  route: string
+  route: string,
+  features?: string[]
 ) {
   return render(
     <TopBar.Slot.Provider>
@@ -23,7 +24,9 @@ function renderLayout(
       <ConversationsLayout />
     </TopBar.Slot.Provider>,
     {
-      organization,
+      organization: features
+        ? OrganizationFixture({features: [...organization.features, ...features]})
+        : organization,
       initialRouterConfig: {
         route,
         location,
@@ -61,6 +64,26 @@ describe('ConversationsLayout', () => {
       await within(topBar).findByRole('link', {name: 'Conversations'})
     ).toBeInTheDocument();
     expect(within(topBar).getByText('My saved query')).toBeInTheDocument();
+  });
+
+  it('renders saved query breadcrumbs with BreadcrumbList when the migration flag is on', async () => {
+    renderLayout(
+      {
+        pathname: `/organizations/${organization.slug}/explore/conversations/`,
+        query: {id: 'abc', title: 'My saved query'},
+      },
+      '/organizations/:orgId/explore/conversations/',
+      ['ui-migration-breadcrumbs']
+    );
+
+    const topBar = screen.getByTestId('top-bar-container');
+    expect(
+      await within(topBar).findByRole('link', {name: 'Conversations'})
+    ).toBeInTheDocument();
+    // The saved query title is the page heading, owned by the TopBar title slot.
+    expect(
+      within(topBar).getByRole('heading', {name: 'My saved query'})
+    ).toBeInTheDocument();
   });
 
   it('defers the title to the detail page on a conversation detail route', async () => {
