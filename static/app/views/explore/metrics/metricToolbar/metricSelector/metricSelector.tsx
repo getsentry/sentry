@@ -376,8 +376,8 @@ export function MetricSelector({
     defaultFilter: () => true,
     inputValue: searchInputValue,
     onInputChange: setSearchInputValue,
-    selectedKey: traceMetric.name ? traceMetricSelectValue : null,
-    onSelectionChange: key => {
+    value: traceMetric.name ? traceMetricSelectValue : null,
+    onChange: key => {
       if (!key) {
         return;
       }
@@ -389,7 +389,7 @@ export function MetricSelector({
           unit: selectedOption.metricUnit,
         });
         // Close via toggle() instead of close() because the combobox
-        // overrides close with commitValue which re-fires onSelectionChange
+        // overrides close with commitValue which re-fires onChange
         // with the stale previous key, reverting the selection.
         comboBoxState.toggle();
       }
@@ -423,7 +423,7 @@ export function MetricSelector({
         comboBoxState.open();
       } else {
         // close() commits the current selected key before dismissing, which
-        // spuriously re-fires onSelectionChange during outside dismissals.
+        // spuriously re-fires onChange during outside dismissals.
         comboBoxState.toggle();
       }
     },
