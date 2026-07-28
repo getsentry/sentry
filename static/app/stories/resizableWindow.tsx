@@ -190,7 +190,7 @@ const Handle = styled('div')`
     }
   }
 
-  ${WindowRoot}[data-drag-edge='corner'] > &[data-edge='corner'] {
+  ${WindowRoot}[data-dragging='corner'] > &[data-edge='corner'] {
     --sw: 2px;
     --color: ${p => p.theme.tokens.border.accent.vibrant};
     z-index: 2;
