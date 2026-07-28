@@ -67,6 +67,7 @@ export function useReplayCountForTransaction({
       enabled: !isReplaysPending && !segmentNamesSufficient,
       pageFilters: {
         ...selection,
+        environments: [],
         datetime: {
           period: statsPeriod,
           start: null,
