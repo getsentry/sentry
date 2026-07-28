@@ -14,6 +14,7 @@ FEATURE_NAME = [
     "organizations:incidents",
     "organizations:performance-view",
     "organizations:visibility-explore-view",
+    "organizations:workflow-engine-ui",
 ]
 
 
@@ -59,7 +60,9 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             details_url = f'[href="/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.id}'
             self.browser.wait_until(details_url)
             self.browser.click(details_url)
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.wait_until_test_id("incident-rule-title")
 
+            self.browser.wait_until_script_execution(
+                f'return window.location.pathname === "/organizations/{self.organization.slug}/issues/{group.id}/"'
+            )
+            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
