@@ -49,7 +49,11 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     read_preference_from_sentry_db,
 )
-from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import (
+    SeerActivityAttribution,
+    SeerAutofixOperator,
+    process_autofix_updates,
+)
 from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.models.run import SeerRun
 from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
@@ -514,13 +518,17 @@ def trigger_autofix_agent(
     try:
         sentry_app_event_type = SentryAppEventType(event_type)
         if SeerAutofixOperator.has_access(organization=group.organization):
-            process_autofix_updates.apply_async(
-                kwargs={
-                    "event_type": sentry_app_event_type,
-                    "event_payload": payload,
-                    "organization_id": group.organization.id,
+            task_kwargs: dict[str, Any] = {
+                "event_type": sentry_app_event_type,
+                "event_payload": payload,
+                "organization_id": group.organization.id,
+            }
+            if is_iteration_step:
+                activity_attribution: SeerActivityAttribution = {
+                    "referrer": referrer,
                 }
-            )
+                task_kwargs["activity_attribution"] = activity_attribution
+            process_autofix_updates.apply_async(kwargs=task_kwargs)
     except ValueError:
         logger.exception(
             "autofix.trigger.webhook_invalid_event_type",
