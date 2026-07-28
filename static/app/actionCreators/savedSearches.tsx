@@ -79,7 +79,7 @@ export function saveRecentSearch(
   return promise;
 }
 
-export function recentSearchesApiOptions({
+function recentSearchesApiOptions({
   limit,
   namespace,
   orgSlug,
