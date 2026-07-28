@@ -46,7 +46,7 @@ export function FeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) 
 
   return (
     <Tooltip title={title} position="right" {...tooltipProps} skipWrapper>
-      <SquareTag variant={variantMap[type]} aria-label={type} {...props}>
+      <SquareTag tabIndex={0} variant={variantMap[type]} aria-label={type} {...props}>
         {iconMap[type]}
       </SquareTag>
     </Tooltip>
@@ -58,4 +58,8 @@ const SquareTag = styled(Tag)`
   flex-shrink: 0;
   padding: 0;
   justify-content: center;
+
+  &:focus-visible {
+    ${p => p.theme.focusRing()}
+  }
 `;
