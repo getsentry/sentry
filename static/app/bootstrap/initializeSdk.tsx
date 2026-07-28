@@ -29,7 +29,7 @@ export function getLastEventId(): string | undefined {
 
 // Each error type maps to the set of HTTP status codes it should be filtered for.
 const FILTERED_STATUSES_BY_ERROR_TYPE: Readonly<Record<string, ReadonlySet<string>>> = {
-  RequestError: new Set(['200', '400', '401', '403', '404', '429']),
+  RequestError: new Set(['200', '400', '401', '402', '403', '404', '429']),
   BadRequestError: new Set(['400']),
   UnauthorizedError: new Set(['401']),
   ForbiddenError: new Set(['403']),
@@ -188,11 +188,7 @@ export function initializeSdk(config: Config) {
     },
 
     beforeSend(event, hint) {
-      if (
-        isFilteredRequestErrorEvent(event) ||
-        isEventWithFileUrl(event) ||
-        isNullTupleUnhandledRejectionEvent(hint)
-      ) {
+      if (isFilteredRequestErrorEvent(event) || isEventWithFileUrl(event)) {
         return null;
       }
 
@@ -280,21 +276,6 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
 
 export function isEventWithFileUrl(event: Event): boolean {
   return !!event.request?.url?.startsWith('file://');
-}
-
-/**
- * Ignore unhandled rejections of `[null, null]`. The SDK keeps the original
- * array in the hint until after `beforeSend`, then normalizes it to the
- * `[null,null]` message shown in the stored event.
- */
-function isNullTupleUnhandledRejectionEvent(hint: Sentry.EventHint): boolean {
-  const originalException = hint.originalException;
-
-  return (
-    Array.isArray(originalException) &&
-    originalException.length === 2 &&
-    originalException.every(value => value === null)
-  );
 }
 
 /** Tag and set fingerprint for UndefinedResponseBodyError events */

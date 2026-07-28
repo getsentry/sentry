@@ -12,7 +12,7 @@ import {Tag, type TagProps} from './tag';
 
 const defaultTitles: Record<FeatureBadgeProps['type'], string> = {
   alpha: t('This feature is internal and available for QA purposes'),
-  beta: t('This feature is available for early adopters and may change'),
+  beta: t('This feature is in beta and may change'),
   new: t('This feature is new! Try it out and let us know what you think'),
   experimental: t(
     'This feature is experimental! Try it out and let us know what you think. No promises!'

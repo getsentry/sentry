@@ -44,45 +44,11 @@ describe('initializeSdk', () => {
       })
     );
   });
-
-  it('filters malformed [null,null] unhandled rejections', () => {
-    initializeSdk({
-      ...window.__initialData,
-      apmSampling: 1,
-      sentryConfig: {
-        allowUrls: [],
-        dsn: '',
-        release: '',
-        tracePropagationTargets: [],
-      },
-    });
-
-    const initConfig = jest.mocked(Sentry.init).mock.calls.slice(-1)[0]?.[0];
-    expect(initConfig?.beforeSend).toBeDefined();
-
-    const event = {
-      // The SDK has not normalized this to the stored `[null,null]` string yet.
-      message: [null, null] as unknown as string,
-      exception: {
-        values: [
-          {
-            type: 'Error',
-            value: ',',
-            mechanism: {
-              type: 'auto.browser.global_handlers.onunhandledrejection',
-            },
-          },
-        ],
-      },
-    } as Sentry.ErrorEvent;
-
-    expect(initConfig?.beforeSend?.(event, {originalException: [null, null]})).toBeNull();
-  });
 });
 
 describe('isFilteredRequestErrorEvent', () => {
   const methods = ['GET', 'POST', 'PUT', 'DELETE'];
-  const stati = [200, 400, 401, 403, 404, 429];
+  const stati = [200, 400, 401, 402, 403, 404, 429];
 
   describe('matching error type, matching message', () => {
     for (const method of methods) {

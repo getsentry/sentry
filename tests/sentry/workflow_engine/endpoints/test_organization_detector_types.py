@@ -54,6 +54,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
                                 group_key=None,
                                 trigger_group_evaluation=DataConditionGroupEvaluation(
                                     result=True,
+                                    triggered=True,
                                     data={"condition_evaluations": [], "logic_type": "any"},
                                 ),
                                 event_data=None,
