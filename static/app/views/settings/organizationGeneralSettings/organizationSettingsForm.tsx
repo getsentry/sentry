@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {mutationOptions, queryOptions} from '@tanstack/react-query';
 import {useMutation} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
@@ -90,10 +90,13 @@ export function ReplayAccessMembersField({
   organization: Organization;
 }) {
   const endpoint = `/organizations/${organization.slug}/`;
-  const selectedIds = useMemo(
+  const initialValue = useMemo(
     () => (organization.replayAccessMembers ?? []).map(String),
     [organization.replayAccessMembers]
   );
+  // Tracked separately from the form value so selected members can be resolved by
+  // id: a search that no longer returns them would otherwise drop their label.
+  const [selectedIds, setSelectedIds] = useState(initialValue);
   const {data: selectedMembers = []} = useMembers({ids: selectedIds});
 
   const replayMutationOpts = mutationOptions({
@@ -111,7 +114,7 @@ export function ReplayAccessMembersField({
       <AutoSaveForm
         name="replayAccessMembers"
         schema={membershipSchema}
-        initialValue={selectedIds}
+        initialValue={initialValue}
         mutationOptions={replayMutationOpts}
       >
         {field => (
@@ -132,7 +135,10 @@ export function ReplayAccessMembersField({
                 })
               }
               value={field.state.value}
-              onChange={field.handleChange}
+              onChange={next => {
+                setSelectedIds(next);
+                field.handleChange(next);
+              }}
               disabled={disabled}
             />
           </field.Layout.Row>

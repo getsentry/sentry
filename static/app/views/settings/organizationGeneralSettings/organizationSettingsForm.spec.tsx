@@ -478,5 +478,40 @@ describe('OrganizationSettingsForm', () => {
 
       expect(await screen.findByText('Paged Out Member')).toBeInTheDocument();
     });
+
+    it('keeps a newly selected member labeled when the search term changes', async () => {
+      const alice = UserFixture({id: '5', name: 'Alice Nguyen'});
+      const bob = UserFixture({id: '6', name: 'Bob Okafor'});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/`,
+        body: [{user: alice}, {user: bob}],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/`,
+        body: [{user: bob}],
+        match: [MockApiClient.matchQuery({query: 'bob'})],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/`,
+        body: [{user: alice}],
+        match: [MockApiClient.matchQuery({query: 'user.id:5'})],
+      });
+      render(
+        <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />,
+        {organization: {...organization, hasGranularReplayPermissions: true}}
+      );
+
+      await userEvent.click(screen.getByRole('textbox', {name: 'Replay Access Members'}));
+      await userEvent.click(
+        await screen.findByRole('menuitemcheckbox', {name: 'Alice Nguyen'})
+      );
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Replay Access Members'}),
+        'bob'
+      );
+      await screen.findByRole('menuitemcheckbox', {name: 'Bob Okafor'});
+
+      expect(screen.getByText('Alice Nguyen')).toBeInTheDocument();
+    });
   });
 });
