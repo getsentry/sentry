@@ -153,7 +153,7 @@ class UptimeSubscriptionRegion(DefaultFieldsModel):
 
 
 def get_org_from_detector(detector: Detector) -> tuple[Organization]:
-    return (detector.project.organization,)
+    return (detector.linked_project.organization,)
 
 
 @cache_func_for_models([(Detector, get_org_from_detector)])
