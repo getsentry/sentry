@@ -461,11 +461,9 @@ export type Tag = {
 
   /**
    * For trace-item attributes, whether the attribute was defined by Sentry
-   * ('sentry') or sent by the user ('user'). Used to keep user attributes whose
-   * name collides with a reserved field (e.g. a custom `organization.id`) out of
-   * the reserved-field hidden lists.
+   * ('sentry') or sent by the user ('user').
    */
-  attributeSource?: string;
+  attributeSource?: 'sentry' | 'user';
 
   isInput?: boolean;
 

@@ -30,7 +30,7 @@ function makeAttribute(
   attributeType: Attribute['attributeType'] = 'string'
 ): Attribute {
   return {
-    attributeSource: {source_type: 'custom'},
+    attributeSource: {source_type: 'user'},
     attributeType,
     key,
     name: key,
@@ -271,7 +271,7 @@ describe('traceItemAttributeKeysOptions', () => {
 
 describe('getTraceItemTagCollection', () => {
   it('preserves plain tags with @ in the tag name', () => {
-    const key = 'custom.metric@primary';
+    const key = 'user.metric@primary';
 
     expect(getTraceItemTagCollection([makeAttribute(key, 'number')], 'number')).toEqual({
       [key]: {
@@ -279,13 +279,13 @@ describe('getTraceItemTagCollection', () => {
         name: key,
         kind: FieldKind.MEASUREMENT,
         secondaryAliases: [],
-        attributeSource: 'custom',
+        attributeSource: 'user',
       },
     });
   });
 
   it('preserves wrapped number tags with @ in the tag name', () => {
-    const key = 'tags[custom.metric@primary,number]';
+    const key = 'tags[user.metric@primary,number]';
 
     expect(getTraceItemTagCollection([makeAttribute(key, 'number')], 'number')).toEqual({
       [key]: {
@@ -293,7 +293,7 @@ describe('getTraceItemTagCollection', () => {
         name: key,
         kind: FieldKind.MEASUREMENT,
         secondaryAliases: [],
-        attributeSource: 'custom',
+        attributeSource: 'user',
       },
     });
   });
@@ -307,7 +307,7 @@ describe('getTraceItemTagCollection', () => {
         name: key,
         kind: FieldKind.TAG,
         secondaryAliases: [],
-        attributeSource: 'custom',
+        attributeSource: 'user',
       },
     });
   });
