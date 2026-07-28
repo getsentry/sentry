@@ -33,6 +33,7 @@ export function useMarkGroupSeen() {
             : previous
       );
 
+      // Inbox sections are infinite queries against the organization issues endpoint.
       queryClient.setQueriesData<InfiniteData<ApiResponse<Group[]>>>(
         {
           queryKey: [issuesUrl],
