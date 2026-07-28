@@ -15,7 +15,7 @@ import {findFreshEmptyPrefixSearchCacheMatch} from 'sentry/views/explore/utils/f
 
 type AttributeType = {
   attributeSource: {
-    source_type: string;
+    source_type: 'sentry' | 'user';
   };
   attributeType: TraceItemAttributeType;
   key: string;

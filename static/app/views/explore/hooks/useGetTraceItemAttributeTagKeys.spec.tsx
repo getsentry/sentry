@@ -14,7 +14,7 @@ function mockTraceItemAttributeKeysByType({
     key: string;
     kind: FieldKind;
     name: string;
-    attributeSource?: {source_type: string};
+    attributeSource?: {source_type: 'sentry' | 'user'};
   }>;
   itemType?: TraceItemDataset;
 }) {

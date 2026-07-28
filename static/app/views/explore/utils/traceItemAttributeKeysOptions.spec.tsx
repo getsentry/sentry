@@ -12,7 +12,7 @@ import {
 
 type Attribute = {
   attributeSource: {
-    source_type: string;
+    source_type: 'sentry' | 'user';
   };
   attributeType: 'boolean' | 'number' | 'string';
   key: string;
