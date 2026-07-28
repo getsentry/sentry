@@ -3771,16 +3771,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Which issue categories should we send issue.created webhooks for
+# Which issue categories should we not send issue.created webhooks for
 register(
-    "sentry-apps.expanded-webhook-categories",
+    "sentry-apps.unsupported-webhook-categories",
     type=Sequence,
     default=[
-        1,  # ERROR
-        4,  # CRON
-        6,  # FEEDBACK
-        7,  # UPTIME
-        10,  # OUTAGE
+        9,  # TEST_NOTIFICATION
     ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
