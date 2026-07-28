@@ -82,6 +82,7 @@ type Props = {
   useTintRow?: boolean;
   withChart?: boolean;
   withColumns?: GroupListColumn[];
+  withHeader?: boolean;
   withPagination?: boolean;
 };
 
@@ -113,6 +114,7 @@ export function GroupList({
   canSelectGroups = true,
   useFilteredStats = true,
   useTintRow = true,
+  withHeader = true,
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
@@ -340,7 +342,7 @@ export function GroupList({
   return (
     <Fragment>
       <PanelContainer>
-        <GroupListHeader withChart={!!withChart} withColumns={columns} />
+        {withHeader && <GroupListHeader withChart={!!withChart} withColumns={columns} />}
         <PanelBody>
           {loading
             ? [...Array.from({length: numPlaceholderRows})].map((_, i) => (
