@@ -155,6 +155,21 @@ class SendSeerWebhookErrorResponse(BaseModel):
     error: str
 
 
+class NotifySeerPrCreatedSuccessResponse(BaseModel):
+    """`notify_seer_pr_created` success: `{"success": true}`. The `success` literal
+    is the discriminator against the error shape below."""
+
+    success: Literal[True] = True
+
+
+class NotifySeerPrCreatedErrorResponse(BaseModel):
+    """`notify_seer_pr_created` error: `{"success": false, "error": <message>}`.
+    Only returned when the organization can't be resolved."""
+
+    success: Literal[False] = False
+    error: str
+
+
 class HasRepoCodeMappingsResponse(BaseModel):
     has_code_mappings: bool
     project_slug_to_id: dict[str, int]

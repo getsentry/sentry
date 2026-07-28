@@ -121,6 +121,7 @@ from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_qu
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.models.seer_api_models import SeerProjectPreference
+from sentry.seer.pull_requests import notify_seer_pr_created
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     AttributeBucket,
@@ -691,7 +692,7 @@ def send_seer_webhook(
             id=organization_id, status=OrganizationStatus.ACTIVE
         )
     except Organization.DoesNotExist:
-        logger.exception(
+        logger.warning(
             "seer.webhook_organization_not_found_or_not_active",
             extra={"organization_id": organization_id},
         )
@@ -1019,6 +1020,9 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     #
     # PR metrics (judge path)
     "update_pr_metrics": seer_rpc(update_pr_metrics),
+    #
+    # PR created (attribution + run link)
+    "notify_seer_pr_created": seer_rpc(notify_seer_pr_created),
     #
     # Monitoring provider tokens (MCP)
     "get_monitoring_provider_connections": seer_rpc(get_monitoring_provider_connections),

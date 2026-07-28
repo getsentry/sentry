@@ -129,7 +129,7 @@ def emit_pr_metrics_cooldown_task(
             repository_id=repository_id,
         )
     except PullRequest.DoesNotExist:
-        logger.exception("pr_metrics.cooldown.pull_request_not_found", extra=log_extra)
+        logger.warning("pr_metrics.cooldown.pull_request_not_found", extra=log_extra)
         metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "pr_gone"})
         return
 
@@ -140,7 +140,7 @@ def emit_pr_metrics_cooldown_task(
     try:
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
-        logger.exception("pr_metrics.cooldown.organization_not_found", extra=log_extra)
+        logger.warning("pr_metrics.cooldown.organization_not_found", extra=log_extra)
         metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "org_gone"})
         return
 
