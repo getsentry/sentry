@@ -40,10 +40,6 @@ describe('OrganizationSettingsForm', () => {
       url: '/organizations/org-slug/members/',
       body: [{user: UserFixture()}],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [{user: UserFixture()}],
-    });
     onSave.mockReset();
   });
 
@@ -411,11 +407,6 @@ describe('OrganizationSettingsForm', () => {
     });
 
     it('saves replayAccessMembers when a member is selected', async () => {
-      const user = UserFixture();
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/users/`,
-        body: [{user}],
-      });
       const replayPutMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/`,
         method: 'PUT',
@@ -445,6 +436,47 @@ describe('OrganizationSettingsForm', () => {
           expect.objectContaining({data: {replayAccessMembers: [1]}})
         );
       });
+    });
+
+    it('lists every organization member when the user shares no projects with them', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/users/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/`,
+        body: [{user: UserFixture({id: '2', name: 'Teamless Member'})}],
+      });
+      render(
+        <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />,
+        {organization: {...organization, hasGranularReplayPermissions: true}}
+      );
+
+      await userEvent.click(screen.getByRole('textbox', {name: 'Replay Access Members'}));
+
+      expect(
+        await screen.findByRole('menuitemcheckbox', {name: 'Teamless Member'})
+      ).toBeInTheDocument();
+    });
+
+    it('labels an already selected member when they are missing from the default member list', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/`,
+        body: [{user: UserFixture({id: '404', name: 'Paged Out Member'})}],
+        match: [MockApiClient.matchQuery({query: 'user.id:404'})],
+      });
+      render(
+        <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />,
+        {
+          organization: {
+            ...organization,
+            hasGranularReplayPermissions: true,
+            replayAccessMembers: [404],
+          },
+        }
+      );
+
+      expect(await screen.findByText('Paged Out Member')).toBeInTheDocument();
     });
   });
 });

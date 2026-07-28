@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
-import {mutationOptions, useQuery} from '@tanstack/react-query';
+import {mutationOptions, queryOptions} from '@tanstack/react-query';
 import {useMutation} from '@tanstack/react-query';
+import uniqBy from 'lodash/uniqBy';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -28,8 +29,11 @@ import {
   getLocalityDataFromOrganization,
   shouldDisplayLocalities,
 } from 'sentry/utils/cells';
-import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
-import {selectUsersFromMembers} from 'sentry/utils/members/shared';
+import {
+  memberUsersQueryOptions,
+  selectUsersFromMembers,
+} from 'sentry/utils/members/shared';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
@@ -86,11 +90,11 @@ export function ReplayAccessMembersField({
   organization: Organization;
 }) {
   const endpoint = `/organizations/${organization.slug}/`;
-  const {data: members = [], isPending: fetching} = useQuery({
-    ...useProjectMembersQueryOptions(),
-    select: resp => selectUsersFromMembers(resp.json),
-  });
-  const memberOptions = members.map(m => ({value: m.id, label: m.name}));
+  const selectedIds = useMemo(
+    () => (organization.replayAccessMembers ?? []).map(String),
+    [organization.replayAccessMembers]
+  );
+  const {data: selectedMembers = []} = useMembers({ids: selectedIds});
 
   const replayMutationOpts = mutationOptions({
     mutationFn: (data: {replayAccessMembers: string[]}) =>
@@ -107,7 +111,7 @@ export function ReplayAccessMembersField({
       <AutoSaveForm
         name="replayAccessMembers"
         schema={membershipSchema}
-        initialValue={(organization.replayAccessMembers ?? []).map(String)}
+        initialValue={selectedIds}
         mutationOptions={replayMutationOpts}
       >
         {field => (
@@ -115,13 +119,21 @@ export function ReplayAccessMembersField({
             label={t('Replay Access Members')}
             hintText={t('Select the members who will have access to replay data.')}
           >
-            <field.Select
+            <field.SelectAsync
               multiple
-              options={memberOptions}
+              queryOptions={search =>
+                queryOptions({
+                  ...memberUsersQueryOptions({orgSlug: organization.slug, search}),
+                  select: ({json}) =>
+                    uniqBy(
+                      [...selectedMembers, ...selectUsersFromMembers(json)],
+                      member => member.id
+                    ).map(member => ({value: member.id, label: member.name})),
+                })
+              }
               value={field.state.value}
               onChange={field.handleChange}
               disabled={disabled}
-              isLoading={fetching}
             />
           </field.Layout.Row>
         )}
