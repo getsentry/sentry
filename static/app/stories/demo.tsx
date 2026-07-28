@@ -121,8 +121,8 @@ function Ruler({containerRef}: {containerRef: React.RefObject<HTMLDivElement | n
   const snapTo = (px: number) => {
     const el = containerRef.current;
     if (el) {
-      // +2 compensates for the container's left and right border
-      el.style.width = `${px + 2}px`;
+      const bordersWidth = el.offsetWidth - el.clientWidth;
+      el.style.width = `${px + bordersWidth}px`;
     }
   };
 
