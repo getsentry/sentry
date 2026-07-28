@@ -25,7 +25,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {useUser} from 'sentry/utils/useUser';
 import {useFinalizeRelease} from 'sentry/views/explore/releases/components/useFinalizeRelease';
-import type {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
+import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from 'sentry/views/explore/releases/list/releasesRequest';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
@@ -225,6 +225,11 @@ export function ReleaseCard({
               <ReleaseCardStatsPeriod location={location} />
             </AdoptionColumn>
             <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
+            <CountColumn>
+              {activeDisplay === ReleasesDisplayOption.USERS
+                ? t('Users')
+                : t('Sessions')}
+            </CountColumn>
             <DisplaySmallCol>{t('Crashes')}</DisplaySmallCol>
             <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
           </ReleaseProjectsLayout>
@@ -405,17 +410,17 @@ export const ReleaseProjectsLayout = styled('div')<{
   width: 100%;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    grid-template-columns: 1fr 1fr 1fr 0.6fr 0.5fr 0.5fr 0.5fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    grid-template-columns: 1fr 1fr 1fr 0.6fr 0.5fr 0.5fr 0.5fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
     ${p => {
       const adoptionStagesSize = p.showReleaseAdoptionStages ? '0.7fr' : '';
-      return `grid-template-columns: 1fr ${adoptionStagesSize} 1fr 1fr 0.7fr 0.7fr 0.5fr`;
+      return `grid-template-columns: 1fr ${adoptionStagesSize} 1fr 1fr 0.7fr 0.7fr 0.7fr 0.5fr`;
     }}
   }
 `;
@@ -472,6 +477,16 @@ export const CrashFreeRateColumn = styled(ReleaseProjectColumn)`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
+    text-align: right;
+  }
+`;
+
+export const CountColumn = styled(ReleaseProjectColumn)`
+  display: none;
+  font-variant-numeric: tabular-nums;
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    display: block;
     text-align: right;
   }
 `;

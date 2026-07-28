@@ -326,6 +326,7 @@ class ReleasesRequest extends Component<Props, State> {
     return {
       getCrashCount: this.getCrashCount,
       getCrashFreeRate: this.getCrashFreeRate,
+      getCountByRelease: this.getCountByRelease,
       get24hCountByRelease: this.get24hCountByRelease,
       get24hCountByProject: this.get24hCountByProject,
       getTimeSeries: this.getTimeSeries,
@@ -362,6 +363,20 @@ class ReleasesRequest extends Component<Props, State> {
     return !defined(totalCount) || totalCount === 0
       ? null
       : getCrashFreePercent(100 - percent(crashedCount ?? 0, totalCount ?? 0));
+  };
+
+  getCountByRelease = (
+    version: string,
+    project: number,
+    display: ReleasesDisplayOption
+  ) => {
+    const {healthStatsPeriod} = this.props;
+
+    return (
+      healthStatsPeriod === HealthStatsPeriodOption.AUTO
+        ? this.getPeriodCountByRelease
+        : this.get24hCountByRelease
+    )(version, project, display);
   };
 
   get24hCountByRelease = (
@@ -494,11 +509,7 @@ class ReleasesRequest extends Component<Props, State> {
   getAdoption = (version: string, project: number, display: ReleasesDisplayOption) => {
     const {healthStatsPeriod} = this.props;
 
-    const countByRelease = (
-      healthStatsPeriod === HealthStatsPeriodOption.AUTO
-        ? this.getPeriodCountByRelease
-        : this.get24hCountByRelease
-    )(version, project, display);
+    const countByRelease = this.getCountByRelease(version, project, display);
     const countByProject = (
       healthStatsPeriod === HealthStatsPeriodOption.AUTO
         ? this.getPeriodCountByProject

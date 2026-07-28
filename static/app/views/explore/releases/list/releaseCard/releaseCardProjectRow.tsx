@@ -36,6 +36,7 @@ import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathname
 import {
   AdoptionColumn,
   AdoptionStageColumn,
+  CountColumn,
   CrashFreeRateColumn,
   DisplaySmallCol,
   NewIssuesColumn,
@@ -98,6 +99,11 @@ export function ReleaseCardProjectRow({
   );
 
   const crashFreeRate = getHealthData.getCrashFreeRate(releaseVersion, id, activeDisplay);
+  const releaseCount = getHealthData.getCountByRelease(
+    releaseVersion,
+    id,
+    activeDisplay
+  );
   const get24hCountByProject = getHealthData.get24hCountByProject(id, activeDisplay);
   const timeSeries = getHealthData.getTimeSeries(releaseVersion, id, activeDisplay);
   const adoption = getHealthData.getAdoption(releaseVersion, id, activeDisplay);
@@ -187,6 +193,16 @@ export function ReleaseCardProjectRow({
             <NotAvailable />
           )}
         </CrashFreeRateColumn>
+
+        <CountColumn>
+          {showPlaceholders ? (
+            <StyledPlaceholder width="40px" />
+          ) : defined(releaseCount) ? (
+            <Count value={releaseCount} />
+          ) : (
+            <NotAvailable />
+          )}
+        </CountColumn>
 
         <DisplaySmallCol>
           {showPlaceholders ? (
