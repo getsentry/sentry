@@ -55,6 +55,77 @@ describe('Highlights', () => {
     expect(screen.getByText('18.0.0')).toBeInTheDocument();
   });
 
+  it('renders highlights when attribute keys come back wrapped as tags[name,type]', () => {
+    // The trace item details API wraps an attribute whose stored key collides
+    // with a known public alias, so these are the keys real span data arrives with.
+    const rootEventResults = {
+      data: makeTraceItemDetailsResponse([
+        {name: 'tags[user.email,string]', type: 'str', value: 'user@example.com'},
+        {name: 'tags[os.name,string]', type: 'str', value: 'Windows'},
+        {name: 'os.version', type: 'str', value: '10'},
+        {name: 'tags[browser.name,string]', type: 'str', value: 'Chrome'},
+        {name: 'browser.version', type: 'str', value: '120.0'},
+        {name: 'tags[runtime.name,string]', type: 'str', value: 'node'},
+        {name: 'runtime.version', type: 'str', value: '18.0.0'},
+      ]),
+    } as TraceRootEventQueryResults;
+
+    render(
+      <Highlights
+        rootEventResults={rootEventResults}
+        organization={organization}
+        project={project}
+      />
+    );
+
+    expect(screen.getByText('user@example.com')).toBeInTheDocument();
+    expect(screen.getByText('Windows')).toBeInTheDocument();
+    expect(screen.getByText('10')).toBeInTheDocument();
+    expect(screen.getByText('Chrome')).toBeInTheDocument();
+    expect(screen.getByText('120.0')).toBeInTheDocument();
+    expect(screen.getByText('node')).toBeInTheDocument();
+    expect(screen.getByText('18.0.0')).toBeInTheDocument();
+  });
+
+  it('prefers an exact attribute name over a wrapped one', () => {
+    const rootEventResults = {
+      data: makeTraceItemDetailsResponse([
+        // Sorted the way the API returns it, so the wrapped key comes first.
+        {name: 'tags[user.email,string]', type: 'str', value: 'wrapped@example.com'},
+        {name: 'user.email', type: 'str', value: 'exact@example.com'},
+      ]),
+    } as TraceRootEventQueryResults;
+
+    render(
+      <Highlights
+        rootEventResults={rootEventResults}
+        organization={organization}
+        project={project}
+      />
+    );
+
+    expect(screen.getByText('exact@example.com')).toBeInTheDocument();
+    expect(screen.queryByText('wrapped@example.com')).not.toBeInTheDocument();
+  });
+
+  it('resolves the sentry-prefixed form of an attribute', () => {
+    const rootEventResults = {
+      data: makeTraceItemDetailsResponse([
+        {name: 'sentry.environment', type: 'str', value: 'production'},
+      ]),
+    } as TraceRootEventQueryResults;
+
+    render(
+      <Highlights
+        rootEventResults={rootEventResults}
+        organization={organization}
+        project={project}
+      />
+    );
+
+    expect(screen.getByText('production')).toBeInTheDocument();
+  });
+
   it('prefers process.runtime.name/version over the deprecated runtime.name/version', () => {
     const rootEventResults = {
       data: makeTraceItemDetailsResponse([

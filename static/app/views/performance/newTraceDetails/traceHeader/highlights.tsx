@@ -190,9 +190,7 @@ function AttributesHighlights({
           return null;
         }
 
-        const version =
-          findSpanAttributeValue(attributes, 'sentry.release') ??
-          findSpanAttributeValue(attributes, 'release');
+        const version = findSpanAttributeValue(attributes, 'release');
 
         if (!version) {
           return null;
