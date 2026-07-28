@@ -77,14 +77,6 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
   // removed before reaching the router or DOM element.
   const propsWithBehavior = behavior();
   const {handleClick} = useClickTracking(propsWithBehavior);
-  const {
-    analyticsEventKey: _analyticsEventKey,
-    analyticsEventName: _analyticsEventName,
-    analyticsParams: _analyticsParams,
-    busy: _busy,
-    variant: _variant,
-    ...linkProps
-  } = propsWithBehavior;
 
   if (props.disabled) {
     // Removing the "to" prop here to prevent the anchor from being rendered with to="
@@ -93,6 +85,15 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
     const {to: _to, ...restProps} = props;
     return <Anchor {...restProps} />;
   }
+
+  const {
+    analyticsEventKey: _analyticsEventKey,
+    analyticsEventName: _analyticsEventName,
+    analyticsParams: _analyticsParams,
+    busy: _busy,
+    variant: _variant,
+    ...linkProps
+  } = propsWithBehavior;
 
   return <Component {...linkProps} onClick={handleClick} />;
 }
