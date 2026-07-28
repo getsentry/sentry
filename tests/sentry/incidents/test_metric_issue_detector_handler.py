@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.grouptype import (
     MetricIssueDetectorHandler,
+    MetricUpdate,
     SessionsAggregate,
     get_alert_type_from_aggregate_dataset,
 )
@@ -167,7 +168,7 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
             },
             timestamp=datetime.now(UTC),
         )
-        data_packet = DataPacket[AnomalyDetectionUpdate](
+        data_packet: DataPacket[MetricUpdate] = DataPacket(
             source_id=str(self.query_subscription.id), packet=packet
         )
 
