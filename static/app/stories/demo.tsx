@@ -1,9 +1,11 @@
-import {useRef} from 'react';
+import {useMemo, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import type {ContainerBreakpointSize} from 'sentry/utils/theme';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 import {ResizableWindow} from './resizableWindow';
@@ -15,6 +17,7 @@ interface DemoProps extends FlexProps {
 export function Demo({resizable, ...props}: DemoProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dimensions = useDimensions({elementRef: containerRef});
+  const breakpoints = useContainerBreakpoints();
 
   if (!resizable) {
     return (
@@ -47,7 +50,7 @@ export function Demo({resizable, ...props}: DemoProps) {
   // -1lh collapses the gap between the demo chrome and the next content block
   return (
     <DemoChrome marginTop="md" position="relative" style={{marginBottom: '-1lh'}}>
-      <Ruler containerRef={containerRef} />
+      <Ruler containerRef={containerRef} breakpoints={breakpoints} />
       <Flex
         align="center"
         justify="center"
@@ -58,7 +61,7 @@ export function Demo({resizable, ...props}: DemoProps) {
         gap="sm"
       >
         <Container display="inline-block" width="4ch">
-          <Text align="right">{getActiveBreakpoint(dimensions.width)}</Text>
+          <Text align="right">{getActiveBreakpoint(breakpoints, dimensions.width)}</Text>
         </Container>
         <Text variant="muted" tabular>
           ({Math.round(dimensions.width)}px)
@@ -67,7 +70,7 @@ export function Demo({resizable, ...props}: DemoProps) {
           ×
         </Text>
         <Container display="inline-block" width="4ch">
-          <Text align="right">{getActiveBreakpoint(dimensions.height)}</Text>
+          <Text align="right">{getActiveBreakpoint(breakpoints, dimensions.height)}</Text>
         </Container>
         <Text variant="muted" tabular>
           ({Math.round(dimensions.height)}px)
@@ -93,23 +96,27 @@ export function Demo({resizable, ...props}: DemoProps) {
   );
 }
 
-const CONTAINER_BREAKPOINTS: Array<[string, number]> = [
-  ['3xs', 320],
-  ['2xs', 384],
-  ['xs', 448],
-  ['sm', 512],
-  ['md', 576],
-  ['lg', 640],
-  ['xl', 768],
-  ['2xl', 896],
-  ['3xl', 1024],
-  ['4xl', 1152],
-  ['5xl', 1280],
-];
+function useContainerBreakpoints(): Array<[ContainerBreakpointSize, number]> {
+  const theme = useTheme();
+  return useMemo(
+    () =>
+      (Object.entries(theme.container) as Array<[ContainerBreakpointSize, string]>)
+        .map(
+          ([key, value]) =>
+            [key, parseInt(value, 10)] as [ContainerBreakpointSize, number]
+        )
+        .filter(([key, px]) => key !== 'zero' && px > 0)
+        .sort((a, b) => a[1] - b[1]),
+    [theme.container]
+  );
+}
 
-function getActiveBreakpoint(size: number): string {
-  for (let i = CONTAINER_BREAKPOINTS.length - 1; i >= 0; i--) {
-    const bp = CONTAINER_BREAKPOINTS[i];
+function getActiveBreakpoint(
+  breakpoints: Array<[ContainerBreakpointSize, number]>,
+  size: number
+): ContainerBreakpointSize {
+  for (let i = breakpoints.length - 1; i >= 0; i--) {
+    const bp = breakpoints[i];
     if (bp && size >= bp[1]) {
       return bp[0];
     }
@@ -117,7 +124,13 @@ function getActiveBreakpoint(size: number): string {
   return 'zero';
 }
 
-function Ruler({containerRef}: {containerRef: React.RefObject<HTMLDivElement | null>}) {
+function Ruler({
+  containerRef,
+  breakpoints,
+}: {
+  breakpoints: Array<[ContainerBreakpointSize, number]>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+}) {
   const snapTo = (px: number) => {
     const el = containerRef.current;
     if (el) {
@@ -134,12 +147,12 @@ function Ruler({containerRef}: {containerRef: React.RefObject<HTMLDivElement | n
       overflow="hidden"
       style={{height: 28, zIndex: 1}}
     >
-      {CONTAINER_BREAKPOINTS.map(([name, px], i) => (
+      {breakpoints.map(([name, px], i) => (
         <TickButton
           key={name}
           type="button"
           onClick={() => snapTo(px)}
-          style={{width: px, zIndex: CONTAINER_BREAKPOINTS.length - 1 - i}}
+          style={{width: px, zIndex: breakpoints.length - 1 - i}}
           data-breakpoint={name}
         />
       ))}
