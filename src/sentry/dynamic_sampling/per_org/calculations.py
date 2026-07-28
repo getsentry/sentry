@@ -23,7 +23,10 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
-from sentry.dynamic_sampling.per_org.gate import project_balancing_debug_project_ids
+from sentry.dynamic_sampling.per_org.gate import (
+    is_implicit_sample_rate_floor_enabled,
+    project_balancing_debug_project_ids,
+)
 from sentry.dynamic_sampling.per_org.queries import (
     ProjectTransactionCounts,
     ProjectVolume,
@@ -347,6 +350,7 @@ def run_transaction_balancing(
 ) -> dict[int, tuple[list[RebalancedItem], float]]:
     sample_rates = config.get_project_sample_rates()
     min_sample_rate = options.get("dynamic-sampling.prioritise_transactions.min_sample_rate")
+    apply_implicit_floor = is_implicit_sample_rate_floor_enabled()
     result: dict[int, tuple[list[RebalancedItem], float]] = {}
     project_volume_by_id = {
         project_volume.project_id: project_volume for project_volume in project_volumes
@@ -382,12 +386,12 @@ def run_transaction_balancing(
                 sample_rate=sample_rate,
                 total_num_classes=project_volume.num_distinct_transactions,
                 total=project_volume.total,
-                intensity=REBALANCE_INTENSITY,
+                intensity=REBALANCE_INTENSITY,  # this should use the option like in the old pipeline
                 min_sample_rate=min_sample_rate,
             )
         )
 
-        if implicit_rate < sample_rate:
+        if apply_implicit_floor and implicit_rate < sample_rate:
             named_rates, implicit_rate = _apply_implicit_sample_rate_floor(
                 named_rates=named_rates,
                 implicit_sample_rate=implicit_rate,

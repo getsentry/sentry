@@ -2215,6 +2215,17 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Applies the implicit sample rate floor in the per-org pipeline. The transaction rebalancing
+# model can return an implicit (tail) rate below the project's overall rate; the floor lifts it
+# back to that rate and pays for it by lowering the explicit rates. The legacy pipeline has no
+# such step, so with this enabled the two pipelines write different per-transaction rates for
+# identical input. Set to False to compare them like for like.
+register(
+    "dynamic-sampling.per_org.apply-implicit-sample-rate-floor",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Stops dynamic sampling rules from being emitted in relay config.
 # This is required for ST instances that have flakey flags as we want to be able kill DS ruining customer data if necessary.
 # It is only a killswitch for behaviour, it may actually increase infra load if flipped for a user currently being sampled.
