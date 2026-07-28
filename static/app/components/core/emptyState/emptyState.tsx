@@ -1,7 +1,7 @@
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Heading, Text, type TextProps} from '@sentry/scraps/text';
 
-interface EmptyStateProps extends Omit<FlexProps, 'title'> {
+interface EmptyStateProps extends Omit<FlexProps, 'title' | 'children'> {
   title: React.ReactNode;
   action?: React.ReactNode;
   description?: React.ReactNode;
