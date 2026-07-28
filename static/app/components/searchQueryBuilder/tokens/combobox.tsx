@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useEffectEvent,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -163,6 +164,12 @@ const DESCRIPTION_POPPER_OPTIONS = {
   ],
 };
 
+const MENU_OFFSET: [number, number] = [-12, 12];
+const MENU_FLIP_OPTIONS = {
+  // We don't want the menu to ever flip to the other side of the input.
+  fallbackPlacements: [],
+};
+
 function menuIsOpen({
   state,
   hiddenOptions,
@@ -249,20 +256,11 @@ function useUpdateOverlayPositionOnContentChange({
   updateOverlayPosition: (() => void) | null;
 }) {
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
-
-  // Keep a ref to the updateOverlayPosition function so that we can
-  // access the latest value in the resize observer callback.
-  const updateOverlayPositionRef = useRef(updateOverlayPosition);
-  if (updateOverlayPositionRef.current !== updateOverlayPosition) {
-    updateOverlayPositionRef.current = updateOverlayPosition;
-  }
+  const updatePosition = useEffectEvent(() => updateOverlayPosition?.());
 
   useLayoutEffect(() => {
     resizeObserverRef.current = new ResizeObserver(() => {
-      if (!updateOverlayPositionRef.current) {
-        return;
-      }
-      updateOverlayPositionRef.current?.();
+      updatePosition();
     });
 
     return () => {
@@ -320,6 +318,10 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   const anyItemsShowing = totalOptions > hiddenOptions.size;
   const showAskSeerFooter =
     enableAISearch && organization.features.includes('gen-ai-ask-seer-ux-rework');
+
+  if (!isOpen) {
+    return <StyledPositionWrapper {...overlayProps} visible={false} />;
+  }
 
   if (customMenu) {
     return customMenu({
@@ -423,6 +425,7 @@ export function SearchQueryBuilderCombobox<
   const popoverRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
   const askSeerButtonRef = useRef<HTMLButtonElement>(null);
+  const preventOverflowOptions = useMemo(() => ({boundary: document.body}), []);
 
   const {hiddenOptions, disabledKeys} = useHiddenItems({
     items,
@@ -568,7 +571,7 @@ export function SearchQueryBuilderCombobox<
     type: 'listbox',
     isOpen,
     position: 'bottom-start',
-    offset: [-12, 12],
+    offset: MENU_OFFSET,
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
@@ -596,11 +599,8 @@ export function SearchQueryBuilderCombobox<
       state.close();
     },
     shouldApplyMinWidth: false,
-    preventOverflowOptions: {boundary: document.body},
-    flipOptions: {
-      // We don't want the menu to ever flip to the other side of the input
-      fallbackPlacements: [],
-    },
+    preventOverflowOptions,
+    flipOptions: MENU_FLIP_OPTIONS,
   });
 
   const descriptionPopper = usePopper(
