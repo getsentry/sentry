@@ -2100,7 +2100,6 @@ class Factories:
 
         return OrganizationContributors.objects.create(
             organization=organization,
-            integration_id=integration.id,
             external_identifier=external_identifier,
             **kwargs,
         )
