@@ -50,10 +50,6 @@ from sentry.utils.yaml import safe_load
 if TYPE_CHECKING:
     from sentry.integrations.github.client import GitHubBaseClient
 
-# ---------------------------------------------------------------------------
-# File I/O and manifest parsing helpers
-# ---------------------------------------------------------------------------
-
 
 def _ref_params(ref: str | None) -> dict[str, str]:
     return {"ref": ref} if ref else {}
