@@ -162,11 +162,7 @@ def get_org_from_detector(detector: Detector) -> tuple[Organization] | None:
         return None
 
 
-def get_org_from_project(project: Project) -> tuple[Organization]:
-    return (project.organization,)
-
-
-@cache_func_for_models([(Detector, get_org_from_detector), (Project, get_org_from_project)])
+@cache_func_for_models([(Detector, get_org_from_detector)])
 def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
     return Detector.objects.filter(
         status=ObjectStatus.ACTIVE,
