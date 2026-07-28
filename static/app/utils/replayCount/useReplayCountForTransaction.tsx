@@ -100,8 +100,9 @@ export function useReplayCountForTransaction({
 
   const existence = replaysExist(newCandidateIds);
   if (Object.keys(existence).length !== newCandidateIds.length) {
-    return replayIdsFromReplaysSearch.size;
+    // Existence check is still running.
+    return undefined;
   }
   const additionalCount = Object.values(existence).filter(Boolean).length;
-  return replayIdsFromReplaysSearch.size + additionalCount;
+  return Math.min(replayIdsFromReplaysSearch.size + additionalCount, limit + 1);
 }
