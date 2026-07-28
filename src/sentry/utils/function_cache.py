@@ -43,7 +43,7 @@ def cache_key_for_cached_func(cached_func: Callable[[*Ts], R], *args: *Ts) -> st
 
 def clear_cache_for_cached_func(
     cached_func: Callable[[*Ts], R],
-    arg_getter: Callable[[S], tuple[*Ts]],
+    arg_getter: Callable[[S], tuple[*Ts] | None],
     recalculate: bool,
     instance: S,
     *args: object,
@@ -66,7 +66,7 @@ def clear_cache_for_cached_func(
 
 
 def cache_func_for_models(
-    cache_invalidators: list[tuple[type[S], Callable[[S], tuple[*Ts]]]],
+    cache_invalidators: list[tuple[type[S], Callable[[S], tuple[*Ts] | None]]],
     cache_ttl: None | timedelta = None,
     recalculate: bool = True,
 ) -> Callable[[Callable[[*Ts], R]], CachedFunction[*Ts, R]]:
