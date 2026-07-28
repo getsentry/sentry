@@ -117,7 +117,7 @@ export default Storybook.story('KeyValue', story => {
     </Fragment>
   ));
 
-  story('<KeyValue.Row />', () => (
+  story('Standalone <KeyValue.Row />', () => (
     <Fragment>
       <Text as="p">
         A single row from an <code>entry</code>, for callers composing rows into their own
