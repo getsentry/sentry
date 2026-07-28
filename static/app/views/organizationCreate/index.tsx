@@ -161,107 +161,118 @@ function OrganizationCreate() {
   return (
     <SentryDocumentTitle title={t('Create Organization')}>
       <NarrowLayout showLogout>
-        <Heading as="h3">{t('Create a New Organization')}</Heading>
-        <Text as="p">
-          {t(
-            "Organizations represent the top level in your hierarchy. You'll be able to bundle a collection of teams within an organization as well as give organization-wide permissions to users."
-          )}
-        </Text>
-
-        <form.AppForm form={form}>
-          <Stack gap="xl">
-            <form.AppField name="name">
-              {field => (
-                <field.Layout.Stack label={t('Organization Name')} required>
-                  <field.Input
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    autoComplete="organization"
-                    placeholder={t('e.g. My Company')}
-                  />
-                </field.Layout.Stack>
+        <Stack gap="xl">
+          <Stack gap="md">
+            <Heading as="h3" size="xl">
+              {t('Create a New Organization')}
+            </Heading>
+            <Text as="p">
+              {t(
+                "Organizations represent the top level in your hierarchy. You'll be able to bundle a collection of teams within an organization as well as give organization-wide permissions to users."
               )}
-            </form.AppField>
+            </Text>
+          </Stack>
 
-            {showLocality && (
-              <form.AppField name="dataStorageLocation">
+          <form.AppForm form={form}>
+            <Stack gap="xl">
+              <form.AppField name="name">
                 {field => (
-                  <field.Layout.Stack
-                    label={t('Data Storage Location')}
-                    hintText={tct(
-                      "Choose where to store your organization's data. Please note, you won't be able to change locations once your organization has been created. [learnMore:Learn More]",
-                      {learnMore: <ExternalLink href={DATA_STORAGE_DOCS_LINK} />}
-                    )}
-                    required
-                  >
-                    <field.Select
+                  <field.Layout.Stack label={t('Organization Name')} required>
+                    <field.Input
                       value={field.state.value}
                       onChange={field.handleChange}
-                      options={localityOptions}
+                      autoComplete="organization"
+                      placeholder={t('e.g. My Company')}
                     />
                   </field.Layout.Stack>
                 )}
               </form.AppField>
-            )}
 
-            {termsUrl && privacyUrl && (
-              <form.AppField name="agreeTerms">
-                {field => (
-                  <field.Layout.Stack
-                    label={tct(
-                      'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
-                      {
-                        termsLink: <ExternalLink href={termsUrl} />,
-                        privacyLink: <ExternalLink href={privacyUrl} />,
-                      }
-                    )}
-                    required
-                  >
-                    <field.Base<HTMLInputElement>>
-                      {baseProps => (
-                        <Checkbox
-                          {...baseProps}
-                          checked={field.state.value}
-                          onChange={e => field.handleChange(e.target.checked)}
-                        />
+              {showLocality && (
+                <form.AppField name="dataStorageLocation">
+                  {field => (
+                    <field.Layout.Stack
+                      label={t('Data Storage Location')}
+                      hintText={tct(
+                        "Choose where to store your organization's data. Please note, you won't be able to change locations once your organization has been created. [learnMore:Learn More]",
+                        {learnMore: <ExternalLink href={DATA_STORAGE_DOCS_LINK} />}
                       )}
-                    </field.Base>
-                  </field.Layout.Stack>
-                )}
-              </form.AppField>
-            )}
+                      required
+                    >
+                      <field.Select
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        options={localityOptions}
+                      />
+                    </field.Layout.Stack>
+                  )}
+                </form.AppField>
+              )}
 
-            {hasDataConsent && (
-              <form.AppField name="aggregatedDataConsent">
-                {field => (
-                  <field.Layout.Stack label={<DataConsentCheck />}>
-                    <field.Base<HTMLInputElement>>
-                      {baseProps => (
-                        <Checkbox
-                          {...baseProps}
-                          checked={field.state.value}
-                          onChange={e => field.handleChange(e.target.checked)}
-                        />
+              {termsUrl && privacyUrl && (
+                <form.AppField name="agreeTerms">
+                  {field => (
+                    <field.Layout.Stack
+                      label={tct(
+                        'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
+                        {
+                          termsLink: <ExternalLink href={termsUrl} />,
+                          privacyLink: <ExternalLink href={privacyUrl} />,
+                        }
                       )}
-                    </field.Base>
-                  </field.Layout.Stack>
-                )}
-              </form.AppField>
-            )}
+                      required
+                    >
+                      <field.Base<HTMLInputElement>>
+                        {baseProps => (
+                          <Checkbox
+                            {...baseProps}
+                            checked={field.state.value}
+                            onChange={e => field.handleChange(e.target.checked)}
+                          />
+                        )}
+                      </field.Base>
+                    </field.Layout.Stack>
+                  )}
+                </form.AppField>
+              )}
 
-            {!isSelfHosted && ConfigStore.get('features').has('relocation:enabled') && (
-              <Text as="p">
-                {tct('[relocationLink:Relocating from self-hosted?]', {
-                  relocationLink: <Link to={relocationUrl} />,
-                })}
-              </Text>
-            )}
+              {hasDataConsent && (
+                <form.AppField name="aggregatedDataConsent">
+                  {field => (
+                    <field.Layout.Stack label={<DataConsentCheck />}>
+                      <field.Base<HTMLInputElement>>
+                        {baseProps => (
+                          <Checkbox
+                            {...baseProps}
+                            checked={field.state.value}
+                            onChange={e => field.handleChange(e.target.checked)}
+                          />
+                        )}
+                      </field.Base>
+                    </field.Layout.Stack>
+                  )}
+                </form.AppField>
+              )}
 
-            <Flex justify="end">
-              <form.SubmitButton>{t('Create Organization')}</form.SubmitButton>
-            </Flex>
-          </Stack>
-        </form.AppForm>
+              {!isSelfHosted && ConfigStore.get('features').has('relocation:enabled') && (
+                <Text as="p">
+                  {tct('[relocationLink:Relocating from self-hosted?]', {
+                    relocationLink: <Link to={relocationUrl} />,
+                  })}
+                </Text>
+              )}
+
+              <Flex
+                justify="end"
+                borderTop="secondary"
+                paddingTop="xl"
+                paddingBottom="xl"
+              >
+                <form.SubmitButton>{t('Create Organization')}</form.SubmitButton>
+              </Flex>
+            </Stack>
+          </form.AppForm>
+        </Stack>
       </NarrowLayout>
     </SentryDocumentTitle>
   );
