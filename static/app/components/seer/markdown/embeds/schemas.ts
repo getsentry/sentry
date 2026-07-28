@@ -74,11 +74,29 @@ export const SEER_EMBED_SCHEMAS = {
   },
   issue: {
     description:
-      'Reference a Sentry issue. Inline renders a compact link labeled with ' +
-      'the issue short id; block renders the full issue feed row. Provide the ' +
-      'numeric groupId and the human-readable shortId (e.g. "JAVASCRIPT-2X4").',
+      'Reference a single Sentry issue. Inline renders a compact link ' +
+      'labeled with the issue short id; block renders a full issue feed row. ' +
+      'Provide the numeric groupId.',
     level: ['inline', 'block'],
-    schema: z.object({groupId: z.string(), shortId: z.string()}),
+    schema: z.object({groupId: z.string()}),
+    examples: [
+      {label: 'Inline', level: 'inline', data: {groupId: '1876791171'}},
+      {label: 'Block', level: 'block', data: {groupId: '1876791171'}},
+    ],
+  },
+  issues: {
+    description:
+      'Reference multiple Sentry issues as a table with column headers. ' +
+      'Provide an array of numeric groupIds.',
+    level: ['block'],
+    schema: z.object({groupIds: z.array(z.string())}),
+    examples: [
+      {
+        label: 'Block',
+        level: 'block',
+        data: {groupIds: ['1876791171', '7396333597', '7524988543']},
+      },
+    ],
   },
 } as const satisfies Record<string, SeerEmbedSchema>;
 
