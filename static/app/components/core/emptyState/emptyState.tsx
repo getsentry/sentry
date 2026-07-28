@@ -21,6 +21,7 @@ export function EmptyState({
     <Flex
       containerType="inline-size"
       direction={{xs: 'column', sm: 'row'}}
+      flexGrow={1}
       align="center"
       gap={{xs: 'xl', sm: '2xl'}}
       justify={{sm: 'center'}}
@@ -43,7 +44,7 @@ export function EmptyState({
             </Text>
           )}
         </Stack>
-        {action}
+        <Flex gap="md">{action}</Flex>
       </Stack>
     </Flex>
   );
