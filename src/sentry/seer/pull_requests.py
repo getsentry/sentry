@@ -191,10 +191,13 @@ def notify_seer_pr_created(
             id=organization_id, status=OrganizationStatus.ACTIVE
         )
     except Organization.DoesNotExist:
-        logger.exception(
+        # An org deleted or suspended mid-run is a normal race, not a fault: warn
+        # (no Sentry event) and let the counter carry the rate.
+        logger.warning(
             "seer.pr_created_notify.organization_not_found_or_not_active",
             extra={"organization_id": organization_id},
         )
+        metrics.incr("seer.pr_created_notify.skipped", tags={"reason": "org_gone"})
         return NotifySeerPrCreatedErrorResponse(error="Organization not found or not active")
 
     metrics.incr("seer.pr_created_notify", tags={"has_group": group_id is not None})
