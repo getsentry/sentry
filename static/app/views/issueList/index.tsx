@@ -12,6 +12,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -23,7 +24,6 @@ import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/navigation/secon
 
 type Props = {
   children: React.ReactNode;
-  disablePageFilters?: boolean;
   title?: string;
 };
 
@@ -69,11 +69,12 @@ function useHydrateIssueViewQueryParams({view}: {view: GroupSearchView | undefin
   }, [view, previousViewData, navigate, organization.slug]);
 }
 
-function StreamWrapper({children, disablePageFilters}: Props) {
+function StreamWrapper({children}: Props) {
   const organization = useOrganization();
+  const location = useLocation();
   useRouteAnalyticsHookSetup();
   const {viewId} = useParams<{orgId?: string; viewId?: string}>();
-  const onIssuesFeed = !viewId && !disablePageFilters;
+  const onIssuesFeed = !viewId && !location.pathname.endsWith('/issues/inbox/');
 
   return (
     <PageFiltersContainer
@@ -86,7 +87,7 @@ function StreamWrapper({children, disablePageFilters}: Props) {
   );
 }
 
-function IssueViewWrapper({children, disablePageFilters}: Props) {
+function IssueViewWrapper({children}: Props) {
   const organization = useOrganization();
   const {data: groupSearchView, isLoading, isError} = useSelectedGroupSearchView();
   useUpdateViewLastVisited({view: groupSearchView});
@@ -103,30 +104,22 @@ function IssueViewWrapper({children, disablePageFilters}: Props) {
   if (groupSearchView) {
     return (
       <SentryDocumentTitle title={groupSearchView.name} orgSlug={organization.slug}>
-        <StreamWrapper disablePageFilters={disablePageFilters}>{children}</StreamWrapper>
+        <StreamWrapper>{children}</StreamWrapper>
       </SentryDocumentTitle>
     );
   }
 
-  return (
-    <StreamWrapper disablePageFilters={disablePageFilters}>{children}</StreamWrapper>
-  );
+  return <StreamWrapper>{children}</StreamWrapper>;
 }
 
-export function IssueListContainer({
-  children,
-  disablePageFilters,
-  title = t('Issues'),
-}: Props) {
+export function IssueListContainer({children, title = t('Issues')}: Props) {
   const organization = useOrganization();
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
       <AnalyticsArea name="issue_list">
         <AiQueryProvider>
-          <IssueViewWrapper disablePageFilters={disablePageFilters}>
-            {children}
-          </IssueViewWrapper>
+          <IssueViewWrapper>{children}</IssueViewWrapper>
         </AiQueryProvider>
       </AnalyticsArea>
     </SentryDocumentTitle>

@@ -95,7 +95,7 @@ export default function InboxPage() {
   }
 
   return (
-    <IssueListContainer title={TITLE} disablePageFilters>
+    <IssueListContainer title={TITLE}>
       <InboxContent />
     </IssueListContainer>
   );
