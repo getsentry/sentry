@@ -7,7 +7,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {type Crumb, Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {NoAccess} from 'sentry/components/noAccess';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
@@ -130,22 +130,17 @@ function ConversationsLandingHeader() {
   }
 
   // Legacy breadcrumbs (flag off).
-  const crumbs: Crumb[] = [
-    {
-      label: CONVERSATIONS_SIDEBAR_LABEL,
-      to: {
-        pathname: conversationsBaseUrl,
-        query: {statsPeriod: '24h'},
-      },
-    },
-    {
-      label: savedQueryTitle,
-    },
-  ];
-
   return (
     <TopBar.Slot name="title">
-      <Breadcrumbs crumbs={crumbs} />
+      <Breadcrumbs
+        crumbs={[
+          {
+            label: CONVERSATIONS_SIDEBAR_LABEL,
+            to: {pathname: conversationsBaseUrl, query: {statsPeriod: '24h'}},
+          },
+          {label: savedQueryTitle},
+        ]}
+      />
     </TopBar.Slot>
   );
 }
