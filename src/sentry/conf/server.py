@@ -963,6 +963,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.auth.cleanup_pending_users",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.backfill_group_action_log",
+    "sentry.tasks.backfill_pr_lifecycle_action_log",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.auto_source_code_config",
@@ -2264,7 +2265,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.7.1"
+SELF_HOSTED_STABLE_VERSION = "26.7.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

@@ -15,6 +15,7 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {getFunctionLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
+import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface ParsedAggregateExpression {
   /**
@@ -87,12 +88,16 @@ function makeMetricQuery(
   };
 }
 
-function makeEquationRow(prefixedEquation: string, query?: string): BaseMetricQuery {
+function makeEquationRow(
+  prefixedEquation: string,
+  query?: string,
+  chartType?: ChartType
+): BaseMetricQuery {
   const base = defaultMetricQuery({type: 'equation'});
   return {
     metric: {name: '', type: ''},
     queryParams: base.queryParams.replace({
-      aggregateFields: [new VisualizeEquation(prefixedEquation)],
+      aggregateFields: [new VisualizeEquation(prefixedEquation, {chartType})],
       query: query ?? '',
     }),
     label: DEFAULT_EQUATION_LABEL,
@@ -116,7 +121,8 @@ function defaultRow(label: string): BaseMetricQuery {
  */
 export function parseAggregateExpression(
   aggregate: string,
-  query?: string
+  query?: string,
+  chartType?: ChartType
 ): ParsedAggregateExpression {
   if (!isEquation(aggregate)) {
     const tokens = tokenizeExpression(aggregate);
@@ -160,6 +166,6 @@ export function parseAggregateExpression(
   return {
     metricQueries,
     compactExpression,
-    equationRow: makeEquationRow(aggregate, query),
+    equationRow: makeEquationRow(aggregate, query, chartType),
   };
 }

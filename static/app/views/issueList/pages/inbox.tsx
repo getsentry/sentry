@@ -30,6 +30,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
+import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 
@@ -39,7 +40,7 @@ const SELECTED_ISSUE_QUERY_PARAM = 'preview';
 const ASSIGNMENT_QUERY_PARAM = 'assignment';
 const ASSIGNMENT_FILTERS = ['me', 'my_teams', 'all'] as const;
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
-const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
+export const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   me: ' assigned:me',
   my_teams: ' assigned:[me,my_teams]',
   all: '',
@@ -54,7 +55,7 @@ interface InboxSectionConfig {
   query: string;
 }
 
-const SECTIONS: InboxSectionConfig[] = [
+export const SECTIONS: InboxSectionConfig[] = [
   {
     key: 'fix-proposed',
     label: t('Fix Proposed'),
@@ -151,7 +152,7 @@ function InboxContent() {
               <SegmentedControl.Item key="all">{t('All')}</SegmentedControl.Item>
             </SegmentedControl>
           </Flex>
-          <Stack flex={1} minHeight={0} overflowY="auto">
+          <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
             {SECTIONS.map(section => (
               <InboxSection
                 key={section.key}
@@ -315,9 +316,11 @@ function InboxIssueCard({
   const location = useLocation();
   const {title} = getTitle(group);
   const message = getMessage(group);
+  const prefetchHoverProps = useInboxPreviewPrefetch(group.id);
 
   return (
     <IssueCardLink
+      {...prefetchHoverProps}
       aria-current={selected ? 'true' : undefined}
       data-selected={selected}
       to={{

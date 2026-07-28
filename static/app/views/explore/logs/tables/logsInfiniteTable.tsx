@@ -16,13 +16,16 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
+import {
+  getAriaSort,
+  SortableHeaderCell,
+} from 'sentry/components/tables/sortableHeaderCell';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -40,7 +43,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {
   TableBodyCell,
   TableHead,
-  TableHeadCellContent,
   TableRow,
   TableStatus,
   useTableStyles,
@@ -756,9 +758,7 @@ function LogsTableHeader({
   return (
     <TableHead>
       <LogTableRow>
-        <FirstTableHeadCell isFirst align="left">
-          <TableHeadCellContent isFrozen />
-        </FirstTableHeadCell>
+        <FirstTableHeadCell isFirst align="left" />
         {fields.map((field, index) => {
           const direction = sortBys.find(s => s.field === field)?.kind;
 
@@ -783,12 +783,14 @@ function LogsTableHeader({
           return (
             <LogTableHeadCell
               align={index === 0 ? 'left' : align}
+              aria-sort={getAriaSort(direction)}
               key={index}
               isFirst={index === 0}
               reservePinGutter={pinningEnabled && index === fields.length - 1}
             >
-              <TableHeadCellContent
-                onClick={
+              <SortableHeaderCell
+                direction={direction}
+                onSort={
                   isFrozen
                     ? undefined
                     : () => {
@@ -804,24 +806,9 @@ function LogsTableHeader({
                         }
                       }
                 }
-                isFrozen={isFrozen}
               >
-                <Tooltip showOnlyOnOverflow title={headerLabel}>
-                  {headerLabel}
-                </Tooltip>
-                {defined(direction) && (
-                  <IconArrow
-                    size="xs"
-                    direction={
-                      direction === 'desc'
-                        ? 'down'
-                        : direction === 'asc'
-                          ? 'up'
-                          : undefined
-                    }
-                  />
-                )}
-              </TableHeadCellContent>
+                {headerLabel}
+              </SortableHeaderCell>
               {index !== fields.length - 1 && (
                 <GridResizer
                   dataRows={!isError && !isPending && data ? data.length : 0}

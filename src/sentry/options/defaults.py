@@ -324,6 +324,14 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Aggregate rows/sec ceiling for MonitorCheckIn deletions across all concurrent
+# deletion tasks. 0 disables rate limiting.
+register(
+    "deletions.monitor-check-in.rate-limit",
+    default=1000,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "unmerge.killswitch-projects",
@@ -1301,6 +1309,24 @@ register(
     default=1,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "issues.backfill_pr_lifecycle_action_log.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_action_log.batch_size",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_action_log.inter_batch_delay_s",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "seer.supergroups_backfill_lightweight.killswitch",
@@ -2205,6 +2231,17 @@ register(
     "dynamic-sampling.prioritise_transactions.min_sample_rate",
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Applies the implicit sample rate floor in the per-org pipeline. The transaction rebalancing
+# model can return an implicit (tail) rate below the project's overall rate; the floor lifts it
+# back to that rate and pays for it by lowering the explicit rates. The legacy pipeline has no
+# such step, so with this enabled the two pipelines write different per-transaction rates for
+# identical input. Set to False to compare them like for like.
+register(
+    "dynamic-sampling.per_org.apply-implicit-sample-rate-floor",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Stops dynamic sampling rules from being emitted in relay config.
@@ -3961,6 +3998,14 @@ register(
     "arroyo.producer.record_poll_metrics",
     type=Sequence,
     default=None,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# If True, FutureTrackingProducer will backpressure on produce futures
+register(
+    "arroyo.ftp.backpressure",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
