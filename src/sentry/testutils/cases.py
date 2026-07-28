@@ -3435,7 +3435,7 @@ def span_to_trace_item(span) -> TraceItem:
     timestamp.FromMilliseconds(span["start_timestamp_ms"])
 
     if "gen_ai.conversation.id" in span.get("data", {}) and "ai_conversation_id" not in span:
-        assert False, "gen_ai.conversation.id is deprecated.  Use the newer indexed on instead."
+        assert False, "gen_ai.conversation.id is deprecated.  Use the newer indexed one instead."
     return TraceItem(
         organization_id=span["organization_id"],
         project_id=span["project_id"],
