@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {
   AutofixRepoPRStateFixture,
   ExplorerAutofixResponseFixture,
@@ -19,7 +18,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {GroupList} from 'sentry/components/issues/groupList';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProgressState} from 'sentry/types/group';
 
@@ -151,11 +149,11 @@ describe('InboxPage', () => {
     });
   }
 
-  function mockSuccessfulSections() {
+  function mockSuccessfulSections(fixProposedBody: unknown = [fixProposedGroup]) {
     return [
       mockSection(
         'issue.progress:fix_proposed assigned:[me,my_teams]',
-        [fixProposedGroup],
+        fixProposedBody,
         200,
         2
       ),
@@ -174,16 +172,30 @@ describe('InboxPage', () => {
     ];
   }
 
-  function mockIssuePreview({markSeenStatusCode = 200} = {}) {
+  function mockIssuePreview({
+    markSeenResponse = {...fixProposedGroup, hasSeen: true},
+    markSeenStatusCode = 200,
+    onMarkSeen,
+  }: {
+    markSeenResponse?: typeof fixProposedGroup;
+    markSeenStatusCode?: number;
+    onMarkSeen?: () => void;
+  } = {}) {
+    let previewHasSeen = fixProposedGroup.hasSeen;
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
-      body: fixProposedGroup,
+      body: () => ({...fixProposedGroup, hasSeen: previewHasSeen}),
     });
-    // Opening the preview marks the group seen.
     const markSeenRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
       method: 'PUT',
-      body: {...fixProposedGroup, hasSeen: true},
+      body: () => {
+        if (markSeenStatusCode < 400) {
+          previewHasSeen = markSeenResponse.hasSeen;
+          onMarkSeen?.();
+        }
+        return markSeenResponse;
+      },
       statusCode: markSeenStatusCode,
     });
     MockApiClient.addMockResponse({
@@ -410,27 +422,17 @@ describe('InboxPage', () => {
   });
 
   it('marks an issue as seen and clears its unread indicator when previewed', async () => {
-    mockSuccessfulSections();
-    const markSeenRequest = mockIssuePreview();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues-stats/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: [fixProposedGroup],
+    let hasSeen = false;
+    const sectionRequests = mockSuccessfulSections(() => [
+      {...fixProposedGroup, hasSeen},
+    ]);
+    const markSeenRequest = mockIssuePreview({
+      onMarkSeen: () => {
+        hasSeen = true;
+      },
     });
 
-    // GroupList caches the issues URL as a plain list rather than as paginated
-    // pages. Rendering it alongside the inbox means the optimistic update has to
-    // cope with both cache shapes, as it does in the app.
-    render(
-      <Fragment>
-        <InboxPage />
-        <GroupList numPlaceholderRows={1} queryParams={{query: ''}} />
-      </Fragment>,
-      {organization, initialRouterConfig}
-    );
+    render(<InboxPage />, {organization, initialRouterConfig});
 
     const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
     expect(await within(fixSection).findByLabelText('Unread issue')).toBeInTheDocument();
@@ -444,10 +446,10 @@ describe('InboxPage', () => {
       )
     );
 
-    // Clears from the patched cache, without waiting for a refetch.
     await waitFor(() =>
       expect(within(fixSection).queryByLabelText('Unread issue')).not.toBeInTheDocument()
     );
+    expect(sectionRequests[0]).toHaveBeenCalledTimes(2);
   });
 
   it('keeps an issue unread when marking it seen fails', async () => {
@@ -465,14 +467,11 @@ describe('InboxPage', () => {
     expect(within(fixSection).getByLabelText('Unread issue')).toBeInTheDocument();
   });
 
-  it('does not mark an issue seen for a project non-member', async () => {
-    const nonMemberProject = ProjectFixture({...project, isMember: false});
-    ProjectsStore.loadInitialData([
-      nonMemberProject,
-      ProjectFixture({id: '2', slug: 'member-project'}),
-    ]);
+  it('keeps an issue unread when the server does not mark it seen', async () => {
     mockSuccessfulSections();
-    const markSeenRequest = mockIssuePreview();
+    const markSeenRequest = mockIssuePreview({
+      markSeenResponse: {...fixProposedGroup, hasSeen: false},
+    });
 
     render(<InboxPage />, {organization, initialRouterConfig});
 
@@ -481,27 +480,8 @@ describe('InboxPage', () => {
 
     await openFixProposedPreview();
 
-    await waitFor(() =>
-      expect(
-        within(screen.getByRole('complementary', {name: 'Issue preview'})).getByText(
-          fixProposedGroup.shortId
-        )
-      ).toBeInTheDocument()
-    );
-    expect(markSeenRequest).not.toHaveBeenCalled();
-    expect(within(fixSection).getByLabelText('Unread issue')).toBeInTheDocument();
-  });
-
-  it('marks an issue seen when its project membership is not loaded', async () => {
-    ProjectsStore.loadInitialData([ProjectFixture({id: '2', slug: 'member-project'})]);
-    mockSuccessfulSections();
-    const markSeenRequest = mockIssuePreview();
-
-    render(<InboxPage />, {organization, initialRouterConfig});
-
-    await openFixProposedPreview();
-
     await waitFor(() => expect(markSeenRequest).toHaveBeenCalledTimes(1));
+    expect(within(fixSection).getByLabelText('Unread issue')).toBeInTheDocument();
   });
 
   it('loads and appends the next page of a section', async () => {

@@ -38,11 +38,11 @@ import {IssuePreviewSeerActions} from 'sentry/views/issueDetails/issuePreview/is
 import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/sidebar/externalIssueSidebarList';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
+import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
-import {useMarkGroupSeen} from 'sentry/views/issueList/mutations/useMarkGroupSeen';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 import {IssueProgressTag} from 'sentry/views/issueList/utils/progress';
 
@@ -50,13 +50,9 @@ interface IssuePreviewProps {
   groupId: string;
 }
 
-function useMarkPreviewedGroupSeen(
-  group: Group | undefined,
-  isProjectMember: boolean | undefined
-) {
+function useMarkPreviewedGroupSeen(group: Group | undefined) {
   const {mutate: markGroupSeen} = useMarkGroupSeen();
-  const groupId =
-    group && !group.hasSeen && isProjectMember !== false ? group.id : undefined;
+  const groupId = group && !group.hasSeen ? group.id : undefined;
 
   useEffect(() => {
     if (groupId) {
@@ -68,10 +64,9 @@ function useMarkPreviewedGroupSeen(
 export function IssuePreview({groupId}: IssuePreviewProps) {
   const {data: group, isPending, isError} = useGroup({groupId});
   const {projects} = useProjects();
-  const matchingProject = projects.find(p => p.id === group?.project.id);
-  const project = matchingProject ?? group?.project;
+  const project = projects.find(p => p.id === group?.project.id) ?? group?.project;
 
-  useMarkPreviewedGroupSeen(group, matchingProject?.isMember);
+  useMarkPreviewedGroupSeen(group);
 
   return (
     <Fragment>
