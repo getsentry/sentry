@@ -49,7 +49,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         """Create and store an AI span with the given attributes.
 
         Args:
-            conversation_id: The gen_ai.conversation.id attribute
+            conversation_id: The gen_ai.conversation.id(old), and ai_conversation_id(new), attribute
             timestamp: The span start timestamp
             op: The span operation (default: "gen_ai.chat")
             description: Span description
@@ -78,7 +78,10 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         Returns:
             The created span object
         """
-        span_data = {"gen_ai.conversation.id": conversation_id}
+        span_data = {
+            # deprecated in favour of `ai_conversation_id` down below.
+            "gen_ai.conversation.id": conversation_id,
+        }
         if operation_type:
             span_data["gen_ai.operation.type"] = operation_type
         if tokens is not None:
@@ -125,6 +128,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             "description": description or "default",
             "sentry_tags": {"status": status, "op": op},
             "data": span_data,
+            "ai_conversation_id": conversation_id,
         }
         if trace_id:
             extra_data["trace_id"] = trace_id
