@@ -55,7 +55,8 @@ function useMarkPreviewedGroupSeen(
   isProjectMember: boolean | undefined
 ) {
   const {mutate: markGroupSeen} = useMarkGroupSeen();
-  const groupId = group && !group.hasSeen && isProjectMember ? group.id : undefined;
+  const groupId =
+    group && !group.hasSeen && isProjectMember !== false ? group.id : undefined;
 
   useEffect(() => {
     if (groupId) {
@@ -66,7 +67,7 @@ function useMarkPreviewedGroupSeen(
 
 export function IssuePreview({groupId}: IssuePreviewProps) {
   const {data: group, isPending, isError} = useGroup({groupId});
-  const {projects} = useProjects({slugs: group ? [group.project.slug] : undefined});
+  const {projects} = useProjects();
   const matchingProject = projects.find(p => p.id === group?.project.id);
   const project = matchingProject ?? group?.project;
 

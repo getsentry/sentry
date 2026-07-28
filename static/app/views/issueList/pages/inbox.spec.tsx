@@ -492,6 +492,18 @@ describe('InboxPage', () => {
     expect(within(fixSection).getByLabelText('Unread issue')).toBeInTheDocument();
   });
 
+  it('marks an issue seen when its project membership is not loaded', async () => {
+    ProjectsStore.loadInitialData([ProjectFixture({id: '2', slug: 'member-project'})]);
+    mockSuccessfulSections();
+    const markSeenRequest = mockIssuePreview();
+
+    render(<InboxPage />, {organization, initialRouterConfig});
+
+    await openFixProposedPreview();
+
+    await waitFor(() => expect(markSeenRequest).toHaveBeenCalledTimes(1));
+  });
+
   it('loads and appends the next page of a section', async () => {
     const nextFixProposedGroup = GroupFixture({
       id: '104',
