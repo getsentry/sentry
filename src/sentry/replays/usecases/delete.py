@@ -72,8 +72,6 @@ def delete_replays(project_id: int, replay_ids: list[str]) -> None:
 
 
 def delete_replay_recordings(project_id: int, rows: list[MatchedRow]) -> None:
-    # One pool for the whole batch. A pool per replay serialized the batch behind whichever
-    # replay had the most segments, pushing large batches past the caller's processing deadline.
     filenames = [
         filename for row in rows for filename in _make_recording_filenames(project_id, row)
     ]
