@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import getpass
 import os
 import threading
 from collections.abc import MutableSequence, Sequence
@@ -7,6 +8,7 @@ from pathlib import Path
 from typing import NoReturn
 
 import click
+import psutil
 import sentry_sdk
 
 from sentry.runner.commands.devservices import get_docker_client
@@ -37,6 +39,121 @@ def add_daemon(name: str, command: list[str]) -> None:
 
 def _get_daemon(name: str) -> tuple[str, list[str]]:
     return name, _DEFAULT_DAEMONS[name]
+
+
+_REAP_TERM_TIMEOUT = 3
+
+
+def _daemon_matches(argv: Sequence[str], cmd: Sequence[str]) -> bool:
+    """
+    Whether `argv` looks like a process honcho launched from `cmd`.
+
+    The daemon's own arguments must be the exact trailing portion of `argv`, and
+    the entry right before them must be its executable. We compare basenames
+    because the recorded command uses bare names (`sentry`) while the running
+    process shows resolved paths, often behind an interpreter:
+    `[.../python3, .../bin/sentry, run, consumer, ...]`.
+    """
+    exe_name = os.path.basename(cmd[0])
+    tail = list(cmd[1:])
+    if not tail:
+        return bool(argv) and os.path.basename(argv[-1]) == exe_name
+    if len(argv) <= len(tail) or list(argv[-len(tail) :]) != tail:
+        return False
+    return os.path.basename(argv[-len(tail) - 1]) == exe_name
+
+
+def _find_orphaned_daemons(
+    daemons: Sequence[tuple[str, Sequence[str]]], cwd: str
+) -> list[tuple[str, psutil.Process]]:
+    """
+    Find leaked daemons from a previous devserver in this checkout.
+
+    Only processes reparented to init are considered, so a daemon belonging to a
+    running devserver is never a candidate. Matches are additionally confined to
+    `cwd` -- the directory honcho launches every daemon in -- so a devserver in
+    another checkout is left alone.
+    """
+    expected_cwd = os.path.realpath(cwd)
+    own_pid = os.getpid()
+    username = getpass.getuser()
+
+    orphans = []
+    for proc in psutil.process_iter():
+        # Any of these can race with the process exiting, or be denied outright.
+        # Losing one candidate is fine; failing to start the devserver is not.
+        try:
+            if proc.pid == own_pid or proc.ppid() != 1:
+                continue
+            if proc.username() != username:
+                continue
+            argv = proc.cmdline()
+            if not argv:
+                continue
+
+            name = next((name for name, cmd in daemons if _daemon_matches(argv, cmd)), None)
+            if name is None:
+                continue
+
+            # Checked last so the cheap filters above reject most processes first.
+            if os.path.realpath(proc.cwd()) != expected_cwd:
+                continue
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+
+        orphans.append((name, proc))
+
+    return orphans
+
+
+def _reap_orphaned_daemons(daemons: Sequence[tuple[str, Sequence[str]]], cwd: str) -> None:
+    """
+    Terminate daemons leaked by a previous devserver in this checkout.
+
+    Honcho terminates its children on a clean exit, but when the devserver dies to
+    SIGKILL, a hard terminal close, or a crash they reparent to init and keep
+    running. Consumers are the worst of these: they spin forever failing to rejoin
+    their consumer group, respawning a multiprocessing worker every few seconds
+    that each pays a full Django import, and they hammer the Kafka group
+    coordinator while doing it. Nothing noticed them on the next startup, so they
+    accumulated across runs and burned several cores indefinitely.
+    """
+    orphans = _find_orphaned_daemons(daemons, cwd)
+    if not orphans:
+        return
+
+    click.secho(
+        f"Reaping {len(orphans)} orphaned daemon(s) leaked by a previous devserver:",
+        err=True,
+        fg="yellow",
+    )
+
+    victims = []
+    for name, proc in orphans:
+        click.secho(f"  {name} (pid {proc.pid})", err=True, fg="yellow")
+        try:
+            # Collect children before signalling the parent, otherwise the
+            # respawn loop leaves workers behind with no one to attribute them to.
+            victims.extend(proc.children(recursive=True))
+            victims.append(proc)
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+
+    for proc in victims:
+        try:
+            proc.terminate()
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
+    # Wedged consumers do not honor SIGTERM -- their shutdown never completes --
+    # so escalating here is the step that actually reclaims the machine.
+    _, alive = psutil.wait_procs(victims, timeout=_REAP_TERM_TIMEOUT)
+    for proc in alive:
+        try:
+            proc.kill()
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+    psutil.wait_procs(alive, timeout=_REAP_TERM_TIMEOUT)
 
 
 @click.command()
@@ -129,6 +246,11 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     default=False,
     help="Run task scheduler for periodically scheduled tasks.",
 )
+@click.option(
+    "--reap-orphans/--no-reap-orphans",
+    default=True,
+    help="Terminate orphaned daemons leaked by a previous devserver that did not shut down cleanly.",
+)
 @click.argument(
     "bind",
     default=None,
@@ -158,6 +280,7 @@ def devserver(
     apigw: bool,
     workers: bool,
     task_scheduler: bool,
+    reap_orphans: bool,
 ) -> NoReturn:
     "Starts a lightweight web server for development."
     sentry_sdk.init(
@@ -466,6 +589,9 @@ def devserver(
         )
 
         manager = Manager(honcho_printer)
+        # Mirrors everything handed to honcho, so the reaper below only ever
+        # targets the daemons this invocation is about to start.
+        reap_targets: list[tuple[str, Sequence[str]]] = list(daemons)
         for name, cmd in daemons:
             quiet = bool(
                 name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())
@@ -509,6 +635,10 @@ def devserver(
                     and settings.DEVSERVER_LOGS_ALLOWLIST
                 )
                 manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd, env=merged_env)
+                reap_targets.append((name, cmd))
+
+        if reap_orphans:
+            _reap_orphaned_daemons(reap_targets, cwd)
 
         manager.loop()
         sys.exit(manager.returncode)
