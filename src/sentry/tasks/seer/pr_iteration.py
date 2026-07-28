@@ -102,6 +102,13 @@ def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferre
     return AutofixReferrer.UNKNOWN
 
 
+def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | None:
+    actor_user_ids = {item.actor_user_id for item in items}
+    if len(actor_user_ids) == 1:
+        return actor_user_ids.pop()
+    return None
+
+
 def trigger_consume_pr_iteration_feedback(
     *,
     run_id: int,
@@ -245,6 +252,7 @@ def consume_queued_autofix_feedback(
                 run_id=run_id,
                 user_context="\n\n".join(item.text for item in feedback_items),
                 feedback=feedback_items,
+                actor_user_id=_get_feedback_actor_user_id(consumable_items),
             )
         except (
             PrIterationNoPullRequestException,

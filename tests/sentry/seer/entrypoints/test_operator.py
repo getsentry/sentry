@@ -685,6 +685,15 @@ class SeerOperatorTest(TestCase):
                 event_type=SentryAppEventType.SEER_ITERATION_STARTED,
                 event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
                 organization_id=self.organization.id,
+                activity_attribution={
+                    "referrer": AutofixReferrer.WEB,
+                    "actor_user_id": self.user.id,
+                },
+            )
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ITERATION_STARTED,
+                event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
+                organization_id=self.organization.id,
                 activity_attribution={"referrer": AutofixReferrer.UNKNOWN},
             )
 
@@ -699,11 +708,24 @@ class SeerOperatorTest(TestCase):
         action_log.assert_logged(
             SeerIterationStartedAction,
             group_id=self.group.id,
+            source=ActionSource.WEB,
+            actor=GroupActionActor.user(self.user.id),
+            run_id=MOCK_RUN_ID,
+            referrer=AutofixReferrer.WEB.value,
+        )
+        action_log.assert_logged(
+            SeerIterationStartedAction,
+            group_id=self.group.id,
             source=ActionSource.UNKNOWN,
             actor=SYSTEM_ACTOR,
             run_id=MOCK_RUN_ID,
             referrer=AutofixReferrer.UNKNOWN.value,
         )
+        assert Activity.objects.filter(
+            group=self.group,
+            type=ActivityType.SEER_ITERATION_STARTED.value,
+            user_id=self.user.id,
+        ).exists()
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_skips_non_seer_events(self, _mock_has_access):
