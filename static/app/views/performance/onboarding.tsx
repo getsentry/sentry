@@ -446,7 +446,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
         <div>
           <LinkButton
             size="sm"
-            href="https://docs.sentry.io/product/performance/getting-started/"
+            href="https://docs.sentry.io/product/trace-explorer/"
             external
             onClick={() => {
               traceAnalytics.trackPerformanceSetupDocsViewed(

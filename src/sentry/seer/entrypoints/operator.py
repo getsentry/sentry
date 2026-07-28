@@ -67,6 +67,7 @@ ITERATION_REFERRER_TO_ACTION_SOURCE: dict[AutofixReferrer, ActionSource] = {
     AutofixReferrer.GITHUB_PR_COMMENT: ActionSource.GITHUB,
     AutofixReferrer.GITHUB_PR_REVIEW: ActionSource.GITHUB,
     AutofixReferrer.GITHUB_CHECK_SUITE: ActionSource.GITHUB,
+    AutofixReferrer.UNKNOWN: ActionSource.UNKNOWN,
 }
 
 logger = logging.getLogger(__name__)

@@ -15,6 +15,7 @@ export {
   ContainerQueryProvider,
   rc,
   type Responsive,
+  type ResponsiveKey,
   useContainerBreakpoint,
   useHasContainerQuery,
   useResponsivePropValue,

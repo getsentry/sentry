@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.issues.action_log.types import (
+    SYSTEM_ACTOR,
     ActionSource,
     GroupActionActor,
     SeerIterationStartedAction,
@@ -674,19 +675,36 @@ class SeerOperatorTest(TestCase):
                     event_type=seer_event,
                     event_payload=event_payload,
                     organization_id=self.organization.id,
-                    activity_attribution={
-                        "referrer": AutofixReferrer.WEB,
-                        "actor_user_id": self.user.id,
-                    },
+                    activity_attribution={"referrer": AutofixReferrer.GITHUB_PR_COMMENT},
                 )
                 assert Activity.objects.filter(
                     group=self.group, type=expected_activity_type.value
                 ).exists(), f"Activity not created for {seer_event}"
 
-        iteration_activity = Activity.objects.get(
-            group=self.group, type=ActivityType.SEER_ITERATION_STARTED.value
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ITERATION_STARTED,
+                event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
+                organization_id=self.organization.id,
+                activity_attribution={
+                    "referrer": AutofixReferrer.WEB,
+                    "actor_user_id": self.user.id,
+                },
+            )
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ITERATION_STARTED,
+                event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
+                organization_id=self.organization.id,
+                activity_attribution={"referrer": AutofixReferrer.UNKNOWN},
+            )
+
+        action_log.assert_logged(
+            SeerIterationStartedAction,
+            group_id=self.group.id,
+            source=ActionSource.GITHUB,
+            actor=SYSTEM_ACTOR,
+            run_id=MOCK_RUN_ID,
+            referrer=AutofixReferrer.GITHUB_PR_COMMENT.value,
         )
-        assert iteration_activity.user_id == self.user.id
         action_log.assert_logged(
             SeerIterationStartedAction,
             group_id=self.group.id,
@@ -695,6 +713,19 @@ class SeerOperatorTest(TestCase):
             run_id=MOCK_RUN_ID,
             referrer=AutofixReferrer.WEB.value,
         )
+        action_log.assert_logged(
+            SeerIterationStartedAction,
+            group_id=self.group.id,
+            source=ActionSource.UNKNOWN,
+            actor=SYSTEM_ACTOR,
+            run_id=MOCK_RUN_ID,
+            referrer=AutofixReferrer.UNKNOWN.value,
+        )
+        assert Activity.objects.filter(
+            group=self.group,
+            type=ActivityType.SEER_ITERATION_STARTED.value,
+            user_id=self.user.id,
+        ).exists()
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_skips_non_seer_events(self, _mock_has_access):
