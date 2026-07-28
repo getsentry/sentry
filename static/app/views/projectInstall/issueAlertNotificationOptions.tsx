@@ -101,8 +101,6 @@ export type IssueAlertNotificationProps = {
 /**
  * Builds the serializable IntegrationAction for the current messaging
  * selection. Returns undefined if the provider is unrecognised or unset.
- * Exported so callers can persist the action snapshot and use it as
- * `defaultActions` on the next mount to restore the selection.
  */
 function buildIntegrationAction({
   provider,
@@ -136,14 +134,14 @@ function buildIntegrationAction({
 }
 
 export type NotificationSelection = {
+  channel: string;
+  integrationId: string;
   provider: string;
-  channel?: string;
-  integrationId?: string;
 };
 
 /**
  * Builds the raw {provider, integrationId, channel} snapshot of the current
- * messaging selection. Returns undefined if there's no provider/integration selected.
+ * messaging selection. Returns undefined if any of the three fields are absent.
  */
 export function buildNotificationSelection({
   provider,
@@ -152,10 +150,10 @@ export function buildNotificationSelection({
 }: Pick<IssueAlertNotificationProps, 'provider' | 'integration' | 'channel'>):
   | NotificationSelection
   | undefined {
-  if (!provider || !integration) {
+  if (!provider || !integration || !channel?.value) {
     return undefined;
   }
-  return {provider, integrationId: integration.id, channel: channel?.value};
+  return {provider, integrationId: integration.id, channel: channel.value};
 }
 
 /**
@@ -405,25 +403,22 @@ export function useScmNotificationAction({
   provider,
   integrationId,
   channel,
-}: {
-  channel?: string;
-  integrationId?: string;
-  provider?: string;
-} = {}) {
+}: Partial<NotificationSelection> = {}) {
   const resolveRestore = useCallback<RestoreResolver>(
     providersToIntegrations => {
-      if (!provider) {
+      // A stored selection always carries an integrationId (the encoder bails
+      // without one); anything less is treated as no selection at all.
+      if (!provider || !integrationId) {
         return {kind: 'auto'};
       }
 
-      const matchedIntegration = integrationId
-        ? (providersToIntegrations[provider] ?? []).find(i => i.id === integrationId)
-        : providersToIntegrations[provider]?.[0];
+      const matchedIntegration = providersToIntegrations[provider]?.find(
+        i => i.id === integrationId
+      );
 
-      // Whether the selection names a specific integration or just a provider,
-      // an unresolved integration means the picker can't be safely applied yet:
-      // show the setup CTA and don't latch, so this re-resolves after a
-      // refetch (mirrors the classic decode resolver's guard).
+      // Named integration not (yet) in the query response: show the setup CTA
+      // and don't latch, so this re-resolves after a refetch delivers it
+      // (mirrors the classic decode resolver's guard).
       if (!matchedIntegration) {
         return {kind: 'wait'};
       }

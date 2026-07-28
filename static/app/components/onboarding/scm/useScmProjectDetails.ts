@@ -194,11 +194,9 @@ export function useScmProjectDetails({
   // Provides the messaging-integration notification picker (notificationProps,
   // rendered in ScmAlertFrequencySection) and the side-effect that creates the
   // chosen notification rule at project creation.
-  const {createNotificationAction, notificationProps} = useScmNotificationAction({
-    provider: restoredNotificationSelectionRef.current?.provider,
-    integrationId: restoredNotificationSelectionRef.current?.integrationId,
-    channel: restoredNotificationSelectionRef.current?.channel,
-  });
+  const {createNotificationAction, notificationProps} = useScmNotificationAction(
+    restoredNotificationSelectionRef.current
+  );
 
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const firstAdminTeam = accessTeams[0];
