@@ -10,10 +10,28 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import {
+  INBOX_COUNT_MAX,
+  useInboxIssueCount,
+} from 'sentry/views/issueList/queries/useInboxIssueCount';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
+
+function InboxCountBadge() {
+  const count = useInboxIssueCount();
+
+  if (!count) {
+    return null;
+  }
+
+  return (
+    <Badge variant="muted">
+      {count > INBOX_COUNT_MAX ? `${INBOX_COUNT_MAX}+` : count}
+    </Badge>
+  );
+}
 
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
@@ -39,6 +57,7 @@ export function IssuesSecondaryNavigation() {
                   to={`${baseUrl}/inbox/`}
                   end
                   analyticsItemName="issues_inbox"
+                  trailingItems={<InboxCountBadge />}
                 >
                   {t('Inbox')}
                 </SecondaryNavigation.Link>
