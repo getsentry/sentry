@@ -1,7 +1,7 @@
 import hashlib
 import logging
 import re
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -9,6 +9,7 @@ from typing import Any
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_sdk import trace
 
+from sentry.ai_monitoring.models import AIConversationMetadata
 from sentry.seer.signed_seer_api import (
     LlmGenerateRequest,
     SeerViewerContext,
@@ -80,6 +81,40 @@ def clamp_conversation_id_for_storage(conversation_id: str) -> str:
     if len(conversation_id) <= CONVERSATION_ID_MAX_LENGTH:
         return conversation_id
     return conversation_id[:CONVERSATION_ID_TRUNCATE_TO] + "..."
+
+
+def fetch_conversation_titles(
+    conversation_project_pairs: Collection[tuple[str, int]],
+) -> dict[tuple[str, int], str]:
+    """Look up stored titles for the given (conversation_id, project_id) pairs.
+
+    A conversation id is only unique within a project, so callers must key on the
+    pair. Pairs without a titled row are simply absent from the result.
+    """
+    if not conversation_project_pairs:
+        return {}
+
+    requested_pairs = set(conversation_project_pairs)
+    conversation_id_by_hash = {
+        conversation_id_hash(conversation_id): conversation_id
+        for conversation_id, _ in requested_pairs
+    }
+
+    rows = AIConversationMetadata.objects.filter(
+        project_id__in={project_id for _, project_id in requested_pairs},
+        conversation_id_hash__in=conversation_id_by_hash,
+        title__isnull=False,
+    ).values_list("conversation_id_hash", "project_id", "title")
+
+    # The filter matches the cross product of the hashes and the projects, so drop
+    # any (conversation, project) combination the caller did not ask about.
+    titles: dict[tuple[str, int], str] = {}
+    for row_hash, project_id, title in rows:
+        pair = (conversation_id_by_hash[row_hash], project_id)
+        if title and pair in requested_pairs:
+            titles[pair] = title
+
+    return titles
 
 
 def _extract_first_user_message(messages: Any) -> str | None:

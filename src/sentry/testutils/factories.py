@@ -32,6 +32,8 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry.ai_monitoring.models import AIConversationMetadata
+from sentry.ai_monitoring.utils import clamp_conversation_id_for_storage, conversation_id_hash
 from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
@@ -627,6 +629,22 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_project_bookmark(project, user):
         return ProjectBookmark.objects.create(project_id=project.id, user_id=user.id)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_ai_conversation_metadata(
+        project: Project,
+        conversation_id: str,
+        title: str | None = None,
+        title_source_timestamp: datetime | None = None,
+    ) -> AIConversationMetadata:
+        return AIConversationMetadata.objects.create(
+            project_id=project.id,
+            conversation_id=clamp_conversation_id_for_storage(conversation_id),
+            conversation_id_hash=conversation_id_hash(conversation_id),
+            title=title,
+            title_source_timestamp=title_source_timestamp,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
