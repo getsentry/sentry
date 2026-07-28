@@ -33,7 +33,6 @@ export function ResizableWindow({
       ref={getMergedRef(ref)}
       className={className}
       data-dragging={dragging || undefined}
-      data-edge={dragging || undefined}
       border="primary"
       background="secondary"
     >
@@ -191,17 +190,17 @@ const Handle = styled('div')`
     }
   }
 
-  ${WindowRoot}[data-edge='corner'] > &[data-edge='corner'] {
+  ${WindowRoot}[data-drag-edge='corner'] > &[data-edge='corner'] {
     --sw: 2px;
     --color: ${p => p.theme.tokens.border.accent.vibrant};
     z-index: 2;
   }
 
   /* Active: 4px on dragged edges */
-  ${WindowRoot}[data-edge='right'] > &[data-edge='right'],
-  ${WindowRoot}[data-edge='corner'] > &[data-edge='right'],
-  ${WindowRoot}[data-edge='bottom'] > &[data-edge='bottom'],
-  ${WindowRoot}[data-edge='corner'] > &[data-edge='bottom'] {
+  ${WindowRoot}[data-dragging='right'] > &[data-edge='right'],
+  ${WindowRoot}[data-dragging='corner'] > &[data-edge='right'],
+  ${WindowRoot}[data-dragging='bottom'] > &[data-edge='bottom'],
+  ${WindowRoot}[data-dragging='corner'] > &[data-edge='bottom'] {
     --sw: 4px;
     --color: ${p => p.theme.tokens.border.accent.vibrant};
     z-index: 1;
