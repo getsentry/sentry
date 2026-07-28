@@ -550,13 +550,14 @@ class TestTriggerAutofixAgent(TestCase):
             trigger_autofix_agent(
                 group=self.group,
                 step=AutofixStep.PR_ITERATION,
-                referrer=AutofixReferrer.UNKNOWN,
+                referrer=AutofixReferrer.GITHUB_PR_COMMENT,
                 run_id=67890,
             )
 
         call_kwargs = mock_broadcast.call_args.kwargs
         assert call_kwargs["event_name"] == SeerActionType.ITERATION_STARTED.value
         assert call_kwargs["payload"]["iteration_index"] == 2
+        assert "referrer" not in call_kwargs["payload"]
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")

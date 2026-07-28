@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, TypedDict
 
 from sentry import features, options
 from sentry.constants import DataCategory
@@ -50,6 +50,23 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_PR_CREATED: ActivityType.SEER_PR_CREATED,
     SentryAppEventType.SEER_ITERATION_STARTED: ActivityType.SEER_ITERATION_STARTED,
     SentryAppEventType.SEER_ITERATION_COMPLETED: ActivityType.SEER_ITERATION_COMPLETED,
+}
+
+
+class SeerActivityAttribution(TypedDict):
+    referrer: AutofixReferrer
+
+
+ITERATION_REFERRER_TO_ACTION_SOURCE: dict[AutofixReferrer, ActionSource] = {
+    AutofixReferrer.GROUP_AUTOFIX_ENDPOINT: ActionSource.API,
+    AutofixReferrer.CLI: ActionSource.SENTRY_CLI,
+    AutofixReferrer.LINEAR_AGENT: ActionSource.API,
+    AutofixReferrer.MCP: ActionSource.MCP,
+    AutofixReferrer.WEB: ActionSource.WEB,
+    AutofixReferrer.GITHUB_PR_COMMENT: ActionSource.GITHUB,
+    AutofixReferrer.GITHUB_PR_REVIEW: ActionSource.GITHUB,
+    AutofixReferrer.GITHUB_CHECK_SUITE: ActionSource.GITHUB,
+    AutofixReferrer.UNKNOWN: ActionSource.UNKNOWN,
 }
 
 logger = logging.getLogger(__name__)
@@ -577,6 +594,7 @@ def _create_seer_activity(
     group: Group,
     event_type: SentryAppEventType,
     event_payload: dict[str, Any],
+    activity_attribution: SeerActivityAttribution | None = None,
 ) -> None:
     activity_type = SEER_EVENT_TO_ACTIVITY_TYPE.get(event_type)
     if not activity_type:
@@ -591,7 +609,9 @@ def _create_seer_activity(
     if run_id is not None:
         activity_data["run_id"] = run_id
 
-    if event_type == SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
+    if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution is not None:
+        activity_data["referrer"] = str(activity_attribution["referrer"])
+    elif event_type == SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
         root_cause = event_payload.get("root_cause")
         if root_cause:
             activity_data["summary"] = root_cause.get("one_line_description")
@@ -633,6 +653,7 @@ def process_autofix_updates(
     event_type: SentryAppEventType,
     event_payload: dict[str, Any],
     organization_id: int,
+    activity_attribution: SeerActivityAttribution | None = None,
 ) -> None:
     """
     Use the registry to iterate over all entrypoints and check if this payload's run_id or group_id
@@ -672,9 +693,19 @@ def process_autofix_updates(
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 
+        iteration_attribution: SeerActivityAttribution | None = None
+        if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution:
+            iteration_attribution = activity_attribution
+
+        action_source = ActionSource.SEER_EXPLORER
+        if iteration_attribution is not None:
+            action_source = ITERATION_REFERRER_TO_ACTION_SOURCE.get(
+                iteration_attribution["referrer"], ActionSource.SEER_EXPLORER
+            )
+
         try:
-            with action_context_scope(ActionSource.SEER_EXPLORER, SYSTEM_ACTOR):
-                _create_seer_activity(group, event_type, event_payload)
+            with action_context_scope(action_source, SYSTEM_ACTOR):
+                _create_seer_activity(group, event_type, event_payload, iteration_attribution)
         except Exception:
             logger.exception(
                 "seer.activity_creation_failed",
