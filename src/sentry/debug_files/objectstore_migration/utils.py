@@ -182,13 +182,7 @@ def commit(
 ) -> None:
     """Commit Objectstore metadata onto the DIF and clear ``file``.
 
-    Takes a short row lock only for the update. No-ops when:
-    - the row is gone,
-    - already cut over (``file_id is None``), or
-    - ``file_id`` no longer matches ``source_file_id`` (identity changed under us).
-
-    After a successful commit, schedules deletion of ``source_file_id`` if it is
-    unreferenced.
+    After a successful commit, deletes ``file`` if it is unreferenced.
     """
     database = router.db_for_write(ProjectDebugFile)
     with atomic_transaction(using=database):
