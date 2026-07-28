@@ -2,8 +2,11 @@ from io import BytesIO
 from unittest import mock
 
 import pytest
+from django.core.cache import cache as django_cache
+from django.db.models.signals import post_delete
 
 from sentry.models.files.file import File
+from sentry.models.project import Project
 from sentry.testutils.cases import UptimeTestCase
 from sentry.uptime.models import (
     UptimeResponseCapture,
@@ -13,6 +16,7 @@ from sentry.uptime.models import (
     get_top_hosting_provider_names,
 )
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, UptimeMonitorMode
+from sentry.utils.function_cache import cache_key_for_cached_func
 from sentry.workflow_engine.models.detector import Detector
 
 
@@ -32,6 +36,23 @@ class GetActiveMonitorCountForOrgTest(UptimeTestCase):
         self.create_uptime_detector(uptime_subscription=other_org_sub, project=other_proj)
         assert get_active_auto_monitor_count_for_org(self.organization) == 2
         assert get_active_auto_monitor_count_for_org(other_org) == 1
+
+    def test_cache_invalidated_on_project_delete(self) -> None:
+        # Note: This test adds fake data to django's cache to ensure some upcoming behaviour when we
+        # migrate Detector's Project FK to be nullable. We can't just test it normally at the moment
+        # because the cascade deletion order hasn't changed yet.
+        # See https://github.com/getsentry/sentry/pull/120747 for details.
+        self.create_uptime_detector()
+        assert get_active_auto_monitor_count_for_org(self.organization) == 1
+
+        cache_key = cache_key_for_cached_func(
+            get_active_auto_monitor_count_for_org.func, self.organization
+        )
+        django_cache.set(cache_key, 999)
+        assert get_active_auto_monitor_count_for_org(self.organization) == 999
+
+        post_delete.send(sender=Project, instance=self.project)
+        assert get_active_auto_monitor_count_for_org(self.organization) != 999
 
 
 class GetTopHostingProviderNamesTest(UptimeTestCase):
