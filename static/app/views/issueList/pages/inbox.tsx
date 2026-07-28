@@ -1,5 +1,7 @@
+import {Navigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
+import omit from 'lodash/omit';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {ActorAvatar, ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
@@ -17,6 +19,7 @@ import {NotFound} from 'sentry/components/errors/notFound';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
 import {IconArrow, IconChevron} from 'sentry/icons';
@@ -26,6 +29,7 @@ import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
@@ -39,6 +43,7 @@ const ISSUE_LIMIT = 5;
 const SELECTED_ISSUE_QUERY_PARAM = 'preview';
 const ASSIGNMENT_QUERY_PARAM = 'assignment';
 const ASSIGNMENT_FILTERS = ['me', 'my_teams', 'all'] as const;
+const PAGE_FILTER_QUERY_PARAMS = Object.values(URL_PARAM);
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
 export const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   me: ' assigned:me',
@@ -90,13 +95,17 @@ export default function InboxPage() {
   }
 
   return (
-    <IssueListContainer title={TITLE}>
+    <IssueListContainer title={TITLE} disablePageFilters>
       <InboxContent />
     </IssueListContainer>
   );
 }
 
 function InboxContent() {
+  const location = useLocation();
+  const hasPageFilterQueryParams = PAGE_FILTER_QUERY_PARAMS.some(
+    key => location.query[key] !== undefined
+  );
   const [assignmentFilter, setAssignmentFilter] = useQueryState(
     ASSIGNMENT_QUERY_PARAM,
     parseAsStringLiteral(ASSIGNMENT_FILTERS)
@@ -107,6 +116,18 @@ function InboxContent() {
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
   );
+
+  if (hasPageFilterQueryParams) {
+    return (
+      <Navigate
+        replace
+        to={normalizeUrl({
+          pathname: location.pathname,
+          query: omit(location.query, PAGE_FILTER_QUERY_PARAMS),
+        })}
+      />
+    );
+  }
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
