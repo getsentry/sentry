@@ -391,9 +391,9 @@ def parse_code_owners(data: str) -> tuple[list[str], list[str], list[str]]:
 
 
 def get_codeowners_path_and_owners(rule: str) -> tuple[str, Sequence[str]]:
-    # Backslashes appear in escaped paths (`docs/my\ file/* @owner`) and Windows-style
-    # paths (`docs\my-file\* @owner`). Use a negative lookbehind for those uncommon
-    # rules and the much faster native split otherwise.
+    # CODEOWNERS patterns follow gitignore syntax, so backslashes can escape spaces:
+    # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#codeowners-syntax
+    # Use a negative lookbehind for those uncommon rules and native split otherwise.
     if "\\" in rule:
         path, *code_owners = (i for i in _CODEOWNERS_SPLIT_RE.split(rule.strip()) if i)
     else:
