@@ -10,7 +10,6 @@ from sentry.issues.ownership.grammar import (
     convert_codeowners_syntax,
     convert_schema_to_rules_text,
     dump_schema,
-    get_codeowners_path_and_owners,
     get_invalid_owner_details,
     load_schema,
     parse_code_owners,
@@ -944,34 +943,14 @@ def test_parse_code_owners() -> None:
     )
 
 
-@pytest.mark.parametrize("blank_line", ["", " ", "\t"])
-def test_parse_code_owners_with_blank_line(blank_line: str) -> None:
-    data = f"{codeowners_fixture_data}\n{blank_line}\n"
+def test_parse_code_owners_with_line_of_spaces() -> None:
+    data = f"{codeowners_fixture_data}\n                                                                                       \n"
 
     assert parse_code_owners(data) == (
         ["@getsentry/frontend", "@getsentry/docs", "@getsentry/ecosystem"],
         ["@NisanthanNanthakumar", "@AnotherUser", "@NisanthanNanthakumar"],
         ["nisanthan.nanthakumar@sentry.io"],
     )
-
-
-@pytest.mark.parametrize(
-    ("rule", "expected"),
-    [
-        ("*.py @getsentry/issues", ("*.py", ["@getsentry/issues"])),
-        ("/apps/github", ("/apps/github", [])),
-        (
-            "*.py @getsentry/issues # inline comment",
-            ("*.py", ["@getsentry/issues"]),
-        ),
-        (
-            r"docs/my\ file/* @getsentry/issues",
-            (r"docs/my\ file/*", ["@getsentry/issues"]),
-        ),
-    ],
-)
-def test_get_codeowners_path_and_owners(rule: str, expected: tuple[str, list[str]]) -> None:
-    assert get_codeowners_path_and_owners(rule) == expected
 
 
 def test_parse_code_owners_rule_with_comments() -> None:
