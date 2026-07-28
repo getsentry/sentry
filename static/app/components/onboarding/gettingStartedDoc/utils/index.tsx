@@ -3,6 +3,12 @@ import {Fragment} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {
+  docsFlowVariantParams,
+  resolveDocsFlowEvent,
+  SOURCE_MAPS_COPY_CLICKED_EVENT,
+  SOURCE_MAPS_SELECTED_AND_COPIED_EVENT,
+} from 'sentry/components/onboarding/gettingStartedDoc/docsFlowAnalytics';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import type {
   DocsParams,
@@ -20,8 +26,7 @@ export function getUploadSourceMapsStep({
   organization,
   platformKey,
   project,
-  newOrg,
-  hasScmOnboarding,
+  docsFlow,
   isSelfHosted,
   description,
 }: DocsParams & {
@@ -33,6 +38,7 @@ export function getUploadSourceMapsStep({
       project_id: project.id,
       platform: platformKey,
       organization,
+      ...docsFlowVariantParams(docsFlow),
     });
   }
 
@@ -57,21 +63,11 @@ export function getUploadSourceMapsStep({
           <OnboardingCodeSnippet
             language="bash"
             onCopy={() =>
-              trackEvent(
-                hasScmOnboarding
-                  ? 'onboarding.scm_source_maps_wizard_button_copy_clicked'
-                  : newOrg
-                    ? 'onboarding.source_maps_wizard_button_copy_clicked'
-                    : 'project_creation.source_maps_wizard_button_copy_clicked'
-              )
+              trackEvent(resolveDocsFlowEvent(SOURCE_MAPS_COPY_CLICKED_EVENT, docsFlow))
             }
             onSelectAndCopy={() =>
               trackEvent(
-                hasScmOnboarding
-                  ? 'onboarding.scm_source_maps_wizard_selected_and_copied'
-                  : newOrg
-                    ? 'onboarding.source_maps_wizard_selected_and_copied'
-                    : 'project_creation.source_maps_wizard_selected_and_copied'
+                resolveDocsFlowEvent(SOURCE_MAPS_SELECTED_AND_COPIED_EVENT, docsFlow)
               )
             }
           >
@@ -87,7 +83,7 @@ export function getUploadSourceMapsStep({
   };
 }
 
-const SENTRY_FOR_AI_BASE_URL = 'https://skills.sentry.dev';
+const SENTRY_INSTRUMENT_SKILL_URL = 'https://skills.sentry.dev/instrument';
 
 function CopyPromptButton({prompt}: {prompt: string}) {
   const {copy} = useCopyToClipboard();
@@ -102,9 +98,9 @@ function CopyPromptButton({prompt}: {prompt: string}) {
   );
 }
 
-export function getAISetupStep({skillPath}: {skillPath: string}): OnboardingStep {
-  const skillUrl = `${SENTRY_FOR_AI_BASE_URL}/${skillPath}/SKILL.md`;
-  const prompt = `Read and follow: ${skillUrl}`;
+export function getAISetupStep({sdkName}: {sdkName?: string}): OnboardingStep {
+  const target = sdkName ? `the Sentry ${sdkName} SDK` : 'Sentry';
+  const prompt = `Use curl to download, read and follow ${SENTRY_INSTRUMENT_SKILL_URL} to set up ${target}.`;
 
   return {
     collapsible: true,

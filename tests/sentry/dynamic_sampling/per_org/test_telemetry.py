@@ -43,7 +43,6 @@ def test_records_duration_and_reraises_with_failed_status_on_exception() -> None
     with (
         patch("sentry.dynamic_sampling.per_org.telemetry.metrics") as mock_metrics,
         patch("sentry.dynamic_sampling.per_org.telemetry.emit_status") as emit,
-        patch("sentry.dynamic_sampling.per_org.telemetry.sentry_sdk") as sdk,
         pytest.raises(ValueError),
     ):
         mock_metrics.timer.side_effect = timer
@@ -51,7 +50,6 @@ def test_records_duration_and_reraises_with_failed_status_on_exception() -> None
 
     assert timer_tags["status"] == DynamicSamplingStatus.FAILED.value
     emit.assert_called_once_with("dynamic_sampling.boom.status", DynamicSamplingStatus.FAILED)
-    sdk.capture_exception.assert_called_once_with(error)
 
 
 @override_options(_GATE_OPTIONS)
@@ -67,7 +65,6 @@ def test_reraises_snuba_timeout_and_emits_timeout_status() -> None:
     with (
         patch("sentry.dynamic_sampling.per_org.telemetry.metrics") as mock_metrics,
         patch("sentry.dynamic_sampling.per_org.telemetry.emit_status") as emit,
-        patch("sentry.dynamic_sampling.per_org.telemetry.sentry_sdk") as sdk,
         pytest.raises(SnubaRPCTimeout),
     ):
         mock_metrics.timer.side_effect = timer
@@ -77,7 +74,6 @@ def test_reraises_snuba_timeout_and_emits_timeout_status() -> None:
     emit.assert_called_once_with(
         "dynamic_sampling.boom.status", DynamicSamplingStatus.SNUBA_TIMEOUT
     )
-    sdk.capture_exception.assert_called_once_with(error)
 
 
 @override_options(_GATE_OPTIONS)
@@ -93,7 +89,6 @@ def test_reraises_snuba_error_and_emits_snuba_error_status() -> None:
     with (
         patch("sentry.dynamic_sampling.per_org.telemetry.metrics") as mock_metrics,
         patch("sentry.dynamic_sampling.per_org.telemetry.emit_status") as emit,
-        patch("sentry.dynamic_sampling.per_org.telemetry.sentry_sdk") as sdk,
         pytest.raises(SnubaRPCError),
     ):
         mock_metrics.timer.side_effect = timer
@@ -101,7 +96,6 @@ def test_reraises_snuba_error_and_emits_snuba_error_status() -> None:
 
     assert timer_tags["status"] == DynamicSamplingStatus.FAILED.value
     emit.assert_called_once_with("dynamic_sampling.boom.status", DynamicSamplingStatus.SNUBA_ERROR)
-    sdk.capture_exception.assert_called_once_with(error)
 
 
 @override_options(_GATE_OPTIONS)
@@ -114,7 +108,6 @@ def test_passes_result_through_and_emits_completed_on_success() -> None:
     with (
         patch("sentry.dynamic_sampling.per_org.telemetry.metrics") as mock_metrics,
         patch("sentry.dynamic_sampling.per_org.telemetry.emit_status") as emit,
-        patch("sentry.dynamic_sampling.per_org.telemetry.sentry_sdk") as sdk,
     ):
         mock_metrics.timer.side_effect = timer
         assert add(2, 3) == 5
@@ -122,7 +115,6 @@ def test_passes_result_through_and_emits_completed_on_success() -> None:
     mock_metrics.timer.assert_called_once_with("dynamic_sampling.add.duration", sample_rate=1.0)
     assert timer_tags["status"] == DynamicSamplingStatus.COMPLETED.value
     emit.assert_called_once_with("dynamic_sampling.add.status", DynamicSamplingStatus.COMPLETED)
-    sdk.capture_exception.assert_not_called()
 
 
 @override_options(_GATE_OPTIONS)
@@ -135,7 +127,6 @@ def test_emits_returned_terminal_status_without_completed_status() -> None:
     with (
         patch("sentry.dynamic_sampling.per_org.telemetry.metrics") as mock_metrics,
         patch("sentry.dynamic_sampling.per_org.telemetry.emit_status") as emit,
-        patch("sentry.dynamic_sampling.per_org.telemetry.sentry_sdk") as sdk,
     ):
         mock_metrics.timer.side_effect = timer
         assert skipped() == DynamicSamplingStatus.NOT_IN_ROLLOUT
@@ -145,7 +136,6 @@ def test_emits_returned_terminal_status_without_completed_status() -> None:
     emit.assert_called_once_with(
         "dynamic_sampling.skipped.status", DynamicSamplingStatus.NOT_IN_ROLLOUT
     )
-    sdk.capture_exception.assert_not_called()
 
 
 @override_options(_GATE_OPTIONS)
@@ -158,7 +148,6 @@ def test_emits_terminal_status_exception_without_failed_status() -> None:
     with (
         patch("sentry.dynamic_sampling.per_org.telemetry.metrics") as mock_metrics,
         patch("sentry.dynamic_sampling.per_org.telemetry.emit_status") as emit,
-        patch("sentry.dynamic_sampling.per_org.telemetry.sentry_sdk") as sdk,
     ):
         mock_metrics.timer.side_effect = timer
         assert skipped() == DynamicSamplingStatus.NO_SUBSCRIPTION
@@ -168,4 +157,3 @@ def test_emits_terminal_status_exception_without_failed_status() -> None:
     emit.assert_called_once_with(
         "dynamic_sampling.skipped.status", DynamicSamplingStatus.NO_SUBSCRIPTION
     )
-    sdk.capture_exception.assert_not_called()

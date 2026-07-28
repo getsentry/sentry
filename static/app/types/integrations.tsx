@@ -239,7 +239,8 @@ export type SentryAppSchemaElement =
   | SentryAppSchemaStacktraceLink;
 
 export type SentryApp = {
-  author: string;
+  // Null for internal integrations, which have no author.
+  author: string | null;
   events: WebhookEvent[];
   featureData: IntegrationFeature[];
   isAlertable: boolean;
@@ -256,6 +257,9 @@ export type SentryApp = {
   status: SentryAppStatus;
   uuid: string;
   verifyInstall: boolean;
+  // The stored subscriptions as exact event tokens, where `events` consolidates
+  // them to resource names.
+  webhookEvents: string[];
   webhookUrl: string | null;
   allowedOrigins?: string[];
   avatars?: SentryAppAvatar[];

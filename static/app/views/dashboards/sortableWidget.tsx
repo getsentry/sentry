@@ -35,7 +35,6 @@ type Props = {
   onDelete: () => void;
   onDuplicate: () => void;
   onEdit: () => void;
-  onSetTransactionsDataset: () => void;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
@@ -64,7 +63,6 @@ export function SortableWidget(props: Props) {
     onDelete,
     onEdit,
     onDuplicate,
-    onSetTransactionsDataset,
     isEmbedded,
     isPreview,
     isMobile,
@@ -126,13 +124,11 @@ export function SortableWidget(props: Props) {
 
   const widgetProps: ComponentProps<typeof WidgetCard> = {
     widget: {...widget, queries: queries ?? widget.queries, tableWidths},
-    isEditingDashboard,
     widgetLimitReached,
     hasEditAccess,
     onDelete,
     onEdit,
     onDuplicate,
-    onSetTransactionsDataset,
     showContextMenu: !isEmbedded || isPrebuiltDashboard,
     isPreview,
     index,

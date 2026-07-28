@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, cast
 import orjson
 import sentry_sdk
 
+from sentry import options
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.full_rebalancing import (
     FullRebalancingInput,
@@ -43,6 +44,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     generate_boost_low_volume_transactions_cache_key,
 )
+from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.utils import metrics
 
@@ -202,6 +204,17 @@ def apply_project_sample_rate_overrides(
     ]
 
 
+def get_cached_organization_sample_rate(org_id: int) -> float | None:
+    """
+    The organization sample rate the legacy (generic metrics) pipeline would serve: the
+    cached sliding-window rate, or the target sample rate option for custom sampling orgs.
+    Returns None on a cache miss instead of falling back to the blended rate, so the
+    comparison logging can distinguish "no cached value" from "cached value equals blended".
+    """
+    sample_rate, _ = get_org_sample_rate(org_id=org_id, default_sample_rate=None)
+    return sample_rate
+
+
 def get_cached_rebalanced_project_sample_rates(org_id: int) -> dict[int, float | None]:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
@@ -333,6 +346,7 @@ def run_transaction_balancing(
     transaction_volumes: list[ProjectTransactionCounts],
 ) -> dict[int, tuple[list[RebalancedItem], float]]:
     sample_rates = config.get_project_sample_rates()
+    min_sample_rate = options.get("dynamic-sampling.prioritise_transactions.min_sample_rate")
     result: dict[int, tuple[list[RebalancedItem], float]] = {}
     project_volume_by_id = {
         project_volume.project_id: project_volume for project_volume in project_volumes
@@ -353,6 +367,12 @@ def run_transaction_balancing(
                 "its transactions"
             )
             continue
+        # Mirror the legacy pipeline (boost_low_volume_transactions_of_project): at a 100%
+        # project rate every transaction is kept anyway, so the legacy task skips the model
+        # and writes no cache entry. Skipping here keeps parity and avoids comparison log
+        # lines that would only ever hit cache misses.
+        if sample_rate == 1.0:
+            continue
         named_rates, implicit_rate = TransactionsRebalancingModel().run(
             TransactionsRebalancingInput(
                 classes=[
@@ -363,6 +383,7 @@ def run_transaction_balancing(
                 total_num_classes=project_volume.num_distinct_transactions,
                 total=project_volume.total,
                 intensity=REBALANCE_INTENSITY,
+                min_sample_rate=min_sample_rate,
             )
         )
 
@@ -372,6 +393,7 @@ def run_transaction_balancing(
                 implicit_sample_rate=implicit_rate,
                 floor_sample_rate=sample_rate,
                 total_volume=project_volume.total,
+                min_sample_rate=min_sample_rate,
             )
 
         result[project_id] = (named_rates, implicit_rate)
@@ -383,6 +405,7 @@ def _apply_implicit_sample_rate_floor(
     implicit_sample_rate: float,
     floor_sample_rate: float,
     total_volume: int,
+    min_sample_rate: float = 0.0,
 ) -> tuple[list[RebalancedItem], float]:
     total_explicit_volume = sum(item.count for item in named_rates)
     total_implicit_volume = total_volume - total_explicit_volume
@@ -402,6 +425,9 @@ def _apply_implicit_sample_rate_floor(
             classes=[RebalancedItem(id=item.id, count=item.count) for item in named_rates],
             sample_rate=new_explicit_sample_rate,
             intensity=REBALANCE_INTENSITY,
+            # keep the head floor here too, so reclaiming budget for the implicit tail can't push the
+            # explicit rates back below the floor. Clamp to the floor rate (the overall rate here).
+            min_sample_rate=min(min_sample_rate, floor_sample_rate),
         )
     )
     return new_rates, floor_sample_rate
@@ -411,12 +437,19 @@ def get_cached_rebalanced_transaction_sample_rates(
     org_id: int, project_ids: Iterable[int]
 ) -> dict[int, tuple[dict[str, float], float] | None]:
     redis_client = get_redis_client_for_ds()
+    ordered_project_ids = list(project_ids)
+    if not ordered_project_ids:
+        return {}
+
+    with redis_client.pipeline(transaction=False) as pipeline:
+        for project_id in ordered_project_ids:
+            pipeline.get(
+                generate_boost_low_volume_transactions_cache_key(org_id=org_id, proj_id=project_id)
+            )
+        serialized_values = pipeline.execute()
+
     result: dict[int, tuple[dict[str, float], float] | None] = {}
-    for project_id in project_ids:
-        cache_key = generate_boost_low_volume_transactions_cache_key(
-            org_id=org_id, proj_id=project_id
-        )
-        serialized = redis_client.get(cache_key)
+    for project_id, serialized in zip(ordered_project_ids, serialized_values):
         if serialized is None:
             result[project_id] = None
             continue

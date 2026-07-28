@@ -3,6 +3,8 @@ from typing import Any
 
 from sentry import features, options
 from sentry.constants import DataCategory
+from sentry.issues.action_log.publish import action_context_scope
+from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActionActor
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -213,12 +215,22 @@ class SeerAutofixOperator[CachePayloadT]:
 
             try:
                 if not run_id:
-                    run_id = trigger_autofix_agent(
-                        group=group,
-                        step=AutofixStep.ROOT_CAUSE,
-                        referrer=AutofixReferrer.SLACK,
-                        run_id=None,
-                    )
+                    with action_context_scope(ActionSource.SLACK, GroupActionActor.user(user.id)):
+                        run = trigger_autofix_agent(
+                            group=group,
+                            step=AutofixStep.ROOT_CAUSE,
+                            referrer=AutofixReferrer.SLACK,
+                            run_id=None,
+                            user=user,
+                        )
+                        run_id = run.seer_run_state_id
+                        Activity.objects.create_group_activity(
+                            group,
+                            ActivityType.TRIGGER_AUTOFIX,
+                            user_id=user.id,
+                            data={"referrer": AutofixReferrer.SLACK.value},
+                            send_notification=False,
+                        )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
                     trigger_push_changes(
                         group,
@@ -235,6 +247,7 @@ class SeerAutofixOperator[CachePayloadT]:
                         step=AutofixStep.from_autofix_stopping_point(stopping_point),
                         referrer=AutofixReferrer.SLACK,
                         run_id=run_id,
+                        user=user,
                     )
             except NoSeerQuotaException:
                 error = "No budget for Seer Autofix"
@@ -294,10 +307,8 @@ class SeerAutofixOperator[CachePayloadT]:
     ) -> None:
         from sentry.locks import locks
         from sentry.seer.autofix.autofix_agent import trigger_coding_agent_handoff
-        from sentry.seer.autofix.utils import (
-            CodingAgentProviderType,
-            CodingAgentStatus,
-        )
+        from sentry.seer.autofix.constants import CodingAgentStatus
+        from sentry.seer.autofix.utils import CodingAgentProviderType
         from sentry.utils.locking import UnableToAcquireLock
 
         event_lifecycle = SeerOperatorEventLifecycleMetric(
@@ -495,6 +506,10 @@ class SeerAgentOperator[CachePayloadT]:
                     is_interactive=True,
                     enable_coding=False,
                     enable_code_mode_tools=enable_code_mode_tools,
+                    # Entrypoints (e.g. Slack) render responses as plain markdown and
+                    # can't display embed widgets, so the raw Markdoc tags would leak as
+                    # text. Don't ask the agent to emit them in the first place.
+                    enable_embeds=False,
                 )
             except SeerPermissionError as e:
                 with SeerOperatorEventLifecycleMetric(
@@ -518,7 +533,7 @@ class SeerAgentOperator[CachePayloadT]:
                         run_id=existing_runs[0].run_id,
                         prompt=prompt,
                         on_page_context=on_page_context,
-                    )
+                    ).seer_run_state_id
                     lifecycle.add_extra("continued", "true")
                 else:
                     run_id = client.start_run(
@@ -658,7 +673,8 @@ def process_autofix_updates(
             return
 
         try:
-            _create_seer_activity(group, event_type, event_payload)
+            with action_context_scope(ActionSource.SEER_EXPLORER, SYSTEM_ACTOR):
+                _create_seer_activity(group, event_type, event_payload)
         except Exception:
             logger.exception(
                 "seer.activity_creation_failed",

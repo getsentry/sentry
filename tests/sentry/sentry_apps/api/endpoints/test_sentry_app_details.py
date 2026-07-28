@@ -135,6 +135,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "slug": self.published_app.slug,
             "scopes": [],
             "events": set(),
+            "webhookEvents": [],
             "status": self.published_app.get_status_display(),
             "uuid": self.published_app.uuid,
             "webhookUrl": "https://newurl.com",
@@ -605,6 +606,28 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             scopes=("event:read",),
             status_code=200,
         )
+
+    @with_feature({"organizations:integrations-event-hooks": False})
+    @override_options({"staff.ga-rollout": True})
+    def test_cannot_add_granular_error_created_without_flag(self) -> None:
+        app = self.create_sentry_app(name="SampleApp", organization=self.organization)
+        self.get_error_response(
+            app.slug,
+            events=["error.created"],
+            status_code=403,
+        )
+
+    @override_options({"staff.ga-rollout": True})
+    def test_can_add_granular_events(self) -> None:
+        app = self.create_sentry_app(name="SampleApp", organization=self.organization)
+        self.get_success_response(
+            app.slug,
+            events=["issue.resolved"],
+            scopes=("event:read",),
+            status_code=200,
+        )
+        # Stored verbatim, not expanded to the whole issue resource.
+        assert SentryApp.objects.get(id=app.id).events == ["issue.resolved"]
 
     @override_options({"staff.ga-rollout": True})
     def test_staff_can_mutate_scopes(self) -> None:

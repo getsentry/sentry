@@ -594,6 +594,13 @@ describe('ReleasesList', () => {
     });
   }
 
+  it('does not fetch releases while viewing mobile builds', async () => {
+    renderMobileBuildsTab({query: 'sha:abcdef1'});
+
+    expect(await screen.findByTestId('query-builder-input')).toBeInTheDocument();
+    expect(endpointMock).not.toHaveBeenCalled();
+  });
+
   it('toggles display mode in the mobile-builds tab and injects installable:true', async () => {
     const {router} = renderMobileBuildsTab();
 

@@ -1,7 +1,14 @@
 __all__ = ("Sdk",)
 
+from typing import TypedDict
+
 from sentry.interfaces.base import Interface
 from sentry.utils.json import prune_empty_keys
+
+
+class EventSdkApiContext(TypedDict):
+    name: str | None
+    version: str | None
 
 
 class Sdk(Interface):
@@ -38,7 +45,7 @@ class Sdk(Interface):
             }
         )
 
-    def get_api_context(self, is_public=False, platform=None):
+    def get_api_context(self, is_public=False, platform=None) -> EventSdkApiContext:
         return {"name": self.name, "version": self.version}
 
     def get_api_meta(self, meta, is_public=False, platform=None):

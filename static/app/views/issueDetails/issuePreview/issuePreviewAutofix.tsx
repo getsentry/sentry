@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {
   getOrderedAutofixSections,
@@ -22,13 +22,13 @@ import type {Project} from 'sentry/types/project';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 interface IssuePreviewAutofixProps {
+  autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
   project: Project;
 }
 
-export function IssuePreviewAutofix({group, project}: IssuePreviewAutofixProps) {
+export function IssuePreviewAutofix({autofix, group, project}: IssuePreviewAutofixProps) {
   const aiConfig = useAiConfig(group, project);
-  const autofix = useExplorerAutofix(group.id);
 
   const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix: autofix});
   const handleRestart = useHandleRestart({aiAutofix: autofix});
@@ -40,10 +40,10 @@ export function IssuePreviewAutofix({group, project}: IssuePreviewAutofixProps) 
 
   if (aiConfig.isAutofixSetupLoading) {
     return (
-      <Flex direction="column" gap="xl">
+      <Stack gap="xl">
         <Placeholder height="10rem" />
         <Placeholder height="15rem" />
-      </Flex>
+      </Stack>
     );
   }
 
@@ -58,7 +58,7 @@ export function IssuePreviewAutofix({group, project}: IssuePreviewAutofixProps) 
   }
 
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <Flex justify="end" gap="xs">
         <Button
           size="xs"
@@ -80,6 +80,6 @@ export function IssuePreviewAutofix({group, project}: IssuePreviewAutofixProps) 
         />
       </Flex>
       <SeerDrawerContent group={group} autofix={autofix} aiConfig={aiConfig} />
-    </Flex>
+    </Stack>
   );
 }

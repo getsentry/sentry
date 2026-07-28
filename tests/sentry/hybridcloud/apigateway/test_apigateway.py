@@ -1,3 +1,4 @@
+from unittest.mock import Mock, patch
 from urllib.parse import urlencode
 
 import pytest
@@ -172,7 +173,8 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp.status_code == 200
             assert resp.data["proxy"] is False
 
-    def test_proxy_check_region_pinned_url(self) -> None:
+    @patch("sentry.hybridcloud.apigateway_async.apigateway.metrics")
+    def test_proxy_check_region_pinned_url(self, mock_metrics: Mock) -> None:
         project_key = self.create_project_key(self.project)
         self.httpx_router.add(
             "GET",
@@ -198,6 +200,20 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp.status_code == 200
             assert resp.data["proxy"] is False
 
+        # The js-sdk-loader endpoint resolves its cell via a cell resolver, so
+        # this proxied request goes through the cell_resolver branch.
+        cell_resolver_calls = [
+            c
+            for c in mock_metrics.incr.mock_calls
+            if c.args
+            and c.args[0] == "apigateway.proxy_request"
+            and c.kwargs.get("tags", {}).get("kind") == "cell_resolver"
+        ]
+        assert cell_resolver_calls
+        assert all(
+            c.kwargs["tags"]["destination_cell"] == self.CELL.name for c in cell_resolver_calls
+        )
+
     def test_proxy_check_cell_pinned_url_with_params(self) -> None:
         self.httpx_router.add(
             "GET",
@@ -222,7 +238,8 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp_json["proxy"] is True
             assert resp_json["details"] is True
 
-    def test_proxy_check_cell_pinned_issue_urls(self) -> None:
+    @patch("sentry.hybridcloud.apigateway_async.apigateway.metrics")
+    def test_proxy_check_cell_pinned_issue_urls(self, mock_metrics: Mock) -> None:
         issue = self.create_group()
         self.httpx_router.add(
             "GET",
@@ -252,6 +269,18 @@ class ApiGatewayTest(ApiGatewayTestCase):
             resp_json = json.loads(close_streaming_response(resp))
             assert resp_json["proxy"] is True
             assert resp_json["events"]
+
+        # Issue URLs are region-pinned without a cell resolver, so these proxied
+        # requests go through the regionpin branch.
+        regionpin_calls = [
+            c
+            for c in mock_metrics.incr.mock_calls
+            if c.args
+            and c.args[0] == "apigateway.proxy_request"
+            and c.kwargs.get("tags", {}).get("kind") == "regionpin"
+        ]
+        assert regionpin_calls
+        assert all(c.kwargs["tags"]["destination_cell"] == self.CELL.name for c in regionpin_calls)
 
     def test_proxy_error_embed_dsn(self) -> None:
         self.httpx_router.add(

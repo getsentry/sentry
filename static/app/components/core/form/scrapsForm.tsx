@@ -84,8 +84,8 @@ function SubmitButton(props: ButtonProps) {
     <form.Subscribe selector={state => state.isSubmitting}>
       {isSubmitting => (
         <Button
-          {...props}
           variant="primary"
+          {...props}
           type="submit"
           form={isInsideForm ? undefined : form.formId}
           busy={isSubmitting || props.busy}
@@ -130,7 +130,7 @@ function FormWrapper({children}: {children: React.ReactNode}) {
       noValidate
       data-test-id={form.formId}
       id={form.formId}
-      style={{width: '100%', flexGrow: 1}}
+      style={{width: '100%'}}
       onSubmit={e => {
         e.preventDefault();
         form.handleSubmit();

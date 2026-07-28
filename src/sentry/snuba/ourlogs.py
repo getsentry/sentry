@@ -1,6 +1,5 @@
 import logging
 
-import sentry_sdk
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 
 from sentry.api.serializers.models.project import get_has_logs
@@ -11,6 +10,7 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import AdditionalQueries, EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import rpc_dataset_common
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.snuba.ourlogs")
 
@@ -23,7 +23,7 @@ class OurLogs(rpc_dataset_common.RPCBase):
         return get_has_logs(project)
 
     @classmethod
-    @sentry_sdk.trace
+    @trace
     def run_table_query(
         cls,
         *,

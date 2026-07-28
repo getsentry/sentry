@@ -53,11 +53,13 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
+import {markdownRendersVisibleContent} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -278,7 +280,6 @@ const HeaderContainer = styled(FlexBox)`
 type DurationProps = {
   baseline: number | undefined;
   duration: number;
-  node: BaseNode;
   baseDescription?: string;
   precision?: number;
   ratio?: number;
@@ -663,10 +664,24 @@ const HighlightsWrapper = styled('div')`
   margin: ${p => p.theme.space.md} 0;
 `;
 
-function IssuesLink({node, children}: {children: React.ReactNode; node: BaseNode}) {
+function IssuesLink({
+  node,
+  children,
+  traceSlug: traceSlugProp,
+}: {
+  children: React.ReactNode;
+  node: BaseNode;
+  /**
+   * Overrides the trace slug used to build the Issues link. The slug is
+   * normally read from the `traceSlug` route param, but surfaces that render
+   * this outside the trace waterfall route (e.g. the conversations span detail)
+   * have no such param and must pass the trace id explicitly.
+   */
+  traceSlug?: string;
+}) {
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
-  const traceSlug = params.traceSlug?.trim() ?? '';
+  const traceSlug = (traceSlugProp || params.traceSlug || '').trim();
 
   // Adding a buffer of 15mins for errors only traces, where there is no concept of
   // trace duration and start equals end timestamps.
@@ -882,7 +897,6 @@ function NodeActions(props: {
   node: BaseNode;
   onTabScrollToNode: (node: BaseNode) => void;
   organization: Organization;
-  eventSize?: number | undefined;
   profileId?: string;
   profilerId?: string;
   showJSONLink?: boolean;
@@ -893,6 +907,9 @@ function NodeActions(props: {
   const params = useParams<{traceSlug?: string}>();
 
   const transactionId = props.node.transactionId ?? '';
+
+  const canShowEAPSpanJSON =
+    getDiscoverDeprecation(props.organization) && isEAPSpanNode(props.node);
 
   const transactionProfileTarget = useMemo(() => {
     if (!props.profileId) {
@@ -931,11 +948,15 @@ function NodeActions(props: {
           icon={<IconFocus />}
         />
       </Tooltip>
-      {props.showJSONLink && transactionId ? (
+      {props.showJSONLink && (canShowEAPSpanJSON || transactionId) ? (
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={`/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/events/${transactionId}/json/`}
+            href={
+              canShowEAPSpanJSON
+                ? `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}`
+                : `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/events/${transactionId}/json/`
+            }
             size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
@@ -1138,40 +1159,58 @@ const CardValueText = styled('span')`
 function MultilineText({
   children,
   renderFormatted,
+  clip = true,
 }: {
   children: string;
+  /**
+   * Clips tall content behind a "Show More" button. Disable when the container
+   * scrolls on its own, so content flows instead of being clipped and hidden.
+   */
+  clip?: boolean;
   renderFormatted?: (text: string) => React.ReactNode;
 }) {
   const [showRaw, setShowRaw] = useState(false);
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
+  // Without a custom formatter we render `children` as markdown, but some
+  // markdown (e.g. a bare/empty ``` fence) renders to nothing — leaving the
+  // "Pretty" view blank. Fall back to the raw text in that case. See TET-2670.
+  const defaultFormattingIsBlank = useMemo(
+    () => !renderFormatted && !markdownRendersVisibleContent(children),
+    [renderFormatted, children]
+  );
+
+  const content = (
+    <MultilineTextWrapper {...hoverProps}>
+      <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
+        {isHovered && (
+          <SegmentedControl
+            size="xs"
+            value={showRaw ? 'raw' : 'formatted'}
+            onChange={value => setShowRaw(value === 'raw')}
+          >
+            <SegmentedControl.Item key="formatted">{t('Pretty')}</SegmentedControl.Item>
+            <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
+          </SegmentedControl>
+        )}
+      </Container>
+      {showRaw || defaultFormattingIsBlank
+        ? children.trim()
+        : (renderFormatted?.(children) ?? (
+            <MarkedText as={MarkdownContainer} text={children} />
+          ))}
+    </MultilineTextWrapper>
+  );
+
+  if (!clip) {
+    return content;
+  }
+
   return (
-    <Fragment>
-      <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
-        <MultilineTextWrapper {...hoverProps}>
-          <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
-            {isHovered && (
-              <SegmentedControl
-                size="xs"
-                value={showRaw ? 'raw' : 'formatted'}
-                onChange={value => setShowRaw(value === 'raw')}
-              >
-                <SegmentedControl.Item key="formatted">
-                  {t('Pretty')}
-                </SegmentedControl.Item>
-                <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
-              </SegmentedControl>
-            )}
-          </Container>
-          {showRaw
-            ? children.trim()
-            : (renderFormatted?.(children) ?? (
-                <MarkedText as={MarkdownContainer} text={children} />
-              ))}
-        </MultilineTextWrapper>
-      </StyledClippedBox>
-    </Fragment>
+    <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
+      {content}
+    </StyledClippedBox>
   );
 }
 
@@ -1252,9 +1291,15 @@ function MultilineJSON({
   value,
   maxDefaultDepth = 2,
   autoCollapseLimit,
+  clip = false,
 }: {
   value: any;
   autoCollapseLimit?: number;
+  /**
+   * Clips tall content behind a "Show More" button. Disable when the container
+   * scrolls on its own, so content flows instead of being clipped and hidden.
+   */
+  clip?: boolean;
   maxDefaultDepth?: number;
 }) {
   const [showRaw, setShowRaw] = useState(false);
@@ -1269,7 +1314,7 @@ function MultilineJSON({
     return Array.from(new Set(['$', ...childPaths]));
   }, [maxDefaultDepth, json, autoCollapseLimit]);
 
-  return (
+  const content = (
     <MultilineTextWrapperMonospace {...hoverProps}>
       {isHovered && (
         <Container
@@ -1310,6 +1355,16 @@ function MultilineJSON({
         />
       )}
     </MultilineTextWrapperMonospace>
+  );
+
+  if (!clip) {
+    return content;
+  }
+
+  return (
+    <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
+      {content}
+    </StyledClippedBox>
   );
 }
 

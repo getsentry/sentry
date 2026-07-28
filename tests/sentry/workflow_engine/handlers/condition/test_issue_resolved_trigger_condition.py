@@ -21,18 +21,18 @@ class TestIssueResolvedTriggerCondition(ConditionTestCase):
 
     def test_evaluate_value__resolved(self) -> None:
         self.group_event.group.status = GroupStatus.RESOLVED
-        result = self.dc.evaluate_value(self.event_data)
-        assert result is self.dc.get_condition_result()
+        evaluation = self.dc.evaluate_value(self.event_data)
+        assert evaluation.result is self.dc.get_condition_result()
 
     def test_evaluate_value__unresolved(self) -> None:
         self.group_event.group.status = GroupStatus.UNRESOLVED
-        result = self.dc.evaluate_value(self.event_data)
-        assert result is None
+        evaluation = self.dc.evaluate_value(self.event_data)
+        assert evaluation.result is None
 
     def test_evaluate_value__ignored(self) -> None:
         self.group_event.group.status = GroupStatus.IGNORED
-        result = self.dc.evaluate_value(self.event_data)
-        assert result is None
+        evaluation = self.dc.evaluate_value(self.event_data)
+        assert evaluation.result is None
 
     def test_json_schema(self) -> None:
         self.dc.comparison = False

@@ -8,7 +8,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -28,7 +27,6 @@ interface TraceSearchInputProps {
     node: BaseNode | null,
     behavior: 'track result' | 'persist'
   ) => void;
-  organization: Organization;
 }
 
 const MIN_LOADING_TIME = 300;

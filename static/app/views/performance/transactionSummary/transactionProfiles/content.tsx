@@ -46,8 +46,6 @@ const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
   },
 };
 
-const noop = () => void 0;
-
 function isEmpty(resp: Profiling.Schema) {
   const profile = resp.profiles[0];
   if (!profile) {
@@ -74,7 +72,6 @@ function isEmpty(resp: Profiling.Schema) {
 
 interface TransactionProfilesContentProps {
   query: string;
-  transaction: string;
 }
 
 export function TransactionProfilesContent(props: TransactionProfilesContentProps) {
@@ -165,8 +162,6 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                   onVisualizationChange={onVisualizationChange}
                   frameFilter={frameFilter}
                   onFrameFilterChange={onFrameFilterChange}
-                  hideSystemFrames={false}
-                  setHideSystemFrames={noop}
                   expanded={showSidePanel}
                   setExpanded={setShowSidePanel}
                 />
@@ -229,12 +224,10 @@ interface AggregateFlamegraphToolbarProps {
   canvasPoolManager: CanvasPoolManager;
   expanded: boolean;
   frameFilter: 'system' | 'application' | 'all';
-  hideSystemFrames: boolean;
   onFrameFilterChange: (value: 'system' | 'application' | 'all') => void;
   onVisualizationChange: (value: 'flamegraph' | 'call tree') => void;
   scheduler: CanvasScheduler;
   setExpanded: (expanded: boolean) => void;
-  setHideSystemFrames: (value: boolean) => void;
   visualization: 'flamegraph' | 'call tree';
 }
 

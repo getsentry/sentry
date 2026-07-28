@@ -15,7 +15,7 @@ import {Text} from '@sentry/scraps/text';
 import {IconList} from 'sentry/icons';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
-import type {RequestMessage, TestNotificationOptions} from 'sentry/serviceWorker/types';
+import type {RequestMessage, AllNotificationOptions} from 'sentry/serviceWorker/types';
 import * as Storybook from 'sentry/stories';
 import type {AvatarProject} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -181,7 +181,7 @@ function buildPayload(
   values: NotificationFormValues,
   imageSources: Record<FixedImageSource, string | null>
 ): RequestMessage {
-  const options: TestNotificationOptions = {};
+  const options: AllNotificationOptions = {};
 
   if (values.body.trim()) {
     options.body = values.body;
@@ -544,7 +544,7 @@ function NotificationConfigurator() {
         </Flex>
       </form.AppForm>
 
-      <Grid columns={{xs: '1fr', md: '1fr 1fr'}} gap="lg">
+      <Grid columns={{zero: '1fr', md: '1fr 1fr'}} gap="lg">
         <Stack gap="xs">
           <Text bold>Payload</Text>
           <form.Subscribe selector={state => state.values}>

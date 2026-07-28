@@ -80,7 +80,6 @@ const AM3_TEAM_FEATURES = [
   'integrations-chat-unfurl',
   'integrations-incident-management',
   'sso-basic',
-  'weekly-reports',
   'seer-billing',
 ];
 

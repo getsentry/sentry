@@ -1,4 +1,4 @@
-import {Component, useContext} from 'react';
+import {Component} from 'react';
 import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 import type {Location} from 'history';
 
@@ -12,9 +12,7 @@ import type {
   LocationQuery,
 } from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
-import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {useApi} from 'sentry/utils/useApi';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface DiscoverQueryExtras {
   useOnDemandMetrics?: boolean;
@@ -53,11 +51,6 @@ export type GenericChildrenProps<T> = {
    * Data / result.
    */
   tableData: T | null;
-};
-
-type OptionalContextProps = {
-  eventView?: EventView | ImmutableEventView;
-  orgSlug?: string;
 };
 
 type BaseDiscoverQueryProps = {
@@ -103,14 +96,10 @@ type BaseDiscoverQueryProps = {
   skipAbort?: boolean;
 };
 
-type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
 export type DiscoverQueryProps = BaseDiscoverQueryProps & {
   eventView: EventView | ImmutableEventView;
   orgSlug: string;
 };
-
-type InnerRequestProps<P> = DiscoverQueryProps & P;
-type OuterRequestProps<P> = DiscoverQueryPropsWithContext & P;
 
 type ReactProps<T> = {
   children?: (props: GenericChildrenProps<T>) => React.ReactNode;
@@ -148,8 +137,7 @@ type ComponentProps<T, P> = {
   shouldRefetchData?: (prevProps: Props<T, P>, props: Props<T, P>) => boolean;
 };
 
-type Props<T, P> = InnerRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;
-type OuterProps<T, P> = OuterRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;
+type Props<T, P> = DiscoverQueryProps & P & ReactProps<T> & ComponentProps<T, P>;
 
 type State<T> = {
   api: Client;
@@ -281,26 +269,9 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
   }
 }
 
-// Shim to allow us to use generic discover query or any specialization with or without passing org slug or eventview, which are now contexts.
-// This will help keep tests working and we can remove extra uses of context-provided props and update tests as we go.
-export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
-  const organizationSlug = useOrganization({allowNull: true})?.slug;
-  const performanceEventView = useContext(PerformanceEventViewContext)?.eventView;
-
-  const orgSlug = props.orgSlug ?? organizationSlug;
-  const eventView = props.eventView ?? performanceEventView;
-
-  if (orgSlug === undefined || eventView === undefined) {
-    throw new Error('GenericDiscoverQuery requires both an orgSlug and eventView');
-  }
-
-  const _props: Props<T, P> = {
-    ...props,
-    orgSlug,
-    eventView,
-  };
+export function GenericDiscoverQuery<T, P>(props: Props<T, P>) {
   // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
-  return <_GenericDiscoverQuery<T, P> {...(_props as any)} />;
+  return <_GenericDiscoverQuery<T, P> {...(props as any)} />;
 }
 
 export type DiscoverQueryRequestParams = Partial<

@@ -50,6 +50,7 @@ function usePreloadGroupOnHover({
             groupId,
             organizationSlug: organization.slug,
             environments: selection.environments,
+            expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
           })
         );
       }, 300);

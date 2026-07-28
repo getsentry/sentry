@@ -20,6 +20,10 @@ import {getSignupLocalities} from 'sentry/utils/cells';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
+import {
+  PROJECT_CREATION_ORIGIN_ORG_CREATION,
+  PROJECT_CREATION_ORIGIN_QUERY_KEY,
+} from 'sentry/views/projectInstall/projectCreationOrigin';
 
 export const DATA_STORAGE_DOCS_LINK =
   'https://docs.sentry.io/product/accounts/choose-your-data-center';
@@ -83,8 +87,14 @@ function OrganizationCreate() {
           onSubmitSuccess={(createdOrg: OrganizationSummary) => {
             const hasCustomerDomain =
               ConfigStore.get('features').has('system:multi-region');
+            // One-shot seed for sticky journey origin on /projects/new/. Must
+            // ride on the URL: this redirect is a full page reload
+            // (testableWindowLocation.assign), often onto a customer-domain
+            // host, so sessionStorage set here would not survive. Dedicated
+            // query key — not `referrer`, which getting-started back uses for
+            // autofill and would clobber this mid-journey.
             let nextUrl = normalizeUrl(
-              `/organizations/${createdOrg.slug}/projects/new/`,
+              `/organizations/${createdOrg.slug}/projects/new/?${PROJECT_CREATION_ORIGIN_QUERY_KEY}=${PROJECT_CREATION_ORIGIN_ORG_CREATION}`,
               {forceCustomerDomain: hasCustomerDomain}
             );
             if (hasCustomerDomain) {

@@ -13,12 +13,12 @@ import {
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
+import {useScmProjectDetails} from 'sentry/components/onboarding/scm/useScmProjectDetails';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
-import {useScmProjectDetails} from 'sentry/views/onboarding/components/useScmProjectDetails';
 import {MetricValues, RuleAction} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {ScmProjectDetails} from './scmProjectDetails';
@@ -155,6 +155,19 @@ describe('ScmProjectDetails', () => {
     render(<ScmProjectDetails {...defaultProps()} />, {organization});
 
     expect(await screen.findByRole('button', {name: 'Create project'})).toBeDisabled();
+  });
+
+  it('shows a tooltip on the disabled Create button explaining what is missing', async () => {
+    render(<ScmProjectDetails {...defaultProps()} />, {organization});
+
+    const createButton = await screen.findByRole('button', {name: 'Create project'});
+    expect(createButton).toBeDisabled();
+
+    // No platform / project name: multiple required fields missing.
+    await userEvent.hover(createButton);
+    expect(
+      await screen.findByText('Please fill out all the required fields')
+    ).toBeInTheDocument();
   });
 
   it('create project button calls API and completes on success', async () => {

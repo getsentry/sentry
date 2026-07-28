@@ -88,12 +88,9 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
 
     def _download(self, artifact: PreprodArtifact) -> HttpResponseBase:
         session = get_preprod_session(artifact.project.organization_id, artifact.project_id)
-        try:
-            result = session.get(archive_object_key(artifact.id))
-        except RequestError as e:
-            if e.status == 404:
-                return Response({"detail": "Download not ready"}, status=409)
-            raise
+        result = session.get(archive_object_key(artifact.id))
+        if result is None:
+            return Response({"detail": "Download not ready"}, status=409)
 
         response = StreamingHttpResponse(
             _stream_object(result.payload), content_type="application/zip"

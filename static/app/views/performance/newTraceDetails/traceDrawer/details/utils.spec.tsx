@@ -3,10 +3,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   getAttributeFilterSearch,
+  getSearchInExploreTarget,
   getTraceAttributesTreeActions,
   getTraceKeyValueActions,
   getTraceIssueSeverityClassName,
   parseJsonWithFix,
+  TraceDrawerActionKind,
   TraceDrawerActionValueKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -26,6 +28,78 @@ describe('getAttributeFilterSearch', () => {
     expect(getAttributeFilterSearch('span.description', 'GET /api/users')).toBe(
       'span.description:"GET /api/users"'
     );
+  });
+
+  it('quotes JSON array attribute values as a single literal', () => {
+    expect(
+      getAttributeFilterSearch(
+        'gen_ai.system_instructions',
+        '[{"type": "text", "content": "hello"}]'
+      )
+    ).toBe(
+      'gen_ai.system_instructions:"[{\\"type\\": \\"text\\", \\"content\\": \\"hello\\"}]"'
+    );
+  });
+});
+
+const organization = OrganizationFixture({slug: 'org-slug'});
+const location = LocationFixture({query: {statsPeriod: '14d'}});
+
+describe('getSearchInExploreTarget', () => {
+  it('quotes JSON array values as a single literal in the generated explore query', () => {
+    const target = getSearchInExploreTarget(
+      organization,
+      location,
+      '1',
+      'gen_ai.system_instructions',
+      '[{"type": "text", "content": "hello"}]',
+      TraceDrawerActionKind.INCLUDE
+    );
+
+    expect(target.query.query).toBe(
+      'gen_ai.system_instructions:"[{\\"type\\": \\"text\\", \\"content\\": \\"hello\\"}]"'
+    );
+  });
+
+  it('escapes already escaped quotes in JSON string values for the query layer', () => {
+    const target = getSearchInExploreTarget(
+      organization,
+      location,
+      '1',
+      'gen_ai.system_instructions',
+      '[{"type": "text", "content": "say \\"backend\\""}]',
+      TraceDrawerActionKind.INCLUDE
+    );
+
+    expect(target.query.query).toBe(
+      'gen_ai.system_instructions:"[{\\"type\\": \\"text\\", \\"content\\": \\"say \\\\"backend\\\\"\\"}]"'
+    );
+  });
+
+  it('quotes values that are already wrapped in quotes as a single literal', () => {
+    const target = getSearchInExploreTarget(
+      organization,
+      location,
+      '1',
+      'span.description',
+      '"hello"',
+      TraceDrawerActionKind.INCLUDE
+    );
+
+    expect(target.query.query).toBe('span.description:"\\"hello\\""');
+  });
+
+  it('handles null values', () => {
+    const target = getSearchInExploreTarget(
+      organization,
+      location,
+      '1',
+      'app.device',
+      null,
+      TraceDrawerActionKind.INCLUDE
+    );
+
+    expect(target.query.query).toBe('app.device:""');
   });
 });
 

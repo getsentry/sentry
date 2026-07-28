@@ -346,6 +346,22 @@ class TestIterationHelpers(TestCase):
         with pytest.raises(AssertionError):
             get_iterations(state)
 
+    @patch("sentry.seer.autofix.autofix_agent.sentry_sdk.capture_message")
+    def test_get_iterations_missing_feedback_reports_without_raising(
+        self, mock_capture: MagicMock
+    ) -> None:
+        # _iteration_block intentionally omits feedback metadata.
+        state = _state_with_blocks([_iteration_block(1)])
+
+        iterations = get_iterations(state)
+
+        assert [it.index for it in iterations] == [1]
+        mock_capture.assert_called_once()
+        assert mock_capture.call_args.args[0] == "PR_ITERATION block missing feedback metadata"
+        assert mock_capture.call_args.kwargs["level"] == "warning"
+        assert mock_capture.call_args.kwargs["extras"]["run_id"] == 67890
+        assert mock_capture.call_args.kwargs["extras"]["iteration_index"] == "1"
+
     def test_get_latest_iteration_index_returns_zero_without_iterations(self) -> None:
         state = _state_with_blocks([])
         assert get_latest_iteration_index(state) == 0
@@ -407,7 +423,6 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=12345)
-        mock_client.continue_run.return_value = 12345
 
         step_to_action = {
             AutofixStep.ROOT_CAUSE: SeerActionType.ROOT_CAUSE_STARTED,
@@ -438,10 +453,10 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.continue_run.return_value = 67890
         seer_run = self.create_seer_run(
             organization=self.group.organization, seer_run_state_id=67890
         )
+        mock_client.continue_run.return_value = seer_run
 
         result = trigger_autofix_agent(
             group=self.group,
@@ -450,7 +465,7 @@ class TestTriggerAutofixAgent(TestCase):
             run_id=67890,
         )
 
-        assert result == 67890
+        assert result == seer_run
         # Verify started webhook was sent with the existing run_id and uuid
         mock_broadcast.assert_called_once()
         call_kwargs = mock_broadcast.call_args.kwargs
@@ -527,7 +542,9 @@ class TestTriggerAutofixAgent(TestCase):
                 )
             },
         )
-        mock_client.continue_run.return_value = 67890
+        mock_client.continue_run.return_value = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
 
         with self.feature("organizations:autofix-pr-iteration"):
             trigger_autofix_agent(
@@ -610,7 +627,9 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.continue_run.return_value = 67890
+        mock_client.continue_run.return_value = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
 
         trigger_autofix_agent(
             group=self.group,
@@ -631,19 +650,19 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.continue_run.return_value = 67890
+        seer_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
+        mock_client.continue_run.return_value = seer_run
 
-        run_id = trigger_autofix_agent(
+        run = trigger_autofix_agent(
             group=self.group,
             step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.UNKNOWN,
             run_id=67890,
         )
 
-        assert run_id == 67890
-        mock_client.continue_run.assert_called_once()
-        mock_check_quota.assert_not_called()
-        mock_record_run.assert_not_called()
+        assert run == seer_run
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
@@ -722,7 +741,9 @@ class TestTriggerAutofixAgent(TestCase):
                 )
             },
         )
-        mock_client.continue_run.return_value = 67890
+        mock_client.continue_run.return_value = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
 
         with self.feature("organizations:autofix-pr-iteration"):
             trigger_autofix_agent(
@@ -1403,6 +1424,35 @@ class TestTriggerPushChanges(TestCase):
         issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})
         expected = f"Fixes [{self.group.qualified_short_id}]({issue_url})"
         assert body["payload"]["pr_description_suffix"] == expected
+        assert body["payload"]["ready_for_review"] is True
+
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_opens_as_draft_when_review_request_enabled(self, mock_post):
+        mock_post.return_value = MagicMock(status=200)
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+            metadata={"group_id": self.group.id},
+        )
+
+        with self.feature(
+            {
+                "organizations:gen-ai-features": True,
+                "organizations:autofix-pr-iteration-review-request": True,
+            }
+        ):
+            trigger_push_changes(
+                group=self.group,
+                run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
+                state=state,
+            )
+
+        body = mock_post.call_args[0][0]
+        assert body["payload"]["ready_for_review"] is False
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_pr_description_suffix_includes_linear_issue(self, mock_post):

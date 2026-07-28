@@ -21,6 +21,8 @@ import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
+from sentry_sdk.traces import StreamedSpan
+from sentry_sdk.tracing_utils import has_span_streaming_enabled
 from snuba_sdk import Column, DeleteQuery, Function, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
@@ -38,6 +40,7 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
+from sentry.options.rollout import in_random_rollout
 from sentry.services.eventstore.query_preprocessing import get_all_merged_group_ids
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
@@ -248,7 +251,7 @@ SPAN_EAP_COLUMN_MAP = {
     "user.ip": "attr_str[sentry.user.ip]",
     "user.geo.subregion": "attr_str[sentry.user.geo.subregion]",
     "user.geo.country_code": "attr_str[sentry.user.geo.country_code]",
-    "gen_ai.request.reasoning_effort": "attr_str[gen_ai.request.reasoning_effort]",
+    "gen_ai.request.reasoning.level": "attr_str[gen_ai.request.reasoning.level]",
     "cloudflare.durable_object.query.bindings": "attr_num[cloudflare.durable_object.query.bindings]",
     "cloudflare.durable_object.response.rows_read": "attr_num[cloudflare.durable_object.response.rows_read]",
     "cloudflare.durable_object.response.rows_written": "attr_num[cloudflare.durable_object.response.rows_written]",
@@ -1185,8 +1188,14 @@ def _apply_cache_and_build_results(
 ) -> ResultSet:
     parent_api: str = "<missing>"
     scope = sentry_sdk.get_current_scope()
-    if scope.transaction:
-        parent_api = scope.transaction.name
+
+    if has_span_streaming_enabled(sentry_sdk.get_client().options):
+        span = scope.streamed_span
+        if type(span) is StreamedSpan:
+            parent_api = span._segment.name
+    else:
+        if scope.transaction:
+            parent_api = scope.transaction.name
 
     # Store the original position of the query so that we can maintain the order
     snuba_requests_list: list[tuple[int, SnubaRequest]] = []
@@ -1407,6 +1416,9 @@ def _log_request_query(req: Request) -> None:
 RawResult = tuple[str, urllib3.response.HTTPResponse, Translator, Translator]
 
 
+SNUBA_JSON_RESP_COMPRESSION_ROLLOUT = "snuba.json-response-compression.rollout"
+
+
 def _snuba_query(
     params: tuple[
         sentry_sdk.Scope,
@@ -1419,8 +1431,15 @@ def _snuba_query(
     thread_isolation_scope, thread_current_scope, snuba_request = params
     with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
         with sentry_sdk.scope.use_scope(thread_current_scope):
-            headers = snuba_request.headers
             request = snuba_request.request
+            headers = snuba_request.headers
+            # conditionally add compression encoding headers
+            should_compress = not isinstance(request.query, DeleteQuery) and in_random_rollout(
+                SNUBA_JSON_RESP_COMPRESSION_ROLLOUT
+            )
+            if should_compress:
+                headers = {**headers, "Accept-Encoding": "zstd"}
+
             try:
                 referrer = headers.get("referer", "unknown")
 
@@ -1434,6 +1453,9 @@ def _snuba_query(
                 # but we still want to know a general sense of how referrers impact performance
                 sentry_sdk.set_tag("query.referrer", referrer)
                 sentry_sdk.set_attribute("query.referrer", referrer)
+
+                # Whether client asked snuba to zstd-compress the resp.
+                sentry_sdk.set_attribute("snuba.request_compressed", should_compress)
 
                 if isinstance(request.query, MetricsQuery):
                     return (

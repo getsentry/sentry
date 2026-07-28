@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -15,7 +16,10 @@ import {IconCheckmark, IconCommit, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
 import {getDistributionErrorTooltip} from 'sentry/views/preprod/components/installDetailsContent';
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  getBuildNumber,
+  type BuildDetailsApiResponse,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 export function PreprodBuildsHeaderCells({
   showProjectColumn,
@@ -50,12 +54,14 @@ export function PreprodBuildsRowCells({
   showProjectColumn,
   showInstallabilityIndicator = false,
 }: PreprodBuildsRowCellsProps) {
+  const buildNumber = getBuildNumber(build.app_info);
+
   return (
     <Fragment>
       {showInteraction && <InteractionStateLayer />}
       <SimpleTable.RowCell justify="start">
         {build.app_info?.name || build.app_info?.app_id ? (
-          <Flex direction="column" gap="xs">
+          <Stack gap="xs">
             <Flex align="center" gap="2xs">
               {build.app_info?.platform && (
                 <PlatformIcon platform={build.app_info.platform} />
@@ -107,15 +113,18 @@ export function PreprodBuildsRowCells({
                   <Text size="sm" variant="muted">
                     {' • '}
                   </Text>
-                  <Tooltip title={t('Build configuration')}>
-                    <Text size="sm" variant="muted" monospace>
-                      {build.app_info.build_configuration}
-                    </Text>
-                  </Tooltip>
+                  <InfoText
+                    title={t('Build configuration')}
+                    size="sm"
+                    variant="muted"
+                    monospace
+                  >
+                    {build.app_info.build_configuration}
+                  </InfoText>
                 </Fragment>
               )}
             </Flex>
-          </Flex>
+          </Stack>
         ) : null}
       </SimpleTable.RowCell>
 
@@ -126,16 +135,16 @@ export function PreprodBuildsRowCells({
       )}
 
       <SimpleTable.RowCell justify="start" minWidth={0}>
-        <Flex direction="column" gap="xs" minWidth={0} width="100%">
+        <Stack gap="xs" minWidth={0} width="100%">
           <Flex align="center" gap="xs">
             {build.app_info?.version !== null && (
               <Text size="lg" bold>
                 {build.app_info?.version}
               </Text>
             )}
-            {build.app_info?.build_number !== null && (
+            {buildNumber && (
               <Text size="lg" variant="muted">
-                ({build.app_info?.build_number})
+                ({buildNumber})
               </Text>
             )}
             {build.state === 3 && <IconCheckmark size="sm" variant="success" />}
@@ -158,20 +167,19 @@ export function PreprodBuildsRowCells({
                   –
                 </Text>
                 <Flex flex={1} minWidth={0} overflow="hidden">
-                  <Tooltip
+                  <InfoText
                     title={build.vcs_info?.head_ref || undefined}
-                    showOnlyOnOverflow
-                    skipWrapper
+                    mode="overflowOnly"
+                    size="sm"
+                    variant="muted"
                   >
-                    <Text size="sm" variant="muted" ellipsis>
-                      {build.vcs_info?.head_ref || '--'}
-                    </Text>
-                  </Tooltip>
+                    {build.vcs_info?.head_ref || t('N/A')}
+                  </InfoText>
                 </Flex>
               </Fragment>
             )}
           </Flex>
-        </Flex>
+        </Stack>
       </SimpleTable.RowCell>
     </Fragment>
   );

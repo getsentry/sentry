@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import type {ComponentType} from 'react';
 import {useContext, useEffect, useId} from 'react';
 

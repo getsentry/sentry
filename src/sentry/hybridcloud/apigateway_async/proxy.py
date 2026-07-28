@@ -108,6 +108,15 @@ async def proxy_request(
         logger.info("region_resolution_error", extra={"org_slug": org_id_or_slug, "error": str(e)})
         return HttpResponse(status=404)
 
+    metrics.incr(
+        "apigateway.proxy_request",
+        tags={
+            "url_name": url_name,
+            "kind": "orgslug",
+            "destination_cell": cell.name,
+            "request_method": request.method,
+        },
+    )
     return await proxy_cell_request(request, cell, url_name)
 
 
@@ -135,7 +144,8 @@ async def proxy_cell_request(
     header_dict[PROXY_APIGATEWAY_HEADER] = "true"
 
     assert request.method is not None
-    query_params = request.GET
+    query_string = request.META.get("QUERY_STRING")
+    request_url = f"{target_url}?{query_string}" if query_string else target_url
 
     timeout = ENDPOINT_TIMEOUT_OVERRIDE.get(url_name, settings.GATEWAY_PROXY_TIMEOUT)
 
@@ -163,9 +173,8 @@ async def proxy_cell_request(
                 with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
                     req = proxy_client.build_request(
                         request.method,
-                        target_url,
+                        request_url,
                         headers=header_dict,
-                        params=dict(query_params) if query_params is not None else None,
                         content=_stream_request(data) if data else None,  # type: ignore[arg-type]
                         timeout=timeout or httpx.USE_CLIENT_DEFAULT,
                     )
@@ -173,6 +182,8 @@ async def proxy_cell_request(
                     if resp.status_code >= 502:
                         metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
                         circuitbreaker.incr_failures()
+                    else:
+                        metrics.incr("apigateway.proxy.request_succeeded", tags=metric_tags)
                     return _adapt_response(resp, target_url)
             except asyncio.CancelledError:
                 metrics.incr("apigateway.proxy.request_aborted", tags=metric_tags)

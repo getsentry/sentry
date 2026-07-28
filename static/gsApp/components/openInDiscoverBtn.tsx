@@ -4,6 +4,7 @@ import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
@@ -29,7 +30,11 @@ export function OpenInDiscoverBtn(props: Props) {
       size="sm"
       icon={<IconBusiness />}
     >
-      <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
+      <GuideAnchor target="open_in_discover">
+        {getDiscoverDeprecation(organization)
+          ? t('Open in Explore')
+          : t('Open in Discover')}
+      </GuideAnchor>
     </Button>
   );
 }

@@ -1,3 +1,4 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -153,7 +154,7 @@ describe('PageFilters ActionCreators', () => {
     it('does not change dates with no query params or defaultSelection', () => {
       initializeUrlState({
         organization,
-        location: {...router.location, query: {project: '1'}},
+        location: LocationFixture({...router.location, query: {project: '1'}}),
         memberProjects: projects,
         nonMemberProjects: [],
         navigate,
@@ -174,7 +175,7 @@ describe('PageFilters ActionCreators', () => {
     it('does changes to default dates with defaultSelection and no query params', () => {
       initializeUrlState({
         organization,
-        location: {...router.location, query: {project: '1'}},
+        location: LocationFixture({...router.location, query: {project: '1'}}),
         memberProjects: projects,
         nonMemberProjects: [],
         defaultSelection: {
@@ -203,7 +204,10 @@ describe('PageFilters ActionCreators', () => {
     it('uses query params statsPeriod over defaults', () => {
       initializeUrlState({
         organization,
-        location: {...router.location, query: {statsPeriod: '1h', project: '1'}},
+        location: LocationFixture({
+          ...router.location,
+          query: {statsPeriod: '1h', project: '1'},
+        }),
         memberProjects: projects,
         nonMemberProjects: [],
         defaultSelection: {
@@ -229,10 +233,10 @@ describe('PageFilters ActionCreators', () => {
     it('uses absolute dates over defaults', () => {
       initializeUrlState({
         organization,
-        location: {
+        location: LocationFixture({
           ...router.location,
           query: {start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38', project: '1'},
-        },
+        }),
         memberProjects: projects,
         nonMemberProjects: [],
         defaultSelection: {
@@ -261,7 +265,7 @@ describe('PageFilters ActionCreators', () => {
     it('does not load from local storage when there are query params', () => {
       initializeUrlState({
         organization,
-        location: {...router.location, query: {project: '1'}},
+        location: LocationFixture({...router.location, query: {project: '1'}}),
         memberProjects: projects,
         nonMemberProjects: [],
         navigate,
@@ -285,7 +289,7 @@ describe('PageFilters ActionCreators', () => {
     it('does not invalidate all projects from query params', () => {
       initializeUrlState({
         organization,
-        location: {...router.location, query: {project: '-1'}},
+        location: LocationFixture({...router.location, query: {project: '-1'}}),
         memberProjects: projects,
         nonMemberProjects: [],
         navigate,
@@ -640,7 +644,7 @@ describe('PageFilters ActionCreators', () => {
     it('updates history when queries are different', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {project: '2'}},
+        location: LocationFixture({pathname: '/test/', query: {project: '2'}}),
       }).location;
       // this can be passed w/ `project` as an array (e.g. multiple projects being selected)
       // however react-router will treat it as a string if there is only one param
@@ -648,13 +652,13 @@ describe('PageFilters ActionCreators', () => {
 
       expect(nav).toHaveBeenCalledWith(
         {pathname: '/test/', query: {project: ['1']}},
-        {replace: false}
+        {replace: undefined}
       );
     });
     it('does not update history when queries are the same', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {project: '1'}},
+        location: LocationFixture({pathname: '/test/', query: {project: '1'}}),
       }).location;
       // this can be passed w/ `project` as an array (e.g. multiple projects
       // being selected) however react-router will treat it as a string if
@@ -667,7 +671,7 @@ describe('PageFilters ActionCreators', () => {
     it('updates history when queries are different with replace', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {project: '2'}},
+        location: LocationFixture({pathname: '/test/', query: {project: '2'}}),
       }).location;
       updateProjects([1], location, nav, {replace: true});
 
@@ -680,7 +684,7 @@ describe('PageFilters ActionCreators', () => {
     it('does not update history when queries are the same with replace', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {project: '1'}},
+        location: LocationFixture({pathname: '/test/', query: {project: '1'}}),
       }).location;
       updateProjects([1], location, nav, {replace: true});
 
@@ -690,10 +694,10 @@ describe('PageFilters ActionCreators', () => {
     it('does not override an absolute date selection', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {
+        location: LocationFixture({
           pathname: '/test/',
           query: {project: '1', start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'},
-        },
+        }),
       }).location;
       updateProjects([2], location, nav, {replace: true});
 
@@ -715,49 +719,52 @@ describe('PageFilters ActionCreators', () => {
     it('updates single', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {environment: 'test'}},
+        location: LocationFixture({pathname: '/test/', query: {environment: 'test'}}),
       }).location;
       updateEnvironments(['new-env'], location, nav);
 
       expect(nav).toHaveBeenCalledWith(
         {pathname: '/test/', query: {environment: ['new-env']}},
-        {replace: false}
+        {replace: undefined}
       );
     });
 
     it('updates multiple', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {environment: 'test'}},
+        location: LocationFixture({pathname: '/test/', query: {environment: 'test'}}),
       }).location;
       updateEnvironments(['new-env', 'another-env'], location, nav);
 
       expect(nav).toHaveBeenCalledWith(
         {pathname: '/test/', query: {environment: ['new-env', 'another-env']}},
-        {replace: false}
+        {replace: undefined}
       );
     });
 
     it('removes environment', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {environment: 'test'}},
+        location: LocationFixture({pathname: '/test/', query: {environment: 'test'}}),
       }).location;
       updateEnvironments(null, location, nav);
-      expect(nav).toHaveBeenCalledWith({pathname: '/test/', query: {}}, {replace: false});
+      expect(nav).toHaveBeenCalledWith(
+        {pathname: '/test/', query: {}},
+        {replace: undefined}
+      );
     });
 
     it('does not override an absolute date selection', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {
+        location: LocationFixture({
           pathname: '/test/',
           query: {
             environment: 'test',
             start: '2020-03-22T00:53:38',
             end: '2020-04-21T00:53:38',
           },
-        },
+        }),
       }).location;
       updateEnvironments(['new-env'], location, nav, {replace: true});
 
@@ -779,33 +786,33 @@ describe('PageFilters ActionCreators', () => {
     it('updates statsPeriod when there is no existing stats period', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {}},
+        location: LocationFixture({pathname: '/test/', query: {}}),
       }).location;
       updateDateTime({period: '24h'}, location, nav);
 
       expect(nav).toHaveBeenCalledWith(
         {pathname: '/test/', query: {statsPeriod: '24h'}},
-        {replace: false}
+        {replace: undefined}
       );
     });
 
     it('updates statsPeriod when there is an existing stats period', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {statsPeriod: '14d'}},
+        location: LocationFixture({pathname: '/test/', query: {statsPeriod: '14d'}}),
       }).location;
       updateDateTime({period: '24h'}, location, nav);
 
       expect(nav).toHaveBeenCalledWith(
         {pathname: '/test/', query: {statsPeriod: '24h'}},
-        {replace: false}
+        {replace: undefined}
       );
     });
 
     it('changes to absolute date', () => {
       const nav = jest.fn();
       const location = RouterFixture({
-        location: {pathname: '/test/', query: {statsPeriod: '24h'}},
+        location: LocationFixture({pathname: '/test/', query: {statsPeriod: '24h'}}),
       }).location;
       updateDateTime(
         {start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'},
@@ -818,7 +825,7 @@ describe('PageFilters ActionCreators', () => {
           pathname: '/test/',
           query: {start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'},
         },
-        {replace: false}
+        {replace: undefined}
       );
     });
   });
