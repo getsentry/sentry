@@ -45,10 +45,17 @@ export interface FeatureBadgeProps extends Omit<TagProps, 'children' | 'variant'
 export function FeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
   const title = tooltipProps?.title ?? defaultTitles[type] ?? '';
 
-  const {ref, isInsideInteractiveElement} = useIsInsideInteractiveElement(props.ref);
+  const {ref, isInsideInteractiveElement, isInteractiveElementFocused} =
+    useIsInsideInteractiveElement(props.ref);
 
   return (
-    <Tooltip title={title} position="right" {...tooltipProps} skipWrapper>
+    <Tooltip
+      title={title}
+      position="right"
+      {...tooltipProps}
+      forceVisible={isInteractiveElementFocused ? true : tooltipProps?.forceVisible}
+      skipWrapper
+    >
       <SquareTag
         {...props}
         tabIndex={isInsideInteractiveElement ? undefined : 0}
