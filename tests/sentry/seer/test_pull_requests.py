@@ -198,6 +198,7 @@ class NotifySeerPrCreatedTest(TestCase):
             self._notify(self._payload(), group_id=self.group.id)
 
         attribution = PullRequestAttribution.objects.get(pull_request=self._linked_pull_request())
+        assert attribution.signal_details is not None
         assert attribution.signal_details["group_ids"] == [self.group.id]
 
     def test_idempotent_on_redelivery(self) -> None:
