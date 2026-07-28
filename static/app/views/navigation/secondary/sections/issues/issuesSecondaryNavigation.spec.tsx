@@ -69,7 +69,9 @@ describe('IssuesSecondaryNavigation', () => {
 
     renderNavigation();
 
-    expect(await screen.findByRole('link', {name: 'Inbox'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', {name: 'Inbox experimental'})
+    ).toBeInTheDocument();
     expect(screen.queryByText('0')).not.toBeInTheDocument();
   });
 });
