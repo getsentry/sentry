@@ -16,7 +16,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceMetricListItem} from 'sentry/views/explore/metrics/metricDescriptions/types';
 
-const BRIEF_MAX_LENGTH = 280;
+export const BRIEF_MAX_LENGTH = 280;
 
 interface EditMetricDescriptionModalProps extends ModalRenderProps {
   metric: TraceMetricListItem;

@@ -1,12 +1,14 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
@@ -30,7 +32,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {EditMetricDescriptionModal} from 'sentry/views/explore/metrics/metricDescriptions/editMetricDescriptionModal';
+import {
+  BRIEF_MAX_LENGTH,
+  EditMetricDescriptionModal,
+} from 'sentry/views/explore/metrics/metricDescriptions/editMetricDescriptionModal';
 import type {TraceMetricListItem} from 'sentry/views/explore/metrics/metricDescriptions/types';
 import {useMetricDescriptionsQueryOptions} from 'sentry/views/explore/metrics/metricDescriptions/useMetricDescriptions';
 import {
@@ -138,6 +143,38 @@ function MetricDescriptionsBody({datePageFilterProps}: MetricDescriptionsBodyPro
     ));
   };
 
+  const openViewModal = (metric: TraceMetricListItem) => {
+    openModal(({Header, Body}) => (
+      <Fragment>
+        <Header closeButton>
+          <Heading as="h4">{metric.name}</Heading>
+        </Header>
+        <Body>
+          <Stack gap="xl">
+            {metric.context?.brief ? (
+              <Stack gap="xs">
+                <Text size="sm" bold variant="muted">
+                  {t('Brief')}
+                </Text>
+                <Text>{metric.context.brief}</Text>
+              </Stack>
+            ) : null}
+            {metric.context?.details?.length ? (
+              <Stack gap="xs">
+                <Text size="sm" bold variant="muted">
+                  {t('Additional context')}
+                </Text>
+                {metric.context.details.map((detail, i) => (
+                  <Text key={i}>{detail}</Text>
+                ))}
+              </Stack>
+            ) : null}
+          </Stack>
+        </Body>
+      </Fragment>
+    ));
+  };
+
   return (
     <BodyContainer>
       <LinkButton
@@ -194,54 +231,73 @@ function MetricDescriptionsBody({datePageFilterProps}: MetricDescriptionsBodyPro
         ) : metrics.length === 0 ? (
           <SimpleTable.Empty>{t('No metrics found.')}</SimpleTable.Empty>
         ) : (
-          metrics.map(metric => (
-            <SimpleTable.Row key={`${metric.name}:${metric.type}`}>
-              <SimpleTable.RowCell>
-                <Text bold monospace>
-                  {metric.name}
-                </Text>
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                <Text>
-                  {metric.type}
-                  {metric.unit ? ` (${metric.unit})` : ''}
-                </Text>
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                {metric.context?.brief ? (
-                  <Text>{metric.context.brief}</Text>
-                ) : (
-                  <Text variant="muted">{t('No description')}</Text>
-                )}
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                {metric.context?.details?.length ? (
-                  <Text>{metric.context.details.join(' ')}</Text>
-                ) : (
-                  <Text variant="muted">{'—'}</Text>
-                )}
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                <Text variant="muted">
-                  {defined(metric.lastSeen)
-                    ? // `lastSeen` is max(timestamp_precise) in nanoseconds;
-                      // convert to milliseconds for date formatting.
-                      getFormattedDate(metric.lastSeen / 1_000_000, 'lll')
-                    : '—'}
-                </Text>
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell justify="end">
-                <Button
-                  size="xs"
-                  icon={<IconEdit />}
-                  aria-label={t('Edit description for %s', metric.name)}
-                  onClick={() => openEditModal(metric)}
-                >
-                  {t('Edit')}
-                </Button>
-              </SimpleTable.RowCell>
-            </SimpleTable.Row>
-          ))
+          metrics.map(metric => {
+            const detailsText = metric.context?.details?.join(' ') ?? '';
+            const isDetailsTruncated = detailsText.length > BRIEF_MAX_LENGTH;
+            return (
+              <SimpleTable.Row key={`${metric.name}:${metric.type}`}>
+                <SimpleTable.RowCell>
+                  <Text bold monospace>
+                    {metric.name}
+                  </Text>
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
+                  <Text>
+                    {metric.type}
+                    {metric.unit ? ` (${metric.unit})` : ''}
+                  </Text>
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
+                  {metric.context?.brief ? (
+                    <Text>{metric.context.brief}</Text>
+                  ) : (
+                    <Text variant="muted">{t('No description')}</Text>
+                  )}
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
+                  {detailsText ? (
+                    <Flex gap="sm" align="center">
+                      <Text>
+                        {isDetailsTruncated
+                          ? `${detailsText.slice(0, BRIEF_MAX_LENGTH)}…`
+                          : detailsText}
+                      </Text>
+                      {isDetailsTruncated ? (
+                        <Button
+                          size="xs"
+                          variant="link"
+                          onClick={() => openViewModal(metric)}
+                        >
+                          {t('View full')}
+                        </Button>
+                      ) : null}
+                    </Flex>
+                  ) : (
+                    <Text variant="muted">{'—'}</Text>
+                  )}
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
+                  <Text variant="muted">
+                    {defined(metric.lastSeen)
+                      ? // `lastSeen` is max(timestamp_precise) in nanoseconds;
+                        // convert to milliseconds for date formatting.
+                        getFormattedDate(metric.lastSeen / 1_000_000, 'lll')
+                      : '—'}
+                  </Text>
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell justify="end">
+                  <Button
+                    size="xs"
+                    icon={<IconEdit />}
+                    aria-label={t('Edit description for %s', metric.name)}
+                    onClick={() => openEditModal(metric)}
+                  >
+                    {t('Edit')}
+                  </Button>
+                </SimpleTable.RowCell>
+              </SimpleTable.Row>
+            );
+          })
         )}
       </StyledSimpleTable>
 
