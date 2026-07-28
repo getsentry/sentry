@@ -94,7 +94,7 @@ class TestWorkflowEngineSerializer(TestCase):
         self.expected = {
             "id": str(self.alert_rule.id),
             "name": self.detector.name,
-            "organizationId": str(self.detector.project.organization_id),
+            "organizationId": str(self.detector.linked_project.organization_id),
             "status": AlertRuleStatus.PENDING.value,
             "queryType": self.alert_rule.snuba_query.type,
             "dataset": self.alert_rule.snuba_query.dataset,

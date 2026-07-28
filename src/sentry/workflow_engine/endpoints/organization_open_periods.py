@@ -53,7 +53,7 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         except Detector.DoesNotExist:
             raise ValidationError({"detectorId": "Detector not found"})
 
-        if detector.project.organization_id != organization.id:
+        if detector.linked_project.organization_id != organization.id:
             raise ValidationError({"detectorId": "Detector not found"})
 
         return detector
