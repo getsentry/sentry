@@ -84,7 +84,11 @@ describe('LinkButton', () => {
   it('tracks internal links once and calls the click handler once', async () => {
     const onClick = jest.fn();
     const {tracking} = renderWithTracking(
-      <LinkButton to="/some/route" onClick={onClick}>
+      <LinkButton
+        to="/organizations/customer-org/issues"
+        onClick={onClick}
+        analyticsEventKey="link_button.clicked"
+      >
         Open
       </LinkButton>
     );
@@ -92,6 +96,12 @@ describe('LinkButton', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Open'}));
 
     expect(tracking).toHaveBeenCalledTimes(1);
+    expect(tracking).toHaveBeenCalledWith(
+      expect.objectContaining({
+        analyticsEventKey: 'link_button.clicked',
+        analyticsParams: {},
+      })
+    );
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 

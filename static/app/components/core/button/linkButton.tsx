@@ -110,7 +110,15 @@ const StyledLinkButton = styled(
     }
 
     if ('href' in props && props.href) {
-      const {external, ...rest} = props;
+      const {
+        external,
+        analyticsEventKey: _analyticsEventKey,
+        analyticsEventName: _analyticsEventName,
+        analyticsParams: _analyticsParams,
+        busy: _busy,
+        variant: _variant,
+        ...rest
+      } = props;
       return (
         <a
           {...rest}
@@ -126,6 +134,11 @@ const StyledLinkButton = styled(
       replace: _r,
       preventScrollReset: _p,
       openInNewTab: _o,
+      analyticsEventKey: _analyticsEventKey,
+      analyticsEventName: _analyticsEventName,
+      analyticsParams: _analyticsParams,
+      busy: _busy,
+      variant: _variant,
       ...rest
       // cast because props cannot be statically determined at this point
     } = props as any;
@@ -133,10 +146,15 @@ const StyledLinkButton = styled(
   },
   {
     shouldForwardProp: prop =>
+      prop === 'analyticsEventKey' ||
+      prop === 'analyticsEventName' ||
+      prop === 'analyticsParams' ||
+      prop === 'busy' ||
       prop === 'external' ||
       prop === 'replace' ||
       prop === 'preventScrollReset' ||
       prop === 'openInNewTab' ||
+      prop === 'variant' ||
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<Omit<LinkButtonProps, 'size'> & {size: NonNullable<LinkButtonProps['size']>}>`
