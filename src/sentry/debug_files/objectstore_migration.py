@@ -15,6 +15,7 @@ from objectstore_client import RequestError, Session
 from urllib3.exceptions import HTTPError
 
 from sentry import options
+from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.models.debugfile import (
     ProjectDebugFile,
     _dif_file_extension,
@@ -235,9 +236,13 @@ def _prepare_object(debug_file: ProjectDebugFile) -> VerifiedObject | None:
         if verified is not None:
             return verified
 
+    # Derive format from the legacy File MIME. Do not use debug_file.file_format:
+    # with storage_path set + objectstore-debugfiles-read, get_content_type() may
+    # assert on a null ProjectDebugFile.content_type that dual-write never filled.
+    file_format = KNOWN_DIF_FORMATS.get(content_type.lower(), "unknown")
     filename = (
         f"{os.path.basename(debug_file.debug_id)}"
-        f"{_dif_file_extension(debug_file.file_format, debug_file.file_type)}"
+        f"{_dif_file_extension(file_format, debug_file.file_type)}"
     )
     with file.getfile() as source:
         storage_path = _upload_dif_to_objectstore(

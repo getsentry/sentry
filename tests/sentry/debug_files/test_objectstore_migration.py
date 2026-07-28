@@ -131,6 +131,66 @@ class DebugFileObjectstoreMigrationTest(TestCase):
         self.debug_file.refresh_from_db()
         assert self.debug_file.file_id is not None
 
+    def test_filename_uses_file_headers_when_debugfile_content_type_is_null(self) -> None:
+        """Partial dual-write: storage_path set, content_type column null.
+
+        Accessing debug_file.file_format with objectstore-debugfiles-read on would
+        AssertionError in get_content_type(). Migration must not go through that path.
+        """
+        source = self.debug_file.file
+        assert source is not None
+        payload = b"debug-file-contents"
+
+        self.debug_file.storage_path = "existing-os-key"
+        self.debug_file.content_type = None
+        self.debug_file.save(update_fields=["storage_path", "content_type"])
+
+        # Prove the footgun still exists on the model when OS-read is preferred.
+        with (
+            patch(
+                "sentry.models.debugfile.features.has",
+                return_value=True,
+            ),
+            pytest.raises(AssertionError),
+        ):
+            _ = self.debug_file.file_format
+
+        verify_response = MagicMock()
+        verify_response.metadata.content_type = None
+        verify_response.payload = BytesIO(payload)
+
+        session = MagicMock()
+        # Reuse miss, then successful post-upload verify.
+        session.get.side_effect = [None, verify_response]
+
+        captured: dict[str, str] = {}
+
+        def capture_upload(session_arg, source_arg, content_type, file_size, filename):
+            captured["filename"] = filename
+            captured["content_type"] = content_type
+            return "os-key"
+
+        with (
+            patch(
+                "sentry.debug_files.objectstore_migration.get_debug_files_session",
+                return_value=session,
+            ),
+            patch(
+                "sentry.debug_files.objectstore_migration._upload_dif_to_objectstore",
+                side_effect=capture_upload,
+            ),
+        ):
+            size = self.migrate()
+
+        assert size == len(payload)
+        assert captured["content_type"] == "application/x-mach-binary"
+        # Same naming dual-write uses (basename(debug_id) + format extension).
+        # Fixture has no file_type, so macho extension is "".
+        assert captured["filename"] == self.debug_file.debug_id
+        self.debug_file.refresh_from_db()
+        assert self.debug_file.file_id is None
+        assert self.debug_file.content_type == "application/x-mach-binary"
+
     def test_cutover_uses_legacy_content_type_not_objectstore_metadata(self) -> None:
         """Objectstore may omit/normalize MIME; cutover must keep File headers."""
         source = self.debug_file.file
