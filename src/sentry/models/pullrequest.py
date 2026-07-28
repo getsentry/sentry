@@ -39,6 +39,13 @@ class PullRequestLifecycleState(models.TextChoices):
     SUPERSEDED = "superseded"
 
 
+def is_open_pull_request_state(state: str | None) -> bool:
+    return state is None or state in (
+        PullRequestLifecycleState.OPEN,
+        PullRequestLifecycleState.LOCKED,
+    )
+
+
 class PullRequestAttributionSignalType(models.TextChoices):
     SENTRY_APP = "sentry_app"
     SEER_DELEGATED_CURSOR = "seer_delegated:cursor"
