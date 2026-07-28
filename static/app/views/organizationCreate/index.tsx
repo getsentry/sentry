@@ -18,6 +18,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {getSignupLocalities} from 'sentry/utils/cells';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -51,9 +52,8 @@ type CreateOrganizationPayload = {
 };
 
 function OrganizationCreate() {
-  const termsUrl = ConfigStore.get('termsUrl');
-  const privacyUrl = ConfigStore.get('privacyUrl');
-  const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const {termsUrl, privacyUrl, isSelfHosted, features, links} =
+    useLegacyStore(ConfigStore);
   const relocationUrl = normalizeUrl('/relocation/');
   const localityOptions = getSignupLocalities();
 
@@ -94,10 +94,10 @@ function OrganizationCreate() {
         url: '/organizations/',
         method: 'POST',
         data,
-        options: {host: ConfigStore.get('links').sentryUrl},
+        options: {host: links.sentryUrl},
       }),
     onSuccess: createdOrg => {
-      const hasCustomerDomain = ConfigStore.get('features').has('system:multi-region');
+      const hasCustomerDomain = features.has('system:multi-region');
       // One-shot seed for sticky journey origin on /projects/new/. Must ride on
       // the URL: this redirect is a full page reload
       // (testableWindowLocation.assign), often onto a customer-domain host, so
@@ -256,7 +256,7 @@ function OrganizationCreate() {
                 </form.AppField>
               )}
 
-              {!isSelfHosted && ConfigStore.get('features').has('relocation:enabled') && (
+              {!isSelfHosted && features.has('relocation:enabled') && (
                 <Text as="p">
                   {tct('[relocationLink:Relocating from self-hosted?]', {
                     relocationLink: <Link to={relocationUrl} />,
