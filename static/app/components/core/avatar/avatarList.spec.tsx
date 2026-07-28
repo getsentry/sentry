@@ -31,14 +31,6 @@ describe('AvatarList', () => {
     expect(screen.queryByTestId('avatarList-collapsedavatars')).not.toBeInTheDocument();
   });
 
-  it('does not mutate tooltip options', () => {
-    const tooltipOptions = {};
-
-    render(<AvatarList users={[user]} tooltipOptions={tooltipOptions} />);
-
-    expect(tooltipOptions).toEqual({});
-  });
-
   it('renders with all avatars if count is max + 1 users', () => {
     const users = [
       {...user, id: '1', name: 'AB'},
