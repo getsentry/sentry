@@ -1227,6 +1227,12 @@ const MultilineTextWrapper = styled('div')`
   &:not(:last-child) {
     margin-bottom: ${p => p.theme.space.md};
   }
+
+  /* Tables scroll on their own, so let their columns take natural widths
+   * instead of being broken mid-word to fit the container. */
+  table {
+    word-break: normal;
+  }
 `;
 
 function MultilineJSON({
