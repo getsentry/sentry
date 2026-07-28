@@ -353,6 +353,10 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert job.status == "completed"
         assert mock_fetch_rows.call_count == 3
         assert mock_delete_matched_rows.call_count == 3
+        # countDeleted must reflect all three windows (1 replay each).
+        assert job.offset == 3
+        # range_start must never be mutated — the API always returns the original value.
+        assert job.range_start == range_start
 
         # Verify each call used the correct window boundaries.
         calls = mock_fetch_rows.call_args_list
@@ -412,6 +416,10 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         job.refresh_from_db()
         assert job.status == "completed"
         assert mock_fetch_rows.call_count == 3
+        # 2 replays deleted across windows (window 1 page 1 + page 2), window 2 had 0.
+        assert job.offset == 2
+        # range_start must never be mutated — the API always returns the original value.
+        assert job.range_start == range_start
 
         calls = mock_fetch_rows.call_args_list
         # Window 1, page 1 — offset 0

@@ -191,6 +191,9 @@ def _delete_if_exists(filename: str) -> None:
         pass
 
 
+CHUNK_SIZE_DAYS = 7
+
+
 @instrumented_task(
     name="sentry.replays.tasks.run_bulk_replay_delete_job",
     namespace=replays_long_tasks,
@@ -203,7 +206,12 @@ def _delete_if_exists(filename: str) -> None:
     silo_mode=SiloMode.CELL,
 )
 def run_bulk_replay_delete_job(
-    replay_delete_job_id: int, offset: int, limit: int = 100, has_seer_data: bool = False
+    replay_delete_job_id: int,
+    offset: int,
+    limit: int = 100,
+    has_seer_data: bool = False,
+    total_deleted: int = 0,
+    window_offset_days: int = 0,
 ) -> None:
     """Replay bulk deletion task.
 
@@ -223,15 +231,17 @@ def run_bulk_replay_delete_job(
     if job.status != DeletionJobStatus.IN_PROGRESS:
         return None
 
-    # Chunk the query into 7-day windows to avoid full table scans in ClickHouse.
-    window_end = min(job.range_start + timedelta(days=7), job.range_end)
+    # Derive the current window boundaries from the immutable job range and the cursor.
+    # Chunking into 7-day windows avoids full table scans in ClickHouse.
+    window_start = job.range_start + timedelta(days=window_offset_days)
+    window_end = min(window_start + timedelta(days=CHUNK_SIZE_DAYS), job.range_end)
 
     try:
         # Delete the replays within a limited range. If more replays exist an incremented offset value
         # is returned.
         results = fetch_rows_matching_pattern(
             project_id=job.project_id,
-            start=job.range_start,
+            start=window_start,
             end=window_end,
             query=job.query,
             environment=job.environments,
@@ -255,30 +265,44 @@ def run_bulk_replay_delete_job(
         job.save()
         raise
 
-    # Compute the next offset to start from. If no further processing is required then this serves
-    # as a count of replays deleted.
-    next_offset = offset + len(results["rows"])
+    # `next_offset` is the SQL pagination cursor for the current window.
+    # `new_total` is the running count of all replays deleted across all windows.
+    num_rows_deleted = len(results["rows"])
+    next_offset = offset + num_rows_deleted
+    new_total = total_deleted + num_rows_deleted
 
     if results["has_more"]:
-        # Checkpoint before continuing.
-        job.offset = next_offset
+        # Checkpoint before continuing within the same window.
+        job.offset = new_total
         job.save()
         run_bulk_replay_delete_job.delay(
-            job.id, next_offset, limit=limit, has_seer_data=has_seer_data
+            job.id,
+            next_offset,
+            limit=limit,
+            has_seer_data=has_seer_data,
+            total_deleted=new_total,
+            window_offset_days=window_offset_days,
         )
         return None
 
     # Current window exhausted. Check if more time windows remain.
     if window_end < job.range_end:
-        # Advance to the next 7-day window and reset the offset.
-        job.range_start = window_end
-        job.offset = next_offset
+        # Advance to the next 7-day window by incrementing the cursor in the task args.
+        # job.range_start is never mutated so the API always returns the original range.
+        job.offset = new_total
         job.save()
-        run_bulk_replay_delete_job.delay(job.id, 0, limit=limit, has_seer_data=has_seer_data)
+        run_bulk_replay_delete_job.delay(
+            job.id,
+            0,
+            limit=limit,
+            has_seer_data=has_seer_data,
+            total_deleted=new_total,
+            window_offset_days=window_offset_days + CHUNK_SIZE_DAYS,
+        )
         return None
 
     # All windows processed. Mark the job as completed.
-    job.offset = next_offset
+    job.offset = new_total
     job.status = DeletionJobStatus.COMPLETED
     job.save()
     return None
