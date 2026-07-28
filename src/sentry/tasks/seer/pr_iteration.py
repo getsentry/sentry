@@ -33,6 +33,7 @@ from taskbroker_client.retry import Retry
 from sentry import options
 from sentry.cache import default_cache
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -584,6 +585,12 @@ def trigger_pr_iteration_from_comment(
         )
         return None
 
+    actor_user = find_user_for_scm_actor(
+        organization_id=organization_id,
+        integration_id=integration_id,
+        username=github_username,
+        external_id=comment.user.id if comment.user else None,
+    )
     group_id = agent_state.metadata.get("group_id") if agent_state.metadata else None
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
@@ -595,6 +602,7 @@ def trigger_pr_iteration_from_comment(
         feedback=feedback_obj,
         referrer=AutofixReferrer.GITHUB_PR_COMMENT,
         run_state=agent_state,
+        actor_user_id=actor_user.id if actor_user else None,
     )
     trigger_consume_pr_iteration_feedback(
         run_id=agent_state.run_id,
@@ -752,6 +760,7 @@ def trigger_pr_iteration_from_review(
     pr_number: int,
     review_id: int,
     author_username: str | None = None,
+    author_external_id: str | int | None = None,
     author_is_bot: bool = False,
 ) -> None:
     """
@@ -854,6 +863,16 @@ def trigger_pr_iteration_from_review(
         logger.info("autofix.pr_iteration.review_trigger.no_write_access", extra=log_extra)
         return None
 
+    actor_user = (
+        find_user_for_scm_actor(
+            organization_id=organization_id,
+            integration_id=integration_id,
+            username=author_username,
+            external_id=author_external_id,
+        )
+        if not author_is_bot
+        else None
+    )
     inline_comments = _fetch_all_review_comments(scm, pr_number=pr_number, review_id=review_id)
     review = _fetch_review_body(scm, pr_number=pr_number, review_id=review_id)
     review_body = (review.get("body") or "").strip() if review else None
@@ -893,6 +912,7 @@ def trigger_pr_iteration_from_review(
             feedback=feedback_obj,
             referrer=AutofixReferrer.GITHUB_PR_REVIEW,
             run_state=agent_state,
+            actor_user_id=actor_user.id if actor_user else None,
         )
 
     # A single consume pass drains everything queued above; trigger once using
