@@ -353,7 +353,7 @@ export function EditAccessSelector({
               !userCanEditDashboardPermissions ||
               isEqual(getDashboardPermissions(), {
                 ...dashboard.permissions,
-                teamsWithEditAccess: dashboard.permissions?.teamsWithEditAccess?.sort(
+                teamsWithEditAccess: dashboard.permissions?.teamsWithEditAccess?.toSorted(
                   (a, b) => a - b
                 ),
               })
