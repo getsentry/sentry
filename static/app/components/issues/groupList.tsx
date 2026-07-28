@@ -95,7 +95,14 @@ type State = {
   memberList?: ReturnType<typeof indexMembersByProject>;
 };
 
-const DEFAULT_COLUMNS: GroupListColumn[] = ['graph', 'event', 'users', 'assignee'];
+const DEFAULT_COLUMNS: GroupListColumn[] = [
+  'graph',
+  'event',
+  'users',
+  'assignee',
+  'firstSeen',
+  'lastSeen',
+];
 
 export function GroupList({
   queryParams,
@@ -306,10 +313,7 @@ export function GroupList({
     dataUpdatedAt,
   ]);
 
-  const columns = useMemo(
-    () => [...withColumns, 'firstSeen' as const, 'lastSeen' as const],
-    [withColumns]
-  );
+  const columns = withColumns;
 
   if (hasError) {
     if (typeof renderErrorMessage === 'function' && errorData) {
