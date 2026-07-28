@@ -44,7 +44,9 @@ export function EmptyState({
             </Text>
           )}
         </Stack>
-        <Flex gap="md">{action}</Flex>
+        <Flex gap="md" flexGrow={1} align={{sm: 'center'}}>
+          {action}
+        </Flex>
       </Stack>
     </Flex>
   );
