@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+import {useIsInsideInteractiveElement} from '@sentry/scraps/useIsInsideInteractiveElement';
 
 import {IconBroadcast} from 'sentry/icons/iconBroadcast';
 import {IconBug} from 'sentry/icons/iconBug';
@@ -44,9 +45,17 @@ export interface FeatureBadgeProps extends Omit<TagProps, 'children' | 'variant'
 export function FeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
   const title = tooltipProps?.title ?? defaultTitles[type] ?? '';
 
+  const {ref, isInsideInteractiveElement} = useIsInsideInteractiveElement(props.ref);
+
   return (
     <Tooltip title={title} position="right" {...tooltipProps} skipWrapper>
-      <SquareTag tabIndex={0} variant={variantMap[type]} aria-label={type} {...props}>
+      <SquareTag
+        {...props}
+        tabIndex={isInsideInteractiveElement ? undefined : 0}
+        variant={variantMap[type]}
+        aria-label={type}
+        ref={ref}
+      >
         {iconMap[type]}
       </SquareTag>
     </Tooltip>
