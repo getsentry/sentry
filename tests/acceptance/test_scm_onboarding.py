@@ -118,15 +118,21 @@ class ScmOnboardingTest(AcceptanceTestCase):
             },
         ]
 
-        mock_platforms = [
-            {
-                "platform": "python-django",
-                "language": "Python",
-                "bytes": 50000,
-                "confidence": "high",
-                "priority": 1,
-            }
-        ]
+        mock_platforms = {
+            "platforms": [
+                {
+                    "platform": "python-django",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "high",
+                    "priority": 1,
+                }
+            ],
+            "k_candidate": 0,
+            "k_reads_realized": 0,
+            "tree_entry_count": 0,
+            "is_truncated": False,
+        }
 
         with (
             self.feature(
@@ -144,7 +150,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 return_value={"id": "12345"},
             ),
             mock.patch(
-                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
                 return_value=mock_platforms,
             ),
         ):
@@ -198,15 +204,21 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 "external_id": "12345",
             },
         ]
-        mock_platforms = [
-            {
-                "platform": "python-django",
-                "language": "Python",
-                "bytes": 50000,
-                "confidence": "high",
-                "priority": 1,
-            }
-        ]
+        mock_platforms = {
+            "platforms": [
+                {
+                    "platform": "python-django",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "high",
+                    "priority": 1,
+                }
+            ],
+            "k_candidate": 0,
+            "k_reads_realized": 0,
+            "tree_entry_count": 0,
+            "is_truncated": False,
+        }
 
         with (
             self.feature(
@@ -224,7 +236,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 return_value={"id": "12345"},
             ),
             mock.patch(
-                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
                 return_value=mock_platforms,
             ),
         ):
@@ -277,11 +289,11 @@ class ScmOnboardingTest(AcceptanceTestCase):
         ]
 
         # Key off "frontend" — a substring unique to the second repo — so the
-        # match holds whether detect_platforms/_validate_repo receive the repo
+        # match holds whether detect_platforms_multi/_validate_repo receive the repo
         # name or the identifier.
-        def platforms_for(client: object, repo: str) -> list[dict[str, object]]:
+        def platforms_for(client: object, repo: str) -> dict[str, object]:
             if "frontend" in repo:
-                return [
+                platforms: list[dict[str, object]] = [
                     {
                         "platform": "javascript-react",
                         "language": "JavaScript",
@@ -290,15 +302,23 @@ class ScmOnboardingTest(AcceptanceTestCase):
                         "priority": 1,
                     }
                 ]
-            return [
-                {
-                    "platform": "python-django",
-                    "language": "Python",
-                    "bytes": 50000,
-                    "confidence": "high",
-                    "priority": 1,
-                }
-            ]
+            else:
+                platforms = [
+                    {
+                        "platform": "python-django",
+                        "language": "Python",
+                        "bytes": 50000,
+                        "confidence": "high",
+                        "priority": 1,
+                    }
+                ]
+            return {
+                "platforms": platforms,
+                "k_candidate": 0,
+                "k_reads_realized": 0,
+                "tree_entry_count": 0,
+                "is_truncated": False,
+            }
 
         def validate_for(client: object, installation: object, repo: str) -> dict[str, str]:
             return {"id": "22222" if "frontend" in repo else "11111"}
@@ -319,7 +339,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 side_effect=validate_for,
             ),
             mock.patch(
-                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
                 side_effect=platforms_for,
             ),
         ):
@@ -422,15 +442,21 @@ class ScmOnboardingTest(AcceptanceTestCase):
             },
         ]
 
-        mock_platforms = [
-            {
-                "platform": "python-django",
-                "language": "Python",
-                "bytes": 50000,
-                "confidence": "high",
-                "priority": 1,
-            }
-        ]
+        mock_platforms = {
+            "platforms": [
+                {
+                    "platform": "python-django",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "high",
+                    "priority": 1,
+                }
+            ],
+            "k_candidate": 0,
+            "k_reads_realized": 0,
+            "tree_entry_count": 0,
+            "is_truncated": False,
+        }
 
         mock_installation_response = {
             "id": "12345",
@@ -460,7 +486,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 return_value={"id": "12345"},
             ),
             mock.patch(
-                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
                 return_value=mock_platforms,
             ),
             mock.patch(
@@ -595,7 +621,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 return_value={"id": "12345"},
             ),
             mock.patch(
-                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
                 side_effect=ApiError("GitHub API error"),
             ),
         ):
@@ -839,15 +865,21 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 "external_id": "12345",
             },
         ]
-        mock_platforms = [
-            {
-                "platform": "python-django",
-                "language": "Python",
-                "bytes": 50000,
-                "confidence": "high",
-                "priority": 1,
-            }
-        ]
+        mock_platforms = {
+            "platforms": [
+                {
+                    "platform": "python-django",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "high",
+                    "priority": 1,
+                }
+            ],
+            "k_candidate": 0,
+            "k_reads_realized": 0,
+            "tree_entry_count": 0,
+            "is_truncated": False,
+        }
 
         with (
             self.feature(
@@ -865,7 +897,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 return_value={"id": "12345"},
             ),
             mock.patch(
-                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms",
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
                 return_value=mock_platforms,
             ),
         ):
