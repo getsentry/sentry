@@ -2,11 +2,13 @@
 
 Teapot is a sibling to Symbolicator that decodes NVIDIA Aftermath `.nv-gpudmp`
 dumps. It's synchronous (one request/response, no polling) with a bounded retry
-on transient 5xx. Two wire formats, picked per request:
+on transient 5xx.
 
-* JSON + storage_url + token when every attachment is in objectstore (bytes
-  stay in objectstore, mirroring Symbolicator's minidump path).
-* multipart raw bytes otherwise (legacy V1 storage / self-hosted).
+Attachments are always passed by reference: the dump and each shader-debug
+`.nvdbg` live in objectstore, and we hand teapot a short-lived presigned GET URL
+per attachment. Teapot fetches the bytes directly from objectstore; they never
+pass through the Sentry worker, and no bearer token is exchanged (the presigned
+URL is self-authenticating).
 """
 
 from __future__ import annotations
@@ -14,7 +16,8 @@ from __future__ import annotations
 import logging
 import re
 import time
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
+from datetime import timedelta
 from typing import Any, Protocol
 
 import orjson
@@ -23,7 +26,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry import options
-from sentry.objectstore import get_attachments_session, get_symbolicator_url
+from sentry.objectstore import get_attachments_session, maybe_rewrite_url_for_symbolicator
 
 logger = logging.getLogger(__name__)
 
@@ -51,27 +54,25 @@ def _uid_from_nvdbg_filename(name: str) -> str | None:
 class TeapotAttachment(Protocol):
     """The ``CachedAttachment`` surface the client needs, as a structural type.
 
-    Lets callers pass a real ``CachedAttachment``, the ``EventAttachment``
-    adapter from the async task, or a test double. ``name`` is the attachment
-    filename — for a shader-debug ``.nvdbg`` it carries the
-    ``shader_debug_info_uid`` teapot looks the bytes back up by.
+    Lets callers pass a real ``CachedAttachment`` or a test double. ``name`` is
+    the attachment filename — for a shader-debug ``.nvdbg`` it carries the
+    ``shader_debug_info_uid`` teapot looks the bytes back up by. ``stored_id`` is
+    the objectstore key we presign; every GPU-crash attachment must be stored.
     """
 
     name: str
     stored_id: str | None
 
-    def load_data(self, project: Any) -> bytes: ...
 
-
-def _require_stored_id(att: TeapotAttachment) -> str:
-    # Only the JSON path calls this, gated on `_all_stored`; narrows str | None.
-    assert att.stored_id is not None
-    return att.stored_id
-
+# Presigned GET URLs handed to teapot are valid just long enough to cover the
+# request window (timeout x attempts + backoff), then expire.
+_PRESIGNED_URL_TTL = timedelta(seconds=60)
 
 # Fallbacks; live values come from the `teapot.timeout-seconds` /
-# `teapot.max-attempts` options (see `_timeout` / `_max_attempts`).
-DEFAULT_TIMEOUT = 25
+# `teapot.max-attempts` options (see `_timeout` / `_max_attempts`). The decode is
+# sub-second in practice, so the timeout is deliberately tight — a slow teapot
+# should fail fast rather than hold a worker (and the circuit breaker takes over).
+DEFAULT_TIMEOUT = 5
 DEFAULT_MAX_ATTEMPTS = 2
 
 RETRYABLE_STATUS = (502, 503, 504)
@@ -118,21 +119,13 @@ def _resolve_url() -> str | None:
     return url.rstrip("/") if url else None
 
 
-def _all_stored(dump: TeapotAttachment, shader_debug_info: Iterable[TeapotAttachment]) -> bool:
-    # JSON path requires every attachment in objectstore; else fall to multipart.
-    if not dump.stored_id:
-        return False
-    return all(att.stored_id for att in shader_debug_info)
-
-
 class TeapotClient:
     """Synchronous HTTP client for POST /symbolicate.
 
-    `shader_debug_info` is the list of shader-debug `.nvdbg` attachments (one per
-    shader; an empty list is fine); we key each to teapot by the
-    `shader_debug_info_uid` recovered from its filename. Raises `TeapotUnavailable`
-    on network errors or exhausted 5xx retries — callers treat that as "skip",
-    never fatal.
+    Every attachment (the `.nv-gpudmp` and each shader-debug `.nvdbg`) must be in
+    objectstore; teapot fetches them by presigned URL. Raises `TeapotUnavailable`
+    on network errors, exhausted 5xx retries, or an attachment missing from
+    objectstore — callers treat that as "skip", never fatal.
     """
 
     def __init__(self, project: Any, event_id: str) -> None:
@@ -153,102 +146,56 @@ class TeapotClient:
         headers = {
             "X-Teapot-Version": "1",
             "X-Request-Id": self.event_id,
+            "Content-Type": "application/json",
             # event_id as idempotency key → teapot replays a cached 200 for a
             # retried task instead of re-decoding.
             "Idempotency-Key": self.event_id,
         }
 
-        if _all_stored(dump, shader_debug_info):
-            return self._post_json(url, headers, dump, shader_debug_info)
-        return self._post_multipart(url, headers, dump, shader_debug_info)
-
-    def _post_json(
-        self,
-        url: str,
-        headers: dict[str, str],
-        dump: TeapotAttachment,
-        shader_debug_info: Sequence[TeapotAttachment],
-    ) -> dict[str, Any]:
-        """Pass attachments to teapot by reference — bytes stay in objectstore."""
-
         session = get_attachments_session(self.project.organization_id, self.project.id)
-        dump_url = get_symbolicator_url(session, _require_stored_id(dump))
         body: dict[str, Any] = {
             "event_id": self.event_id,
             "project_id": str(self.project.id),
             "organization_id": str(self.project.organization_id),
-            "dump": {
-                "storage_url": dump_url,
-                "storage_token": session.mint_token(),
-            },
+            "dump": {"storage_url": self._presigned_url(session, dump)},
             "shader_debug_info": [
                 {
                     "uid": _uid_from_nvdbg_filename(att.name) or att.name,
-                    "storage_url": get_symbolicator_url(session, _require_stored_id(att)),
-                    "storage_token": session.mint_token(),
+                    "storage_url": self._presigned_url(session, att),
                 }
                 for att in shader_debug_info
             ],
         }
-        return self._send(
-            url, headers={**headers, "Content-Type": "application/json"}, data=orjson.dumps(body)
+        return self._send(url, headers=headers, data=orjson.dumps(body))
+
+    def _presigned_url(self, session: Any, att: TeapotAttachment) -> str:
+        """Short-lived, self-authenticating GET URL for the attachment in objectstore.
+
+        This mirrors the internal-caller branch of
+        ``objectstore.get_download_redirect_url`` (the recommended presigned-download
+        path, already used for debug-file downloads). Teapot is an internal service
+        like Symbolicator, so it reads straight from Objectstore's internal URL. We
+        inline the branch rather than call the helper because it needs the
+        ``HttpRequest`` it's redirecting to choose internal-vs-cell-proxy, and we're
+        in a background task with no request. Presigned means teapot issues a plain
+        GET with no auth header — unlike Symbolicator today, which still passes
+        ``object_url`` + a minted bearer token.
+        """
+        if not att.stored_id:
+            # GPU-crash attachments are always uploaded to objectstore; if one
+            # isn't, we can't build a presigned URL, so skip rather than inline.
+            raise TeapotUnavailable(f"attachment {att.name!r} is not in objectstore")
+        return maybe_rewrite_url_for_symbolicator(
+            session.presigned_object_url("GET", att.stored_id, duration=_PRESIGNED_URL_TTL)
         )
 
-    def _post_multipart(
-        self,
-        url: str,
-        headers: dict[str, str],
-        dump: TeapotAttachment,
-        shader_debug_info: Sequence[TeapotAttachment],
-    ) -> dict[str, Any]:
-        """Fallback: load bytes and POST them inline when not all in objectstore."""
-
-        data: dict[str, str] = {
-            "event_id": self.event_id,
-            "project_id": str(self.project.id),
-            "organization_id": str(self.project.organization_id),
-        }
-        # One `nv_shader_debug.<uid>` field per shader — teapot keys off the uid
-        # in the field name. A list-of-tuples lets the field name repeat.
-        files: list[tuple[str, tuple[str, bytes, str]]] = [
-            (
-                "upload_file",
-                ("dump.nv-gpudmp", dump.load_data(self.project), "application/octet-stream"),
-            ),
-        ]
-        for att in shader_debug_info:
-            uid = _uid_from_nvdbg_filename(att.name) or att.name
-            files.append(
-                (
-                    f"nv_shader_debug.{uid}",
-                    (
-                        att.name,
-                        att.load_data(self.project),
-                        "application/octet-stream",
-                    ),
-                )
-            )
-        return self._send(url, headers=headers, data=data, files=files)
-
-    def _send(
-        self,
-        url: str,
-        headers: dict[str, str],
-        data: Any = None,
-        files: Any = None,
-    ) -> dict[str, Any]:
+    def _send(self, url: str, headers: dict[str, str], data: bytes) -> dict[str, Any]:
         last_exc: Exception | None = None
         timeout = _timeout()
         attempts = _max_attempts()
         for attempt in range(attempts):
             try:
-                resp = requests.post(
-                    url,
-                    data=data,
-                    files=files,
-                    headers=headers,
-                    timeout=timeout,
-                )
+                resp = requests.post(url, data=data, headers=headers, timeout=timeout)
             except requests.RequestException as e:
                 last_exc = e
                 logger.info(

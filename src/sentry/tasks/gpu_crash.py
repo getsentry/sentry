@@ -22,9 +22,20 @@ from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import gpu_crash_dump_tasks
 from sentry.utils import metrics
+from sentry.utils.circuit_breaker2 import CircuitBreaker, CountBasedTripStrategy
 from sentry.utils.sdk import set_current_event_project
 
 logger = logging.getLogger(__name__)
+
+# Trips after repeated teapot failures so a teapot outage doesn't tie up the GPU
+# pool: while open, tasks skip teapot and save the event unenriched (fail fast,
+# no per-request timeout paid).
+_CIRCUIT_BREAKER_KEY = "teapot.gpu_crash"
+
+
+def _teapot_circuit_breaker() -> CircuitBreaker:
+    config = options.get("teapot.circuit-breaker-config")
+    return CircuitBreaker(_CIRCUIT_BREAKER_KEY, config, CountBasedTripStrategy.from_config(config))
 
 
 def submit_symbolicate_gpu_crash(
@@ -123,6 +134,11 @@ def _try_symbolicate(data: Any, project_id: int, event_id: str) -> bool:
             return False
         shaders = find_all_shader_debug_attachments(data)
 
+        breaker = _teapot_circuit_breaker()
+        if not breaker.should_allow_request():
+            metrics.incr("tasks.gpu_crash.skipped", tags={"reason": "circuit_open"})
+            return False
+
         metrics.incr(
             "tasks.gpu_crash.request",
             tags={"shader_debug_count": str(min(len(shaders), 10))},
@@ -130,8 +146,10 @@ def _try_symbolicate(data: Any, project_id: int, event_id: str) -> bool:
         with metrics.timer("tasks.gpu_crash.teapot"):
             response = submit_to_teapot(project, event_id, dump, shaders)
         if response is None:
+            breaker.record_error()
             metrics.incr("tasks.gpu_crash.teapot_unavailable")
             return False
+        breaker.record_success()
 
         applied = apply_gpu_crash_symbolication(data, response)
         metrics.incr(
