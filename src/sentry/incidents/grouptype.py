@@ -19,6 +19,7 @@ from sentry.incidents.utils.types import (
 )
 from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA
 from sentry.issues.grouptype import GroupCategory, GroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.snuba.dataset import Dataset
@@ -248,7 +249,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
                 evidence_data={
                     **self.build_detector_evidence_data(group_evaluation, data_packet, priority),
                 },
-                evidence_display=[],  # XXX: may need to pass more info here for the front end
+                evidence_display=self.build_evidence_display(snuba_query, data_packet),
                 type=MetricIssue,
                 level="error",
                 culprit="",
@@ -273,14 +274,40 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
             return grouped
         return data_packet.packet.values["value"]
 
-    def construct_title(
-        self,
-        snuba_query: SnubaQuery,
-        detector_trigger: DataCondition,
-        priority: DetectorPriorityLevel,
-    ) -> str:
-        comparison_delta = self.detector.config.get("comparison_delta")
-        detection_type = self.detector.config.get("detection_type")
+    def build_evidence_display(
+        self, snuba_query: SnubaQuery, data_packet: DataPacket[MetricUpdate]
+    ) -> list[IssueEvidence]:
+        """The observed value that breached, labeled with the metric it measures.
+
+        A single row by design: the metric's definition (threshold, query,
+        environment, detection type) is current detector state served by the
+        detector-context path, whereas this is the point-in-time breach value —
+        the one fact that only the occurrence has. Kept to one row to honor the
+        one-important-row-per-occurrence convention, since space-constrained
+        integrations surface only the first.
+        """
+        # Read values["value"] directly rather than via extract_value(), whose
+        # anomaly-detection branch wraps the result in a group-keyed dict.
+        value = data_packet.packet.values.get("value")
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            return []
+
+        aggregate, _ = self.format_aggregate(snuba_query)
+        return [
+            IssueEvidence(
+                name=f"Observed value ({aggregate})",
+                value=str(value),
+                important=True,
+            )
+        ]
+
+    def format_aggregate(self, snuba_query: SnubaQuery) -> tuple[str, str]:
+        """Return (display label, normalized aggregate key) for a query's aggregate.
+
+        The two differ: the crash-rate branch strips the `AS <alias>` suffix off the
+        key, and that stripped key — not the display label — is what
+        `get_alert_type_from_aggregate_dataset` expects.
+        """
         agg_display_key = snuba_query.aggregate
 
         if is_mri_field(agg_display_key):
@@ -294,6 +321,18 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
             aggregate = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, agg_display_key)
         else:
             aggregate = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, agg_display_key)
+
+        return aggregate, agg_display_key
+
+    def construct_title(
+        self,
+        snuba_query: SnubaQuery,
+        detector_trigger: DataCondition,
+        priority: DetectorPriorityLevel,
+    ) -> str:
+        comparison_delta = self.detector.config.get("comparison_delta")
+        detection_type = self.detector.config.get("detection_type")
+        aggregate, agg_display_key = self.format_aggregate(snuba_query)
 
         if detection_type == "dynamic":
             alert_type = aggregate

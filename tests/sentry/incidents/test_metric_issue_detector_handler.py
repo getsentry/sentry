@@ -1,14 +1,20 @@
+from datetime import UTC, datetime
+
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.grouptype import (
     MetricIssueDetectorHandler,
     SessionsAggregate,
     get_alert_type_from_aggregate_dataset,
 )
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    AnomalyDetectionUpdate,
+)
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.workflow_engine.models import DataCondition
+from sentry.workflow_engine.models import DataCondition, DataPacket
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.data_packet import process_data_packet
 from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
@@ -109,6 +115,69 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
 
         self.verify_issue_occurrence(occurrence, evidence_data, self.critical_detector_trigger)
 
+    def test_evidence_display_observed_value(self) -> None:
+        value = self.critical_detector_trigger.comparison + 1
+        data_packet = self.create_subscription_packet(value)
+
+        occurrence = self.process_packet_and_return_result(data_packet)
+        assert isinstance(occurrence, IssueOccurrence)
+
+        # snuba_query.aggregate is "count()", mapped by QUERY_AGGREGATION_DISPLAY.
+        assert len(occurrence.evidence_display) == 1
+        evidence = occurrence.evidence_display[0]
+        assert evidence.name == "Observed value (Number of events)"
+        assert evidence.value == str(value)
+        assert evidence.important is True
+
+    def test_evidence_display_has_exactly_one_important_row(self) -> None:
+        """Space-constrained integrations surface only the first important row."""
+        data_packet = self.create_subscription_packet(self.critical_detector_trigger.comparison + 1)
+
+        occurrence = self.process_packet_and_return_result(data_packet)
+        assert isinstance(occurrence, IssueOccurrence)
+
+        assert sum(1 for e in occurrence.evidence_display if e.important) == 1
+        assert occurrence.important_evidence_display == occurrence.evidence_display[0]
+
+    def test_evidence_display_comparison_delta(self) -> None:
+        self.detector.update(config={"detection_type": "percent", "comparison_delta": 3600})
+        value = self.critical_detector_trigger.comparison + 1
+        data_packet = self.create_subscription_packet(value)
+
+        occurrence = self.process_packet_and_return_result(data_packet)
+        assert isinstance(occurrence, IssueOccurrence)
+
+        assert len(occurrence.evidence_display) == 1
+        assert occurrence.evidence_display[0].name == "Observed value (Number of events)"
+        assert occurrence.evidence_display[0].value == str(value)
+
+    def test_evidence_display_dynamic_anomaly_packet(self) -> None:
+        """The anomaly packet is the reason build_evidence_display reads
+        values["value"] directly instead of going through extract_value(), whose
+        dynamic branch wraps the result in a group-keyed dict."""
+        self.detector.update(config={"detection_type": "dynamic", "comparison_delta": None})
+        packet = AnomalyDetectionUpdate(
+            entity="entity",
+            subscription_id=str(self.query_subscription.id),
+            values={
+                "value": 42,
+                "source_id": str(self.query_subscription.id),
+                "subscription_id": str(self.query_subscription.id),
+                "timestamp": datetime.now(UTC),
+            },
+            timestamp=datetime.now(UTC),
+        )
+        data_packet = DataPacket[AnomalyDetectionUpdate](
+            source_id=str(self.query_subscription.id), packet=packet
+        )
+
+        evidence_display = self.handler.build_evidence_display(self.snuba_query, data_packet)
+
+        assert len(evidence_display) == 1
+        assert evidence_display[0].name == "Observed value (Number of events)"
+        assert evidence_display[0].value == "42"
+        assert evidence_display[0].important is True
+
     def test_warning_level(self) -> None:
         value = self.warning_detector_trigger.comparison + 1
         data_packet = self.create_subscription_packet(value)
@@ -161,6 +230,51 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         assert isinstance(occurrence, IssueOccurrence)
 
         self.verify_issue_occurrence(occurrence, evidence_data, self.critical_detector_trigger)
+
+
+@freeze_time()
+class TestFormatAggregate(BaseMetricIssueTest):
+    def setUp(self) -> None:
+        super().setUp()
+        self.handler = MetricIssueDetectorHandler(self.detector)
+
+    def test_mapped_aggregate(self) -> None:
+        self.snuba_query.aggregate = "count()"
+        assert self.handler.format_aggregate(self.snuba_query) == (
+            "Number of events",
+            "count()",
+        )
+
+    def test_unmapped_aggregate_falls_back_to_key(self) -> None:
+        self.snuba_query.aggregate = "p95(span.duration)"
+        assert self.handler.format_aggregate(self.snuba_query) == (
+            "p95(span.duration)",
+            "p95(span.duration)",
+        )
+
+    def test_mri_aggregate(self) -> None:
+        self.snuba_query.aggregate = "sum(c:custom/my_metric@none)"
+        label, key = self.handler.format_aggregate(self.snuba_query)
+        assert label == "sum(my_metric)"
+        assert key == "sum(c:custom/my_metric@none)"
+
+    def test_equation_aggregate(self) -> None:
+        self.snuba_query.aggregate = "equation|count() * 2"
+        assert self.handler.format_aggregate(self.snuba_query) == (
+            "count() * 2",
+            "equation|count() * 2",
+        )
+
+    def test_crash_rate_alias_strips_key(self) -> None:
+        """The label and the key diverge here: the alias suffix is stripped off the
+        key, and that stripped key is what dynamic alert classification consumes."""
+        self.snuba_query.aggregate = (
+            f"percentage(sessions_crashed, sessions) AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}"
+        )
+        assert self.handler.format_aggregate(self.snuba_query) == (
+            "Crash free session rate",
+            "percentage(sessions_crashed, sessions)",
+        )
 
 
 class TestConstructTitle(TestEvaluateMetricDetector):
