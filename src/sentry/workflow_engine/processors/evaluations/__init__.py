@@ -5,7 +5,6 @@ __all__ = [
     "DetectorEvaluation",
     "DetectorEvaluationData",
     "GroupedWorkflowEvaluationResult",
-    "TriggerResult",
     "WorkflowEvaluation",
     "WorkflowEvaluationData",
 ]
@@ -13,7 +12,6 @@ __all__ = [
 from .condition import DataConditionEvaluation, DataConditionEvaluationException
 from .condition_group import DataConditionGroupEvaluation
 from .detector import DetectorEvaluation, DetectorEvaluationData
-from .trigger_result import TriggerResult
 from .workflow import (
     GroupedWorkflowEvaluationResult,
     WorkflowEvaluation,

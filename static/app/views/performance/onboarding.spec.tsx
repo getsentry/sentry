@@ -7,6 +7,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 
@@ -103,6 +104,25 @@ describe('Testing new onboarding ui', () => {
     expect(
       await screen.findByText("Waiting for this project's first trace")
     ).toBeInTheDocument();
+  });
+
+  it('links to Trace Explorer docs when the tracing checklist is unavailable', async () => {
+    const platform = 'react-native';
+    expect(withPerformanceOnboarding.has(platform)).toBe(false);
+
+    const projectMock = ProjectFixture({platform});
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: projectMock,
+    });
+
+    render(<Onboarding organization={organization} project={projectMock} />);
+
+    expect(
+      await screen.findByRole('button', {name: 'Go to Documentation'})
+    ).toHaveAttribute('href', 'https://docs.sentry.io/product/trace-explorer/');
   });
 
   it('when the first trace is received, display a busy button "Take me to my trace"', async () => {
