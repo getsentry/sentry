@@ -64,7 +64,13 @@ function OrganizationCreate() {
 
   const schema = z
     .object({
-      name: z.string().min(1, t('Please enter an organization name')),
+      // Mirrors the backend: DRF's CharField(max_length=64) trims whitespace
+      // and rejects blank values.
+      name: z
+        .string()
+        .trim()
+        .min(1, t('Please enter an organization name'))
+        .max(64, t('Organization name cannot be longer than 64 characters')),
       defaultTeam: z.boolean(),
       agreeTerms: z.boolean(),
       dataStorageLocation: z.string().nullable(),
@@ -128,8 +134,9 @@ function OrganizationCreate() {
     onSubmit: ({value, formApi}) => {
       addLoadingMessage(t('Creating Organization…'));
 
+      // `value` is raw form state; parse to pick up the schema's trim.
       const data: CreateOrganizationPayload = {
-        name: value.name,
+        name: schema.parse(value).name,
         defaultTeam: value.defaultTeam,
       };
       if (showTerms) {
