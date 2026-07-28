@@ -30,6 +30,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
+import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 
@@ -315,9 +316,11 @@ function InboxIssueCard({
   const location = useLocation();
   const {title} = getTitle(group);
   const message = getMessage(group);
+  const prefetchHoverProps = useInboxPreviewPrefetch(group.id);
 
   return (
     <IssueCardLink
+      {...prefetchHoverProps}
       aria-current={selected ? 'true' : undefined}
       data-selected={selected}
       to={{
