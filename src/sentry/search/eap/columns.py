@@ -500,32 +500,56 @@ class AggregateDefinition(FunctionDefinition):
         search_config: SearchResolverConfig,
         default_value: float | None = None,
     ) -> ResolvedFunction:
-        if len(resolved_arguments) > 1:
+        if len(resolved_arguments) > len(self.arguments):
             raise InvalidSearchQuery(
-                f"Aggregates expects exactly 1 argument, got {len(resolved_arguments)}"
+                f"Aggregates expects exactly {len(self.arguments)} argument, got {len(resolved_arguments)}"
             )
 
         resolved_attribute = None
+        trace_filter = None
 
-        if len(resolved_arguments) == 1:
-            if not isinstance(resolved_arguments[0], AttributeKey):
-                raise InvalidSearchQuery("Aggregates accept attribute keys only")
-            resolved_attribute = resolved_arguments[0]
-            if self.attribute_resolver is not None:
-                resolved_attribute = self.attribute_resolver(resolved_attribute)
+        for index, arg_definition in enumerate(self.arguments):
+            resolved_argument = resolved_arguments[index]
+            # Current assumption is that there should only be 1 attribute per aggregate
+            if isinstance(arg_definition, AttributeArgumentDefinition):
+                if not isinstance(resolved_argument, AttributeKey):
+                    raise InvalidSearchQuery("Aggregates accept attribute keys only")
+                if self.attribute_resolver is not None:
+                    resolved_attribute = self.attribute_resolver(resolved_argument)
+                else:
+                    resolved_attribute = resolved_argument
+            elif isinstance(resolved_argument, TraceItemFilter):
+                trace_filter = resolved_argument
 
-        return ResolvedAggregate(
-            public_alias=alias,
-            internal_name=self.internal_function,
-            search_type=search_type,
-            internal_type=self.internal_type,
-            processor=self.processor,
-            extrapolation_mode=resolve_extrapolation_mode(
-                search_config, self.extrapolation_mode_override
-            ),
-            argument=resolved_attribute,
-            default_value=default_value,
-        )
+        if trace_filter is not None:
+            if resolved_attribute is None:
+                raise InvalidSearchQuery(f"{alias} requires an attribute to aggregate on")
+            return ResolvedConditionalAggregate(
+                public_alias=alias,
+                internal_name=self.internal_function,
+                search_type=search_type,
+                internal_type=self.internal_type,
+                processor=self.processor,
+                trace_filter=trace_filter,
+                extrapolation_mode=resolve_extrapolation_mode(
+                    search_config, self.extrapolation_mode_override
+                ),
+                key=resolved_attribute,
+                default_value=default_value,
+            )
+        else:
+            return ResolvedAggregate(
+                public_alias=alias,
+                internal_name=self.internal_function,
+                search_type=search_type,
+                internal_type=self.internal_type,
+                processor=self.processor,
+                extrapolation_mode=resolve_extrapolation_mode(
+                    search_config, self.extrapolation_mode_override
+                ),
+                argument=resolved_attribute,
+                default_value=default_value,
+            )
 
 
 @dataclass(kw_only=True)
@@ -809,6 +833,7 @@ class ColumnDefinitions:
     filter_aliases: Mapping[str, Callable[[SnubaParams, SearchFilter, Any], list[SearchFilter]]]
     alias_to_column: Callable[[str], str | None] | None
     column_to_alias: Callable[[str], str | None] | None
+    aggregate_deprecations: dict[str, AggregateDefinition] | None = None
 
 
 def attribute_key_to_tuple(

@@ -253,7 +253,7 @@ class PreprodSizeAnalysisDetectorHandler(
             return None, None
 
         group_evaluation, _ = process_data_condition_group(self.condition_group, value)
-        if not group_evaluation.outcome.triggered:
+        if not group_evaluation.triggered:
             return None, None
 
         priorities = [

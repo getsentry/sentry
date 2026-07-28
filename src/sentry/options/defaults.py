@@ -324,6 +324,14 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Aggregate rows/sec ceiling for MonitorCheckIn deletions across all concurrent
+# deletion tasks. 0 disables rate limiting.
+register(
+    "deletions.monitor-check-in.rate-limit",
+    default=1000,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "unmerge.killswitch-projects",
@@ -2205,6 +2213,17 @@ register(
     "dynamic-sampling.prioritise_transactions.min_sample_rate",
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Applies the implicit sample rate floor in the per-org pipeline. The transaction rebalancing
+# model can return an implicit (tail) rate below the project's overall rate; the floor lifts it
+# back to that rate and pays for it by lowering the explicit rates. The legacy pipeline has no
+# such step, so with this enabled the two pipelines write different per-transaction rates for
+# identical input. Set to False to compare them like for like.
+register(
+    "dynamic-sampling.per_org.apply-implicit-sample-rate-floor",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Stops dynamic sampling rules from being emitted in relay config.

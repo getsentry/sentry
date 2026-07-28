@@ -2,11 +2,12 @@ import {Fragment} from 'react';
 import {Outlet} from 'react-router-dom';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {type Crumb, Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {NoAccess} from 'sentry/components/noAccess';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
@@ -75,13 +76,11 @@ function ConversationsHeader() {
   const isDetailPage = !!conversationId;
 
   // The detail page renders its own breadcrumbs (with the project badge and
-  // copy affordance) into the title slot, so the layout only owns the title
+  // copy affordance) into the TopBar slots, so the layout only owns the title
   // for the landing page.
   return (
     <Fragment>
-      <TopBar.Slot name="title">
-        {isDetailPage ? null : <ConversationsLandingTitle />}
-      </TopBar.Slot>
+      {isDetailPage ? null : <ConversationsLandingHeader />}
       <TopBar.Slot name="feedback">
         <FeedbackButton>{null}</FeedbackButton>
       </TopBar.Slot>
@@ -89,35 +88,60 @@ function ConversationsHeader() {
   );
 }
 
-function ConversationsLandingTitle() {
+function ConversationsLandingHeader() {
   const organization = useOrganization();
   const location = useLocation();
   const savedQueryTitle = decodeScalar(location.query.title);
   const savedQueryId = decodeScalar(location.query.id);
+  const hasSavedQuery =
+    defined(savedQueryId) && defined(savedQueryTitle) && savedQueryTitle.length > 0;
 
-  if (defined(savedQueryId) && defined(savedQueryTitle) && savedQueryTitle.length > 0) {
-    const conversationsBaseUrl = normalizeUrl(
-      `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
+  const conversationsBaseUrl = normalizeUrl(
+    `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
+  );
+
+  if (!hasSavedQuery) {
+    return (
+      <TopBar.Slot name="title">
+        {CONVERSATIONS_LANDING_TITLE} <FeatureBadge type="beta" />
+      </TopBar.Slot>
     );
-    const crumbs: Crumb[] = [
-      {
-        label: CONVERSATIONS_SIDEBAR_LABEL,
-        to: {
-          pathname: conversationsBaseUrl,
-          query: {statsPeriod: '24h'},
-        },
-      },
-      {
-        label: savedQueryTitle,
-      },
-    ];
-    return <Breadcrumbs crumbs={crumbs} />;
   }
 
+  if (organization.features.includes('ui-migration-breadcrumbs')) {
+    return (
+      <Fragment>
+        <TopBar.Slot name="breadcrumbs">
+          <BreadcrumbList
+            items={[
+              {
+                type: 'link',
+                label: CONVERSATIONS_SIDEBAR_LABEL,
+                to: {pathname: conversationsBaseUrl, query: {statsPeriod: '24h'}},
+              },
+            ]}
+          />
+        </TopBar.Slot>
+        <TopBar.Slot name="title">
+          <BreadcrumbList.Title item={{type: 'page-title', label: savedQueryTitle}} />
+        </TopBar.Slot>
+      </Fragment>
+    );
+  }
+
+  // Legacy breadcrumbs (flag off).
   return (
-    <Fragment>
-      {CONVERSATIONS_LANDING_TITLE} <FeatureBadge type="beta" />
-    </Fragment>
+    <TopBar.Slot name="title">
+      <Breadcrumbs
+        crumbs={[
+          {
+            label: CONVERSATIONS_SIDEBAR_LABEL,
+            to: {pathname: conversationsBaseUrl, query: {statsPeriod: '24h'}},
+          },
+          {label: savedQueryTitle},
+        ]}
+      />
+    </TopBar.Slot>
   );
 }
 

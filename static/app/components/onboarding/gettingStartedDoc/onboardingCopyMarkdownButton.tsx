@@ -8,7 +8,6 @@ import {stepsToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdow
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface CopyMarkdownButtonProps {
   getMarkdown: () => string;
@@ -123,16 +122,5 @@ export function OnboardingCopyMarkdownButton({
       onCopy={onCopy}
       variant={variant}
     />
-  );
-}
-
-/**
- * Returns whether the "Copy setup instructions" button should be shown on the
- * project creation onboarding flow.
- */
-export function useCopySetupInstructionsProjectCreationEnabled(): boolean {
-  const organization = useOrganization();
-  return organization.features.includes(
-    'onboarding-copy-setup-instructions-project-creation'
   );
 }
