@@ -226,17 +226,42 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
     ) -> None:
         """Test a duplicate activation behind the checkpoint does not rewind progress"""
+        mock_fetch_rows.return_value = {
+            "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
+            "has_more": True,
+        }
+
         self.job.status = DeletionJobStatus.IN_PROGRESS
         self.job.offset = 300
         self.job.save()
 
-        run_bulk_replay_delete_job(self.job.id, offset=100)
+        with patch.object(run_bulk_replay_delete_job, "delay"):
+            run_bulk_replay_delete_job(self.job.id, offset=100)
 
         self.job.refresh_from_db()
         assert self.job.status == "in-progress"
         assert self.job.offset == 300
-        mock_fetch_rows.assert_not_called()
-        mock_delete_matched_rows.assert_not_called()
+
+    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
+    @patch("sentry.replays.tasks.delete_matched_rows")
+    def test_run_bulk_replay_delete_job_redelivered_after_checkpoint(
+        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
+    ) -> None:
+        """Test an activation killed between checkpointing and enqueueing still finishes"""
+        mock_fetch_rows.return_value = {
+            "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
+            "has_more": False,
+        }
+
+        self.job.status = DeletionJobStatus.IN_PROGRESS
+        self.job.offset = 100
+        self.job.save()
+
+        run_bulk_replay_delete_job(self.job.id, offset=0)
+
+        self.job.refresh_from_db()
+        assert self.job.status == "completed"
+        assert self.job.offset == 100
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")

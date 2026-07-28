@@ -225,13 +225,6 @@ def run_bulk_replay_delete_job(
     if job.status != DeletionJobStatus.IN_PROGRESS:
         return None
 
-    # Task delivery is at-least-once, so a job can end up with more than one live call chain: a
-    # redelivered activation re-enters at the offset it was given while the successor it already
-    # enqueued keeps going. The chain that fell behind the checkpoint stops here rather than
-    # re-deleting rows and rewinding the reported progress.
-    if offset < job.offset:
-        return None
-
     try:
         # Delete the replays within a limited range. If more replays exist an incremented offset value
         # is returned.
