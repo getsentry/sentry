@@ -28,28 +28,13 @@ from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 
 logger = logging.getLogger(__name__)
 
-KILLSWITCH_OPTION = "debug-files.objectstore-migration.killswitch"
-MAX_RETRIES = 3
-RETRY_BASE_DELAY_SECONDS = 2
-
-_CUTOVER_FIELDS = (
-    "storage_path",
-    "content_type",
-    "file_size",
-    "date_created",
-    "checksum",
-    "file",
-)
-
-_RETRIABLE_ERRORS = (RequestError, HTTPError, OperationalError, OSError)
-
 
 class ObjectstoreIntegrityError(Exception):
     """Objectstore payload checksum/size did not match the legacy File."""
 
 
 def is_migration_killswitched() -> bool:
-    return bool(options.get(KILLSWITCH_OPTION))
+    return bool(options.get("debug-files.objectstore-migration.killswitch"))
 
 
 def ensure_migration_enabled() -> None:
@@ -264,11 +249,6 @@ def _prepare_object(debug_file: ProjectDebugFile) -> VerifiedObject | None:
     return verified
 
 
-def _retry_delay(base_delay: float):
-    delay = exponential_delay(base_delay)
-    return lambda attempt: random.uniform(delay(attempt), delay(attempt) * 2)
-
-
 def migrate_debug_file(*, debug_file_id: int) -> int:
     """Migrate one debug file. Returns cutover size, or 0 when skipped."""
 
@@ -287,10 +267,13 @@ def migrate_debug_file(*, debug_file_id: int) -> int:
 
         return _commit_cutover(debug_file_id=debug_file_id, verified=verified)
 
+    base_delay = exponential_delay(2)
     policy = ConditionalRetryPolicy(
-        test_function=lambda attempt_number, error: attempt_number <= MAX_RETRIES
-        and isinstance(error, (*_RETRIABLE_ERRORS, ObjectstoreIntegrityError)),
-        delay_function=_retry_delay(RETRY_BASE_DELAY_SECONDS),
+        test_function=lambda attempt_number, error: attempt_number <= 3
+        and isinstance(
+            error, (RequestError, HTTPError, OperationalError, OSError, ObjectstoreIntegrityError)
+        ),
+        delay_function=lambda n: random.uniform(base_delay(n), base_delay(n) * 2),
     )
     return policy(attempt)
 
@@ -313,5 +296,14 @@ def _commit_cutover(*, debug_file_id: int, verified: VerifiedObject) -> int:
         current.date_created = verified.date_created
         current.checksum = verified.checksum
         current.file = None
-        current.save(update_fields=list(_CUTOVER_FIELDS))
+        current.save(
+            update_fields=[
+                "storage_path",
+                "content_type",
+                "file_size",
+                "date_created",
+                "checksum",
+                "file",
+            ]
+        )
         return verified.file_size

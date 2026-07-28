@@ -19,14 +19,10 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
+# Patched in tests; also the self-chain idempotency key.
 _SHARD_TASK_KEY = "debug_files_objectstore_migration_shard"
 _QUERY_BATCH_SIZE = 20
 _MAX_FILES_PER_ACTIVATION = 50
-
-
-def _activation_id() -> str | None:
-    task = current_task()
-    return task.id if task else None
 
 
 def _soft_stop_if_killswitched(**extra: int) -> bool:
@@ -109,7 +105,8 @@ def migrate_shard(
     ):
         return
 
-    activation_id = _activation_id()
+    task = current_task()
+    activation_id = task.id if task else None
     if activation_id and already_spawned(_SHARD_TASK_KEY, activation_id):
         metrics.incr(
             "taskworker.selfchain.duplicate_skipped",
