@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Collection
 from unittest.mock import MagicMock
 
 import orjson
@@ -54,12 +55,16 @@ def test_fold_mode2_keeps_phantom_on_rename():
     assert set(resolved.images.keys()) == {"old.png", "new.png", "Keep"}
 
 
-def _session(manifests_by_key: dict[str, bytes]) -> MagicMock:
+def _session(
+    manifests_by_key: dict[str, bytes], unavailable_keys: Collection[str] = ()
+) -> MagicMock:
     session = MagicMock()
 
     def _get(key):
+        if key in unavailable_keys:
+            raise RequestError("unavailable", 503, "unavailable")
         if key not in manifests_by_key:
-            raise RequestError(f"Key not found: {key}", 404, "not found")
+            return None
         result = MagicMock()
         result.payload.read.return_value = manifests_by_key[key]
         return result
@@ -133,6 +138,20 @@ class ReconstructBaseManifestTest(TestCase):
         )
         # main's manifest blob is absent from the session -> incomplete.
         session = _session({k_pr1: b_pr1})
+        result = reconstruct_base_manifest(a_pr1, session)
+        assert result.incomplete is True
+        assert result.manifest is None
+
+    def test_transient_objectstore_error_is_incomplete(self):
+        # A transient objectstore failure is indistinguishable from a manifest that has
+        # not been written yet, so it defers rather than terminating.
+        a_main, k_main, b_main = self._build(
+            "h_main", None, {"a": "v0"}, selective=False, key="k_main"
+        )
+        a_pr1, k_pr1, b_pr1 = self._build(
+            "h_pr1", "h_main", {"a": "v1"}, selective=True, key="k_pr1"
+        )
+        session = _session({k_pr1: b_pr1}, unavailable_keys={k_main})
         result = reconstruct_base_manifest(a_pr1, session)
         assert result.incomplete is True
         assert result.manifest is None

@@ -18,7 +18,7 @@ import {IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {GroupOpenPeriod} from 'sentry/types/group';
-import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
+import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -112,8 +112,6 @@ function incidentMarklineTooltip(ctx: IncidentTooltipContext) {
 
 interface MetricDetectorDetailsChartProps {
   detector: MetricDetector;
-  // Passing snubaQuery separately to avoid checking null in all places
-  snubaQuery: SnubaQuery;
 }
 const CHART_HEIGHT = 180;
 

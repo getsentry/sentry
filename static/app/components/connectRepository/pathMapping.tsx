@@ -3,6 +3,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -296,11 +297,9 @@ function SummaryContent({
         maxWidth="max-content"
       >
         <Container flexShrink={0}>{props => <IconBranch {...props} />}</Container>
-        <Tooltip title={branchName} showOnlyOnOverflow skipWrapper>
-          <Text variant="muted" ellipsis>
-            {branchName}
-          </Text>
-        </Tooltip>
+        <InfoText title={branchName} mode="overflowOnly" variant="muted">
+          {branchName}
+        </InfoText>
       </Flex>
 
       <Flex align="center" gap="xs" flexShrink={0}>

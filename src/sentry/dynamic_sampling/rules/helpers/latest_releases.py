@@ -4,15 +4,13 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-import sentry_sdk.tracing
-
 from sentry import features
 from sentry.dynamic_sampling.rules.helpers.time_to_adoptions import Platform
 from sentry.dynamic_sampling.rules.utils import BOOSTED_RELEASES_LIMIT, get_redis_client_for_ds
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.tasks.relay import schedule_invalidate_project_config
-from sentry.utils.tracing import set_span_data, set_span_tag, start_span
+from sentry.utils.tracing import set_span_data, set_span_tag, start_span, trace
 
 ENVIRONMENT_SEPARATOR = ":e:"
 BOOSTED_RELEASE_CACHE_KEY_REGEX = re.compile(
@@ -292,7 +290,7 @@ class LatestReleaseBias:
         self.latest_release_params = latest_release_params
         self.project_boosted_releases = ProjectBoostedReleases(self.latest_release_params.project)
 
-    @sentry_sdk.tracing.trace
+    @trace
     def observe_release(self, on_boosted_release_added: Callable[[], None]) -> None:
         # Here we want to evaluate the observed first, so that if it is false, we don't bother verifying whether it
         # is a latest release.

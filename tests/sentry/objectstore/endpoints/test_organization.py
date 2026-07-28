@@ -1,6 +1,6 @@
 import os
 from dataclasses import asdict
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
@@ -9,7 +9,7 @@ import zstandard
 from django.db import connections
 from django.http import HttpResponse, StreamingHttpResponse
 from django.urls import reverse
-from objectstore_client import Client, RequestError, Session, Usecase
+from objectstore_client import Client, Session, Usecase
 from pytest_django.live_server_helper import LiveServer
 
 from sentry.hybridcloud.apigateway_async import proxy as proxy_mod
@@ -79,18 +79,19 @@ class ObjectstoreEndpointTest(TransactionTestCase):
         assert object_key is not None
 
         retrieved = session.get(object_key)
+        assert retrieved is not None
         assert retrieved.payload.read() == b"test data"
 
         new_key = session.put(b"new data", key=object_key)
         assert new_key == object_key
 
         retrieved = session.get(object_key)
+        assert retrieved is not None
         assert retrieved.payload.read() == b"new data"
 
         session.delete(object_key)
 
-        with pytest.raises(RequestError):
-            session.get(object_key)
+        assert session.get(object_key) is None
 
     def test_uncompressed(self) -> None:
         session = self.get_session()
@@ -99,6 +100,7 @@ class ObjectstoreEndpointTest(TransactionTestCase):
         assert object_key is not None
 
         retrieved = session.get(object_key)
+        assert retrieved is not None
         assert retrieved.payload.read() == b"test data"
 
     def test_accept_encoding_passthrough(self) -> None:
@@ -155,6 +157,7 @@ class ObjectstoreEndpointTest(TransactionTestCase):
         assert object_key is not None
 
         retrieved = session.get(object_key)
+        assert retrieved is not None
         assert retrieved.payload.read() == data
 
 
@@ -344,3 +347,29 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                 )
                 assert_status_code(response, 200)
                 assert response.content == data
+
+
+class ObjectstoreProxyQueryForwardingTest(TransactionTestCase):
+    def test_query_string_forwarded_verbatim(self) -> None:
+        from rest_framework.request import Request
+        from rest_framework.test import APIRequestFactory
+
+        from sentry.objectstore.endpoints.organization import ObjectstoreEndpoint
+
+        # The ``:`` and ``+`` would be percent-encoded by ``dict(request.GET)``.
+        query = (
+            "os_kid=sentry&os_timestamp=2026-07-13T13:19:24+00:00&os_duration=300&os_sig=ab_c-D9z"
+        )
+        request = APIRequestFactory().get(f"/v1/objects/test/org=1/key?{query}")
+
+        fake_response = MagicMock()
+        fake_response.status_code = 200
+        fake_response.headers = requests.structures.CaseInsensitiveDict()
+
+        with patch(
+            "sentry.objectstore.endpoints.organization.requests.request",
+            return_value=fake_response,
+        ) as mock_request:
+            ObjectstoreEndpoint()._proxy(Request(request), "v1/objects/test/org=1/key")
+
+        assert mock_request.call_args.kwargs["params"] == query

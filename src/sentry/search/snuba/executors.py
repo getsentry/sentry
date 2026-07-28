@@ -14,6 +14,7 @@ from math import floor
 from typing import Any, TypedDict, cast
 
 import sentry_sdk
+from django.db.models import F
 from django.utils import timezone
 from snuba_sdk.query import Query
 
@@ -24,7 +25,8 @@ from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import GroupCategory
-from sentry.issues.progress import IssueProgressState, get_group_progress_states
+from sentry.issues.models.groupderiveddata import GroupDerivedData
+from sentry.issues.progress_state import IssueProgressState
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
     IntermediateSearchQueryPartial,
@@ -97,17 +99,21 @@ class PostgresSortStrategy:
     postgres_fields: dict[str, str]
     snuba_aggregations: list[str] = dataclass_field(default_factory=list)
     # Computed signals that aren't a single Group column (e.g. assignment affinity).
-    # Each resolver is called once in bulk with (actor, organization, group_ids) and
-    # returns {group_id: value}; the value is merged into the score_fn dict under its key.
-    signal_resolvers: dict[str, Callable[[Any, Organization, list[int]], dict[int, Any]]] = (
-        dataclass_field(default_factory=dict)
-    )
+    # Each resolver is called once in bulk with (actor, organization, projects, group_ids)
+    # and returns {group_id: value}; the value is merged into the score_fn dict under its key.
+    signal_resolvers: dict[
+        str, Callable[[Any, Organization, Sequence[Project], list[int]], dict[int, Any]]
+    ] = dataclass_field(default_factory=dict)
     score_fn: Callable[[dict[str, Any]], float] = lambda data: 0.0
     # Score to use when score_fn raises on a row. Dropping the row would make the issue
     # vanish from the stream entirely; instead we keep it with a base score (e.g. the
     # Snuba recommended value) so it still appears, just without the boosts score_fn adds.
     fallback_score_fn: Callable[[dict[str, Any]], float] = lambda data: 0.0
     exclude_null_postgres: bool = True
+    # Optional cap-free path: return (queryset, order_by_key) for a native Postgres ORDER BY
+    # so the sort can page past the in-memory candidate cap. None for Snuba-blended strategies
+    # (e.g. recommended_v2) whose ordering can't be expressed entirely in Postgres.
+    native_order_by: Callable[[BaseQuerySet], tuple[BaseQuerySet, str]] | None = None
 
 
 # we cannot use snuba for these fields because they require a join with tables that don't exist there
@@ -913,7 +919,7 @@ ISSUE_AGENT_STAGE_SIGNALS: dict[int, float] = {
 
 
 def resolve_assignment_signal(
-    actor: Any | None, organization: Organization, group_ids: list[int]
+    actor: Any | None, organization: Organization, projects: Sequence[Project], group_ids: list[int]
 ) -> dict[int, float]:
     """Assignment affinity for the viewer: 1.0 for groups assigned directly to them,
     0.5 for groups assigned to one of their teams, absent otherwise."""
@@ -937,7 +943,7 @@ def resolve_assignment_signal(
 
 
 def resolve_suspect_commit_signal(
-    actor: Any | None, organization: Organization, group_ids: list[int]
+    actor: Any | None, organization: Organization, projects: Sequence[Project], group_ids: list[int]
 ) -> dict[int, float]:
     """1.0 for groups where the viewer authored the suspect commit. Unlike assignment,
     suspect-commit ownership isn't auto-assigned by default, so this surfaces issues the
@@ -953,7 +959,7 @@ def resolve_suspect_commit_signal(
 
 
 def resolve_issue_agent_signal(
-    actor: Any | None, organization: Organization, group_ids: list[int]
+    actor: Any | None, organization: Organization, projects: Sequence[Project], group_ids: list[int]
 ) -> dict[int, float]:
     """Furthest Seer agent stage reached per group, normalized to [0, 1].
 
@@ -1023,7 +1029,9 @@ def recommended_v2_strategy() -> PostgresSortStrategy:
     # A signal whose weight is zeroed via options can't affect the score, so don't
     # register its resolver and its query never runs. assignment_weight scales both
     # viewer-relevance signals.
-    signal_resolvers: dict[str, Callable[[Any, Organization, list[int]], dict[int, Any]]] = {}
+    signal_resolvers: dict[
+        str, Callable[[Any, Organization, Sequence[Project], list[int]], dict[int, Any]]
+    ] = {}
     if assignment_weight:
         signal_resolvers["assignment"] = resolve_assignment_signal
         signal_resolvers["suspect_commit"] = resolve_suspect_commit_signal
@@ -1049,8 +1057,8 @@ def recommended_v2_strategy() -> PostgresSortStrategy:
 
 
 # Numeric rank for the "progress" sort: higher means further along the fix cycle, so it
-# sorts towards the top. Every state has a rank so issues without seer activity (the
-# identified/assigned base states) still order correctly relative to progressed issues.
+# sorts towards the top. Every state has a rank so identified and assigned issues still
+# order correctly relative to progressed issues.
 PROGRESS_STATE_SORT_RANK: dict[IssueProgressState, int] = {
     IssueProgressState.IDENTIFIED: 1,
     IssueProgressState.ASSIGNED: 2,
@@ -1065,34 +1073,115 @@ PROGRESS_STATE_SORT_RANK: dict[IssueProgressState, int] = {
 LAST_SEEN_TIEBREAK_DIVISOR = 10**13
 
 
+def _get_group_progress_states_from_derived_data(group_ids: list[int]) -> dict[int, str]:
+    """Read progress from the materialized GroupDerivedData.progress column. The column
+    stores the IssueProgressState value verbatim, a null column (closed issues) counts as
+    fix_applied, and a group without a derived row counts as identified, so every group
+    still gets a rank."""
+    stored = dict(
+        GroupDerivedData.objects.filter(group_id__in=group_ids).values_list("group_id", "progress")
+    )
+    result: dict[int, str] = {}
+    for group_id in group_ids:
+        if group_id not in stored:
+            result[group_id] = IssueProgressState.IDENTIFIED.value
+            continue
+        progress = stored[group_id]
+        if progress is None:
+            result[group_id] = IssueProgressState.FIX_APPLIED.value
+        else:
+            result[group_id] = progress
+    return result
+
+
 def resolve_progress_signal(
-    actor: Any | None, organization: Organization, group_ids: list[int]
+    actor: Any | None, organization: Organization, projects: Sequence[Project], group_ids: list[int]
 ) -> dict[int, int]:
-    """Progress-cycle rank per group (identified=1 .. fix_applied=5), derived from the same
-    Activity records as the ``issue.progress`` filter. Every group gets a rank."""
-    states = get_group_progress_states(group_ids)
+    """Progress-cycle rank per group (identified=1 .. fix_applied=5), read from the
+    materialized GroupDerivedData.progress column. Every group gets a rank."""
+    states = _get_group_progress_states_from_derived_data(group_ids)
     return {
         group_id: PROGRESS_STATE_SORT_RANK[IssueProgressState(state)]
         for group_id, state in states.items()
     }
 
 
+def _resolve_last_progressed_at(
+    actor: Any | None, organization: Organization, projects: Sequence[Project], group_ids: list[int]
+) -> dict[int, float]:
+    """Epoch-millisecond timestamp of the last progress change per group, read from
+    GroupDerivedData.last_progressed_at. Groups without a value are omitted; score_fn
+    falls through to last_seen for them."""
+    rows = GroupDerivedData.objects.filter(
+        group_id__in=group_ids, last_progressed_at__isnull=False
+    ).values_list("group_id", "last_progressed_at")
+    return {group_id: ts.timestamp() * 1000 for group_id, ts in rows if ts is not None}
+
+
+def _progress_native_order_by(queryset: BaseQuerySet) -> tuple[BaseQuerySet, str]:
+    """SQL reproduction of progress_strategy().score_fn so the sort can ORDER BY it natively
+    (no in-memory candidate cap). ``.extra`` (not ``.annotate``) lets the cursor Paginator
+    reuse the alias SQL in its WHERE clause; the ``-id`` tiebreak gives equal scores a total
+    order so paging can't drop/dup rows across a tie."""
+    gdd = GroupDerivedData._meta.db_table
+    identified = PROGRESS_STATE_SORT_RANK[IssueProgressState.IDENTIFIED]
+    fix_applied = PROGRESS_STATE_SORT_RANK[IssueProgressState.FIX_APPLIED]
+
+    when_states = ""
+    params: list[Any] = [identified, fix_applied]
+    for state, rank in PROGRESS_STATE_SORT_RANK.items():
+        when_states += f" WHEN {gdd}.progress = %s THEN %s"
+        params.extend([state.value, rank])
+    params.append(identified)
+
+    sql = (
+        "((CASE"
+        f" WHEN {gdd}.group_id IS NULL THEN %s"  # no derived row -> identified
+        f" WHEN {gdd}.progress IS NULL THEN %s"  # null column (closed) -> fix_applied
+        f"{when_states}"
+        " ELSE %s"  # unknown string -> identified
+        f" END) * {LAST_SEEN_TIEBREAK_DIVISOR}"
+        " + CASE"
+        f" WHEN {gdd}.last_progressed_at IS NOT NULL"
+        f" THEN EXTRACT(EPOCH FROM {gdd}.last_progressed_at) * 1000"
+        f" ELSE EXTRACT(EPOCH FROM {Group._meta.db_table}.last_seen) * 1000"
+        " END)"
+    )
+    # F() on the nullable reverse OneToOne forces the LEFT OUTER JOIN the raw SQL relies on.
+    queryset = (
+        queryset.annotate(_gdd_join=F("groupderiveddata__progress"))
+        .extra(select={"progress_sort_score": sql}, select_params=params)
+        .order_by("-progress_sort_score", "-id")
+    )
+    return queryset, "-progress_sort_score"
+
+
 def progress_strategy() -> PostgresSortStrategy:
-    """Progress sort: primary by fix-cycle rank (fix_applied > fix_proposed > diagnosed >
-    assigned > identified), secondary by last_seen. The secondary key stands in for
-    ``issue.last_progressed_at`` until that field exists; for now most-recently-active issues
-    rank highest within a tier."""
+    """
+    Progress sort: primary by fix-cycle rank (fix_applied > fix_proposed > diagnosed >
+    assigned > identified), secondary by last_progressed_at (falling back to last_seen
+    when last_progressed_at is absent).
+    """
 
     def score_fn(data: dict[str, Any]) -> float:
         rank = data.get("progress_rank") or 0
+        last_progressed = data.get("last_progressed_at") or 0
+        if last_progressed:
+            # divisor used here as it happens to share units
+            return rank + last_progressed / LAST_SEEN_TIEBREAK_DIVISOR
+
         last_seen = data.get("last_seen") or 0
         return rank + last_seen / LAST_SEEN_TIEBREAK_DIVISOR
 
     return PostgresSortStrategy(
         postgres_fields={},
         snuba_aggregations=["last_seen"],
-        signal_resolvers={"progress_rank": resolve_progress_signal},
+        signal_resolvers={
+            "progress_rank": resolve_progress_signal,
+            "last_progressed_at": _resolve_last_progressed_at,
+        },
         score_fn=score_fn,
+        native_order_by=_progress_native_order_by,
     )
 
 
@@ -1172,6 +1261,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         actor: Any | None,
         start: datetime,
         end: datetime,
+        native_upper_bound_ok: bool,
         aggregate_kwargs: TrendsSortWeights | None = None,
         *,
         referrer: str,
@@ -1198,6 +1288,28 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             sf.key.name not in non_snuba_fields for sf in (search_filters or ())
         )
 
+        # Cap-free path: when the strategy can order entirely in Postgres and the query has no
+        # Snuba-side filters, ORDER BY the score natively instead of scoring candidates in
+        # memory. Lifts the max-candidates cap for the common issue-stream case, past which the
+        # in-memory path degrades to a plain last_seen sort.
+        #
+        # Skip when Snuba is needed for correctness: an environment scope (env-scoped values
+        # live in Snuba) or a past upper bound (see native_upper_bound_ok).
+        if (
+            strategy.native_order_by is not None
+            and not has_snuba_filters
+            and not environments
+            and native_upper_bound_ok
+        ):
+            with start_span(
+                op="search.postgres_sort.native_order_by",
+                name="search.postgres_sort.native_order_by",
+            ):
+                ordered_queryset, order_by = strategy.native_order_by(group_queryset)
+                return Paginator(
+                    ordered_queryset.using_replica(), order_by=order_by, **paginator_options
+                ).get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
+
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
         with start_span(
             op="search.postgres_sort.candidates", name="search.postgres_sort.candidates"
@@ -1211,8 +1323,31 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             return self.empty_result
 
         if len(candidate_ids) > max_candidates:
-            # Too many candidates to score in memory. Signal the caller to fall through
-            # to the Snuba chunked path, which can paginate without an in-memory bound.
+            # Too many candidates to score in memory. If the strategy can order natively in
+            # Postgres, invert the Snuba chunked loop: walk GroupDerivedData in score order
+            # (Postgres is the sort authority) and use Snuba only as a membership filter per
+            # chunk. This keeps the correct ranking past the cap even with Snuba-side filters
+            # / env scoping / an upper time bound, instead of degrading to a last_seen sort.
+            if strategy.native_order_by is not None:
+                return self._execute_inverted_chunk_sort(
+                    strategy=strategy,
+                    group_queryset=group_queryset,
+                    projects=projects,
+                    environments=environments,
+                    search_filters=search_filters,
+                    sort_by=sort_by,
+                    limit=limit,
+                    cursor=cursor,
+                    count_hits=count_hits,
+                    paginator_options=paginator_options,
+                    max_hits=max_hits,
+                    actor=actor,
+                    start=start,
+                    end=end,
+                    referrer=referrer,
+                )
+            # Otherwise signal the caller to fall through to the Snuba chunked path, which
+            # can paginate without an in-memory bound.
             return None
 
         # Hit Snuba when the strategy needs an aggregation value or the query has
@@ -1277,7 +1412,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             with start_span(
                 op=f"search.postgres_sort.signal.{name}", name=f"search.postgres_sort.signal.{name}"
             ):
-                signal_data[name] = resolver(actor, organization, candidate_ids)
+                signal_data[name] = resolver(actor, organization, projects, candidate_ids)
 
         with start_span(op="search.postgres_sort.scoring", name="search.postgres_sort.scoring"):
             scored_groups: list[tuple[Any, int]] = []
@@ -1324,6 +1459,217 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
         return paginator_results
 
+    def _execute_inverted_chunk_sort(
+        self,
+        *,
+        strategy: PostgresSortStrategy,
+        group_queryset: BaseQuerySet,
+        projects: Sequence[Project],
+        environments: Sequence[Environment] | None,
+        search_filters: Sequence[SearchFilter] | None,
+        sort_by: str,
+        limit: int,
+        cursor: Cursor | None,
+        count_hits: bool,
+        paginator_options: Mapping[str, Any],
+        max_hits: int | None,
+        actor: Any | None,
+        start: datetime,
+        end: datetime,
+        referrer: str,
+    ) -> CursorResult[Group]:
+        """Over-cap progress sort with a Snuba-side filter (and/or environment scoping and/or
+        an explicit upper time bound).
+
+        Inverts the standard chunked path: Postgres/GroupDerivedData is the SORT authority --
+        we ORDER BY the native progress score and walk it in score order -- and Snuba is only
+        a membership FILTER. Each Postgres-ordered chunk of group_ids is sent to snuba_search;
+        we keep the ids it returns, preserving Postgres order. This avoids the in-memory
+        candidate cap without degrading to a recency sort.
+
+        The cursor is a scaled-int progress score, so it is applied in Postgres only; every
+        snuba_search call passes cursor=None (a cursor there becomes a HAVING on last_seen,
+        which our value is not).
+        """
+        assert strategy.native_order_by is not None
+        organization = projects[0].organization
+        if cursor is None:
+            cursor = Cursor(0, 0, False)
+        is_prev = cursor.is_prev
+
+        # Postgres is the sort authority: order the whole candidate set by the native score
+        # and walk it. Snuba only decides membership below.
+        ordered_queryset, order_by = strategy.native_order_by(group_queryset)
+        ordered_queryset = ordered_queryset.using_replica()
+        # order_by is the signed key (e.g. "-progress_sort_score"); the alias it references is
+        # the same name without the direction prefix.
+        sort_key = order_by.lstrip("-")
+
+        # Bound the walk by the cursor in Postgres, reusing the .extra() alias SQL exactly as
+        # BasePaginator.build_queryset does. FLOOR() is required: the score's tiebreak term
+        # (EXTRACT(EPOCH ...) * 1000) is fractional, but the cursor value is the floored int
+        # that SequencePaginator emits, so a raw "<= value" would drop the boundary-tie row.
+        col_sql, col_params = ordered_queryset.query.extra[sort_key]
+        walk_queryset: Any = ordered_queryset
+        if is_prev:
+            walk_queryset = walk_queryset.order_by(sort_key, "id")
+        if cursor.value:
+            operator = ">=" if is_prev else "<="
+            walk_queryset = walk_queryset.extra(
+                where=[f"FLOOR({col_sql}) {operator} %s"],
+                params=list(col_params) + [cursor.value],
+            )
+        walk_queryset = walk_queryset.values_list("id", sort_key)
+
+        # Progress reorders but does not change membership, so total hits equal the recency
+        # query's; estimate them exactly as the too_many_candidates path does.
+        hits = self.calculate_hits(
+            [],
+            True,
+            "last_seen",
+            projects,
+            None,
+            group_queryset,
+            environments,
+            sort_by,
+            limit,
+            cursor,
+            count_hits,
+            paginator_options,
+            search_filters,
+            start,
+            end,
+            actor,
+            referrer=referrer,
+        )
+
+        chunk_growth = options.get("snuba.search.chunk-growth-rate")
+        max_chunk_size = options.get("snuba.search.max-chunk-size")
+        max_time = options.get("snuba.search.max-total-chunk-time-seconds")
+
+        # Accumulate enough passers for the page plus one lookahead row, then fully drain the
+        # boundary score-tie so SequencePaginator sees a complete, contiguous prefix (the walk
+        # visits a floor-tie block contiguously, so crossing the block collects all of it).
+        need = cursor.offset + limit + 1
+        passers: list[tuple[int, int]] = []
+        boundary_score: int | None = None
+        walk_exhausted = False
+        budget_exhausted = False
+
+        project_ids = [p.id for p in projects]
+        environment_ids = [e.id for e in environments] if environments else None
+        pg_offset = 0
+        chunk_size = limit
+        num_chunks = 0
+
+        time_start = time.time()
+        with start_span(
+            op="search.postgres_sort.inverted_chunk",
+            name="search.postgres_sort.inverted_chunk",
+        ) as span:
+            while True:
+                if (time.time() - time_start) >= max_time:
+                    budget_exhausted = True
+                    break
+
+                chunk_size = min(int(chunk_size * chunk_growth), max_chunk_size)
+                num_chunks += 1
+
+                rows = list(walk_queryset[pg_offset : pg_offset + chunk_size])
+                if not rows:
+                    walk_exhausted = True
+                    break
+                pg_offset += len(rows)
+
+                chunk_ids = [row[0] for row in rows]
+                # cursor=None: the cursor is a progress score, applied in Postgres above;
+                # here Snuba is a pure membership filter over this chunk's group_ids.
+                snuba_groups, _ = self.snuba_search(
+                    start=start,
+                    end=end,
+                    project_ids=project_ids,
+                    environment_ids=environment_ids,
+                    organization=organization,
+                    sort_field="last_seen",
+                    cursor=None,
+                    group_ids=chunk_ids,
+                    limit=len(chunk_ids),
+                    offset=0,
+                    search_filters=search_filters,
+                    referrer=referrer,
+                    actor=actor,
+                )
+                passing_ids = {gid for gid, _ in snuba_groups}
+                for gid, raw_score in rows:
+                    if gid in passing_ids:
+                        passers.append((int(floor(raw_score)), gid))
+
+                # A short chunk means the (cursor-bounded) walk is exhausted.
+                if len(rows) < chunk_size:
+                    walk_exhausted = True
+                    break
+
+                if boundary_score is None and len(passers) >= need:
+                    boundary_score = passers[need - 1][0]
+                if boundary_score is not None:
+                    last_floor = int(floor(rows[-1][1]))
+                    crossed = (
+                        last_floor > boundary_score if is_prev else last_floor < boundary_score
+                    )
+                    if crossed:
+                        break
+
+            set_span_data(span, "num_chunks", num_chunks)
+            set_span_data(span, "num_passers", len(passers))
+        metrics.distribution("search.progress_inverted.num_chunks", num_chunks)
+
+        if not passers:
+            # No Snuba matches in the rows we walked. When the walk is exhausted this is
+            # genuinely empty. When we stopped early on the time budget, later rows could still
+            # match -- but our cursor value is a progress score and cannot encode a mid-tie
+            # "resume at raw row N" checkpoint (the score is not unique, and the paginator
+            # offset is defined over passers, not raw scanned rows). Advertising next without an
+            # advancing cursor value (0:0:0) would make the client rescan the same prefix
+            # forever, so we return a terminating empty page instead -- matching the
+            # non-inverted chunked loop's behavior on budget exhaustion. This can under-report
+            # on a highly selective filter over a huge high-progress prefix; the metric tracks
+            # how often we hit it so the Snuba-native path can be prioritized if it is material.
+            if budget_exhausted:
+                metrics.incr("search.progress_inverted_budget_exhausted", skip_internal=False)
+                sentry_sdk.set_tag("search.progress_inverted_budget_exhausted", "true")
+            return self.empty_result
+
+        # SequencePaginator re-sorts by (int_score, group_id) DESC, so accumulation order is
+        # irrelevant; only the set of passers matters.
+        paginator_results = SequencePaginator(
+            passers, reverse=True, **paginator_options
+        ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
+
+        # HACK (mirrors the Snuba chunk loop): we are 'lying' to the SequencePaginator -- it
+        # treats `passers` as the whole result set, but if we stopped before exhausting the
+        # Postgres walk there may be more matches it can't see. When the walk is exhausted its
+        # has_results in the walk direction is exact, so we trust it.
+        if is_prev:
+            paginator_results.next.has_results = True
+            if not walk_exhausted:
+                paginator_results.prev.has_results = True
+        else:
+            if not walk_exhausted:
+                paginator_results.next.has_results = True
+            if cursor.value or cursor.offset:
+                paginator_results.prev.has_results = True
+
+        if budget_exhausted:
+            # Never degrade to recency: return the partial, correctly-ordered page and let the
+            # user page forward for the remainder. has_results in the walk direction is already
+            # forced True above (budget exhaustion implies the walk was not exhausted).
+            metrics.incr("search.progress_inverted_budget_exhausted", skip_internal=False)
+            sentry_sdk.set_tag("search.progress_inverted_budget_exhausted", "true")
+
+        groups = Group.objects.in_bulk(paginator_results.results)
+        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
+        return paginator_results
+
     def query(
         self,
         projects: Sequence[Project],
@@ -1359,6 +1705,13 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         ]
         if end_params:
             end = min(end_params)
+
+        # The native path bounds only by Group.last_seen (a global max, never in the future),
+        # so it's correct for any upper bound at/after now. The endpoint always sends
+        # date_to=now, so gate on "not in the past" (within clock fuzz), not "no bound at all".
+        # (A caller pinning an absolute end near now could flip this across pages as now
+        # advances; the default stream recomputes end=now each request, so it stays stable.)
+        native_upper_bound_ok = end is None or end >= now - ALLOWED_FUTURE_DELTA
 
         allow_postgres_only_search = False
         if not end:
@@ -1410,6 +1763,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 actor=actor,
                 start=start,
                 end=end,
+                native_upper_bound_ok=native_upper_bound_ok,
                 aggregate_kwargs=aggregate_kwargs,
                 referrer=referrer,
             )
@@ -1427,6 +1781,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             pg_overflow_fallback = True
             # Surface the silent ranking degradation on the trace, next to `search.sort`.
             sentry_sdk.set_tag("search.sort_fallback", sort_by)
+            sentry_sdk.set_attribute("search.sort_fallback", sort_by)
             # Keep the original sort only if it maps to a real Snuba aggregation for the
             # chunked path. Keys absent from sort_strategies, or mapped to "" (Postgres-only
             # sorts like "inbox"), have no aggregation and must fall back to `date` instead

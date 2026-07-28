@@ -65,6 +65,14 @@ describe('detectAIContentType', () => {
     expect(detectAIContentType('Just some regular text here.').type).toBe('plain-text');
   });
 
+  it('treats markdown that renders nothing as plain text', () => {
+    // A bare/empty code fence looks like markdown but produces an empty
+    // <pre><code> box, so it is shown as raw text instead. See TET-2670.
+    expect(detectAIContentType('```').type).toBe('plain-text');
+    expect(detectAIContentType('```\n```').type).toBe('plain-text');
+    expect(detectAIContentType('```js\n```').type).toBe('plain-text');
+  });
+
   it('handles empty and whitespace strings', () => {
     expect(detectAIContentType('').type).toBe('plain-text');
     expect(detectAIContentType('   ').type).toBe('plain-text');

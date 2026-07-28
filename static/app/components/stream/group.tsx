@@ -34,6 +34,7 @@ import type {
   GroupReprocessing,
   InboxDetails,
   PriorityLevel,
+  ProgressState,
 } from 'sentry/types/group';
 import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -66,7 +67,6 @@ import {
 import {
   formatProgressState,
   getProgressIcon,
-  type ProgressState,
 } from 'sentry/views/issueList/utils/progress';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
@@ -87,7 +87,6 @@ type Props = {
   hasGuideAnchor?: boolean;
   memberList?: User[];
   onAssigneeChange?: (newAssignee: AssignableEntity | null) => void;
-  onGroupClick?: (group: Group) => void;
   onPriorityChange?: (newPriority: PriorityLevel) => void;
   progressState?: ProgressState | null;
   query?: string;
@@ -297,7 +296,6 @@ export function StreamGroup({
   showLastTriggered = false,
   onPriorityChange,
   onAssigneeChange,
-  onGroupClick,
   progressState,
 }: Props) {
   const issueSelectionSummary = useOptionalIssueSelectionSummary();
@@ -632,11 +630,6 @@ export function StreamGroup({
       return;
     }
 
-    if (onGroupClick) {
-      onGroupClick(group);
-      return;
-    }
-
     navigate(
       normalizeUrl(
         createIssueLink({
@@ -667,22 +660,7 @@ export function StreamGroup({
           />
         )}
         <GroupSummary canSelect={selectionEnabled}>
-          <GroupHeaderRow
-            data={group}
-            query={query}
-            source={referrer}
-            onClick={
-              onGroupClick
-                ? e => {
-                    // Preserve open in new tab/window behavior for modified clicks
-                    if (!isCtrlKeyPressed(e) && !e.shiftKey) {
-                      e.preventDefault();
-                      onGroupClick(group);
-                    }
-                  }
-                : undefined
-            }
-          />
+          <GroupHeaderRow data={group} query={query} source={referrer} />
           <GroupMetaRow data={group} showLifetime={false} />
         </GroupSummary>
       </Fragment>

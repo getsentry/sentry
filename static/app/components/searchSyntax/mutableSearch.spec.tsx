@@ -426,6 +426,11 @@ describe('MutableSearch', () => {
         string: 'bad things user:id:123',
       },
       {
+        name: 'should preserve negation on colon values',
+        object: new MutableSearch(['bad', 'things', '!user:"id:123"']),
+        string: 'bad things !user:id:123',
+      },
+      {
         name: 'should escape quote tags with double quotes',
         object: new MutableSearch([
           'bad',

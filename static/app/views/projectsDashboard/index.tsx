@@ -260,7 +260,7 @@ function Dashboard() {
           </Profiler>
         </Layout.Main>
       </Layout.Body>
-      {showResources && <Resources organization={organization} />}
+      {showResources && <Resources />}
     </Fragment>
   );
 }

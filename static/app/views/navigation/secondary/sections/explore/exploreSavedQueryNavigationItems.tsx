@@ -1,5 +1,4 @@
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
 
 import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -46,11 +45,14 @@ export function ExploreSavedQueryNavigationItems({queries}: Props) {
             />
           }
         >
-          <Tooltip title={query.name} position="top" showOnlyOnOverflow skipWrapper>
-            <Text ellipsis variant="inherit">
-              {query.name}
-            </Text>
-          </Tooltip>
+          <InfoText
+            title={query.name}
+            position="top"
+            mode="overflowOnly"
+            variant="inherit"
+          >
+            {query.name}
+          </InfoText>
         </SecondaryNavigation.ReorderableLink>
       )}
     </SecondaryNavigation.ReorderableList>

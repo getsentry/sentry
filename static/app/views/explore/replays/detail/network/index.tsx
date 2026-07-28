@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useRef} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -46,7 +46,7 @@ const DEFAULT_COLUMN_WIDTH = 88;
 const DYNAMIC_COLUMN_INDEX = 2;
 const MIN_DYNAMIC_COLUMN_WIDTH = 180;
 const OVERSCAN = 20;
-const STATIC_COLUMN_WIDTHS = [76, 76, 0, 88, 88, 98, 116];
+const STATIC_COLUMN_WIDTHS = [76, 104, 0, 88, 88, 98, 116];
 
 export function NetworkList() {
   const organization = useOrganization();
@@ -153,7 +153,7 @@ export function NetworkList() {
   const selectedItem = selectedIndex === null ? null : (items[selectedIndex] ?? null);
 
   return (
-    <Flex direction="column" wrap="nowrap">
+    <Stack wrap="nowrap">
       <FilterLoadingIndicator isLoading={!replay}>
         <NetworkFilters networkFrames={networkFrames} {...filterProps} />
       </FilterLoadingIndicator>
@@ -294,6 +294,6 @@ export function NetworkList() {
           />
         </SplitPanel>
       </GridTable>
-    </Flex>
+    </Stack>
   );
 }

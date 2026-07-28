@@ -1,13 +1,17 @@
-import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
-import {ExternalLink} from '@sentry/scraps/link';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -17,9 +21,13 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {getSignupLocalities} from 'sentry/utils/cells';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {
+  PROJECT_CREATION_ORIGIN_ORG_CREATION,
+  PROJECT_CREATION_ORIGIN_QUERY_KEY,
+} from 'sentry/views/projectInstall/projectCreationOrigin';
 
 export const DATA_STORAGE_DOCS_LINK =
   'https://docs.sentry.io/product/accounts/choose-your-data-center';
@@ -54,34 +62,30 @@ function OrganizationCreate() {
   const showTerms = Boolean(termsUrl && privacyUrl);
   const showLocality = localityOptions.length > 1;
 
-  const schema = useMemo(
-    () =>
-      z
-        .object({
-          name: z.string().min(1, t('Please enter an organization name')),
-          defaultTeam: z.boolean(),
-          agreeTerms: z.boolean(),
-          dataStorageLocation: z.string().nullable(),
-          aggregatedDataConsent: z.boolean(),
-        })
-        .superRefine((value, ctx) => {
-          if (showTerms && !value.agreeTerms) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['agreeTerms'],
-              message: t('Please agree to the Terms of Service and the Privacy Policy'),
-            });
-          }
-          if (showLocality && value.dataStorageLocation === null) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['dataStorageLocation'],
-              message: t('Please select a data storage location'),
-            });
-          }
-        }),
-    [showTerms, showLocality]
-  );
+  const schema = z
+    .object({
+      name: z.string().min(1, t('Please enter an organization name')),
+      defaultTeam: z.boolean(),
+      agreeTerms: z.boolean(),
+      dataStorageLocation: z.string().nullable(),
+      aggregatedDataConsent: z.boolean(),
+    })
+    .superRefine((value, ctx) => {
+      if (showTerms && !value.agreeTerms) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['agreeTerms'],
+          message: t('Please agree to the Terms of Service and the Privacy Policy'),
+        });
+      }
+      if (showLocality && value.dataStorageLocation === null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['dataStorageLocation'],
+          message: t('Please select a data storage location'),
+        });
+      }
+    });
 
   const mutation = useMutation({
     mutationFn: (data: CreateOrganizationPayload) =>
@@ -93,9 +97,16 @@ function OrganizationCreate() {
       }),
     onSuccess: createdOrg => {
       const hasCustomerDomain = ConfigStore.get('features').has('system:multi-region');
-      let nextUrl = normalizeUrl(`/organizations/${createdOrg.slug}/projects/new/`, {
-        forceCustomerDomain: hasCustomerDomain,
-      });
+      // One-shot seed for sticky journey origin on /projects/new/. Must ride on
+      // the URL: this redirect is a full page reload
+      // (testableWindowLocation.assign), often onto a customer-domain host, so
+      // sessionStorage set here would not survive. Dedicated query key — not
+      // `referrer`, which getting-started back uses for autofill and would
+      // clobber this mid-journey.
+      let nextUrl = normalizeUrl(
+        `/organizations/${createdOrg.slug}/projects/new/?${PROJECT_CREATION_ORIGIN_QUERY_KEY}=${PROJECT_CREATION_ORIGIN_ORG_CREATION}`,
+        {forceCustomerDomain: hasCustomerDomain}
+      );
       if (hasCustomerDomain) {
         nextUrl = `${createdOrg.links.organizationUrl}${nextUrl}`;
       }
@@ -131,15 +142,18 @@ function OrganizationCreate() {
         data.aggregatedDataConsent = value.aggregatedDataConsent;
       }
 
-      return mutation.mutateAsync(data).catch((error: RequestError) => {
+      return mutation.mutateAsync(data).catch((error: unknown) => {
         // Surface field-specific errors inline; otherwise show a toast.
-        if (!setFieldErrors(formApi, error)) {
-          const detail = error.responseJSON?.detail;
-          addErrorMessage(
-            (typeof detail === 'string' ? detail : detail?.message) ??
-              t('Unable to create organization.')
-          );
+        if (error instanceof RequestError && setFieldErrors(formApi, error)) {
+          clearIndicators();
+          return;
         }
+        const detail =
+          error instanceof RequestError ? error.responseJSON?.detail : undefined;
+        addErrorMessage(
+          (typeof detail === 'string' ? detail : detail?.message) ??
+            t('Unable to create organization.')
+        );
       });
     },
   });
@@ -147,58 +161,58 @@ function OrganizationCreate() {
   return (
     <SentryDocumentTitle title={t('Create Organization')}>
       <NarrowLayout showLogout>
-        <h3>{t('Create a New Organization')}</h3>
-        <p>
+        <Heading as="h3">{t('Create a New Organization')}</Heading>
+        <Text as="p">
           {t(
             "Organizations represent the top level in your hierarchy. You'll be able to bundle a collection of teams within an organization as well as give organization-wide permissions to users."
           )}
-        </p>
+        </Text>
 
         <form.AppForm form={form}>
-          <form.AppField name="name">
-            {field => (
-              <field.Layout.Stack label={t('Organization Name')} required>
-                <field.Input
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  autoComplete="organization"
-                  placeholder={t('e.g. My Company')}
-                />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
-
-          {showLocality && (
-            <form.AppField name="dataStorageLocation">
+          <Stack gap="xl">
+            <form.AppField name="name">
               {field => (
-                <field.Layout.Stack
-                  label={t('Data Storage Location')}
-                  hintText={tct(
-                    "Choose where to store your organization's data. Please note, you won't be able to change locations once your organization has been created. [learnMore:Learn More]",
-                    {learnMore: <a href={DATA_STORAGE_DOCS_LINK} />}
-                  )}
-                  required
-                >
-                  <field.Select
+                <field.Layout.Stack label={t('Organization Name')} required>
+                  <field.Input
                     value={field.state.value}
                     onChange={field.handleChange}
-                    options={localityOptions.map(({value, label}) => ({value, label}))}
+                    autoComplete="organization"
+                    placeholder={t('e.g. My Company')}
                   />
                 </field.Layout.Stack>
               )}
             </form.AppField>
-          )}
 
-          {showTerms && (
-            <TermsWrapper hasDataConsent={hasDataConsent}>
+            {showLocality && (
+              <form.AppField name="dataStorageLocation">
+                {field => (
+                  <field.Layout.Stack
+                    label={t('Data Storage Location')}
+                    hintText={tct(
+                      "Choose where to store your organization's data. Please note, you won't be able to change locations once your organization has been created. [learnMore:Learn More]",
+                      {learnMore: <ExternalLink href={DATA_STORAGE_DOCS_LINK} />}
+                    )}
+                    required
+                  >
+                    <field.Select
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      options={localityOptions}
+                    />
+                  </field.Layout.Stack>
+                )}
+              </form.AppField>
+            )}
+
+            {termsUrl && privacyUrl && (
               <form.AppField name="agreeTerms">
                 {field => (
                   <field.Layout.Stack
                     label={tct(
                       'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
                       {
-                        termsLink: <ExternalLink href={termsUrl ?? undefined} />,
-                        privacyLink: <ExternalLink href={privacyUrl ?? undefined} />,
+                        termsLink: <ExternalLink href={termsUrl} />,
+                        privacyLink: <ExternalLink href={privacyUrl} />,
                       }
                     )}
                     required
@@ -215,38 +229,38 @@ function OrganizationCreate() {
                   </field.Layout.Stack>
                 )}
               </form.AppField>
-            </TermsWrapper>
-          )}
+            )}
 
-          {hasDataConsent && (
-            <form.AppField name="aggregatedDataConsent">
-              {field => (
-                <field.Layout.Stack label={<DataConsentCheck />}>
-                  <field.Base<HTMLInputElement>>
-                    {baseProps => (
-                      <Checkbox
-                        {...baseProps}
-                        checked={field.state.value}
-                        onChange={e => field.handleChange(e.target.checked)}
-                      />
-                    )}
-                  </field.Base>
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-          )}
+            {hasDataConsent && (
+              <form.AppField name="aggregatedDataConsent">
+                {field => (
+                  <field.Layout.Stack label={<DataConsentCheck />}>
+                    <field.Base<HTMLInputElement>>
+                      {baseProps => (
+                        <Checkbox
+                          {...baseProps}
+                          checked={field.state.value}
+                          onChange={e => field.handleChange(e.target.checked)}
+                        />
+                      )}
+                    </field.Base>
+                  </field.Layout.Stack>
+                )}
+              </form.AppField>
+            )}
 
-          {!isSelfHosted && ConfigStore.get('features').has('relocation:enabled') && (
-            <div>
-              {tct('[relocationLink:Relocating from self-hosted?]', {
-                relocationLink: <a href={relocationUrl} />,
-              })}
-            </div>
-          )}
+            {!isSelfHosted && ConfigStore.get('features').has('relocation:enabled') && (
+              <Text as="p">
+                {tct('[relocationLink:Relocating from self-hosted?]', {
+                  relocationLink: <Link to={relocationUrl} />,
+                })}
+              </Text>
+            )}
 
-          <SubmitWrapper>
-            <form.SubmitButton>{t('Create Organization')}</form.SubmitButton>
-          </SubmitWrapper>
+            <Flex justify="end">
+              <form.SubmitButton>{t('Create Organization')}</form.SubmitButton>
+            </Flex>
+          </Stack>
         </form.AppForm>
       </NarrowLayout>
     </SentryDocumentTitle>
@@ -254,13 +268,3 @@ function OrganizationCreate() {
 }
 
 export default OrganizationCreate;
-
-const TermsWrapper = styled('div')<{hasDataConsent?: boolean}>`
-  margin-bottom: ${p => (p.hasDataConsent ? '0' : '16px')};
-`;
-
-const SubmitWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-top: ${p => p.theme.space.xl};
-`;

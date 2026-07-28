@@ -25,6 +25,7 @@ from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import metrics_enhanced_performance
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.snuba import is_measurement
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +117,7 @@ def compare_table_results(
     )
 
 
-@sentry_sdk.tracing.trace
+@trace
 def compare_tables_for_dashboard_widget_queries(
     widget_query: DashboardWidgetQuery,
 ) -> CompareTableResultDict:

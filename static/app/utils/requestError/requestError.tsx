@@ -42,6 +42,8 @@ export class RequestError extends Error {
   ) {
     const options = cause instanceof Error ? {cause} : {};
     super(`${method || 'GET'} ${sanitizePath(path)}`, options);
+    // Restores prototype chain broken by extending native Error in transpiled/ES5 environments
+    Object.setPrototypeOf(this, RequestError.prototype);
     // TODO (kmclb) This is here to compensate for a bug in the SDK wherein it
     // ignores subclassing of `Error` when getting error type. Once that's
     // fixed, this can go. See https://github.com/getsentry/sentry-javascript/pull/8161.
@@ -93,4 +95,12 @@ export class RequestError extends Error {
       this.name = errorName;
     }
   }
+}
+
+export interface RateLimitError extends RequestError {
+  status: 429;
+}
+
+export function isRateLimitError(error: unknown): error is RateLimitError {
+  return error instanceof RequestError && error.status === 429;
 }

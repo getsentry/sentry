@@ -577,6 +577,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 ## SDK
 /src/sentry/utils/sdk.py                                             @getsentry/team-web-sdk-backend
+/src/sentry/utils/tracing.py                                         @getsentry/team-web-sdk-backend
 /src/sentry/build/                                                   @getsentry/team-web-sdk-backend
 /src/sentry/api/endpoints/source_map_debug.py                        @getsentry/team-javascript-sdks
 /src/sentry/web/frontend/setup_wizard.py                             @getsentry/team-javascript-sdks
@@ -601,6 +602,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/relay/config/ai_model_costs.py                                       @getsentry/telemetry-experience
 /src/sentry/tasks/ai_agent_monitoring.py                                         @getsentry/telemetry-experience
 /tests/sentry/tasks/test_ai_agent_monitoring.py                                  @getsentry/telemetry-experience
+/src/sentry/ai_monitoring/                                                       @getsentry/telemetry-experience
+/tests/sentry/ai_monitoring/                                                     @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
 /static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/insights/pages/agents/                                         @getsentry/telemetry-experience

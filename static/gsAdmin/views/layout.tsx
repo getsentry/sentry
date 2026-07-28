@@ -5,7 +5,7 @@ import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {GlobalModal} from '@sentry/scraps/modal';
 
@@ -157,6 +157,9 @@ export function Layout() {
                 <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
                 <NavLink to="/_admin/invoices/">Invoices</NavLink>
                 <NavLink to="/_admin/billing-platform/">Billing Platform</NavLink>
+                <NavLink to="/_admin/gift-recurring-credits/">
+                  Gift Recurring Credits
+                </NavLink>
                 <NavLink to="/_admin/spike-projection-generation/">
                   Spike Projection Generation
                 </NavLink>
@@ -179,7 +182,7 @@ export function Layout() {
                 </ThemeToggle>
               </SidebarActions>
             </Sidebar>
-            <Flex direction="column" minWidth={0} inert={sidebarOpen || undefined}>
+            <Stack minWidth={0} inert={sidebarOpen || undefined}>
               {/* Mobile only: sticky top bar with hamburger and logo */}
               <MobileTopBar>
                 <Button
@@ -202,7 +205,7 @@ export function Layout() {
               >
                 <Outlet />
               </Container>
-            </Flex>
+            </Stack>
           </AppContainer>
         </GlobalAlertProvider>
       </ScrapsProviders>

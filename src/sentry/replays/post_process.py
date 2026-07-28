@@ -5,8 +5,9 @@ from collections.abc import Generator, Iterable, Iterator, MutableMapping
 from itertools import zip_longest
 from typing import Any, TypedDict
 
-import sentry_sdk
 from drf_spectacular.utils import extend_schema_serializer
+
+from sentry.utils.tracing import trace
 
 
 class DeviceResponseType(TypedDict, total=False):
@@ -69,6 +70,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
     ota_updates: OTAUpdatesResponseType
     is_archived: bool | None
     urls: list[str] | None
+    segment_names: list[str] | None
     clicks: list[dict[str, Any]]
     count_dead_clicks: int | None
     count_rage_clicks: int | None
@@ -90,7 +92,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
     has_viewed: bool
 
 
-@sentry_sdk.trace
+@trace
 def process_raw_response(
     response: list[dict[str, Any]], fields: list[str]
 ) -> list[ReplayDetailsResponse]:
@@ -179,6 +181,7 @@ def generate_normalized_output(response: list[dict[str, Any]]) -> Generator[Repl
 
         item.pop("agg_urls", None)
         ret_item["urls"] = item.pop("urls_sorted", None)
+        ret_item["segment_names"] = item.pop("segment_names", None)
 
         ret_item["is_archived"] = bool(item.pop("isArchived", 0))
 
@@ -260,6 +263,7 @@ def _archived_row(replay_id: str, project_id: int) -> ReplayDetailsResponse:
         "device": {"name": None, "brand": None, "model": None, "family": None},
         "ota_updates": {"channel": None, "runtime_version": None, "update_id": None},
         "urls": None,
+        "segment_names": None,
         "activity": None,
         "count_dead_clicks": None,
         "count_rage_clicks": None,

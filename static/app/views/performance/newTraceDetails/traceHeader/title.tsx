@@ -90,7 +90,7 @@ export function Title({representativeEvent, rootEventResults}: TitleProps) {
 
   if (traceTitle) {
     return (
-      <Stack align="start" width="75%">
+      <Stack align="start" width="100%">
         <Text size="xl" bold ellipsis>
           {traceTitle.title}
         </Text>

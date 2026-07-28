@@ -17,15 +17,23 @@ import {MessagingIntegrationModal} from 'sentry/views/alerts/rules/issue/messagi
 
 export enum MessagingIntegrationAnalyticsView {
   ALERT_RULE_CREATION = 'alert_rule_creation_messaging_integration_onboarding',
+  ONBOARDING = 'onboarding',
   PROJECT_CREATION = 'project_creation_messaging_integration_onboarding',
 }
 
 type Props = {
   analyticsView: MessagingIntegrationAnalyticsView;
   refetchConfigs?: () => void;
+  // `analyticsView` identifies the flow; `variant` identifies the SCM or legacy
+  // project-creation experience. Alert-rule creation leaves `variant` undefined.
+  variant?: 'scm' | 'legacy';
 };
 
-export function SetupMessagingIntegrationButton({refetchConfigs, analyticsView}: Props) {
+export function SetupMessagingIntegrationButton({
+  refetchConfigs,
+  analyticsView,
+  variant,
+}: Props) {
   const {openModal} = useModal();
 
   const providerKeys = ['slack', 'discord', 'msteams'];
@@ -123,6 +131,7 @@ export function SetupMessagingIntegrationButton({refetchConfigs, analyticsView}:
                     providers={integrationProvidersQuery.providers}
                     onAddIntegration={onAddIntegration}
                     analyticsView={analyticsView}
+                    variant={variant}
                   />
                 ),
                 {

@@ -666,6 +666,7 @@ export function useSubmitCheckout({
     },
     onError: (error: RequestError, _variables) => {
       const body = error.responseJSON;
+      onSubmitting?.(false);
 
       if (body?.previewToken) {
         onErrorMessage(
@@ -700,7 +701,6 @@ export function useSubmitCheckout({
               t('An unknown error occurred while saving your subscription')
           );
         }
-        onSubmitting?.(false);
 
         // TODO: add 402 ignoring once we've confirmed all valid error states
         Sentry.withScope(scope => {
