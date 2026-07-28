@@ -22,9 +22,28 @@ import {
 } from 'sentry/views/explore/conversations/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
+const COPY_ID_LABEL = t('Copy conversation ID');
+
 interface ConversationsBreadcrumbsProps {
   conversationId: string;
   project?: AvatarProject;
+}
+
+/** UUIDs are shown truncated, so the full value needs a tooltip to stay readable. */
+function getDisplayId(conversationId: string) {
+  return isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
+}
+
+function ConversationProjectBadge({project}: {project: AvatarProject}) {
+  return (
+    <ProjectBadge
+      project={project}
+      avatarSize={16}
+      disableLink
+      hideName
+      avatarProps={{hasTooltip: true, tooltip: project.slug}}
+    />
+  );
 }
 
 export function ConversationsBreadcrumbs({
@@ -36,12 +55,11 @@ export function ConversationsBreadcrumbs({
   const conversationsBaseUrl = normalizeUrl(
     `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
   );
-  const displayId = isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
 
   // Carry project/environment filters back to the landing page, then force the
   // default 24h period. BreadcrumbList link items build their own query, so this
   // replaces the legacy `preservePageFilters` flag.
-  const landingQuery = {
+  const query = {
     ...extractSelectionParameters(location.query),
     statsPeriod: '24h',
     start: undefined,
@@ -58,7 +76,7 @@ export function ConversationsBreadcrumbs({
               {
                 type: 'link',
                 label: CONVERSATIONS_SIDEBAR_LABEL,
-                to: {pathname: conversationsBaseUrl, query: landingQuery},
+                to: {pathname: conversationsBaseUrl, query},
               },
             ]}
           />
@@ -67,23 +85,16 @@ export function ConversationsBreadcrumbs({
           <BreadcrumbList.Title
             item={{
               type: 'page-title',
-              label: displayId,
-              // Only shortened UUIDs need the full value revealed.
+              label: getDisplayId(conversationId),
               labelTooltip: isUUID(conversationId) ? conversationId : undefined,
               leadingGraphic: project ? (
-                <ProjectBadge
-                  project={project}
-                  avatarSize={16}
-                  disableLink
-                  hideName
-                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
-                />
+                <ConversationProjectBadge project={project} />
               ) : undefined,
               trailingActions: {
                 type: 'copy',
                 text: conversationId,
-                label: t('Copy conversation ID'),
-                tooltip: t('Copy conversation ID'),
+                label: COPY_ID_LABEL,
+                tooltip: COPY_ID_LABEL,
                 onCopy: () =>
                   trackAnalytics('conversations.detail.copy-conversation-id', {
                     organization,
@@ -138,32 +149,22 @@ function ConversationCrumb({
   organization: Organization;
   project?: AvatarProject;
 }) {
-  const displayId = isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
-
   return (
     <RevealOnHover minWidth={0}>
-      {project && (
-        <ProjectBadge
-          project={project}
-          avatarSize={16}
-          disableLink
-          hideName
-          avatarProps={{hasTooltip: true, tooltip: project.slug}}
-        />
-      )}
+      {project && <ConversationProjectBadge project={project} />}
       <InfoText
         title={conversationId}
         mode={isUUID(conversationId) ? undefined : 'overflowOnly'}
         variant="inherit"
       >
-        {displayId}
+        {getDisplayId(conversationId)}
       </InfoText>
       <RevealOnHover.Action>
         <CopyToClipboardButton
           size="zero"
           variant="transparent"
-          aria-label={t('Copy conversation ID')}
-          tooltipProps={{title: t('Copy conversation ID')}}
+          aria-label={COPY_ID_LABEL}
+          tooltipProps={{title: COPY_ID_LABEL}}
           text={conversationId}
           onCopy={() =>
             trackAnalytics('conversations.detail.copy-conversation-id', {organization})
