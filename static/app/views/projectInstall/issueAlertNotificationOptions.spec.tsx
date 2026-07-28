@@ -16,10 +16,12 @@ import {
 import {IssueAlertActionType} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {
+  buildNotificationSelection,
   IssueAlertNotificationOptions,
   type IssueAlertNotificationProps,
   MultipleCheckboxOptions,
   useCreateNotificationAction,
+  useScmNotificationAction,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
 describe('MessagingIntegrationAlertRule', () => {
@@ -363,5 +365,210 @@ describe('useCreateNotificationAction', () => {
       expect(result.current.notificationProps.provider).toBe('discord')
     );
     expect(result.current.notificationProps.channel?.value).toBe('2');
+  });
+});
+
+describe('useScmNotificationAction', () => {
+  const organization = OrganizationFixture();
+
+  const slackIntegration = OrganizationIntegrationsFixture({
+    id: '1',
+    name: 'my-workspace',
+    status: 'active',
+    provider: {
+      key: 'slack',
+      slug: 'slack',
+      name: 'Slack',
+      canAdd: true,
+      canDisable: false,
+      features: [],
+      aspects: {},
+    },
+  });
+
+  function addIntegrationsResponse(body: OrganizationIntegration[]) {
+    return MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body,
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+    });
+  }
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('auto-selects the first integration when no selection is given', async () => {
+    addIntegrationsResponse([slackIntegration]);
+
+    const {result} = renderHookWithProviders(() => useScmNotificationAction(), {
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.notificationProps.provider).toBe('slack'));
+    expect(result.current.notificationProps.integration?.id).toBe(slackIntegration.id);
+    expect(result.current.notificationProps.actions).not.toContain(
+      MultipleCheckboxOptions.INTEGRATION
+    );
+  });
+
+  it('applies a selection directly, with no decoding, when the integration is already loaded', async () => {
+    addIntegrationsResponse([slackIntegration]);
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useScmNotificationAction({
+          provider: 'slack',
+          integrationId: slackIntegration.id,
+          channel: '#eng',
+        }),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.notificationProps.provider).toBe('slack'));
+    expect(result.current.notificationProps.integration?.id).toBe(slackIntegration.id);
+    expect(result.current.notificationProps.channel?.value).toBe('#eng');
+    expect(result.current.notificationProps.actions).toContain(
+      MultipleCheckboxOptions.INTEGRATION
+    );
+    expect(result.current.notificationProps.shouldRenderSetupButton).toBe(false);
+  });
+
+  it('picks the selected integration over the first in the list', async () => {
+    const secondSlack = OrganizationIntegrationsFixture({
+      id: '2',
+      name: 'second-workspace',
+      status: 'active',
+      provider: slackIntegration.provider,
+    });
+    addIntegrationsResponse([slackIntegration, secondSlack]);
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useScmNotificationAction({
+          provider: 'slack',
+          integrationId: secondSlack.id,
+          channel: '#team',
+        }),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.notificationProps.provider).toBe('slack'));
+    expect(result.current.notificationProps.integration?.id).toBe(secondSlack.id);
+    expect(result.current.notificationProps.channel?.value).toBe('#team');
+  });
+
+  it('waits for a refetch when the selected integration is not loaded yet', async () => {
+    // First fetch returns nothing (integration not yet visible / mid-load).
+    addIntegrationsResponse([]);
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useScmNotificationAction({
+          provider: 'slack',
+          integrationId: slackIntegration.id,
+          channel: '#eng',
+        }),
+      {organization}
+    );
+
+    // Query resolved but integration list empty: setup CTA shown, guard not
+    // latched, INTEGRATION must NOT be in actions (picker not half-applied).
+    await waitFor(() => expect(result.current.notificationProps.querySuccess).toBe(true));
+    expect(result.current.notificationProps.provider).toBeUndefined();
+    expect(result.current.notificationProps.shouldRenderSetupButton).toBe(true);
+    expect(result.current.notificationProps.actions).not.toContain(
+      MultipleCheckboxOptions.INTEGRATION
+    );
+
+    // Refetch delivers the Slack integration.
+    MockApiClient.clearMockResponses();
+    addIntegrationsResponse([slackIntegration]);
+    act(() => {
+      focusManager.setFocused(false);
+    });
+    act(() => {
+      focusManager.setFocused(true);
+    });
+
+    // Full restore completes: provider, integration, channel, and actions are set.
+    await waitFor(() => expect(result.current.notificationProps.provider).toBe('slack'));
+    expect(result.current.notificationProps.integration?.id).toBe(slackIntegration.id);
+    expect(result.current.notificationProps.channel?.value).toBe('#eng');
+    expect(result.current.notificationProps.actions).toContain(
+      MultipleCheckboxOptions.INTEGRATION
+    );
+    expect(result.current.notificationProps.shouldRenderSetupButton).toBe(false);
+  });
+
+  it('shows the setup CTA without latching when there are no integrations at all', async () => {
+    addIntegrationsResponse([]);
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useScmNotificationAction({
+          provider: 'slack',
+          integrationId: slackIntegration.id,
+          channel: '#eng',
+        }),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.notificationProps.querySuccess).toBe(true));
+    expect(result.current.notificationProps.shouldRenderSetupButton).toBe(true);
+    expect(result.current.notificationProps.actions).not.toContain(
+      MultipleCheckboxOptions.INTEGRATION
+    );
+  });
+
+  it('falls back to auto-select when no integrationId is given', async () => {
+    addIntegrationsResponse([slackIntegration]);
+
+    const {result} = renderHookWithProviders(
+      () => useScmNotificationAction({provider: 'slack'}),
+      {organization}
+    );
+
+    // No integrationId means the hook treats the input as no stored selection
+    // and auto-selects the first available integration instead.
+    await waitFor(() => expect(result.current.notificationProps.provider).toBe('slack'));
+    expect(result.current.notificationProps.integration?.id).toBe(slackIntegration.id);
+    expect(result.current.notificationProps.actions).not.toContain(
+      MultipleCheckboxOptions.INTEGRATION
+    );
+  });
+});
+
+describe('buildNotificationSelection', () => {
+  it('returns undefined when there is no provider or integration selected', () => {
+    expect(
+      buildNotificationSelection({
+        provider: undefined,
+        integration: undefined,
+        channel: undefined,
+      })
+    ).toBeUndefined();
+  });
+
+  it('returns undefined when provider and integration are set but channel is absent', () => {
+    const integration = OrganizationIntegrationsFixture({id: '5'});
+    expect(
+      buildNotificationSelection({
+        provider: 'slack',
+        integration,
+        channel: undefined,
+      })
+    ).toBeUndefined();
+  });
+
+  it('maps provider, integration id, and channel into a raw selection', () => {
+    const integration = OrganizationIntegrationsFixture({id: '5'});
+    expect(
+      buildNotificationSelection({
+        provider: 'slack',
+        integration,
+        channel: {label: '#eng', value: '#eng'},
+      })
+    ).toEqual({provider: 'slack', integrationId: '5', channel: '#eng'});
   });
 });
