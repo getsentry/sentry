@@ -398,6 +398,19 @@ def detect_llm_issues_for_org(org_id: int) -> None:
         org_slug=organization.slug,
     )
 
+    # Traceability: correlate the request, its response, and any error with a
+    # single id, without logging any trace content.
+    request_id = str(uuid4())
+    logger.info(
+        "llm_issue_detection.seer_request_start",
+        extra={
+            "request_id": request_id,
+            "organization_id": org_id,
+            "project_id": project_id,
+            "trace_count": len(traces_to_send),
+        },
+    )
+
     viewer_context = SeerViewerContext(organization_id=org_id)
     response = make_issue_detection_request(
         seer_request,
@@ -413,6 +426,7 @@ def detect_llm_issues_for_org(org_id: int) -> None:
     logger.error(
         "llm_issue_detection.unexpected_response",
         extra={
+            "request_id": request_id,
             "status_code": response.status,
             "response_data": response.data,
             "project_id": project_id,
