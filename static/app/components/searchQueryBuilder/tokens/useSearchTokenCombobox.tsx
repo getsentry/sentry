@@ -187,6 +187,8 @@ export function useSearchTokenCombobox<T>(
     inputRef
   );
 
+  // useTextField resets the input text on a native form reset. Reset the ComboBox
+  // selection too so React Stately does not retain the previous value.
   useFormReset(inputRef, state.defaultValue, state.setValue);
 
   const listBoxProps = useLabels({
@@ -200,6 +202,9 @@ export function useSearchTokenCombobox<T>(
       ? state.collection.getItem(state.selectionManager.focusedKey)
       : undefined;
 
+  // Keep virtual cursor navigation inside the open ComboBox. ariaHideOutside returns
+  // cleanup that restores the page when it closes; callers can expose a larger wrapper
+  // or disable this when they manage their own allowlist.
   useEffect(() => {
     if (state.isOpen && shouldHideOutside) {
       return ariaHideOutside(
