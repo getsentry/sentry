@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -17,7 +16,6 @@ import {
 } from 'sentry/views/preprod/utils/labelUtils';
 
 import {
-  FullRowLink,
   PreprodBuildsCreatedHeaderCell,
   PreprodBuildsCreatedRowCell,
   PreprodBuildsHeaderCells,
@@ -49,22 +47,19 @@ export function PreprodBuildsSizeTable({
       }) ?? '';
     return (
       <SimpleTable.Row key={build.id}>
-        <FullRowLink to={linkUrl} onClick={() => onRowClick?.(build)}>
-          <Fragment>
-            <PreprodBuildsRowCells
-              build={build}
-              showInteraction
-              showProjectColumn={showProjectColumn}
-            />
-            <SimpleTable.RowCell>
-              <Text>{formattedPrimaryMetricInstallSize(build.size_info)}</Text>
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <Text>{formattedPrimaryMetricDownloadSize(build.size_info)}</Text>
-            </SimpleTable.RowCell>
-            <PreprodBuildsCreatedRowCell build={build} />
-          </Fragment>
-        </FullRowLink>
+        <PreprodBuildsRowCells
+          build={build}
+          rowLink={{to: linkUrl, onClick: () => onRowClick?.(build)}}
+          showInteraction
+          showProjectColumn={showProjectColumn}
+        />
+        <SimpleTable.RowCell>
+          <Text>{formattedPrimaryMetricInstallSize(build.size_info)}</Text>
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell>
+          <Text>{formattedPrimaryMetricDownloadSize(build.size_info)}</Text>
+        </SimpleTable.RowCell>
+        <PreprodBuildsCreatedRowCell build={build} />
       </SimpleTable.Row>
     );
   });

@@ -211,9 +211,14 @@ function LatestGroupWithOpenPeriods({
       </SimpleTable.Row>
 
       <SimpleTable.Row>
-        <div style={{gridColumn: '1 / -1', paddingTop: 0}}>
+        <SimpleTable.RowCell
+          align="stretch"
+          column="1 / -1"
+          direction="column"
+          padding="0"
+        >
           <OpenPeriodsSubTable groupId={group.id} onZoom={zoomToRange} />
-        </div>
+        </SimpleTable.RowCell>
       </SimpleTable.Row>
     </StyledTable>
   );

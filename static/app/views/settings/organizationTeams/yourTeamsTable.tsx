@@ -16,7 +16,10 @@ import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useLeaveTeam} from 'sentry/views/settings/organizationTeams/hooks/useLeaveTeam';
-import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
+import {
+  hasOrgRoleOverwrite,
+  RoleOverwritePanelAlert,
+} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 import {TeamProjectsCell} from 'sentry/views/settings/organizationTeams/teamProjectsCell';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
@@ -95,14 +98,18 @@ export function YourTeamsTable({
         </SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell data-column-name="actions" />
       </SimpleTable.Header>
-      <FullWidthAlert>
-        <RoleOverwritePanelAlert
-          orgRole={orgRole}
-          orgRoleList={orgRoleList}
-          teamRoleList={teamRoleList}
-          isSelf
-        />
-      </FullWidthAlert>
+      {hasOrgRoleOverwrite({orgRole, orgRoleList, teamRoleList}) && (
+        <SimpleTable.Row>
+          <SimpleTable.FullWidthCell>
+            <RoleOverwritePanelAlert
+              orgRole={orgRole}
+              orgRoleList={orgRoleList}
+              teamRoleList={teamRoleList}
+              isSelf
+            />
+          </SimpleTable.FullWidthCell>
+        </SimpleTable.Row>
+      )}
       {isLoading
         ? Array.from({length: 3}).map((_, i) => (
             <SimpleTable.Row key={i}>
@@ -164,7 +171,7 @@ function YourTeamRow({
 
   return (
     <SimpleTable.Row>
-      {canViewTeam && <InteractionStateLayer />}
+      {canViewTeam && <InteractionStateLayer as="td" />}
       <SimpleTable.RowCell>
         {canViewTeam ? (
           <TeamLink
@@ -234,8 +241,4 @@ const StyledSimpleTable = styled(SimpleTable)`
 
 const TeamLink = styled(Link)`
   ${SimpleTable.rowLinkStyle}
-`;
-
-const FullWidthAlert = styled('div')`
-  grid-column: 1 / -1;
 `;

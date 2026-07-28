@@ -99,7 +99,11 @@ export function AutomationHistoryList({
           <SimpleTable.HeaderCell>{t('Alerts')}</SimpleTable.HeaderCell>
         </SimpleTable.Header>
         {isLoading && <Skeletons />}
-        {isError && <LoadingError />}
+        {isError && (
+          <SimpleTable.Empty>
+            <LoadingError />
+          </SimpleTable.Empty>
+        )}
         {!isLoading && !isError && fireHistory.length === 0 && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}

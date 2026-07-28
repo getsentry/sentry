@@ -45,11 +45,13 @@ interface PreprodBuildsRowCellsProps {
   build: BuildDetailsApiResponse;
   showInteraction: boolean;
   showProjectColumn: boolean;
+  rowLink?: {to: string; onClick?: () => void};
   showInstallabilityIndicator?: boolean;
 }
 
 export function PreprodBuildsRowCells({
   build,
+  rowLink,
   showInteraction,
   showProjectColumn,
   showInstallabilityIndicator = false,
@@ -58,7 +60,7 @@ export function PreprodBuildsRowCells({
 
   return (
     <Fragment>
-      {showInteraction && <InteractionStateLayer />}
+      {showInteraction && <InteractionStateLayer as="td" />}
       <SimpleTable.RowCell justify="start">
         {build.app_info?.name || build.app_info?.app_id ? (
           <Stack gap="xs">
@@ -68,12 +70,18 @@ export function PreprodBuildsRowCells({
               )}
               <Container paddingLeft="xs">
                 <Text size="lg" bold>
-                  {build.app_info?.name || '--'}
+                  {rowLink ? (
+                    <FullRowLink to={rowLink.to} onClick={rowLink.onClick}>
+                      {build.app_info?.name || '--'}
+                    </FullRowLink>
+                  ) : (
+                    build.app_info?.name || '--'
+                  )}
                 </Text>
               </Container>
               {(build.distribution_info?.is_installable ||
                 showInstallabilityIndicator) && (
-                <Flex align="center">
+                <Flex align="center" position="relative">
                   {build.distribution_info?.is_installable ? (
                     <InstallAppButton
                       projectId={build.project_slug}
@@ -198,11 +206,16 @@ export function PreprodBuildsCreatedRowCell({build}: {build: BuildDetailsApiResp
 }
 
 export const FullRowLink = styled(Link)`
-  display: contents;
   cursor: pointer;
   color: inherit;
 
   &:hover {
     color: inherit;
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
   }
 `;

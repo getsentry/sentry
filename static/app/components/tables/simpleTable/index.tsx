@@ -1,4 +1,4 @@
-import type {ComponentProps, HTMLAttributes, RefObject} from 'react';
+import type {ComponentProps, HTMLAttributes, ReactNode, RefObject} from 'react';
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
@@ -7,37 +7,40 @@ import styled from '@emotion/styled';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Panel} from 'sentry/components/panels/panel';
 import {
   getAriaSort,
+  HeaderCellContent,
   SortableHeaderCell,
   type SortDirection,
 } from 'sentry/components/tables/sortableHeaderCell';
+import {Table, type TableColumnConfig} from 'sentry/components/tables/table';
+import {TableStatusCell} from 'sentry/components/tables/table/styles';
 import {defined} from 'sentry/utils/defined';
+import {PanelProvider} from 'sentry/utils/panelProvider';
 
-interface TableProps extends HTMLAttributes<HTMLDivElement> {
-  ref?: RefObject<HTMLDivElement | null>;
+interface TableProps extends Omit<HTMLAttributes<HTMLTableElement>, 'children'> {
+  children: ReactNode;
+  columns?: TableColumnConfig[];
+  ref?: RefObject<HTMLTableElement | null>;
 }
 
-interface RowProps extends HTMLAttributes<HTMLDivElement> {
-  ref?: RefObject<HTMLDivElement | null>;
+interface RowProps extends HTMLAttributes<HTMLTableRowElement> {
+  ref?: RefObject<HTMLTableRowElement | null>;
   variant?: 'default' | 'faded';
 }
 
-export function SimpleTable({children, ...props}: TableProps) {
+export function SimpleTable({children, columns, ...props}: TableProps) {
   return (
-    <StyledPanel {...props} role="table">
-      {children}
-    </StyledPanel>
+    <StyledTable columns={columns} {...props}>
+      <PanelProvider>
+        <Table.Body>{children}</Table.Body>
+      </PanelProvider>
+    </StyledTable>
   );
 }
 
-function Header({children, ...props}: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <StyledPanelHeader {...props} role="row">
-      {children}
-    </StyledPanelHeader>
-  );
+function Header({children, ...props}: HTMLAttributes<HTMLTableRowElement>) {
+  return <HeaderRow {...props}>{children}</HeaderRow>;
 }
 
 function HeaderCell({
@@ -46,34 +49,33 @@ function HeaderCell({
   handleSortClick,
   divider = defined(children) ? true : false,
   ...props
-}: HTMLAttributes<HTMLDivElement> & {
+}: HTMLAttributes<HTMLTableCellElement> & {
   children?: React.ReactNode;
   divider?: boolean;
   handleSortClick?: () => void;
   sort?: SortDirection;
 }) {
   return (
-    <ColumnHeaderCell
-      {...props}
-      aria-sort={getAriaSort(sort)}
-      direction={sort}
-      onSort={handleSortClick}
-      overlays={
-        <Fragment>
-          {divider && <HeaderDivider />}
-          {handleSortClick && <InteractionStateLayer />}
-        </Fragment>
-      }
-      role="columnheader"
-    >
-      {children}
+    <ColumnHeaderCell {...props} aria-sort={getAriaSort(sort)} scope="col">
+      <SortableHeaderCell
+        direction={sort}
+        onSort={handleSortClick}
+        overlays={
+          <Fragment>
+            {divider && <HeaderDivider />}
+            {handleSortClick && <InteractionStateLayer />}
+          </Fragment>
+        }
+      >
+        {children}
+      </SortableHeaderCell>
     </ColumnHeaderCell>
   );
 }
 
 function Row({children, variant = 'default', ref, ...props}: RowProps) {
   return (
-    <StyledRow variant={variant} role="row" ref={ref} {...props}>
+    <StyledRow divider variant={variant} ref={ref} {...props}>
       {children}
     </StyledRow>
   );
@@ -86,46 +88,46 @@ function RowCell({
   children: React.ReactNode;
 }) {
   return (
-    <Flex role="cell" align="center" overflow="hidden" padding="lg xl" {...props}>
+    <Flex as="td" role="cell" align="center" overflow="hidden" padding="lg xl" {...props}>
       {children}
     </Flex>
   );
 }
 
-const StyledPanel = styled(Panel)`
-  display: grid;
+function Empty({children, ...props}: HTMLAttributes<HTMLTableCellElement>) {
+  return (
+    <Table.Row>
+      <StyledEmptyMessage {...props}>{children}</StyledEmptyMessage>
+    </Table.Row>
+  );
+}
+
+const StyledTable = styled(Table)`
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  position: relative;
   margin: 0;
   width: 100%;
   overflow: hidden;
 `;
 
-const StyledPanelHeader = styled('div')`
+const HeaderRow = styled(Table.Row)`
   background: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: calc(${p => p.theme.radius.md} + 1px)
     calc(${p => p.theme.radius.md} + 1px) 0 0;
+  text-transform: none;
   justify-content: left;
   padding: 0;
   min-height: 40px;
   align-items: center;
-  text-transform: none;
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
 `;
 
-const StyledRow = styled('div', {
+const StyledRow = styled(Table.Row, {
   shouldForwardProp: prop => prop !== 'variant',
 })<{variant?: 'default' | 'faded'}>`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
-  position: relative;
   align-items: center;
-
-  &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  }
 
   ${p =>
     p.variant === 'faded' &&
@@ -145,18 +147,27 @@ const HeaderDivider = styled('div')`
   height: 14px;
 `;
 
-const ColumnHeaderCell = styled(SortableHeaderCell)`
+const ColumnHeaderCell = styled(Table.HeadCell)`
   outline: none;
   padding: 0 ${p => p.theme.space.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
 
+  display: flex;
+  align-items: center;
   position: relative;
   justify-content: space-between;
   height: 100%;
 
-  &:focus-visible {
+  ${HeaderCellContent} {
+    flex: 1;
+    height: 100%;
+    justify-content: space-between;
+    min-width: 0;
+  }
+
+  ${HeaderCellContent}:focus-visible {
     box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.focus.default};
   }
 
@@ -186,13 +197,29 @@ const rowLinkStyle = (p: {theme: Theme}) => css`
   }
 `;
 
-const StyledEmptyMessage = styled('div')`
+const FullWidthCell = styled(RowCell)`
   grid-column: 1 / -1;
+  padding: 0;
+  align-items: stretch;
+  flex-direction: column;
+`;
+
+const HeaderCellFirst = styled(HeaderCell)`
+  grid-column: 1;
+`;
+
+const HeaderCellRemaining = styled(HeaderCell)`
+  grid-column: 2 / -1;
+`;
+
+const FullWidthHeaderCell = styled(HeaderCell)`
+  grid-column: 1 / -1;
+  padding: 0;
+`;
+
+const StyledEmptyMessage = styled(TableStatusCell)`
   min-height: 200px;
   padding: ${p => p.theme.space.xl};
-  display: flex;
-  justify-content: center;
-  align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
 `;
@@ -202,4 +229,8 @@ SimpleTable.HeaderCell = HeaderCell;
 SimpleTable.Row = Row;
 SimpleTable.RowCell = RowCell;
 SimpleTable.rowLinkStyle = rowLinkStyle;
-SimpleTable.Empty = StyledEmptyMessage;
+SimpleTable.Empty = Empty;
+SimpleTable.FullWidthCell = FullWidthCell;
+SimpleTable.FullWidthHeaderCell = FullWidthHeaderCell;
+SimpleTable.HeaderCellFirst = HeaderCellFirst;
+SimpleTable.HeaderCellRemaining = HeaderCellRemaining;

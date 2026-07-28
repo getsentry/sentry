@@ -148,7 +148,11 @@ export function ConnectedMonitorsList({
             }
           />
         )}
-        {isError && <LoadingError />}
+        {isError && (
+          <SimpleTable.Empty>
+            <LoadingError />
+          </SimpleTable.Empty>
+        )}
         {((isSuccess && detectors?.length === 0) || emptySelection) && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}

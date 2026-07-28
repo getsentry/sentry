@@ -159,7 +159,7 @@ export default Storybook.story('SimpleTable', story => {
             ))}
           </SimpleTable.Header>
           <SimpleTable.Row>
-            <InteractionStateLayer />
+            <InteractionStateLayer as="td" />
             <SimpleTable.RowCell>
               <RowLink
                 to="#"

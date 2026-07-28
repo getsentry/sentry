@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -141,95 +140,97 @@ export function DetectorsTableActions({
   return (
     <Fragment>
       <SimpleTable.Header>
-        <Flex align="center" padding="0 xl" gap="md" width="100%" column="1 / -1">
-          <Checkbox
-            checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-            onChange={s => {
-              togglePageSelected(s.target.checked);
-              setAllInQuerySelected(false);
-            }}
-          />
-          {showEnable && (
+        <SimpleTable.FullWidthHeaderCell divider={false}>
+          <Flex align="center" padding="0 xl" gap="md" width="100%">
+            <Checkbox
+              checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+              onChange={s => {
+                togglePageSelected(s.target.checked);
+                setAllInQuerySelected(false);
+              }}
+            />
+            {showEnable && (
+              <Tooltip
+                title={
+                  canEdit
+                    ? detectorLimitReached
+                      ? "You've reached your plan's limit on metric monitors."
+                      : ''
+                    : 'You do not have permission to modify the selected monitors.'
+                }
+                disabled={canEdit && !detectorLimitReached}
+              >
+                <Button
+                  size="xs"
+                  onClick={() => handleUpdate({enabled: true})}
+                  disabled={isUpdating || !canEdit || detectorLimitReached}
+                >
+                  {t('Enable')}
+                </Button>
+              </Tooltip>
+            )}
+            {showDisable && (
+              <Tooltip
+                title="You do not have permission to modify the selected monitors."
+                disabled={canEdit}
+              >
+                <Button
+                  size="xs"
+                  onClick={() => handleUpdate({enabled: false})}
+                  disabled={isUpdating || !canEdit}
+                >
+                  {t('Disable')}
+                </Button>
+              </Tooltip>
+            )}
             <Tooltip
               title={
-                canEdit
-                  ? detectorLimitReached
-                    ? "You've reached your plan's limit on metric monitors."
-                    : ''
-                  : 'You do not have permission to modify the selected monitors.'
+                hasSystemCreatedDetectors
+                  ? t('Monitors managed by Sentry cannot be deleted.')
+                  : t('You do not have permission to delete the selected monitors.')
               }
-              disabled={canEdit && !detectorLimitReached}
+              disabled={canDelete}
             >
               <Button
                 size="xs"
-                onClick={() => handleUpdate({enabled: true})}
-                disabled={isUpdating || !canEdit || detectorLimitReached}
+                variant="danger"
+                onClick={handleDelete}
+                disabled={isDeleting || !canDelete}
               >
-                {t('Enable')}
+                {t('Delete')}
               </Button>
             </Tooltip>
-          )}
-          {showDisable && (
-            <Tooltip
-              title="You do not have permission to modify the selected monitors."
-              disabled={canEdit}
-            >
-              <Button
-                size="xs"
-                onClick={() => handleUpdate({enabled: false})}
-                disabled={isUpdating || !canEdit}
-              >
-                {t('Disable')}
-              </Button>
-            </Tooltip>
-          )}
-          <Tooltip
-            title={
-              hasSystemCreatedDetectors
-                ? t('Monitors managed by Sentry cannot be deleted.')
-                : t('You do not have permission to delete the selected monitors.')
-            }
-            disabled={canDelete}
-          >
-            <Button
-              size="xs"
-              variant="danger"
-              onClick={handleDelete}
-              disabled={isDeleting || !canDelete}
-            >
-              {t('Delete')}
-            </Button>
-          </Tooltip>
-        </Flex>
+          </Flex>
+        </SimpleTable.FullWidthHeaderCell>
       </SimpleTable.Header>
       {pageSelected && !allResultsVisible && (
-        <FullWidthAlert variant="warning" system showIcon={false}>
-          <Flex justify="center" wrap="wrap" gap="md">
-            {allInQuerySelected ? (
-              tct('Selected all [count] monitors that match this search query.', {
-                count: queryCount,
-              })
-            ) : (
-              <Fragment>
-                {tn(
-                  '%s monitor on this page selected.',
-                  '%s monitors on this page selected.',
-                  selected.size
-                )}
-                <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
-                  {tct('Select all [count] monitors that match this search query.', {
+        <SimpleTable.Row>
+          <SimpleTable.FullWidthCell>
+            <Alert variant="warning" system showIcon={false}>
+              <Flex justify="center" wrap="wrap" gap="md">
+                {allInQuerySelected ? (
+                  tct('Selected all [count] monitors that match this search query.', {
                     count: queryCount,
-                  })}
-                </Button>
-              </Fragment>
-            )}
-          </Flex>
-        </FullWidthAlert>
+                  })
+                ) : (
+                  <Fragment>
+                    {tn(
+                      '%s monitor on this page selected.',
+                      '%s monitors on this page selected.',
+                      selected.size
+                    )}
+                    <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
+                      {tct('Select all [count] monitors that match this search query.', {
+                        count: queryCount,
+                      })}
+                    </Button>
+                  </Fragment>
+                )}
+              </Flex>
+            </Alert>
+          </SimpleTable.FullWidthCell>
+        </SimpleTable.Row>
       )}
     </Fragment>
   );
 }
-
-const FullWidthAlert = styled(Alert)`
-  grid-column: 1 / -1;
-`;

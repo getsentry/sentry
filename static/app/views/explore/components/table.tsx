@@ -1,12 +1,11 @@
 import type React from 'react';
-import {useCallback, useEffect, useMemo, useRef, type CSSProperties} from 'react';
+import {useCallback, useMemo, type CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
 import type {ColumnAlign} from 'sentry/components/tables/gridEditable';
 import {
-  Grid as _Table,
   Body as _TableWrapper,
   GridBody,
   GridBodyCell,
@@ -15,24 +14,100 @@ import {
   GridHeadCell,
   GridRow,
 } from 'sentry/components/tables/gridEditable/styles';
-import {useColumnResize} from 'sentry/components/tables/useColumnResize';
+import {
+  Table as SharedTable,
+  TABLE_HEAD_ROW_HEIGHT,
+  type TableColumnConfig,
+} from 'sentry/components/tables/table';
 import {defined} from 'sentry/utils/defined';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 
-interface TableProps extends React.ComponentProps<typeof _TableWrapper> {
+export interface ExploreTableColumnOptions {
+  fields?: readonly string[];
+  minimumColumnWidth?: number;
+  prefixColumnWidth?: 'min-content' | number;
+  staticColumnWidths?: Record<string, number | string>;
+}
+
+export function useExploreTableProps({
+  fields,
+  minimumColumnWidth = COL_WIDTH_MINIMUM,
+  prefixColumnWidth,
+  staticColumnWidths,
+}: ExploreTableColumnOptions) {
+  const columns = useMemo<TableColumnConfig[]>(
+    () => (fields ?? []).map(field => ({key: field, width: staticColumnWidths?.[field]})),
+    [fields, staticColumnWidths]
+  );
+
+  const prependColumnWidths = useMemo(
+    () =>
+      defined(prefixColumnWidth)
+        ? [
+            typeof prefixColumnWidth === 'number'
+              ? `${prefixColumnWidth}px`
+              : prefixColumnWidth,
+          ]
+        : [],
+    [prefixColumnWidth]
+  );
+
+  const getColumnTrack = useCallback(
+    (width: number | string | undefined) => {
+      if (!defined(width)) {
+        return `minmax(${minimumColumnWidth}px, auto)`;
+      }
+
+      return typeof width === 'number' ? `${width}px` : width;
+    },
+    [minimumColumnWidth]
+  );
+
+  return {
+    columns,
+    getColumnTrack,
+    headRowHeight: TABLE_HEAD_ROW_HEIGHT,
+    lastColumnFlexible: false,
+    minimumColumnWidth,
+    prependColumnWidths,
+  };
+}
+
+interface TableProps
+  extends
+    Omit<React.ComponentProps<typeof _TableWrapper>, 'height'>,
+    ExploreTableColumnOptions {
   height?: CSSProperties['height'];
-  ref?: React.Ref<HTMLTableElement>;
+  ref?: React.RefObject<HTMLTableElement | null>;
+  scrollable?: boolean;
   showVerticalScrollbar?: boolean;
   // Size of the loading element in order to match the height of the row.
   size?: number;
 }
 
-export function Table({ref, children, height, style, ...props}: TableProps) {
+export function Table({
+  children,
+  fields,
+  height,
+  minimumColumnWidth,
+  prefixColumnWidth,
+  ref,
+  scrollable,
+  staticColumnWidths,
+  ...props
+}: TableProps) {
+  const tableProps = useExploreTableProps({
+    fields,
+    minimumColumnWidth,
+    prefixColumnWidth,
+    staticColumnWidths,
+  });
+
   return (
     <_TableWrapper {...props}>
-      <_Table ref={ref} height={height} style={style}>
+      <SharedTable {...tableProps} height={height} ref={ref} scrollable={scrollable}>
         {children}
-      </_Table>
+      </SharedTable>
     </_TableWrapper>
   );
 }
@@ -59,71 +134,6 @@ export const ALLOWED_CELL_ACTIONS: Actions[] = [
   Actions.OPEN_EXTERNAL_LINK,
   Actions.OPEN_INTERNAL_LINK,
 ];
-
-const MINIMUM_COLUMN_WIDTH = COL_WIDTH_MINIMUM;
-
-export function useTableStyles(
-  fields: string[],
-  tableRef: React.RefObject<HTMLDivElement | null>,
-  options?: {
-    minimumColumnWidth?: number;
-    prefixColumnWidth?: 'min-content' | number;
-    staticColumnWidths?: Record<string, number | string>;
-  }
-) {
-  const minimumColumnWidth = options?.minimumColumnWidth ?? MINIMUM_COLUMN_WIDTH;
-  const prefixColumnWidth =
-    defined(options?.prefixColumnWidth) && typeof options.prefixColumnWidth === 'number'
-      ? `${options.prefixColumnWidth}px`
-      : options?.prefixColumnWidth;
-  const staticColumnWidths = options?.staticColumnWidths;
-
-  const columnWidthsRef = useRef<Array<number | null>>(fields.map(_ => null));
-
-  useEffect(() => {
-    columnWidthsRef.current = fields.map(
-      (_, index) => columnWidthsRef.current[index] ?? null
-    );
-  }, [fields]);
-
-  const getColumnTemplateWidth = useCallback(
-    (field: string, index: number) => {
-      const resizedWidth = columnWidthsRef.current[index];
-      if (typeof resizedWidth === 'number') {
-        return `${resizedWidth}px`;
-      }
-      const staticWidth = staticColumnWidths?.[field];
-      if (staticWidth) {
-        return typeof staticWidth === 'number' ? `${staticWidth}px` : staticWidth;
-      }
-      return `minmax(${minimumColumnWidth}px, auto)`;
-    },
-    [minimumColumnWidth, staticColumnWidths]
-  );
-
-  const buildGridTemplateColumns = useCallback(() => {
-    const tracks = fields.map(getColumnTemplateWidth);
-    if (defined(prefixColumnWidth)) {
-      tracks.unshift(prefixColumnWidth);
-    }
-    return tracks.join(' ');
-  }, [fields, prefixColumnWidth, getColumnTemplateWidth]);
-
-  const initialTableStyles = useMemo(
-    () => ({gridTemplateColumns: buildGridTemplateColumns()}),
-    [buildGridTemplateColumns]
-  );
-
-  const {onResizeMouseDown} = useColumnResize({
-    gridRef: tableRef,
-    getResizeTemplate: (index, newWidth) => {
-      columnWidthsRef.current[index] = Math.max(minimumColumnWidth, newWidth);
-      return buildGridTemplateColumns();
-    },
-  });
-
-  return {initialTableStyles, onResizeMouseDown};
-}
 
 export const TableBody = GridBody;
 export const TableRow = GridRow;

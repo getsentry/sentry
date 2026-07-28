@@ -116,9 +116,7 @@ describe('useColumnResize', () => {
 
     await waitFor(() =>
       expect(
-        screen
-          .getByTestId('grid')
-          .style.getPropertyValue('--grid-editable-resizer-height')
+        screen.getByTestId('grid').style.getPropertyValue('--table-resizer-height')
       ).toBe('0px')
     );
   });
@@ -131,7 +129,7 @@ describe('useColumnResize', () => {
     await waitFor(() => expect(getResizeTemplate).toHaveBeenCalled());
 
     expect(
-      screen.getByTestId('grid').style.getPropertyValue('--grid-editable-resizer-height')
+      screen.getByTestId('grid').style.getPropertyValue('--table-resizer-height')
     ).toBe('');
   });
 

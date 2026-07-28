@@ -125,7 +125,7 @@ function OtherTeamRow({team, openMembership, projects}: OtherTeamRowProps) {
 
   return (
     <SimpleTable.Row>
-      {canViewTeam && <InteractionStateLayer />}
+      {canViewTeam && <InteractionStateLayer as="td" />}
       <SimpleTable.RowCell>
         {canViewTeam ? (
           <TeamLink

@@ -411,13 +411,14 @@ function SeerWorkflows() {
 
                       {isExpanded && (
                         <SimpleTable.Row variant="faded">
-                          <Container
+                          <SimpleTable.RowCell
+                            align="stretch"
                             background="secondary"
-                            padding="lg xl"
                             column="1 / -1"
+                            direction="column"
                           >
                             <RunDetail row={row} organizationSlug={organization.slug} />
-                          </Container>
+                          </SimpleTable.RowCell>
                         </SimpleTable.Row>
                       )}
                     </Fragment>

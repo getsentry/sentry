@@ -21,8 +21,8 @@ import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {
+  LoadingMaskRow,
   StyledSimpleTable,
-  StyledSimpleTableBody,
   StyledSimpleTableHeader,
   StyledSimpleTableHeaderCell,
   StyledSimpleTableRowCell,
@@ -183,7 +183,11 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
 
   return (
     <AggregatesSimpleTable style={tableStyle}>
-      {isPending && <TransparentLoadingMask />}
+      {isPending && (
+        <LoadingMaskRow>
+          <TransparentLoadingMask />
+        </LoadingMaskRow>
+      )}
 
       <AggregatesStyledHeader>
         {displayFields.map((field, i) => {
@@ -234,53 +238,51 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
         })}
       </AggregatesStyledHeader>
 
-      <AggregatesTableBody>
-        {result.isError ? (
-          <SimpleTable.Empty>
-            <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-          </SimpleTable.Empty>
-        ) : result.data?.length ? (
-          result.data.map((row, i) => {
-            const displayRow =
-              groupBys.length === 0
-                ? {...row, [TraceMetricKnownFieldKey.METRIC_NAME]: traceMetric.name}
-                : row;
+      {result.isError ? (
+        <SimpleTable.Empty>
+          <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
+        </SimpleTable.Empty>
+      ) : result.data?.length ? (
+        result.data.map((row, i) => {
+          const displayRow =
+            groupBys.length === 0
+              ? {...row, [TraceMetricKnownFieldKey.METRIC_NAME]: traceMetric.name}
+              : row;
 
-            return (
-              <SimpleTable.Row key={i} style={{minHeight: '33px'}}>
-                {topEvents && i < topEvents && (
-                  <StyledTopResultsIndicator count={topResultsCount} index={i} />
-                )}
-                {displayFields.map((field, j) => (
-                  <AggregatesStyledRowCell
-                    key={j}
-                    isAggregate={Boolean(parseFunction(field))}
-                    offset={j === 0 ? firstColumnOffset : undefined}
-                    source="metricsPage"
-                  >
-                    <FieldRenderer
-                      column={displayColumns.find(column => column.key === field)}
-                      data={displayRow}
-                      unit={getMetricsUnit(meta, field)}
-                      meta={meta}
-                      allowActions={METRICS_AGGREGATES_CELL_ACTIONS}
-                      usePortalOnDropdown
-                    />
-                  </AggregatesStyledRowCell>
-                ))}
-              </SimpleTable.Row>
-            );
-          })
-        ) : isPending ? (
-          <SimpleTable.Empty>
-            <LoadingIndicator size={40} style={{margin: '1em 1em'}} />
-          </SimpleTable.Empty>
-        ) : (
-          <SimpleTable.Empty>
-            <GenericWidgetEmptyStateWarning title={t('No aggregates found')} message="" />
-          </SimpleTable.Empty>
-        )}
-      </AggregatesTableBody>
+          return (
+            <SimpleTable.Row key={i} style={{minHeight: '33px'}}>
+              {topEvents && i < topEvents && (
+                <StyledTopResultsIndicator as="td" count={topResultsCount} index={i} />
+              )}
+              {displayFields.map((field, j) => (
+                <AggregatesStyledRowCell
+                  key={j}
+                  isAggregate={Boolean(parseFunction(field))}
+                  offset={j === 0 ? firstColumnOffset : undefined}
+                  source="metricsPage"
+                >
+                  <FieldRenderer
+                    column={displayColumns.find(column => column.key === field)}
+                    data={displayRow}
+                    unit={getMetricsUnit(meta, field)}
+                    meta={meta}
+                    allowActions={METRICS_AGGREGATES_CELL_ACTIONS}
+                    usePortalOnDropdown
+                  />
+                </AggregatesStyledRowCell>
+              ))}
+            </SimpleTable.Row>
+          );
+        })
+      ) : isPending ? (
+        <SimpleTable.Empty>
+          <LoadingIndicator size={40} style={{margin: '1em 1em'}} />
+        </SimpleTable.Empty>
+      ) : (
+        <SimpleTable.Empty>
+          <GenericWidgetEmptyStateWarning title={t('No aggregates found')} message="" />
+        </SimpleTable.Empty>
+      )}
     </AggregatesSimpleTable>
   );
 }
@@ -288,11 +290,6 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
 const AggregatesSimpleTable = styled(StyledSimpleTable)`
   overflow-x: auto;
   overflow-y: hidden;
-`;
-
-const AggregatesTableBody = styled(StyledSimpleTableBody)`
-  overflow-x: hidden;
-  overflow-y: auto;
 `;
 
 const AggregatesStyledHeader = styled(StyledSimpleTableHeader)`

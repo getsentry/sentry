@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -28,7 +28,6 @@ import {
   TableHead,
   TableRow,
   TableStatus,
-  useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -98,19 +97,19 @@ function AggregatesTable({
   const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
   const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
 
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(fields, tableRef, {
-    minimumColumnWidth: 50,
-    prefixColumnWidth: 'min-content',
-  });
-
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
 
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
+      <Table
+        fields={fields}
+        height={TABLE_HEIGHT}
+        minimumColumnWidth={50}
+        prefixColumnWidth="min-content"
+        scrollable
+      >
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
@@ -234,14 +233,14 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
   const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
   const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
 
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(visibleFields, tableRef, {
-    minimumColumnWidth: 50,
-  });
-
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles} scrollable height={TABLE_HEIGHT}>
+      <Table
+        fields={visibleFields}
+        height={TABLE_HEIGHT}
+        minimumColumnWidth={50}
+        scrollable
+      >
         <TableHead>
           <TableRow>
             {visibleFields.map((field, i) => {

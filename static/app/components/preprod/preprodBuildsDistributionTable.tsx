@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Text} from '@sentry/scraps/text';
@@ -11,7 +10,6 @@ import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDeta
 import {getInstallBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
 import {
-  FullRowLink,
   PreprodBuildsCreatedHeaderCell,
   PreprodBuildsCreatedRowCell,
   PreprodBuildsHeaderCells,
@@ -42,10 +40,15 @@ export function PreprodBuildsDistributionTable({
     const isInstallable = build.distribution_info?.is_installable ?? false;
     const isRowDisabled = !isInstallable;
     const downloadCount = build.distribution_info?.download_count ?? 0;
-    const rowContent = (
-      <Fragment>
+    const RowComponent = isRowDisabled ? DisabledRow : SimpleTable.Row;
+
+    return (
+      <RowComponent key={build.id} variant={isRowDisabled ? 'faded' : 'default'}>
         <PreprodBuildsRowCells
           build={build}
+          rowLink={
+            isRowDisabled ? undefined : {to: linkUrl, onClick: () => onRowClick?.(build)}
+          }
           showInteraction={!isRowDisabled}
           showInstallabilityIndicator
           showProjectColumn={showProjectColumn}
@@ -54,20 +57,6 @@ export function PreprodBuildsDistributionTable({
           <Text>{formatNumberWithDynamicDecimalPoints(downloadCount, 0)}</Text>
         </SimpleTable.RowCell>
         <PreprodBuildsCreatedRowCell build={build} />
-      </Fragment>
-    );
-
-    const RowComponent = isRowDisabled ? DisabledRow : SimpleTable.Row;
-
-    return (
-      <RowComponent key={build.id} variant={isRowDisabled ? 'faded' : 'default'}>
-        {isRowDisabled ? (
-          rowContent
-        ) : (
-          <FullRowLink to={linkUrl} onClick={() => onRowClick?.(build)}>
-            {rowContent}
-          </FullRowLink>
-        )}
       </RowComponent>
     );
   });

@@ -13,7 +13,7 @@ import {useQueryState} from 'nuqs';
 import NoAlertsImage from 'sentry-images/features/alerts-not-found.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {
@@ -147,7 +147,7 @@ export function DetectorListTable({
     d => !detectorTypeIsUserCreateable(d.type)
   );
 
-  const elementRef = useRef<HTMLDivElement>(null);
+  const elementRef = useRef<HTMLTableCellElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 1000);
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
@@ -197,17 +197,17 @@ export function DetectorListTable({
               <Fragment key={col.id}>{col.renderHeaderCell()}</Fragment>
             ))}
             {hasVisualization && detectors.length > 0 && (
-              <VisualizationHeaderContainer
+              <VisualizationHeaderCell
                 data-column-name="visualization"
                 ref={elementRef}
-                borderLeft="muted"
-                minHeight="50px"
+                role="columnheader"
+                scope="col"
               >
                 <GridLineLabels timeWindowConfig={timeWindowConfig} />
-              </VisualizationHeaderContainer>
+              </VisualizationHeaderCell>
             )}
             {hasVisualization && (
-              <VisualizationExpandButton>
+              <VisualizationExpandButtonCell role="columnheader" scope="col">
                 <Button
                   size="xs"
                   variant="transparent"
@@ -229,7 +229,7 @@ export function DetectorListTable({
                   }}
                   onClick={() => setIsVisualizationExpanded(v => !v)}
                 />
-              </VisualizationExpandButton>
+              </VisualizationExpandButtonCell>
             )}
           </SimpleTable.Header>
         ) : (
@@ -262,16 +262,20 @@ export function DetectorListTable({
           </SimpleTable.Empty>
         )}
         {hasVisualization && detectors.length > 0 && (
-          <PositionedGridLineOverlay
-            stickyCursor
-            allowZoom
-            showCursor
-            cursorOffsets={{right: 40}}
-            additionalUi={renderTimelineOverlay?.({timeWindowConfig})}
-            timeWindowConfig={timeWindowConfig}
-            cursorOverlayAnchor="top"
-            cursorOverlayAnchorOffset={10}
-          />
+          <GridLineOverlayRow>
+            <GridLineOverlayCell>
+              <PositionedGridLineOverlay
+                stickyCursor
+                allowZoom
+                showCursor
+                cursorOffsets={{right: 40}}
+                additionalUi={renderTimelineOverlay?.({timeWindowConfig})}
+                timeWindowConfig={timeWindowConfig}
+                cursorOverlayAnchor="top"
+                cursorOverlayAnchorOffset={10}
+              />
+            </GridLineOverlayCell>
+          </GridLineOverlayRow>
         )}
         <IssueStreamDetectorContextProvider projectIds={uniqueProjectIds}>
           {detectors.map(detector => (
@@ -506,9 +510,22 @@ const DetectorListSimpleTable = styled(SimpleTable)<{
   }
 `;
 
-const PositionedGridLineOverlay = styled(GridLineOverlay)`
+const GridLineOverlayRow = styled(SimpleTable.Row)`
+  position: static;
+  pointer-events: none;
+  grid-row: 1;
+
+  &:not(:last-child) {
+    border-bottom: 0;
+  }
+`;
+
+const GridLineOverlayCell = styled(SimpleTable.RowCell)`
   grid-column: -3 / -1;
-  grid-row: 1 / auto;
+  padding: 0;
+`;
+
+const PositionedGridLineOverlay = styled(GridLineOverlay)`
   pointer-events: none;
   z-index: 3;
 
@@ -519,15 +536,18 @@ const PositionedGridLineOverlay = styled(GridLineOverlay)`
   }
 `;
 
-const VisualizationHeaderContainer = styled(Container)`
+const VisualizationHeaderCell = styled('th')`
   grid-column: -3 / -1;
+  border-left: 1px solid ${p => p.theme.tokens.border.secondary};
+  min-height: 50px;
+  min-width: 0;
 `;
 
 const StyledFlex = styled(Flex)`
   padding: ${p => p.theme.size.xs};
 `;
 
-const VisualizationExpandButton = styled('div')`
+const VisualizationExpandButtonCell = styled('th')`
   grid-row: 1;
   grid-column: -1;
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};

@@ -21,7 +21,6 @@ import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
-import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {
   getAriaSort,
   SortableHeaderCell,
@@ -45,7 +44,6 @@ import {
   TableHead,
   TableRow,
   TableStatus,
-  useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
@@ -403,16 +401,6 @@ export function LogsInfiniteTable({
     dataLength: data?.length ?? 0,
   });
 
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    fields.slice(),
-    tableRef,
-    {
-      minimumColumnWidth: 50,
-      prefixColumnWidth: 'min-content',
-      staticColumnWidths,
-    }
-  );
-
   useEffect(() => {
     if (isFunctionScrolling && !isScrolling && scrollOffset === 0) {
       setTimeout(() => {
@@ -589,7 +577,10 @@ export function LogsInfiniteTable({
     <Fragment>
       <LogTable
         ref={tableRef}
-        style={initialTableStyles}
+        fields={fields}
+        minimumColumnWidth={50}
+        prefixColumnWidth="min-content"
+        staticColumnWidths={staticColumnWidths}
         css={tableStaticCSS}
         height="100%"
         hideBorder={embedded}
@@ -604,7 +595,6 @@ export function LogsInfiniteTable({
             stringAttributes={stringAttributes}
             booleanAttributes={booleanAttributes}
             validatedFieldTypes={validatedFieldTypes}
-            onResizeMouseDown={onResizeMouseDown}
           />
         )}
         {!isPending && logsPinning && (
@@ -737,19 +727,17 @@ function LogsTableHeader({
   numberAttributes,
   stringAttributes,
   validatedFieldTypes = {},
-  onResizeMouseDown,
 }: Pick<
   LogsTableProps,
   'numberAttributes' | 'stringAttributes' | 'booleanAttributes' | 'validatedFieldTypes'
 > & {
   isFrozen: boolean;
-  onResizeMouseDown: (e: React.MouseEvent<HTMLDivElement>, index: number) => void;
 }) {
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
   const setSortBys = useSetQueryParamsSortBys();
 
-  const {data, meta, isError, isPending} = useLogsPageDataQueryResult();
+  const {meta, isPending} = useLogsPageDataQueryResult();
   const resolvedMeta = useMemo(
     () => addValidatedFieldTypesToLogsMeta({meta, validatedFieldTypes}),
     [meta, validatedFieldTypes]
@@ -784,6 +772,7 @@ function LogsTableHeader({
             <LogTableHeadCell
               align={index === 0 ? 'left' : align}
               aria-sort={getAriaSort(direction)}
+              columnIndex={index}
               key={index}
               isFirst={index === 0}
               reservePinGutter={pinningEnabled && index === fields.length - 1}
@@ -809,12 +798,6 @@ function LogsTableHeader({
               >
                 {headerLabel}
               </SortableHeaderCell>
-              {index !== fields.length - 1 && (
-                <GridResizer
-                  dataRows={!isError && !isPending && data ? data.length : 0}
-                  onMouseDown={e => onResizeMouseDown(e, index)}
-                />
-              )}
             </LogTableHeadCell>
           );
         })}

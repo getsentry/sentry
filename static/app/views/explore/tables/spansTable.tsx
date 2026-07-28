@@ -1,10 +1,9 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {
   getAriaSort,
   SortableHeaderCell,
@@ -23,7 +22,6 @@ import {
   TableHeadCell,
   TableRow,
   TableStatus,
-  useTableStyles,
 } from 'sentry/views/explore/components/table';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
@@ -61,13 +59,6 @@ export function SpansTable({
 
   const {result, eventView} = spansTableResult;
 
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    visibleFields,
-    tableRef,
-    {minimumColumnWidth: 50}
-  );
-
   const meta = useMemo(
     () =>
       addValidatedFieldTypesToMeta({
@@ -88,7 +79,7 @@ export function SpansTable({
 
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles} data-test-id="spans-table">
+      <Table data-test-id="spans-table" fields={visibleFields} minimumColumnWidth={50}>
         <TableHead>
           <TableRow>
             {visibleFields.map((field, i) => {
@@ -115,22 +106,13 @@ export function SpansTable({
                 <TableHeadCell
                   align={align}
                   aria-sort={getAriaSort(direction)}
+                  columnIndex={i}
                   key={i}
                   isFirst={i === 0}
                 >
                   <SortableHeaderCell direction={direction} onSort={updateSort}>
                     {label}
                   </SortableHeaderCell>
-                  {i !== visibleFields.length - 1 && (
-                    <GridResizer
-                      dataRows={
-                        !result.isError && !result.isPending && result.data
-                          ? result.data.length
-                          : 0
-                      }
-                      onMouseDown={e => onResizeMouseDown(e, i)}
-                    />
-                  )}
                 </TableHeadCell>
               );
             })}

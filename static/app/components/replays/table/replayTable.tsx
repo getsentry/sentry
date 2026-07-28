@@ -35,7 +35,7 @@ type Props = SortProps & {
   highlightedRowIndex?: number;
   pageLinks?: string | null;
   query?: Query;
-  ref?: RefObject<HTMLDivElement | null>;
+  ref?: RefObject<HTMLTableElement | null>;
   stickyHeader?: boolean;
 };
 
@@ -129,6 +129,7 @@ export function ReplayTable({
         >
           {hasInteractiveColumn ? (
             <InteractionStateLayer
+              as="td"
               isHovered={highlightedRowIndex === rowIndex ? true : undefined}
             />
           ) : null}
@@ -149,15 +150,19 @@ export function ReplayTable({
         </RowWithScrollIntoView>
       ))}
       {pageLinks ? (
-        <StyledPagination
-          pageLinks={pageLinks}
-          onCursor={(cursor, path, searchQuery) => {
-            navigate({
-              pathname: path,
-              query: {...searchQuery, cursor},
-            });
-          }}
-        />
+        <SimpleTable.Row>
+          <PaginationCell>
+            <StyledPagination
+              pageLinks={pageLinks}
+              onCursor={(cursor, path, searchQuery) => {
+                navigate({
+                  pathname: path,
+                  query: {...searchQuery, cursor},
+                });
+              }}
+            />
+          </PaginationCell>
+        </SimpleTable.Row>
       ) : null}
     </StyledSimpleTable>
   );
@@ -171,7 +176,7 @@ function RowWithScrollIntoView({
   children: React.ReactNode;
   scrollIntoView: boolean;
 } & React.ComponentProps<typeof SimpleTable.Row>) {
-  const rowRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLTableRowElement>(null);
   useEffect(() => {
     if (scrollIntoView) {
       rowRef.current?.scrollIntoView({block: 'center'});
@@ -193,9 +198,14 @@ const StyledSimpleTable = styled(SimpleTable)`
   }
 `;
 
+const PaginationCell = styled(SimpleTable.RowCell)`
+  grid-column: 1 / -1;
+  padding: 0;
+`;
+
 const StyledPagination = styled(Pagination)`
   margin: ${p => p.theme.space.md};
-  grid-column: 1 / -1;
+  width: 100%;
 `;
 
 function getErrorMessage(fetchError: Error | string) {

@@ -5,7 +5,7 @@ import {
   initializeTraceMetricsTest,
 } from 'sentry-fixture/tracemetrics';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
@@ -101,10 +101,14 @@ describe('AggregatesTab', () => {
     expect(screen.getByRole('columnheader', {name: /sum/i})).toBeInTheDocument();
 
     // Metric name column should be prepended when no group bys are selected
-    expect(screen.getByRole('columnheader', {name: 'Application Metric'}).tagName).toBe(
-      'DIV'
-    );
-    expect(screen.getByRole('columnheader', {name: /avg/i}).tagName).toBe('BUTTON');
+    expect(
+      within(screen.getByRole('columnheader', {name: 'Application Metric'})).queryByRole(
+        'button'
+      )
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole('columnheader', {name: /avg/i})).getByRole('button')
+    ).toBeInTheDocument();
   });
 
   it('renders table with groupBys and aggregate columns', async () => {

@@ -1,4 +1,4 @@
-import {useRef, useState, type ReactNode} from 'react';
+import {Fragment, useRef, useState, type ReactNode, type RefObject} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -8,6 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -28,11 +29,10 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {
-  ExpandedRowContainer,
+  ExpandedRowCell,
   NumericSimpleTableRowCell,
   StickyTableRow,
   StyledSimpleTableRowCell,
-  TableRowContainer,
   WrappingText,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {StyledTimestampWrapper} from 'sentry/views/explore/metrics/metricInfoTabs/styles';
@@ -168,7 +168,7 @@ interface SampleTableRowProps {
   columns: SampleTableColumnKey[];
   meta: EventsMetaType;
   row: TraceMetricEventsResponseItem;
-  ref?: (element: HTMLElement | null) => void;
+  ref?: RefObject<HTMLTableRowElement | null>;
   source?: MetricsSamplesTableSource;
 }
 
@@ -352,8 +352,8 @@ export function SampleTableRow({
   };
 
   return (
-    <TableRowContainer ref={ref}>
-      <StickyTableRow sticky={isExpanded ? true : undefined}>
+    <Fragment>
+      <StickyTableRow ref={ref} sticky={isExpanded ? true : undefined}>
         {columns.map((field, i) => {
           const isValueColumn = field === TraceMetricKnownFieldKey.METRIC_VALUE;
           const cellContent = renderFieldCell(field);
@@ -375,14 +375,16 @@ export function SampleTableRow({
         })}
       </StickyTableRow>
       {isExpanded && (
-        <ExpandedRowContainer>
-          <MetricDetails
-            dataRow={row}
-            ref={measureRef}
-            showTelemetry={source === 'metricsPage'}
-          />
-        </ExpandedRowContainer>
+        <SimpleTable.Row>
+          <ExpandedRowCell>
+            <MetricDetails
+              dataRow={row}
+              ref={measureRef}
+              showTelemetry={source === 'metricsPage'}
+            />
+          </ExpandedRowCell>
+        </SimpleTable.Row>
       )}
-    </TableRowContainer>
+    </Fragment>
   );
 }

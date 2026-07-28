@@ -14,6 +14,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -24,7 +25,6 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -364,9 +364,9 @@ export function SeerAutomationProjectList() {
         </PanelHeader>
         <PanelBody>
           {filteredProjects.length === 0 && search && (
-            <SimpleTable.Empty>
+            <EmptyMessage>
               {t('No projects found matching "%(search)s"', {search})}
-            </SimpleTable.Empty>
+            </EmptyMessage>
           )}
           {paginatedProjects.map(project => (
             <ClickablePanelItem key={project.id} onClick={() => handleRowClick(project)}>

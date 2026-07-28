@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import clamp from 'lodash/clamp';
 
@@ -34,7 +34,6 @@ import {
   TableHeadCell,
   TableRow,
   TableStatus,
-  useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {getProfileTargetId} from 'sentry/views/explore/profiling/utils';
 
@@ -211,8 +210,6 @@ export function SuspectFunctionsTable({
   }, [sortedMetrics, pagination]);
 
   const fields = COLUMNS.map(column => column.value);
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(fields, tableRef);
 
   const baggage: RenderFunctionBaggage = {
     location,
@@ -241,7 +238,7 @@ export function SuspectFunctionsTable({
           />
         </ButtonBar>
       </Flex>
-      <Table ref={tableRef} style={initialTableStyles}>
+      <Table fields={fields}>
         <TableHead>
           <TableRow>
             {COLUMNS.map((column, i) => {

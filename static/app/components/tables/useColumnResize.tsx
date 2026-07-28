@@ -16,9 +16,6 @@ interface UseColumnResizeOptions<T extends HTMLElement> {
    */
   onColumnResizeEnd?: (columnIndex: number, newWidth: number) => void;
 
-  /**
-   * Whether to set the `--grid-editable-resizer-height` CSS var to the rendered height after writing.
-   */
   writeResizerHeightVar?: boolean;
 }
 
@@ -66,10 +63,7 @@ export function useColumnResize<T extends HTMLElement>({
       grid.style.gridTemplateColumns = template;
 
       if (writeResizerHeightVar) {
-        grid.style.setProperty(
-          '--grid-editable-resizer-height',
-          `${grid.offsetHeight}px`
-        );
+        grid.style.setProperty('--table-resizer-height', `${grid.offsetHeight}px`);
       }
     },
     [gridRef, writeResizerHeightVar]
