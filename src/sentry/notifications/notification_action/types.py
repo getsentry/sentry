@@ -276,7 +276,7 @@ class BaseIssueAlertHandler(ABC):
 
         rule = Rule(
             id=action.id,
-            project=detector.project,
+            project=detector.linked_project,
             environment_id=environment_id,
             label=label,
             data=dict(data),
