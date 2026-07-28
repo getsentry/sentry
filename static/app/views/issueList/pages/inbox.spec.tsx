@@ -149,11 +149,11 @@ describe('InboxPage', () => {
     });
   }
 
-  function mockSuccessfulSections(fixProposedBody: unknown = [fixProposedGroup]) {
+  function mockSuccessfulSections() {
     return [
       mockSection(
         'issue.progress:fix_proposed assigned:[me,my_teams]',
-        fixProposedBody,
+        [fixProposedGroup],
         200,
         2
       ),
@@ -175,11 +175,9 @@ describe('InboxPage', () => {
   function mockIssuePreview({
     markSeenResponse = {...fixProposedGroup, hasSeen: true},
     markSeenStatusCode = 200,
-    onMarkSeen,
   }: {
     markSeenResponse?: typeof fixProposedGroup;
     markSeenStatusCode?: number;
-    onMarkSeen?: () => void;
   } = {}) {
     let previewHasSeen = fixProposedGroup.hasSeen;
     MockApiClient.addMockResponse({
@@ -192,7 +190,6 @@ describe('InboxPage', () => {
       body: () => {
         if (markSeenStatusCode < 400) {
           previewHasSeen = markSeenResponse.hasSeen;
-          onMarkSeen?.();
         }
         return markSeenResponse;
       },
@@ -422,15 +419,8 @@ describe('InboxPage', () => {
   });
 
   it('marks an issue as seen and clears its unread indicator when previewed', async () => {
-    let hasSeen = false;
-    const sectionRequests = mockSuccessfulSections(() => [
-      {...fixProposedGroup, hasSeen},
-    ]);
-    const markSeenRequest = mockIssuePreview({
-      onMarkSeen: () => {
-        hasSeen = true;
-      },
-    });
+    const sectionRequests = mockSuccessfulSections();
+    const markSeenRequest = mockIssuePreview();
 
     render(<InboxPage />, {organization, initialRouterConfig});
 
@@ -449,7 +439,7 @@ describe('InboxPage', () => {
     await waitFor(() =>
       expect(within(fixSection).queryByLabelText('Unread issue')).not.toBeInTheDocument()
     );
-    expect(sectionRequests[0]).toHaveBeenCalledTimes(2);
+    expect(sectionRequests[0]).toHaveBeenCalledTimes(1);
   });
 
   it('keeps an issue unread when marking it seen fails', async () => {

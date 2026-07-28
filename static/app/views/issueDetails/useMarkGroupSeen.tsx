@@ -1,7 +1,8 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient, type InfiniteData} from '@tanstack/react-query';
 
 import type {Group} from 'sentry/types/group';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -32,7 +33,28 @@ export function useMarkGroupSeen() {
             : previous
       );
 
-      return queryClient.invalidateQueries({queryKey: [issuesUrl]});
+      queryClient.setQueriesData<InfiniteData<ApiResponse<Group[]>>>(
+        {
+          queryKey: [issuesUrl],
+          predicate: query => safeParseQueryKey(query.queryKey)?.isInfinite === true,
+        },
+        previous =>
+          previous
+            ? {
+                ...previous,
+                pages: previous.pages.map(page => ({
+                  ...page,
+                  json: page.json.map(group =>
+                    group.id === groupId
+                      ? {...group, hasSeen: updatedGroup.hasSeen}
+                      : group
+                  ),
+                })),
+              }
+            : previous
+      );
+
+      void queryClient.invalidateQueries({queryKey: [issuesUrl], refetchType: 'none'});
     },
   });
 }
