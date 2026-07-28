@@ -50,9 +50,12 @@ interface IssuePreviewProps {
   groupId: string;
 }
 
-function useMarkPreviewedGroupSeen(group: Group | undefined) {
+function useMarkPreviewedGroupSeen(
+  group: Group | undefined,
+  isProjectMember: boolean | undefined
+) {
   const {mutate: markGroupSeen} = useMarkGroupSeen();
-  const groupId = group && !group.hasSeen ? group.id : undefined;
+  const groupId = group && !group.hasSeen && isProjectMember ? group.id : undefined;
 
   useEffect(() => {
     if (groupId) {
@@ -63,10 +66,11 @@ function useMarkPreviewedGroupSeen(group: Group | undefined) {
 
 export function IssuePreview({groupId}: IssuePreviewProps) {
   const {data: group, isPending, isError} = useGroup({groupId});
-  const {projects} = useProjects();
-  const project = projects.find(p => p.id === group?.project.id) ?? group?.project;
+  const {projects} = useProjects({slugs: group ? [group.project.slug] : undefined});
+  const matchingProject = projects.find(p => p.id === group?.project.id);
+  const project = matchingProject ?? group?.project;
 
-  useMarkPreviewedGroupSeen(group);
+  useMarkPreviewedGroupSeen(group, matchingProject?.isMember);
 
   return (
     <Fragment>
