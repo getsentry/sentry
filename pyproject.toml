@@ -846,7 +846,6 @@ module = [
     "sentry.integrations.github.integration",
     "sentry.integrations.github.issue_sync",
     "sentry.integrations.github.issues",
-    "sentry.integrations.github.platform_detection",
     "sentry.integrations.github.search",
     "sentry.integrations.github.status_check",
     "sentry.integrations.github.tasks.*",
