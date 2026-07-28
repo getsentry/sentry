@@ -160,7 +160,7 @@ export function DetectorListTable({
   const hasVisualization = defined(renderVisualization);
 
   return (
-    <TableContainer>
+    <Container containerType="inline-size">
       <DetectorListSimpleTable
         hasVisualization={hasVisualization}
         isVisualizationExpanded={isVisualizationExpanded}
@@ -207,7 +207,11 @@ export function DetectorListTable({
               </VisualizationHeaderContainer>
             )}
             {hasVisualization && (
-              <VisualizationExpandButton>
+              <VisualizationExpandButton
+                display={{zero: 'none', xl: 'flex'}}
+                align="center"
+                justify="center"
+              >
                 <Button
                   size="xs"
                   variant="transparent"
@@ -284,13 +288,9 @@ export function DetectorListTable({
           ))}
         </IssueStreamDetectorContextProvider>
       </DetectorListSimpleTable>
-    </TableContainer>
+    </Container>
   );
 }
-
-const TableContainer = styled('div')`
-  container-type: inline-size;
-`;
 
 type ColumnNames =
   | 'name'
@@ -329,7 +329,7 @@ const gridDefinitions = (
   return css`
     ${makeGridSizes(additionalColumns)};
 
-    @container (min-width: ${p.theme.breakpoints.xs}) {
+    @container (min-width: ${p.theme.container.sm}) {
       ${makeGridTemplate(['name', 'type'])}
 
       [data-column-name='type'] {
@@ -337,7 +337,7 @@ const gridDefinitions = (
       }
     }
 
-    @container (min-width: ${p.theme.breakpoints.sm}) {
+    @container (min-width: ${p.theme.container.xl}) {
       ${makeGridTemplate(['name', 'type', 'assignee'])}
 
       [data-column-name='assignee'] {
@@ -345,7 +345,7 @@ const gridDefinitions = (
       }
     }
 
-    @container (min-width: ${p.theme.breakpoints.md}) {
+    @container (min-width: ${p.theme.container['3xl']}) {
       ${makeGridTemplate(['name', 'type', 'last-issue', 'assignee'])}
 
       [data-column-name='last-issue'] {
@@ -353,7 +353,7 @@ const gridDefinitions = (
       }
     }
 
-    @container (min-width: ${p.theme.breakpoints.lg}) {
+    @container (min-width: ${p.theme.container['4xl']}) {
       ${makeGridTemplate([
         'name',
         'type',
@@ -367,7 +367,7 @@ const gridDefinitions = (
       }
     }
 
-    @container (min-width: ${p.theme.breakpoints.xl}) {
+    @container (min-width: ${p.theme.container['5xl']}) {
       ${makeGridTemplate([
         'name',
         'type',
@@ -395,7 +395,7 @@ const gridDefinitionsWithVisualization = (
   return css`
     ${makeGridSizes(additionalColumns)};
 
-    @container (min-width: ${p.theme.breakpoints.sm}) {
+    @container (min-width: ${p.theme.container.xl}) {
       ${makeGridTemplate(['name', 'visualization'])}
 
       [data-column-name='visualization'] {
@@ -405,7 +405,7 @@ const gridDefinitionsWithVisualization = (
       ${additionalColumnDisplay}
     }
 
-    @container (min-width: ${p.theme.breakpoints.md}) {
+    @container (min-width: ${p.theme.container['3xl']}) {
       ${makeGridTemplate(['name', 'assignee', 'visualization'])}
 
       [data-column-name='assignee'] {
@@ -413,7 +413,7 @@ const gridDefinitionsWithVisualization = (
       }
     }
 
-    @container (min-width: ${p.theme.breakpoints.lg}) {
+    @container (min-width: ${p.theme.container['4xl']}) {
       ${makeGridTemplate(['name', 'last-issue', 'assignee', 'visualization'])}
 
       [data-column-name='last-issue'] {
@@ -421,7 +421,7 @@ const gridDefinitionsWithVisualization = (
       }
     }
 
-    @container (min-width: ${p.theme.breakpoints.xl}) {
+    @container (min-width: ${p.theme.container['5xl']}) {
       ${makeGridTemplate([
         'name',
         'last-issue',
@@ -453,7 +453,7 @@ const gridDefinitionsWithVisualizationExpanded = (
   return css`
     ${makeGridSizes(additionalColumns)};
 
-    @container (min-width: ${p.theme.breakpoints.sm}) {
+    @container (min-width: ${p.theme.container.xl}) {
       ${makeGridTemplate(['name', 'visualization'])}
 
       [data-column-name='visualization'] {
@@ -499,7 +499,7 @@ const DetectorListSimpleTable = styled(SimpleTable)<{
     return gridDefinitions(p, p.additionalColumns);
   }}
 
-  @container (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     [data-column-name='visualization'] {
       grid-column: -3 / -1;
     }
@@ -514,7 +514,7 @@ const PositionedGridLineOverlay = styled(GridLineOverlay)`
 
   display: none;
 
-  @container (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     display: block;
   }
 `;
@@ -527,16 +527,9 @@ const StyledFlex = styled(Flex)`
   padding: ${p => p.theme.size.xs};
 `;
 
-const VisualizationExpandButton = styled('div')`
+const VisualizationExpandButton = styled(Flex)`
   grid-row: 1;
   grid-column: -1;
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  display: none;
   z-index: 4;
-
-  @container (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
 `;
