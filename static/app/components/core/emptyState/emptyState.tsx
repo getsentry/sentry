@@ -1,5 +1,5 @@
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Heading, Text, type TextProps} from '@sentry/scraps/text';
 
 interface EmptyStateProps extends Omit<FlexProps, 'title' | 'children'> {
   title: React.ReactNode;
@@ -15,26 +15,33 @@ export function EmptyState({
   action,
   ...props
 }: EmptyStateProps) {
-  const textAlign = {xs: 'center' as const, sm: undefined};
+  const switchOn = 'xs';
+  const textAlign: TextProps<'p'>['align'] = {zero: 'center', [switchOn]: 'left'};
 
   return (
     <Flex
       containerType="inline-size"
-      direction={{xs: 'column', sm: 'row'}}
+      direction={{zero: 'column', [switchOn]: 'row'}}
       flexGrow={1}
       align="center"
-      gap={{xs: 'xl', sm: '2xl'}}
-      justify={{sm: 'center'}}
+      gap={{zero: 'xl', [switchOn]: '2xl'}}
+      justify={{[switchOn]: 'center'}}
       data-test-id="empty-state"
       {...props}
     >
       {illustration && (
-        <Flex justify="center" align="center" overflow="hidden" flexShrink={0}>
+        <Flex
+          justify="center"
+          align="center"
+          overflow="hidden"
+          flexShrink={0}
+          flexGrow={1}
+        >
           {illustration}
         </Flex>
       )}
       <Stack gap="xl">
-        <Stack gap="md" maxWidth="360px">
+        <Stack gap="md" maxWidth="72ch">
           <Heading as="h3" size="lg" align={textAlign}>
             {title}
           </Heading>
@@ -44,7 +51,7 @@ export function EmptyState({
             </Text>
           )}
         </Stack>
-        <Flex gap="md" flexGrow={1} align={{sm: 'center'}}>
+        <Flex gap="md" justify={{zero: 'center', [switchOn]: 'start'}}>
           {action}
         </Flex>
       </Stack>
