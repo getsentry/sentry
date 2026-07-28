@@ -6,9 +6,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ASSIGNMENT_QUERY_SUFFIXES, SECTIONS} from 'sentry/views/issueList/pages/inbox';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-/** The navigation displays anything higher as a floor. */
-export const INBOX_COUNT_MAX = 99;
-
 const PROGRESS_STATES = SECTIONS.map(section => section.progress).join(', ');
 
 const INBOX_COUNT_QUERY = `issue.progress:[${PROGRESS_STATES}]${ASSIGNMENT_QUERY_SUFFIXES.my_teams}`;
