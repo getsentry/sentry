@@ -252,7 +252,7 @@ export function LoadingStreamGroup({
       {displayReprocessingLayout ? (
         <Fragment>
           <Container
-            width={{zero: '85px', sm: '140px'}}
+            width={{zero: '85px', xl: '140px'}}
             alignSelf="center"
             margin="0 xl"
             whiteSpace="nowrap"
@@ -262,7 +262,7 @@ export function LoadingStreamGroup({
             <Placeholder height="17px" />
           </Container>
           <Container
-            width={{zero: '75px', sm: '140px'}}
+            width={{zero: '75px', xl: '140px'}}
             alignSelf="center"
             margin="0 xl"
             whiteSpace="nowrap"
@@ -272,7 +272,7 @@ export function LoadingStreamGroup({
             <Placeholder height="17px" />
           </Container>
           <Container
-            display={{zero: 'none', sm: 'block'}}
+            display={{zero: 'none', xl: 'block'}}
             width="160px"
             margin="0 xl"
             alignSelf="center"
@@ -560,7 +560,7 @@ export function StreamGroup({
     return (
       <Fragment>
         <Flex
-          width={{zero: '85px', sm: '140px'}}
+          width={{zero: '85px', xl: '140px'}}
           alignSelf="center"
           margin="0 xl"
           whiteSpace="nowrap"
@@ -570,7 +570,7 @@ export function StreamGroup({
           <TimeSince date={dateCreated} />
         </Flex>
         <Container
-          width={{zero: '75px', sm: '140px'}}
+          width={{zero: '75px', xl: '140px'}}
           alignSelf="center"
           margin="0 xl"
           whiteSpace="nowrap"
@@ -588,7 +588,7 @@ export function StreamGroup({
           )}
         </Container>
         <Container
-          display={{zero: 'none', sm: 'block'}}
+          display={{zero: 'none', xl: 'block'}}
           width="160px"
           margin="0 xl"
           alignSelf="center"

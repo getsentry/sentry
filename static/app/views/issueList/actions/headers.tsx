@@ -30,7 +30,7 @@ export function Headers({
       {isReprocessingQuery ? (
         <Fragment>
           <ToolbarHeader
-            width={{zero: '85px', sm: '140px'}}
+            width={{zero: '85px', xl: '140px'}}
             margin="0 xl"
             whiteSpace="nowrap"
             overflow="hidden"
@@ -39,7 +39,7 @@ export function Headers({
             {t('Started')}
           </ToolbarHeader>
           <ToolbarHeader
-            width={{zero: '75px', sm: '140px'}}
+            width={{zero: '75px', xl: '140px'}}
             margin="0 xl"
             whiteSpace="nowrap"
             overflow="hidden"
@@ -48,7 +48,7 @@ export function Headers({
             {t('Events Reprocessed')}
           </ToolbarHeader>
           <ToolbarHeader
-            display={{zero: 'none', sm: 'block'}}
+            display={{zero: 'none', xl: 'block'}}
             width="160px"
             margin="0 xl"
           >
