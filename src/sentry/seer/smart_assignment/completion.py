@@ -42,13 +42,21 @@ def _apply_prediction(
 ) -> None:
     """If the feature flag is enabled and we predicted an acutal org user,
     create a (suggested) GroupOwner for them. Then promote the suggestion to an
-    assignment iff the project auto-assigns to owners."""
+    assignment iff the project auto-assigns to owners.
+
+    Suggests the best-ranked candidate we could resolve, which need not be the agent's
+    first choice: only a resolvable user can own anything, so a linked alternate is worth
+    more here than a top pick Sentry can't map. The ranking as the agent gave it stays
+    untouched on the activity and the run mirror.
+    """
     if not features.has(AUTO_ASSIGN_FEATURE_FLAG, group.organization):
         return
 
-    top_user_id = predicted_assignee_user_ids[0] if predicted_assignee_user_ids else None
+    top_user_id = next(
+        (user_id for user_id in predicted_assignee_user_ids if user_id is not None), None
+    )
     if top_user_id is None:
-        # Agent abstained or named someone we couldn't map to an org user.
+        # Agent abstained, or none of its candidates mapped to an org user.
         metrics.incr(
             "smart_assignment.apply_prediction",
             tags={"outcome": "no_candidate"},
