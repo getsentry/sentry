@@ -17,10 +17,11 @@ describe('IssuesSecondaryNavigation', () => {
     });
   });
 
-  function mockInboxCount(body: Record<string, number>) {
+  function mockInboxCount(count?: number) {
     return MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues-count/',
-      body,
+      url: '/organizations/org-slug/issues/',
+      body: [],
+      headers: count === undefined ? {} : {'X-Hits': String(count)},
     });
   }
 
@@ -34,28 +35,30 @@ describe('IssuesSecondaryNavigation', () => {
   }
 
   it('shows the inbox count for every progress section and the user and their teams', async () => {
-    const request = mockInboxCount({
-      'issue.progress:[fix_proposed, diagnosed, assigned] assigned:[me,my_teams]': 12,
-    });
+    const request = mockInboxCount(12);
 
     renderNavigation();
 
     expect(await screen.findByText('12')).toBeInTheDocument();
 
-    // One query, since a separate Snuba search runs per `query` param.
     const [[, options]] = request.mock.calls;
-    expect(options.query.query).toHaveLength(1);
-    const [query] = options.query.query;
+    const {query} = options.query;
     expect(query).toContain('fix_proposed');
     expect(query).toContain('diagnosed');
     expect(query).toContain('assigned');
     expect(query).toContain('assigned:[me,my_teams]');
+    expect(options.query).toEqual(
+      expect.objectContaining({
+        collapse: ['stats', 'unhandled'],
+        limit: 1,
+        project: [-1],
+        sort: 'progress',
+      })
+    );
   });
 
-  it('caps the count at 99+ since the endpoint stops counting at 100', async () => {
-    mockInboxCount({
-      'issue.progress:[fix_proposed, diagnosed, assigned] assigned:[me,my_teams]': 100,
-    });
+  it('caps the count at 99+', async () => {
+    mockInboxCount(100);
 
     renderNavigation();
 
@@ -63,9 +66,16 @@ describe('IssuesSecondaryNavigation', () => {
   });
 
   it('renders no badge when nothing is waiting', async () => {
-    mockInboxCount({
-      'issue.progress:[fix_proposed, diagnosed, assigned] assigned:[me,my_teams]': 0,
-    });
+    mockInboxCount(0);
+
+    renderNavigation();
+
+    expect(await screen.findByRole('link', {name: 'Inbox'})).toBeInTheDocument();
+    expect(screen.queryByText('0')).not.toBeInTheDocument();
+  });
+
+  it('renders no badge when the response has no count header', async () => {
+    mockInboxCount();
 
     renderNavigation();
 

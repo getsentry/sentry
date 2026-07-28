@@ -132,6 +132,11 @@ function setupMocks() {
     body: {},
   });
   MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/issues/',
+    body: [],
+    headers: {'X-Hits': '0'},
+  });
+  MockApiClient.addMockResponse({
     url: '/organizations/org-slug/explore/saved/',
     body: [],
   });
