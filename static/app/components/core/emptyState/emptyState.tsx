@@ -1,5 +1,5 @@
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Heading, Text, type TextProps} from '@sentry/scraps/text';
 
 interface EmptyStateProps extends Omit<FlexProps, 'title'> {
   title: React.ReactNode;
@@ -18,7 +18,7 @@ export function EmptyState({
   ...props
 }: EmptyStateProps) {
   const isVertical = orientation === 'vertical';
-  const textAlign = isVertical ? ('center' as const) : undefined;
+  const textAlign: TextProps<'p'>['align'] = isVertical ? 'center' : undefined;
 
   const copy = (
     <Stack gap="md" maxWidth="360px">
@@ -26,7 +26,7 @@ export function EmptyState({
         {title}
       </Heading>
       {description && (
-        <Text size="md" variant="muted" align={textAlign} textWrap="balance">
+        <Text as="p" size="md" variant="muted" align={textAlign} textWrap="balance">
           {description}
         </Text>
       )}
