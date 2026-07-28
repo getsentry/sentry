@@ -1663,11 +1663,11 @@ function buildRoutes(): RouteObject[] {
   const discoverErrorsChildren: SentryRouteObject[] = [
     {
       index: true,
-      redirectTo: 'queries/',
+      component: make(() => import('sentry/views/discover/homepage')),
     },
     {
       path: 'homepage/',
-      component: make(() => import('sentry/views/discover/homepage')),
+      redirectTo: '..',
     },
     traceView,
     {

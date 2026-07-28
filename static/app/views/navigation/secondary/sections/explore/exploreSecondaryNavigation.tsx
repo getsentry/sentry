@@ -85,7 +85,7 @@ export function ExploreSecondaryNavigation() {
                 <SecondaryNavigation.Link
                   to={
                     discoverTransactionsDeprecation
-                      ? `${baseUrl}/errors/homepage/`
+                      ? `${baseUrl}/errors/`
                       : `${baseUrl}/discover/homepage/`
                   }
                   activeTo={
