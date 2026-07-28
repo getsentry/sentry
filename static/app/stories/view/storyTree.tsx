@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -619,22 +619,19 @@ export function CategorizedStoryTree() {
 }
 
 function Folder(props: {node: StoryTreeNode}) {
-  const [expanded, setExpanded] = useState(props.node.expanded);
   const {storySlug} = useStoryParams();
 
   const hasActiveChild = useMemo(() => {
     // eslint-disable-next-line unicorn/prefer-array-some
     return !!props.node.find(n => n.slug === storySlug);
   }, [storySlug, props.node]);
+  const [expanded, setExpanded] = useState(() => props.node.expanded || hasActiveChild);
 
-  if (hasActiveChild && !props.node.expanded) {
-    props.node.expanded = true;
-    setExpanded(true);
-  }
-
-  if (props.node.expanded !== expanded) {
-    setExpanded(props.node.expanded);
-  }
+  useEffect(() => {
+    if (hasActiveChild) {
+      setExpanded(true);
+    }
+  }, [hasActiveChild]);
 
   if (!props.node.visible) {
     return null;
@@ -642,17 +639,7 @@ function Folder(props: {node: StoryTreeNode}) {
 
   return (
     <li>
-      <FolderName
-        onClick={() => {
-          props.node.expanded = !props.node.expanded;
-          if (props.node.expanded) {
-            for (const child of Object.values(props.node.children)) {
-              child.visible = true;
-            }
-          }
-          setExpanded(props.node.expanded);
-        }}
-      >
+      <FolderName onClick={() => setExpanded(current => !current)}>
         <Flex flex={1}>{normalizeFilename(props.node.name)}</Flex>
         <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
       </FolderName>
