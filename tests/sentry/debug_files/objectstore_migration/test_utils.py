@@ -9,9 +9,7 @@ from django.core.files.base import ContentFile
 
 from sentry.debug_files.objectstore_migration import (
     ObjectstoreIntegrityError,
-    freeze_high_water_mark,
     migrate_debug_file,
-    start_migration,
 )
 from sentry.models.files.file import File
 from sentry.objectstore import get_debug_files_session
@@ -20,7 +18,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_objectstore
 
 
-class DebugFileObjectstoreMigrationTest(TestCase):
+class DebugFileObjectstoreMigrationUtilsTest(TestCase):
     @pytest.fixture(autouse=True)
     def enable_migration(self) -> Generator[None]:
         with override_options({"debug-files.objectstore-migration.killswitch": False}):
@@ -72,12 +70,12 @@ class DebugFileObjectstoreMigrationTest(TestCase):
     def test_post_upload_integrity_failure_retries_and_does_not_cut_over(self) -> None:
         with (
             patch(
-                "sentry.debug_files.objectstore_migration._verify_object",
+                "sentry.debug_files.objectstore_migration.utils._verify_object",
                 side_effect=ObjectstoreIntegrityError("post-upload mismatch"),
             ),
             patch("sentry.utils.retries.time.sleep"),
             patch(
-                "sentry.debug_files.objectstore_migration._upload_dif_to_objectstore",
+                "sentry.debug_files.objectstore_migration.utils._upload_dif_to_objectstore",
                 return_value="uploaded-key",
             ),
             pytest.raises(ObjectstoreIntegrityError),
@@ -120,11 +118,11 @@ class DebugFileObjectstoreMigrationTest(TestCase):
 
         with (
             patch(
-                "sentry.debug_files.objectstore_migration.get_debug_files_session",
+                "sentry.debug_files.objectstore_migration.utils.get_debug_files_session",
                 return_value=session,
             ),
             patch(
-                "sentry.debug_files.objectstore_migration._upload_dif_to_objectstore",
+                "sentry.debug_files.objectstore_migration.utils._upload_dif_to_objectstore",
                 return_value="os-key",
             ),
         ):
@@ -136,40 +134,3 @@ class DebugFileObjectstoreMigrationTest(TestCase):
         assert self.debug_file.content_type == "application/x-mach-binary"
         assert self.debug_file.file_format == "macho"
         assert self.debug_file.date_created == source.timestamp
-
-    def test_start_migration_enqueues_shards_with_hwm(self) -> None:
-        high_water_mark = freeze_high_water_mark()
-
-        with patch(
-            "sentry.debug_files.objectstore_migration_tasks.migrate_shard.apply_async"
-        ) as enqueue:
-            asserted = start_migration(shard_count=3)
-
-        assert asserted == 3
-        assert enqueue.call_count == 3
-        kwargs_list = [call.kwargs["kwargs"] for call in enqueue.call_args_list]
-        assert {k["shard_id"] for k in kwargs_list} == {0, 1, 2}
-        for kwargs in kwargs_list:
-            assert kwargs["shard_count"] == 3
-            assert kwargs["high_water_mark"] == high_water_mark
-            assert kwargs["cursor_id"] == 0
-
-    def test_start_migration_resume_preserves_cursors(self) -> None:
-        with patch(
-            "sentry.debug_files.objectstore_migration_tasks.migrate_shard.apply_async"
-        ) as enqueue:
-            asserted = start_migration(
-                shard_count=2,
-                high_water_mark=99,
-                cursors={0: 40, 1: 41},
-                shard_ids=[0, 1],
-            )
-
-        assert asserted == 2
-        kwargs_by_shard = {
-            call.kwargs["kwargs"]["shard_id"]: call.kwargs["kwargs"]
-            for call in enqueue.call_args_list
-        }
-        assert kwargs_by_shard[0]["cursor_id"] == 40
-        assert kwargs_by_shard[1]["cursor_id"] == 41
-        assert kwargs_by_shard[0]["high_water_mark"] == 99

@@ -4,7 +4,6 @@ import hashlib
 import logging
 import os
 import random
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -14,7 +13,6 @@ from django.db.models.fields import IntegerField
 from objectstore_client import RequestError, Session
 from urllib3.exceptions import HTTPError
 
-from sentry import options
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.models.debugfile import (
     ProjectDebugFile,
@@ -44,38 +42,6 @@ class VerifiedObject:
 
 def freeze_high_water_mark() -> int:
     return ProjectDebugFile.objects.aggregate(max_id=Max("id"))["max_id"] or 0
-
-
-def start_migration(
-    *,
-    shard_count: int,
-    high_water_mark: int | None = None,
-    cursors: Mapping[int, int] | None = None,
-    shard_ids: Sequence[int] | None = None,
-) -> int:
-    """Freeze the high-water mark (unless provided) and enqueue shard heads.
-
-    Progress lives only in task kwargs: each shard activation carries
-    ``cursor_id`` and re-enqueues itself with an advanced cursor. Pass
-    ``cursors`` / ``high_water_mark`` to resume a previous campaign from logs.
-    """
-    if options.get("debug-files.objectstore-migration.killswitch"):
-        raise RuntimeError("Debug file Objectstore migration is killswitched")
-    if shard_count < 1:
-        raise ValueError("shard_count must be positive")
-
-    # Lazy import: tasks import from this module.
-    from sentry.debug_files.objectstore_migration_tasks import enqueue_shard_heads
-
-    if high_water_mark is None:
-        high_water_mark = freeze_high_water_mark()
-
-    return enqueue_shard_heads(
-        shard_count=shard_count,
-        high_water_mark=high_water_mark,
-        cursors=cursors,
-        shard_ids=shard_ids,
-    )
 
 
 def shard_candidates(

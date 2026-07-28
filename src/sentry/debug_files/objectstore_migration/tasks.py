@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from taskbroker_client.state import current_task
 
 from sentry import options
-from sentry.debug_files.objectstore_migration import migrate_debug_file, shard_candidates
+from sentry.debug_files.objectstore_migration.utils import migrate_debug_file, shard_candidates
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import debug_files_migration_tasks

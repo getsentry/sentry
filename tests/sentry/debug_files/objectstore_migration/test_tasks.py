@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.debug_files.objectstore_migration_tasks import migrate_shard
+from sentry.debug_files.objectstore_migration.tasks import migrate_shard
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -22,15 +22,15 @@ class DebugFileObjectstoreMigrationTaskTest(TestCase):
 
         with (
             patch(
-                "sentry.debug_files.objectstore_migration_tasks._MAX_FILES_PER_ACTIVATION",
+                "sentry.debug_files.objectstore_migration.tasks._MAX_FILES_PER_ACTIVATION",
                 2,
             ),
             patch(
-                "sentry.debug_files.objectstore_migration_tasks._QUERY_BATCH_SIZE",
+                "sentry.debug_files.objectstore_migration.tasks._QUERY_BATCH_SIZE",
                 3,
             ),
             patch(
-                "sentry.debug_files.objectstore_migration_tasks.migrate_debug_file",
+                "sentry.debug_files.objectstore_migration.tasks.migrate_debug_file",
             ) as migrate_one,
             patch.object(migrate_shard, "apply_async") as enqueue_successor,
         ):
@@ -54,7 +54,7 @@ class DebugFileObjectstoreMigrationTaskTest(TestCase):
 
         with (
             patch(
-                "sentry.debug_files.objectstore_migration_tasks.migrate_debug_file",
+                "sentry.debug_files.objectstore_migration.tasks.migrate_debug_file",
             ) as migrate_one,
             patch.object(migrate_shard, "apply_async") as enqueue_successor,
         ):
