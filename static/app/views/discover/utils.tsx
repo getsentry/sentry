@@ -537,8 +537,7 @@ export function generateFieldOptions({
   });
 
   if (measurementKeys !== undefined && measurementKeys !== null) {
-    measurementKeys.sort();
-    measurementKeys.forEach(measurement => {
+    measurementKeys.toSorted().forEach(measurement => {
       fieldOptions[`measurement:${measurement}`] = {
         label: measurement,
         value: {
@@ -550,27 +549,27 @@ export function generateFieldOptions({
   }
 
   if (customMeasurements !== undefined && customMeasurements !== null) {
-    customMeasurements.sort(({key: currentKey}, {key: nextKey}) =>
-      currentKey > nextKey ? 1 : currentKey === nextKey ? 0 : -1
-    );
-    customMeasurements.forEach(({key, functions: supportedFunctions}) => {
-      fieldOptions[`measurement:${key}`] = {
-        label: key,
-        value: {
-          kind: FieldValueKind.CUSTOM_MEASUREMENT,
-          meta: {
-            name: key,
-            dataType: measurementType(key),
-            functions: supportedFunctions,
+    customMeasurements
+      .toSorted(({key: currentKey}, {key: nextKey}) =>
+        currentKey > nextKey ? 1 : currentKey === nextKey ? 0 : -1
+      )
+      .forEach(({key, functions: supportedFunctions}) => {
+        fieldOptions[`measurement:${key}`] = {
+          label: key,
+          value: {
+            kind: FieldValueKind.CUSTOM_MEASUREMENT,
+            meta: {
+              name: key,
+              dataType: measurementType(key),
+              functions: supportedFunctions,
+            },
           },
-        },
-      };
-    });
+        };
+      });
   }
 
   if (Array.isArray(spanOperationBreakdownKeys)) {
-    spanOperationBreakdownKeys.sort();
-    spanOperationBreakdownKeys.forEach(breakdownField => {
+    spanOperationBreakdownKeys.toSorted().forEach(breakdownField => {
       if (!fieldKeys.includes(breakdownField)) {
         // These span op breakdowns are sometimes included in the fieldKeys
         // so check before we add them, or else we surface duplicates
@@ -586,8 +585,7 @@ export function generateFieldOptions({
   }
 
   if (tagKeys !== undefined && tagKeys !== null) {
-    tagKeys.sort();
-    tagKeys.forEach(tag => {
+    tagKeys.toSorted().forEach(tag => {
       const tagValue =
         fieldKeys.includes(tag) || Object.hasOwn(aggregations, tag)
           ? `tags[${tag}]`
