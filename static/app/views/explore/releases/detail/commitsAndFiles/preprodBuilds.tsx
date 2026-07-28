@@ -6,6 +6,11 @@ import {Container} from '@sentry/scraps/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {
+  MOBILE_BUILDS_ALLOWED_KEYS,
+  MOBILE_BUILDS_DISTRIBUTION_ALLOWED_KEYS,
+  SNAPSHOT_ALLOWED_KEYS,
+} from 'sentry/components/preprod/constants';
+import {
   getPreprodBuildsDisplay,
   PreprodBuildsDisplay,
 } from 'sentry/components/preprod/preprodBuildsDisplay';
@@ -188,6 +193,13 @@ export default function PreprodBuilds() {
             initialQuery={localSearchQuery}
             display={activeDisplay}
             projects={[Number(projectId)]}
+            allowedKeys={
+              activeDisplay === PreprodBuildsDisplay.SNAPSHOT
+                ? SNAPSHOT_ALLOWED_KEYS
+                : activeDisplay === PreprodBuildsDisplay.DISTRIBUTION
+                  ? MOBILE_BUILDS_DISTRIBUTION_ALLOWED_KEYS
+                  : MOBILE_BUILDS_ALLOWED_KEYS
+            }
             onChange={handleSearch}
             onDisplayChange={handleDisplayChange}
           />
