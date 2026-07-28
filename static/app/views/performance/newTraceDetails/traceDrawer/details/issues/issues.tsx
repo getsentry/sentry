@@ -189,7 +189,7 @@ export function IssueList({
   className,
 }: IssueListProps) {
   const uniqueIssues = [
-    ...node.uniqueErrorIssues.sort(sortIssuesByLevel),
+    ...node.uniqueErrorIssues.toSorted(sortIssuesByLevel),
     ...node.uniqueOccurrenceIssues,
   ].filter(issue => issue.issue_id);
 
