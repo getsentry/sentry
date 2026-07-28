@@ -36,13 +36,6 @@ class OrganizationRepositoryPlatformsEndpoint(OrganizationRepositoryEndpoint):
     }
 
     def get(self, request: Request, organization: Organization, repo: Repository) -> Response:
-        if not features.has(
-            "organizations:integrations-github-platform-detection",
-            organization,
-            actor=request.user,
-        ):
-            return Response(status=404)
-
         if (
             not repo.integration_id
             or repo.provider != f"integrations:{IntegrationProviderSlug.GITHUB}"
