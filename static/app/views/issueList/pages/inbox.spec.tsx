@@ -38,11 +38,7 @@ describe('InboxPage', () => {
   const initialRouterConfig = {
     location: {
       pathname: '/organizations/org-slug/issues/inbox/',
-      query: {
-        project: project.id,
-        environment: 'production',
-        statsPeriod: '7d',
-      },
+      query: {},
     },
   };
   const assignedUser = UserFixture({
@@ -327,6 +323,29 @@ describe('InboxPage', () => {
     expect(within(fixSection).queryByRole('checkbox')).not.toBeInTheDocument();
     expect(fixSection.querySelector('time')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: '7D'})).not.toBeInTheDocument();
+  });
+
+  it('removes page filters from the URL', async () => {
+    mockSuccessfulSections();
+
+    const {router} = render(<InboxPage />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/inbox/',
+          query: {
+            end: '2026-07-28T00:00:00',
+            environment: 'production',
+            project: '1',
+            start: '2026-07-27T00:00:00',
+            statsPeriod: '24h',
+            utc: 'true',
+          },
+        },
+      },
+    });
+
+    await waitFor(() => expect(router.location.query).toEqual({}));
   });
 
   it('shows a plus sign when a section count reaches the API cap', async () => {
