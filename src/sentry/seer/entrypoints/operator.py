@@ -609,8 +609,6 @@ def _create_seer_activity(
         activity_data["run_id"] = run_id
 
     if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution is not None:
-        # ``referrer`` arrives as a plain string once the task payload is
-        # serialized; ``str()`` covers both that and the enum member.
         activity_data["referrer"] = str(activity_attribution["referrer"])
     elif event_type == SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
         root_cause = event_payload.get("root_cause")
