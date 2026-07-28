@@ -391,9 +391,8 @@ export function MetricSelector({
           type: selectedOption.metricType,
           unit: selectedOption.metricUnit,
         });
-        // Close via toggle() instead of close() because the combobox
-        // overrides close with commitValue which re-fires onChange
-        // with the stale previous key, reverting the selection.
+        // close() commits the previous controlled value, which calls
+        // onSelectionChange again with the stale key and reverts the selection.
         comboBoxState.toggle();
       }
     },
@@ -425,8 +424,8 @@ export function MetricSelector({
       if (open) {
         comboBoxState.open();
       } else {
-        // close() commits the current selected key before dismissing, which
-        // spuriously re-fires onChange during outside dismissals.
+        // close() commits the controlled value before dismissing, which calls
+        // onSelectionChange again even though no item was selected.
         comboBoxState.toggle();
       }
     },
