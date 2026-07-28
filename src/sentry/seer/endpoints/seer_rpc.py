@@ -692,7 +692,7 @@ def send_seer_webhook(
             id=organization_id, status=OrganizationStatus.ACTIVE
         )
     except Organization.DoesNotExist:
-        logger.exception(
+        logger.warning(
             "seer.webhook_organization_not_found_or_not_active",
             extra={"organization_id": organization_id},
         )
