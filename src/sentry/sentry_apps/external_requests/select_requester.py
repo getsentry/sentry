@@ -81,18 +81,7 @@ class SelectRequester:
                     )
                 )
 
-                try:
-                    response = json.loads(body)
-                except (json.JSONDecodeError, ValueError) as e:
-                    halt_reason = FAILURE_REASON_BASE.format(
-                        SentryAppExternalRequestHaltReason.BAD_RESPONSE
-                    )
-                    lifecycle.record_halt(halt_reason=e, extra={"reason": halt_reason, **extras})
-                    raise SentryAppIntegratorError(
-                        message=f"Something went wrong while getting options for Select FormField from {self.sentry_app.slug}: invalid JSON response",
-                        webhook_context={"error_type": halt_reason, **extras},
-                        status_code=502,
-                    ) from e
+                response = json.loads(body)
                 extras.update({"response": response})
             except RequestException as e:
                 halt_reason = FAILURE_REASON_BASE.format(
@@ -107,6 +96,20 @@ class SelectRequester:
                     ),
                     webhook_context={"error_type": halt_reason, **extras},
                     status_code=e.response.status_code if e.response is not None else 502,
+                ) from e
+
+            # Must come after RequestException: several of its subclasses
+            # (InvalidURL, MissingSchema, ...) also subclass ValueError.
+            except (json.JSONDecodeError, TypeError) as e:
+                halt_reason = FAILURE_REASON_BASE.format(
+                    SentryAppExternalRequestHaltReason.BAD_RESPONSE
+                )
+                lifecycle.record_halt(halt_reason=e, extra={"reason": halt_reason, **extras})
+
+                raise SentryAppIntegratorError(
+                    message=f"Something went wrong while getting options for Select FormField from {self.sentry_app.slug}: invalid JSON response",
+                    webhook_context={"error_type": halt_reason, **extras},
+                    status_code=502,
                 ) from e
 
             except SentryAppIntegratorError as e:
