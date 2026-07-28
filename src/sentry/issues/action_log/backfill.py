@@ -12,6 +12,7 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
+from typing import NamedTuple
 
 from django.db import connections, router, transaction
 from django.utils import timezone
@@ -49,14 +50,6 @@ _PR_LIFECYCLE_ACTION_TYPES = (
     GroupActionType.PULL_REQUEST_UNLINKED,
 )
 
-# Lifecycle actions that leave a pull request finished as far as the log is concerned.
-# When one of these is the last action logged for a pull request that is open, the
-# reopen went unlogged and is reconstructed by the backfill.
-_TERMINAL_PR_LIFECYCLE_ACTION_TYPES = (
-    GroupActionType.PULL_REQUEST_CLOSED,
-    GroupActionType.PULL_REQUEST_MERGED,
-)
-
 
 @dataclass(frozen=True)
 class BackfillEntry:
@@ -67,6 +60,13 @@ class BackfillEntry:
     source: str
     date_added: datetime
     idempotency_key: str
+
+
+class _PullRequestLifecycleDetails(NamedTuple):
+    id: int
+    state: str | None
+    closed_at: datetime | None
+    merged_at: datetime | None
 
 
 def bulk_insert_action_log_entries(params: list[int | str | datetime], num_rows: int) -> int:
@@ -257,6 +257,96 @@ def _latest_pr_lifecycle_action_types(*, group_id: int, project_id: int) -> dict
     return latest_action_types
 
 
+def _get_new_pr_lifecycle_action(
+    *,
+    pull_request: _PullRequestLifecycleDetails,
+    latest_action_type: int | None,
+    has_other_open_prs: bool,
+    group_id: int,
+    project_id: int,
+) -> (
+    tuple[
+        PullRequestClosedAction | PullRequestMergedAction | PullRequestReopenedAction,
+        datetime | None,
+    ]
+    | None
+):
+    """Return the lifecycle action and timestamp missing from a pull request's log."""
+    match pull_request.state:
+        case PullRequestLifecycleState.MERGED:
+            if latest_action_type == GroupActionType.PULL_REQUEST_MERGED:
+                return None
+            logger.info(
+                "backfill_group_pr_lifecycle.merged",
+                extra={
+                    "group_id": group_id,
+                    "project_id": project_id,
+                    "pull_request_id": pull_request.id,
+                    "state": pull_request.state,
+                    "latest_action_type": latest_action_type,
+                },
+            )
+            return (
+                PullRequestMergedAction(
+                    pull_request=pull_request.id,
+                    has_other_open_prs=has_other_open_prs,
+                ),
+                pull_request.merged_at,
+            )
+        case PullRequestLifecycleState.CLOSED | PullRequestLifecycleState.SUPERSEDED:
+            if latest_action_type == GroupActionType.PULL_REQUEST_CLOSED:
+                return None
+            logger.info(
+                "backfill_group_pr_lifecycle.closed",
+                extra={
+                    "group_id": group_id,
+                    "project_id": project_id,
+                    "pull_request_id": pull_request.id,
+                    "state": pull_request.state,
+                    "latest_action_type": latest_action_type,
+                },
+            )
+            return (
+                PullRequestClosedAction(
+                    pull_request=pull_request.id,
+                    has_other_open_prs=has_other_open_prs,
+                ),
+                pull_request.closed_at,
+            )
+        case PullRequestLifecycleState.OPEN | PullRequestLifecycleState.LOCKED:
+            if latest_action_type not in (
+                GroupActionType.PULL_REQUEST_CLOSED,
+                GroupActionType.PULL_REQUEST_MERGED,
+            ):
+                return None
+            # PullRequest does not store a reopened timestamp, so use the current time.
+            date_added = timezone.now()
+            logger.info(
+                "backfill_group_pr_lifecycle.reopen",
+                extra={
+                    "group_id": group_id,
+                    "project_id": project_id,
+                    "pull_request_id": pull_request.id,
+                    "state": pull_request.state,
+                    "latest_action_type": latest_action_type,
+                },
+            )
+            return PullRequestReopenedAction(pull_request=pull_request.id), date_added
+        case _:
+            # A null state is a legacy/unsynced pull request whose real state is unknown.
+            logger.info(
+                "backfill_group_pr_lifecycle.unknown_state",
+                extra={
+                    "group_id": group_id,
+                    "project_id": project_id,
+                    "pull_request_id": pull_request.id,
+                    "state": pull_request.state,
+                    "latest_action_type": latest_action_type,
+                },
+            )
+            return None
+
+
 def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
     """Backfill missing pull request lifecycle actions for a group.
 
@@ -276,15 +366,16 @@ def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
     if not pull_request_ids:
         return 0
 
-    pull_requests = list(
-        PullRequest.objects.filter(id__in=pull_request_ids).values_list(
+    pull_requests = [
+        _PullRequestLifecycleDetails(*pull_request)
+        for pull_request in PullRequest.objects.filter(id__in=pull_request_ids).values_list(
             "id", "state", "closed_at", "merged_at"
         )
-    )
+    ]
     open_pull_request_ids = {
-        pull_request_id
-        for pull_request_id, state, _, _ in pull_requests
-        if is_open_pull_request_state(state)
+        pull_request.id
+        for pull_request in pull_requests
+        if is_open_pull_request_state(pull_request.state)
     }
 
     latest_action_types = _latest_pr_lifecycle_action_types(
@@ -292,62 +383,18 @@ def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
     )
 
     entries: list[BackfillEntry] = []
-    for pull_request_id, state, closed_at, merged_at in pull_requests:
-        latest_action_type = latest_action_types.get(pull_request_id)
-
-        action: PullRequestClosedAction | PullRequestMergedAction | PullRequestReopenedAction
-        date_added: datetime | None
-        has_other_open_prs = bool(open_pull_request_ids - {pull_request_id})
-        match state:
-            case PullRequestLifecycleState.MERGED:
-                action = PullRequestMergedAction(
-                    pull_request=pull_request_id,
-                    has_other_open_prs=has_other_open_prs,
-                )
-                date_added = merged_at
-            case PullRequestLifecycleState.CLOSED | PullRequestLifecycleState.SUPERSEDED:
-                action = PullRequestClosedAction(
-                    pull_request=pull_request_id,
-                    has_other_open_prs=has_other_open_prs,
-                )
-                date_added = closed_at
-            case PullRequestLifecycleState.OPEN | PullRequestLifecycleState.LOCKED:
-                # The pull request is open, so a terminal action being the last thing
-                # logged means its reopen was never recorded. There is no reopened
-                # timestamp to recover, so use the current time
-                if latest_action_type not in _TERMINAL_PR_LIFECYCLE_ACTION_TYPES:
-                    continue
-                action = PullRequestReopenedAction(pull_request=pull_request_id)
-                date_added = timezone.now()
-                logger.info(
-                    "backfill_group_pr_lifecycle.synthetic_reopen",
-                    extra={
-                        "group_id": group_id,
-                        "project_id": project_id,
-                        "pull_request_id": pull_request_id,
-                        "state": state,
-                        "latest_action_type": latest_action_type,
-                    },
-                )
-            case _:
-                # A null state is a legacy/unsynced pull request whose real state we
-                # don't know, so we can't tell a stale terminal action from a correct
-                # one. Leave the log alone rather than inventing a reopen.
-                logger.info(
-                    "backfill_group_pr_lifecycle.unknown_state",
-                    extra={
-                        "group_id": group_id,
-                        "project_id": project_id,
-                        "pull_request_id": pull_request_id,
-                        "state": state,
-                        "latest_action_type": latest_action_type,
-                    },
-                )
-                continue
-
-        action_type = action.get_type()
-        if latest_action_type == action_type:
+    for pull_request in pull_requests:
+        latest_action_type = latest_action_types.get(pull_request.id)
+        action_and_date = _get_new_pr_lifecycle_action(
+            pull_request=pull_request,
+            latest_action_type=latest_action_type,
+            has_other_open_prs=bool(open_pull_request_ids - {pull_request.id}),
+            group_id=group_id,
+            project_id=project_id,
+        )
+        if action_and_date is None:
             continue
+        action, date_added = action_and_date
 
         if date_added is None:
             logger.info(
@@ -355,8 +402,8 @@ def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
                 extra={
                     "group_id": group_id,
                     "project_id": project_id,
-                    "pull_request_id": pull_request_id,
-                    "state": state,
+                    "pull_request_id": pull_request.id,
+                    "state": pull_request.state,
                 },
             )
             continue
@@ -367,7 +414,7 @@ def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
                 actor=SYSTEM_ACTOR,
                 source=BACKFILL_PR_LIFECYCLE_SOURCE,
                 date_added=date_added,
-                idempotency_key=f"pr-lifecycle:{pull_request_id}:{action_type.value}",
+                idempotency_key=f"pr-lifecycle:{pull_request.id}:{action.get_type().value}",
             )
         )
 
