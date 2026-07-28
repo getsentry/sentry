@@ -377,7 +377,10 @@ export function MetricSelector({
     inputValue: searchInputValue,
     onInputChange: setSearchInputValue,
     value: traceMetric.name ? traceMetricSelectValue : null,
-    onChange: key => {
+    // This intentionally uses the legacy callback because selecting the current metric
+    // still needs to normalize stale aggregate metadata. `onChange` only fires when the
+    // value changes.
+    onSelectionChange: key => {
       if (!key) {
         return;
       }
