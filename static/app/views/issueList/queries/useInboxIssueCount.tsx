@@ -4,9 +4,6 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ASSIGNMENT_QUERY_SUFFIXES, SECTIONS} from 'sentry/views/issueList/pages/inbox';
 
-/** The endpoint stops counting at 100, so anything higher is a floor. */
-export const INBOX_COUNT_MAX = 99;
-
 const PROGRESS_STATES = SECTIONS.map(section => section.progress).join(', ');
 
 // A separate Snuba search runs per `query` param, so all the states travel as one.
