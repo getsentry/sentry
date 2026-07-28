@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 from django.utils.text import slugify
 
 from sentry.core.endpoints.organization_projects import (
+    CONFLICTING_PROJECT_SLUG_ERROR,
     DISABLED_FEATURE_ERROR_STRING,
     OrganizationProjectsEndpoint,
     fetch_slugifed_email_username,
@@ -140,6 +141,22 @@ class OrganizationProjectsCreateTest(APITestCase):
         project = Project.objects.get(id=response.data["id"])
         assert response.data["slug"] == "exact-custom-slug"
         assert project.slug == "exact-custom-slug"
+
+    @with_feature(["organizations:team-roles"])
+    def test_duplicate_custom_project_slug(self) -> None:
+        self.create_project(organization=self.organization, slug="exact-custom-slug")
+
+        response = self.get_error_response(
+            self.organization.slug,
+            name="My Display Name",
+            slug="exact-custom-slug",
+            status_code=409,
+        )
+
+        assert response.data == {
+            "non_field_errors": [CONFLICTING_PROJECT_SLUG_ERROR],
+            "detail": CONFLICTING_PROJECT_SLUG_ERROR,
+        }
 
     @with_feature(["organizations:team-roles"])
     def test_project_slug_is_slugified(self) -> None:

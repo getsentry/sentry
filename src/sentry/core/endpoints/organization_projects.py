@@ -93,6 +93,7 @@ DATASETS = {
 }
 
 CONFLICTING_TEAM_SLUG_ERROR = "A team with this slug already exists."
+CONFLICTING_PROJECT_SLUG_ERROR = "A project with this slug already exists."
 MISSING_PERMISSION_ERROR_STRING = "You do not have permission to join a new team as a Team Admin."
 DISABLED_FEATURE_ERROR_STRING = "Your organization has disabled this feature for members."
 
@@ -379,12 +380,21 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                     organizationmember=member,
                     role="admin",
                 )
-                project = Project.objects.create(
-                    name=project_name,
-                    slug=result.get("slug"),
-                    organization=organization,
-                    platform=result.get("platform"),
-                )
+                try:
+                    with transaction.atomic(router.db_for_write(Project)):
+                        project = Project.objects.create(
+                            name=project_name,
+                            slug=result.get("slug"),
+                            organization=organization,
+                            platform=result.get("platform"),
+                        )
+                except (IntegrityError, MaxSnowflakeRetryError):
+                    raise ConflictError(
+                        {
+                            "non_field_errors": [CONFLICTING_PROJECT_SLUG_ERROR],
+                            "detail": CONFLICTING_PROJECT_SLUG_ERROR,
+                        }
+                    )
                 project.add_team(team)
         except (IntegrityError, MaxSnowflakeRetryError):
             raise ConflictError(
