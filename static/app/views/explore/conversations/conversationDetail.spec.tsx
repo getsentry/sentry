@@ -66,9 +66,7 @@ function mockApis() {
 function renderPage(features: string[] = []) {
   return render(
     <TopBar.Slot.Provider>
-      <div data-test-id="top-bar-container">
-        <TopBar />
-      </div>
+      <TopBar />
       <ConversationDetailPage />
     </TopBar.Slot.Provider>,
     {
@@ -142,7 +140,7 @@ describe('ConversationDetailPage breadcrumbs', () => {
   it('renders the parent link, conversation id heading, and copy action with the migration flag on', async () => {
     renderPage(['ui-migration-breadcrumbs']);
 
-    const topBar = await screen.findByTestId('top-bar-container');
+    const topBar = screen.getByRole('banner');
 
     expect(
       await within(topBar).findByRole('link', {name: 'Conversations'})

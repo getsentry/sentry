@@ -18,9 +18,7 @@ function renderLayout(
 ) {
   return render(
     <TopBar.Slot.Provider>
-      <div data-test-id="top-bar-container">
-        <TopBar />
-      </div>
+      <TopBar />
       <ConversationsLayout />
     </TopBar.Slot.Provider>,
     {
@@ -46,7 +44,7 @@ describe('ConversationsLayout', () => {
       '/organizations/:orgId/explore/conversations/'
     );
 
-    const topBar = screen.getByTestId('top-bar-container');
+    const topBar = screen.getByRole('banner');
     expect(await within(topBar).findByText('AI Conversations')).toBeInTheDocument();
   });
 
@@ -59,7 +57,7 @@ describe('ConversationsLayout', () => {
       '/organizations/:orgId/explore/conversations/'
     );
 
-    const topBar = screen.getByTestId('top-bar-container');
+    const topBar = screen.getByRole('banner');
     expect(
       await within(topBar).findByRole('link', {name: 'Conversations'})
     ).toBeInTheDocument();
@@ -76,7 +74,7 @@ describe('ConversationsLayout', () => {
       ['ui-migration-breadcrumbs']
     );
 
-    const topBar = screen.getByTestId('top-bar-container');
+    const topBar = screen.getByRole('banner');
     expect(
       await within(topBar).findByRole('link', {name: 'Conversations'})
     ).toBeInTheDocument();
@@ -86,7 +84,7 @@ describe('ConversationsLayout', () => {
     ).toBeInTheDocument();
   });
 
-  it('defers the title to the detail page on a conversation detail route', async () => {
+  it('defers the title to the detail page on a conversation detail route', () => {
     renderLayout(
       {
         pathname: `/organizations/${organization.slug}/explore/conversations/6c5b72fc/`,
@@ -96,7 +94,7 @@ describe('ConversationsLayout', () => {
 
     // The detail page renders its own breadcrumbs, so the layout leaves the
     // top bar title slot empty.
-    const topBar = await screen.findByTestId('top-bar-container');
+    const topBar = screen.getByRole('banner');
     expect(within(topBar).queryByText('AI Conversations')).not.toBeInTheDocument();
     expect(
       within(topBar).queryByRole('link', {name: 'Conversations'})
