@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest import mock
 from uuid import uuid4
 
@@ -243,13 +243,13 @@ class WeeklyReportUtilsTest(
 
     def store_event_outcomes(
         self,
-        organization_id,
-        project_id,
-        timestamp,
-        num_times,
-        outcome=Outcome.ACCEPTED,
-        category=DataCategory.ERROR,
-    ):
+        organization_id: int,
+        project_id: int,
+        timestamp: datetime,
+        num_times: int,
+        outcome: Outcome = Outcome.ACCEPTED,
+        category: DataCategory = DataCategory.ERROR,
+    ) -> None:
         self.store_outcomes(
             {
                 "org_id": organization_id,
