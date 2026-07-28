@@ -18,7 +18,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
-import {EventView} from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -327,7 +326,6 @@ export function WidgetPreviewContainer({
           organization={organization}
           location={location}
           hideLoadingIndicator
-          eventView={EventView.fromLocation(location)}
         >
           {metricsDataSide => (
             <MEPSettingProvider

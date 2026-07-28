@@ -42,7 +42,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {EventView} from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -79,7 +78,6 @@ import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getD
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
@@ -1140,7 +1138,6 @@ class DashboardDetail extends Component<Props, State> {
                 >
                   <MetricsDataSwitcher
                     organization={organization}
-                    eventView={EventView.fromLocation(location)}
                     location={location}
                     hideLoadingIndicator
                   >
@@ -1185,7 +1182,6 @@ class DashboardDetail extends Component<Props, State> {
       location,
       onDashboardUpdate,
       pageAlerts,
-      projects,
       queryClient,
     } = this.props;
     const {
@@ -1200,7 +1196,6 @@ class DashboardDetail extends Component<Props, State> {
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
 
-    const eventView = generatePerformanceEventView(location, projects, {});
     const hasNewBreadcrumbs = organization.features.includes('ui-migration-breadcrumbs');
 
     const pageContent = (
@@ -1289,7 +1284,6 @@ class DashboardDetail extends Component<Props, State> {
                   >
                     <MetricsDataSwitcher
                       organization={organization}
-                      eventView={eventView}
                       location={location}
                       hideLoadingIndicator
                     >

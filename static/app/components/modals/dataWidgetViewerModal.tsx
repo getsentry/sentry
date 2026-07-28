@@ -796,7 +796,6 @@ function DataWidgetViewerModal(props: Props) {
         <MetricsCardinalityProvider organization={organization} location={location}>
           <MetricsDataSwitcher
             organization={organization}
-            eventView={eventView}
             location={location}
             hideLoadingIndicator
           >

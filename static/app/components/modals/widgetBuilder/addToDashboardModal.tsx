@@ -54,7 +54,6 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {
-  eventViewFromWidget,
   getMergedDashboardFilters,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
@@ -483,20 +482,6 @@ function AddToDashboardModal({
           <MetricsCardinalityProvider organization={organization} location={location}>
             <MetricsDataSwitcher
               organization={organization}
-              eventView={eventViewFromWidget(
-                newWidgetTitle,
-                widget.displayType === DisplayType.TEXT
-                  ? {
-                      name: '',
-                      fields: [],
-                      aggregates: [],
-                      columns: [],
-                      orderby: '',
-                      conditions: '',
-                    }
-                  : widget.queries[0]!,
-                selection
-              )}
               location={location}
               hideLoadingIndicator
             >
