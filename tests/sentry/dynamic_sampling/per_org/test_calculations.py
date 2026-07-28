@@ -569,3 +569,44 @@ class TransactionBalancingImplicitFactorFloorTest(TestCase):
 
         _, implicit_rate = result[project.id]
         assert implicit_rate == 1.0
+
+    @override_options({"dynamic-sampling.per_org.apply-implicit-sample-rate-floor": False})
+    def test_disabled_option_leaves_the_model_output_untouched(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.get_project_sample_rates.return_value = {project.id: 0.1}
+
+        result = run_transaction_balancing(
+            config,
+            [_branch3_project_volume(project.id)],
+            [_branch3_transactions(org.id, project.id)],
+        )
+
+        named_rates, implicit_rate = result[project.id]
+        # With the floor on, the implicit rate is lifted to 0.1 and the explicit rate drops
+        # below 1.0 to pay for it. Off, the model's own output is stored as-is, matching the
+        # legacy pipeline.
+        assert implicit_rate == pytest.approx(0.09547738693467336)
+        assert [item.new_sample_rate for item in named_rates] == [1.0]
+
+    @override_options({"dynamic-sampling.per_org.apply-implicit-sample-rate-floor": False})
+    def test_disabled_option_is_a_noop_when_the_floor_would_not_engage(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.get_project_sample_rates.return_value = {project.id: 0.1}
+
+        project_volume = ProjectVolume(
+            project_id=project.id, total=1010, keep=0, drop=0, num_distinct_transactions=11
+        )
+        project_transactions = ProjectTransactionCounts(
+            org_id=org.id, project_id=project.id, transaction_counts=[("heavy", 1000.0)]
+        )
+
+        result = run_transaction_balancing(config, [project_volume], [project_transactions])
+
+        _, implicit_rate = result[project.id]
+        assert implicit_rate == 1.0
