@@ -5,12 +5,8 @@ from collections.abc import Mapping, Sequence
 
 from taskbroker_client.state import current_task
 
-from sentry.debug_files.objectstore_migration import (
-    ensure_migration_enabled,
-    is_migration_killswitched,
-    migrate_debug_file,
-    shard_candidates,
-)
+from sentry import options
+from sentry.debug_files.objectstore_migration import migrate_debug_file, shard_candidates
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import debug_files_migration_tasks
@@ -23,14 +19,6 @@ logger = logging.getLogger(__name__)
 _SHARD_TASK_KEY = "debug_files_objectstore_migration_shard"
 _QUERY_BATCH_SIZE = 20
 _MAX_FILES_PER_ACTIVATION = 50
-
-
-def _soft_stop_if_killswitched(**extra: int) -> bool:
-    """Log + True when killswitched. Worker tasks soft-stop (no raise, no self-chain)."""
-    if not is_migration_killswitched():
-        return False
-    logger.info("debug_files.objectstore_migration.killswitched", extra=extra)
-    return True
 
 
 def enqueue_shard(
@@ -59,7 +47,8 @@ def enqueue_shard_heads(
     shard_ids: Sequence[int] | None = None,
 ) -> int:
     """Enqueue one activation per shard. Worker pool size bounds concurrency."""
-    ensure_migration_enabled()
+    if options.get("debug-files.objectstore-migration.killswitch"):
+        raise RuntimeError("Debug file Objectstore migration is killswitched")
     targets = range(shard_count) if shard_ids is None else shard_ids
     count = 0
     for shard_id in targets:
@@ -92,17 +81,18 @@ def migrate_shard(
     """Process one shard of DIFs, self-chaining with an advanced cursor_id.
 
     All campaign state lives in these kwargs — there is no DB run/shard table.
-    Killswitch soft-stops the worker (log + return, no self-chain, no raise) so
-    taskworker does not retry failed activations. Operator entrypoints
-    (``start_migration`` / ``enqueue_shard_heads``) still hard-fail via
-    ``ensure_migration_enabled``.
+    Killswitch is checked once at task start (soft return, no self-chain).
     """
-    if _soft_stop_if_killswitched(
-        shard_id=shard_id,
-        shard_count=shard_count,
-        cursor_id=cursor_id,
-        high_water_mark=high_water_mark,
-    ):
+    if options.get("debug-files.objectstore-migration.killswitch"):
+        logger.info(
+            "debug_files.objectstore_migration.killswitched",
+            extra={
+                "shard_id": shard_id,
+                "shard_count": shard_count,
+                "cursor_id": cursor_id,
+                "high_water_mark": high_water_mark,
+            },
+        )
         return
 
     task = current_task()
@@ -126,8 +116,6 @@ def migrate_shard(
     processed = 0
     try:
         while processed < _MAX_FILES_PER_ACTIVATION:
-            if _soft_stop_if_killswitched(**log_extra()):
-                return
             remaining = _MAX_FILES_PER_ACTIVATION - processed
             batch_limit = min(_QUERY_BATCH_SIZE, remaining)
             candidates = list(
@@ -147,8 +135,6 @@ def migrate_shard(
                 return
 
             for debug_file in candidates:
-                if _soft_stop_if_killswitched(**log_extra()):
-                    return
                 migrate_debug_file(debug_file_id=debug_file.id)
                 processed += 1
                 cursor_id = debug_file.id
@@ -171,9 +157,6 @@ def migrate_shard(
             extra=log_extra(),
         )
         raise
-
-    if _soft_stop_if_killswitched(**log_extra()):
-        return
 
     enqueue_shard(
         shard_id=shard_id,

@@ -33,15 +33,6 @@ class ObjectstoreIntegrityError(Exception):
     """Objectstore payload checksum/size did not match the legacy File."""
 
 
-def is_migration_killswitched() -> bool:
-    return bool(options.get("debug-files.objectstore-migration.killswitch"))
-
-
-def ensure_migration_enabled() -> None:
-    if is_migration_killswitched():
-        raise RuntimeError("Debug file Objectstore migration is killswitched")
-
-
 @dataclass(frozen=True)
 class VerifiedObject:
     storage_path: str
@@ -68,7 +59,8 @@ def start_migration(
     ``cursor_id`` and re-enqueues itself with an advanced cursor. Pass
     ``cursors`` / ``high_water_mark`` to resume a previous campaign from logs.
     """
-    ensure_migration_enabled()
+    if options.get("debug-files.objectstore-migration.killswitch"):
+        raise RuntimeError("Debug file Objectstore migration is killswitched")
     if shard_count < 1:
         raise ValueError("shard_count must be positive")
 
