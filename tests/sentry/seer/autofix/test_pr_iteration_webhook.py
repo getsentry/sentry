@@ -121,7 +121,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
             external_id="123",
             name="owner/repo",
         )
-        self.comment = {"id": 999, "body": "@sentry fix it", "user": {"login": "octocat"}}
+        self.comment = {
+            "id": 999,
+            "body": "@sentry fix it",
+            "user": {"id": 1234, "login": "octocat"},
+        }
 
     def _agent_state(self) -> SeerRunState:
         return SeerRunState(
@@ -164,6 +168,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
         )
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
+    @patch(f"{TASK_PATH}.find_user_for_scm_actor")
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
@@ -178,11 +183,13 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_consume: MagicMock,
         mock_has_access: MagicMock,
         mock_make_scm: MagicMock,
+        mock_find_user: MagicMock,
         mock_reaction: MagicMock,
     ) -> None:
         mock_integration = self._mock_integration()
         mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = self._agent_state()
+        mock_find_user.return_value = self.user
 
         self._call()
 
@@ -194,6 +201,13 @@ class TriggerPrIterationFromCommentTest(TestCase):
         assert kwargs["group_id"] == self.group.id
         assert kwargs["referrer"] == AutofixReferrer.GITHUB_PR_COMMENT
         assert kwargs["feedback"].text == "fix it"
+        assert kwargs["actor_user_id"] == self.user.id
+        mock_find_user.assert_called_once_with(
+            organization_id=self.organization.id,
+            integration_id=42,
+            username="octocat",
+            external_id="1234",
+        )
         mock_consume.assert_called_once_with(
             kwargs={
                 "run_id": 67890,
