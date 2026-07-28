@@ -1233,6 +1233,14 @@ const MultilineTextWrapper = styled('div')`
   table {
     word-break: normal;
   }
+
+  /* base.less gives every bare table margin: 0 0 20px, which sits inside the
+   * scroll container but outside the table's box. Only the rows are painted, so
+   * that margin showed this wrapper through as a band below the last row. Paint
+   * the scroll container to match the rows. */
+  & div:has(> table) {
+    background: ${p => p.theme.tokens.background.primary};
+  }
 `;
 
 function MultilineJSON({
