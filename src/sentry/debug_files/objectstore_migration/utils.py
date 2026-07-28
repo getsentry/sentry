@@ -47,7 +47,7 @@ def freeze_high_water_mark() -> int:
 def shard_candidates(
     *,
     shard_id: int,
-    shard_count: int,
+    num_shards: int,
     high_water_mark: int,
     cursor_id: int,
     limit: int,
@@ -60,7 +60,7 @@ def shard_candidates(
         )
         .annotate(
             _migration_shard=Func(
-                F("id"), Value(shard_count), function="MOD", output_field=IntegerField()
+                F("id"), Value(num_shards), function="MOD", output_field=IntegerField()
             )
         )
         .filter(_migration_shard=shard_id)

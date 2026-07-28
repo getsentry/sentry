@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 
 from taskbroker_client.state import current_task
 
@@ -24,14 +24,14 @@ _MAX_FILES_PER_ACTIVATION = 50
 def enqueue_shard(
     *,
     shard_id: int,
-    shard_count: int,
+    num_shards: int,
     high_water_mark: int,
     cursor_id: int = 0,
 ) -> None:
     migrate_shard.apply_async(
         kwargs={
             "shard_id": shard_id,
-            "shard_count": shard_count,
+            "num_shards": num_shards,
             "high_water_mark": high_water_mark,
             "cursor_id": cursor_id,
         },
@@ -41,23 +41,30 @@ def enqueue_shard(
 
 def enqueue_shard_heads(
     *,
-    shard_count: int,
+    num_shards: int,
     high_water_mark: int,
     cursors: Mapping[int, int] | None = None,
-    shard_ids: Sequence[int] | None = None,
 ) -> int:
-    """Enqueue one activation per shard. Worker pool size bounds concurrency."""
+    """Enqueue shard head activations.
+
+    ``cursors is None`` enqueues every shard at cursor 0. Otherwise only the
+    shard ids present as keys are enqueued, each at its mapped cursor.
+    """
     if options.get("debug-files.objectstore-migration.killswitch"):
         raise RuntimeError("Debug file Objectstore migration is killswitched")
-    targets = range(shard_count) if shard_ids is None else shard_ids
+
+    if cursors is None:
+        targets: Mapping[int, int] = {shard_id: 0 for shard_id in range(num_shards)}
+    else:
+        targets = cursors
+
     count = 0
-    for shard_id in targets:
-        if shard_id < 0 or shard_id >= shard_count:
-            raise ValueError(f"shard_id {shard_id} out of range for shard_count={shard_count}")
-        cursor_id = 0 if cursors is None else cursors.get(shard_id, 0)
+    for shard_id, cursor_id in targets.items():
+        if shard_id < 0 or shard_id >= num_shards:
+            raise ValueError(f"shard_id {shard_id} out of range for num_shards={num_shards}")
         enqueue_shard(
             shard_id=shard_id,
-            shard_count=shard_count,
+            num_shards=num_shards,
             high_water_mark=high_water_mark,
             cursor_id=cursor_id,
         )
@@ -73,7 +80,7 @@ def enqueue_shard_heads(
 )
 def migrate_shard(
     shard_id: int,
-    shard_count: int,
+    num_shards: int,
     high_water_mark: int,
     cursor_id: int = 0,
     **kwargs: object,
@@ -88,7 +95,7 @@ def migrate_shard(
             "debug_files.objectstore_migration.killswitched",
             extra={
                 "shard_id": shard_id,
-                "shard_count": shard_count,
+                "num_shards": num_shards,
                 "cursor_id": cursor_id,
                 "high_water_mark": high_water_mark,
             },
@@ -107,7 +114,7 @@ def migrate_shard(
     def log_extra(**extra: int) -> dict[str, int]:
         return {
             "shard_id": shard_id,
-            "shard_count": shard_count,
+            "num_shards": num_shards,
             "cursor_id": cursor_id,
             "high_water_mark": high_water_mark,
             **extra,
@@ -121,7 +128,7 @@ def migrate_shard(
             candidates = list(
                 shard_candidates(
                     shard_id=shard_id,
-                    shard_count=shard_count,
+                    num_shards=num_shards,
                     high_water_mark=high_water_mark,
                     cursor_id=cursor_id,
                     limit=batch_limit,
@@ -160,7 +167,7 @@ def migrate_shard(
 
     enqueue_shard(
         shard_id=shard_id,
-        shard_count=shard_count,
+        num_shards=num_shards,
         high_water_mark=high_water_mark,
         cursor_id=cursor_id,
     )

@@ -36,7 +36,7 @@ class DebugFileObjectstoreMigrationTaskTest(TestCase):
         ):
             migrate_shard(
                 shard_id=0,
-                shard_count=1,
+                num_shards=1,
                 high_water_mark=high_water_mark,
                 cursor_id=0,
             )
@@ -47,7 +47,7 @@ class DebugFileObjectstoreMigrationTaskTest(TestCase):
         assert successor_kwargs["cursor_id"] == sorted(df.id for df in debug_files)[1]
         assert successor_kwargs["high_water_mark"] == high_water_mark
         assert successor_kwargs["shard_id"] == 0
-        assert successor_kwargs["shard_count"] == 1
+        assert successor_kwargs["num_shards"] == 1
 
     def test_shard_processes_until_exhausted_without_successor(self) -> None:
         debug_file = self.create_dif_file(project=self.project)
@@ -60,7 +60,7 @@ class DebugFileObjectstoreMigrationTaskTest(TestCase):
         ):
             migrate_shard(
                 shard_id=0,
-                shard_count=1,
+                num_shards=1,
                 high_water_mark=debug_file.id,
                 cursor_id=0,
             )

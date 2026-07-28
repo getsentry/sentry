@@ -16,32 +16,31 @@ class DebugFileObjectstoreMigrationMainTest(TestCase):
         with override_options({"debug-files.objectstore-migration.killswitch": False}):
             yield
 
-    def test_start_migration_enqueues_shards_with_hwm(self) -> None:
+    def test_start_migration_enqueues_all_shards_from_scratch(self) -> None:
         high_water_mark = freeze_high_water_mark()
 
         with patch(
             "sentry.debug_files.objectstore_migration.tasks.migrate_shard.apply_async"
         ) as enqueue:
-            asserted = start_migration(shard_count=3)
+            asserted = start_migration(num_shards=3)
 
         assert asserted == 3
         assert enqueue.call_count == 3
         kwargs_list = [call.kwargs["kwargs"] for call in enqueue.call_args_list]
         assert {k["shard_id"] for k in kwargs_list} == {0, 1, 2}
         for kwargs in kwargs_list:
-            assert kwargs["shard_count"] == 3
+            assert kwargs["num_shards"] == 3
             assert kwargs["high_water_mark"] == high_water_mark
             assert kwargs["cursor_id"] == 0
 
-    def test_start_migration_resume_preserves_cursors(self) -> None:
+    def test_start_migration_resume_enqueues_only_mapped_shards(self) -> None:
         with patch(
             "sentry.debug_files.objectstore_migration.tasks.migrate_shard.apply_async"
         ) as enqueue:
             asserted = start_migration(
-                shard_count=2,
+                num_shards=4,
                 high_water_mark=99,
-                cursors={0: 40, 1: 41},
-                shard_ids=[0, 1],
+                cursors={1: 40, 3: 41},
             )
 
         assert asserted == 2
@@ -49,6 +48,8 @@ class DebugFileObjectstoreMigrationMainTest(TestCase):
             call.kwargs["kwargs"]["shard_id"]: call.kwargs["kwargs"]
             for call in enqueue.call_args_list
         }
-        assert kwargs_by_shard[0]["cursor_id"] == 40
-        assert kwargs_by_shard[1]["cursor_id"] == 41
-        assert kwargs_by_shard[0]["high_water_mark"] == 99
+        assert set(kwargs_by_shard) == {1, 3}
+        assert kwargs_by_shard[1]["cursor_id"] == 40
+        assert kwargs_by_shard[3]["cursor_id"] == 41
+        assert kwargs_by_shard[1]["num_shards"] == 4
+        assert kwargs_by_shard[1]["high_water_mark"] == 99
