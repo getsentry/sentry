@@ -609,7 +609,9 @@ def _create_seer_activity(
         activity_data["run_id"] = run_id
 
     if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution is not None:
-        activity_data["referrer"] = activity_attribution["referrer"].value
+        # ``referrer`` arrives as a plain string once the task payload is
+        # serialized; ``str()`` covers both that and the enum member.
+        activity_data["referrer"] = str(activity_attribution["referrer"])
     elif event_type == SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
         root_cause = event_payload.get("root_cause")
         if root_cause:
@@ -694,12 +696,7 @@ def process_autofix_updates(
 
         iteration_attribution: SeerActivityAttribution | None = None
         if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution:
-            try:
-                activity_attribution["referrer"] = AutofixReferrer(activity_attribution["referrer"])
-            except ValueError:
-                pass
-            else:
-                iteration_attribution = activity_attribution
+            iteration_attribution = activity_attribution
 
         action_source = ActionSource.SEER_EXPLORER
         if iteration_attribution is not None:
