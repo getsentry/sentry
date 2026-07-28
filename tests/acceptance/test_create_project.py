@@ -155,7 +155,6 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             self.feature(
                 {
                     "organizations:onboarding-scm-project-creation": True,
-                    "organizations:integrations-github-platform-detection": True,
                 }
             ),
             mock.patch(
@@ -257,7 +256,6 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             self.feature(
                 {
                     "organizations:onboarding-scm-project-creation": True,
-                    "organizations:integrations-github-platform-detection": True,
                 }
             ),
             mock.patch(
