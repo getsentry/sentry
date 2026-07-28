@@ -89,14 +89,8 @@ def register_permanent_features(manager: FeatureManager) -> None:
     }
 
     permanent_project_features = {
-        # Enable functionality for rate-limiting events on projects.
-        "projects:rate-limits": True,
-        # Enable functionality to specify custom inbound filters on events.
-        "projects:custom-inbound-filters": False,
         # Enable functionality to discard groups.
         "projects:discard-groups": False,
-        # Enable functionality to trigger service hooks upon event ingestion.
-        "projects:servicehooks": False,
     }
 
     # Permanent organization features that are controlled via flagpole
@@ -156,6 +150,19 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:sso-basic": FlagpoleFeature(default=True, api_expose=True),
     }
 
+    # Permanent project features that are controlled via flagpole. These are
+    # plan-gated the same way the organization flags above are — a project-scoped
+    # feature resolves its subscription from the project's organization — so their
+    # flagpole segments key off subscription_plan-family just the same.
+    permanent_flagpole_project_features: dict[str, FlagpoleFeature] = {
+        # Enable functionality to specify custom inbound filters on events.
+        "projects:custom-inbound-filters": FlagpoleFeature(default=False, api_expose=True),
+        # Enable functionality for rate-limiting events on projects.
+        "projects:rate-limits": FlagpoleFeature(default=True, api_expose=True),
+        # Enable functionality to trigger service hooks upon event ingestion.
+        "projects:servicehooks": FlagpoleFeature(default=False, api_expose=True),
+    }
+
     # Flagpole cannot control system-scoped flags — keep these as INTERNAL.
     permanent_system_features = {
         # Enables user registration.
@@ -186,6 +193,15 @@ def register_permanent_features(manager: FeatureManager) -> None:
         manager.add(
             org_feature,
             OrganizationFeature,
+            FeatureHandlerStrategy.FLAGPOLE,
+            default=config.default,
+            api_expose=config.api_expose,
+        )
+
+    for project_feature, config in permanent_flagpole_project_features.items():
+        manager.add(
+            project_feature,
+            ProjectFeature,
             FeatureHandlerStrategy.FLAGPOLE,
             default=config.default,
             api_expose=config.api_expose,
