@@ -154,7 +154,7 @@ export type Shorthand<T extends string, N extends 4 | 2> = N extends 4
  * `lg`.
  */
 type ScreenBreakpoint = `screen:${BreakpointSize}`;
-type ResponsiveKey = ContainerBreakpointSize | ScreenBreakpoint;
+export type ResponsiveKey = ContainerBreakpointSize | ScreenBreakpoint;
 
 export type Responsive<T> = T | Partial<Record<ResponsiveKey, T>>;
 

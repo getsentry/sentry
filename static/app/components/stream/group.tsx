@@ -1,11 +1,11 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -208,69 +208,153 @@ export function LoadingStreamGroup({
   withColumns = COLUMNS,
   showLastTriggered = false,
 }: LoadingSteamGroupProps) {
+  const theme = useTheme();
+
   return (
     <Wrapper data-test-id="group" useTintRow={false} reviewed={false}>
       <GroupSummary canSelect={false}>
         <Placeholder height="58px" />
       </GroupSummary>
       {withColumns.includes('lastSeen') && (
-        <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
+        <Flex
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.LAST_SEEN]: 'flex'}}
+          width="86px"
+          paddingRight="xl"
+          marginRight="xl"
+          align="center"
+          justify="end"
+        >
           <Placeholder height="18px" width="70px" />
-        </LastSeenWrapper>
+        </Flex>
       )}
       {withColumns.includes('firstSeen') && (
-        <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+        <Flex
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.FIRST_SEEN]: 'flex'}}
+          width="50px"
+          paddingRight="xl"
+          marginRight="xl"
+          align="center"
+          justify="end"
+        >
           <Placeholder height="18px" width="30px" />
-        </FirstSeenWrapper>
+        </Flex>
       )}
       {withChart && !displayReprocessingLayout && (
-        <ChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
+        <Container
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.TREND]: 'block'}}
+          width="175px"
+          alignSelf="center"
+          marginRight="xl"
+        >
           <Placeholder height="36px" />
-        </ChartWrapper>
+        </Container>
       )}
       {displayReprocessingLayout ? (
         <Fragment>
-          <StartedColumn>
+          <Container
+            width={{zero: '85px', xl: '140px'}}
+            alignSelf="center"
+            margin="0 xl"
+            whiteSpace="nowrap"
+            overflow="hidden"
+            style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
+          >
             <Placeholder height="17px" />
-          </StartedColumn>
-          <EventsReprocessedColumn>
+          </Container>
+          <Container
+            width={{zero: '75px', xl: '140px'}}
+            alignSelf="center"
+            margin="0 xl"
+            whiteSpace="nowrap"
+            overflow="hidden"
+            style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
+          >
             <Placeholder height="17px" />
-          </EventsReprocessedColumn>
-          <ProgressColumn>
+          </Container>
+          <Container
+            display={{zero: 'none', xl: 'block'}}
+            width="160px"
+            margin="0 xl"
+            alignSelf="center"
+          >
             <Placeholder height="17px" />
-          </ProgressColumn>
+          </Container>
         </Fragment>
       ) : (
         <Fragment>
           {showLastTriggered && (
-            <LastTriggeredWrapper>
+            <Flex
+              justify="end"
+              alignSelf="center"
+              width="100px"
+              paddingRight="xl"
+              marginRight="xl"
+            >
               <Placeholder height="18px" />
-            </LastTriggeredWrapper>
+            </Flex>
           )}
           {withColumns.includes('event') && (
-            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'flex'}}
+              alignSelf="center"
+              paddingRight="xl"
+              marginRight="xl"
+              width="60px"
+              align="center"
+              justify="end"
+            >
               <Placeholder height="18px" width="40px" />
-            </NarrowEventsOrUsersCountsWrapper>
+            </Flex>
           )}
           {withColumns.includes('users') && (
-            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.USERS]: 'flex'}}
+              alignSelf="center"
+              paddingRight="xl"
+              marginRight="xl"
+              width="60px"
+              align="center"
+              justify="end"
+            >
               <Placeholder height="18px" width="40px" />
-            </NarrowEventsOrUsersCountsWrapper>
+            </Flex>
           )}
           {withColumns.includes('progress') && (
-            <ProgressWrapper breakpoint={COLUMN_BREAKPOINTS.PROGRESS}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.PROGRESS]: 'flex'}}
+              width="124px"
+              paddingRight="xl"
+              marginRight="xl"
+              alignSelf="center"
+              justify="start"
+            >
               <Placeholder height="18px" />
-            </ProgressWrapper>
+            </Flex>
           )}
           {withColumns.includes('priority') && (
-            <PriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'flex'}}
+              width="64px"
+              paddingRight="xl"
+              marginRight="xl"
+              alignSelf="center"
+              justify="end"
+            >
               <Placeholder height="24px" />
-            </PriorityWrapper>
+            </Flex>
           )}
           {withColumns.includes('assignee') && (
-            <AssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'flex'}}
+              alignSelf="center"
+              width="66px"
+              paddingRight="xl"
+              marginRight="xl"
+              justify="end"
+              style={{textAlign: 'right'}}
+            >
               <Placeholder height="24px" />
-            </AssigneeWrapper>
+            </Flex>
           )}
         </Fragment>
       )}
@@ -298,6 +382,8 @@ export function StreamGroup({
   onAssigneeChange,
   progressState,
 }: Props) {
+  const theme = useTheme();
+
   const issueSelectionSummary = useOptionalIssueSelectionSummary();
   const issueSelectionActions = useOptionalIssueSelectionActions();
   const groupId = group.id;
@@ -473,10 +559,24 @@ export function StreamGroup({
 
     return (
       <Fragment>
-        <StartedColumn>
+        <Flex
+          width={{zero: '85px', xl: '140px'}}
+          alignSelf="center"
+          margin="0 xl"
+          whiteSpace="nowrap"
+          overflow="hidden"
+          style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
+        >
           <TimeSince date={dateCreated} />
-        </StartedColumn>
-        <EventsReprocessedColumn>
+        </Flex>
+        <Container
+          width={{zero: '75px', xl: '140px'}}
+          alignSelf="center"
+          margin="0 xl"
+          whiteSpace="nowrap"
+          overflow="hidden"
+          style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
+        >
           {defined(count) ? (
             <Fragment>
               <Count value={remainingEventsToReprocess} />
@@ -486,10 +586,15 @@ export function StreamGroup({
           ) : (
             <Placeholder height="17px" />
           )}
-        </EventsReprocessedColumn>
-        <ProgressColumn>
+        </Container>
+        <Container
+          display={{zero: 'none', xl: 'block'}}
+          width="160px"
+          margin="0 xl"
+          alignSelf="center"
+        >
           <ProgressBar value={remainingEventsToReprocessPercent} />
-        </ProgressColumn>
+        </Container>
       </Fragment>
     );
   };
@@ -667,19 +772,38 @@ export function StreamGroup({
       {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
 
       {withColumns.includes('lastSeen') && (
-        <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
+        <Flex
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.LAST_SEEN]: 'flex'}}
+          width="86px"
+          paddingRight="xl"
+          marginRight="xl"
+          align="center"
+          justify="end"
+        >
           <GroupLastSeen group={group} />
-        </LastSeenWrapper>
+        </Flex>
       )}
 
       {withColumns.includes('firstSeen') && (
-        <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+        <Flex
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.FIRST_SEEN]: 'flex'}}
+          width="50px"
+          paddingRight="xl"
+          marginRight="xl"
+          align="center"
+          justify="end"
+        >
           <GroupFirstSeen group={group} />
-        </FirstSeenWrapper>
+        </Flex>
       )}
 
       {withChart && !displayReprocessingLayout && (
-        <ChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
+        <Container
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.TREND]: 'block'}}
+          width="175px"
+          alignSelf="center"
+          marginRight="xl"
+        >
           {issueTypeConfig.stats.enabled && defined(groupStats) ? (
             <GroupStatusChart
               hideZeros
@@ -692,42 +816,80 @@ export function StreamGroup({
           ) : issueTypeConfig.stats.enabled ? (
             <Placeholder height="36px" />
           ) : null}
-        </ChartWrapper>
+        </Container>
       )}
       {displayReprocessingLayout ? (
         renderReprocessingColumns()
       ) : (
         <Fragment>
           {showLastTriggered && (
-            <LastTriggeredWrapper>{lastTriggered}</LastTriggeredWrapper>
+            <Flex
+              justify="end"
+              alignSelf="center"
+              width="100px"
+              paddingRight="xl"
+              marginRight="xl"
+            >
+              {lastTriggered}
+            </Flex>
           )}
           {withColumns.includes('event') && (
-            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'flex'}}
+              alignSelf="center"
+              paddingRight="xl"
+              marginRight="xl"
+              width="60px"
+              align="center"
+              justify="end"
+            >
               {issueTypeConfig.stats.enabled && defined(primaryCount) ? (
                 groupCount
               ) : issueTypeConfig.stats.enabled ? (
                 <Placeholder height="18px" width="40px" />
               ) : null}
-            </NarrowEventsOrUsersCountsWrapper>
+            </Flex>
           )}
           {withColumns.includes('users') && (
-            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.USERS]: 'flex'}}
+              alignSelf="center"
+              paddingRight="xl"
+              marginRight="xl"
+              width="60px"
+              align="center"
+              justify="end"
+            >
               {issueTypeConfig.stats.enabled && defined(primaryUserCount) ? (
                 groupUsersCount
               ) : issueTypeConfig.stats.enabled ? (
                 <Placeholder height="18px" width="40px" />
               ) : null}
-            </NarrowEventsOrUsersCountsWrapper>
+            </Flex>
           )}
           {withColumns.includes('priority') && (
-            <PriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'flex'}}
+              width="64px"
+              paddingRight="xl"
+              marginRight="xl"
+              alignSelf="center"
+              justify="end"
+            >
               {group.priority ? (
                 <GroupPriority group={group} onChange={onPriorityChange} />
               ) : null}
-            </PriorityWrapper>
+            </Flex>
           )}
           {withColumns.includes('progress') && (
-            <ProgressWrapper breakpoint={COLUMN_BREAKPOINTS.PROGRESS}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.PROGRESS]: 'flex'}}
+              width="124px"
+              paddingRight="xl"
+              marginRight="xl"
+              alignSelf="center"
+              justify="start"
+            >
               {progressState ? (
                 <Container position="relative">
                   <ProgressActivityTooltip group={group}>
@@ -740,17 +902,25 @@ export function StreamGroup({
               ) : (
                 <Placeholder height="18px" />
               )}
-            </ProgressWrapper>
+            </Flex>
           )}
           {withColumns.includes('assignee') && (
-            <AssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'flex'}}
+              alignSelf="center"
+              width="66px"
+              paddingRight="xl"
+              marginRight="xl"
+              justify="end"
+              style={{textAlign: 'right'}}
+            >
               <AssigneeSelector
                 group={group}
                 assigneeLoading={assigneeLoading}
                 handleAssigneeChange={handleAssigneeChange}
                 memberList={memberList}
               />
-            </AssigneeWrapper>
+            </Flex>
           )}
         </Fragment>
       )}
@@ -915,149 +1085,6 @@ const CountTooltipContent = styled('div')`
     text-transform: uppercase;
     grid-column: 1 / -1;
     margin-bottom: ${p => p.theme.space['2xs']};
-  }
-`;
-
-const ChartWrapper = styled('div')<{breakpoint: string}>`
-  width: 175px;
-  align-self: center;
-  margin-right: ${p => p.theme.space.xl};
-
-  @container (width < ${p => p.breakpoint}) {
-    display: none;
-  }
-`;
-
-const LastSeenWrapper = styled('div')<{breakpoint: string}>`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 86px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-
-  @container (width < ${p => p.breakpoint}) {
-    display: none;
-  }
-`;
-
-const FirstSeenWrapper = styled('div')<{breakpoint: string}>`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 50px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-
-  @container (width < ${p => p.breakpoint}) {
-    display: none;
-  }
-`;
-
-const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
-  display: flex;
-  justify-content: flex-end;
-  text-align: right;
-  align-items: center;
-  align-self: center;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-  width: 60px;
-
-  @container (width < ${p => p.breakpoint}) {
-    display: none;
-  }
-`;
-
-const LastTriggeredWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  align-self: center;
-  width: 100px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-`;
-
-const PriorityWrapper = styled('div')<{breakpoint: string}>`
-  width: 64px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-  align-self: center;
-  display: flex;
-  justify-content: flex-end;
-
-  @container (width < ${p => p.breakpoint}) {
-    display: none;
-  }
-`;
-
-const ProgressWrapper = styled('div')<{breakpoint: string}>`
-  width: 124px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-  align-self: center;
-  display: flex;
-  justify-content: flex-start;
-
-  @container (width < ${p => p.breakpoint}) {
-    display: none;
-  }
-`;
-
-const AssigneeWrapper = styled('div')<{breakpoint: string}>`
-  display: flex;
-  justify-content: flex-end;
-  text-align: right;
-  width: 66px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-  align-self: center;
-
-  @media (max-width: ${p => p.breakpoint}) {
-    display: none;
-  }
-`;
-
-// Reprocessing
-const StartedColumn = styled('div')`
-  align-self: center;
-  margin: 0 ${p => p.theme.space.xl};
-  color: ${p => p.theme.colors.gray800};
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 85px;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
-    width: 140px;
-  }
-`;
-
-const EventsReprocessedColumn = styled('div')`
-  align-self: center;
-  margin: 0 ${p => p.theme.space.xl};
-  color: ${p => p.theme.colors.gray800};
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 75px;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    width: 140px;
-  }
-`;
-
-const ProgressColumn = styled('div')`
-  margin: 0 ${p => p.theme.space.xl};
-  align-self: center;
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
-    width: 160px;
   }
 `;
 
