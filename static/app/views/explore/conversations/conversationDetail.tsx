@@ -79,8 +79,6 @@ function ConversationDetailPage() {
 
   return (
     <ViewportConstrainedPage background="secondary">
-      {/* Owns its own TopBar slots — the new breadcrumbs split across the
-          `breadcrumbs` and `title` slots. */}
       <ConversationsBreadcrumbs conversationId={conversationId} project={project} />
       <Container flexShrink={0} background="primary" borderBottom="primary" padding="xl">
         <ConversationSummary
