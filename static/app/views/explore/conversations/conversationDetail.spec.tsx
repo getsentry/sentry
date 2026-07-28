@@ -1,6 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -56,13 +63,14 @@ function mockApis() {
   });
 }
 
-function renderPage() {
+function renderPage(features: string[] = []) {
   return render(
     <TopBar.Slot.Provider>
+      <TopBar />
       <ConversationDetailPage />
     </TopBar.Slot.Provider>,
     {
-      organization: OrganizationFixture(),
+      organization: OrganizationFixture({features}),
       initialRouterConfig: {
         route: '/organizations/:orgId/explore/conversations/:conversationId/',
         location: {
@@ -115,5 +123,34 @@ describe('ConversationDetailPage span default selection', () => {
     expect(
       screen.queryByRole('button', {name: 'Copy Transcript'})
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('ConversationDetailPage breadcrumbs', () => {
+  beforeEach(() => {
+    Element.prototype.scrollTo = jest.fn();
+    MockApiClient.clearMockResponses();
+    act(() => {
+      PageFiltersStore.reset();
+      PageFiltersStore.init();
+    });
+    mockApis();
+  });
+
+  it('renders the parent link, conversation id heading, and copy action with the migration flag on', async () => {
+    renderPage(['ui-migration-breadcrumbs']);
+
+    const topBar = screen.getByRole('banner');
+
+    expect(
+      await within(topBar).findByRole('link', {name: 'Conversations'})
+    ).toBeInTheDocument();
+    // The conversation id is the page heading, owned by the TopBar title slot.
+    expect(
+      within(topBar).getByRole('heading', {name: new RegExp(CONVERSATION_ID)})
+    ).toBeInTheDocument();
+    expect(
+      within(topBar).getByRole('button', {name: 'Copy conversation ID'})
+    ).toBeInTheDocument();
   });
 });
