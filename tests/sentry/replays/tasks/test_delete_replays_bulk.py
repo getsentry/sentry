@@ -287,6 +287,13 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         self.job.refresh_from_db()
         assert self.job.offset == 500
 
+    def test_run_bulk_replay_delete_job_retry_policy_covers_deadline(self) -> None:
+        """Test the deadline is retried, which is what the retries_remaining guard assumes"""
+        retry = run_bulk_replay_delete_job.retry
+        assert retry is not None
+
+        assert retry.should_retry(retry.initial_state(), ProcessingDeadlineExceeded())
+
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     def test_run_bulk_replay_delete_job_deadline_exceeded_with_retries(
         self, mock_fetch_rows: MagicMock
