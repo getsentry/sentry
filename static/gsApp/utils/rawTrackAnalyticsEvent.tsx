@@ -228,7 +228,7 @@ export function rawTrackAnalyticsEvent(
 
       // add in url for amplitude events as reload has it automatically added
       const dataWithUrl = {
-        url: window.location.href,
+        url: window.location.origin,
         user_age: userAge,
         organization_age: orgAge,
         ...data,

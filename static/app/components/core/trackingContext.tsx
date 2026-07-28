@@ -49,8 +49,6 @@ export const useClickTracking = (props: ButtonProps | LinkButtonProps | LinkProp
       analyticsEventKey: props.analyticsEventKey,
       analyticsParams: {
         variant: 'variant' in props ? props.variant : undefined,
-        href: 'href' in props ? props.href : undefined,
-        to: 'to' in props ? props.to : undefined,
         ...props.analyticsParams,
       },
       'aria-label': accessibleLabel || '',

@@ -85,7 +85,7 @@ describe('rawTrackAnalyticsEvent', () => {
         role: 'owner',
         project_id: 456,
         analytics_session_id: '789',
-        url: 'http://localhost/',
+        url: 'http://localhost',
       }),
       {time: undefined}
     );
@@ -277,6 +277,7 @@ describe('rawTrackAnalyticsEvent', () => {
       {time: undefined}
     );
   });
+
   it('send to marketing', () => {
     rawTrackAnalyticsEvent({
       eventKey: 'growth.onboarding_clicked_need_help',
