@@ -3,9 +3,12 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from django.utils import timezone
 from google.cloud.exceptions import NotFound
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.replays.consumers.recording import commit_message, process_message
 from sentry.replays.lib.kafka import PROCESS_REPLAY_RECORDING_TASK_NAME, publish_replay_event
@@ -215,11 +218,18 @@ def run_bulk_replay_delete_job(
 
     # If this is the first run of the task we set the model to in-progress.
     if job.status == DeletionJobStatus.PENDING:
+        _transition_status(job.id, DeletionJobStatus.PENDING, DeletionJobStatus.IN_PROGRESS)
         job.status = DeletionJobStatus.IN_PROGRESS
-        job.save()
 
     # Exit if the job status is failed or completed.
     if job.status != DeletionJobStatus.IN_PROGRESS:
+        return None
+
+    # Task delivery is at-least-once, so a job can end up with more than one live call chain: a
+    # redelivered activation re-enters at the offset it was given while the successor it already
+    # enqueued keeps going. The chain that fell behind the checkpoint stops here rather than
+    # re-deleting rows and rewinding the reported progress.
+    if offset < job.offset:
         return None
 
     try:
@@ -244,11 +254,19 @@ def run_bulk_replay_delete_job(
                     job.project_id,
                     [row["replay_id"] for row in results["rows"]],
                 )
+    except ProcessingDeadlineExceeded:
+        # A BaseException, so it escapes the handler below. Once retries run out the broker
+        # discards the activation, which leaves the job reporting "in-progress" forever with
+        # nothing left to advance it.
+        task = current_task()
+        if task is not None and not task.retries_remaining:
+            logger.warning("Bulk delete replays exhausted its processing deadline retries.")
+            _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
+        raise
     except Exception:
         logger.exception("Bulk delete replays failed.")
 
-        job.status = DeletionJobStatus.FAILED
-        job.save()
+        _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
         raise
 
     # Compute the next offset to start from. If no further processing is required then this serves
@@ -257,8 +275,7 @@ def run_bulk_replay_delete_job(
 
     if results["has_more"]:
         # Checkpoint before continuing.
-        job.offset = next_offset
-        job.save()
+        _advance_offset(job.id, next_offset)
         run_bulk_replay_delete_job.delay(
             job.id, next_offset, limit=limit, has_seer_data=has_seer_data
         )
@@ -266,7 +283,20 @@ def run_bulk_replay_delete_job(
     else:
         # If we've finished deleting all the replays for the selection. We can move the status to
         # completed and exit the call chain.
-        job.offset = next_offset
-        job.status = DeletionJobStatus.COMPLETED
-        job.save()
+        _advance_offset(job.id, next_offset)
+        _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.COMPLETED)
         return None
+
+
+def _advance_offset(job_id: int, offset: int) -> None:
+    """Checkpoint progress, filtered so a lagging duplicate chain cannot rewind the counter."""
+    ReplayDeletionJobModel.objects.filter(id=job_id, offset__lt=offset).update(
+        offset=offset, date_updated=timezone.now()
+    )
+
+
+def _transition_status(job_id: int, expected: DeletionJobStatus, new: DeletionJobStatus) -> None:
+    """Transition status only from `expected`, and without `save()` rewriting the whole row."""
+    ReplayDeletionJobModel.objects.filter(id=job_id, status=expected).update(
+        status=new, date_updated=timezone.now()
+    )
