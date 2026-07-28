@@ -418,13 +418,4 @@ function PanelContainer({children}: {children: React.ReactNode}) {
 
 const MessageText = styled(Text)`
   word-break: break-word;
-
-  /* Wide block content (tables, code) scrolls within the bubble instead of
-   * overflowing it or forcing it wider. */
-  table,
-  pre {
-    display: block;
-    max-width: 100%;
-    overflow-x: auto;
-  }
 `;
