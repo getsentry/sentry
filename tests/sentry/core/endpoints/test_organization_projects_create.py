@@ -129,6 +129,19 @@ class OrganizationProjectsCreateTest(APITestCase):
         assert response.data["teams"][0]["id"] == str(team.id)
 
     @with_feature(["organizations:team-roles"])
+    def test_custom_project_slug(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            name="My Display Name",
+            slug="exact-custom-slug",
+            status_code=201,
+        )
+
+        project = Project.objects.get(id=response.data["id"])
+        assert response.data["slug"] == "exact-custom-slug"
+        assert project.slug == "exact-custom-slug"
+
+    @with_feature(["organizations:team-roles"])
     def test_project_slug_is_slugified(self) -> None:
         unslugified_name = "not_slugged_$!@#$"
         response = self.get_success_response(

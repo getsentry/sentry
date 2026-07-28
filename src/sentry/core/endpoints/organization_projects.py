@@ -381,7 +381,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                 )
                 project = Project.objects.create(
                     name=project_name,
-                    # slug is *not* set so we get an automatic one
+                    slug=result.get("slug"),
                     organization=organization,
                     platform=result.get("platform"),
                 )
