@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Generator
-from unittest.mock import patch
+from io import BytesIO
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.files.base import ContentFile
@@ -69,7 +70,6 @@ class DebugFileObjectstoreMigrationTest(TestCase):
         assert self.debug_file.storage_path == storage_path
 
     def test_post_upload_integrity_failure_retries_and_does_not_cut_over(self) -> None:
-        # Force post-upload verify to keep failing so the outer retry policy kicks in.
         with (
             patch(
                 "sentry.debug_files.objectstore_migration._verify_object",
@@ -111,6 +111,57 @@ class DebugFileObjectstoreMigrationTest(TestCase):
         assert size == 0
         self.debug_file.refresh_from_db()
         assert self.debug_file.file_id is not None
+
+    def test_missing_file_row_skips(self) -> None:
+        orphan = MagicMock()
+        orphan.id = self.debug_file.id
+        orphan.file_id = self.debug_file.file_id
+        orphan.file = None
+        orphan.project_id = self.debug_file.project_id
+
+        mock_qs = MagicMock()
+        mock_qs.get.return_value = orphan
+        with patch(
+            "sentry.debug_files.objectstore_migration.ProjectDebugFile.objects.select_related",
+            return_value=mock_qs,
+        ):
+            size = self.migrate()
+
+        assert size == 0
+        self.debug_file.refresh_from_db()
+        assert self.debug_file.file_id is not None
+
+    def test_cutover_uses_legacy_content_type_not_objectstore_metadata(self) -> None:
+        """Objectstore may omit/normalize MIME; cutover must keep File headers."""
+        source = self.debug_file.file
+        assert source is not None
+        payload = b"debug-file-contents"
+
+        response = MagicMock()
+        response.metadata.content_type = None
+        response.payload = BytesIO(payload)
+
+        session = MagicMock()
+        session.get.return_value = response
+
+        with (
+            patch(
+                "sentry.debug_files.objectstore_migration.get_debug_files_session",
+                return_value=session,
+            ),
+            patch(
+                "sentry.debug_files.objectstore_migration._upload_dif_to_objectstore",
+                return_value="os-key",
+            ),
+        ):
+            size = self.migrate()
+
+        assert size == len(payload)
+        self.debug_file.refresh_from_db()
+        assert self.debug_file.file_id is None
+        assert self.debug_file.content_type == "application/x-mach-binary"
+        assert self.debug_file.file_format == "macho"
+        assert self.debug_file.date_created == source.timestamp
 
     def test_start_migration_enqueues_shards_with_hwm(self) -> None:
         high_water_mark = freeze_high_water_mark()

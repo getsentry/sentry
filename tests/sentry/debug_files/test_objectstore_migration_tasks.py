@@ -5,7 +5,6 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.debug_files.objectstore_migration import freeze_high_water_mark
 from sentry.debug_files.objectstore_migration_tasks import enqueue_shard_heads, migrate_shard
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -66,7 +65,6 @@ class DebugFileObjectstoreMigrationTaskTest(TestCase):
         assert migrate_one.call_count == 2
         enqueue_successor.assert_called_once()
         successor_kwargs = enqueue_successor.call_args.kwargs["kwargs"]
-        # Cursor advances to the second processed file id.
         assert successor_kwargs["cursor_id"] == sorted(df.id for df in debug_files)[1]
         assert successor_kwargs["high_water_mark"] == high_water_mark
         assert successor_kwargs["shard_id"] == 0
@@ -112,11 +110,47 @@ class DebugFileObjectstoreMigrationTaskTest(TestCase):
         enqueue_successor.assert_not_called()
 
     @override_options({"debug-files.objectstore-migration.killswitch": True})
-    def test_killswitch_fails_task_before_work(self) -> None:
-        with pytest.raises(RuntimeError, match="killswitched"):
+    def test_killswitch_soft_stops_without_successor(self) -> None:
+        debug_file = self.create_dif_file(project=self.project)
+
+        with (
+            patch(
+                "sentry.debug_files.objectstore_migration_tasks.migrate_debug_file",
+            ) as migrate_one,
+            patch.object(migrate_shard, "apply_async") as enqueue_successor,
+        ):
+            # Must not raise — completes cleanly so taskworker will not retry.
             migrate_shard(
                 shard_id=0,
                 shard_count=1,
-                high_water_mark=freeze_high_water_mark(),
+                high_water_mark=debug_file.id,
                 cursor_id=0,
             )
+
+        migrate_one.assert_not_called()
+        enqueue_successor.assert_not_called()
+
+    def test_killswitch_mid_activation_stops_without_successor(self) -> None:
+        debug_files = [self.create_dif_file(project=self.project) for _ in range(3)]
+        high_water_mark = max(df.id for df in debug_files)
+
+        with (
+            patch(
+                "sentry.debug_files.objectstore_migration_tasks.migrate_debug_file",
+            ) as migrate_one,
+            # enter task, enter loop, before 1st file, after 1st file (before 2nd) → stop
+            patch(
+                "sentry.debug_files.objectstore_migration_tasks.is_migration_killswitched",
+                side_effect=[False, False, False, True],
+            ),
+            patch.object(migrate_shard, "apply_async") as enqueue_successor,
+        ):
+            migrate_shard(
+                shard_id=0,
+                shard_count=1,
+                high_water_mark=high_water_mark,
+                cursor_id=0,
+            )
+
+        assert migrate_one.call_count == 1
+        enqueue_successor.assert_not_called()

@@ -131,12 +131,18 @@ def _verify_object(
     *,
     expected_checksum: str,
     expected_size: int,
+    content_type: str,
     date_created: datetime,
 ) -> VerifiedObject | None:
     """Download and checksum an Objectstore object.
 
     Returns None when the key is missing. Raises ObjectstoreIntegrityError when
     the payload is present but does not match the legacy File.
+
+    ``content_type`` / ``date_created`` always come from the legacy File (or the
+    dual-write path that created it). Objectstore response metadata is not used
+    for cutover fields — missing/normalized MIME would make ``file_format``
+    unknown after cutover.
     """
     response = session.get(storage_path)
     if response is None:
@@ -160,7 +166,7 @@ def _verify_object(
         )
     return VerifiedObject(
         storage_path=storage_path,
-        content_type=response.metadata.content_type or "application/octet-stream",
+        content_type=content_type,
         file_size=size,
         # Preserve the original File upload time; Objectstore time_created is migration time.
         date_created=date_created,
@@ -171,14 +177,24 @@ def _verify_object(
 def _prepare_object(debug_file: ProjectDebugFile) -> VerifiedObject | None:
     """Ensure a verified Objectstore object exists for this debug file.
 
-    Returns None when the row cannot be migrated and should be skipped (e.g. the
-    owning project was deleted). Callers advance the shard cursor past skips.
+    Returns None when the row cannot be migrated and should be skipped
+    (missing project, orphan File pointer, empty checksum, …). Callers treat
+    None as success-with-skip so the shard cursor can advance.
     """
     file = debug_file.file
     if file is None:
-        raise ValueError("Debug file has no File to migrate")
+        # file_id set but File row gone — unmigratable; don't stall the shard.
+        logger.info(
+            "debug_files.objectstore_migration.file_missing",
+            extra={"debug_file_id": debug_file.id, "file_id": debug_file.file_id},
+        )
+        return None
     if not file.checksum:
-        raise ValueError("Debug File source has no checksum")
+        logger.info(
+            "debug_files.objectstore_migration.checksum_missing",
+            extra={"debug_file_id": debug_file.id, "file_id": file.id},
+        )
+        return None
 
     try:
         project = Project.objects.get_from_cache(id=debug_file.project_id)
@@ -191,6 +207,8 @@ def _prepare_object(debug_file: ProjectDebugFile) -> VerifiedObject | None:
 
     session = get_debug_files_session(project.organization_id, project.id)
     date_created = file.timestamp
+    # Canonical MIME is always taken from the legacy File — same source
+    # dual-write uses. Never Objectstore metadata (see _verify_object).
     content_type = file.headers.get("Content-Type", "application/octet-stream")
 
     # Prefer an already-copied object when present and intact. A corrupt or
@@ -202,6 +220,7 @@ def _prepare_object(debug_file: ProjectDebugFile) -> VerifiedObject | None:
                 debug_file.storage_path,
                 expected_checksum=file.checksum,
                 expected_size=file.size,
+                content_type=content_type,
                 date_created=date_created,
             )
         except ObjectstoreIntegrityError:
@@ -232,6 +251,7 @@ def _prepare_object(debug_file: ProjectDebugFile) -> VerifiedObject | None:
         storage_path,
         expected_checksum=file.checksum,
         expected_size=file.size,
+        content_type=content_type,
         date_created=date_created,
     )
     if verified is None:

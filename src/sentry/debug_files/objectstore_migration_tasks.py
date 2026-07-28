@@ -29,6 +29,14 @@ def _activation_id() -> str | None:
     return task.id if task else None
 
 
+def _soft_stop_if_killswitched(**extra: int) -> bool:
+    """Log + True when killswitched. Worker tasks soft-stop (no raise, no self-chain)."""
+    if not is_migration_killswitched():
+        return False
+    logger.info("debug_files.objectstore_migration.killswitched", extra=extra)
+    return True
+
+
 def enqueue_shard(
     *,
     shard_id: int,
@@ -88,8 +96,19 @@ def migrate_shard(
     """Process one shard of DIFs, self-chaining with an advanced cursor_id.
 
     All campaign state lives in these kwargs — there is no DB run/shard table.
+    Killswitch soft-stops the worker (log + return, no self-chain, no raise) so
+    taskworker does not retry failed activations. Operator entrypoints
+    (``start_migration`` / ``enqueue_shard_heads``) still hard-fail via
+    ``ensure_migration_enabled``.
     """
-    ensure_migration_enabled()
+    if _soft_stop_if_killswitched(
+        shard_id=shard_id,
+        shard_count=shard_count,
+        cursor_id=cursor_id,
+        high_water_mark=high_water_mark,
+    ):
+        return
+
     activation_id = _activation_id()
     if activation_id and already_spawned(_SHARD_TASK_KEY, activation_id):
         metrics.incr(
@@ -110,7 +129,8 @@ def migrate_shard(
     processed = 0
     try:
         while processed < _MAX_FILES_PER_ACTIVATION:
-            ensure_migration_enabled()
+            if _soft_stop_if_killswitched(**log_extra()):
+                return
             remaining = _MAX_FILES_PER_ACTIVATION - processed
             batch_limit = min(_QUERY_BATCH_SIZE, remaining)
             candidates = list(
@@ -130,7 +150,8 @@ def migrate_shard(
                 return
 
             for debug_file in candidates:
-                ensure_migration_enabled()
+                if _soft_stop_if_killswitched(**log_extra()):
+                    return
                 migrate_debug_file(debug_file_id=debug_file.id)
                 processed += 1
                 cursor_id = debug_file.id
@@ -154,8 +175,8 @@ def migrate_shard(
         )
         raise
 
-    if is_migration_killswitched():
-        raise RuntimeError("Debug file Objectstore migration is killswitched")
+    if _soft_stop_if_killswitched(**log_extra()):
+        return
 
     enqueue_shard(
         shard_id=shard_id,
