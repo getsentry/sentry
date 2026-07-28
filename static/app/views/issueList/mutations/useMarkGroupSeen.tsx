@@ -1,20 +1,14 @@
 import {useMutation, useQueryClient, type InfiniteData} from '@tanstack/react-query';
 
-import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Group} from 'sentry/types/group';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
 /**
  * Marks a group as seen from a surface that shows it in place, rather than by
  * navigating to issue details (which does it as a side effect of rendering).
- *
- * Fire-and-forget: a failed update leaves the indicator cleared until the next
- * refetch. `IssueListCacheStore` is updated for the old issue stream, which
- * doesn't read from react-query.
  */
 export function useMarkGroupSeen() {
   const organization = useOrganization();
@@ -33,15 +27,7 @@ export function useMarkGroupSeen() {
         data: {hasSeen: true},
       }),
     onMutate: (groupId: string) => {
-      queryClient.setQueriesData(
-        {queryKey: groupQueryKey({organizationSlug: organization.slug, groupId})},
-        (prev: ApiResponse<Group> | undefined) =>
-          prev ? {...prev, json: {...prev.json, hasSeen: true}} : prev
-      );
-
-      // This URL is cached both as InfiniteData (paginated lists) and as a bare
-      // ApiResponse (GroupList, feedback), and assuming either shape throws on
-      // the other.
+      // Issue lists cache this URL both as InfiniteData and as a plain response.
       queryClient.setQueriesData(
         {queryKey: [issuesUrl], exact: false},
         (prev: InfiniteData<ApiResponse<Group[]>> | ApiResponse<Group[]> | undefined) => {
@@ -54,18 +40,11 @@ export function useMarkGroupSeen() {
               group.id === groupId ? {...group, hasSeen: true} : group
             );
 
-          if ('pages' in prev) {
-            return {
-              ...prev,
-              pages: prev.pages.map(page => ({...page, json: markSeen(page.json)})),
-            };
-          }
-
-          return {...prev, json: markSeen(prev.json)};
+          return 'pages' in prev
+            ? {...prev, pages: prev.pages.map(p => ({...p, json: markSeen(p.json)}))}
+            : {...prev, json: markSeen(prev.json)};
         }
       );
-
-      IssueListCacheStore.markGroupAsSeen(groupId);
     },
   });
 }
