@@ -7,7 +7,7 @@ import random
 import tempfile
 from dataclasses import dataclass
 from datetime import datetime
-from typing import BinaryIO
+from typing import IO
 
 from django.db import router, transaction
 from django.db.models import ProtectedError
@@ -66,7 +66,7 @@ class MigrationIntegrityError(Exception):
     """Payload checksum/size did not match the legacy File."""
 
 
-def _sha1_stream(stream: BinaryIO) -> tuple[str, int]:
+def _sha1_stream(stream: IO[bytes]) -> tuple[str, int]:
     """SHA-1 a one-shot stream and close it. Returns ``(checksum, size)``."""
     digest = hashlib.sha1()
     size = 0
@@ -79,7 +79,7 @@ def _sha1_stream(stream: BinaryIO) -> tuple[str, int]:
     return digest.hexdigest(), size
 
 
-def _spool_to_tempfile(file: File) -> tuple[BinaryIO, str, int]:
+def _spool_to_tempfile(file: File) -> tuple[IO[bytes], str, int]:
     """Download ``file`` once into a tempfile, hashing as we go.
 
     Returns ``(tmp, checksum, size)``. Caller must close ``tmp`` (deletes the file).
@@ -210,10 +210,8 @@ def commit(
                 "file",
             ]
         )
-        transaction.on_commit(
-            lambda file_id=source_file_id: try_cleanup_file(file_id),
-            using=database,
-        )
+
+        transaction.on_commit(lambda: try_cleanup_file(source_file_id), using=database)
 
 
 def try_cleanup_file(file_id: int | None) -> None:
