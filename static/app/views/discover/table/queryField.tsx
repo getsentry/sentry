@@ -457,7 +457,7 @@ class _QueryField extends Component<Props> {
                 filterAggregateParameters(option, fieldValue)
               )
             : descriptor.options
-        ).map(opt => ({
+        ).map<FieldValueOption>(opt => ({
           ...opt,
           trailingItems: this.renderTag(
             opt.value.kind,
@@ -624,7 +624,7 @@ class _QueryField extends Component<Props> {
       filterPrimaryOptions
         ? Object.values(fieldOptions).filter(filterPrimaryOptions)
         : Object.values(fieldOptions)
-    ).map(opt => ({
+    ).map<FieldValueOption>(opt => ({
       ...opt,
       trailingItems: this.renderTag(
         opt.value.kind,
