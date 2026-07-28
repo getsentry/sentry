@@ -451,20 +451,21 @@ class _QueryField extends Component<Props> {
         if (hideParameterSelector) {
           return null;
         }
-        const aggregateParameters = filterAggregateParameters
-          ? descriptor.options.filter(option =>
-              filterAggregateParameters(option, fieldValue)
-            )
-          : descriptor.options;
-
-        aggregateParameters.forEach(opt => {
-          opt.trailingItems = this.renderTag(
+        const aggregateParameters = (
+          filterAggregateParameters
+            ? descriptor.options.filter(option =>
+                filterAggregateParameters(option, fieldValue)
+              )
+            : descriptor.options
+        ).map(opt => ({
+          ...opt,
+          trailingItems: this.renderTag(
             opt.value.kind,
             // eslint-disable-next-line @typescript-eslint/no-base-to-string
             String(opt.label),
             opt.value.meta
-          );
-        });
+          ),
+        }));
 
         const portalProps = useMenuPortal
           ? {
@@ -619,18 +620,19 @@ class _QueryField extends Component<Props> {
     } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
-    const allFieldOptions = filterPrimaryOptions
-      ? Object.values(fieldOptions).filter(filterPrimaryOptions)
-      : Object.values(fieldOptions);
-
-    allFieldOptions.forEach(opt => {
-      opt.trailingItems = this.renderTag(
+    const allFieldOptions = (
+      filterPrimaryOptions
+        ? Object.values(fieldOptions).filter(filterPrimaryOptions)
+        : Object.values(fieldOptions)
+    ).map(opt => ({
+      ...opt,
+      trailingItems: this.renderTag(
         opt.value.kind,
         // eslint-disable-next-line @typescript-eslint/no-base-to-string
         String(opt.label),
         opt.value.meta
-      );
-    });
+      ),
+    }));
 
     const selectProps: ControlProps = {
       name: 'field',
