@@ -19,6 +19,10 @@ const INTERACTIVE_SELECTOR = [
   '[role="link"]',
   '[role="menuitem"]',
   "[tabindex]:not([tabindex='-1'])",
+  "[role='option'][tabindex='-1']",
+  "[role='row'][tabindex='-1']",
+  "[role='tab'][tabindex='-1']",
+  "[role='treeitem'][tabindex='-1']",
 ].join(',');
 
 export function useIsInsideInteractiveElement<T extends HTMLElement>(
@@ -34,7 +38,7 @@ export function useIsInsideInteractiveElement<T extends HTMLElement>(
     );
   }, []);
 
-  const isInteractiveElementFocused = useSyncExternalStore(
+  const isInteractiveElementFocusVisible = useSyncExternalStore(
     useCallback(
       callback => {
         if (!interactiveElement) {
@@ -53,12 +57,12 @@ export function useIsInsideInteractiveElement<T extends HTMLElement>(
       },
       [interactiveElement]
     ),
-    () => interactiveElement?.matches(':focus') ?? false
+    () => interactiveElement?.matches(':focus-visible') ?? false
   );
 
   return {
     ref: mergeRef(insideInteractiveElementRef),
     isInsideInteractiveElement: interactiveElement !== null,
-    isInteractiveElementFocused,
+    isInteractiveElementFocusVisible,
   };
 }

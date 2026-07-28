@@ -45,7 +45,7 @@ export interface FeatureBadgeProps extends Omit<TagProps, 'children' | 'variant'
 export function FeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
   const title = tooltipProps?.title ?? defaultTitles[type] ?? '';
 
-  const {ref, isInsideInteractiveElement, isInteractiveElementFocused} =
+  const {ref, isInsideInteractiveElement, isInteractiveElementFocusVisible} =
     useIsInsideInteractiveElement(props.ref);
 
   return (
@@ -53,7 +53,9 @@ export function FeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) 
       title={title}
       position="right"
       {...tooltipProps}
-      forceVisible={isInteractiveElementFocused ? true : tooltipProps?.forceVisible}
+      forceVisible={
+        isInteractiveElementFocusVisible ? 'delayed' : tooltipProps?.forceVisible
+      }
       skipWrapper
     >
       <SquareTag

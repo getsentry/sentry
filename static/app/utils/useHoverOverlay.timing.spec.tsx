@@ -43,6 +43,24 @@ function Trigger({
   );
 }
 
+function DelayedForceVisibleTrigger({
+  forceVisible,
+}: {
+  forceVisible?: boolean | 'delayed';
+}) {
+  const {wrapTrigger, isOpen} = useHoverOverlay({
+    skipWrapper: true,
+    forceVisible,
+  });
+
+  return (
+    <Fragment>
+      {wrapTrigger(<button type="button">Delayed force visible</button>)}
+      <span data-test-id="delayed-force-visible-state">{isOpen ? 'open' : 'closed'}</span>
+    </Fragment>
+  );
+}
+
 describe('useHoverOverlay timing', () => {
   beforeEach(() => {
     jest.useFakeTimers();
@@ -361,5 +379,17 @@ describe('useHoverOverlay timing', () => {
 
     hover(screen.getByRole('button', {name: 'a'}));
     expect(screen.getByTestId('state-a')).toHaveTextContent('open');
+  });
+
+  it('honors the open delay for delayed force visibility', () => {
+    renderInGroup(<DelayedForceVisibleTrigger forceVisible="delayed" />);
+
+    expect(screen.getByTestId('delayed-force-visible-state')).toHaveTextContent('closed');
+
+    advance(OPEN_DELAY - 1);
+    expect(screen.getByTestId('delayed-force-visible-state')).toHaveTextContent('closed');
+
+    advance(1);
+    expect(screen.getByTestId('delayed-force-visible-state')).toHaveTextContent('open');
   });
 });

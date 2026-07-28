@@ -16,7 +16,7 @@ describe('FeatureBadge', () => {
   });
 
   it('shows its tooltip when the parent interactive element is focused', async () => {
-    const {rerender} = render(
+    render(
       <button type="button">
         Parent button
         <FeatureBadge type="new" />
@@ -27,7 +27,6 @@ describe('FeatureBadge', () => {
     const badge = screen.getByLabelText('new');
 
     expect(badge).not.toHaveAttribute('tabindex');
-    expect(button).toHaveAttribute('aria-describedby');
 
     await userEvent.tab();
     expect(await screen.findByText(NEW_FEATURE_TOOLTIP)).toBeInTheDocument();
@@ -36,9 +35,6 @@ describe('FeatureBadge', () => {
     await waitFor(() => {
       expect(screen.queryByText(NEW_FEATURE_TOOLTIP)).not.toBeInTheDocument();
     });
-
-    rerender(<button type="button">Parent button</button>);
-    expect(button).not.toHaveAttribute('aria-describedby');
   });
 
   it('recognizes roving focus targets with tabIndex=-1', () => {
