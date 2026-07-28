@@ -4,13 +4,13 @@ import hashlib
 import logging
 import os
 import random
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime
+from typing import BinaryIO
 
-from django.db import OperationalError, router, transaction
+from django.db import router, transaction
 from django.db.models import ProtectedError
-from objectstore_client import RequestError
-from urllib3.exceptions import HTTPError
 
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.models.debugfile import (
@@ -47,10 +47,7 @@ def migrate_debug_file(debug_file_id: int) -> None:
 
     base_delay = exponential_delay(2)
     policy = ConditionalRetryPolicy(
-        test_function=lambda attempt_number, error: attempt_number <= 3
-        and isinstance(
-            error, (RequestError, HTTPError, OperationalError, OSError, MigrationIntegrityError)
-        ),
+        test_function=lambda attempt_number, _: attempt_number <= 3,
         delay_function=lambda n: random.uniform(base_delay(n), base_delay(n) * 2),
     )
     policy(attempt)
@@ -69,14 +66,39 @@ class MigrationIntegrityError(Exception):
     """Payload checksum/size did not match the legacy File."""
 
 
-def _sha1_stream(stream) -> tuple[str, int]:
-    """SHA-1 a readable stream without closing it."""
+def _sha1_stream(stream: BinaryIO) -> tuple[str, int]:
+    """SHA-1 a one-shot stream and close it. Returns ``(checksum, size)``."""
     digest = hashlib.sha1()
     size = 0
-    while chunk := stream.read(1024 * 1024):
-        digest.update(chunk)
-        size += len(chunk)
+    try:
+        while chunk := stream.read(1024 * 1024):
+            digest.update(chunk)
+            size += len(chunk)
+    finally:
+        stream.close()
     return digest.hexdigest(), size
+
+
+def _spool_to_tempfile(file: File) -> tuple[BinaryIO, str, int]:
+    """Download ``file`` once into a tempfile, hashing as we go.
+
+    Returns ``(tmp, checksum, size)``. Caller must close ``tmp`` (deletes the file).
+    """
+    digest = hashlib.sha1()
+    size = 0
+    tmp = tempfile.NamedTemporaryFile(prefix="dif-migrate-")
+    try:
+        with file.getfile() as stream:
+            while chunk := stream.read(1024 * 1024):
+                digest.update(chunk)
+                tmp.write(chunk)
+                size += len(chunk)
+        tmp.flush()
+        tmp.seek(0)
+    except Exception:
+        tmp.close()
+        raise
+    return tmp, digest.hexdigest(), size
 
 
 def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | None:
@@ -87,7 +109,7 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
 
     Raises:
         MigrationIntegrityError: Local File or Objectstore payload mismatch.
-        RequestError, HTTPError, OSError: Transient I/O or network failures.
+        Exception: I/O, network, or other failures during spool/upload/verify.
     """
     file = debug_file.file
     if file is None:
@@ -116,8 +138,8 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
             extra={"debug_file_id": debug_file.id, "file_id": file.id},
         )
 
-    with file.getfile() as stream:
-        local_checksum, local_size = _sha1_stream(stream)
+    tmp, local_checksum, local_size = _spool_to_tempfile(file)
+    try:
         expected_checksum = recorded_checksum or local_checksum
         expected_size = recorded_size if recorded_size is not None else local_size
         if local_checksum != expected_checksum or local_size != expected_size:
@@ -126,18 +148,16 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
                 f"(checksum={local_checksum!r} expected={expected_checksum!r}, "
                 f"size={local_size} expected={expected_size})"
             )
-        stream.seek(0)
         storage_path = _upload_dif_to_objectstore(
-            session, stream, content_type, expected_size, filename
+            session, tmp, content_type, expected_size, filename
         )
+    finally:
+        tmp.close()
 
     response = session.get(storage_path)
     if response is None:
         raise MigrationIntegrityError("Object not found in Objectstore")
-    try:
-        remote_checksum, remote_size = _sha1_stream(response.payload)
-    finally:
-        response.payload.close()
+    remote_checksum, remote_size = _sha1_stream(response.payload)
     if remote_checksum != expected_checksum or remote_size != expected_size:
         raise MigrationIntegrityError(
             f"Objectstore payload does not match File "
