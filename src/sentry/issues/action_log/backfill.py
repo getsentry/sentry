@@ -314,6 +314,7 @@ def _get_new_pr_lifecycle_action(
                 pull_request.closed_at,
             )
         case PullRequestLifecycleState.OPEN | PullRequestLifecycleState.LOCKED:
+            # Reopen actions only make sense if we have previously logged a closed/merged action
             if latest_action_type not in (
                 GroupActionType.PULL_REQUEST_CLOSED,
                 GroupActionType.PULL_REQUEST_MERGED,
