@@ -96,25 +96,28 @@ function ReplaysContent({
   organization: Organization;
 }) {
   const location = useLocation();
-
-  if (!eventView.query) {
-    eventView.query = String(location.query.query ?? '');
-  }
-  const playlistQuery = usePlaylistQuery('transactionReplays', eventView);
+  const replayEventView = useMemo(() => {
+    const view = eventView.clone();
+    if (!view.query) {
+      view.query = String(location.query.query ?? '');
+    }
+    return view;
+  }, [eventView, location.query.query]);
+  const playlistQuery = usePlaylistQuery('transactionReplays', replayEventView);
 
   const newLocation = useMemo(() => ({query: {}}) as Location, []);
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.sm})`);
 
   const {replays, isFetching, fetchError} = useReplayList({
-    enabled: eventView.query !== '',
+    enabled: replayEventView.query !== '',
     // for the replay tab in transactions, if payload.query is undefined,
     // this means the transaction has no related replays.
     // but because we cannot query for an empty list of IDs (e.g. `id:[]` breaks our search endpoint),
     // and leaving query empty results in ALL replays being returned for a specified project
     // (which doesn't make sense as we want to show no replays),
     // we essentially want to hardcode no replays being returned.
-    eventView,
+    eventView: replayEventView,
     location: newLocation,
     organization,
     queryReferrer: 'transactionReplays',
