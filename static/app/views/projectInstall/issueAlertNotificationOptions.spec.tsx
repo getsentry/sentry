@@ -5,6 +5,7 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 
 import {
   act,
+  cleanup,
   render,
   renderHookWithProviders,
   screen,
@@ -134,6 +135,9 @@ describe('useCreateNotificationAction', () => {
   }
 
   afterEach(() => {
+    // Unmount active queries before restoring focus to avoid triggering another refetch.
+    cleanup();
+    focusManager.setFocused(undefined);
     MockApiClient.clearMockResponses();
   });
 
@@ -192,7 +196,8 @@ describe('useCreateNotificationAction', () => {
   });
 
   it('auto-selects provider/integration after connect when initial query had no integrations', async () => {
-    // First fetch returns nothing (no integrations connected yet).
+    // Start unfocused so the later focus transition deterministically triggers a refetch.
+    focusManager.setFocused(false);
     addIntegrationsResponse([]);
 
     const {result} = renderHookWithProviders(() => useCreateNotificationAction(), {
@@ -204,15 +209,13 @@ describe('useCreateNotificationAction', () => {
     expect(result.current.notificationProps.provider).toBeUndefined();
     expect(result.current.notificationProps.shouldRenderSetupButton).toBe(true);
 
-    // User connects an integration. Simulate a refetch by toggling focusManager.
+    // User connects an integration. Regaining focus refetches the active query.
     MockApiClient.clearMockResponses();
-    addIntegrationsResponse([slackIntegration]);
-    act(() => {
-      focusManager.setFocused(false);
-    });
+    const refetchRequest = addIntegrationsResponse([slackIntegration]);
     act(() => {
       focusManager.setFocused(true);
     });
+    await waitFor(() => expect(refetchRequest).toHaveBeenCalledTimes(1));
 
     // After the refetch, the auto-select branch should fire and populate the picker.
     await waitFor(() => expect(result.current.notificationProps.provider).toBe('slack'));
@@ -221,7 +224,8 @@ describe('useCreateNotificationAction', () => {
   });
 
   it('restores the persisted selection after a refetch delivers the integration', async () => {
-    // First fetch returns nothing (integration not yet visible / mid-load).
+    // Start unfocused so the later focus transition deterministically triggers a refetch.
+    focusManager.setFocused(false);
     addIntegrationsResponse([]);
 
     const defaultActions = [
@@ -248,15 +252,13 @@ describe('useCreateNotificationAction', () => {
       MultipleCheckboxOptions.INTEGRATION
     );
 
-    // Refetch delivers the Slack integration (e.g. user connected it via CTA).
+    // Regaining focus refetches and delivers the newly connected Slack integration.
     MockApiClient.clearMockResponses();
-    addIntegrationsResponse([slackIntegration]);
-    act(() => {
-      focusManager.setFocused(false);
-    });
+    const refetchRequest = addIntegrationsResponse([slackIntegration]);
     act(() => {
       focusManager.setFocused(true);
     });
+    await waitFor(() => expect(refetchRequest).toHaveBeenCalledTimes(1));
 
     // Full restore completes: provider, integration, channel, and actions are set.
     await waitFor(() => expect(result.current.notificationProps.provider).toBe('slack'));

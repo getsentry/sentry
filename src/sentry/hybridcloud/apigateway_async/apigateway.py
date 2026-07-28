@@ -73,14 +73,8 @@ async def proxy_request_if_needed(
         org_id_or_slug = str(
             view_kwargs.get("organization_slug") or view_kwargs.get("organization_id_or_slug", "")
         )
-
-        metrics.incr(
-            "apigateway.proxy_request",
-            tags={
-                **shared_metric_tags,
-                "kind": "orgslug",
-            },
-        )
+        # The orgslug counter is emitted inside proxy_request, after the cell is
+        # resolved, so it can carry the destination_cell tag.
         return await proxy_request(request, org_id_or_slug, url_name)
 
     resolver = _get_view_cell_resolver(view_func)
@@ -90,7 +84,11 @@ async def proxy_request_if_needed(
         if cell:
             metrics.incr(
                 "apigateway.proxy_request",
-                tags={**shared_metric_tags, "kind": "cell_resolver"},
+                tags={
+                    **shared_metric_tags,
+                    "kind": "cell_resolver",
+                    "destination_cell": cell.name,
+                },
             )
             return await proxy_cell_request(request, cell, url_name)
         # If no cell resolved, we drop through to the default resolution method
@@ -105,6 +103,7 @@ async def proxy_request_if_needed(
             tags={
                 **shared_metric_tags,
                 "kind": "regionpin",
+                "destination_cell": cell.name,
             },
         )
 
