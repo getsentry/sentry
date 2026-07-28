@@ -779,32 +779,6 @@ describe('eventViewToWidgetQuery', () => {
 });
 
 describe('generateFieldOptions', () => {
-  it('does not sort input arrays in place', () => {
-    const tagKeys = ['z-tag', 'a-tag'];
-    const measurementKeys = ['measurements.z', 'measurements.a'];
-    const spanOperationBreakdownKeys = ['spans.z', 'spans.a'];
-    const customMeasurements = [
-      {functions: ['p99'], key: 'measurements.z'},
-      {functions: ['p99'], key: 'measurements.a'},
-    ];
-
-    generateFieldOptions({
-      organization: initializeOrg().organization,
-      tagKeys,
-      measurementKeys,
-      spanOperationBreakdownKeys,
-      customMeasurements,
-    });
-
-    expect(tagKeys).toEqual(['z-tag', 'a-tag']);
-    expect(measurementKeys).toEqual(['measurements.z', 'measurements.a']);
-    expect(spanOperationBreakdownKeys).toEqual(['spans.z', 'spans.a']);
-    expect(customMeasurements).toEqual([
-      {functions: ['p99'], key: 'measurements.z'},
-      {functions: ['p99'], key: 'measurements.a'},
-    ]);
-  });
-
   it('generates custom measurement field options', () => {
     expect(
       generateFieldOptions({

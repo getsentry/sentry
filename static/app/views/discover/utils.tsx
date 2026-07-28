@@ -463,11 +463,11 @@ function generateExpandedConditions(
 type FieldGeneratorOpts = {
   organization: Organization;
   aggregations?: Record<string, Aggregation>;
-  customMeasurements?: Array<{functions: string[]; key: string}> | null;
-  fieldKeys?: string[];
-  measurementKeys?: string[] | null;
-  spanOperationBreakdownKeys?: string[];
-  tagKeys?: string[] | null;
+  customMeasurements?: ReadonlyArray<{functions: string[]; key: string}> | null;
+  fieldKeys?: readonly string[];
+  measurementKeys?: readonly string[] | null;
+  spanOperationBreakdownKeys?: readonly string[];
+  tagKeys?: readonly string[] | null;
 };
 
 export function generateFieldOptions({
