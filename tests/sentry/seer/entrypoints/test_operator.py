@@ -681,6 +681,13 @@ class SeerOperatorTest(TestCase):
                     group=self.group, type=expected_activity_type.value
                 ).exists(), f"Activity not created for {seer_event}"
 
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ITERATION_STARTED,
+                event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
+                organization_id=self.organization.id,
+                activity_attribution={"referrer": AutofixReferrer.UNKNOWN},
+            )
+
         action_log.assert_logged(
             SeerIterationStartedAction,
             group_id=self.group.id,
@@ -688,6 +695,14 @@ class SeerOperatorTest(TestCase):
             actor=SYSTEM_ACTOR,
             run_id=MOCK_RUN_ID,
             referrer=AutofixReferrer.GITHUB_PR_COMMENT.value,
+        )
+        action_log.assert_logged(
+            SeerIterationStartedAction,
+            group_id=self.group.id,
+            source=ActionSource.UNKNOWN,
+            actor=SYSTEM_ACTOR,
+            run_id=MOCK_RUN_ID,
+            referrer=AutofixReferrer.UNKNOWN.value,
         )
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
