@@ -303,6 +303,13 @@ class RepositoryIntegration(
                 if e.code in (404, 400):
                     lifecycle.record_halt(e)
                     return None
+                elif e.code is not None and 500 <= e.code < 600:
+                    # Transient third-party service errors (5xx) indicate temporary
+                    # unavailability of the external SCM provider, not a bug in Sentry.
+                    # Record as a halt rather than a failure to avoid creating spurious
+                    # Sentry issues for conditions we cannot control.
+                    lifecycle.record_halt(e)
+                    return None
                 # TODO(ecosystem): Remove this once we have a better way to handle this
                 # It involves decomposing this logic
                 #  {"$id":"1","innerException":null,"message":"According to Microsoft Entra, your Identity xxx is currently Disabled within the following Microsoft Entra tenant: xxx. Please contact your Microsoft Entra administrator to resolve this.","typeName":"Microsoft.TeamFoundation.Framework.Server.AadUserStateException, Microsoft.TeamFoundation.Framework.Server","typeKey":"AadUserStateException","errorCode":0,"eventId":3000}"
