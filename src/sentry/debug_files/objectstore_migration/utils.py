@@ -7,10 +7,9 @@ import random
 from dataclasses import dataclass
 from datetime import datetime
 
-from django.db import OperationalError, router
-from django.db.models import F, Func, Max, QuerySet, Value
-from django.db.models.fields import IntegerField
-from objectstore_client import RequestError, Session
+from django.db import OperationalError, router, transaction
+from django.db.models import ProtectedError
+from objectstore_client import RequestError
 from urllib3.exceptions import HTTPError
 
 from sentry.constants import KNOWN_DIF_FORMATS
@@ -19,6 +18,7 @@ from sentry.models.debugfile import (
     _dif_file_extension,
     _upload_dif_to_objectstore,
 )
+from sentry.models.files.file import File
 from sentry.models.project import Project
 from sentry.objectstore import get_debug_files_session
 from sentry.utils.db import atomic_transaction
@@ -27,12 +27,37 @@ from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 logger = logging.getLogger(__name__)
 
 
-class ObjectstoreIntegrityError(Exception):
-    """Objectstore payload checksum/size did not match the legacy File."""
+def migrate_debug_file(debug_file_id: int) -> None:
+    """Migrate one File-backed debug file over to Objectstore, or skip it if already migrated."""
+
+    def attempt() -> None:
+        try:
+            debug_file = ProjectDebugFile.objects.select_related("file").get(id=debug_file_id)
+        except ProjectDebugFile.DoesNotExist:
+            return
+
+        source_file_id = debug_file.file_id
+        if source_file_id is None:
+            return
+
+        metadata = upload_and_verify(debug_file)
+        if metadata is None:
+            return
+        commit(debug_file_id, metadata, source_file_id=source_file_id)
+
+    base_delay = exponential_delay(2)
+    policy = ConditionalRetryPolicy(
+        test_function=lambda attempt_number, error: attempt_number <= 3
+        and isinstance(
+            error, (RequestError, HTTPError, OperationalError, OSError, MigrationIntegrityError)
+        ),
+        delay_function=lambda n: random.uniform(base_delay(n), base_delay(n) * 2),
+    )
+    policy(attempt)
 
 
 @dataclass(frozen=True)
-class VerifiedObject:
+class PostMigrationMetadata:
     storage_path: str
     content_type: str
     file_size: int
@@ -40,221 +65,128 @@ class VerifiedObject:
     checksum: str
 
 
-def freeze_high_water_mark() -> int:
-    return ProjectDebugFile.objects.aggregate(max_id=Max("id"))["max_id"] or 0
+class MigrationIntegrityError(Exception):
+    """Payload checksum/size did not match the legacy File."""
 
 
-def shard_candidates(
-    *,
-    shard_id: int,
-    num_shards: int,
-    high_water_mark: int,
-    cursor_id: int,
-    limit: int,
-) -> QuerySet[ProjectDebugFile]:
-    return (
-        ProjectDebugFile.objects.filter(
-            id__gt=cursor_id,
-            id__lte=high_water_mark,
-            file_id__isnull=False,
-        )
-        .annotate(
-            _migration_shard=Func(
-                F("id"), Value(num_shards), function="MOD", output_field=IntegerField()
-            )
-        )
-        .filter(_migration_shard=shard_id)
-        .select_related("file")
-        .order_by("id")[:limit]
-    )
-
-
-def _verify_object(
-    session: Session,
-    storage_path: str,
-    *,
-    expected_checksum: str,
-    expected_size: int,
-    content_type: str,
-    date_created: datetime,
-) -> VerifiedObject | None:
-    """Download and checksum an Objectstore object.
-
-    Returns None when the key is missing. Raises ObjectstoreIntegrityError when
-    the payload is present but does not match the legacy File.
-
-    ``content_type`` / ``date_created`` always come from the legacy File (or the
-    dual-write path that created it). Objectstore response metadata is not used
-    for cutover fields — missing/normalized MIME would make ``file_format``
-    unknown after cutover.
-    """
-    response = session.get(storage_path)
-    if response is None:
-        return None
-
+def _sha1_stream(stream) -> tuple[str, int]:
+    """SHA-1 a readable stream without closing it."""
     digest = hashlib.sha1()
     size = 0
-    try:
-        while chunk := response.payload.read(1024 * 1024):
-            digest.update(chunk)
-            size += len(chunk)
-    finally:
-        response.payload.close()
-
-    checksum = digest.hexdigest()
-    if checksum != expected_checksum or size != expected_size:
-        raise ObjectstoreIntegrityError(
-            f"Objectstore payload does not match File "
-            f"(checksum={checksum!r} expected={expected_checksum!r}, "
-            f"size={size} expected={expected_size})"
-        )
-    return VerifiedObject(
-        storage_path=storage_path,
-        content_type=content_type,
-        file_size=size,
-        # Preserve the original File upload time; Objectstore time_created is migration time.
-        date_created=date_created,
-        checksum=checksum,
-    )
+    while chunk := stream.read(1024 * 1024):
+        digest.update(chunk)
+        size += len(chunk)
+    return digest.hexdigest(), size
 
 
-def _prepare_object(debug_file: ProjectDebugFile) -> VerifiedObject | None:
-    """Ensure a verified Objectstore object exists for this debug file.
+def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | None:
+    """Read the File, write it to Objectstore, and verify the stored object.
 
-    Returns None when the row cannot be migrated and should be skipped
-    (missing project, orphan File pointer, empty checksum, …). Callers treat
-    None as success-with-skip so the shard cursor can advance.
+    Returns:
+        Metadata to commit, or ``None`` to skip.
+
+    Raises:
+        MigrationIntegrityError: Local File or Objectstore payload mismatch.
+        RequestError, HTTPError, OSError: Transient I/O or network failures.
     """
     file = debug_file.file
     if file is None:
-        # file_id set but File row gone — unmigratable; don't stall the shard.
-        logger.info(
-            "debug_files.objectstore_migration.file_missing",
-            extra={"debug_file_id": debug_file.id, "file_id": debug_file.file_id},
-        )
-        return None
-    if not file.checksum:
-        logger.info(
-            "debug_files.objectstore_migration.checksum_missing",
-            extra={"debug_file_id": debug_file.id, "file_id": file.id},
-        )
         return None
 
     try:
         project = Project.objects.get_from_cache(id=debug_file.project_id)
     except Project.DoesNotExist:
-        logger.info(
-            "debug_files.objectstore_migration.project_missing",
-            extra={"debug_file_id": debug_file.id, "project_id": debug_file.project_id},
-        )
         return None
 
     session = get_debug_files_session(project.organization_id, project.id)
-    date_created = file.timestamp
-    # Canonical MIME is always taken from the legacy File — same source
-    # dual-write uses. Never Objectstore metadata (see _verify_object).
+
     content_type = file.headers.get("Content-Type", "application/octet-stream")
-
-    # Prefer an already-copied object when present and intact. A corrupt or
-    # partial prior copy falls through to a fresh upload.
-    if debug_file.storage_path:
-        try:
-            verified = _verify_object(
-                session,
-                debug_file.storage_path,
-                expected_checksum=file.checksum,
-                expected_size=file.size,
-                content_type=content_type,
-                date_created=date_created,
-            )
-        except ObjectstoreIntegrityError:
-            logger.info(
-                "debug_files.objectstore_migration.reusing_corrupt_object",
-                extra={
-                    "debug_file_id": debug_file.id,
-                    "storage_path": debug_file.storage_path,
-                },
-            )
-            verified = None
-        if verified is not None:
-            return verified
-
-    # Derive format from the legacy File MIME. Do not use debug_file.file_format:
-    # with storage_path set + objectstore-debugfiles-read, get_content_type() may
-    # assert on a null ProjectDebugFile.content_type that dual-write never filled.
+    date_created = file.timestamp
+    recorded_checksum = file.checksum
+    recorded_size = file.size
     file_format = KNOWN_DIF_FORMATS.get(content_type.lower(), "unknown")
     filename = (
         f"{os.path.basename(debug_file.debug_id)}"
         f"{_dif_file_extension(file_format, debug_file.file_type)}"
     )
-    with file.getfile() as source:
-        storage_path = _upload_dif_to_objectstore(
-            session, source, content_type, file.size, filename
+
+    if not recorded_checksum:
+        logger.warning(
+            "debug_files.objectstore_migration.checksum_missing",
+            extra={"debug_file_id": debug_file.id, "file_id": file.id},
         )
 
-    # Integrity mismatches and missing keys after upload are retriable: the
-    # outer ConditionalRetryPolicy will re-run prepare+cutover.
-    verified = _verify_object(
-        session,
-        storage_path,
-        expected_checksum=file.checksum,
-        expected_size=file.size,
+    with file.getfile() as stream:
+        local_checksum, local_size = _sha1_stream(stream)
+        expected_checksum = recorded_checksum or local_checksum
+        expected_size = recorded_size if recorded_size is not None else local_size
+        if local_checksum != expected_checksum or local_size != expected_size:
+            raise MigrationIntegrityError(
+                f"Filestore payload does not match File record "
+                f"(checksum={local_checksum!r} expected={expected_checksum!r}, "
+                f"size={local_size} expected={expected_size})"
+            )
+        stream.seek(0)
+        storage_path = _upload_dif_to_objectstore(
+            session, stream, content_type, expected_size, filename
+        )
+
+    response = session.get(storage_path)
+    if response is None:
+        raise MigrationIntegrityError("Object not found in Objectstore")
+    try:
+        remote_checksum, remote_size = _sha1_stream(response.payload)
+    finally:
+        response.payload.close()
+    if remote_checksum != expected_checksum or remote_size != expected_size:
+        raise MigrationIntegrityError(
+            f"Objectstore payload does not match File "
+            f"(checksum={remote_checksum!r} expected={expected_checksum!r}, "
+            f"size={remote_size} expected={expected_size})"
+        )
+
+    return PostMigrationMetadata(
+        storage_path=storage_path,
         content_type=content_type,
+        file_size=expected_size,
         date_created=date_created,
+        checksum=expected_checksum,
     )
-    if verified is None:
-        raise ObjectstoreIntegrityError("Uploaded Objectstore payload is missing")
-    return verified
 
 
-def migrate_debug_file(*, debug_file_id: int) -> int:
-    """Migrate one debug file. Returns cutover size, or 0 when skipped."""
+def commit(
+    dif_id: int,
+    metadata: PostMigrationMetadata,
+    *,
+    source_file_id: int,
+) -> None:
+    """Commit Objectstore metadata onto the DIF and clear ``file``.
 
-    def attempt() -> int:
-        try:
-            debug_file = ProjectDebugFile.objects.select_related("file").get(id=debug_file_id)
-        except ProjectDebugFile.DoesNotExist:
-            return 0
+    Takes a short row lock only for the update. No-ops when:
+    - the row is gone,
+    - already cut over (``file_id is None``), or
+    - ``file_id`` no longer matches ``source_file_id`` (identity changed under us).
 
-        if debug_file.file_id is None:
-            return 0
-
-        verified = _prepare_object(debug_file)
-        if verified is None:
-            return 0
-
-        return _commit_cutover(debug_file_id=debug_file_id, verified=verified)
-
-    base_delay = exponential_delay(2)
-    policy = ConditionalRetryPolicy(
-        test_function=lambda attempt_number, error: attempt_number <= 3
-        and isinstance(
-            error, (RequestError, HTTPError, OperationalError, OSError, ObjectstoreIntegrityError)
-        ),
-        delay_function=lambda n: random.uniform(base_delay(n), base_delay(n) * 2),
-    )
-    return policy(attempt)
-
-
-def _commit_cutover(*, debug_file_id: int, verified: VerifiedObject) -> int:
+    After a successful commit, schedules deletion of ``source_file_id`` if it is
+    unreferenced.
+    """
     database = router.db_for_write(ProjectDebugFile)
     with atomic_transaction(using=database):
         try:
-            current = ProjectDebugFile.objects.select_for_update().get(id=debug_file_id)
+            dif = ProjectDebugFile.objects.select_for_update().get(id=dif_id)
         except ProjectDebugFile.DoesNotExist:
-            return 0
+            return
 
-        # Already cut over (or raced with another worker).
-        if current.file_id is None:
-            return 0
+        if dif.file_id is None or dif.file_id != source_file_id:
+            return
 
-        current.storage_path = verified.storage_path
-        current.content_type = verified.content_type
-        current.file_size = verified.file_size
-        current.date_created = verified.date_created
-        current.checksum = verified.checksum
-        current.file = None
-        current.save(
+        dif.storage_path = metadata.storage_path
+        dif.content_type = metadata.content_type
+        dif.file_size = metadata.file_size
+        dif.date_created = metadata.date_created
+        dif.checksum = metadata.checksum
+        dif.file = None
+        dif.save(
             update_fields=[
                 "storage_path",
                 "content_type",
@@ -264,4 +196,30 @@ def _commit_cutover(*, debug_file_id: int, verified: VerifiedObject) -> int:
                 "file",
             ]
         )
-        return verified.file_size
+        transaction.on_commit(
+            lambda file_id=source_file_id: try_cleanup_file(file_id),
+            using=database,
+        )
+
+
+def try_cleanup_file(file_id: int | None) -> None:
+    """Delete the `File` with the given ID if unreferenced."""
+    if file_id is None:
+        return
+
+    try:
+        try:
+            file = File.objects.get(id=file_id)
+        except File.DoesNotExist:
+            return
+
+        try:
+            file.delete()
+        except ProtectedError:
+            pass
+    except Exception:
+        logger.exception(
+            "debug_files.objectstore_migration.file_delete_failed",
+            extra={"file_id": file_id},
+            exc_info=True,
+        )
