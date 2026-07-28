@@ -101,7 +101,17 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
             {tct(
               'Looking for MCP? Connect Sentry to AI-powered tools and your terminal from the [link:MCP & CLI] page.',
               {
-                link: <Link to={`/settings/${organization.slug}/mcp-cli/`} />,
+                link: (
+                  <Link
+                    to={`/settings/${organization.slug}/mcp-cli/`}
+                    onClick={() => {
+                      trackIntegrationAnalytics(PlatformEvents.MCP_CLI_HINT, {
+                        organization,
+                        view: analyticsView,
+                      });
+                    }}
+                  />
+                ),
               }
             )}
           </Alert>
