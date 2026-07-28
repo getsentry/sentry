@@ -2,7 +2,7 @@
 Unit tests for the teapot client + GPU event enrichment.
 
 Covers:
-* `TeapotClient.symbolicate` — both multipart and JSON+storage_url paths
+* `TeapotClient.symbolicate` — the presigned-URL wire format
 * `submit_to_teapot` wrapper — best-effort error swallowing
 * `apply_gpu_crash_symbolication` — applying teapot's decode to the event
 * `_normalize_gpu_frames` — frame normalization edge cases
@@ -12,9 +12,11 @@ from __future__ import annotations
 
 import contextlib
 from collections.abc import Iterator
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 
+import orjson
 import pytest
 import requests
 
@@ -41,26 +43,24 @@ class _FakeProject:
 class _FakeAttachment:
     """Stand-in for `sentry.attachments.CachedAttachment` in unit tests.
 
-    Carries enough surface for the teapot client: bytes via `load_data`,
-    the attachment `type`, the filename `name`, and an optional
-    `stored_id`. When `stored_id` is set teapot's client routes via the
-    JSON+storage_url path; otherwise it falls back to multipart.
+    The client only reads `name` (the filename — for a `.nvdbg` it carries the
+    `shader_debug_info_uid`) and `stored_id` (the objectstore key it presigns).
+    `data` is accepted for call-site convenience but never read: bytes are
+    fetched by teapot from objectstore, never inlined. `stored_id` defaults to a
+    value so the presigned path is exercised; pass `None` to simulate an
+    attachment missing from objectstore.
     """
 
     def __init__(
         self,
-        data: bytes,
+        data: bytes = b"",
         attachment_type: str = GPU_CRASH_DUMP_ATTACHMENT_TYPE,
         name: str = "dump.nv-gpudmp",
-        stored_id: str | None = None,
+        stored_id: str | None = "obj-id",
     ) -> None:
-        self._data = data
         self.type = attachment_type
         self.name = name
         self.stored_id = stored_id
-
-    def load_data(self, _project: Any) -> bytes:
-        return self._data
 
 
 class _FakeResponse:
@@ -118,6 +118,27 @@ def _skip_retry_backoff() -> Iterator[None]:
     """Skip teapot's inter-retry backoff sleep so retry tests stay instant."""
     with mock.patch("sentry.lang.native.teapot.time.sleep"):
         yield
+
+
+@pytest.fixture(autouse=True)
+def mock_objectstore() -> Iterator[mock.Mock]:
+    """Every attachment is fetched by presigned URL, so `symbolicate` always
+    opens an objectstore session. Fake it: `presigned_object_url(method, key,
+    duration=...)` returns a stable URL, and the symbolicator dev-rewrite is a
+    no-op (its real path shells out to `docker`). Autouse so plain client tests
+    work without setup; request it by name to assert on the presign calls."""
+    session = mock.Mock()
+    session.presigned_object_url.side_effect = (
+        lambda _method, key, duration=None: f"http://objectstore/{key}?sig=abc"
+    )
+    with (
+        mock.patch("sentry.lang.native.teapot.get_attachments_session", return_value=session),
+        mock.patch(
+            "sentry.lang.native.teapot.maybe_rewrite_url_for_symbolicator",
+            side_effect=lambda url: url,
+        ),
+    ):
+        yield session
 
 
 # ---------------------------------------------------------------------------
@@ -226,58 +247,22 @@ def test_apply_skips_failed_status() -> None:
 
 
 # ---------------------------------------------------------------------------
-# TeapotClient — multipart wire format
+# TeapotClient — request wire format
 # ---------------------------------------------------------------------------
 
 
-def test_client_multipart_success() -> None:
+def test_client_sends_presigned_urls() -> None:
+    """The dump and every .nvdbg are passed by presigned GET URL, never inline.
+
+    Teapot fetches the bytes straight from objectstore; only URLs cross the
+    wire, and no bearer token is exchanged (the URL is self-authenticating).
+    """
     project = _FakeProject()
-    dump = _FakeAttachment(b"dummy-dump-bytes", stored_id=None)
-    expected = _completed_response()
-
-    with (
-        _configured_teapot(),
-        mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
-    ):
-        mock_post.return_value = _FakeResponse(200, expected)
-
-        result = TeapotClient(project, "abc").symbolicate(dump)
-
-    assert result == expected
-    assert mock_post.call_count == 1
-    args, kwargs = mock_post.call_args
-    assert args[0] == "http://teapot.test/symbolicate"
-    # Identifiers carried as multipart form fields, NOT as a `sources` JSON
-    # — we no longer send a source-config block.
-    assert kwargs["data"]["event_id"] == "abc"
-    assert kwargs["data"]["project_id"] == "42"
-    assert kwargs["data"]["organization_id"] == "7"
-    assert "sources" not in kwargs["data"]
-    # Dump arrives as the canonical `upload_file` multipart field.
-    files = dict(kwargs["files"])
-    assert files["upload_file"][1] == b"dummy-dump-bytes"
-    assert kwargs["headers"]["X-Teapot-Version"] == "1"
-    assert kwargs["headers"]["X-Request-Id"] == "abc"
-    # event_id doubles as the idempotency key so a retried task replays
-    # teapot's cached decode instead of re-running it.
-    assert kwargs["headers"]["Idempotency-Key"] == "abc"
-
-
-def test_client_multipart_carries_shader_debug_attachments() -> None:
-    """Each .nvdbg becomes its own `nv_shader_debug.<uid>` field, the uid derived
-    from the attachment filename."""
-
-    project = _FakeProject()
-    dump = _FakeAttachment(b"dump-bytes")
-    nvdbg1 = _FakeAttachment(
-        b"nvdbg-bytes-1",
+    dump = _FakeAttachment(stored_id="dump-obj-id")
+    nvdbg = _FakeAttachment(
         attachment_type="event.nv_shader_debug",
-        name="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.nvdbg",
-    )
-    nvdbg2 = _FakeAttachment(
-        b"nvdbg-bytes-2",
-        attachment_type="event.nv_shader_debug",
-        name="bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.nvdbg",
+        name="cafebabecafebabecafebabecafebabe.nvdbg",
+        stored_id="nvdbg-obj-id",
     )
 
     with (
@@ -285,15 +270,50 @@ def test_client_multipart_carries_shader_debug_attachments() -> None:
         mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
     ):
         mock_post.return_value = _FakeResponse(200, _completed_response())
-        TeapotClient(project, "abc").symbolicate(dump, [nvdbg1, nvdbg2])
+        TeapotClient(project, "abc").symbolicate(dump, [nvdbg])
 
-    files = mock_post.call_args.kwargs["files"]
-    # `files` is a list-of-tuples (the only way to repeat field names); teapot
-    # keys each shader by the uid in the `nv_shader_debug.<uid>` field name.
-    by_field = {field_name: payload for field_name, payload in files}
-    assert "upload_file" in by_field
-    assert by_field[f"nv_shader_debug.{'a' * 32}"][1] == b"nvdbg-bytes-1"
-    assert by_field[f"nv_shader_debug.{'b' * 32}"][1] == b"nvdbg-bytes-2"
+    assert mock_post.call_count == 1
+    args, kwargs = mock_post.call_args
+    assert args[0] == "http://teapot.test/symbolicate"
+    # JSON body — no multipart `files`, Content-Type set.
+    assert kwargs.get("files") is None
+    assert kwargs["headers"]["Content-Type"] == "application/json"
+    assert kwargs["headers"]["X-Teapot-Version"] == "1"
+    assert kwargs["headers"]["X-Request-Id"] == "abc"
+    # event_id doubles as the idempotency key so a retried task replays
+    # teapot's cached decode instead of re-running it.
+    assert kwargs["headers"]["Idempotency-Key"] == "abc"
+
+    body = orjson.loads(kwargs["data"])
+    assert body["event_id"] == "abc"
+    assert body["project_id"] == "42"
+    assert body["organization_id"] == "7"
+    # A presigned URL per attachment; no inline bytes, no token.
+    assert body["dump"]["storage_url"] == "http://objectstore/dump-obj-id?sig=abc"
+    assert "storage_token" not in body["dump"]
+    assert len(body["shader_debug_info"]) == 1
+    shader = body["shader_debug_info"][0]
+    # uid recovered from the .nvdbg filename (teapot's shader_debug_info key).
+    assert shader["uid"] == "cafebabecafebabecafebabecafebabe"
+    assert shader["storage_url"] == "http://objectstore/nvdbg-obj-id?sig=abc"
+    assert "storage_token" not in shader
+
+
+def test_client_presigns_get_with_bounded_ttl(mock_objectstore: mock.Mock) -> None:
+    """Each attachment is presigned for GET with the short request-window TTL."""
+    project = _FakeProject()
+    dump = _FakeAttachment(stored_id="dump-obj-id")
+
+    with (
+        _configured_teapot(),
+        mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
+    ):
+        mock_post.return_value = _FakeResponse(200, _completed_response())
+        TeapotClient(project, "abc").symbolicate(dump)
+
+    call = mock_objectstore.presigned_object_url.call_args
+    assert call.args[:2] == ("GET", "dump-obj-id")
+    assert call.kwargs["duration"] == timedelta(seconds=60)
 
 
 @pytest.mark.parametrize(
@@ -435,91 +455,28 @@ def test_client_falls_back_to_options() -> None:
 
 
 # ---------------------------------------------------------------------------
-# TeapotClient — JSON + storage_url + storage_token (objectstore path)
+# TeapotClient — attachment missing from objectstore
 # ---------------------------------------------------------------------------
 
 
-def test_client_uses_json_path_when_all_attachments_stored() -> None:
-    """When every attachment has `stored_id`, pass URLs not bytes.
-
-    Mirrors `Symbolicator.process_minidump`'s objectstore path. Teapot
-    fetches the bytes directly from objectstore using the minted tokens.
-    Bytes never pass through the Sentry worker.
-    """
+def test_client_skips_when_attachment_not_stored() -> None:
+    """GPU-crash attachments are always uploaded to objectstore. If one is
+    missing a `stored_id` we can't presign it — teapot is skipped rather than
+    sent inline bytes: `symbolicate` raises and `submit_to_teapot` swallows it."""
 
     project = _FakeProject()
-    dump = _FakeAttachment(b"dump-bytes-should-not-be-sent", stored_id="dump-obj-id")
-    nvdbg = _FakeAttachment(
-        b"nvdbg-bytes-should-not-be-sent",
-        attachment_type="event.nv_shader_debug",
-        name="cafebabecafebabecafebabecafebabe.nvdbg",
-        stored_id="nvdbg-obj-id",
-    )
-
-    fake_session = mock.Mock()
-    fake_session.mint_token.side_effect = ["token-dump", "token-nvdbg"]
-
-    with (
-        _configured_teapot(),
-        mock.patch(
-            "sentry.lang.native.teapot.get_attachments_session",
-            return_value=fake_session,
-        ),
-        mock.patch(
-            "sentry.lang.native.teapot.get_symbolicator_url",
-            side_effect=lambda _sess, key: f"http://objectstore/{key}",
-        ),
-        mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
-    ):
-        mock_post.return_value = _FakeResponse(200, _completed_response())
-
-        TeapotClient(project, "abc").symbolicate(dump, [nvdbg])
-
-    # JSON path: `files` empty, Content-Type set, body is JSON-encoded.
-    kwargs = mock_post.call_args.kwargs
-    assert kwargs.get("files") is None
-    assert kwargs["headers"]["Content-Type"] == "application/json"
-    import orjson
-
-    body = orjson.loads(kwargs["data"])
-    assert body["event_id"] == "abc"
-    assert body["dump"]["storage_url"] == "http://objectstore/dump-obj-id"
-    assert body["dump"]["storage_token"] == "token-dump"
-    assert len(body["shader_debug_info"]) == 1
-    assert body["shader_debug_info"][0]["uid"] == "cafebabecafebabecafebabecafebabe"
-    assert body["shader_debug_info"][0]["storage_url"] == "http://objectstore/nvdbg-obj-id"
-    assert body["shader_debug_info"][0]["storage_token"] == "token-nvdbg"
-
-
-def test_client_falls_back_to_multipart_when_any_attachment_lacks_stored_id() -> None:
-    """Mixed-state attachments → multipart (we can't combine wire formats)."""
-
-    project = _FakeProject()
-    dump = _FakeAttachment(b"dump-bytes", stored_id="dump-obj-id")
-    # Second attachment has NO stored_id — forces multipart path.
-    nvdbg = _FakeAttachment(
-        b"nvdbg-bytes",
-        attachment_type="event.nv_shader_debug",
-        name="cafebabecafebabecafebabecafebabe.nvdbg",
-        stored_id=None,
-    )
+    dump = _FakeAttachment(stored_id=None)
 
     with (
         _configured_teapot(),
         mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
-        mock.patch("sentry.lang.native.teapot.get_attachments_session") as mock_session_fn,
     ):
-        mock_post.return_value = _FakeResponse(200, _completed_response())
-        TeapotClient(project, "abc").symbolicate(dump, [nvdbg])
+        with pytest.raises(TeapotUnavailable):
+            TeapotClient(project, "abc").symbolicate(dump)
+        assert submit_to_teapot(project, "abc", dump, []) is None
 
-    # Objectstore session is never opened because the mixed-state check
-    # routes to multipart immediately.
-    assert mock_session_fn.call_count == 0
-    # Multipart: `files` populated with inline bytes.
-    files = mock_post.call_args.kwargs["files"]
-    by_field = {field_name: payload for field_name, payload in files}
-    assert by_field["upload_file"][1] == b"dump-bytes"
-    assert by_field[f"nv_shader_debug.{'cafebabe' * 4}"][1] == b"nvdbg-bytes"
+    # We never reach out to teapot with a partial payload.
+    assert mock_post.call_count == 0
 
 
 # ---------------------------------------------------------------------------

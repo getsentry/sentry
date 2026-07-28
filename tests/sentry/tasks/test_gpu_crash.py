@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any
 from unittest import mock
+
+import pytest
 
 from sentry.models.project import Project
 from sentry.tasks.gpu_crash import (
@@ -36,13 +39,24 @@ def _completed() -> dict[str, Any]:
     return {"status": "completed", "fault_category": "shader_hang"}
 
 
+@pytest.fixture(autouse=True)
+def circuit_breaker() -> Iterator[mock.Mock]:
+    """A closed (request-allowing) teapot circuit breaker by default, so tests
+    don't couple to redis. Flip `should_allow_request` in a test to simulate an
+    open circuit; assert on `record_success` / `record_error` to check wiring."""
+    breaker = mock.Mock()
+    breaker.should_allow_request.return_value = True
+    with mock.patch("sentry.tasks.gpu_crash._teapot_circuit_breaker", return_value=breaker):
+        yield breaker
+
+
 # ---------------------------------------------------------------------------
 # _try_symbolicate — the teapot call + apply, best-effort
 # ---------------------------------------------------------------------------
 
 
 @django_db_all
-def test_try_symbolicate_happy_path(default_project: Project) -> None:
+def test_try_symbolicate_happy_path(default_project: Project, circuit_breaker: mock.Mock) -> None:
     data: dict[str, Any] = {"event_id": "e", "project": default_project.id}
     with (
         override_options({"teapot.enabled": True}),
@@ -57,6 +71,31 @@ def test_try_symbolicate_happy_path(default_project: Project) -> None:
     assert changed is True
     assert teapot.call_count == 1
     assert apply.call_count == 1
+    # A successful decode closes the loop on the breaker.
+    circuit_breaker.record_success.assert_called_once()
+    circuit_breaker.record_error.assert_not_called()
+
+
+@django_db_all
+def test_try_symbolicate_skips_when_circuit_open(
+    default_project: Project, circuit_breaker: mock.Mock
+) -> None:
+    # An open breaker means teapot is presumed down: skip the call entirely and
+    # save the event unenriched, paying no request timeout.
+    circuit_breaker.should_allow_request.return_value = False
+    with (
+        override_options({"teapot.enabled": True}),
+        Feature("organizations:gpu-crash-symbolication"),
+        mock.patch(FIND_DUMP, return_value=_FakeAttachment()),
+        mock.patch(FIND_SHADERS, return_value=[]),
+        mock.patch(SUBMIT_TEAPOT) as teapot,
+    ):
+        changed = _try_symbolicate({"event_id": "e"}, default_project.id, "e")
+
+    assert changed is False
+    assert teapot.call_count == 0
+    circuit_breaker.record_success.assert_not_called()
+    circuit_breaker.record_error.assert_not_called()
 
 
 @django_db_all
@@ -99,7 +138,9 @@ def test_try_symbolicate_skipped_without_dump(default_project: Project) -> None:
 
 
 @django_db_all
-def test_try_symbolicate_teapot_unavailable(default_project: Project) -> None:
+def test_try_symbolicate_teapot_unavailable(
+    default_project: Project, circuit_breaker: mock.Mock
+) -> None:
     with (
         override_options({"teapot.enabled": True}),
         Feature("organizations:gpu-crash-symbolication"),
@@ -112,6 +153,9 @@ def test_try_symbolicate_teapot_unavailable(default_project: Project) -> None:
 
     assert changed is False
     assert apply.call_count == 0
+    # A teapot failure feeds the breaker so repeated outages trip it.
+    circuit_breaker.record_error.assert_called_once()
+    circuit_breaker.record_success.assert_not_called()
 
 
 @django_db_all
