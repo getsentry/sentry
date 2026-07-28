@@ -165,7 +165,9 @@ function DashboardTable({
         ...(isOnlyPrebuilt
           ? []
           : [{key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED}]),
-        {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
+        ...(isOnlyPrebuilt
+          ? []
+          : [{key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED}]),
         ...(isOnlyPrebuilt
           ? []
           : [

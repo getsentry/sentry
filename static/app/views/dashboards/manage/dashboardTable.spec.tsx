@@ -385,15 +385,16 @@ describe('Dashboards - DashboardTable', () => {
       );
 
       const headers = await screen.findAllByTestId('grid-head-cell');
-      expect(headers).toHaveLength(5);
+      expect(headers).toHaveLength(4);
       expect(headers[0]).toHaveTextContent('Name');
       expect(headers[1]).toHaveTextContent('Description');
       expect(headers[2]).toHaveTextContent('Widgets');
-      expect(headers[3]).toHaveTextContent('Access');
-      expect(headers[4]).toHaveTextContent('Last Visited');
+      expect(headers[3]).toHaveTextContent('Last Visited');
 
+      // Owner, Created, and Access are omitted from the Sentry Built view
       expect(screen.queryByText('Owner')).not.toBeInTheDocument();
       expect(screen.queryByText('Created')).not.toBeInTheDocument();
+      expect(screen.queryByText('Access')).not.toBeInTheDocument();
     });
 
     it('renders the description column', async () => {
