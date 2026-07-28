@@ -8,7 +8,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
 import type {Subscription} from 'getsentry/types';
-import {getFriendlyPlanName} from 'getsentry/utils/billing';
+import {getFriendlyPlanName, isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 interface UpsellFooterProps {
@@ -33,7 +33,7 @@ export function Footer({
     onSuccess: onCloseModal,
   };
 
-  const canTrial = subscription.canTrial && !subscription.isTrial;
+  const canTrial = subscription.canTrial && !isTrial(subscription);
 
   return (
     <Flex align="end" gap="md">

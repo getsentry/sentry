@@ -6,7 +6,10 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {AI_AGENTS_OVERVIEW_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
+import {
+  AI_AGENTS_OVERVIEW_DASHBOARD_DESCRIPTION,
+  AI_AGENTS_OVERVIEW_DASHBOARD_TITLE,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {
   WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
@@ -240,6 +243,7 @@ export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: AI_AGENTS_OVERVIEW_DASHBOARD_TITLE,
+  description: AI_AGENTS_OVERVIEW_DASHBOARD_DESCRIPTION,
   filters: {
     globalFilter: DEFAULT_GLOBAL_FILTERS,
   },

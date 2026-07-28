@@ -7,7 +7,7 @@ import type {Integration, Repository} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
+import {type ScmAnalyticsFlow, scmFlowVariantParams} from './scmAnalyticsFlow';
 import {ScmSearchControl} from './scmSearchControl';
 import {ScmVirtualizedMenuList} from './scmVirtualizedMenuList';
 import {useScmRepos} from './useScmRepos';
@@ -15,7 +15,7 @@ import {useScmRepoSelection} from './useScmRepoSelection';
 
 const REPO_SELECTED_EVENT = {
   onboarding: 'onboarding.scm_connect_repo_selected',
-  'project-creation': 'project_creation.scm_connect_repo_selected',
+  'project-creation': 'project_creation.connect_repo_selected',
 } as const;
 
 interface ScmRepoSelectorProps {
@@ -80,6 +80,7 @@ export function ScmRepoSelector({
           organization,
           provider: integration.provider.key,
           repo: repo.name,
+          ...scmFlowVariantParams(analyticsFlow),
         });
       }
       handleSelect(option);

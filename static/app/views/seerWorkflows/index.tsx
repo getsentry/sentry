@@ -9,7 +9,7 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Text} from '@sentry/scraps/text';
+import {Prose, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -36,6 +36,7 @@ import {
 import {t, tn} from 'sentry/locale';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type {TagVariant} from 'sentry/utils/theme';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
@@ -774,8 +775,8 @@ function IssueRow({
           </Stack>
         </Flex>
         {issue.reason ? (
-          <Text size="sm" variant="muted">
-            {issue.reason}
+          <Text size="sm" variant="muted" wordBreak="break-word" as="div">
+            <MarkedText as={Prose} text={issue.reason} />
           </Text>
         ) : null}
       </Stack>

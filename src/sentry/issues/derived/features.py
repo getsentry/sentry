@@ -15,7 +15,9 @@ class IssueStatus(StrEnum):
 VIEW_COUNT = Feature[int]("view_count", default=0)
 
 # Status of the issue based on the log.
-STATUS = Feature[IssueStatus]("status", default=IssueStatus.OPEN, codec=EnumCodec(IssueStatus))
+STATUS = Feature[IssueStatus](
+    "status", default=IssueStatus.OPEN, codec=EnumCodec(IssueStatus), version=1
+)
 
 # The current Progress of the issue.
 PROGRESS = Feature[IssueProgressState | None](

@@ -233,6 +233,19 @@ def test_regression_reopens() -> None:
     )
 
 
+def test_escalating_reopens_archived_issue() -> None:
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                FakeEntry(type=GroupActionType.ARCHIVE),
+                FakeEntry(type=GroupActionType.SET_ESCALATING),
+            ],
+        )
+        == IssueStatus.OPEN
+    )
+
+
 def test_regression_resets_progress() -> None:
     assert (
         _run_for_feature(

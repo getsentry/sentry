@@ -533,17 +533,6 @@ class MergeEventWebhook(GitlabWebhook):
         except IntegrityError:
             pass
 
-        debug_log(
-            logger,
-            organization,
-            "gitlab.merge_request.dispatching_processors",
-            {
-                "integration_id": integration.id,
-                "repo_id": repo.id,
-                "pr_number": number,
-                "processor_count": len(self.WEBHOOK_EVENT_PROCESSORS),
-            },
-        )
         self._handle(
             integration=integration,
             event=event,
@@ -605,16 +594,6 @@ class NoteEventWebhook(GitlabWebhook):
         # Keep repo metadata fresh (url and path_with_namespace).
         self.update_repo_data(repo, event)
 
-        debug_log(
-            logger,
-            organization,
-            "gitlab.note.dispatching_processors",
-            {
-                "integration_id": integration.id,
-                "repo_id": repo.id,
-                "processor_count": len(self.WEBHOOK_EVENT_PROCESSORS),
-            },
-        )
         self._handle(
             integration=integration,
             event=event,

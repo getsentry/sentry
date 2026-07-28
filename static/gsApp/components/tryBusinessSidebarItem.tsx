@@ -11,7 +11,7 @@ import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import TrialStartedSidebarItem from 'getsentry/components/trialStartedSidebarItem';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {hasPerformance, isBizPlanFamily} from 'getsentry/utils/billing';
+import {hasPerformance, isBizPlanFamily, isTrial} from 'getsentry/utils/billing';
 
 const AUTO_OPEN_HASH = '#try-business';
 
@@ -37,7 +37,7 @@ function TryBusinessNavigationItem({
     false
   );
 
-  const isNew = !subscription.isTrial && subscription.canTrial;
+  const isNew = !isTrial(subscription) && subscription.canTrial;
   const showIsNew = isNew && !tryBusinessSeen;
 
   return (
@@ -88,7 +88,7 @@ function TryBusinessSidebarItem(props: Props) {
   }, [props.organization]);
 
   const labelText = useMemo(() => {
-    if (props.subscription.isTrial) {
+    if (isTrial(props.subscription)) {
       return t('My Sentry Trial');
     }
     if (!props.subscription.canTrial) {

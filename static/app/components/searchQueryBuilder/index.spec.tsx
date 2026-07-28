@@ -583,24 +583,57 @@ describe('SearchQueryBuilder', () => {
       }
     );
 
-    it('clears uncommitted free text repeatedly with Cmd+Delete', async () => {
-      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+    it('deletes everything before the cursor with Ctrl+Backspace, keeping what is after', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
 
-      const input = screen.getByRole('combobox', {name: 'Add a search term'});
+      await userEvent.type(getLastInput(), 'abcdef');
+      await userEvent.keyboard('{ArrowLeft}{ArrowLeft}{ArrowLeft}');
+      await userEvent.keyboard('{Control>}{Backspace}{/Control}');
 
-      await userEvent.type(input, 'first');
+      await waitFor(() => {
+        expect(getLastInput()).toHaveValue('def');
+      });
+      expect(
+        screen.queryByRole('row', {name: 'browser.name:firefox'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('deletes everything after the cursor with Ctrl+Delete, keeping what is before', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      await userEvent.type(getLastInput(), 'abcdef');
+      await userEvent.keyboard('{ArrowLeft}{ArrowLeft}{ArrowLeft}');
       await userEvent.keyboard('{Control>}{Delete}{/Control}');
 
       await waitFor(() => {
-        expect(input).toHaveValue('');
+        expect(getLastInput()).toHaveValue('abc');
       });
+      expect(screen.getByRole('row', {name: 'browser.name:firefox'})).toBeInTheDocument();
+    });
 
-      await userEvent.type(input, 'second');
-      await userEvent.keyboard('{Control>}{Delete}{/Control}');
+    it('clears the query with Ctrl+Backspace from an empty trailing input', async () => {
+      const mockOnSearch = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          onSearch={mockOnSearch}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}{Backspace}{/Control}');
 
       await waitFor(() => {
-        expect(input).toHaveValue('');
+        expect(
+          screen.queryByRole('row', {name: 'browser.name:firefox'})
+        ).not.toBeInTheDocument();
       });
+      expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
     });
 
     it('is hidden at small sizes', async () => {
@@ -5977,6 +6010,97 @@ describe('SearchQueryBuilder', () => {
       await userEvent.click(getLastInput());
       expect(
         await screen.findByText('Free text is not supported in this search')
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('disallowNegation', () => {
+    it('removes negation operators from string filter options', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowNegation
+          initialQuery="browser.name:firefox"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+      );
+
+      // Positive operators remain available
+      expect(await screen.findByRole('option', {name: 'is'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'contains'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'starts with'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'ends with'})).toBeInTheDocument();
+
+      // Negation operators are hidden
+      expect(screen.queryByRole('option', {name: 'is not'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not contain'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not start with'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not end with'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('removes "does not have" from has filter options', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} disallowNegation initialQuery="has:key" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: has'})
+      );
+
+      expect(await screen.findByRole('option', {name: 'has'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not have'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('marks a negated filter invalid (e.g. when pasted)', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowNegation
+          initialQuery="!browser.name:firefox"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: '!browser.name:firefox'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        await screen.findByText('Negation is not allowed in this search.')
+      ).toBeInTheDocument();
+    });
+
+    it('marks operator-based negation invalid (e.g. pasted "!=")', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowNegation
+          initialQuery="timesSeen:!=5"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'timesSeen:!=5'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        await screen.findByText('Negation is not allowed in this search.')
       ).toBeInTheDocument();
     });
   });

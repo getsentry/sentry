@@ -5,6 +5,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 interface SeerSearchListBoxProps extends AriaListBoxOptions<unknown> {
+  hasAskSeerUxRework: boolean;
   state: ListState<unknown>;
   listBoxRef?: React.RefObject<HTMLUListElement | null>;
 }
@@ -15,7 +16,11 @@ export function AskSeerSearchListBox(props: SeerSearchListBoxProps) {
   const {listBoxProps} = useListBox(props, state, listBoxRef);
 
   return (
-    <StyledUl {...listBoxProps} ref={listBoxRef}>
+    <StyledUl
+      {...listBoxProps}
+      ref={listBoxRef}
+      $hasAskSeerUxRework={props.hasAskSeerUxRework}
+    >
       {[...state.collection].map(item => {
         return (
           <SeerSearchOption
@@ -47,7 +52,12 @@ function SeerSearchOption({item, state, label}: SeerSearchOptionProps) {
   );
 }
 
-const StyledUl = styled('ul')`
+const StyledUl = styled('ul')<{$hasAskSeerUxRework: boolean}>`
+  --ask-seer-option-interaction-background: ${p =>
+    p.$hasAskSeerUxRework
+      ? p.theme.tokens.interactive.transparent.neutral.background.hover
+      : p.theme.tokens.background.transparent.accent.muted};
+
   width: 100%;
   max-height: 18rem;
   overflow: auto;
@@ -71,18 +81,18 @@ const StyledOption = styled('li')<{isFocused: boolean}>`
   transition: background-color 0.2s ease;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
   background-color: ${p =>
-    p.isFocused ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
+    p.isFocused ? 'var(--ask-seer-option-interaction-background)' : 'transparent'};
 
   &:hover {
-    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    background-color: var(--ask-seer-option-interaction-background);
   }
 
   &:focus {
-    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    background-color: var(--ask-seer-option-interaction-background);
   }
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    background-color: var(--ask-seer-option-interaction-background);
   }
 
   &[data-is-none-of-these],

@@ -4,6 +4,7 @@ from typing import Any, TypedDict, cast
 from unittest.mock import Mock, patch
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
+from sentry.issues.action_log.types import ActionSource, GroupActionActor, TriggerAutofixAction
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
@@ -43,6 +44,7 @@ from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 
@@ -147,6 +149,34 @@ class SeerOperatorTest(TestCase):
                 organization=self.group.project.organization,
                 entrypoint_key=cast(SeerEntrypointKey, entrypoint_key),
             )
+
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_agent")
+    def test_slack_autofix_kickoff_creates_activity(
+        self, mock_trigger_autofix, _mock_get_autofix_state
+    ):
+        mock_trigger_autofix.return_value = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=MOCK_RUN_ID,
+        )
+
+        with capture_action_log() as action_log:
+            self.operator.trigger_autofix(
+                group=self.group,
+                user=self.user,
+                stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
+            )
+
+        activity = Activity.objects.get(group=self.group, type=ActivityType.TRIGGER_AUTOFIX.value)
+        assert activity.user_id == self.user.id
+        assert activity.data == {"referrer": AutofixReferrer.SLACK.value}
+        action_log.assert_logged(
+            TriggerAutofixAction,
+            group_id=self.group.id,
+            source=ActionSource.SLACK,
+            actor=GroupActionActor.user(self.user.id),
+            referrer=AutofixReferrer.SLACK.value,
+        )
 
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
     def test_trigger_handoff_no_config_is_silent_halt(self, mock_trigger_handoff_helper):
