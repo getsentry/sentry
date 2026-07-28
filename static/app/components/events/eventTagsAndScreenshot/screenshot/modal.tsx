@@ -12,7 +12,7 @@ import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
 import {getImageAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
-import {KeyValueData} from 'sentry/components/keyValueData';
+import {KeyValue} from 'sentry/components/keyValue';
 import {t, tct} from 'sentry/locale';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -116,39 +116,37 @@ export function ScreenshotModal({
               eventId={currentEventAttachment.event_id}
             />
           </AttachmentComponentWrapper>
-          <KeyValueData.Card
+          <KeyValue
             title={currentEventAttachment.name}
-            contentItems={[
+            items={[
               {
-                item: {
-                  key: 'event',
-                  subject: t('Event ID'),
-                  value: currentEventAttachment.event_id,
-                  action: groupId
-                    ? {
-                        link: `/organizations/${organization.slug}/issues/${groupId}/events/${currentEventAttachment.event_id}/`,
-                      }
-                    : undefined,
-                },
+                key: 'event',
+                subject: t('Event ID'),
+                value: currentEventAttachment.event_id,
+                action: groupId
+                  ? {
+                      link: `/organizations/${organization.slug}/issues/${groupId}/events/${currentEventAttachment.event_id}/`,
+                    }
+                  : undefined,
               },
               {
-                item: {
-                  key: 'date',
-                  subject: t('Date Created'),
-                  value: <DateTime date={dateCreated} />,
-                },
+                key: 'date',
+                subject: t('Date Created'),
+                value: <DateTime date={dateCreated} />,
               },
               {
-                item: {key: 'size', subject: t('Size'), value: formatBytesBase2(size)},
+                key: 'size',
+                subject: t('Size'),
+                value: formatBytesBase2(size),
               },
               {
-                item: {
-                  key: 'mimetype',
-                  subject: t('MIME Type'),
-                  value: mimetype,
-                },
+                key: 'mimetype',
+                subject: t('MIME Type'),
+                value: mimetype,
               },
             ]}
+            card
+            layout="detail"
           />
         </Stack>
       </Body>

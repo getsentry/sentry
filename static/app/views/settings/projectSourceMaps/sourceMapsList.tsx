@@ -13,11 +13,11 @@ import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {
   getSourceMapsDocLinks,
   projectPlatformToDocsMap,
 } from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import {KeyValue} from 'sentry/components/keyValue';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -433,7 +433,7 @@ function SourceMapUploadDetails({
     ];
   }, [sourceMapUpload, showAll, projectId]);
 
-  return <StyledKeyValueList data={detailsData} shouldSort={false} />;
+  return <KeyValue items={detailsData} layout="detail" />;
 }
 
 interface SourceMapUploadDeleteButtonProps {
@@ -473,12 +473,6 @@ function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProp
     </Access>
   );
 }
-
-const StyledKeyValueList = styled(KeyValueList)`
-  && {
-    margin-bottom: 0;
-  }
-`;
 
 const List = styled('div')`
   display: grid;

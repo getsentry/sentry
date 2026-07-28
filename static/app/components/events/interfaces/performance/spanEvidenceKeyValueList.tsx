@@ -13,7 +13,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {
   extractSpanURLString,
   formatChangingQueryParameters,
@@ -31,11 +30,12 @@ import {
   SpanSubTimingName,
 } from 'sentry/components/events/interfaces/spans/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {KeyValue} from 'sentry/components/keyValue';
+import type {KeyValueEntry} from 'sentry/components/keyValue';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
 import {
   getIssueTypeFromOccurrenceType,
   isOccurrenceBased,
@@ -107,7 +107,7 @@ function ConsecutiveDBQueriesSpanEvidence({
               getConsecutiveDbTimeSaved(causeSpans, offendingSpans)
             )
           ),
-        ].filter(Boolean) as KeyValueListData
+        ].filter(Boolean) as KeyValueEntry[]
       }
     />
   );
@@ -206,7 +206,7 @@ function NPlusOneDBQueriesSpanEvidence({
             : null,
           ...repeatingSpanRows,
           patternSize > 0 ? makeRow(t('Pattern Size'), patternSize) : null,
-        ].filter(Boolean) as KeyValueListData
+        ].filter(Boolean) as KeyValueEntry[]
       }
     />
   );
@@ -261,7 +261,7 @@ function NPlusOneAPICallsSpanEvidence({
           pathParameters.length > 0
             ? makeRow(t('Path Parameters'), pathParameters)
             : null,
-        ].filter(Boolean) as KeyValueListData
+        ].filter(Boolean) as KeyValueEntry[]
       }
     />
   );
@@ -272,7 +272,7 @@ function MainThreadFunctionEvidence({
   organization,
 }: SpanEvidenceKeyValueListProps) {
   const data = useMemo(() => {
-    const dataRows: KeyValueListDataItem[] = [];
+    const dataRows: KeyValueEntry[] = [];
 
     const evidenceData = event.occurrence?.evidenceData ?? {};
     const evidenceDisplay = event.occurrence?.evidenceDisplay ?? [];
@@ -296,7 +296,6 @@ function MainThreadFunctionEvidence({
 
     dataRows.push(
       ...evidenceDisplay.map(item => ({
-        subject: item.name,
         key: item.name,
         value: item.value,
       }))
@@ -351,7 +350,7 @@ function DBQueryInjectionVulnerabilityEvidence({
           getSQLQueryRowFromEvidence(offendingSpans[0]!),
           makeRow(t('Vulnerable Parameters'), formattedVulnerableParameters),
           makeRow(t('Request URL'), evidenceData.requestUrl),
-        ].filter(Boolean) as KeyValueListData
+        ].filter(Boolean) as KeyValueEntry[]
       }
     />
   );
@@ -561,13 +560,13 @@ function SlowDBQueryEvidence({
   );
 
   return (
-    <KeyValueList
-      shouldSort={false}
-      data={[
+    <KeyValue
+      items={[
         makeTransactionNameRow(event, organization, location, projectSlug),
         makeRow(t('Duration Impact'), getSingleSpanDurationImpact(event, span)),
         makeRow(t('Slow DB Query'), queryValue),
       ]}
+      layout="detail"
     />
   );
 }
@@ -646,14 +645,14 @@ function DefaultSpanEvidence({
           offendingSpans.length > 0
             ? makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0]!))
             : null,
-        ].filter(Boolean) as KeyValueListData
+        ].filter(Boolean) as KeyValueEntry[]
       }
     />
   );
 }
 
-function PresortedKeyValueList({data}: {data: KeyValueListData}) {
-  return <KeyValueList shouldSort={false} data={data} />;
+function PresortedKeyValueList({data}: {data: KeyValueEntry[]}) {
+  return <KeyValue items={data} layout="detail" />;
 }
 
 const makeTransactionNameRow = (
@@ -697,11 +696,11 @@ const makeTransactionNameRow = (
 };
 
 const makeRow = (
-  subject: KeyValueListDataItem['subject'],
-  value: KeyValueListDataItem['value'],
+  subject: string,
+  value: KeyValueEntry['value'],
   actionButton?: ReactNode
-): KeyValueListDataItem => {
-  const itemKey = kebabCase(subject ?? '');
+): KeyValueEntry => {
+  const itemKey = kebabCase(subject);
 
   return {
     key: itemKey,

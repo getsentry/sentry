@@ -225,7 +225,6 @@ function RequestBodySection({
         const [key, value] = d.data;
         return {
           key,
-          subject: key,
           value,
         };
       });
@@ -271,7 +270,6 @@ function getRequestSectionItems(data: Data, meta: Meta) {
       const [key, value] = d.data;
       return {
         key,
-        subject: key,
         value,
         meta: d.meta,
       };

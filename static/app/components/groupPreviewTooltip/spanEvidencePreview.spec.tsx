@@ -107,15 +107,15 @@ describe('SpanEvidencePreview', () => {
 
     await screen.findByTestId('span-evidence-preview-body');
 
-    expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: event.title})).toBeInTheDocument();
+    expect(screen.getByText('Transaction')).toBeInTheDocument();
+    expect(screen.getByText(event.title)).toBeInTheDocument();
 
-    expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'connect'})).toBeInTheDocument();
+    expect(screen.getByText('Parent Span')).toBeInTheDocument();
+    expect(screen.getByText('connect')).toBeInTheDocument();
 
-    expect(screen.getByRole('cell', {name: 'Repeating Spans (9)'})).toBeInTheDocument();
+    expect(screen.getByText('Repeating Spans (9)')).toBeInTheDocument();
 
     // SQLish formatter uppercases group
-    expect(screen.getByRole('cell', {name: 'GROUP me'})).toBeInTheDocument();
+    expect(screen.getByText('GROUP me')).toBeInTheDocument();
   });
 });

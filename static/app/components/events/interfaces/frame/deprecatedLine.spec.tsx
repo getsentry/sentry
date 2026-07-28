@@ -1,5 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
 
+import {getKeyValueRow} from 'sentry-test/keyValue';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {DeprecatedLine} from 'sentry/components/events/interfaces/frame/deprecatedLine';
@@ -143,7 +144,7 @@ describe('Frame - Line', () => {
       );
 
       for (const [key, value] of Object.entries(vars)) {
-        const row = screen.getByText(key).closest('tr');
+        const row = getKeyValueRow(key);
         expect(row).toBeTruthy();
 
         if (!row) {

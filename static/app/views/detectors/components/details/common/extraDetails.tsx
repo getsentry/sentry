@@ -1,9 +1,7 @@
-import styled from '@emotion/styled';
-
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {KeyValue} from 'sentry/components/keyValue';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -20,15 +18,12 @@ type Props = {
 export function DetectorExtraDetails({children}: Props) {
   return (
     <DetailSection title={t('Details')}>
-      <StyledKeyValueTable>{children}</StyledKeyValueTable>
+      <KeyValue keyColumn="fit" layout="list">
+        {children}
+      </KeyValue>
     </DetailSection>
   );
 }
-
-const StyledKeyValueTable = styled(KeyValueTable)`
-  grid-template-columns: min-content auto;
-  margin-bottom: 0;
-`;
 
 DetectorExtraDetails.DateCreated = function DetectorExtraDetailsDateCreated({
   detector,
@@ -36,7 +31,7 @@ DetectorExtraDetails.DateCreated = function DetectorExtraDetailsDateCreated({
   detector: Detector;
 }) {
   return (
-    <KeyValueTableRow
+    <KeyValue.Row
       keyName={t('Date created')}
       value={<DateTime date={detector.dateCreated} dateOnly year />}
     />
@@ -61,12 +56,12 @@ DetectorExtraDetails.CreatedBy = function DetectorExtraDetailsCreatedBy({
   const keyName = t('Created by');
 
   if (!createdBy) {
-    return <KeyValueTableRow keyName={keyName} value={t('Sentry')} />;
+    return <KeyValue.Row keyName={keyName} value={t('Sentry')} />;
   }
 
   if (isPending) {
     return (
-      <KeyValueTableRow
+      <KeyValue.Row
         keyName={keyName}
         value={<Placeholder width="80px" height="16px" />}
       />
@@ -74,12 +69,12 @@ DetectorExtraDetails.CreatedBy = function DetectorExtraDetailsCreatedBy({
   }
 
   if (isError) {
-    return <KeyValueTableRow keyName={keyName} value={t('Deactivated user')} />;
+    return <KeyValue.Row keyName={keyName} value={t('Deactivated user')} />;
   }
 
   const title = user?.name ?? user?.email ?? t('Unknown');
   return (
-    <KeyValueTableRow
+    <KeyValue.Row
       keyName={keyName}
       value={
         <Tooltip title={title} showOnlyOnOverflow>
@@ -96,7 +91,7 @@ DetectorExtraDetails.LastModified = function DetectorExtraDetailsLastModified({
   detector: Detector;
 }) {
   return (
-    <KeyValueTableRow
+    <KeyValue.Row
       keyName={t('Last modified')}
       value={<TimeSince date={detector.dateUpdated} />}
     />
@@ -112,7 +107,7 @@ DetectorExtraDetails.Environment = function DetectorExtraDetailsEnvironment({
   const environmentLabel = environment ?? t('All environments');
 
   return (
-    <KeyValueTableRow
+    <KeyValue.Row
       keyName={t('Environment')}
       value={
         <Tooltip title={environmentLabel} showOnlyOnOverflow>

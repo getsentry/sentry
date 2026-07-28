@@ -150,7 +150,6 @@ export function SpanKeys({node}: {node: SpanNode}) {
   Object.entries(sizeKeys).forEach(([key, value]) => {
     items.push({
       key,
-      subject: key,
       value: (
         <Fragment>
           <FileSize bytes={value} />
@@ -172,7 +171,6 @@ export function SpanKeys({node}: {node: SpanNode}) {
     if (!isHiddenDataKey(key)) {
       items.push({
         key,
-        subject: key,
         value: value as string | number,
         actionButton: (
           <TraceDrawerComponents.KeyValueAction
@@ -189,7 +187,6 @@ export function SpanKeys({node}: {node: SpanNode}) {
   unknownKeys.forEach(key => {
     items.push({
       key,
-      subject: key,
       value: (span as any)[key],
       actionButton: (
         <TraceDrawerComponents.KeyValueAction

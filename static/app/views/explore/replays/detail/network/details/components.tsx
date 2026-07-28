@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Container, type ContainerProps} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {KeyValue, type KeyValueStatus} from 'sentry/components/keyValue';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -54,17 +54,17 @@ export function SizeTooltip({children}: {children: ReactNode}) {
 export type KeyValueTuple = {
   key: string;
   value: string | ReactNode;
-  type?: 'warning' | 'error';
+  type?: KeyValueStatus;
 };
 
 export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: string) {
   return data.length ? (
-    <StyledKeyValueTable noMargin>
+    <StyledKeyValueTable layout="list">
       {data.map(({key, value, type}) => (
-        <KeyValueTableRow
+        <KeyValue.Row
           key={key}
           keyName={key}
-          type={type}
+          status={type}
           value={
             <Container as="span" overflow="auto">
               {value}
@@ -142,12 +142,12 @@ export function SectionItem({
   );
 }
 
-const StyledKeyValueTable = styled(KeyValueTable)`
-  & > dt {
+const StyledKeyValueTable = styled(KeyValue)`
+  dt {
     font-size: ${p => p.theme.font.size.sm};
     padding-left: ${p => p.theme.space['3xl']};
   }
-  & > dd {
+  dd {
     width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;

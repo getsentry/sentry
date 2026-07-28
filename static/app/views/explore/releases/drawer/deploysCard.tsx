@@ -1,8 +1,8 @@
-import {Container} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {Card, KeyValueData} from 'sentry/components/keyValueData';
+import {KeyValue, KeyValuePanel} from 'sentry/components/keyValue';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -27,9 +27,9 @@ export function DeploysCard({release, projectSlug}: DeploysCardProps) {
 
   if (isLoading || !deploys?.length) {
     return (
-      <KeyValueData.CardPanel>
-        <KeyValueData.Title>{t('Deploys')}</KeyValueData.Title>
-        <Container column="span 2">
+      <KeyValuePanel>
+        <Stack gap="sm">
+          <KeyValue.Title>{t('Deploys')}</KeyValue.Title>
           {isLoading ? (
             <Placeholder height="20px" />
           ) : (
@@ -37,21 +37,20 @@ export function DeploysCard({release, projectSlug}: DeploysCardProps) {
               {t('No deploys found')}
             </EmptyStateWarning>
           )}
-        </Container>
-      </KeyValueData.CardPanel>
+        </Stack>
+      </KeyValuePanel>
     );
   }
 
   return (
-    <Card
+    <KeyValue
       title={t('Deploys')}
-      contentItems={deploys.map(deploy => ({
-        item: {
-          key: deploy.environment,
-          subject: deploy.environment,
-          value: <DateTime date={deploy.dateFinished} />,
-        },
+      items={deploys.map(deploy => ({
+        key: deploy.environment,
+        value: <DateTime date={deploy.dateFinished} />,
       }))}
+      card
+      layout="detail"
     />
   );
 }

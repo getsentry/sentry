@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {KeyValue} from 'sentry/components/keyValue';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -179,14 +179,13 @@ export function GroupingVariant({
     <VariantWrapper>
       <Header>{renderTitle()}</Header>
 
-      <KeyValueList
-        data={data.map(d => ({
+      <KeyValue
+        items={data.map(d => ({
           key: d[0],
-          subject: d[0],
           value: d[1],
         }))}
-        isContextData
-        shouldSort={false}
+        layout="detail"
+        valueDisplay="expandable"
       />
     </VariantWrapper>
   );

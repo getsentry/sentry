@@ -98,7 +98,7 @@ export function AdditionalData({event}: {event: EventTransaction}) {
       items={formattedDataItems}
       title={title}
       sortAlphabetically
-      itemProps={{disableFormattedData: raw}}
+      itemProps={{valueDisplay: raw ? 'raw' : undefined}}
     />
   );
 }

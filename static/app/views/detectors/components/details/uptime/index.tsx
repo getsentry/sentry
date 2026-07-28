@@ -4,7 +4,7 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {KeyValue} from 'sentry/components/keyValue';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {Placeholder} from 'sentry/components/placeholder';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
@@ -145,11 +145,11 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
           <DetectorDetailsAssignee owner={detector.owner} />
           <DetectorDetailsDescription description={detector.description} />
           <DetectorExtraDetails>
-            <KeyValueTableRow
+            <KeyValue.Row
               keyName={t('Interval')}
               value={t('Every %s', getDuration(dataSource.queryObj.intervalSeconds))}
             />
-            <KeyValueTableRow
+            <KeyValue.Row
               keyName={t('Timeout')}
               value={t('After %s', getDuration(dataSource.queryObj.timeoutMs / 1000, 2))}
             />

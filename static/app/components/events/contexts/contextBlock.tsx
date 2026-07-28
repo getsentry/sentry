@@ -1,5 +1,5 @@
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValue} from 'sentry/components/keyValue';
 import type {KeyValueListData} from 'sentry/types/group';
 
 type Props = {
@@ -14,7 +14,14 @@ export function ContextBlock({data, raw = false}: Props) {
 
   return (
     <ErrorBoundary mini>
-      <KeyValueList data={data} raw={raw} isContextData />
+      <KeyValue
+        items={
+          raw ? data.map(item => ({...item, value: JSON.stringify(item.value)})) : data
+        }
+        layout="detail"
+        sort="key"
+        valueDisplay="expandable"
+      />
     </ErrorBoundary>
   );
 }

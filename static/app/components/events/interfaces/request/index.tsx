@@ -8,13 +8,9 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
-import {
-  KeyValueData,
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
+import {KeyValue, KeyValuePanel, type KeyValueEntry} from 'sentry/components/keyValue';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {Truncate} from 'sentry/components/truncate';
@@ -64,7 +60,6 @@ function getBodyContent({
         const [key, value] = d.data;
         return {
           key,
-          subject: key,
           value,
           meta: d.meta,
         };
@@ -75,10 +70,12 @@ function getBodyContent({
       }
 
       return (
-        <KeyValueList
+        <KeyValue
           data-test-id="rich-http-content-body-key-value-list"
-          data={transformedData}
-          isContextData
+          items={transformedData}
+          layout="detail"
+          sort="key"
+          valueDisplay="expandable"
         />
       );
     }
@@ -100,7 +97,7 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
   if (data.apiTarget === 'graphql' && typeof data.data.query === 'string') {
     return (
       <RequestCardPanel>
-        <KeyValueData.Title>{t('Body')}</KeyValueData.Title>
+        <KeyValue.Title>{t('Body')}</KeyValue.Title>
         <GraphQlRequestBody data={data.data} {...{event, meta}} />
       </RequestCardPanel>
     );
@@ -113,7 +110,7 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
   });
   return (
     <RequestCardPanel>
-      <KeyValueData.Title>{t('Body')}</KeyValueData.Title>
+      <KeyValue.Title>{t('Body')}</KeyValue.Title>
       {contentBody}
     </RequestCardPanel>
   );
@@ -214,7 +211,7 @@ function RequestDataCard({
     return null;
   }
 
-  const contentItems: KeyValueDataContentProps[] = [];
+  const contentItems: KeyValueEntry[] = [];
 
   if (Array.isArray(data) && data.length > 0) {
     data
@@ -222,16 +219,16 @@ function RequestDataCard({
       .filter(x => Array.isArray(x))
       .forEach(([key, value], i: number) => {
         const valueMeta = meta?.[i] ? meta[i]?.[1] : undefined;
-        contentItems.push({item: {key, subject: key, value}, meta: valueMeta});
+        contentItems.push({key, value, meta: valueMeta});
       });
   } else if (typeof data === 'object') {
     // Spread to flatten if it's a proxy
     Object.entries({...data}).forEach(([key, value]) => {
       const valueMeta = meta ? meta[key] : undefined;
-      contentItems.push({item: {key, subject: key, value}, meta: valueMeta});
+      contentItems.push({key, value, meta: valueMeta});
     });
   } else if (typeof data === 'string') {
-    contentItems.push({item: {key: 'data', subject: 'data', value: data}});
+    contentItems.push({key: 'data', subject: 'data', value: data});
   }
 
   return (
@@ -239,7 +236,13 @@ function RequestDataCard({
       mini
       message={tct('There was an error loading data: [title]', {title})}
     >
-      <KeyValueData.Card title={title} contentItems={contentItems} truncateLength={5} />
+      <KeyValue
+        title={title}
+        items={contentItems}
+        truncateLength={5}
+        card
+        layout="detail"
+      />
     </ErrorBoundary>
   );
 }
@@ -270,7 +273,7 @@ function TruncatedPathLink(props: TruncatedPathLinkProps) {
   );
 }
 
-const RequestCardPanel = styled(KeyValueData.CardPanel)`
+const RequestCardPanel = styled(KeyValuePanel)`
   display: block;
   pre {
     margin: 0;

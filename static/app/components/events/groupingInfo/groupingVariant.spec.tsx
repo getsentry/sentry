@@ -1,6 +1,7 @@
 import {EventFixture} from 'sentry-fixture/event';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {getKeyValueRow} from 'sentry-test/keyValue';
+import {render, within} from 'sentry-test/reactTestingLibrary';
 
 import {EventGroupVariantType} from 'sentry/types/event';
 
@@ -63,19 +64,13 @@ describe('Grouping Variant', () => {
     );
 
     expect(
-      within(screen.getByText('Parent Span Hashes').closest('tr') as HTMLElement)
-        .getByText('[')
-        .closest('td')
+      within(getKeyValueRow('Parent Span Hashes')).getByText('[').closest('dd')
     ).toHaveTextContent('[]');
     expect(
-      within(
-        screen.getByText('Source Span Hashes').closest('tr') as HTMLElement
-      ).getByText('hash1')
+      within(getKeyValueRow('Source Span Hashes')).getByText('hash1')
     ).toBeInTheDocument();
     expect(
-      within(
-        screen.getByText('Offender Span Hashes').closest('tr') as HTMLElement
-      ).getByText('hash2')
+      within(getKeyValueRow('Offender Span Hashes')).getByText('hash2')
     ).toBeInTheDocument();
   });
 
@@ -89,19 +84,13 @@ describe('Grouping Variant', () => {
     );
 
     expect(
-      within(screen.getByText('Parent Span Hashes').closest('tr') as HTMLElement)
-        .getByText('[')
-        .closest('td')
+      within(getKeyValueRow('Parent Span Hashes')).getByText('[').closest('dd')
     ).toHaveTextContent('[]');
     expect(
-      within(
-        screen.getByText('Source Span Hashes').closest('tr') as HTMLElement
-      ).getByText('hash1')
+      within(getKeyValueRow('Source Span Hashes')).getByText('hash1')
     ).toBeInTheDocument();
     expect(
-      within(
-        screen.getByText('Offender Span Hashes').closest('tr') as HTMLElement
-      ).getByText('hash2')
+      within(getKeyValueRow('Offender Span Hashes')).getByText('hash2')
     ).toBeInTheDocument();
   });
 });

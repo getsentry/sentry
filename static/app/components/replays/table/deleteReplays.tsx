@@ -15,7 +15,7 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Duration} from 'sentry/components/duration/duration';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueData} from 'sentry/components/keyValueData';
+import {KeyValue} from 'sentry/components/keyValue';
 import {replayBulkDeleteAuditLogApiOptions} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogApiOptions';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -163,18 +163,15 @@ function ReplayQueryPreview({
   project: Project;
 }) {
   const contentItems = Object.entries(deletePayload).map(([key, value]) => ({
-    item: {
-      key,
-      subject: key,
-      value,
-    },
+    key,
+    value,
   }));
   return (
     <Fragment>
       <Title project={project}>
         {t('Replays matching the following query will be deleted')}
       </Title>
-      <KeyValueData.Card contentItems={contentItems} />
+      <KeyValue items={contentItems} card layout="detail" />
       <Text size="sm" variant="muted">
         All dates and times are in UTC.
       </Text>

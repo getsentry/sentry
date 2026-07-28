@@ -15,7 +15,7 @@ import {FeedbackUrl} from 'sentry/components/feedback/feedbackItem/feedbackUrl';
 import {MessageSection} from 'sentry/components/feedback/feedbackItem/messageSection';
 import {MessageTitle} from 'sentry/components/feedback/feedbackItem/messageTitle';
 import {TraceDataSection} from 'sentry/components/feedback/feedbackItem/traceDataSection';
-import {KeyValueData} from 'sentry/components/keyValueData';
+import {KeyValue} from 'sentry/components/keyValue';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconChat, IconFire, IconTag} from 'sentry/icons';
@@ -195,7 +195,7 @@ function FeedbackItemContexts({
 
   return (
     <ErrorBoundary mini message={t('There was a problem loading event context.')}>
-      <KeyValueData.Container>{cards}</KeyValueData.Container>
+      <KeyValue.Container>{cards}</KeyValue.Container>
     </ErrorBoundary>
   );
 }

@@ -4,7 +4,7 @@ import type {Location} from 'history';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
-import {Content} from 'sentry/components/keyValueData';
+import {KeyValue} from 'sentry/components/keyValue';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -229,21 +229,10 @@ export function GeneralInfo(props: GeneralnfoProps) {
       title={t('General')}
       disableCollapsePersistence
     >
-      <ContentWrapper>
-        {items.map(item => (
-          <Content key={item.key} item={item} />
-        ))}
-      </ContentWrapper>
+      <KeyValue items={items} layout="detail" valueDisplay="formatted" />
     </FoldSection>
   );
 }
-
-const ContentWrapper = styled('div')`
-  display: grid;
-  column-gap: ${p => p.theme.space.lg};
-  grid-template-columns: fit-content(50%) 1fr;
-  font-size: ${p => p.theme.font.size.sm};
-`;
 
 function getFormattedSpanDescription(span: TraceTree.Span) {
   const rawDescription = span.description;

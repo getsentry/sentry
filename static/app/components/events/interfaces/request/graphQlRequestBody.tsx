@@ -5,7 +5,7 @@ import Prism from 'prismjs';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValue} from 'sentry/components/keyValue';
 import {List} from 'sentry/components/list';
 import {t, tn} from 'sentry/locale';
 import type {EntryRequestDataGraphQl, Event} from 'sentry/types/event';
@@ -126,13 +126,14 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
         </code>
       </pre>
       <ErrorsAlert errors={errors} />
-      <KeyValueList
-        data={Object.entries(omit(data, 'query')).map(([key, value]) => ({
+      <KeyValue
+        items={Object.entries(omit(data, 'query')).map(([key, value]) => ({
           key,
-          subject: key,
           value: value as React.ReactNode,
         }))}
-        isContextData
+        layout="detail"
+        sort="key"
+        valueDisplay="expandable"
       />
     </div>
   );

@@ -11,7 +11,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {KeyValue} from 'sentry/components/keyValue';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
@@ -261,7 +261,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
             </DetailSection>
             <DetectorDetailsDescription description={detector.description} />
             <DetectorExtraDetails>
-              <KeyValueTableRow
+              <KeyValue.Row
                 keyName={t('Monitor slug')}
                 value={
                   <Flex gap="xs" align="center">
@@ -275,7 +275,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                   </Flex>
                 }
               />
-              <KeyValueTableRow
+              <KeyValue.Row
                 keyName={t('Next check-in')}
                 value={
                   dataSource.queryObj.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
@@ -293,7 +293,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                   )
                 }
               />
-              <KeyValueTableRow
+              <KeyValue.Row
                 keyName={t('Last check-in')}
                 value={
                   monitorEnv?.lastCheckIn ? (

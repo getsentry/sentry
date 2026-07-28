@@ -6,13 +6,13 @@ import {
   EventTagsTreeRow,
   type EventTagsTreeRowProps,
 } from 'sentry/components/events/eventTags/eventTagsTreeRow';
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {useColumnCount} from 'sentry/utils/useColumnCount';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const MAX_TREE_DEPTH = 4;
@@ -215,7 +215,7 @@ function TagTreeColumns({
 
 export function EventTagsTree(props: EventTagsTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
+  const columnCount = useColumnCount(containerRef);
   return (
     <ErrorBoundary mini message={t('There was a problem loading event tags.')}>
       <TreeContainer

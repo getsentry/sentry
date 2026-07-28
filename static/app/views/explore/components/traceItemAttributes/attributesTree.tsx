@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -11,6 +10,7 @@ import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
+import {useColumnCount} from 'sentry/utils/useColumnCount';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -307,7 +307,7 @@ export function AttributesTree<RendererExtra extends RenderFunctionBaggage>(
   props: AttributesTreeProps<RendererExtra>
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const widthBasedColumnCount = useIssueDetailsColumnCount(containerRef);
+  const widthBasedColumnCount = useColumnCount(containerRef);
   const columnCount = props.columnCount ?? widthBasedColumnCount;
   return (
     <TreeContainer

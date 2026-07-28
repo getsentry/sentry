@@ -1,6 +1,6 @@
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {KeyValueData} from 'sentry/components/keyValueData';
+import {KeyValue} from 'sentry/components/keyValue';
 import {t} from 'sentry/locale';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
@@ -82,7 +82,7 @@ export function Contexts({
       {eventHasRequestEntry ? <Request event={event} /> : null}
       {eventHasAdditionalData ? <AdditionalData event={event} /> : null}
       {eventHasExtraContexts ? (
-        <KeyValueData.Container>{extraContextCards}</KeyValueData.Container>
+        <KeyValue.Container>{extraContextCards}</KeyValue.Container>
       ) : null}
     </FoldSection>
   );

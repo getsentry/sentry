@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {KeyValue} from 'sentry/components/keyValue';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -34,22 +34,20 @@ function renderParams(params: Props['data']['params'], meta: any) {
       return {
         key,
         value,
-        subject: key,
         meta: meta?.data?.params?.[i]?.[''],
       };
     });
 
-    return <KeyValueList data={arrayData} shouldSort={false} isContextData />;
+    return <KeyValue items={arrayData} layout="detail" valueDisplay="expandable" />;
   }
 
   const objectData = Object.entries(params).map(([key, value]) => ({
     key,
     value,
-    subject: key,
     meta: meta?.data?.params?.[key]?.[''],
   }));
 
-  return <KeyValueList data={objectData} shouldSort={false} isContextData />;
+  return <KeyValue items={objectData} layout="detail" valueDisplay="expandable" />;
 }
 
 export function Message({data, event}: Props) {

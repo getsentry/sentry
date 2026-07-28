@@ -1,10 +1,9 @@
 import {useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValue} from 'sentry/components/keyValue';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {DebugIdBundle, DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
@@ -61,11 +60,5 @@ export function DebugIdBundleDetails({
     projectId,
   ]);
 
-  return <StyledKeyValueList data={detailsData} shouldSort={false} />;
+  return <KeyValue items={detailsData} layout="detail" />;
 }
-
-const StyledKeyValueList = styled(KeyValueList)`
-  && {
-    margin-bottom: 0;
-  }
-`;

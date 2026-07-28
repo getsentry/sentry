@@ -81,7 +81,6 @@ export function Measurements({event, location, organization}: MeasurementsProps)
 
       items.push({
         key: name,
-        subject: name,
         value: rendered,
         actionButton: (
           <TraceDrawerComponents.KeyValueAction

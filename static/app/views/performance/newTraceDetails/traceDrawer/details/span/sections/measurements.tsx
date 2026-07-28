@@ -80,7 +80,6 @@ export function Measurements({
 
         result.push({
           key: name,
-          subject: name,
           value: rendered,
           actionButton: (
             <TraceDrawerComponents.KeyValueAction

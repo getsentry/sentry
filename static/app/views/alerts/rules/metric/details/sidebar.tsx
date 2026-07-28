@@ -10,7 +10,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {KeyValue} from 'sentry/components/keyValue';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconDiamond} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -221,7 +221,7 @@ export function MetricDetailsSidebar({
       {showOnDemandMetricAlertUI && (
         <SidebarGroup>
           <SectionHeading>{t('Filters Used')}</SectionHeading>
-          <KeyValueTable>
+          <KeyValue layout="list">
             {getSearchFilters(rule.query).map(({key, operator, value}) => (
               <FilterKeyValueTableRow
                 key={key}
@@ -230,22 +230,22 @@ export function MetricDetailsSidebar({
                 value={value}
               />
             ))}
-          </KeyValueTable>
+          </KeyValue>
         </SidebarGroup>
       )}
       <SidebarGroup>
         <SectionHeading>{t('Alert Rule Details')}</SectionHeading>
-        <KeyValueTable>
-          <KeyValueTableRow
+        <KeyValue layout="list">
+          <KeyValue.Row
             keyName={t('Environment')}
             value={<OverflowTableValue>{rule.environment ?? '-'}</OverflowTableValue>}
           />
-          <KeyValueTableRow
+          <KeyValue.Row
             keyName={t('Date created')}
             value={<DateTime date={rule.dateCreated} format="ll" />}
           />
           {rule.createdBy && (
-            <KeyValueTableRow
+            <KeyValue.Row
               keyName={t('Created by')}
               value={
                 <OverflowTableValue>{rule.createdBy.name ?? '-'}</OverflowTableValue>
@@ -253,19 +253,19 @@ export function MetricDetailsSidebar({
             />
           )}
           {rule.dateModified && (
-            <KeyValueTableRow
+            <KeyValue.Row
               keyName={t('Last modified')}
               value={<TimeSince date={rule.dateModified} suffix={t('ago')} />}
             />
           )}
-          <KeyValueTableRow
+          <KeyValue.Row
             keyName={t('Team')}
             value={
               teamActor ? <ActorAvatar actor={teamActor} size={24} /> : t('Unassigned')
             }
           />
           {rule.detectionType === AlertRuleComparisonType.DYNAMIC && (
-            <KeyValueTableRow
+            <KeyValue.Row
               keyName={t('Responsiveness')}
               value={
                 rule.sensitivity
@@ -275,7 +275,7 @@ export function MetricDetailsSidebar({
             />
           )}
           {rule.detectionType === AlertRuleComparisonType.DYNAMIC && (
-            <KeyValueTableRow
+            <KeyValue.Row
               keyName={t('Direction')}
               value={
                 <OverflowTableValue>
@@ -288,7 +288,7 @@ export function MetricDetailsSidebar({
               }
             />
           )}
-        </KeyValueTable>
+        </KeyValue>
       </SidebarGroup>
       {rule.detectionType === AlertRuleComparisonType.DYNAMIC && feedbackButton}
     </Fragment>
@@ -305,7 +305,7 @@ function FilterKeyValueTableRow({
   value: string;
 }) {
   return (
-    <KeyValueTableRow
+    <KeyValue.Row
       keyName={
         <KeyWrapper>
           {isOnDemandSearchKey(keyName) && (

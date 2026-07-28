@@ -15,7 +15,6 @@ import {
   TreeContainer,
 } from 'sentry/components/events/eventTags/eventTagsTree';
 import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {EditHighlightsModal} from 'sentry/components/events/highlights/editHighlightsModal';
 import {
   EMPTY_HIGHLIGHT_DEFAULT,
@@ -31,6 +30,7 @@ import type {DetailedProject, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
+import {useColumnCount} from 'sentry/utils/useColumnCount';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
@@ -123,7 +123,7 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
   const organization = useOrganization();
   const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
+  const columnCount = useColumnCount(containerRef);
   const {openEditHighlightsModal, editProps} = useOpenEditHighlightsModal({
     highlightsProject,
     event,
@@ -289,7 +289,7 @@ export function HighlightsDataSection({event, project}: HighlightsDataSectionPro
 
 function HighlightsDataLoading() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
+  const columnCount = useColumnCount(containerRef);
 
   return (
     <HighlightContainer

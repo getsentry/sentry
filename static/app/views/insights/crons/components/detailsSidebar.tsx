@@ -12,7 +12,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {KeyValue} from 'sentry/components/keyValue';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy, IconJson} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -103,9 +103,9 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         />
       </Legend>
       <SectionHeading>{t('Cron Details')}</SectionHeading>
-      <KeyValueTable>
-        <KeyValueTableRow keyName={t('Monitor Slug')} value={slug} />
-        <KeyValueTableRow
+      <KeyValue layout="list">
+        <KeyValue.Row keyName={t('Monitor Slug')} value={slug} />
+        <KeyValue.Row
           keyName={t('Failure tolerance')}
           value={tn(
             '%s check-in',
@@ -113,7 +113,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
             monitor.config.failure_issue_threshold ?? 1
           )}
         />
-        <KeyValueTableRow
+        <KeyValue.Row
           keyName={t('Recovery tolerance')}
           value={tn(
             '%s check-in',
@@ -121,7 +121,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
             monitor.config.recovery_threshold ?? 1
           )}
         />
-        <KeyValueTableRow
+        <KeyValue.Row
           keyName={t('Owner')}
           value={
             monitor.owner ? (
@@ -131,11 +131,11 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
             )
           }
         />
-        <KeyValueTableRow
+        <KeyValue.Row
           keyName={t('Date created')}
           value={getFormattedDate(monitor.dateCreated, 'MMM D, YYYY')}
         />
-      </KeyValueTable>
+      </KeyValue>
       {monitor.isUpserting && (
         <Alert.Container>
           <Alert variant="muted" icon={<IconJson />}>
