@@ -392,7 +392,7 @@ class WorkflowEngineRuleSerializer(Serializer):
             workflow_id__in=[item.id for item in item_list]
         ).select_related("detector__project")
         for dw in detector_workflows:
-            workflow_to_projects[dw.workflow_id].add(dw.detector.project)
+            workflow_to_projects[dw.workflow_id].add(dw.detector.linked_project)
 
         return workflow_to_projects
 

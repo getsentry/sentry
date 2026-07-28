@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {useHasContainerQuery} from '@sentry/scraps/layout';
+
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -18,7 +20,10 @@ import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuper
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 import {NoGroupsHandler} from './noGroupsHandler';
-import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from './utils';
+import {
+  SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
+  useIsIssueListContainerNarrow,
+} from './utils';
 
 type GroupListBodyProps = {
   displayReprocessingLayout: boolean;
@@ -189,9 +194,13 @@ function GroupList({
     false
   );
   const topIssue = groupIds[0];
-  const selectDisabled = useMedia(
-    `(width < ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
+  const selectDisabledInContainer = useIsIssueListContainerNarrow(isSavedSearchesOpen);
+  const selectDisabledInViewport = useMedia(
+    `(width < ${isSavedSearchesOpen ? theme.container['5xl'] : theme.container['3xl']})`
   );
+  const selectDisabled = useHasContainerQuery()
+    ? selectDisabledInContainer
+    : selectDisabledInViewport;
 
   const showProgress = withColumns.includes('progress');
 
