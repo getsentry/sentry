@@ -228,6 +228,11 @@ class Fixtures:
             project = self.project
         return Factories.create_project_bookmark(project, *args, **kwargs)
 
+    def create_ai_conversation_metadata(self, project=None, *args, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_ai_conversation_metadata(project, *args, **kwargs)
+
     def create_project_key(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project

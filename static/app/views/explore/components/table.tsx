@@ -4,7 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
-import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
+import type {ColumnAlign} from 'sentry/components/tables/gridEditable';
 import {
   Grid as _Table,
   Body as _TableWrapper,
@@ -168,16 +168,10 @@ export const TableRow = GridRow;
 export const TableBodyCell = GridBodyCell;
 
 export const TableHead = GridHead;
-export const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
+export const TableHeadCell = styled(GridHeadCell)<{align?: ColumnAlign}>`
   ${p =>
     p.align &&
     css`
       justify-content: ${p.align};
     `}
-`;
-export const TableHeadCellContent = styled('div')<{isFrozen?: boolean | undefined}>`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  cursor: ${p => (p.isFrozen ? 'default' : 'pointer')};
 `;

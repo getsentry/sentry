@@ -16,7 +16,7 @@ import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey, QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
-const nonRetryCodes = new Set<number | undefined>([400, 401, 403, 404]);
+const nonRetryCodes = new Set<number | undefined>([400, 401, 402, 403, 404]);
 
 // Overrides to the default react-query options.
 // See https://tanstack.com/query/v5/docs/framework/react/guides/important-defaults

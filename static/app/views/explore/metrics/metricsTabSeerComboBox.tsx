@@ -24,6 +24,7 @@ import {resolveSeerProjectSelection} from 'sentry/components/searchQueryBuilder/
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isEquation} from 'sentry/utils/discover/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -37,6 +38,7 @@ import {
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {isTraceMetricTypeValue} from 'sentry/views/explore/metrics/types';
 import {
@@ -47,7 +49,11 @@ import {
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualize,
+  isVisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {getSeerExploreQuery, getSeerSort} from 'sentry/views/explore/seerQuery';
 
 interface MetricsTabSeerComboBoxProps {
@@ -110,8 +116,20 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         pageDatetime: pageFilters.selection.datetime,
       });
 
-      const seerVisualizes = (result.visualizations ?? []).flatMap(viz =>
-        viz.yAxes.map(yAxis => new VisualizeFunction(yAxis, {chartType: viz.chartType}))
+      const seerVisualizeFunctions = (result.visualizations ?? []).flatMap(viz =>
+        viz.yAxes
+          .filter(yAxis => !isEquation(yAxis))
+          .map(yAxis => new VisualizeFunction(yAxis, {chartType: viz.chartType}))
+      );
+
+      const seerEquationMetricQueries = (result.visualizations ?? []).flatMap(viz =>
+        viz.yAxes.filter(isEquation).flatMap(yAxis => {
+          const parsed = parseAggregateExpression(yAxis, undefined, viz.chartType);
+          return [
+            ...parsed.metricQueries,
+            ...(parsed.equationRow ? [parsed.equationRow] : []),
+          ];
+        })
       );
 
       // Move any `project:` filter Seer put in the query onto the page-level
@@ -173,8 +191,8 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // so build a default one from the metric's type. When Seer didn't resolve
       // a valid metric, leave the existing visualizes untouched so we don't
       // clobber a customized aggregate.
-      if (seerVisualizes.length > 0) {
-        for (const viz of seerVisualizes) {
+      if (seerVisualizeFunctions.length > 0) {
+        for (const viz of seerVisualizeFunctions) {
           const {aggregation, traceMetric: vizMetric} = parseMetricAggregate(viz.yAxis);
           const isQualified = Boolean(
             vizMetric.name && vizMetric.type && isTraceMetricTypeValue(vizMetric.type)
@@ -228,21 +246,50 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         mode: seerQuery.mode,
       });
 
-      // Build encoded metric queries, updating the current metric's query params
-      // and trace metric (the metric is parsed out of the agent's visualization
-      // aggregate or query filters above so the panel matches what was queried).
-      const newEncodedMetrics = metricQueries
-        .map((mq: BaseMetricQuery) => {
-          if (mq.queryParams === queryParams) {
+      // When Seer returns equations, replace all panels with the parsed
+      // equation components + equation row. Apply the seer query, group bys,
+      // and sort to the equation row because that's the focus of the request.
+      // Since the equation may reference other metrics, applying all of the group
+      // bys to unrelated metrics would be incorrect.
+      let newEncodedMetrics: string[];
+      if (seerEquationMetricQueries.length > 0) {
+        newEncodedMetrics = seerEquationMetricQueries
+          .map(metricQuery => {
+            const viz = metricQuery.queryParams.visualizes[0];
+            const isEqRow = viz && isVisualizeEquation(viz);
             return encodeMetricQueryParams({
-              ...mq,
-              metric: nextMetric,
-              queryParams: newQueryParams,
+              ...metricQuery,
+              ...(isEqRow
+                ? {
+                    queryParams: metricQuery.queryParams.replace({
+                      query: metricQuery.queryParams.query || cleanedQuery,
+                      aggregateFields: [
+                        ...metricQuery.queryParams.aggregateFields,
+                        ...seerQuery.groupBys.map(groupBy => ({groupBy})),
+                      ],
+                      aggregateSortBys,
+                      sortBys,
+                      mode: seerQuery.mode,
+                    }),
+                  }
+                : {}),
             });
-          }
-          return encodeMetricQueryParams(mq);
-        })
-        .filter(Boolean);
+          })
+          .filter(Boolean);
+      } else {
+        newEncodedMetrics = metricQueries
+          .map((mq: BaseMetricQuery) => {
+            if (mq.queryParams === queryParams) {
+              return encodeMetricQueryParams({
+                ...mq,
+                metric: nextMetric,
+                queryParams: newQueryParams,
+              });
+            }
+            return encodeMetricQueryParams(mq);
+          })
+          .filter(Boolean);
+      }
 
       const selection = {
         ...pageFilters.selection,
