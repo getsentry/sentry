@@ -230,6 +230,7 @@ def taskworker(**options: Any) -> None:
     Run a taskworker worker
     """
     os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "0"
+    os.environ["ARROYO_TRACK_PRODUCER_FUTURES"] = "true"
     # TODO(mark) restore autoreload
     run_taskworker(**options)
 

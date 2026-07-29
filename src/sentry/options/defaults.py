@@ -4018,7 +4018,7 @@ register(
 register(
     "arroyo.ftp.backpressure",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
