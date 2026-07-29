@@ -11,6 +11,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue, Extr
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry import options
+from sentry.dynamic_sampling.per_org.gate import is_org_in_cap_dsc_transaction_length_rollout
 from sentry.dynamic_sampling.rules.utils import ProjectId
 from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
@@ -344,10 +345,10 @@ def get_eap_transaction_volumes(
     boost_low_volume_transactions) so the transaction rebalancing model sees the same
     explicit transaction set.
 
-    Transactions longer than ``MAX_DSC_TRANSACTION_LENGTH`` cannot be named by a sampling
-    rule, so they are counted as one class under ``LUMPED_DSC_TRANSACTION`` rather than
-    individually. That takes two queries: the top-N one excludes them, and a second one
-    sums them per project.
+    For organizations in the cap-dsc-transaction-length rollout, transactions longer than
+    ``MAX_DSC_TRANSACTION_LENGTH`` cannot be named by a sampling rule, so they are counted
+    as one class under ``LUMPED_DSC_TRANSACTION`` rather than individually. That costs a
+    second query: the top-N one excludes them, and the second one sums them per project.
     """
     # Spans rooted in one project can be owned by any project in the org, so the query
     # scope stays config.projects; root_projects only narrows which root projects
@@ -392,13 +393,20 @@ def get_eap_transaction_volumes(
         "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
     }
 
+    cap_transaction_length = is_org_in_cap_dsc_transaction_length_rollout(config.organization.id)
     named_counts = _get_named_transaction_counts(
         shared_query,
-        _dsc_transaction_length_filter(resolver, over_length=False),
+        _dsc_transaction_length_filter(resolver, over_length=False)
+        if cap_transaction_length
+        else None,
         max_transactions_per_project,
     )
-    over_length_counts = _get_over_length_transaction_counts(
-        shared_query, _dsc_transaction_length_filter(resolver, over_length=True)
+    over_length_counts = (
+        _get_over_length_transaction_counts(
+            shared_query, _dsc_transaction_length_filter(resolver, over_length=True)
+        )
+        if cap_transaction_length
+        else {}
     )
 
     return [
@@ -436,10 +444,13 @@ def _dsc_transaction_length_filter(resolver: SearchResolver, over_length: bool) 
 
 def _get_named_transaction_counts(
     shared_query: dict[str, Any],
-    length_filter: TraceItemFilter,
+    length_filter: TraceItemFilter | None,
     max_transactions_per_project: int,
 ) -> dict[int, list[tuple[str, float]]]:
-    """Per-project top-N volumes of the transactions a sampling rule can name."""
+    """
+    Per-project top-N transaction volumes. Without a ``length_filter`` every transaction is
+    counted by name; with one only the names a sampling rule can address are.
+    """
     counts_by_project: defaultdict[int, list[tuple[str, float]]] = defaultdict(list)
     for row in run_eap_spans_table_query_in_chunks(
         {

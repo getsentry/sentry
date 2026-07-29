@@ -17,6 +17,9 @@ TRANSACTION_VOLUME_DEBUG_PROJECT_IDS_LIMIT = 100
 SLIDING_WINDOW_COMPARISON_ORG_IDS_OPTION = (
     "dynamic-sampling.per_org.sliding-window-comparison-org-ids"
 )
+CAP_DSC_TRANSACTION_LENGTH_ORG_IDS_OPTION = (
+    "dynamic-sampling.per_org.cap-dsc-transaction-length-org-ids"
+)
 SAMPLE_RATES_SUMMARY_LOG_ROLLOUT_RATE_OPTION = (
     "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate"
 )
@@ -78,8 +81,16 @@ def transaction_volume_debug_project_ids() -> set[int]:
 
 
 def sliding_window_comparison_org_ids() -> set[int]:
+    return _org_ids_option(SLIDING_WINDOW_COMPARISON_ORG_IDS_OPTION)
+
+
+def is_org_in_cap_dsc_transaction_length_rollout(org_id: int) -> bool:
+    return org_id in _org_ids_option(CAP_DSC_TRANSACTION_LENGTH_ORG_IDS_OPTION)
+
+
+def _org_ids_option(option_name: str) -> set[int]:
     return {
         int(org_id)
-        for org_id in options.get(SLIDING_WINDOW_COMPARISON_ORG_IDS_OPTION)
+        for org_id in options.get(option_name)
         if isinstance(org_id, int) or (isinstance(org_id, str) and org_id.isdigit())
     }

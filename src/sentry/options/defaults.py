@@ -2319,6 +2319,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Organizations for which the per-org pipeline caps dsc.transaction at 200 characters,
+# counting every longer transaction as one class under the empty transaction name. Longer
+# names cannot be matched by a sampling rule, so a per-name rate for them cannot be served.
+# This costs one extra EAP query per org. Empty keeps counting them individually by name.
+register(
+    "dynamic-sampling.per_org.cap-dsc-transaction-length-org-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Per-project sample rate overrides for custom dynamic sampling. Maps a stringified
 # project id to a fixed sample rate (0.0-1.0) that hard-replaces the rate the custom
 # dynamic sampling path would otherwise compute for that project. Example:

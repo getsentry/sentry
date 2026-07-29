@@ -10,6 +10,7 @@ from sentry.dynamic_sampling.per_org.configuration import (
     BaseDynamicSamplingConfiguration,
     get_configuration,
 )
+from sentry.dynamic_sampling.per_org.gate import CAP_DSC_TRANSACTION_LENGTH_ORG_IDS_OPTION
 from sentry.dynamic_sampling.per_org.queries import (
     LUMPED_DSC_TRANSACTION,
     MAX_DSC_TRANSACTION_LENGTH,
@@ -25,6 +26,7 @@ from sentry.dynamic_sampling.per_org.queries import (
 )
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
@@ -718,14 +720,10 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ("quiet-low", 2),
         ]
 
-    def test_get_eap_transaction_volumes_lumps_over_length_transactions(self) -> None:
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
+    def store_over_length_transaction_spans(
+        self, organization: Organization, project: Project, at_limit: str
+    ) -> None:
         timestamp = before_now(minutes=15)
-
-        at_limit = "a" * MAX_DSC_TRANSACTION_LENGTH
-        first_over_limit = "b" * (MAX_DSC_TRANSACTION_LENGTH + 1)
-        second_over_limit = "c" * (MAX_DSC_TRANSACTION_LENGTH + 10)
 
         def segment(transaction, offset):
             return self.create_span(
@@ -748,13 +746,20 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                 segment(at_limit, 1),
                 segment(at_limit, 2),
                 segment(at_limit, 3),
-                segment(first_over_limit, 4),
-                segment(first_over_limit, 5),
-                segment(second_over_limit, 6),
+                segment("b" * (MAX_DSC_TRANSACTION_LENGTH + 1), 4),
+                segment("b" * (MAX_DSC_TRANSACTION_LENGTH + 1), 5),
+                segment("c" * (MAX_DSC_TRANSACTION_LENGTH + 10), 6),
             ]
         )
 
-        volumes = get_eap_transaction_volumes(self.get_config(organization))
+    def test_get_eap_transaction_volumes_lumps_over_length_transactions(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        at_limit = "a" * MAX_DSC_TRANSACTION_LENGTH
+        self.store_over_length_transaction_spans(organization, project, at_limit)
+
+        with self.options({CAP_DSC_TRANSACTION_LENGTH_ORG_IDS_OPTION: [organization.id]}):
+            volumes = get_eap_transaction_volumes(self.get_config(organization))
 
         # The two over-length names are one class, so their counts add up to 3.
         assert volumes == [
@@ -762,6 +767,28 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                 org_id=organization.id,
                 project_id=project.id,
                 transaction_counts=[(at_limit, 4), (LUMPED_DSC_TRANSACTION, 3)],
+            )
+        ]
+
+    def test_get_eap_transaction_volumes_counts_over_length_transactions_by_name_when_not_capped(
+        self,
+    ) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        at_limit = "a" * MAX_DSC_TRANSACTION_LENGTH
+        self.store_over_length_transaction_spans(organization, project, at_limit)
+
+        volumes = get_eap_transaction_volumes(self.get_config(organization))
+
+        assert volumes == [
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=project.id,
+                transaction_counts=[
+                    (at_limit, 4),
+                    ("b" * (MAX_DSC_TRANSACTION_LENGTH + 1), 2),
+                    ("c" * (MAX_DSC_TRANSACTION_LENGTH + 10), 1),
+                ],
             )
         ]
 
@@ -799,10 +826,11 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             )
         self.store_spans(spans)
 
-        volumes = get_eap_transaction_volumes(
-            self.get_config(organization),
-            max_transactions_per_project=2,
-        )
+        with self.options({CAP_DSC_TRANSACTION_LENGTH_ORG_IDS_OPTION: [organization.id]}):
+            volumes = get_eap_transaction_volumes(
+                self.get_config(organization),
+                max_transactions_per_project=2,
+            )
 
         assert volumes == [
             ProjectTransactionCounts(
@@ -810,4 +838,22 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                 project_id=project.id,
                 transaction_counts=[(LUMPED_DSC_TRANSACTION, 5), ("named", 3)],
             )
+        ]
+
+    def test_get_eap_transaction_volumes_does_not_cap_organizations_outside_the_rollout(
+        self,
+    ) -> None:
+        organization = self.create_organization()
+        other_organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        at_limit = "a" * MAX_DSC_TRANSACTION_LENGTH
+        self.store_over_length_transaction_spans(organization, project, at_limit)
+
+        with self.options({CAP_DSC_TRANSACTION_LENGTH_ORG_IDS_OPTION: [other_organization.id]}):
+            volumes = get_eap_transaction_volumes(self.get_config(organization))
+
+        assert volumes[0].transaction_counts == [
+            (at_limit, 4),
+            ("b" * (MAX_DSC_TRANSACTION_LENGTH + 1), 2),
+            ("c" * (MAX_DSC_TRANSACTION_LENGTH + 10), 1),
         ]
