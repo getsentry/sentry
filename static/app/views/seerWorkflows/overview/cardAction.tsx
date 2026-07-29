@@ -1,8 +1,8 @@
-import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {Tag} from '@sentry/scraps/badge';
-import {LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -10,6 +10,7 @@ import {
   IconCode,
   IconCommit,
   IconMerge,
+  IconOpen,
   IconPullRequest,
   IconRefresh,
   IconSearch,
@@ -44,12 +45,12 @@ const ACTION_META: Record<
   review_pr: {
     Icon: IconPullRequest,
     label: t('Review PR'),
-    variant: 'warning',
+    variant: 'primary',
     description: t('Autofix opened a pull request. Review and merge it.'),
   },
   code_changes_ready: {
     Icon: IconCommit,
-    label: t('Open PR'),
+    label: t('Draft PR'),
     variant: 'secondary',
     description: t('Autofix wrote a diff. Review it and open a pull request.'),
   },
@@ -63,10 +64,10 @@ const ACTION_META: Record<
   },
   needs_investigation: {
     Icon: IconSearch,
-    label: t('Investigate'),
+    label: t('Create Plan'),
     variant: 'secondary',
     description: t(
-      'Seer stopped at a diagnosis. Open the run to investigate the root cause.'
+      'Seer stopped at a diagnosis. Review the root cause and approve it to continue.'
     ),
   },
   awaiting_input: {
@@ -95,64 +96,29 @@ export function deriveCardAction(
   return {type: sectionKey};
 }
 
-const AccentLinkButton = styled(LinkButton)`
-  background: ${p => p.theme.tokens.background.accent};
-  border-color: ${p => p.theme.tokens.border.accent};
-  color: ${p => p.theme.tokens.content.accent};
-  &:hover {
-    color: ${p => p.theme.tokens.content.accent};
-  }
-`;
-
-const SuccessLinkButton = styled(LinkButton)`
-  background: ${p => p.theme.tokens.background.success};
-  border-color: ${p => p.theme.tokens.border.success};
-  color: ${p => p.theme.tokens.content.success};
-  &:hover {
-    color: ${p => p.theme.tokens.content.success};
-  }
-`;
-
-const MutedLinkButton = styled(LinkButton)`
-  background: transparent;
-  border-color: ${p => p.theme.tokens.border.neutral};
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-function ActionButton({actionKey, to}: {actionKey: ActionKey; to: LocationDescriptor}) {
+function ActionButton({
+  actionKey,
+  size,
+  onClick,
+  to,
+}: {
+  actionKey: ActionKey;
+  onClick: (() => void) | undefined;
+  size: 'sm' | 'xs';
+  to: LocationDescriptor;
+}) {
   const meta = ACTION_META[actionKey];
-  if (actionKey === 'code_changes_ready') {
-    return (
-      <Tooltip title={meta.description} skipWrapper>
-        <AccentLinkButton size="sm" icon={<meta.Icon />} to={to}>
-          {meta.label}
-        </AccentLinkButton>
-      </Tooltip>
-    );
-  }
-  if (actionKey === 'solution_ready') {
-    return (
-      <Tooltip title={meta.description} skipWrapper>
-        <SuccessLinkButton size="sm" icon={<meta.Icon />} to={to}>
-          {meta.label}
-        </SuccessLinkButton>
-      </Tooltip>
-    );
-  }
-  if (actionKey === 'errored') {
-    return (
-      <Tooltip title={meta.description} skipWrapper>
-        <MutedLinkButton size="sm" icon={<meta.Icon />} to={to}>
-          {meta.label}
-        </MutedLinkButton>
-      </Tooltip>
-    );
-  }
   return (
     <Tooltip title={meta.description} skipWrapper>
-      <LinkButton size="sm" variant={meta.variant} icon={<meta.Icon />} to={to}>
-        {meta.label}
-      </LinkButton>
+      {onClick ? (
+        <Button size={size} variant={meta.variant} icon={<meta.Icon />} onClick={onClick}>
+          {meta.label}
+        </Button>
+      ) : (
+        <LinkButton size={size} variant={meta.variant} icon={<meta.Icon />} to={to}>
+          {meta.label}
+        </LinkButton>
+      )}
     </Tooltip>
   );
 }
@@ -160,28 +126,22 @@ function ActionButton({actionKey, to}: {actionKey: ActionKey; to: LocationDescri
 function ReviewPrButton({
   prUrl,
   prNumber,
+  size,
 }: {
   prNumber: number | undefined;
   prUrl: string;
+  size: 'sm' | 'xs';
 }) {
   const meta = ACTION_META.review_pr;
   return (
-    <Tooltip
-      title={
-        prNumber
-          ? t('Autofix opened pull request #%s. Review and merge it.', prNumber)
-          : meta.description
-      }
-      skipWrapper
-    >
-      <LinkButton
-        size="sm"
-        variant="warning"
-        icon={<IconPullRequest />}
-        href={prUrl}
-        external
-      >
-        {meta.label}
+    <Tooltip title={meta.description} skipWrapper>
+      <LinkButton size={size} variant={meta.variant} href={prUrl} external>
+        {/* The PR number breaks up a section of otherwise-identical buttons;
+            the trailing IconOpen marks the jump out to the code host. */}
+        <Flex as="span" gap="xs" align="center">
+          {prNumber ? t('Review PR #%s', prNumber) : meta.label}
+          <IconOpen size="xs" />
+        </Flex>
       </LinkButton>
     </Tooltip>
   );
@@ -196,11 +156,15 @@ function ReviewPrButton({
 export function IssuePrimaryAction({
   action,
   row,
+  onOpenRun,
   runUrl,
+  size = 'sm',
 }: {
   action: CardAction;
   row: OverviewRow;
   runUrl: LocationDescriptor;
+  onOpenRun?: () => void;
+  size?: 'sm' | 'xs';
 }) {
   if (row.statePending) {
     return <Text variant="muted">{'…'}</Text>;
@@ -209,10 +173,19 @@ export function IssuePrimaryAction({
     return <Tag variant="info">{t('Running')}</Tag>;
   }
   if (row.runStatus === 'error') {
-    return <ActionButton actionKey="errored" to={runUrl} />;
+    return (
+      <ActionButton actionKey="errored" size={size} onClick={onOpenRun} to={runUrl} />
+    );
   }
   if (row.runStatus === 'awaiting_user_input') {
-    return <ActionButton actionKey="awaiting_input" to={runUrl} />;
+    return (
+      <ActionButton
+        actionKey="awaiting_input"
+        size={size}
+        onClick={onOpenRun}
+        to={runUrl}
+      />
+    );
   }
 
   switch (action.type) {
@@ -226,11 +199,18 @@ export function IssuePrimaryAction({
       );
     case 'review_pr':
       return action.prUrl ? (
-        <ReviewPrButton prUrl={action.prUrl} prNumber={action.prNumber} />
+        <ReviewPrButton prUrl={action.prUrl} prNumber={action.prNumber} size={size} />
       ) : (
-        <ActionButton actionKey="review_pr" to={runUrl} />
+        <ActionButton actionKey="review_pr" size={size} onClick={onOpenRun} to={runUrl} />
       );
     default:
-      return <ActionButton actionKey={action.type} to={runUrl} />;
+      return (
+        <ActionButton
+          actionKey={action.type}
+          size={size}
+          onClick={onOpenRun}
+          to={runUrl}
+        />
+      );
   }
 }

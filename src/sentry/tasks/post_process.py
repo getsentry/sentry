@@ -1178,11 +1178,11 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
 def should_process_resource_change_bounds(job: PostProcessJob) -> bool:
     group_category = job["event"].group.issue_category
 
-    supported_group_categories = [
+    unsupported_group_categories = [
         GroupCategory(category)
-        for category in options.get("sentry-apps.expanded-webhook-categories")
+        for category in options.get("sentry-apps.unsupported-webhook-categories")
     ]
-    if group_category not in supported_group_categories:
+    if group_category in unsupported_group_categories:
         return False
 
     return True

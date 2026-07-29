@@ -228,6 +228,11 @@ class Fixtures:
             project = self.project
         return Factories.create_project_bookmark(project, *args, **kwargs)
 
+    def create_ai_conversation_metadata(self, project=None, *args, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_ai_conversation_metadata(project, *args, **kwargs)
+
     def create_project_key(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project
@@ -371,6 +376,21 @@ class Fixtures:
         if group is None:
             group = self.group
         return Factories.create_group_activity(group, *args, **kwargs)
+
+    def create_group_link(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_link(group, **kwargs)
+
+    def create_group_resolution(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_resolution(group, **kwargs)
+
+    def create_group_subscription(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_subscription(group, **kwargs)
 
     def create_group_owner(self, group=None, **kwargs):
         if group is None:
@@ -534,6 +554,9 @@ class Fixtures:
         return Factories.create_notification_action(
             organization=organization, projects=projects, **kwargs
         )
+
+    def create_notification_setting_option(self, *args, **kwargs):
+        return Factories.create_notification_setting_option(*args, **kwargs)
 
     def create_notification_settings_provider(self, *args, **kwargs):
         return Factories.create_notification_settings_provider(*args, **kwargs)

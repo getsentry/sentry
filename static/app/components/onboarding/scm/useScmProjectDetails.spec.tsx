@@ -7,8 +7,8 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {IssueAlertActionType} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import * as analytics from 'sentry/utils/analytics';
 import {MultipleCheckboxOptions} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
@@ -27,7 +27,7 @@ const pythonPlatform: OnboardingSelectedSDK = {
 };
 
 describe('getSubmitTooltipText', () => {
-  const none_missing = {
+  const noMissingFields = {
     platform: false,
     projectName: false,
     team: false,
@@ -35,35 +35,35 @@ describe('getSubmitTooltipText', () => {
   };
 
   it('returns undefined when nothing is missing', () => {
-    expect(getSubmitTooltipText(none_missing)).toBeUndefined();
+    expect(getSubmitTooltipText(noMissingFields)).toBeUndefined();
   });
 
   it('returns a summary when multiple fields are missing', () => {
     expect(
-      getSubmitTooltipText({...none_missing, platform: true, projectName: true})
+      getSubmitTooltipText({...noMissingFields, platform: true, projectName: true})
     ).toBe('Please fill out all the required fields');
   });
 
   it('names the platform when it is the only missing field', () => {
-    expect(getSubmitTooltipText({...none_missing, platform: true})).toBe(
+    expect(getSubmitTooltipText({...noMissingFields, platform: true})).toBe(
       'Please select a platform'
     );
   });
 
   it('names the project name when it is the only missing field', () => {
-    expect(getSubmitTooltipText({...none_missing, projectName: true})).toBe(
+    expect(getSubmitTooltipText({...noMissingFields, projectName: true})).toBe(
       'Please provide a project name'
     );
   });
 
   it('names the team when it is the only missing field', () => {
-    expect(getSubmitTooltipText({...none_missing, team: true})).toBe(
+    expect(getSubmitTooltipText({...noMissingFields, team: true})).toBe(
       'Please select a team'
     );
   });
 
   it('names the notification channel when it is the only missing field', () => {
-    expect(getSubmitTooltipText({...none_missing, notificationChannel: true})).toBe(
+    expect(getSubmitTooltipText({...noMissingFields, notificationChannel: true})).toBe(
       'Please provide an integration channel for alert notifications'
     );
   });
@@ -79,8 +79,6 @@ describe('useScmProjectDetails', () => {
     return renderHookWithProviders(
       () =>
         useScmProjectDetails({
-          analyticsFlow: 'project-creation',
-          allowMemberWithoutTeam: true,
           selectedPlatform: pythonPlatform,
           selectedRepository: undefined,
           projectDetailsForm: {projectName: 'my-project'},
@@ -104,6 +102,19 @@ describe('useScmProjectDetails', () => {
   afterEach(() => {
     TeamStore.reset();
     MockApiClient.clearMockResponses();
+    jest.restoreAllMocks();
+  });
+
+  it('tracks threshold edits for SCM project creation', () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const {result} = renderDetails();
+
+    act(() => result.current.onAlertChange('threshold', '10'));
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.alert_threshold_edited',
+      expect.objectContaining({field: 'threshold', variant: 'scm'})
+    );
   });
 
   it('requires an integration channel when notifying via integration', () => {
@@ -144,17 +155,6 @@ describe('useScmProjectDetails', () => {
     expect(result.current.missingFields.team).toBe(false);
     // Submission is still blocked until teams finish loading.
     expect(result.current.canSubmit).toBe(false);
-  });
-
-  it('reports the team as missing once teams have loaded and none is available', () => {
-    // Teams have loaded but the viewer has no team to default to, so the team
-    // genuinely needs to be selected (onboarding-style: no member fallback).
-    TeamStore.loadInitialData([]);
-    ProjectsStore.loadInitialData([]);
-
-    const {result} = renderDetails({allowMemberWithoutTeam: false});
-
-    expect(result.current.missingFields.team).toBe(true);
   });
 
   it('resolves the team from the first admin team once teams have loaded', () => {
@@ -207,7 +207,7 @@ describe('useScmProjectDetails', () => {
       ProjectsStore.loadInitialData([]);
     });
 
-    it('includes notificationAction in the submittedForm passed to onComplete', async () => {
+    it('includes notificationSelection in the submittedForm passed to onComplete', async () => {
       const createdProject = ProjectFixture({slug: 'my-project', platform: 'python'});
 
       MockApiClient.addMockResponse({
@@ -254,14 +254,14 @@ describe('useScmProjectDetails', () => {
       await waitFor(() => expect(onComplete).toHaveBeenCalled());
 
       const {projectDetailsForm: submittedForm} = onComplete.mock.calls[0][0];
-      expect(submittedForm.notificationAction).toEqual({
-        id: IssueAlertActionType.SLACK,
-        workspace: slackIntegration.id,
+      expect(submittedForm.notificationSelection).toEqual({
+        provider: 'slack',
+        integrationId: slackIntegration.id,
         channel: '#eng',
       });
     });
 
-    it('does not persist a notificationAction when alerts are turned off', async () => {
+    it('does not persist a notificationSelection when alerts are turned off', async () => {
       const createdProject = ProjectFixture({slug: 'my-project', platform: 'python'});
 
       MockApiClient.addMockResponse({
@@ -302,44 +302,19 @@ describe('useScmProjectDetails', () => {
 
       await waitFor(() => expect(onComplete).toHaveBeenCalled());
 
-      // No notification UI was shown, so the snapshot must not carry an action
-      // (it would otherwise force the restore gate on a later visit).
+      // No notification UI was shown, so the snapshot must not carry a
+      // selection (it would otherwise force the restore gate on a later visit).
       const {projectDetailsForm: submittedForm} = onComplete.mock.calls[0][0];
-      expect(submittedForm.notificationAction).toBeUndefined();
-    });
-
-    it('restores provider/integration/channel from a persisted notificationAction', async () => {
-      const persistedAction = {
-        id: IssueAlertActionType.SLACK as const,
-        workspace: slackIntegration.id,
-        channel: '#restored',
-      };
-
-      const {result} = renderDetails({
-        projectDetailsForm: {
-          projectName: 'my-project',
-          teamSlug: adminTeam.slug,
-          notificationAction: persistedAction,
-        },
-      });
-
-      await waitFor(() =>
-        expect(result.current.notificationProps.provider).toBe('slack')
-      );
-      expect(result.current.notificationProps.integration?.id).toBe(slackIntegration.id);
-      expect(result.current.notificationProps.channel?.value).toBe('#restored');
-      expect(result.current.notificationProps.actions).toContain(
-        MultipleCheckboxOptions.INTEGRATION
-      );
+      expect(submittedForm.notificationSelection).toBeUndefined();
     });
 
     it('reuses the project when the user returns with the same notification action', async () => {
       const existingProject = ProjectFixture({slug: 'my-project', platform: 'python'});
       ProjectsStore.loadInitialData([existingProject]);
 
-      const persistedAction = {
-        id: IssueAlertActionType.SLACK as const,
-        workspace: slackIntegration.id,
+      const persistedSelection = {
+        provider: 'slack',
+        integrationId: slackIntegration.id,
         channel: '#eng',
       };
 
@@ -350,7 +325,7 @@ describe('useScmProjectDetails', () => {
           teamSlug: adminTeam.slug,
           // alertRuleConfig must match the in-use defaults so nothingChanged is true.
           alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
-          notificationAction: persistedAction,
+          notificationSelection: persistedSelection,
         },
         createdProjectSlug: existingProject.slug,
         selectedPlatform: pythonPlatform,
@@ -374,9 +349,9 @@ describe('useScmProjectDetails', () => {
       const existingProject = ProjectFixture({slug: 'my-project', platform: 'python'});
       ProjectsStore.loadInitialData([existingProject]);
 
-      const persistedAction = {
-        id: IssueAlertActionType.SLACK as const,
-        workspace: slackIntegration.id,
+      const persistedSelection = {
+        provider: 'slack',
+        integrationId: slackIntegration.id,
         channel: '#eng',
       };
 
@@ -392,7 +367,7 @@ describe('useScmProjectDetails', () => {
           projectName: 'my-project',
           teamSlug: adminTeam.slug,
           alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
-          notificationAction: persistedAction,
+          notificationSelection: persistedSelection,
         },
         createdProjectSlug: existingProject.slug,
         selectedPlatform: pythonPlatform,
@@ -431,9 +406,9 @@ describe('useScmProjectDetails', () => {
       const existingProject = ProjectFixture({slug: 'my-project', platform: 'python'});
       ProjectsStore.loadInitialData([existingProject]);
 
-      const persistedAction = {
-        id: IssueAlertActionType.SLACK as const,
-        workspace: slackIntegration.id,
+      const persistedSelection = {
+        provider: 'slack',
+        integrationId: slackIntegration.id,
         channel: '#eng',
       };
 
@@ -442,7 +417,7 @@ describe('useScmProjectDetails', () => {
           projectName: 'my-project',
           teamSlug: adminTeam.slug,
           alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
-          notificationAction: persistedAction,
+          notificationSelection: persistedSelection,
         },
         createdProjectSlug: existingProject.slug,
         selectedPlatform: pythonPlatform,
@@ -482,9 +457,9 @@ describe('useScmProjectDetails', () => {
         body: [],
       });
 
-      const persistedAction = {
-        id: IssueAlertActionType.SLACK as const,
-        workspace: slackIntegration.id,
+      const persistedSelection = {
+        provider: 'slack',
+        integrationId: slackIntegration.id,
         channel: '#eng',
       };
 
@@ -493,7 +468,7 @@ describe('useScmProjectDetails', () => {
           projectName: 'my-project',
           teamSlug: adminTeam.slug,
           alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
-          notificationAction: persistedAction,
+          notificationSelection: persistedSelection,
         },
         selectedPlatform: pythonPlatform,
       });
@@ -507,12 +482,13 @@ describe('useScmProjectDetails', () => {
     });
 
     it('unblocks submit and falls back to email-only when saved integration is deleted', async () => {
-      // The saved action points to workspace '999', which is not in the current
-      // integration list (only slackIntegration with id '10' is present). This
-      // simulates the integration being deleted after the form was first submitted.
-      const persistedAction = {
-        id: IssueAlertActionType.SLACK as const,
-        workspace: '999',
+      // The saved selection points to integrationId '999', which is not in the
+      // current integration list (only slackIntegration with id '10' is
+      // present). This simulates the integration being deleted after the form
+      // was first submitted.
+      const persistedSelection = {
+        provider: 'slack',
+        integrationId: '999',
         channel: '#eng',
       };
 
@@ -529,7 +505,7 @@ describe('useScmProjectDetails', () => {
           projectName: 'my-project',
           teamSlug: adminTeam.slug,
           alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
-          notificationAction: persistedAction,
+          notificationSelection: persistedSelection,
         },
         selectedPlatform: pythonPlatform,
         onComplete,
@@ -546,7 +522,7 @@ describe('useScmProjectDetails', () => {
       expect(result.current.canSubmit).toBe(true);
 
       // Submitting falls back to email-only: no messaging rule is created and
-      // onComplete receives notificationAction === undefined.
+      // onComplete receives notificationSelection === undefined.
       act(() => {
         result.current.submit();
       });
@@ -554,16 +530,16 @@ describe('useScmProjectDetails', () => {
       await waitFor(() => expect(onComplete).toHaveBeenCalled());
       expect(createMock).toHaveBeenCalled();
       const {projectDetailsForm: submittedForm} = onComplete.mock.calls[0][0];
-      expect(submittedForm.notificationAction).toBeUndefined();
+      expect(submittedForm.notificationSelection).toBeUndefined();
     });
 
     it('creates a new project when the notification channel changes on return', async () => {
       const existingProject = ProjectFixture({slug: 'my-project', platform: 'python'});
       ProjectsStore.loadInitialData([existingProject]);
 
-      const persistedAction = {
-        id: IssueAlertActionType.SLACK as const,
-        workspace: slackIntegration.id,
+      const persistedSelection = {
+        provider: 'slack',
+        integrationId: slackIntegration.id,
         channel: '#eng',
       };
 
@@ -585,7 +561,7 @@ describe('useScmProjectDetails', () => {
           projectName: 'my-project',
           teamSlug: adminTeam.slug,
           alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
-          notificationAction: persistedAction,
+          notificationSelection: persistedSelection,
         },
         createdProjectSlug: existingProject.slug,
         selectedPlatform: pythonPlatform,

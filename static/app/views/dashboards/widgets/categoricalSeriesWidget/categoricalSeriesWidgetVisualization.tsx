@@ -376,6 +376,7 @@ export function CategoricalSeriesWidgetVisualization(
     <BaseChart
       ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
       autoHeightResize
+      renderer="canvas"
       series={seriesFromPlottables}
       legend={
         showLegend

@@ -1,5 +1,5 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
+import {getEmotionRules, textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   FormattedQuery,
@@ -113,5 +113,17 @@ describe('FormattedQuery', () => {
     render(<FormattedQuery {...defaultProps} query="message:foo*bar" />);
 
     expect(screen.getByText('foo*bar')).toBeInTheDocument();
+  });
+
+  it('wraps filter values without wrapping keys and operators', () => {
+    const query = `message:${'a'.repeat(400)}`;
+    render(<FormattedQuery {...defaultProps} query={query} wrapTokens />);
+
+    const value = screen.getByText('a'.repeat(400));
+    const filter = value.parentElement!.parentElement!;
+
+    expect(getEmotionRules(filter).join(' ')).toContain('white-space: nowrap');
+    expect(getEmotionRules(value).join(' ')).toContain('white-space: normal');
+    expect(getEmotionRules(value).join(' ')).toContain('overflow-wrap: anywhere');
   });
 });

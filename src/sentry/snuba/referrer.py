@@ -119,6 +119,9 @@ class Referrer(StrEnum):
     API_GROUP_HASHES = "api.group-hashes"
 
     # ** Explore **
+    API_EXPLORE_CONVERSATIONS_LIST_CHART = "api.explore.conversations.list.chart"
+    API_EXPLORE_CONVERSATIONS_ONBOARDING = "api.explore.conversations.onboarding"
+    API_EXPLORE_CONVERSATIONS_GET_AGENT_NAMES = "api.explore.conversations.get-agent-names"
     API_EXPLORE_SPANS_TIMESERIES = "api.explore.spans-timeseries"
     API_EXPLORE_OURLOGS_TIMESERIES = "api.explore.ourlogs-timeseries"
     API_EXPLORE_TRACEMETRICS_TIMESERIES = "api.explore.tracemetrics-timeseries"
@@ -595,6 +598,7 @@ class Referrer(StrEnum):
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
     API_SERIALIZER_PROJECTS_GET_STATS = "api.serializer.projects.get_stats"
+    API_SERIALIZER_PROJECTS_GET_TRANSACTION_STATS = "api.serializer.projects.get_transaction_stats"
     API_SERIALIZER_CHECKINS_TRACE_IDS = "api.serializer.checkins.trace-ids"
     API_TRACE_VIEW_ERRORS_VIEW = "api.trace-view.errors-view"
     API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS = "api.trace-view.get-timestamp-projects"

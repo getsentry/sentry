@@ -177,6 +177,17 @@ export const sanitizedMarked = (src: string): string => {
 };
 
 /**
+ * Renders markdown to sanitized HTML and returns its visible text, stripping
+ * markdown syntax and any HTML/XML tags. Use when markdown must be shown as
+ * plain text (e.g. a single-line title) rather than rendered.
+ */
+export function markdownToPlainText(src: string): string {
+  const html = sanitizedMarked(src);
+  const text = new DOMParser().parseFromString(html, 'text/html').body.textContent ?? '';
+  return text.trim();
+}
+
+/**
  * Renders a single line of markdown not wrapped in a paragraph tag.
  * WARNING: Does not apply any syntax highlighting.
  */

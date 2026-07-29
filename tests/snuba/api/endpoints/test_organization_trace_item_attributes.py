@@ -425,6 +425,27 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
             "tags[timestamp,string]",
         }
 
+    def test_attribute_collision_with_private_reserved_alias(self) -> None:
+        # `organization.id` collides with the private reserved `sentry.organization_id`.
+        # A user-sent attribute of that name must still be exposed, disambiguated
+        # under an explicit `tags[...]` key and attributed to the user.
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={"organization.id": "user-org-value"},
+            ),
+        ]
+
+        self.store_eap_items(logs)
+
+        response = self.do_request(query={"attributeType": "string"})
+
+        assert response.status_code == 200, response.content
+        org_id = {item["key"]: item for item in response.data if item["name"] == "organization.id"}
+        assert "tags[organization.id,string]" in org_id
+        assert org_id["tags[organization.id,string]"]["attributeSource"] == {"source_type": "user"}
+
     def test_boolean_attributes(self) -> None:
         logs = [
             self.create_ourlog(
@@ -1036,13 +1057,13 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "key": "tags[span.duration,string]",
                 "name": "span.duration",
                 "attributeType": "string",
-                "attributeSource": {"source_type": "sentry"},
+                "attributeSource": {"source_type": "user"},
             },
             {
                 "key": "tags[span.op,string]",
                 "name": "span.op",
                 "attributeType": "string",
-                "attributeSource": {"source_type": "sentry"},
+                "attributeSource": {"source_type": "user"},
             },
         ]
         assert sorted(

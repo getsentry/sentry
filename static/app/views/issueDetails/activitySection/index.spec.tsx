@@ -1452,6 +1452,159 @@ describe('ActivitySection', () => {
     );
   });
 
+  it('hides a referenced commit next to a merged activity', async () => {
+    const repository = RepositoryFixture({id: 'repository-1'});
+    const pullRequest = PullRequestFixture({id: '1234', repository});
+
+    const activityGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.PULL_REQUEST_MERGED,
+          id: 'pull-request-merged',
+          dateCreated: '2020-01-01T00:01:00',
+          data: {pullRequest},
+          user: null,
+        },
+        {
+          type: GroupActivityType.REFERENCED_IN_COMMIT,
+          id: 'referenced-in-commit',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {commit: CommitFixture({pullRequest, repository})},
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByTestId('activity-timeline')).toHaveTextContent('#1234');
+    expect(screen.queryByText('f7f395d')).not.toBeInTheDocument();
+  });
+
+  it('hides the duplicate when the referenced commit comes before the merged activity', async () => {
+    const repository = RepositoryFixture({id: 'repository-1'});
+    const pullRequest = PullRequestFixture({id: '1234', repository});
+
+    const activityGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.REFERENCED_IN_COMMIT,
+          id: 'referenced-in-commit',
+          dateCreated: '2020-01-01T00:01:00',
+          data: {commit: CommitFixture({pullRequest, repository})},
+          user,
+        },
+        {
+          type: GroupActivityType.PULL_REQUEST_MERGED,
+          id: 'pull-request-merged',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {pullRequest},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByTestId('activity-timeline')).toHaveTextContent('#1234');
+    expect(screen.queryByText('f7f395d')).not.toBeInTheDocument();
+  });
+
+  it('keeps a referenced commit next to a merged activity for a different pull request', async () => {
+    const mergedPullRequest = PullRequestFixture({
+      id: '1234',
+      repository: RepositoryFixture({id: 'repository-1'}),
+    });
+    const referencedRepository = RepositoryFixture({id: 'repository-2'});
+    const referencedPullRequest = PullRequestFixture({
+      id: '1234',
+      repository: referencedRepository,
+    });
+
+    const activityGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.PULL_REQUEST_MERGED,
+          id: 'pull-request-merged',
+          dateCreated: '2020-01-01T00:01:00',
+          data: {pullRequest: mergedPullRequest},
+          user: null,
+        },
+        {
+          type: GroupActivityType.REFERENCED_IN_COMMIT,
+          id: 'referenced-in-commit',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            commit: CommitFixture({
+              pullRequest: referencedPullRequest,
+              repository: referencedRepository,
+            }),
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByText('f7f395d')).toBeInTheDocument();
+  });
+
+  it('keeps a referenced commit when the merged activity is not adjacent', async () => {
+    const repository = RepositoryFixture({id: 'repository-1'});
+    const pullRequest = PullRequestFixture({repository});
+
+    const activityGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.PULL_REQUEST_MERGED,
+          id: 'pull-request-merged',
+          dateCreated: '2020-01-01T00:02:00',
+          data: {pullRequest},
+          user: null,
+        },
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-between-pull-request-activities',
+          dateCreated: '2020-01-01T00:01:00',
+          data: {text: 'An activity between the pull request activities'},
+          user,
+        },
+        {
+          type: GroupActivityType.REFERENCED_IN_COMMIT,
+          id: 'referenced-in-commit',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {commit: CommitFixture({pullRequest, repository})},
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByText('f7f395d')).toBeInTheDocument();
+  });
+
   it('prefers commit repository details for resolved commit activity line items', async () => {
     const commitRepository = RepositoryFixture({
       name: 'getsentry/sentry',
@@ -1607,7 +1760,7 @@ describe('ActivitySection', () => {
           type: GroupActivityType.TRIGGER_AUTOFIX,
           id: 'autofix-trigger-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {},
+          data: {referrer: 'slack'},
           user: null,
         },
       ],
@@ -1627,7 +1780,7 @@ describe('ActivitySection', () => {
     expect(await screen.findByText('Root Cause Analysis')).toBeInTheDocument();
     expect(screen.getByText('Seer completed root cause analysis')).toBeInTheDocument();
     expect(screen.getByText('Autofix')).toBeInTheDocument();
-    expect(screen.getByText('Autofix was triggered')).toBeInTheDocument();
+    expect(screen.getByText('Autofix was triggered from Slack')).toBeInTheDocument();
   });
 
   it('hides Seer activity when feature flag is disabled', () => {
@@ -1733,7 +1886,11 @@ describe('ActivitySection', () => {
           type: GroupActivityType.SEER_ITERATION_STARTED,
           id: 'seer-iteration-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {run_id: 456, iteration_index: 1},
+          data: {
+            run_id: 456,
+            iteration_index: 1,
+            referrer: 'github.check_suite',
+          },
           user: null,
         },
       ],
@@ -1741,7 +1898,7 @@ describe('ActivitySection', () => {
     });
 
     const org = OrganizationFixture({
-      features: ['display-seer-actions-as-issue-activities'],
+      features: ['display-seer-actions-as-issue-activities', 'issue-activity-feed-v2'],
     });
 
     render(
@@ -1753,11 +1910,9 @@ describe('ActivitySection', () => {
       </GroupDataContextProvider>,
       {organization: org}
     );
-    expect(await screen.findAllByText('PR Iteration')).toHaveLength(2);
-    expect(
-      screen.getByText('Seer started iterating on the pull request')
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'pull request'})).toHaveAttribute(
+    expect(await screen.findByText('Pull request iteration started')).toBeInTheDocument();
+    expect(screen.getByText('after CI failed')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '#42'})).toHaveAttribute(
       'href',
       'https://github.com/org/repo/pull/42'
     );

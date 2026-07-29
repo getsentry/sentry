@@ -13,6 +13,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
@@ -6014,6 +6015,97 @@ describe('SearchQueryBuilder', () => {
     });
   });
 
+  describe('disallowNegation', () => {
+    it('removes negation operators from string filter options', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowNegation
+          initialQuery="browser.name:firefox"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+      );
+
+      // Positive operators remain available
+      expect(await screen.findByRole('option', {name: 'is'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'contains'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'starts with'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'ends with'})).toBeInTheDocument();
+
+      // Negation operators are hidden
+      expect(screen.queryByRole('option', {name: 'is not'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not contain'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not start with'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not end with'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('removes "does not have" from has filter options', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} disallowNegation initialQuery="has:key" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: has'})
+      );
+
+      expect(await screen.findByRole('option', {name: 'has'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not have'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('marks a negated filter invalid (e.g. when pasted)', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowNegation
+          initialQuery="!browser.name:firefox"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: '!browser.name:firefox'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        await screen.findByText('Negation is not allowed in this search.')
+      ).toBeInTheDocument();
+    });
+
+    it('marks operator-based negation invalid (e.g. pasted "!=")', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowNegation
+          initialQuery="timesSeen:!=5"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'timesSeen:!=5'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        await screen.findByText('Negation is not allowed in this search.')
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('highlightUnsupportedFilters', () => {
     it('should mark unsupported filters as invalid', async () => {
       render(
@@ -7052,6 +7144,7 @@ describe('SearchQueryBuilder', () => {
           );
         }
 
+        const successMessageSpy = jest.spyOn(indicators, 'addSuccessMessage');
         const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
         render(
           <AskSeerWrapper>
@@ -7084,20 +7177,20 @@ describe('SearchQueryBuilder', () => {
         const filter = await screen.findByRole('option', {
           name: "Query parameters: Filter is 'span.duration is greater than 30s ', visualizations are 'count()', sort is 'span.duration Desc'",
         });
-        await userEvent.click(filter);
-        await userEvent.click(getLastInput());
 
-        const feedback = await screen.findByText(
-          'We loaded the results. Does this look right?'
-        );
+        const feedback = await screen.findByText('How did we do?');
         expect(feedback).toBeInTheDocument();
+        expect(
+          screen.queryByText('We loaded the results. Does this look right?')
+        ).not.toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Generate again'})).toBeInTheDocument();
 
         const yep = await screen.findByRole('button', {name: 'Yep, correct results'});
         await userEvent.click(yep);
 
-        expect(
-          await screen.findByRole('button', {name: /Ask AI to build your query/})
-        ).toBeInTheDocument();
+        expect(successMessageSpy).toHaveBeenCalledWith('Thanks for the feedback!');
+        expect(screen.queryByText('How did we do?')).not.toBeInTheDocument();
+        expect(filter).toBeInTheDocument();
       });
     });
 

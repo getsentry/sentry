@@ -49,15 +49,7 @@ export function deriveSectionKey(
     .key;
 }
 
-// A diff qualifies for the on-card differ only when it is genuinely small:
-// few files, few changed lines, and bounded hunk context so a fix with huge
-// surrounding context can't blow the card up.
-export const INLINE_DIFF_MAX_FILES = 2;
-export const INLINE_DIFF_MAX_CHANGED_LINES = 25;
-const INLINE_DIFF_MAX_RENDERED_LINES = 60;
-
 export function extractPatchInfo(state: ExplorerAutofixState | null): {
-  inlinePatches?: OverviewRow['inlinePatches'];
   patchStats?: PatchStats;
 } {
   const section = getOrderedAutofixSections(state).find(isCodeChangesSection);
@@ -82,24 +74,8 @@ export function extractPatchInfo(state: ExplorerAutofixState | null): {
     .sort((a, b) => b.added + b.removed - (a.added + a.removed));
   const added = artifact.reduce((sum, filePatch) => sum + filePatch.patch.added, 0);
   const removed = artifact.reduce((sum, filePatch) => sum + filePatch.patch.removed, 0);
-  const renderedLines = artifact.reduce(
-    (sum, filePatch) =>
-      sum + filePatch.patch.hunks.reduce((lines, hunk) => lines + hunk.lines.length, 0),
-    0
-  );
-  const inlineEligible =
-    artifact.length <= INLINE_DIFF_MAX_FILES &&
-    added + removed <= INLINE_DIFF_MAX_CHANGED_LINES &&
-    renderedLines > 0 &&
-    renderedLines <= INLINE_DIFF_MAX_RENDERED_LINES;
   return {
     patchStats: {fileList, files: artifact.length, added, removed},
-    inlinePatches: inlineEligible
-      ? artifact.map(filePatch => ({
-          patch: filePatch.patch,
-          repoName: multiRepo ? filePatch.repo_name : undefined,
-        }))
-      : undefined,
   };
 }
 
@@ -110,6 +86,10 @@ function extractPr(
     repoPr => repoPr.pr_creation_status === 'completed' && repoPr.pr_url
   );
   return pr ? {prUrl: pr.pr_url ?? undefined, prNumber: pr.pr_number ?? undefined} : {};
+}
+
+export function hasValidPr(state: ExplorerAutofixState | null): boolean {
+  return Boolean(extractPr(state).prUrl);
 }
 
 // The pending-input payload is untyped (Record<string, unknown>). The canonical
@@ -251,15 +231,24 @@ export function buildOverviewRow(
     title: issue.title,
     level: issue.level,
     project: issue.project,
+    assignedTo: issue.assignedTo ?? null,
+    owners: issue.owners,
+    issueCategory: issue.issueCategory,
+    issueType: issue.issueType,
+    priority: issue.priority,
+    priorityLockedAt: issue.priorityLockedAt,
     eventCount: Number.isFinite(eventCount) ? eventCount : 0,
     userCount: issue.userCount,
     statsPeriod,
-    lastActivityAt: mostRecentTimestamp(
-      state?.updated_at,
-      run?.lastTriggeredAt,
-      issue.seerAutofixLastTriggered,
-      issue.lastSeen
-    ),
+    lastSeen: issue.lastSeen,
+    // Seer-side timestamps only — folding in issue.lastSeen would make this
+    // collapse to lastSeen on any actively-erroring issue.
+    lastActivityAt:
+      mostRecentTimestamp(
+        state?.updated_at,
+        run?.lastTriggeredAt,
+        issue.seerAutofixLastTriggered
+      ) || null,
     runStatus: state?.status ?? null,
     statePending,
     trigger: mapRunSourceToTrigger(run?.source ?? null),

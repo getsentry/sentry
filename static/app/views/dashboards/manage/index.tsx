@@ -44,18 +44,29 @@ import {RouteError} from 'sentry/views/routeError';
 
 import {DASHBOARD_TABLE_NUM_ROWS, DEFAULT_PREBUILT_SORT} from './settings';
 
-function getSortOptions({isOnlyPrebuilt}: {isOnlyPrebuilt: boolean}) {
+function getSortOptions({
+  isOnlyPrebuilt,
+  hasUserLastVisited,
+}: {
+  hasUserLastVisited: boolean;
+  isOnlyPrebuilt: boolean;
+}) {
   const options = [];
 
   if (!isOnlyPrebuilt) {
     options.push({label: t('My Dashboards'), value: 'mydashboards'});
   }
-
   options.push(
     {label: t('Dashboard Name (A-Z)'), value: 'title'},
-    {label: t('Dashboard Name (Z-A)'), value: '-title'},
-    {label: t('Date Created (Newest)'), value: '-dateCreated'},
-    {label: t('Date Created (Oldest)'), value: 'dateCreated'},
+    {label: t('Dashboard Name (Z-A)'), value: '-title'}
+  );
+  if (!hasUserLastVisited || !isOnlyPrebuilt) {
+    options.push(
+      {label: t('Date Created (Newest)'), value: '-dateCreated'},
+      {label: t('Date Created (Oldest)'), value: 'dateCreated'}
+    );
+  }
+  options.push(
     {label: t('Most Popular'), value: 'mostPopular'},
     {label: t('Recently Viewed'), value: 'recentlyViewed'}
   );
@@ -63,12 +74,18 @@ function getSortOptions({isOnlyPrebuilt}: {isOnlyPrebuilt: boolean}) {
   return options;
 }
 
-function getDefaultSort({isOnlyPrebuilt}: {isOnlyPrebuilt: boolean}) {
-  if (isOnlyPrebuilt) {
+function getDefaultSort({
+  isOnlyPrebuilt,
+  hasUserLastVisited,
+}: {
+  hasUserLastVisited: boolean;
+  isOnlyPrebuilt: boolean;
+}) {
+  if (isOnlyPrebuilt && !hasUserLastVisited) {
     return DEFAULT_PREBUILT_SORT;
   }
 
-  return 'mydashboards';
+  return hasUserLastVisited ? 'recentlyViewed' : 'mydashboards';
 }
 
 function ManageDashboards() {
@@ -89,7 +106,10 @@ function ManageDashboards() {
 
   const {hasProjectAccess, projectsLoaded} = useHasProjectAccess();
 
-  const sortOptions = getSortOptions({isOnlyPrebuilt});
+  const hasUserLastVisited = organization.features.includes(
+    'dashboards-user-last-visited'
+  );
+  const sortOptions = getSortOptions({isOnlyPrebuilt, hasUserLastVisited});
 
   const {
     data: dashboardsResponse,
@@ -130,6 +150,7 @@ function ManageDashboards() {
                 layout: widget.layout ?? null,
               })
             ),
+            description: PREBUILT_DASHBOARDS[dashboard.prebuiltId].description,
             projects: [],
           };
         }
@@ -142,7 +163,7 @@ function ManageDashboards() {
 
   useEffect(() => {
     const urlSort = decodeScalar(location.query.sort);
-    const defaultSort = getDefaultSort({isOnlyPrebuilt});
+    const defaultSort = getDefaultSort({isOnlyPrebuilt, hasUserLastVisited});
     if (urlSort && !sortOptions.some(option => option.value === urlSort)) {
       // The sort option is not valid, so we need to set the default sort
       // in the URL
@@ -158,10 +179,11 @@ function ManageDashboards() {
     navigate,
     organization,
     sortOptions,
+    hasUserLastVisited,
   ]);
 
   function getActiveSort() {
-    const defaultSort = getDefaultSort({isOnlyPrebuilt});
+    const defaultSort = getDefaultSort({isOnlyPrebuilt, hasUserLastVisited});
     const urlSort = decodeScalar(location.query.sort, defaultSort);
 
     if (urlSort) {
@@ -228,79 +250,75 @@ function ManageDashboards() {
           position="bottom-end"
           data-test-id="sort-by-select"
         />
-        <Feature features={['dashboards-ai-generate']}>
-          {({hasFeature: hasAiGenerate}) =>
-            hasAiGenerate && areAiFeaturesAllowed ? (
-              <DashboardCreateLimitWrapper>
-                {({
-                  hasReachedDashboardLimit,
-                  isLoading: isLoadingDashboardsLimit,
-                  limitMessage,
-                }) => (
-                  <DropdownMenu
-                    items={[
-                      {
-                        key: 'create-dashboard',
-                        label: t('Create dashboard manually'),
-                        onAction: () => onCreate(),
-                        disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
-                        details: limitMessage,
-                      },
-                      {
-                        key: 'create-dashboard-agent',
-                        textValue: t('Generate dashboard'),
-                        label: (
-                          <Flex gap="sm" align="center" as="span">
-                            {t('Generate dashboard')}
-                            <FeatureBadge type="beta" />
-                          </Flex>
-                        ),
-                        onAction: () => onGenerateDashboard(),
-                        disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
-                        details: limitMessage,
-                      },
-                    ]}
-                    trigger={triggerProps => (
-                      <Button
-                        {...triggerProps}
-                        data-test-id="dashboard-create"
-                        variant="primary"
-                        icon={<IconAdd />}
-                      >
-                        {t('Create Dashboard')}
-                      </Button>
-                    )}
-                  />
-                )}
-              </DashboardCreateLimitWrapper>
-            ) : (
-              <DashboardCreateLimitWrapper>
-                {({
-                  hasReachedDashboardLimit,
-                  isLoading: isLoadingDashboardsLimit,
-                  limitMessage,
-                }) => (
+        {areAiFeaturesAllowed ? (
+          <DashboardCreateLimitWrapper>
+            {({
+              hasReachedDashboardLimit,
+              isLoading: isLoadingDashboardsLimit,
+              limitMessage,
+            }) => (
+              <DropdownMenu
+                items={[
+                  {
+                    key: 'create-dashboard',
+                    label: t('Create dashboard manually'),
+                    onAction: () => onCreate(),
+                    disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
+                    details: limitMessage,
+                  },
+                  {
+                    key: 'create-dashboard-agent',
+                    textValue: t('Generate dashboard'),
+                    label: (
+                      <Flex gap="sm" align="center" as="span">
+                        {t('Generate dashboard')}
+                        <FeatureBadge type="beta" />
+                      </Flex>
+                    ),
+                    onAction: () => onGenerateDashboard(),
+                    disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
+                    details: limitMessage,
+                  },
+                ]}
+                trigger={triggerProps => (
                   <Button
+                    {...triggerProps}
                     data-test-id="dashboard-create"
-                    onClick={event => {
-                      event.preventDefault();
-                      onCreate();
-                    }}
                     variant="primary"
                     icon={<IconAdd />}
-                    disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-                    tooltipProps={{
-                      isHoverable: true,
-                      title: limitMessage,
-                    }}
                   >
                     {t('Create Dashboard')}
                   </Button>
                 )}
-              </DashboardCreateLimitWrapper>
-            )
-          }
-        </Feature>
+              />
+            )}
+          </DashboardCreateLimitWrapper>
+        ) : (
+          <DashboardCreateLimitWrapper>
+            {({
+              hasReachedDashboardLimit,
+              isLoading: isLoadingDashboardsLimit,
+              limitMessage,
+            }) => (
+              <Button
+                data-test-id="dashboard-create"
+                onClick={event => {
+                  event.preventDefault();
+                  onCreate();
+                }}
+                variant="primary"
+                icon={<IconAdd />}
+                disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+                tooltipProps={{
+                  isHoverable: true,
+                  title: limitMessage,
+                }}
+              >
+                {t('Create Dashboard')}
+              </Button>
+            )}
+          </DashboardCreateLimitWrapper>
+        )}
       </StyledActions>
     );
   }
@@ -326,6 +344,7 @@ function ManageDashboards() {
         location={location}
         onDashboardsChange={invalidateDashboards}
         isLoading={isLoading}
+        isOnlyPrebuilt={isOnlyPrebuilt}
       />
     );
   }

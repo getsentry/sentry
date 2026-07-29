@@ -12,7 +12,7 @@ import {
 
 type Attribute = {
   attributeSource: {
-    source_type: string;
+    source_type: 'sentry' | 'user';
   };
   attributeType: 'boolean' | 'number' | 'string';
   key: string;
@@ -30,7 +30,7 @@ function makeAttribute(
   attributeType: Attribute['attributeType'] = 'string'
 ): Attribute {
   return {
-    attributeSource: {source_type: 'custom'},
+    attributeSource: {source_type: 'user'},
     attributeType,
     key,
     name: key,
@@ -271,7 +271,7 @@ describe('traceItemAttributeKeysOptions', () => {
 
 describe('getTraceItemTagCollection', () => {
   it('preserves plain tags with @ in the tag name', () => {
-    const key = 'custom.metric@primary';
+    const key = 'user.metric@primary';
 
     expect(getTraceItemTagCollection([makeAttribute(key, 'number')], 'number')).toEqual({
       [key]: {
@@ -279,12 +279,13 @@ describe('getTraceItemTagCollection', () => {
         name: key,
         kind: FieldKind.MEASUREMENT,
         secondaryAliases: [],
+        attributeSource: 'user',
       },
     });
   });
 
   it('preserves wrapped number tags with @ in the tag name', () => {
-    const key = 'tags[custom.metric@primary,number]';
+    const key = 'tags[user.metric@primary,number]';
 
     expect(getTraceItemTagCollection([makeAttribute(key, 'number')], 'number')).toEqual({
       [key]: {
@@ -292,6 +293,21 @@ describe('getTraceItemTagCollection', () => {
         name: key,
         kind: FieldKind.MEASUREMENT,
         secondaryAliases: [],
+        attributeSource: 'user',
+      },
+    });
+  });
+
+  it('preserves explicitly-typed string tags', () => {
+    const key = 'tags[organization.id,string]';
+
+    expect(getTraceItemTagCollection([makeAttribute(key, 'string')], 'string')).toEqual({
+      [key]: {
+        key,
+        name: key,
+        kind: FieldKind.TAG,
+        secondaryAliases: [],
+        attributeSource: 'user',
       },
     });
   });

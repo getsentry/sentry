@@ -74,7 +74,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
                 ],
             )
             query_subscription = create_snuba_subscription(
-                project=detector.project,
+                project=detector.linked_project,
                 subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
                 snuba_query=snuba_query,
             )

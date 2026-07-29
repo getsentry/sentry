@@ -459,6 +459,12 @@ export type Tag = {
   name: string;
   alias?: string;
 
+  /**
+   * For trace-item attributes, whether the attribute was defined by Sentry
+   * ('sentry') or sent by the user ('user').
+   */
+  attributeSource?: 'sentry' | 'user';
+
   isInput?: boolean;
 
   kind?: FieldKind;
@@ -550,6 +556,7 @@ export type SuggestedOwnerReason =
   | 'suspectCommit'
   | 'ownershipRule'
   | 'projectOwnership'
+  | 'seerSuggested'
   // TODO: codeowners may no longer exist
   | 'codeowners';
 
@@ -824,8 +831,29 @@ interface GroupActivityPullRequestUnlinked extends GroupActivityBase {
   type: GroupActivityType.PULL_REQUEST_UNLINKED;
 }
 
+/**
+ * Mirrors `sentry.seer.autofix.constants.AutofixReferrer` on the backend.
+ * Keep these values in sync when the backend enum changes.
+ */
+type AutofixReferrer =
+  | 'api.cli'
+  | 'api.group_ai_autofix'
+  | 'api.linear_agent'
+  | 'api.mcp'
+  | 'api.web'
+  | 'autofix.on_completion_hook'
+  | 'github.check_suite'
+  | 'github.pr_comment'
+  | 'github.pr_review'
+  | 'issue_summary.post_process_fixability'
+  | 'night_shift'
+  | 'slack'
+  | 'unknown';
+
 interface GroupActivityTriggerAutofix extends GroupActivityBase {
-  data: Record<string, unknown>;
+  data: {
+    referrer?: AutofixReferrer;
+  };
   type: GroupActivityType.TRIGGER_AUTOFIX;
 }
 
@@ -924,7 +952,8 @@ export interface GroupActivityAssigned extends GroupActivityBase {
       | 'codeowners'
       | 'slack'
       | 'msteams'
-      | 'suspectCommitter';
+      | 'suspectCommitter'
+      | 'seerSuggested';
     /** Codeowner or Project owner rule as a string */
     rule?: string;
     user?: Team | User;
@@ -1010,6 +1039,7 @@ interface GroupActivitySeerPrCreated extends GroupActivityBase {
 interface GroupActivitySeerIterationStarted extends GroupActivityBase {
   data: {
     iteration_index?: number;
+    referrer?: AutofixReferrer;
     run_id?: number;
   };
   type: GroupActivityType.SEER_ITERATION_STARTED;
