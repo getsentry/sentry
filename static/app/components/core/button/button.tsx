@@ -34,7 +34,7 @@ export function Button({
     busy,
   } satisfies ButtonProps;
   const {hasChildren, accessibleLabel} = useButtonFunctionality(buttonProps);
-  const {handleClick} = useClickTracking(buttonProps);
+  const {handleClick} = useClickTracking(buttonProps, 'button');
 
   return (
     <Tooltip

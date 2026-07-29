@@ -434,7 +434,7 @@ type AnalyticsRawTrackEvent = (
     /**
      * The Reload event key.
      */
-    eventKey: string;
+    eventKey: string | undefined;
 
     /**
      * The Amplitude event name. Set to null if event should not go to Amplitude.

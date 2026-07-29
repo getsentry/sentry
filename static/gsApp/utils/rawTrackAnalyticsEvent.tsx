@@ -221,7 +221,9 @@ export function rawTrackAnalyticsEvent(
       ...data,
     };
 
-    trackReloadEvent(eventKey, reloadData);
+    if (eventKey !== undefined) {
+      trackReloadEvent(eventKey, reloadData);
+    }
     if (eventName && organization_id !== undefined) {
       const orgAge = getOrganizationAge(organization);
       const userAge = getUserAge(user);

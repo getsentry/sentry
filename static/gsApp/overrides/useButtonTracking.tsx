@@ -12,6 +12,7 @@ export function useButtonTracking() {
   const matches = useMatches();
 
   return ({
+    clickType,
     analyticsEventName,
     analyticsEventKey,
     analyticsParams,
@@ -27,7 +28,7 @@ export function useButtonTracking() {
       // note null means something different than undefined for eventName so
       // checking for that explicitly
       const eventKey =
-        analyticsEventKey === undefined
+        analyticsEventKey === undefined && clickType === 'button'
           ? `button_click.${reloadPath}`
           : analyticsEventKey;
       const eventName = analyticsEventName === undefined ? null : analyticsEventName;

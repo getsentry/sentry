@@ -76,7 +76,7 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
   // button-only props through at runtime. They are consumed by tracking and
   // removed before reaching the router or DOM element.
   const propsWithBehavior = behavior();
-  const {handleClick} = useClickTracking(propsWithBehavior);
+  const {handleClick} = useClickTracking(propsWithBehavior, 'link');
 
   if (props.disabled) {
     // Removing the "to" prop here to prevent the anchor from being rendered with to="

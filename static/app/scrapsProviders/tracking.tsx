@@ -13,6 +13,7 @@ function useDefaultButtonTracking() {
     if (hasCustomAnalytics && hasAnalyticsDebug) {
       // eslint-disable-next-line no-console
       console.log('buttonAnalyticsEvent', {
+        clickType: props.clickType,
         eventKey: props.analyticsEventKey,
         eventName: props.analyticsEventName,
         variant: props.variant,

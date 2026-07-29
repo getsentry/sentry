@@ -95,7 +95,7 @@ const StyledLinkButton = styled(
     shapeVariant: _shapeVariant,
     ...props
   }: LinkButtonProps & {shapeVariant: 'rectangular' | 'square'}) => {
-    const {handleClick} = useClickTracking(props);
+    const {handleClick} = useClickTracking(props, 'link');
 
     if ('to' in props && props.to) {
       const {openInNewTab, ...linkProps} = props;

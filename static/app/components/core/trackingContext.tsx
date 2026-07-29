@@ -22,7 +22,12 @@ export interface AnalyticsProps {
   analyticsParams?: Record<string, unknown>;
 }
 
-export type TrackingProps = AnalyticsProps & Record<string, unknown>;
+type ClickTrackingType = 'button' | 'link';
+
+export type TrackingProps = AnalyticsProps &
+  Record<string, unknown> & {
+    clickType: ClickTrackingType;
+  };
 
 const TrackingContext = createContext<() => (props: TrackingProps) => void>(
   () => () => {}
@@ -30,7 +35,10 @@ const TrackingContext = createContext<() => (props: TrackingProps) => void>(
 
 export const TrackingContextProvider = TrackingContext.Provider;
 
-export const useClickTracking = (props: ButtonProps | LinkButtonProps | LinkProps) => {
+export const useClickTracking = (
+  props: ButtonProps | LinkButtonProps | LinkProps,
+  clickType: ClickTrackingType
+) => {
   const clickTracking = useContext(TrackingContext)();
   const accessibleLabel =
     props['aria-label'] ??
@@ -45,6 +53,7 @@ export const useClickTracking = (props: ButtonProps | LinkButtonProps | LinkProp
     }
 
     clickTracking({
+      clickType,
       analyticsEventName: props.analyticsEventName,
       analyticsEventKey: props.analyticsEventKey,
       analyticsParams: {

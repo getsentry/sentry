@@ -55,6 +55,34 @@ describe('rawTrackAnalyticsEvent', () => {
     expect(trackAmplitudeEvent).not.toHaveBeenCalled();
   });
 
+  it('does not track in Reload without an event key', () => {
+    rawTrackAnalyticsEvent({
+      eventName: null,
+      eventKey: undefined,
+      organization,
+      someProp: 'value',
+    });
+
+    expect(trackReloadEvent).not.toHaveBeenCalled();
+  });
+
+  it('tracks named events without a Reload event key', () => {
+    rawTrackAnalyticsEvent({
+      eventName: 'Test Event',
+      eventKey: undefined,
+      organization,
+      someProp: 'value',
+    });
+
+    expect(trackReloadEvent).not.toHaveBeenCalled();
+    expect(trackAmplitudeEvent).toHaveBeenCalledWith(
+      'Test Event',
+      org_id,
+      expect.objectContaining({someProp: 'value'}),
+      {time: undefined}
+    );
+  });
+
   it('coerces organization_id and project_id and honor existing analytics sessions', () => {
     sessionStorageWrapper.setItem('ANALYTICS_SESSION', '789');
     rawTrackAnalyticsEvent({
