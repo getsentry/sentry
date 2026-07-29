@@ -7,7 +7,6 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -20,6 +19,8 @@ import {useAdjacentTraceNavigation} from 'sentry/views/performance/newTraceDetai
 import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
 import {useTraceExploreTarget} from 'sentry/views/performance/newTraceDetails/useTraceExploreTarget';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
+
+const COPY_ID_LABEL = t('Copy trace ID to clipboard');
 
 interface TraceBreadcrumbsProps {
   organization: Organization;
@@ -87,7 +88,6 @@ export function TraceBreadcrumbs({
 }: TraceBreadcrumbsProps) {
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
-  const {copy} = useCopyToClipboard();
 
   const parentItems = useTraceParentItems(organization);
   const pagination = useTracePagination(rootEventResults);
@@ -119,31 +119,29 @@ export function TraceBreadcrumbs({
               />
             ) : undefined,
             pagination,
-            trailingActions: {
-              type: 'menu',
-              triggerLabel: t('Trace Actions'),
-              triggerIcon: <IconEllipsis />,
-              items: [
-                {
-                  key: 'copy-trace-id',
-                  label: t('Copy ID'),
-                  onAction: () =>
-                    copy(traceSlug, {
-                      successMessage: t('Copied trace ID to clipboard'),
-                    }),
-                },
-                ...(exploreTarget
-                  ? [
+            trailingActions: [
+              {
+                type: 'copy',
+                text: traceSlug,
+                label: COPY_ID_LABEL,
+                tooltip: COPY_ID_LABEL,
+              },
+              exploreTarget
+                ? {
+                    type: 'menu',
+                    triggerLabel: t('Trace Actions'),
+                    triggerIcon: <IconEllipsis />,
+                    items: [
                       {
                         key: 'open-in-explore',
                         label: t('Open in Explore'),
                         to: exploreTarget.to,
                         onAction: exploreTarget.onClick,
                       },
-                    ]
-                  : []),
-              ],
-            },
+                    ],
+                  }
+                : null,
+            ],
           }}
         />
       </TopBar.Slot>
