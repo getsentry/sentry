@@ -32,9 +32,9 @@ export const SEER_EMBED_SCHEMAS = {
   },
   docs: {
     description:
-      'Link to a page in the Sentry documentation. Use this whenever you ' +
-      'reference a Sentry feature or concept that has official docs. ' +
-      'The href MUST be an absolute https://docs.sentry.io/... URL.',
+      'Link to a page in the Sentry documentation (docs.sentry.io only). ' +
+      'The href MUST be an absolute https://docs.sentry.io/... URL. ' +
+      'NEVER use this for Sentry issue links — use the `issue` or `issues` embed instead.',
     level: ['inline'],
     schema: z.object({href: z.string(), title: z.string()}),
     examples: [
@@ -74,27 +74,37 @@ export const SEER_EMBED_SCHEMAS = {
   },
   issue: {
     description:
-      'Reference a single Sentry issue. Inline renders a compact link ' +
-      'labeled with the issue short id; block renders a full issue feed row. ' +
-      'Provide the numeric groupId.',
+      'The ONLY way to reference a Sentry issue. Requires the issue short ID ' +
+      '(e.g. "PROJECT-123"). ' +
+      'Inline: renders a compact link with the short id. ' +
+      'Block: renders a full interactive issue row with title, events, users, ' +
+      'assignee, and trend graph — do NOT duplicate any of that data as text. ' +
+      'MUST NOT appear inside a markdown table or list. ' +
+      'When referencing 2+ issues, use the `issues` embed instead. ' +
+      'Never use `docs` or markdown links for issue references.',
     level: ['inline', 'block'],
-    schema: z.object({groupId: z.string()}),
+    schema: z.object({id: z.string()}),
     examples: [
-      {label: 'Inline', level: 'inline', data: {groupId: '1876791171'}},
-      {label: 'Block', level: 'block', data: {groupId: '1876791171'}},
+      {label: 'Inline', level: 'inline', data: {id: 'JAVASCRIPT-22SP'}},
+      {label: 'Block', level: 'block', data: {id: 'JAVASCRIPT-22SP'}},
     ],
   },
   issues: {
     description:
-      'Reference multiple Sentry issues as a table with column headers. ' +
-      'Provide an array of numeric groupIds.',
+      'The ONLY way to list multiple Sentry issues. Renders an interactive ' +
+      'table with title, trend graph, events, users, priority, and assignee ' +
+      'for each issue — do NOT duplicate any of that data as text. ' +
+      'ALWAYS use this when referencing 2+ issues. ' +
+      'MUST NOT appear inside a markdown table or list. ' +
+      'Never use `docs`, `issue`, or markdown tables for multiple issues. ' +
+      'Provide only the array of issue short IDs (e.g. "PROJECT-123").',
     level: ['block'],
-    schema: z.object({groupIds: z.array(z.string())}),
+    schema: z.object({ids: z.array(z.string())}),
     examples: [
       {
         label: 'Block',
         level: 'block',
-        data: {groupIds: ['1876791171', '7396333597', '7524988543']},
+        data: {ids: ['JAVASCRIPT-22SP', 'JAVASCRIPT-39HX', 'JAVASCRIPT-39ZF']},
       },
     ],
   },

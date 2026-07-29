@@ -1,14 +1,10 @@
 import {useMemo} from 'react';
-import {useQuery} from '@tanstack/react-query';
 
 import {GroupList} from 'sentry/components/issues/groupList';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconIssues} from 'sentry/icons';
-import type {Group} from 'sentry/types/group';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 const BLOCK_COLUMNS: GroupListColumn[] = [
   'graph',
@@ -20,11 +16,8 @@ const BLOCK_COLUMNS: GroupListColumn[] = [
   'assignee',
 ];
 
-function SingleIssueBlock({groupId}: {groupId: string}) {
-  const queryParams = useMemo(
-    () => ({query: `issue.id:${groupId}`, limit: '1'}),
-    [groupId]
-  );
+function SingleIssueBlock({id}: {id: string}) {
+  const queryParams = useMemo(() => ({query: `issue:${id}`, limit: '1'}), [id]);
 
   return (
     <GroupList
@@ -40,26 +33,13 @@ function SingleIssueBlock({groupId}: {groupId: string}) {
   );
 }
 
-function SingleIssueLink({groupId}: {groupId: string}) {
-  const organization = useOrganization();
-  const {data} = useQuery(
-    apiOptions.as<Group>()('/organizations/$organizationIdOrSlug/issues/$issueId/', {
-      path: {organizationIdOrSlug: organization.slug, issueId: groupId},
-      staleTime: Infinity,
-    })
-  );
-  const shortId = data?.shortId ?? groupId;
-
-  return <ResourceLink icon={IconIssues} href={`/issues/${groupId}/`} title={shortId} />;
-}
-
-function MultiIssueBlock({groupIds}: {groupIds: string[]}) {
+function MultiIssueBlock({ids}: {ids: string[]}) {
   const queryParams = useMemo(
     () => ({
-      query: `issue.id:[${groupIds.join(',')}]`,
-      limit: String(groupIds.length),
+      query: `issue:[${ids.join(',')}]`,
+      limit: String(ids.length),
     }),
-    [groupIds]
+    [ids]
   );
 
   return (
@@ -70,24 +50,24 @@ function MultiIssueBlock({groupIds}: {groupIds: string[]}) {
       withPagination={false}
       canSelectGroups={false}
       useFilteredStats={false}
-      numPlaceholderRows={groupIds.length}
+      numPlaceholderRows={ids.length}
     />
   );
 }
 
 export const Issue = defineSeerEmbed({
   name: 'issue',
-  render({groupId}, level) {
+  render({id}, level) {
     if (level === 'block') {
-      return <SingleIssueBlock groupId={groupId} />;
+      return <SingleIssueBlock id={id} />;
     }
-    return <SingleIssueLink groupId={groupId} />;
+    return <ResourceLink icon={IconIssues} href={`/issues/${id}/`} title={id} />;
   },
 });
 
 export const Issues = defineSeerEmbed({
   name: 'issues',
-  render({groupIds}) {
-    return <MultiIssueBlock groupIds={groupIds} />;
+  render({ids}) {
+    return <MultiIssueBlock ids={ids} />;
   },
 });
