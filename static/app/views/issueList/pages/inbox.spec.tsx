@@ -727,6 +727,48 @@ describe('InboxPage', () => {
     ).toHaveAttribute('href', 'https://github.com/org/repository/pull/10');
   });
 
+  it('labels a coding agent pull request like a Seer one', async () => {
+    // A delegated agent's PR arrives under coding_agents rather than repo_pr_states.
+    mockSuccessfulSections();
+    mockIssuePreview();
+    mockAutofixResponse(
+      ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({
+          coding_agents: {
+            'agent-1': {
+              id: 'agent-1',
+              name: 'Cursor',
+              provider: 'cursor_background_agent',
+              started_at: '2024-01-01T00:00:00Z',
+              status: 'completed',
+              results: [
+                {
+                  description: 'Fixed',
+                  repo_full_name: 'org/repository',
+                  repo_provider: 'github',
+                  pr_number: 649,
+                  pr_url: 'https://github.com/org/repository/pull/649',
+                },
+              ],
+            },
+          },
+        }),
+      })
+    );
+
+    render(<InboxPage />, {
+      organization: seerOrganization,
+      initialRouterConfig,
+    });
+
+    const preview = await openFixProposedPreview();
+    expect(
+      await within(preview).findByRole('button', {
+        name: 'View org/repository#649',
+      })
+    ).toHaveAttribute('href', 'https://github.com/org/repository/pull/649');
+  });
+
   it('retries a failed Autofix pull request', async () => {
     mockSuccessfulSections();
     mockIssuePreview();

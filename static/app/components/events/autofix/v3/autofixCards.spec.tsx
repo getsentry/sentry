@@ -1821,6 +1821,7 @@ describe('ArtifactCard', () => {
                     description: 'Fixed',
                     repo_full_name: 'org/repo',
                     repo_provider: 'github',
+                    pr_number: 99,
                     pr_url: 'https://github.com/org/repo/pull/99',
                   },
                 ],
@@ -1830,7 +1831,7 @@ describe('ArtifactCard', () => {
         />
       );
 
-      const link = screen.getByRole('button', {name: 'View Pull Request'});
+      const link = screen.getByRole('button', {name: 'View org/repo#99'});
       expect(link).toHaveAttribute('href', 'https://github.com/org/repo/pull/99');
     });
 
