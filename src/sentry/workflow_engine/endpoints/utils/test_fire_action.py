@@ -3,6 +3,7 @@ import uuid
 
 import sentry_sdk
 
+from sentry.issues.action_log import ActionSource, action_context_scope
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData, WorkflowId
@@ -18,11 +19,12 @@ def test_fire_action(
     """
     action_exceptions = []
     try:
-        action.trigger(
-            event_data=event_data,
-            notification_uuid=str(uuid.uuid4()),
-            workflow_id=workflow_id,
-        )
+        with action_context_scope(ActionSource.SYSTEM):
+            action.trigger(
+                event_data=event_data,
+                notification_uuid=str(uuid.uuid4()),
+                workflow_id=workflow_id,
+            )
     except Exception as exc:
         if isinstance(exc, IntegrationFormError):
             logger.warning("%s.test_alert.integration_error", action.type, extra={"exc": exc})
