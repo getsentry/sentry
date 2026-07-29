@@ -14,6 +14,7 @@ import {
   updatePersistence,
   updateProjects,
 } from 'sentry/components/pageFilters/actions';
+import {PageFilterAdjustmentReason} from 'sentry/components/pageFilters/adjustments';
 import * as PageFilterPersistence from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -80,7 +81,8 @@ describe('PageFilters ActionCreators', () => {
           environments: [],
           projects: [1],
         }),
-        true
+        true,
+        []
       );
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -131,7 +133,8 @@ describe('PageFilters ActionCreators', () => {
           environments: [],
           projects: [],
         }),
-        false
+        false,
+        []
       );
 
       // `onInitializeUrlState` is being spied on, so PageFiltersStore wasn't actually
@@ -168,7 +171,8 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
         }),
-        true
+        true,
+        []
       );
     });
 
@@ -197,7 +201,8 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
         }),
-        true
+        true,
+        []
       );
     });
 
@@ -226,7 +231,8 @@ describe('PageFilters ActionCreators', () => {
           datetime: expect.objectContaining({period: '1h'}),
           projects: [1],
         }),
-        true
+        true,
+        []
       );
     });
 
@@ -258,7 +264,8 @@ describe('PageFilters ActionCreators', () => {
           }),
           projects: [1],
         }),
-        true
+        true,
+        []
       );
     });
 
@@ -282,7 +289,8 @@ describe('PageFilters ActionCreators', () => {
           projects: [1],
           environments: [],
         },
-        true
+        true,
+        []
       );
     });
 
@@ -305,7 +313,8 @@ describe('PageFilters ActionCreators', () => {
           projects: [-1],
           environments: [],
         },
-        true
+        true,
+        []
       );
     });
 
@@ -354,7 +363,14 @@ describe('PageFilters ActionCreators', () => {
         expect.objectContaining({
           projects: [parseInt(nonMemberProject.id, 10)],
         }),
-        true
+        true,
+        [
+          {
+            filter: 'projects',
+            reason: PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED,
+            projectSlug: nonMemberProject.slug,
+          },
+        ]
       );
     });
 
@@ -373,7 +389,8 @@ describe('PageFilters ActionCreators', () => {
         expect.objectContaining({
           projects: [-1],
         }),
-        true
+        true,
+        [{filter: 'projects', reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS}]
       );
     });
 
@@ -396,7 +413,14 @@ describe('PageFilters ActionCreators', () => {
         expect.objectContaining({
           projects: [parseInt(nonMemberProject.id, 10)],
         }),
-        true
+        true,
+        [
+          {
+            filter: 'projects',
+            reason: PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED,
+            projectSlug: nonMemberProject.slug,
+          },
+        ]
       );
     });
 
@@ -414,7 +438,105 @@ describe('PageFilters ActionCreators', () => {
         expect.objectContaining({
           projects: [42],
         }),
-        true
+        true,
+        [
+          {
+            filter: 'projects',
+            reason: PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED,
+            projectSlug: singleProject.slug,
+          },
+        ]
+      );
+    });
+
+    it('records an adjustment when inaccessible projects are dropped from the URL', () => {
+      initializeUrlState({
+        organization,
+        location: {...router.location, query: {project: ['1', '999']}},
+        navigate,
+        memberProjects: projects,
+        nonMemberProjects: [],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({projects: [1]}),
+        true,
+        [{filter: 'projects', reason: PageFilterAdjustmentReason.INVALID_PROJECTS}]
+      );
+    });
+
+    it('records an adjustment when nonexistent environments are dropped from the URL', () => {
+      initializeUrlState({
+        organization,
+        location: {
+          ...router.location,
+          query: {project: ['1'], environment: ['prod', 'nope']},
+        },
+        navigate,
+        memberProjects: projects,
+        nonMemberProjects: [],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({environments: ['prod']}),
+        true,
+        [
+          {
+            filter: 'environments',
+            reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS,
+          },
+        ]
+      );
+    });
+
+    it('records an adjustment when the date range exceeds maxPickableDays', () => {
+      initializeUrlState({
+        organization,
+        location: {...router.location, query: {statsPeriod: '90d'}},
+        navigate,
+        memberProjects: projects,
+        nonMemberProjects: [],
+        maxPickableDays: 30,
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          datetime: expect.objectContaining({period: '30d'}),
+        }),
+        true,
+        [
+          {
+            filter: 'datetime',
+            reason: PageFilterAdjustmentReason.MAX_PICKABLE_DAYS,
+            days: 30,
+          },
+        ]
+      );
+    });
+
+    it('records an adjustment when the date range exceeds maxDateRange', () => {
+      initializeUrlState({
+        organization,
+        location: {...router.location, query: {statsPeriod: '90d'}},
+        navigate,
+        memberProjects: projects,
+        nonMemberProjects: [],
+        maxPickableDays: 90,
+        maxDateRange: 7,
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          datetime: expect.objectContaining({period: '7d'}),
+        }),
+        true,
+        [
+          {
+            filter: 'datetime',
+            reason: PageFilterAdjustmentReason.MAX_DATE_RANGE,
+            days: 7,
+          },
+        ]
       );
     });
 
@@ -431,7 +553,8 @@ describe('PageFilters ActionCreators', () => {
         expect.objectContaining({
           projects: [],
         }),
-        true
+        true,
+        []
       );
     });
 
@@ -515,7 +638,8 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
         }),
-        true
+        true,
+        []
       );
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -581,7 +705,8 @@ describe('PageFilters ActionCreators', () => {
             utc: null,
           },
         }),
-        true
+        true,
+        []
       );
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -621,7 +746,8 @@ describe('PageFilters ActionCreators', () => {
           environments: [],
           projects: [1],
         }),
-        true
+        true,
+        []
       );
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({

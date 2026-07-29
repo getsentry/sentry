@@ -4,6 +4,8 @@ import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
+import type {PageFilterAdjustment} from 'sentry/components/pageFilters/adjustments';
+import {PageFilterAdjustmentReason} from 'sentry/components/pageFilters/adjustments';
 import {
   ALL_ACCESS_PROJECTS,
   DATE_TIME_KEYS,
@@ -199,6 +201,10 @@ export function initializeUrlState({
   const hasProjectOrEnvironmentInUrl =
     Object.keys(pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])).length > 0;
 
+  // Adjustments we make to the requested selection below, so pages can explain
+  // to the user why the selection isn't what they asked for.
+  const adjustments: PageFilterAdjustment[] = [];
+
   /**
    * Check to make sure that the project ID exists in the projects list. Invalid project
    * IDs (project was deleted/moved to another org) can still exist in local storage or
@@ -229,6 +235,20 @@ export function initializeUrlState({
   if (hasProjectOrEnvironmentInUrl) {
     pageFilters.projects = parsed.project?.filter(validateProjectId) || [];
     pageFilters.environments = parsed.environment?.filter(validateEnvironment) || [];
+
+    if (pageFilters.projects.length < (parsed.project?.length ?? 0)) {
+      adjustments.push({
+        filter: 'projects',
+        reason: PageFilterAdjustmentReason.INVALID_PROJECTS,
+      });
+    }
+
+    if (pageFilters.environments.length < (parsed.environment?.length ?? 0)) {
+      adjustments.push({
+        filter: 'environments',
+        reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS,
+      });
+    }
   }
 
   const storedPageFilters = skipLoadLastUsed
@@ -248,6 +268,10 @@ export function initializeUrlState({
 
       if (pageFilters.projects.length < (storedState.project?.length ?? 0)) {
         shouldUpdateLocalStorage = true; // update storage to remove invalid projects
+        adjustments.push({
+          filter: 'projects',
+          reason: PageFilterAdjustmentReason.INVALID_PROJECTS,
+        });
       }
     }
 
@@ -261,6 +285,10 @@ export function initializeUrlState({
 
       if (pageFilters.environments.length < (storedState.environment?.length ?? 0)) {
         shouldUpdateLocalStorage = true; // update storage to remove invalid environments
+        adjustments.push({
+          filter: 'environments',
+          reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS,
+        });
       }
     }
 
@@ -279,6 +307,11 @@ export function initializeUrlState({
     const onlyProject = memberProjects[0] ?? nonMemberProjects[0];
     if (onlyProject) {
       pageFilters.projects = [getProjectIdFromProject(onlyProject)];
+      adjustments.push({
+        filter: 'projects',
+        reason: PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED,
+        projectSlug: onlyProject.slug,
+      });
     }
   }
 
@@ -293,6 +326,10 @@ export function initializeUrlState({
     // The user has no projects they are a member of, but they could look at "all projects".
     // We can attempt to be helpful and redirect them to the all projects view.
     pageFilters.projects = [ALL_ACCESS_PROJECTS];
+    adjustments.push({
+      filter: 'projects',
+      reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS,
+    });
   }
 
   const {projects, environments: environment, datetime} = pageFilters;
@@ -342,6 +379,11 @@ export function initializeUrlState({
             end: null,
             utc: datetime.utc,
           };
+          adjustments.push({
+            filter: 'datetime',
+            reason: PageFilterAdjustmentReason.MAX_DATE_RANGE,
+            days: maxDateRange,
+          });
         }
       } else {
         if (periodStart.getTime() < maxStart.getTime()) {
@@ -352,12 +394,17 @@ export function initializeUrlState({
             end: null,
             utc: datetime.utc,
           };
+          adjustments.push({
+            filter: 'datetime',
+            reason: PageFilterAdjustmentReason.MAX_PICKABLE_DAYS,
+            days: maxPickableDays,
+          });
         }
       }
     }
   }
 
-  PageFiltersStore.onInitializeUrlState(pageFilters, shouldPersist);
+  PageFiltersStore.onInitializeUrlState(pageFilters, shouldPersist, adjustments);
   if (shouldUpdateLocalStorage) {
     setPageFiltersStorage(
       organization.slug,

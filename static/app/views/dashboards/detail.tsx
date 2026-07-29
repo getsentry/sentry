@@ -84,6 +84,7 @@ import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
+import {AdjustedFiltersAlert} from './adjustedFiltersAlert';
 import {Controls} from './controls';
 import {validateDashboardAndRecordMetrics} from './createFromSeerUtils';
 import {Dashboard} from './dashboard';
@@ -1124,6 +1125,7 @@ class DashboardDetail extends Component<Props, State> {
                 <OverrideHeader organization={organization} />
                 <Stack gap="xl">
                   {pageAlerts}
+                  <AdjustedFiltersAlert hasUnsavedChanges={false} />
                   <FiltersBar
                     dashboard={dashboard}
                     dashboardPermissions={dashboard.permissions}
@@ -1302,6 +1304,9 @@ class DashboardDetail extends Component<Props, State> {
                         >
                           <Stack gap="xl">
                             {pageAlerts}
+                            <AdjustedFiltersAlert
+                              hasUnsavedChanges={!this.isEmbedded && hasUnsavedFilters}
+                            />
                             <FiltersBar
                               dashboard={modifiedDashboard ?? dashboard}
                               filters={(modifiedDashboard ?? dashboard).filters}
