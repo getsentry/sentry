@@ -47,7 +47,7 @@ export function OldQueryTokens({
           .filter(({text}) => text.trim() !== '')
           .map(({text}) => (
             <FormattedQueryWrapper key={text}>
-              <ProvidedFormattedQuery query={text} />
+              <ProvidedFormattedQuery query={text} wrapTokens />
             </FormattedQueryWrapper>
           ))}
       </Flex>
@@ -195,7 +195,7 @@ export function OldQueryTokens({
                   ?.filter(({text}) => text.trim() !== '')
                   .map(({text}) => (
                     <FormattedQueryWrapper key={text}>
-                      <ProvidedFormattedQuery query={text} />
+                      <ProvidedFormattedQuery query={text} wrapTokens />
                     </FormattedQueryWrapper>
                   ))}
               </Flex>
@@ -237,10 +237,11 @@ const ExploreVisualizes = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
-  height: 24px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  min-height: 24px;
+  width: fit-content;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
   display: inline-flex;
   align-items: center;
 `;
@@ -248,5 +249,8 @@ const ExploreVisualizes = styled('span')`
 const ExploreGroupBys = ExploreVisualizes;
 
 const FormattedQueryWrapper = styled('span')`
-  display: inline-block;
+  display: block;
+  width: fit-content;
+  min-width: 0;
+  max-width: 100%;
 `;

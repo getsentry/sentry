@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect, useRef, useState} from 'react';
+import {Fragment, useContext, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -14,6 +14,7 @@ import {
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
+import {FormattedQueryConfigContext} from 'sentry/components/searchQueryBuilder/formattedQueryContext';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {
   BaseGridCell,
@@ -57,11 +58,12 @@ interface FilterValueProps extends SearchQueryTokenProps {
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const {size} = useSearchQueryBuilderLayout();
+  const {wrapTokens} = useContext(FormattedQueryConfigContext);
   const valueType = getFilterValueType(token, getFieldDefinition(getKeyName(token.key)));
 
   if (token.filter === FilterType.HAS) {
     return (
-      <FilterValueSingleTruncatedValue>
+      <FilterValueSingleTruncatedValue $wrap={wrapTokens}>
         {prettifyTagKey(token.value.text)}
       </FilterValueSingleTruncatedValue>
     );
@@ -75,7 +77,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
 
       if (items.length === 1 && items[0]!.value) {
         return (
-          <FilterValueSingleTruncatedValue>
+          <FilterValueSingleTruncatedValue $wrap={wrapTokens}>
             {formatFilterValue({token: items[0]!.value, valueType})}
           </FilterValueSingleTruncatedValue>
         );
@@ -84,10 +86,15 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       const maxItems = size === 'small' ? 1 : 3;
 
       return (
-        <Flex align="center" wrap="nowrap" gap="xs" maxWidth="400px">
+        <Flex
+          align="center"
+          wrap={wrapTokens ? 'wrap' : 'nowrap'}
+          gap="xs"
+          maxWidth="400px"
+        >
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
-              <FilterMultiValueTruncated>
+              <FilterMultiValueTruncated $wrap={wrapTokens}>
                 {formatFilterValue({token: item.value!, valueType})}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
@@ -108,7 +115,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
     }
     default: {
       return (
-        <FilterValueSingleTruncatedValue>
+        <FilterValueSingleTruncatedValue $wrap={wrapTokens}>
           {formatFilterValue({token: token.value, valueType})}
         </FilterValueSingleTruncatedValue>
       );
@@ -357,20 +364,22 @@ const FilterValueJoiner = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-const FilterMultiValueTruncated = styled('div')`
+const FilterMultiValueTruncated = styled('div')<{$wrap?: boolean}>`
   display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 110px;
-  width: min-content;
+  white-space: ${p => (p.$wrap ? 'normal' : 'nowrap')};
+  overflow: ${p => (p.$wrap ? 'visible' : 'hidden')};
+  text-overflow: ${p => (p.$wrap ? 'clip' : 'ellipsis')};
+  overflow-wrap: ${p => (p.$wrap ? 'anywhere' : undefined)};
+  max-width: ${p => (p.$wrap ? '100%' : '110px')};
+  width: ${p => (p.$wrap ? 'auto' : 'min-content')};
 `;
 
-const FilterValueSingleTruncatedValue = styled('div')`
+const FilterValueSingleTruncatedValue = styled('div')<{$wrap?: boolean}>`
   display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: ${p => (p.$wrap ? 'normal' : 'nowrap')};
+  overflow: ${p => (p.$wrap ? 'visible' : 'hidden')};
+  text-overflow: ${p => (p.$wrap ? 'clip' : 'ellipsis')};
+  overflow-wrap: ${p => (p.$wrap ? 'anywhere' : undefined)};
   max-width: 100%;
-  width: min-content;
+  width: ${p => (p.$wrap ? 'auto' : 'min-content')};
 `;
