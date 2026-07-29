@@ -1,4 +1,4 @@
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 
@@ -23,7 +23,6 @@ describe('FeatureBadge', () => {
       </button>
     );
 
-    const button = screen.getByRole('button');
     const badge = screen.getByLabelText('new');
 
     expect(badge).not.toHaveAttribute('tabindex');
@@ -31,10 +30,8 @@ describe('FeatureBadge', () => {
     await userEvent.tab();
     expect(await screen.findByText(NEW_FEATURE_TOOLTIP)).toBeInTheDocument();
 
-    act(() => button.blur());
-    await waitFor(() => {
-      expect(screen.queryByText(NEW_FEATURE_TOOLTIP)).not.toBeInTheDocument();
-    });
+    await userEvent.tab();
+    expect(screen.queryByText(NEW_FEATURE_TOOLTIP)).not.toBeInTheDocument();
   });
 
   it('recognizes roving focus targets with tabIndex=-1', () => {
