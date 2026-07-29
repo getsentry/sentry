@@ -257,8 +257,7 @@ function SudoModal({
     return authLoginPath;
   };
 
-  // A superuser flow needs an authenticator unless U2F is disabled. Surfaced at
-  // render time so it reports even when validation blocks submission.
+  // Resolved at render time so it reports even when validation blocks submission.
   const noAuthenticator =
     isSuperuser && !disableU2FForSUForm && authenticatorsLoaded && !authenticators.length;
   const resolvedErrorType =
@@ -392,7 +391,6 @@ function SudoModal({
               <Flex width="100%" justify="between" align="center" gap="md">
                 <superuserForm.SubmitButton
                   variant="secondary"
-                  disabled={noAuthenticator}
                   onClick={() => {
                     superuserForm.setFieldValue('superuserAccessCategory', 'cops_csm');
                     superuserForm.setFieldValue('superuserReason', 'COPS and CSM use');
@@ -400,9 +398,7 @@ function SudoModal({
                 >
                   {t('COPS/CSM')}
                 </superuserForm.SubmitButton>
-                <superuserForm.SubmitButton disabled={noAuthenticator}>
-                  {t('Continue')}
-                </superuserForm.SubmitButton>
+                <superuserForm.SubmitButton>{t('Continue')}</superuserForm.SubmitButton>
               </Flex>
             ) : (
               <Flex width="100%" justify="between" align="center" gap="md">

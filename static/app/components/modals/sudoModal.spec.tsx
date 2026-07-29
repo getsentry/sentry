@@ -258,7 +258,6 @@ describe('Sudo Modal', () => {
       expect(
         await screen.findByText('Please add a U2F authenticator to your Sentry account')
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
     });
 
     it('shows an error when authentication fails', async () => {
