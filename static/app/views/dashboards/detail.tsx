@@ -79,6 +79,7 @@ import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getD
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -135,6 +136,7 @@ type RouteParams = {
 type Props = {
   api: Client;
   dashboard: DashboardDetails;
+  hasNewBreadcrumbs: boolean;
   initialState: DashboardState;
   location: Location;
   navigate: ReactRouter3Navigate;
@@ -1182,6 +1184,7 @@ class DashboardDetail extends Component<Props, State> {
       navigate,
       organization,
       dashboard,
+      hasNewBreadcrumbs,
       location,
       onDashboardUpdate,
       pageAlerts,
@@ -1201,7 +1204,6 @@ class DashboardDetail extends Component<Props, State> {
       hasUnsavedFilterChanges(dashboard, location);
 
     const eventView = generatePerformanceEventView(location, projects, {});
-    const hasNewBreadcrumbs = organization.features.includes('ui-migration-breadcrumbs');
 
     const pageContent = (
       <Stack flex={1}>
@@ -1560,6 +1562,7 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'location'
   | 'params'
   | 'queryClient'
+  | 'hasNewBreadcrumbs'
 > {}
 
 export function DashboardDetailWithInjectedProps(
@@ -1574,6 +1577,7 @@ export function DashboardDetailWithInjectedProps(
   const params = useParams<RouteParams>();
   const [chartInterval] = useDashboardChartInterval();
   const queryClient = useQueryClient();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
   // filter period (e.g. won't return 1m for a 30d range) and always has a value.
@@ -1591,6 +1595,7 @@ export function DashboardDetailWithInjectedProps(
       params={params}
       widgetInterval={widgetInterval}
       queryClient={queryClient}
+      hasNewBreadcrumbs={hasNewBreadcrumbs}
     />
   );
 }
