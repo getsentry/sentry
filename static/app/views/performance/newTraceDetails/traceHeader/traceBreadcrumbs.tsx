@@ -94,7 +94,7 @@ export function TraceBreadcrumbs({
   // This header only renders on the standalone trace page, so the waterfall
   // source is always 'performance'.
   const exploreTarget = useTraceExploreTarget({
-    trace_id: traceSlug,
+    traceSlug,
     traceEventView,
     source: 'performance',
   });

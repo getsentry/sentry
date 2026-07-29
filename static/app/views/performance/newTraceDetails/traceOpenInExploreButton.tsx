@@ -8,18 +8,18 @@ import {useTraceExploreTarget} from 'sentry/views/performance/newTraceDetails/us
 type Props = {
   source: TraceWaterfallSource;
   traceEventView: EventView;
-  trace_id: string;
+  traceSlug: string;
   replayId?: string;
 };
 
 export function TraceOpenInExploreButton({
-  trace_id,
+  traceSlug,
   traceEventView,
   source,
   replayId,
 }: Props) {
   const exploreTarget = useTraceExploreTarget({
-    trace_id,
+    traceSlug,
     traceEventView,
     source,
     replayId,

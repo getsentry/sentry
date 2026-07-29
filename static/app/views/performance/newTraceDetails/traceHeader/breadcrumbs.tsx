@@ -498,8 +498,18 @@ export function getTraceViewParentCrumbs({
           ),
         },
       ];
+    // Without a `source` we can't know where the user came from, so fall back
+    // to the traces list — every trace is reachable from there.
     default:
-      return [{label: t('Trace')}];
+      return [
+        {
+          label: t('Traces'),
+          to: getBreadCrumbTarget(
+            makeTracesPathname({path: '/', organization}),
+            location.query
+          ),
+        },
+      ];
   }
 }
 

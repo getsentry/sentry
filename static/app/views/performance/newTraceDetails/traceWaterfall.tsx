@@ -700,7 +700,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
               source={props.source}
             />
             <TraceOpenInExploreButton
-              trace_id={props.traceSlug}
+              traceSlug={props.traceSlug}
               traceEventView={props.traceEventView}
               source={props.source}
               replayId={props.replay?.id}
