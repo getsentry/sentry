@@ -97,11 +97,12 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
 
 # Progress for open issues (None when closed).
 #
-# Progress is dervived from a few features, which are tracked independently:
+# Progress is derived from a few features, which are tracked independently:
 #
 #   * IS_ASSIGNED     — issue has an assignee. Survives close/reopen.
 #   * HAS_ROOT_CAUSE  — a root cause has been identified (diagnosed). Cleared on
-#     regression (SET_REGRESSED), but preserved when manually reopened (UNRESOLVE).
+#     regression (SET_REGRESSED) and when a Seer-proposed fix is rejected, but
+#     preserved when manually reopened (UNRESOLVE).
 #   * HAS_OPEN_FIX_PR — at least one PR which resolves the issue is still open.
 #     Cleared when the last linked PR closes without being merged.
 #
@@ -137,6 +138,7 @@ def track_assignment(state: StateView, entry: GroupActionLogEntry) -> Aggregator
         RootCauseIdentifiedAction,
         SeerRCACompletedAction,
         SetRegressedAction,
+        PullRequestClosedAction,
     ),
 )
 def track_root_cause(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
@@ -144,11 +146,20 @@ def track_root_cause(state: StateView, entry: GroupActionLogEntry) -> Aggregator
 
     Set by ROOT_CAUSE_IDENTIFIED or SEER_RCA_COMPLETED and cleared on regression
     (SET_REGRESSED), since a regressed issue is a fresh occurrence that needs
-    re-diagnosing. A manual reopen (UNRESOLVE) preserves the diagnosis.
+    re-diagnosing. Also cleared when a Seer fix PR closes unmerged: the rejected
+    fix takes its diagnosis with it. A manual reopen (UNRESOLVE) preserves the
+    diagnosis.
     """
-    has_root_cause = isinstance(entry.action, (RootCauseIdentifiedAction, SeerRCACompletedAction))
-    if has_root_cause != state[HAS_ROOT_CAUSE]:
-        return emit(HAS_ROOT_CAUSE.value(has_root_cause))
+    current = state[HAS_ROOT_CAUSE]
+
+    match entry.action:
+        case RootCauseIdentifiedAction() | SeerRCACompletedAction() if not current:
+            return emit(HAS_ROOT_CAUSE.value(True))
+        case SetRegressedAction() if current:
+            return emit(HAS_ROOT_CAUSE.value(False))
+        case PullRequestClosedAction(is_seer_created=True) if current:
+            return emit(HAS_ROOT_CAUSE.value(False))
+
     return None
 
 

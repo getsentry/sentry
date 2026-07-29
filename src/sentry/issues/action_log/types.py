@@ -505,6 +505,8 @@ class PullRequestClosedAction(GroupAction):
     pull_request: Optional[int | str] = None  # PullRequest model ID
     # Whether the issue has other linked PRs still open when this one closed
     has_other_open_prs: Optional[bool] = None
+    # Whether this specific PR was created directly by Seer. None for legacy actions.
+    is_seer_created: Optional[bool] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
