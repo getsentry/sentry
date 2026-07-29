@@ -132,6 +132,16 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, SearchIs
             initial_event.group.id: (project.id, latest_event.event_id)
         }
 
+    @patch("sentry.utils.snuba.bulk_snuba_queries")
+    def test_bulk_get_latest_event_ids_casts_group_id(self, bulk_snuba_queries: MagicMock) -> None:
+        group = self.create_group()
+        event_id = "a" * 32
+        bulk_snuba_queries.return_value = [
+            {"data": [{"group_id": str(group.id), "event_id": event_id}]}
+        ]
+
+        assert bulk_get_latest_event_ids([group]) == {group.id: (group.project_id, event_id)}
+
     def test_get_oldest_latest_for_environments(self) -> None:
         project = self.create_project()
         self.store_event(

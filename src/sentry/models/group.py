@@ -321,7 +321,7 @@ def bulk_get_latest_event_ids(groups: Sequence[Group]) -> dict[int, tuple[int, s
     )
     for (_request, project_ids_by_group), result in zip(request_contexts, results, strict=True):
         for row in result["data"]:
-            group_id = row["group_id"]
+            group_id = int(row["group_id"])
             latest_event_ids[group_id] = (project_ids_by_group[group_id], row["event_id"])
 
     return latest_event_ids
