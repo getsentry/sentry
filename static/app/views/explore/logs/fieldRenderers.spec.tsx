@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
@@ -13,6 +14,7 @@ import {LogAttributesRendererMap} from 'sentry/views/explore/logs/fieldRenderers
 import {OurLogKnownFieldKey, type LogRowItem} from 'sentry/views/explore/logs/types';
 
 const TimestampRenderer = LogAttributesRendererMap[OurLogKnownFieldKey.TIMESTAMP];
+const TraceIDRenderer = LogAttributesRendererMap[OurLogKnownFieldKey.TRACE_ID];
 
 type LogFieldRendererProps = AttributesFieldRendererProps<RendererExtra>;
 
@@ -177,6 +179,39 @@ describe('Logs Field Renderers', () => {
       await waitFor(() => {
         expect(screen.getByText(/Jan 15, 2024.*2:30:45\.123 PM UTC/)).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('TraceIDRenderer', () => {
+    const timestamp = '2024-01-15T14:30:45.123Z';
+    const traceId = 'a'.repeat(32);
+
+    it('keeps the date selection when linking to the trace', () => {
+      expect(TraceIDRenderer).toBeDefined();
+      const props = makeRendererProps(timestamp, {
+        [OurLogKnownFieldKey.TIMESTAMP]: timestamp,
+      });
+      const result = TraceIDRenderer!({
+        ...props,
+        item: {
+          fieldKey: OurLogKnownFieldKey.TRACE_ID,
+          value: traceId,
+          metaFieldType: 'string',
+          unit: null,
+        } as LogRowItem,
+        extra: {
+          ...props.extra,
+          location: LocationFixture({query: {statsPeriod: '7d'}}),
+        },
+        basicRendered: <span>{traceId}</span>,
+      });
+
+      render(<Fragment>{result}</Fragment>);
+
+      expect(screen.getByRole('link', {name: traceId})).toHaveAttribute(
+        'href',
+        expect.stringContaining('statsPeriod=7d')
+      );
     });
   });
 });

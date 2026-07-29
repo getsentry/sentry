@@ -10,6 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration/duration';
 import {useStacktraceLink} from 'sentry/components/events/interfaces/frame/useStacktraceLink';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Version} from 'sentry/components/version';
 import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
@@ -415,7 +416,7 @@ function TraceIDRenderer(props: LogFieldRendererProps) {
         ? timestamp
         : undefined,
     organization: props.extra.organization,
-    dateSelection: props.extra.location,
+    dateSelection: normalizeDateTimeParams(props.extra.location.query),
     location,
     source: TraceViewSources.LOGS,
   });
