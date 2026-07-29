@@ -48,8 +48,13 @@ def _apply_prediction(
 
     # We need someone who actually resolves to a Sentry user, so pick one further
     # down the list of suggestions if necessary.
-    top_user_id = next(
-        (user_id for user_id in predicted_assignee_user_ids if user_id is not None), None
+    top_user_id, used_rank = next(
+        (
+            (user_id, rank)
+            for rank, user_id in enumerate(predicted_assignee_user_ids)
+            if user_id is not None
+        ),
+        (None, None),
     )
     if top_user_id is None:
         # Agent abstained, or none of its candidates mapped to an org user.
@@ -64,7 +69,7 @@ def _apply_prediction(
         # The top pick doesn't resolve to an org user.
         metrics.incr(
             "smart_assignment.apply_prediction",
-            tags={"outcome": "user_missing"},
+            tags={"outcome": "user_missing", "used_rank": used_rank},
             sample_rate=1.0,
         )
         return
@@ -88,8 +93,12 @@ def _apply_prediction(
     # ground-truth capture skips our own assignment (see scoring.record_ground_truth).
     ProjectOwnership.handle_auto_assignment(project_id=group.project_id, group=group)
 
-    metrics.incr("smart_assignment.apply_prediction", tags={"outcome": "applied"}, sample_rate=1.0)
+    metrics.incr(
+        "smart_assignment.apply_prediction",
+        tags={"outcome": "applied", "used_rank": used_rank},
+        sample_rate=1.0,
+    )
     logger.info(
         "smart_assignment.apply_prediction.applied",
-        extra={"group_id": group.id, "user_id": top_user_id},
+        extra={"group_id": group.id, "user_id": top_user_id, "used_rank": used_rank},
     )
