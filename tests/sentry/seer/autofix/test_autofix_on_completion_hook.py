@@ -56,7 +56,14 @@ def root_cause_memory_block(referrer: str | None = None) -> MemoryBlock:
         artifacts=[
             Artifact(
                 key="root_cause",
-                data={"one_line_description": "Null pointer in auth module"},
+                data={
+                    "one_line_description": "Null pointer in auth module",
+                    "five_whys": ["Why 1"],
+                    "fixability": {
+                        "assessment": "fixable",
+                        "reason": "Can be fixed in code",
+                    },
+                },
                 reason="explorer",
             )
         ],
@@ -220,22 +227,17 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
         result = AutofixOnCompletionHook._get_next_step(AutofixStep.PR_ITERATION)
         assert result is None
 
-    @patch("sentry.seer.autofix.on_completion_hook.introspect_iteration")
-    def test_run_introspection_pr_iteration(self, mock_introspect_iteration) -> None:
+    def test_determine_fixability_returns_none_for_non_root_cause(self) -> None:
         organization = self.create_organization()
-        project = self.create_project(organization=organization)
-        group = self.create_group(project=project)
         state = run_state(blocks=[pr_iteration_memory_block()])
 
-        AutofixOnCompletionHook.run_introspection(
+        result = AutofixOnCompletionHook.determine_fixability(
             organization,
-            123,
             state,
             AutofixStep.PR_ITERATION,
-            group,
         )
 
-        mock_introspect_iteration.assert_called_once_with(organization, 123, state, group)
+        assert result is None
 
 
 class TestAutofixOnCompletionHookPipeline(TestCase):
