@@ -25,7 +25,7 @@ def start_migration(
             shard is enqueued at the current max id.
             When set, only the listed shards are enqueued (resume).
     """
-    if options.get("debug-files.objectstore-migration.killswitch"):
+    if not options.get("debug-files.objectstore-migration.enabled"):
         raise RuntimeError("Debug file Objectstore migration is killswitched")
     if num_shards < 1:
         raise ValueError("num_shards must be positive")

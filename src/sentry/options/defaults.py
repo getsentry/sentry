@@ -44,12 +44,6 @@ register(
     default=30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "debug-files.objectstore-migration.killswitch",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
 register("system.upload-url-prefix", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -4014,4 +4008,12 @@ register(
     default=True,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Kill switch for Objectstore Debug Files migration
+register(
+    "debug-files.objectstore-migration.enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -68,7 +68,7 @@ def migrate_shard(
             **extra,
         }
 
-    if options.get("debug-files.objectstore-migration.killswitch"):
+    if not options.get("debug-files.objectstore-migration.enabled"):
         logger.info(
             "debug_files.objectstore_migration.killswitched",
             extra=log_extra(),
