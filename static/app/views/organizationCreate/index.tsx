@@ -13,10 +13,8 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
-import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
@@ -33,10 +31,8 @@ import {
 export const DATA_STORAGE_DOCS_LINK =
   'https://docs.sentry.io/product/accounts/choose-your-data-center';
 
-const DataConsentCheck = OverrideOrDefault({
-  overrideName: 'component:data-consent-org-creation-checkbox',
-  defaultComponent: null,
-});
+const DATA_CONSENT_DOCS_LINK =
+  'https://docs.sentry.io/security-legal-pii/security/ai-ml-policy/';
 
 /**
  * Payload sent to the organization creation endpoint. Fields are only included
@@ -57,8 +53,9 @@ function OrganizationCreate() {
   const relocationUrl = normalizeUrl('/relocation/');
   const localityOptions = getSignupLocalities();
 
-  const hasDataConsent =
-    getOverride('component:data-consent-org-creation-checkbox') !== undefined;
+  // Sentry does not receive service data when self-hosted, so there is nothing
+  // to consent to there.
+  const hasDataConsent = !isSelfHosted;
   const showTerms = Boolean(termsUrl && privacyUrl);
   const showLocality = localityOptions.length > 1;
 
@@ -241,7 +238,14 @@ function OrganizationCreate() {
               {hasDataConsent && (
                 <form.AppField name="aggregatedDataConsent">
                   {field => (
-                    <field.Layout.Stack label={<DataConsentCheck />}>
+                    <field.Layout.Stack
+                      label={tct(
+                        'I agree to let Sentry use my service data for product improvements. [dataConsentLink: Learn more].',
+                        {
+                          dataConsentLink: <ExternalLink href={DATA_CONSENT_DOCS_LINK} />,
+                        }
+                      )}
+                    >
                       <field.Base<HTMLInputElement>>
                         {baseProps => (
                           <Checkbox

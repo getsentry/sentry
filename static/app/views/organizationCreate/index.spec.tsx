@@ -84,7 +84,12 @@ describe('OrganizationCreate', () => {
         success: expect.any(Function),
         error: expect.any(Function),
         method: 'POST',
-        data: {agreeTerms: true, defaultTeam: true, name: 'Good Burger'},
+        data: {
+          agreeTerms: true,
+          defaultTeam: true,
+          name: 'Good Burger',
+          aggregatedDataConsent: false,
+        },
         host: ConfigStore.get('links').sentryUrl,
       });
     });
@@ -117,7 +122,12 @@ describe('OrganizationCreate', () => {
 
     await waitFor(() => {
       expect(orgCreateMock).toHaveBeenCalledWith('/organizations/', {
-        data: {agreeTerms: true, defaultTeam: true, name: 'Good Burger'},
+        data: {
+          agreeTerms: true,
+          defaultTeam: true,
+          name: 'Good Burger',
+          aggregatedDataConsent: false,
+        },
         method: 'POST',
         success: expect.any(Function),
         error: expect.any(Function),
@@ -169,7 +179,7 @@ describe('OrganizationCreate', () => {
         error: expect.any(Function),
         method: 'POST',
         host: ConfigStore.get('links').sentryUrl,
-        data: {defaultTeam: true, name: 'Good Burger'},
+        data: {defaultTeam: true, name: 'Good Burger', aggregatedDataConsent: false},
       });
     });
 
@@ -206,7 +216,12 @@ describe('OrganizationCreate', () => {
         error: expect.any(Function),
         method: 'POST',
         host: ConfigStore.get('links').sentryUrl,
-        data: {defaultTeam: true, name: 'Good Burger', dataStorageLocation: 'us'},
+        data: {
+          defaultTeam: true,
+          name: 'Good Burger',
+          dataStorageLocation: 'us',
+          aggregatedDataConsent: false,
+        },
       });
     });
 
@@ -238,7 +253,12 @@ describe('OrganizationCreate', () => {
         error: expect.any(Function),
         method: 'POST',
         host: ConfigStore.get('links').sentryUrl,
-        data: {defaultTeam: true, name: 'Good Burger', dataStorageLocation: 'de'},
+        data: {
+          defaultTeam: true,
+          name: 'Good Burger',
+          dataStorageLocation: 'de',
+          aggregatedDataConsent: false,
+        },
       });
     });
 
@@ -284,7 +304,12 @@ describe('OrganizationCreate', () => {
         error: expect.any(Function),
         method: 'POST',
         host: 'https://sentry.io',
-        data: {defaultTeam: true, name: 'Good Burger', dataStorageLocation: 'de'},
+        data: {
+          defaultTeam: true,
+          name: 'Good Burger',
+          dataStorageLocation: 'de',
+          aggregatedDataConsent: false,
+        },
       });
     });
 
