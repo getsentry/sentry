@@ -1240,6 +1240,16 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Deterministic % of gen_ai conversations that get Seer title generation, keyed
+# on conversation id. Requires organizations:gen-ai-conversation-title-generation.
+# 0.0 disables generation; 1.0 enables it for every conversation in flagged orgs.
+register(
+    "ai-monitoring.conversation-title-generation.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "seer.night_shift.enable",
     type=Bool,

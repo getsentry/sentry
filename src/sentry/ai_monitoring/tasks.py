@@ -20,11 +20,14 @@ from sentry.ai_monitoring.utils import (
     span_source_timestamp,
 )
 from sentry.models.project import Project
+from sentry.options.rollout import in_rollout_group
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ai_agent_monitoring_tasks
 from sentry.utils import metrics
+
+CONVERSATION_TITLE_ROLLOUT_RATE_OPTION = "ai-monitoring.conversation-title-generation.rollout-rate"
 
 
 def _is_earliest(source_ts: datetime) -> Q:
@@ -61,6 +64,9 @@ def generate_ai_conversation_title(
         return
     if organization.get_option("sentry:hide_ai_features"):
         metrics.incr("ai_monitoring.conversation_title.skip", tags={"reason": "hide_ai_features"})
+        return
+    if not in_rollout_group(CONVERSATION_TITLE_ROLLOUT_RATE_OPTION, conversation_id):
+        metrics.incr("ai_monitoring.conversation_title.skip", tags={"reason": "not_in_rollout"})
         return
 
     conv_hash = conversation_id_hash(conversation_id)

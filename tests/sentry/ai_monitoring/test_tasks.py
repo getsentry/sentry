@@ -9,6 +9,7 @@ from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.ai_monitoring.models import AIConversationMetadata
 from sentry.ai_monitoring.tasks import (
+    CONVERSATION_TITLE_ROLLOUT_RATE_OPTION,
     generate_ai_conversation_title,
     spawn_conversation_title_generation,
 )
@@ -27,6 +28,7 @@ from sentry.ai_monitoring.utils import (
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 TS = 1609455600.0
@@ -237,6 +239,7 @@ class TitleHelpersTest(TestCase):
 class GenerateAIConversationTitleTaskTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
+        self.enterContext(override_options({CONVERSATION_TITLE_ROLLOUT_RATE_OPTION: 1.0}))
         self.project = self.create_project()
 
     def _task_kwargs(self, **kwargs: Any) -> dict[str, Any]:
@@ -387,6 +390,13 @@ class GenerateAIConversationTitleTaskTest(TestCase):
     @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="Unused")
     def test_skips_when_feature_disabled(self, mock_generate: MagicMock) -> None:
         with self.feature({"organizations:gen-ai-conversation-title-generation": False}):
+            generate_ai_conversation_title(**self._task_kwargs())
+        assert AIConversationMetadata.objects.count() == 0
+        mock_generate.assert_not_called()
+
+    @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="Unused")
+    def test_skips_when_not_in_rollout(self, mock_generate: MagicMock) -> None:
+        with override_options({CONVERSATION_TITLE_ROLLOUT_RATE_OPTION: 0.0}):
             generate_ai_conversation_title(**self._task_kwargs())
         assert AIConversationMetadata.objects.count() == 0
         mock_generate.assert_not_called()
