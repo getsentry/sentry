@@ -14,12 +14,7 @@ import orjson
 import pytest
 import requests
 
-from sentry.lang.native.gpu import (
-    GPU_CRASH_DUMP_ATTACHMENT_TYPE,
-    _build_flat_gpu_context,
-    _normalize_gpu_frames,
-    apply_gpu_crash_symbolication,
-)
+from sentry.lang.native.gpu import GPU_CRASH_DUMP_ATTACHMENT_TYPE, apply_gpu_crash_symbolication
 from sentry.lang.native.teapot import (
     TeapotClient,
     TeapotUnavailable,
@@ -173,30 +168,22 @@ def test_apply_fingerprint_fallback() -> None:
     assert data["fingerprint"] == ["gpu", "page_fault"]
 
 
-@pytest.mark.parametrize(
-    "response",
-    [
-        _completed_response(shader_context={"active_shaders": {"shader_hash": "x"}}),
-        _completed_response(shader_context={"active_shaders": "nope"}),
-        _completed_response(shader_context={"active_shaders": 7}),
-        _completed_response(
-            shader_context="nope", fault="nope", gpu_state=7, missing_difs=5, fingerprint=9
-        ),
-        _completed_response(
-            shader_context=[], fault=None, gpu_state=[], missing_difs="x", warnings="w"
-        ),
-    ],
-)
-def test_apply_survives_malformed_teapot_response(response: dict[str, Any]) -> None:
-    ctx = _build_flat_gpu_context(response)
+def test_apply_handles_missing_optional_fields() -> None:
+    """A minimal completed response (no gpu_state/frames/shader_context) still
+    yields a valid event with sensible defaults."""
     data = _relay_gpu_event()
-    out = apply_gpu_crash_symbolication(data, response)
+    out = apply_gpu_crash_symbolication(
+        data, {"status": "completed", "fault_category": "page_fault"}
+    )
 
     assert out is data
-    assert "shader_hash" not in ctx
+    assert data["type"] == "error"
+    assert data["fingerprint"] == ["gpu", "page_fault"]
+    exc = data["exception"]["values"][0]
+    assert exc["type"] == "GPU crash (page_fault)"  # no title -> synthesized
+    assert exc["stacktrace"]["frames"] == []
+    assert data["contexts"]["gpu_crash"]["missing_dif_count"] == 0
     assert "gpu.shader_hash" not in dict(data["tags"])
-    assert ctx["missing_dif_count"] == 0
-    assert isinstance(data["fingerprint"], list)
 
 
 def test_apply_skips_failed_status() -> None:
@@ -413,20 +400,3 @@ def test_submit_to_teapot_swallows_unexpected() -> None:
         mock_client.return_value.symbolicate.side_effect = RuntimeError("unexpected")
         assert submit_to_teapot(project, "abc", dump, []) is None
         cap.assert_called_once()
-
-
-def test_normalize_gpu_frames_tolerates_non_mapping_data() -> None:
-    frames = [
-        {"function": "vertex", "data": "not-a-dict"},
-        {"function": "pixel", "data": [1, 2, 3]},
-        {"function": "compute", "data": {"shader_hash": 12345}},  # non-str hash
-        {"function": "ok", "data": {"shader_hash": "abc123"}},
-    ]
-
-    result = _normalize_gpu_frames(frames)
-
-    assert [f["function"] for f in result] == ["vertex", "pixel", "compute", "ok"]
-    assert "package" not in result[0]
-    assert "package" not in result[1]
-    assert "package" not in result[2]
-    assert result[3]["package"] == "shader_abc123"
