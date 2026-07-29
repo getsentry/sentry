@@ -81,8 +81,12 @@ interface BreadcrumbPaginationItem {
   onClick?: () => void;
   /** Destination for the chevron. When omitted the chevron renders disabled. */
   to?: LinkProps['to'];
-  /** Optional tooltip content — useful for rich tooltips like "Learn More" links. */
-  tooltip?: React.ReactNode;
+  /** Optional tooltip — the title accepts rich content, not just a string. */
+  tooltip?: {
+    title: React.ReactNode;
+    /** Keeps the tooltip open while hovered, so interactive content stays reachable. */
+    isHoverable?: boolean;
+  };
 }
 
 interface BreadcrumbItemPaginationProps {
@@ -121,8 +125,9 @@ export function BreadcrumbItemPageTitle({
       {pagination && (
         <Flex as="span" align="center">
           <Tooltip
-            title={pagination.previous.tooltip}
+            title={pagination.previous.tooltip?.title}
             disabled={!pagination.previous.tooltip}
+            isHoverable={pagination.previous.tooltip?.isHoverable}
           >
             {pagination.previous.to ? (
               <LinkButton
@@ -144,7 +149,11 @@ export function BreadcrumbItemPageTitle({
               />
             )}
           </Tooltip>
-          <Tooltip title={pagination.next.tooltip} disabled={!pagination.next.tooltip}>
+          <Tooltip
+            title={pagination.next.tooltip?.title}
+            disabled={!pagination.next.tooltip}
+            isHoverable={pagination.next.tooltip?.isHoverable}
+          >
             {pagination.next.to ? (
               <LinkButton
                 size="zero"

@@ -11,6 +11,8 @@ resources:
 import {ProjectsBadge} from '@sentry/scraps/badge';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {IconEllipsis, IconGlobe} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
@@ -314,7 +316,11 @@ edit affordance.
 The `page-title` item accepts an optional `pagination` prop for pages where the
 user can step through a list of items, such as issues, replays, or traces. Each
 direction has an `ariaLabel`, an optional `to` URL, an optional `disabled` flag,
-and an optional rich `tooltip`. When `to` is omitted, that chevron is disabled.
+and an optional `tooltip`. When `to` is omitted, that chevron is disabled.
+
+The `tooltip` takes a `title` plus an optional `isHoverable` — set the latter
+when the title holds interactive content, so the tooltip stays open long enough
+to reach it.
 
 <Storybook.Demo>
   <BreadcrumbListDemo
@@ -351,6 +357,77 @@ and an optional rich `tooltip`. When `to` is omitted, that chevron is disabled.
     }}
   />
 </TopBar.Slot>
+```
+
+Set `isHoverable` when the `title` holds interactive content. Hover a chevron
+below and move onto the tooltip — it stays open long enough to reach the link.
+Without the flag the tooltip dismisses as soon as the pointer leaves the chevron.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[{type: 'link', label: 'Traces', to: '/organizations/org-slug/traces/'}]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'Trace details',
+          pagination: {
+            previous: {
+              ariaLabel: 'Previous trace',
+              to: '/traces/abc123/',
+              tooltip: {
+                title: (
+                  <span>
+                    Go to the previous trace of the same session.{' '}
+                    <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/">
+                      Learn More
+                    </ExternalLink>
+                  </span>
+                ),
+                isHoverable: true,
+              },
+            },
+            next: {
+              ariaLabel: 'Next trace',
+              to: '/traces/def456/',
+              tooltip: {
+                title: (
+                  <span>
+                    Go to the next trace of the same session.{' '}
+                    <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/">
+                      Learn More
+                    </ExternalLink>
+                  </span>
+                ),
+                isHoverable: true,
+              },
+            },
+          },
+        }}
+      />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<BreadcrumbList.Title
+  item={{
+    type: 'page-title',
+    label: 'Trace details',
+    pagination: {
+      previous: {
+        ariaLabel: 'Previous trace',
+        to: previousTraceUrl,
+        tooltip: {
+          title: tct('Go to the previous trace of the same session. [link:Learn More]', {
+            link: <ExternalLink href={TRACE_DOCS_URL} />,
+          }),
+          isHoverable: true,
+        },
+      },
+      next: {ariaLabel: 'Next trace', to: nextTraceUrl},
+    },
+  }}
+/>
 ```
 
 ## Trailing actions
