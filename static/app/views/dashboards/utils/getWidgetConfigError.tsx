@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {explodeField, isEquation} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
@@ -18,19 +19,27 @@ export function getWidgetConfigError(widget: Widget): string | undefined {
     return t('The widget configuration is not valid. Please add a "Visualize" field.');
   }
 
-  // Heat maps are only offered on the trace-metrics dataset, and plot the metric
-  // from their selected "Visualize" aggregate. If they're on another dataset or
-  // that aggregate doesn't resolve to a metric, the widget can't render.
+  // Trace-metric widgets encode the metric in the aggregate (fn(value, name, type,
+  // unit)); if any non-equation aggregate doesn't resolve to a metric, nothing can
+  // render. Applies to every display type, including heat maps. Equations carry no
+  // metric tuple and reference base aggregates that are validated on their own.
+  const hasUnresolvedMetric =
+    widget.widgetType === WidgetType.TRACEMETRICS &&
+    widget.queries
+      .flatMap(query => query.aggregates)
+      .filter(aggregate => !isEquation(aggregate))
+      .some(aggregate => !extractTraceMetricFromColumn(explodeField({field: aggregate})));
+  if (hasUnresolvedMetric) {
+    return t('This widget is missing a metric to visualize.');
+  }
+
   if (widget.displayType === DisplayType.HEATMAP) {
     if (widget.widgetType !== WidgetType.TRACEMETRICS) {
       return t('This dataset does not support this visualization.');
     }
     const aggregate = getSelectedAggregate(widget);
     const traceMetric = aggregate && extractTraceMetricFromColumn(aggregate);
-    if (!traceMetric) {
-      return t('This widget is missing a metric to visualize.');
-    }
-    if (!doesMetricSupportHeatMapVisualization(traceMetric)) {
+    if (traceMetric && !doesMetricSupportHeatMapVisualization(traceMetric)) {
       return t('Heatmaps can only visualize distribution metrics.');
     }
   }

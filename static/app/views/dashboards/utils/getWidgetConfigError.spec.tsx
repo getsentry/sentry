@@ -104,4 +104,34 @@ describe('getWidgetConfigError', () => {
       'Heatmaps can only visualize distribution metrics.'
     );
   });
+
+  it.each([DisplayType.LINE, DisplayType.BAR, DisplayType.TABLE, DisplayType.BIG_NUMBER])(
+    'returns an error for %s trace metric widgets whose aggregate has no metric',
+    displayType => {
+      const widget = WidgetFixture({
+        displayType,
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [WidgetQueryFixture({aggregates: ['sum(value)']})],
+      });
+
+      expect(getWidgetConfigError(widget)).toBe(
+        'This widget is missing a metric to visualize.'
+      );
+    }
+  );
+
+  it('returns an error when any query in a trace metric widget is unresolvable', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [
+        WidgetQueryFixture({aggregates: ['sum(value,test_metric,distribution,none)']}),
+        WidgetQueryFixture({aggregates: ['sum(value)']}),
+      ],
+    });
+
+    expect(getWidgetConfigError(widget)).toBe(
+      'This widget is missing a metric to visualize.'
+    );
+  });
 });

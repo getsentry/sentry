@@ -27,10 +27,12 @@ import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DisplayType,
+  WidgetType,
   type DashboardDetails,
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
+import {getWidgetConfigError} from 'sentry/views/dashboards/utils/getWidgetConfigError';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import {
   DEFAULT_WIDGET_DRAG_POSITIONING,
@@ -44,13 +46,20 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
 import {WidgetBuilderFilterBar} from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
-import {WidgetPreview} from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
+import {
+  WidgetPreview,
+  type WidgetPreviewStatus,
+} from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
 import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import {getSelectedAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregate';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -249,6 +258,45 @@ export function WidgetPreviewContainer({
   openWidgetTemplates?: boolean;
 }) {
   const {state} = useWidgetBuilderContext();
+
+  // The builder owns the preview's validity/loading decision.
+  const widget = convertBuilderStateToWidget(state);
+  const isMetricsDataset = widget.widgetType === WidgetType.TRACEMETRICS;
+  const {data: metricOptions, isFetching: isFetchingMetricOptions} = useMetricOptions({
+    enabled: isMetricsDataset,
+  });
+  const selectedAggregate = getSelectedAggregate(widget);
+  const hasSelectedMetric = Boolean(
+    selectedAggregate && extractTraceMetricFromColumn(selectedAggregate)
+  );
+
+  // A metric auto-selects once its options load, so a metrics widget with none
+  // picked is just waiting on that fetch.
+  const isResolving = isMetricsDataset && !hasSelectedMetric && isFetchingMetricOptions;
+  // The options finished loading and the selected projects have no metrics to pick.
+  const hasNoMetrics =
+    isMetricsDataset &&
+    !hasSelectedMetric &&
+    !isFetchingMetricOptions &&
+    (metricOptions?.data?.length ?? 0) === 0;
+
+  const message =
+    getWidgetConfigError(widget) ??
+    (isQueryConditionInvalid ? t("This widget's query filter is invalid.") : undefined);
+
+  let previewStatus: WidgetPreviewStatus;
+  if (isResolving) {
+    previewStatus = {status: 'loading'};
+  } else if (hasNoMetrics) {
+    previewStatus = {
+      status: 'invalid',
+      message: t('No metrics found for the selected projects.'),
+    };
+  } else if (message) {
+    previewStatus = {status: 'invalid', message};
+  } else {
+    previewStatus = {status: 'ready'};
+  }
   const organization = useOrganization();
   const location = useLocation();
   const theme = useTheme();
@@ -365,7 +413,7 @@ export function WidgetPreviewContainer({
                     <WidgetPreview
                       dashboardFilters={dashboardFilters}
                       dashboard={dashboard}
-                      isQueryConditionInvalid={isQueryConditionInvalid}
+                      previewStatus={previewStatus}
                       onDataFetched={onDataFetched}
                       shouldForceDescriptionTooltip={!isSmallScreen}
                     />
