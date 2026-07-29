@@ -11,7 +11,11 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import type {PullRequestChecksStatus, PullRequestStatus} from 'sentry/types/integrations';
+import type {
+  PullRequestChecksStatus,
+  PullRequestReviewStatus,
+  PullRequestStatus,
+} from 'sentry/types/integrations';
 
 type PullRequestBadgeConfig = {
   icon: React.ComponentType<SVGIconProps>;
@@ -65,6 +69,24 @@ const CHECKS_CONFIG = {
   },
 } satisfies Record<PullRequestChecksStatus, PullRequestBadgeConfig>;
 
+const REVIEW_CONFIG = {
+  approved: {
+    icon: IconCheckmark,
+    label: () => t('Approved'),
+    variant: 'success',
+  },
+  changes_requested: {
+    icon: IconClose,
+    label: () => t('Changes requested'),
+    variant: 'danger',
+  },
+  review_required: {
+    icon: IconClock,
+    label: () => t('Review required'),
+    variant: 'muted',
+  },
+} satisfies Record<PullRequestReviewStatus, PullRequestBadgeConfig>;
+
 function PullRequestBadge({
   ariaLabel,
   config,
@@ -101,4 +123,8 @@ export function PullRequestStatusBadge({status}: {status: PullRequestStatus}) {
 
 export function PullRequestChecksBadge({status}: {status: PullRequestChecksStatus}) {
   return <PullRequestBadge config={CHECKS_CONFIG[status]} />;
+}
+
+export function PullRequestReviewBadge({status}: {status: PullRequestReviewStatus}) {
+  return <PullRequestBadge config={REVIEW_CONFIG[status]} />;
 }

@@ -99,7 +99,7 @@ describe('LinkedPullRequests', () => {
     );
   });
 
-  it('renders a checks badge only when the provider reports one', async () => {
+  it('renders checks and review badges when available', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
       body: {
@@ -109,6 +109,7 @@ describe('LinkedPullRequests', () => {
             attribution: null,
             checksStatus: 'failure',
             dateLinked: '2026-06-08T23:11:32.000000Z',
+            reviewStatus: 'changes_requested',
             status: 'open',
           },
           {
@@ -116,6 +117,7 @@ describe('LinkedPullRequests', () => {
             attribution: null,
             checksStatus: null,
             dateLinked: '2026-06-08T23:10:32.000000Z',
+            reviewStatus: null,
             status: 'open',
           },
         ],
@@ -125,11 +127,15 @@ describe('LinkedPullRequests', () => {
     render(<LinkedPullRequests group={group} />, {organization});
 
     const list = await screen.findByRole('list', {name: 'Linked pull requests'});
-    const withChecks = within(list).getByRole('link', {name: /Pull request #123/});
-    const withoutChecks = within(list).getByRole('link', {name: /Pull request #124/});
+    const withBadges = within(list).getByRole('link', {name: /Pull request #123/});
+    const withoutBadges = within(list).getByRole('link', {name: /Pull request #124/});
 
-    expect(within(withChecks).getByText('Checks failed')).toBeInTheDocument();
-    expect(within(withoutChecks).queryByText('Checks failed')).not.toBeInTheDocument();
+    expect(within(withBadges).getByText('Checks failed')).toBeInTheDocument();
+    expect(within(withBadges).getByText('Changes requested')).toBeInTheDocument();
+    expect(within(withoutBadges).queryByText('Checks failed')).not.toBeInTheDocument();
+    expect(
+      within(withoutBadges).queryByText('Changes requested')
+    ).not.toBeInTheDocument();
   });
 
   it('deduplicates pull request ids from group activity', () => {

@@ -33,6 +33,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getPullRequestStatusLabel,
   PullRequestChecksBadge,
+  PullRequestReviewBadge,
   PullRequestStatusBadge,
 } from './pullRequestStatusBadge';
 
@@ -101,6 +102,7 @@ function LinkedPullRequestRow({
             organization,
             attribution_type: pullRequest.attribution?.type,
             checks_status: pullRequest.checksStatus,
+            review_status: pullRequest.reviewStatus,
             pull_request_id: pullRequest.id,
             pull_request_status: pullRequest.status,
             repository_id: pullRequest.repository.id,
@@ -130,6 +132,9 @@ function LinkedPullRequestRow({
               <PullRequestStatusBadge status={pullRequest.status} />
               {pullRequest.checksStatus && (
                 <PullRequestChecksBadge status={pullRequest.checksStatus} />
+              )}
+              {pullRequest.reviewStatus && (
+                <PullRequestReviewBadge status={pullRequest.reviewStatus} />
               )}
               {pullRequest.attribution ? (
                 <PullRequestAttributionAvatar attribution={pullRequest.attribution} />
