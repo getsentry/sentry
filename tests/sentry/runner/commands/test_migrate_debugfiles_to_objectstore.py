@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.core.files.base import ContentFile
 
+from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.runner.commands.migrate_debugfiles_to_objectstore import (
     migrate_debugfiles_to_objectstore,
@@ -13,7 +14,7 @@ from sentry.testutils.skips import requires_objectstore
 class MigrateDebugfilesToObjectstoreCliTest(CliTestCase):
     command = migrate_debugfiles_to_objectstore
 
-    def _create_legacy_dif(self, contents: bytes = b"debug-file-contents"):
+    def _create_legacy_dif(self, contents: bytes = b"debug-file-contents") -> ProjectDebugFile:
         file = self.create_file(
             name="test.dSYM",
             type="project.dif",
