@@ -124,8 +124,8 @@ class GcpIntegrationTest(TestCase):
         mock_gen.assert_not_called()
 
     def test_setup_step_reuses_sa_from_model_across_sessions(self) -> None:
-        GcpServiceAccount.objects.create(
-            organization_id=self.organization.id,
+        self.create_gcp_service_account(
+            organization=self.organization,
             service_account_email=_SA_EMAIL,
         )
         step = GcpSaGenerationApiStep()
@@ -271,8 +271,8 @@ class GcpIntegrationTest(TestCase):
 
     def test_uninstall_deletes_sa_and_model_row(self) -> None:
         installation = self._create_installed_integration()
-        GcpServiceAccount.objects.create(
-            organization_id=self.organization.id,
+        self.create_gcp_service_account(
+            organization=self.organization,
             service_account_email=_SA_EMAIL,
         )
 
@@ -289,6 +289,10 @@ class GcpIntegrationTest(TestCase):
 
     def test_uninstall_tolerates_already_deleted_sa(self) -> None:
         installation = self._create_installed_integration()
+        self.create_gcp_service_account(
+            organization=self.organization,
+            service_account_email=_SA_EMAIL,
+        )
 
         with _mock_iam_session() as mock_get_session:
             mock_session = mock_get_session.return_value
@@ -298,8 +302,8 @@ class GcpIntegrationTest(TestCase):
 
     def test_uninstall_tolerates_gcp_api_errors(self) -> None:
         installation = self._create_installed_integration()
-        GcpServiceAccount.objects.create(
-            organization_id=self.organization.id,
+        self.create_gcp_service_account(
+            organization=self.organization,
             service_account_email=_SA_EMAIL,
         )
 

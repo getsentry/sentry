@@ -26,18 +26,9 @@ def generate_sentry_sa(org_id: int) -> str:
     try:
         session = _get_iam_session()
         sa_email = _create_service_account(session, org_id)
-
         GcpServiceAccount.objects.create(
             organization_id=org_id,
             service_account_email=sa_email,
-        )
-
-        logger.info(
-            "gcp.sa_created",
-            extra={
-                "organization_id": org_id,
-                "sa_email": sa_email,
-            },
         )
     except IntegrationError:
         raise
@@ -46,14 +37,22 @@ def generate_sentry_sa(org_id: int) -> str:
             "gcp.sa_creation_network_error",
             extra={"organization_id": org_id},
         )
-        raise IntegrationError(
-            "Failed to connect to GCP IAM API. Please check network connectivity."
-        )
+        raise IntegrationError("Failed to generate GCP service account.")
 
     return sa_email
 
 
 def delete_sentry_sa(sa_email: str, org_id: int) -> None:
+    deleted_count, _ = GcpServiceAccount.objects.filter(
+        organization_id=org_id, service_account_email=sa_email
+    ).delete()
+    if not deleted_count:
+        logger.error(
+            "gcp.sa_delete_mismatch",
+            extra={"sa_email": sa_email, "organization_id": org_id},
+        )
+        return
+
     try:
         session = _get_iam_session()
         url = f"{_GCP_IAM_BASE}/projects/{_CONNECTORS_PROJECT}/serviceAccounts/{sa_email}"
@@ -74,21 +73,15 @@ def delete_sentry_sa(sa_email: str, org_id: int) -> None:
             extra={"sa_email": sa_email},
         )
 
-    GcpServiceAccount.objects.filter(organization_id=org_id).delete()
-
-    logger.info(
-        "gcp.sa_deleted",
-        extra={"sa_email": sa_email, "organization_id": org_id},
-    )
-
 
 def _get_iam_session() -> AuthorizedSession:
     try:
         credentials, _ = google.auth.default(scopes=_IAM_SCOPES)
     except DefaultCredentialsError:
+        logger.exception("gcp.credentials_not_available")
         raise IntegrationError(
-            "GCP credentials are not available. Ensure the application "
-            "has valid GCP credentials configured."
+            "An internal error occurred while setting up the GCP integration. "
+            "Please try again or contact support."
         )
     return AuthorizedSession(credentials)
 
