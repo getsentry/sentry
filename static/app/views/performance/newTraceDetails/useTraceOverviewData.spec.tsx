@@ -135,6 +135,7 @@ describe('useTraceOverviewData', () => {
     );
 
     expect(result.current.isTabLoading).toBe(true);
+    expect(result.current.isRepresentativeLoading).toBe(true);
 
     await waitFor(() => {
       expect(result.current.isRepresentativeLoading).toBe(false);

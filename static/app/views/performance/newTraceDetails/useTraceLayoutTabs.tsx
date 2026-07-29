@@ -60,9 +60,11 @@ const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
 function getTabOptions({
   sections,
   overview,
+  tabSlugFromUrl,
 }: {
   overview: TraceOverviewData;
   sections: ReturnType<typeof useTraceContextSections>;
+  tabSlugFromUrl: string | undefined;
 }): Tab[] {
   const tabOptions: Tab[] = [];
 
@@ -76,16 +78,18 @@ function getTabOptions({
 
   if (
     sections.hasLogs ||
-    overview.logs.availability === 'unknown' ||
-    overview.logs.availability === 'loading'
+    ((overview.logs.availability === 'loading' ||
+      overview.logs.availability === 'unknown') &&
+      tabSlugFromUrl === TraceLayoutTabKeys.LOGS)
   ) {
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.LOGS]);
   }
 
   if (
     sections.hasMetrics ||
-    overview.metrics.availability === 'unknown' ||
-    overview.metrics.availability === 'loading'
+    ((overview.metrics.availability === 'loading' ||
+      overview.metrics.availability === 'unknown') &&
+      tabSlugFromUrl === TraceLayoutTabKeys.METRICS)
   ) {
     tabOptions.push(TAB_DEFINITIONS[TraceLayoutTabKeys.METRICS]);
   }
@@ -176,6 +180,9 @@ export function useTraceLayoutTabs({
 }: UseTraceLayoutTabsProps): TraceLayoutTabsConfig {
   const navigate = useNavigate();
   const organization = useOrganization();
+  const queryParams = qs.parse(window.location.search);
+  const tabSlugFromUrl =
+    typeof queryParams.tab === 'string' ? queryParams.tab : undefined;
   const sections = useTraceContextSections({
     tree,
     logs: overview.logs.representative,
@@ -186,9 +193,7 @@ export function useTraceLayoutTabs({
     logsEnabled,
     metricsEnabled,
   });
-  const tabOptions = getTabOptions({overview, sections});
-
-  const queryParams = qs.parse(window.location.search);
+  const tabOptions = getTabOptions({overview, sections, tabSlugFromUrl});
 
   const initialTab = getInitialTab({
     isLoading,
@@ -197,10 +202,12 @@ export function useTraceLayoutTabs({
     meta,
     sections,
     tabOptions,
-    tabSlugFromUrl: typeof queryParams.tab === 'string' ? queryParams.tab : undefined,
+    tabSlugFromUrl,
   });
 
-  const [currentTab, setCurrentTab] = useState(initialTab.slug);
+  const [selectedTab, setSelectedTab] = useState(initialTab.slug);
+  const isSelectedTabAvailable = tabOptions.some(tab => tab.slug === selectedTab);
+  const currentTab = isLoading || isSelectedTabAvailable ? selectedTab : initialTab.slug;
   const isCurrentTabRequested = queryParams.tab === currentTab;
 
   const onTabChange = useCallback(
@@ -218,15 +225,16 @@ export function useTraceLayoutTabs({
         },
         {replace: true}
       );
-      setCurrentTab(slug);
+      setSelectedTab(slug);
     },
     [navigate, queryParams, organization]
   );
 
-  // Update the tab when the tabOptions change
+  // Keep the stored selection in sync with URL and availability changes. The
+  // render above falls back synchronously so stale content never mounts first.
   useEffect(() => {
-    setCurrentTab(initialTab.slug);
-  }, [tabOptions, initialTab]);
+    setSelectedTab(initialTab.slug);
+  }, [initialTab.slug]);
 
   return useMemo(
     () => ({
