@@ -6,6 +6,7 @@ from unittest import mock
 
 import pytest
 
+from sentry.lang.native.teapot import TeapotUnavailable
 from sentry.models.project import Project
 from sentry.tasks.gpu_crash import _try_symbolicate, symbolicate_gpu_crash_event
 from sentry.testutils.helpers import Feature
@@ -111,9 +112,32 @@ def test_try_symbolicate_skipped_without_dump(default_project: Project) -> None:
 
 
 @django_db_all
-def test_try_symbolicate_teapot_unavailable(
+def test_try_symbolicate_teapot_outage_trips_breaker(
     default_project: Project, circuit_breaker: mock.Mock
 ) -> None:
+    # A genuine outage (submit_to_teapot raises TeapotUnavailable) feeds the
+    # breaker so repeated outages trip it.
+    with (
+        override_options({"teapot.enabled": True}),
+        mock.patch(FIND_DUMP, return_value=_FakeAttachment()),
+        mock.patch(FIND_SHADERS, return_value=[]),
+        mock.patch(SUBMIT_TEAPOT, side_effect=TeapotUnavailable("down")),
+        mock.patch(APPLY) as apply,
+    ):
+        changed = _try_symbolicate({"event_id": "e"}, default_project.id, "e")
+
+    assert changed is False
+    assert apply.call_count == 0
+    circuit_breaker.record_error.assert_called_once()
+    circuit_breaker.record_success.assert_not_called()
+
+
+@django_db_all
+def test_try_symbolicate_request_error_does_not_trip_breaker(
+    default_project: Project, circuit_breaker: mock.Mock
+) -> None:
+    # A client/data error (submit_to_teapot returns None) means teapot is healthy;
+    # the breaker must not trip, or a burst of bad events would skip healthy ones.
     with (
         override_options({"teapot.enabled": True}),
         mock.patch(FIND_DUMP, return_value=_FakeAttachment()),
@@ -125,9 +149,25 @@ def test_try_symbolicate_teapot_unavailable(
 
     assert changed is False
     assert apply.call_count == 0
-    # A teapot failure feeds the breaker so repeated outages trip it.
-    circuit_breaker.record_error.assert_called_once()
+    circuit_breaker.record_error.assert_not_called()
     circuit_breaker.record_success.assert_not_called()
+
+
+@django_db_all
+def test_try_symbolicate_skips_when_killswitch_matches(
+    default_project: Project, circuit_breaker: mock.Mock
+) -> None:
+    # Load-shedding must drain already-queued tasks, not just gate new routing:
+    # the task re-checks the killswitch and skips teapot entirely.
+    with (
+        override_options({"teapot.enabled": True}),
+        mock.patch("sentry.tasks.gpu_crash.killswitch_matches_context", return_value=True),
+        mock.patch(SUBMIT_TEAPOT) as teapot,
+    ):
+        changed = _try_symbolicate({"event_id": "e", "platform": "native"}, default_project.id, "e")
+
+    assert changed is False
+    assert teapot.call_count == 0
 
 
 @django_db_all
@@ -187,14 +227,16 @@ def test_preprocess_routes_gpu_event_to_dedicated_task(default_project: Project)
         )
 
     assert submit_gpu.call_count == 1
-    # The unprocessed event is backed up so a later reprocess can reload + re-run teapot.
-    assert backup.call_count == 1
+    # GPU events are enriched once, on ingest — deliberately NOT backed up, so a
+    # later reprocess keeps the enriched event instead of dropping the enrichment.
+    assert backup.call_count == 0
 
 
 @django_db_all
-def test_preprocess_routes_gpu_event_on_reprocessing(default_project: Project) -> None:
-    # Reprocessing never sets has_attachments, but a restored GPU dump must still
-    # route to teapot (and be backed up) rather than skipping symbolication.
+def test_preprocess_not_routed_on_reprocessing(default_project: Project) -> None:
+    # Reprocessing doesn't re-run teapot (the `.nv-gpudmp` isn't reloaded). GPU
+    # events aren't backed up, so pull_event_data raises CannotReprocess and the
+    # already-enriched event is kept as-is — never re-routed here.
     from sentry.tasks.store import _do_preprocess_event
 
     data = {"event_id": "e" * 32, "project": default_project.id, "platform": "native"}
@@ -202,7 +244,8 @@ def test_preprocess_routes_gpu_event_on_reprocessing(default_project: Project) -
         Feature("organizations:gpu-crash-symbolication"),
         mock.patch(IS_GPU_EVENT, return_value=True),
         mock.patch(SUBMIT_GPU) as submit_gpu,
-        mock.patch(BACKUP) as backup,
+        mock.patch("sentry.tasks.store.submit_save_event"),
+        mock.patch("sentry.tasks.store.submit_process"),
     ):
         _do_preprocess_event(
             cache_key="k",
@@ -214,8 +257,7 @@ def test_preprocess_routes_gpu_event_on_reprocessing(default_project: Project) -
             has_attachments=False,
         )
 
-    assert submit_gpu.call_count == 1
-    assert backup.call_count == 1
+    assert submit_gpu.call_count == 0
 
 
 @django_db_all

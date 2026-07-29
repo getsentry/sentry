@@ -17,6 +17,7 @@ import requests
 from sentry.lang.native.gpu import GPU_CRASH_DUMP_ATTACHMENT_TYPE, apply_gpu_crash_symbolication
 from sentry.lang.native.teapot import (
     TeapotClient,
+    TeapotRequestError,
     TeapotUnavailable,
     _uid_from_nvdbg_filename,
     submit_to_teapot,
@@ -306,7 +307,8 @@ def test_client_400_is_not_retried() -> None:
     ):
         mock_post.return_value = _FakeResponse(400, "bad request")
 
-        with pytest.raises(TeapotUnavailable):
+        # A 4xx is a client error, not an outage.
+        with pytest.raises(TeapotRequestError):
             TeapotClient(project, "abc").symbolicate(dump)
 
     assert mock_post.call_count == 1
@@ -336,7 +338,7 @@ def test_client_missing_url_raises() -> None:
             lambda key: {} if key == "teapot.options" else None,
         ),
     ):
-        with pytest.raises(TeapotUnavailable):
+        with pytest.raises(TeapotRequestError):
             TeapotClient(_FakeProject(), "abc")
 
 
@@ -369,14 +371,18 @@ def test_client_skips_when_attachment_not_stored() -> None:
         _configured_teapot(),
         mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
     ):
-        with pytest.raises(TeapotUnavailable):
+        with pytest.raises(TeapotRequestError):
             TeapotClient(project, "abc").symbolicate(dump)
+        # A missing attachment is a data error, so submit_to_teapot skips (None),
+        # never contacting teapot.
         assert submit_to_teapot(project, "abc", dump, []) is None
 
     assert mock_post.call_count == 0
 
 
-def test_submit_to_teapot_returns_none_when_unavailable() -> None:
+def test_submit_to_teapot_returns_none_on_request_error() -> None:
+    # A request/data error (here: URL not configured) is not an outage: skip
+    # (None) so the caller doesn't trip the breaker.
     from django.conf import settings
 
     with (
@@ -387,6 +393,16 @@ def test_submit_to_teapot_returns_none_when_unavailable() -> None:
         ),
     ):
         assert submit_to_teapot(_FakeProject(), "abc", _FakeAttachment(b"dump"), []) is None
+
+
+def test_submit_to_teapot_raises_on_outage() -> None:
+    # A genuine outage (exhausted 5xx) propagates so the caller trips the breaker.
+    with (
+        _configured_teapot(),
+        mock.patch("sentry.lang.native.teapot.requests.post", return_value=_FakeResponse(503)),
+    ):
+        with pytest.raises(TeapotUnavailable):
+            submit_to_teapot(_FakeProject(), "abc", _FakeAttachment(b"dump"), [])
 
 
 def test_submit_to_teapot_swallows_unexpected() -> None:
