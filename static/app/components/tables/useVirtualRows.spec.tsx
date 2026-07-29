@@ -8,13 +8,12 @@ const ROW_COUNT = 100;
 const ROW_HEIGHT = 20;
 const VIEWPORT_HEIGHT = 100;
 
-function TestList({scrollMargin}: {scrollMargin?: number}) {
+function TestList() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const {paddingBottom, paddingTop, virtualItems} = useVirtualRows({
     count: ROW_COUNT,
     estimateSize: () => ROW_HEIGHT,
     getScrollElement: () => scrollRef.current,
-    scrollMargin,
   });
 
   return (
@@ -66,14 +65,8 @@ describe('useVirtualRows', () => {
     }
   });
 
-  it('spans the full list height when there is no scroll margin', () => {
+  it('spans the full list height when most rows are outside the window', () => {
     render(<TestList />);
-
-    expect(spannedHeight()).toBe(ROW_COUNT * ROW_HEIGHT);
-  });
-
-  it('spans the full list height when a scroll margin offsets the rows', () => {
-    render(<TestList scrollMargin={45} />);
 
     expect(spannedHeight()).toBe(ROW_COUNT * ROW_HEIGHT);
   });

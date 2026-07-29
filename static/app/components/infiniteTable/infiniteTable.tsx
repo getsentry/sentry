@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment, useRef} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {UseInfiniteQueryResult} from '@tanstack/react-query';
 
@@ -7,7 +7,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {Table as TableShell, useTableElement} from 'sentry/components/tables/table';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
-import {useElementOffset} from 'sentry/utils/useElementOffset';
 
 function Body<TData = unknown, TSelect = unknown>({
   children,
@@ -21,18 +20,15 @@ function Body<TData = unknown, TSelect = unknown>({
   select: (data: TData | undefined) => TSelect[];
 }) {
   const tableRef = useTableElement();
-  const bodyRef = useRef<HTMLTableSectionElement>(null);
-  const {top: scrollMargin} = useElementOffset(bodyRef, tableRef);
   const selectedData = select(queryResult.data);
   const {paddingBottom, paddingTop, virtualItems, virtualizer} = useVirtualRows({
     count: selectedData.length,
     estimateSize,
     getScrollElement: () => tableRef.current,
-    scrollMargin,
   });
 
   return (
-    <VirtualBody ref={bodyRef} style={{paddingBottom, paddingTop}}>
+    <VirtualBody style={{paddingBottom, paddingTop}}>
       {virtualItems.map(virtualItem => {
         const item = selectedData[virtualItem.index];
 

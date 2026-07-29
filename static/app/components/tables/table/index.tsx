@@ -92,10 +92,6 @@ export interface TableProps extends Omit<
 > {
   children: ReactNode;
   columns?: TableColumnConfig[];
-  /**
-   * Pins the head row to a definite track height. Opt-in because it forces
-   * every head row to a fixed height regardless of its content.
-   */
   definiteHeadRow?: boolean;
   fit?: 'max-content';
   getColumnTrack?: (
