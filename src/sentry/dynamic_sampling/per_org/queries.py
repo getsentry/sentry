@@ -16,7 +16,6 @@ from sentry.dynamic_sampling.tasks.common import (
     MEASURE_CONFIGS,
     OrganizationDataVolume,
 )
-from sentry.dynamic_sampling.tasks.constants import BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL
 from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -235,69 +234,27 @@ def get_generic_metrics_organization_volume(
 def get_generic_metrics_transaction_volumes(
     org_id: int,
     project_id: int,
-    time_interval: timedelta = BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
-    end: datetime | None = None,
+    max_transactions: int | None = None,
 ) -> list[tuple[str, float]]:
     """
     Per-transaction volumes of a single project from the legacy generic-metrics pipeline,
-    for side-by-side debugging against ``get_eap_transaction_volumes``. Unlike
-    ``FetchProjectTransactionVolumes``, this has no top-N cap, so it reflects every
-    transaction name the legacy pipeline saw for the project in the window.
+    for side-by-side debugging against ``get_eap_transaction_volumes``. Reuses
+    ``FetchProjectTransactionVolumes`` (the same query the legacy pipeline runs) rather
+    than issuing a new one.
     """
-    from snuba_sdk import (
-        AliasedExpression,
-        Column,
-        Condition,
-        Entity,
-        Function,
-        Granularity,
-        Op,
-        Query,
-        Request,
+    from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
+        FetchProjectTransactionVolumes,
     )
 
-    end_time = end or datetime.now(UTC)
-    start_time = end_time - time_interval
+    if max_transactions is None:
+        max_transactions = int(
+            options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
+        )
 
-    config = MEASURE_CONFIGS[SamplingMeasure.SEGMENTS]
-    metric_id = indexer.resolve_shared_org(str(config["mri"]))
-    transaction_string_id = indexer.resolve_shared_org("transaction")
-    transaction_tag = f"tags_raw[{transaction_string_id}]"
-
-    where: list[Condition] = [
-        Condition(Column("timestamp"), Op.GTE, start_time),
-        Condition(Column("timestamp"), Op.LT, end_time),
-        Condition(Column("metric_id"), Op.EQ, metric_id),
-        Condition(Column("org_id"), Op.EQ, org_id),
-        Condition(Column("project_id"), Op.EQ, project_id),
-    ]
-    for tag_name, tag_value in config["tags"].items():
-        tag_string_id = indexer.resolve_shared_org(tag_name)
-        tag_column = f"tags_raw[{tag_string_id}]"
-        where.append(Condition(Column(tag_column), Op.EQ, tag_value))
-
-    query = Query(
-        match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-        select=[
-            Function("sum", [Column("value")], "num_transactions"),
-            AliasedExpression(Column(transaction_tag), "transaction_name"),
-        ],
-        groupby=[AliasedExpression(Column(transaction_tag), "transaction_name")],
-        where=where,
-        granularity=Granularity(60),
-    )
-    request = Request(
-        dataset=Dataset.PerformanceMetrics.value,
-        app_id="dynamic_sampling",
-        query=query,
-        tenant_ids={"use_case_id": config["use_case_id"].value, "organization_id": org_id},
-    )
-    data = raw_snql_query(
-        request,
-        referrer=Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_GENERIC_METRICS_TRANSACTION_VOLUMES.value,
-    )["data"]
-
-    return [(str(row["transaction_name"]), float(row["num_transactions"])) for row in data]
+    for project_transactions in FetchProjectTransactionVolumes([org_id], max_transactions):
+        if project_transactions["project_id"] == project_id:
+            return project_transactions["transaction_counts"]
+    return []
 
 
 def get_eap_project_volumes(
