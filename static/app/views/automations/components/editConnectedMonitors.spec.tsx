@@ -253,23 +253,77 @@ describe('EditConnectedMonitors', () => {
     model.setInitialData({allProjects: false, projectIds: [], detectorIds: ['101']});
 
     render(
-      <Form model={model}>
-        <EditConnectedMonitors
-          connectedIds={[allProjectsDetector.id]}
-          setConnectedIds={jest.fn()}
-        />
-      </Form>,
-      {
-        organization: OrganizationFixture({
-          features: ['workflow-engine-all-projects-detector'],
-        }),
-      }
+        <Form model={model}>
+          <EditConnectedMonitors
+              connectedIds={[allProjectsDetector.id]}
+              setConnectedIds={jest.fn()}
+          />
+        </Form>,
+        {
+          organization: OrganizationFixture({
+            features: ['workflow-engine-all-projects-detector'],
+          }),
+        }
     );
 
     expect(
-      await screen.findByRole('radio', {name: 'Alert on all issues in all projects'})
+        await screen.findByRole('radio', {name: 'Alert on all issues in all projects'})
     ).toBeChecked();
     await waitFor(() => expect(model.getValue('allProjects')).toBe(true));
+  });
+
+  it('loads every connected project when the alert has more than 100 monitors', async () => {
+    const connectedProjects = Array.from({length: 101}, (_, index) =>
+      ProjectFixture({id: String(index + 1), slug: `project-${index + 1}`})
+    );
+    const detectors = connectedProjects.map(connectedProject =>
+      IssueStreamDetectorFixture({
+        id: connectedProject.id,
+        projectId: connectedProject.id,
+      })
+    );
+    ProjectsStore.loadInitialData(connectedProjects);
+
+    const firstRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      method: 'GET',
+      body: detectors.slice(0, 100),
+      match: [
+        MockApiClient.matchQuery({
+          id: detectors.slice(0, 100).map(detector => detector.id),
+        }),
+      ],
+    });
+    const secondRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      method: 'GET',
+      body: detectors.slice(100),
+      match: [
+        MockApiClient.matchQuery({
+          id: detectors.slice(100).map(detector => detector.id),
+        }),
+      ],
+    });
+
+    const model = new FormModel();
+    model.setInitialData({detectorIds: detectors.map(detector => detector.id)});
+    render(
+      <Form model={model}>
+        <EditConnectedMonitors
+          connectedIds={detectors.map(detector => detector.id)}
+          setConnectedIds={jest.fn()}
+        />
+      </Form>
+    );
+
+    await waitFor(() => {
+      expect(model.getValue('projectIds')).toEqual(
+        connectedProjects.map(connectedProject => connectedProject.id)
+      );
+    });
+
+    expect(firstRequest).toHaveBeenCalledTimes(1);
+    expect(secondRequest).toHaveBeenCalledTimes(1);
   });
 
   it('switches between modes correctly', async () => {
