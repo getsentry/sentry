@@ -29,6 +29,23 @@ function makeEapMeta(overrides: Partial<EAPTraceMeta> = {}): EAPTraceMeta {
 
 describe('getInitialTab', () => {
   it.each([
+    [TraceLayoutTabKeys.LOGS, {...sections, hasTraceEvents: false, hasLogs: true}],
+    [TraceLayoutTabKeys.METRICS, {...sections, hasTraceEvents: false, hasMetrics: true}],
+  ])(
+    'selects %s when it is the only available non-trace tab',
+    (expectedTab, availableSections) => {
+      expect(
+        getInitialTab({
+          isLoading: false,
+          sections: availableSections,
+          tabOptions: [],
+          tabSlugFromUrl: undefined,
+        }).slug
+      ).toBe(expectedTab);
+    }
+  );
+
+  it.each([
     [TraceLayoutTabKeys.LOGS, TraceLayoutTabKeys.LOGS],
     [TraceLayoutTabKeys.METRICS, TraceLayoutTabKeys.METRICS],
     [TraceLayoutTabKeys.AI_SPANS, TraceLayoutTabKeys.AI_SPANS],

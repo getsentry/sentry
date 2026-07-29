@@ -59,9 +59,9 @@ export function TraceTabsAndVitals({
   rootEventResults,
   tree,
 }: TraceTabsAndVitalsProps) {
-  const {tabOptions, currentTab, onTabChange} = tabsConfig;
+  const {tabOptions, currentTab, isLoading, onTabChange} = tabsConfig;
 
-  if (rootEventResults.isLoading || tree.type === 'loading') {
+  if (isLoading || rootEventResults.isLoading || tree.type === 'loading') {
     return <Placeholder />;
   }
 
