@@ -12,7 +12,7 @@ import tourTrace from 'sentry-images/spot/performance-tour-trace.svg';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {UnsupportedAlert} from 'sentry/components/alerts/unsupportedAlert';
@@ -350,23 +350,26 @@ function OnboardingPanel({
                         {pluginLink: <ExternalLink href={AGENT_PLUGIN_DOCS_URL} />}
                       )}
                     </SubTitle>
-                    <PromptSnippet>
+                    {/* The wrapper keeps the code block sized to its content: the
+                        block is height: 100%, and this column is a stretched grid
+                        item, so an unwrapped snippet would fill the whole column. */}
+                    <Container marginTop="md" marginBottom="2xl">
                       <OnboardingCodeSnippet
                         language="bash"
                         onCopy={() => trackPromptCopied('install_command')}
                       >
                         {INSTALL_PLUGIN_COMMAND}
                       </OnboardingCodeSnippet>
-                    </PromptSnippet>
+                    </Container>
                     <SubTitle>{t('Then paste this in your agent of choice:')}</SubTitle>
-                    <PromptSnippet>
+                    <Container marginTop="md" marginBottom="2xl">
                       <OnboardingCodeSnippet
                         language="text"
                         onCopy={() => trackPromptCopied('prompt')}
                       >
                         {AI_SETUP_PROMPT}
                       </OnboardingCodeSnippet>
-                    </PromptSnippet>
+                    </Container>
                     {receivedFirstTrace ? (
                       <EventReceivedIndicator />
                     ) : (
@@ -715,13 +718,6 @@ const AiSetup = styled('div')`
 
 const Setup = styled('div')`
   padding: ${p => p.theme.space['3xl']};
-`;
-
-// Wrapper keeps the code block sized to its content instead of stretching to
-// fill the (tall) column.
-const PromptSnippet = styled('div')`
-  margin-top: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 // Sits on top of the vertical divider (AiSetup's :after) at the horizontal

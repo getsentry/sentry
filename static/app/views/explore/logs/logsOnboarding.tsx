@@ -6,7 +6,7 @@ import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -205,23 +205,26 @@ function OnboardingPanel({
                           {pluginLink: <ExternalLink href={AGENT_PLUGIN_DOCS_URL} />}
                         )}
                       </SubTitle>
-                      <PromptSnippet>
+                      {/* The wrapper keeps the code block sized to its content: the
+                          block is height: 100%, and this column is a stretched grid
+                          item, so an unwrapped snippet would fill the whole column. */}
+                      <Container marginTop="md" marginBottom="2xl">
                         <OnboardingCodeSnippet
                           language="bash"
                           onCopy={() => trackPromptCopied('install_command')}
                         >
                           {INSTALL_PLUGIN_COMMAND}
                         </OnboardingCodeSnippet>
-                      </PromptSnippet>
+                      </Container>
                       <SubTitle>{t('Then paste this in your agent of choice:')}</SubTitle>
-                      <PromptSnippet>
+                      <Container marginTop="md" marginBottom="2xl">
                         <OnboardingCodeSnippet
                           language="text"
                           onCopy={() => trackPromptCopied('prompt')}
                         >
                           {AI_SETUP_PROMPT}
                         </OnboardingCodeSnippet>
-                      </PromptSnippet>
+                      </Container>
                       {receivedFirstLog ? (
                         <EventReceivedIndicator />
                       ) : (
@@ -581,13 +584,6 @@ const Divider = styled('hr')`
   border: none;
   margin-top: 0;
   margin-bottom: 0;
-`;
-
-// Wrapper keeps the code block sized to its content instead of stretching to
-// fill the (tall) preview column.
-const PromptSnippet = styled('div')`
-  margin-top: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const OnboardingContainer = styled('div')`
