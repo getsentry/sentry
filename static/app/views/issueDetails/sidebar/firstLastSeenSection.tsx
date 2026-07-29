@@ -27,6 +27,7 @@ function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Grou
       organizationSlug: organization.slug,
       groupId: group.id,
       environments: [],
+      expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
     }),
     gcTime: 30_000,
   });
