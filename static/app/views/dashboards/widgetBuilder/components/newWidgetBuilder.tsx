@@ -290,18 +290,21 @@ export function WidgetPreviewContainer({
     getWidgetConfigError(widget) ??
     (isQueryConditionInvalid ? t("This widget's query filter is invalid.") : undefined);
 
+  // A renderable widget always wins — `isResolving`/`hasNoMetrics` only decide how to
+  // present a widget that can't render yet (e.g. an equation-mode widget has no
+  // selected metric but is perfectly valid, so it must not get stuck loading).
   let previewStatus: WidgetPreviewStatus;
-  if (isResolving) {
+  if (!message) {
+    previewStatus = {status: 'ready'};
+  } else if (isResolving) {
     previewStatus = {status: 'loading'};
   } else if (hasNoMetrics) {
     previewStatus = {
       status: 'invalid',
       message: t('No metrics found for the selected projects.'),
     };
-  } else if (message) {
-    previewStatus = {status: 'invalid', message};
   } else {
-    previewStatus = {status: 'ready'};
+    previewStatus = {status: 'invalid', message};
   }
   const organization = useOrganization();
   const location = useLocation();
