@@ -723,7 +723,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert len(default_response.data) == 1
         assert v1_response.data == default_response.data
 
-    def test_api_version_2_wraps_spans_under_data(self) -> None:
+    def test_api_version_2_wraps_spans_under_spans(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
         conversation_id = uuid4().hex
 
@@ -739,9 +739,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         response = self.do_request(conversation_id, {**query, "apiVersion": "2"})
 
         assert response.status_code == 200
-        assert set(response.data) == {"conversationId", "title", "data"}
+        assert set(response.data) == {"conversationId", "title", "spans"}
         assert response.data["conversationId"] == conversation_id
-        assert response.data["data"] == v1_response.data
+        assert response.data["spans"] == v1_response.data
 
     def test_api_version_2_returns_stored_title(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -765,7 +765,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
         assert response.data["title"] == "Refund a duplicate charge"
-        assert len(response.data["data"]) == 1
+        assert len(response.data["spans"]) == 1
 
     def test_api_version_2_title_is_null_without_metadata(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -864,7 +864,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
-        assert len(response.data["data"]) == 2
+        assert len(response.data["spans"]) == 2
         assert response.data["title"] == "Started here"
 
     def test_api_version_2_conversation_not_found(self) -> None:
@@ -884,7 +884,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert response.data["conversationId"] == conversation_id
         assert response.data["title"] is None
-        assert response.data["data"] == []
+        assert response.data["spans"] == []
 
     def test_api_version_2_paginates(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -916,7 +916,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
         assert response.data["title"] == "Long conversation"
-        assert len(response.data["data"]) == 2
+        assert len(response.data["spans"]) == 2
 
         links = parse_link_header(response.headers["Link"])
         next_link = next(link for link in links.values() if link["rel"] == "next")
@@ -926,7 +926,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
         assert response.data["title"] == "Long conversation"
-        assert len(response.data["data"]) == 1
+        assert len(response.data["spans"]) == 1
 
     @patch(
         "sentry.api.endpoints.organization_ai_conversation_details.fetch_conversation_title",
@@ -950,7 +950,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
         assert response.data["title"] is None
-        assert len(response.data["data"]) == 1
+        assert len(response.data["spans"]) == 1
         assert mock_fetch_conversation_title.call_count == 1
 
     def test_unsupported_api_version_returns_400(self) -> None:

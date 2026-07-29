@@ -79,7 +79,7 @@ class AIConversationDetailsResponse(TypedDict):
 
     conversationId: str
     title: str | None
-    data: list[dict[str, Any]]
+    spans: list[dict[str, Any]]
 
 
 @cell_silo_endpoint
@@ -138,7 +138,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 return {
                     "conversationId": conversation_id,
                     "title": self._resolve_title(conversation_id, spans, organization),
-                    "data": spans,
+                    "spans": spans,
                 }
 
             return self.paginate(
