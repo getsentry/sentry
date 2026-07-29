@@ -329,14 +329,9 @@ class SlackRequestParser(BaseRequestParser):
             )
             return
 
-        elapsed = time.time() - sent_at
-        if elapsed < 0:
-            # Clock skew between Slack and us; recording this would skew the low end.
-            return
-
         metrics.timing(
             "hybrid_cloud.integration_control.slack.response_time",
-            elapsed,
+            time.time() - sent_at,
             tags={
                 # SlackStagingRequestParser inherits this, so keep the two apart.
                 "provider": self.provider,

@@ -483,9 +483,10 @@ class SlackRequestParserTest(TestCase):
     @patch("sentry.middleware.integrations.parsers.slack.metrics.timing")
     @patch("sentry.middleware.integrations.parsers.slack.time.time")
     @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
-    def test_skips_response_time_on_clock_skew(
+    def test_records_negative_response_time_on_clock_skew(
         self, mock_apply: MagicMock, mock_time: MagicMock, mock_timing: MagicMock
     ) -> None:
+        """Clock skew between Slack and us is recorded as-is rather than dropped."""
         sent_at = 1700000000
         mock_time.return_value = sent_at - 5
 
@@ -493,7 +494,8 @@ class SlackRequestParserTest(TestCase):
         parser.request.META["HTTP_X_SLACK_REQUEST_TIMESTAMP"] = str(sent_at)
         parser.get_response()
 
-        assert self._response_time_calls(mock_timing) == []
+        (call,) = self._response_time_calls(mock_timing)
+        assert call.args[1] == -5
 
     @patch("sentry.middleware.integrations.parsers.slack.metrics.timing")
     @patch("sentry.middleware.integrations.parsers.slack.time.time")
