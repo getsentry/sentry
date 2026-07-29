@@ -349,7 +349,7 @@ class SlackRequestParser(BaseRequestParser):
     def get_response(self) -> HttpResponseBase:
         try:
             response = self._get_response()
-        except BaseException:
+        except Exception:
             # The final status code is decided further up the stack.
             self._record_response_time("error")
             raise
