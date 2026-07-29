@@ -1,6 +1,6 @@
 """The flat model the formatter renders from: ``EventObject`` plus its nested pieces. Adapted
-from Seer's ``EventDetails`` but defined here in Sentry, and kept flat (issue-level fields live
-on ``EventObject``) so one section list renders any issue type. Trace models omitted for now.
+from Seer's ``EventDetails`` but defined here in Sentry, and kept flat so one section list
+renders any issue type. Trace models omitted for now.
 """
 
 from __future__ import annotations
@@ -8,7 +8,20 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
+
+
+def _drop_filtered(value: Any) -> Any:
+    """Strip scrubbed leaves, recursing into dicts and lists. ``None`` means nothing survived."""
+    if isinstance(value, dict):
+        kept_items = {
+            k: v for k, v in ((k, _drop_filtered(v)) for k, v in value.items()) if v is not None
+        }
+        return kept_items or None
+    if isinstance(value, list):
+        kept_entries = [v for v in (_drop_filtered(item) for item in value) if v is not None]
+        return kept_entries or None
+    return None if "[Filtered]" in str(value) else value
 
 
 class Frame(BaseModel):
@@ -27,6 +40,27 @@ class Frame(BaseModel):
     context: list[tuple[int, str | None]] = []  # [(line_no, source_line), ...]
     vars: dict[str, Any] | None = None
     in_app: bool = Field(False, alias="inApp")
+
+    # ``context`` is declared above ``vars`` so it is already validated and available here
+    @validator("vars")
+    def _trim_vars(
+        cls, vars: dict[str, Any] | None, values: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """Keep only the vars the frame's source mentions, minus scrubbed values (mirrors Seer's
+        ``StacktraceFrame._trim_vars``, except scrubbed values go even without source context).
+        """
+        if not vars:
+            return vars
+
+        code = "\n".join(line or "" for _, line in values.get("context") or [])
+        kept: dict[str, Any] = {}
+        for key, value in vars.items():
+            if code and key not in code:
+                continue
+            cleaned = _drop_filtered(value)
+            if cleaned is not None:
+                kept[key] = cleaned
+        return kept
 
 
 class Stacktrace(BaseModel):
@@ -65,12 +99,10 @@ class RequestDetails(BaseModel):
 
 
 class EvidenceSpan(BaseModel):
-    class Config:
-        allow_population_by_field_name = True
-
     op: str | None = None
     description: str | None = None
-    exclusive_time_ms: float | None = Field(None, alias="exclusiveTime")
+    # the spans entry passes raw span keys through untouched, so this one stays snake_case
+    exclusive_time: float | None = None  # duration in milliseconds
 
 
 class UserDetails(BaseModel):
@@ -84,7 +116,7 @@ class UserDetails(BaseModel):
 
 
 class EventObject(BaseModel):
-    """Flat, event-rooted formatter model; issue-level fields are optional."""
+    """Flat, event-rooted formatter model."""
 
     event_id: str | None = None
     title: str
@@ -101,14 +133,4 @@ class EventObject(BaseModel):
     contexts: dict[str, dict[str, Any]] = {}
     user: UserDetails | None = None
     spans: list[EvidenceSpan] = []
-
-    # issue-level fields (optional; filled when formatting from an issue)
-    short_id: str | None = None
     culprit: str | None = None
-    status: str | None = None
-    level: str | None = None
-    first_seen: datetime | None = None
-    last_seen: datetime | None = None
-    count: int | None = None
-    user_count: int | None = None
-    permalink: str | None = None

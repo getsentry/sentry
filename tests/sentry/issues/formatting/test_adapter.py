@@ -54,7 +54,7 @@ def _serialized_event() -> dict[str, Any]:
             {"type": "message", "data": {"formatted": "boom happened"}},
             {
                 "type": "spans",
-                "data": [{"op": "db", "description": "SELECT 1", "exclusiveTime": 12.5}],
+                "data": [{"op": "db", "description": "SELECT 1", "exclusive_time": 12.5}],
             },
         ],
     }
@@ -156,7 +156,8 @@ def test_processed_stacktrace_preferred_over_raw() -> None:
 def test_maps_breadcrumbs_request_spans_user_tags() -> None:
     m = event_response_to_model(_serialized_event())
     assert m.breadcrumbs[0].message == "started"
-    assert m.spans[0].exclusive_time_ms == 12.5  # exclusiveTime -> exclusive_time_ms
+    # the spans entry keeps raw span keys, so exclusive_time needs no alias
+    assert m.spans[0].exclusive_time == 12.5
     assert ("environment", "prod") in m.tags
     assert m.request is not None
     assert m.request.method == "GET"

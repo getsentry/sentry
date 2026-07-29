@@ -1,4 +1,5 @@
 import dataclasses
+from datetime import datetime, timezone
 from typing import Any
 
 import pytest
@@ -78,12 +79,24 @@ def test_frames_capped_and_most_recent_first() -> None:
     frames = [Frame(function=f"f{i}", filename="a.py", line_no=i) for i in range(20)]
     event = _event_with_exception(type="E", stacktrace=Stacktrace(frames=frames))
     out = exceptions_section(event, MarkdownFormatter(), LIMITS_DEFAULT)
-    # default cap is 16 frames; last 16 kept (f4..f19), most-recent first
-    assert "f19 in a.py" in out
-    assert "f4 in a.py" in out
-    assert "f3 in a.py" not in out
-    assert out.index("f19") < out.index("f4")  # reversed order
+    # default cap is 16 frames; with no app frames, the head and tail of the system frames
+    # are kept (f0..f7 + f12..f19), most-recent first
     assert out.count(" in a.py ") == 16
+    assert "f19 in a.py" in out
+    assert "f0 in a.py" in out
+    assert "f8 in a.py" not in out  # dropped from the middle
+    assert out.index("f19") < out.index("f0")  # reversed order
+
+
+def test_frame_cap_keeps_app_frames() -> None:
+    # app frames must survive a deep stack: a blind tail slice would drop every one of these
+    frames = [Frame(function=f"app{i}", filename="a.py", in_app=True) for i in range(4)]
+    frames += [Frame(function=f"lib{i}", filename="v.py") for i in range(50)]
+    event = _event_with_exception(type="E", stacktrace=Stacktrace(frames=frames))
+    out = exceptions_section(event, MarkdownFormatter(), LIMITS_DEFAULT)
+    for i in range(4):
+        assert f"app{i} in a.py" in out
+    assert out.count(" [Line: Unknown] ") == 16  # still bounded by max_frames
 
 
 def test_stacktrace_char_truncation() -> None:
@@ -107,6 +120,54 @@ def test_title_with_culprit() -> None:
     out = title_section(event, MD, LIMITS_DEFAULT)
     assert "ValueError: boom" in out
     assert "**Culprit:** app.views.checkout" in out
+
+
+def test_title_with_transaction_and_date() -> None:
+    event = EventObject(
+        title="ValueError: boom",
+        transaction_name="/api/checkout",
+        timestamp=datetime(2026, 7, 29, 10, 11, 12, tzinfo=timezone.utc),
+    )
+    out = title_section(event, MD, LIMITS_DEFAULT)
+    assert "**Transaction:** /api/checkout" in out
+    assert "**Date:** 2026-07-29 10:11:12 UTC" in out
+
+
+def test_title_omits_absent_fields() -> None:
+    out = title_section(EventObject(title="just a title"), MD, LIMITS_DEFAULT)
+    assert out == "## Title\njust a title"
+
+
+def test_frame_vars_trimmed_to_context_and_scrubbed() -> None:
+    # only vars the frame's own source mentions survive, and scrubbed values are dropped
+    frame = Frame(
+        function="login",
+        filename="a.py",
+        line_no=2,
+        context=[(1, "user = get_user()"), (2, "check(password)")],
+        vars={
+            "password": "[Filtered]",
+            "user": {"email": "[Filtered]", "id": 7},
+            "unmentioned": "noise",
+        },
+    )
+    event = _event_with_exception(type="E", stacktrace=Stacktrace(frames=[frame]))
+    out = exceptions_section(event, MD, LIMITS_DEFAULT)
+    assert "[Filtered]" not in out
+    # only the unscrubbed part of the one mentioned var survives; the source lines still render
+    assert "vars: user={'id': 7}" in out
+    assert "password=" not in out
+    assert "unmentioned" not in out
+
+
+def test_frame_vars_scrubbed_without_context() -> None:
+    # no source context to narrow against, so vars are kept -- but still never scrubbed values
+    frame = Frame(function="f", filename="a.py", vars={"token": "[Filtered]", "count": 3})
+    event = _event_with_exception(type="E", stacktrace=Stacktrace(frames=[frame]))
+    out = exceptions_section(event, MD, LIMITS_DEFAULT)
+    assert "[Filtered]" not in out
+    assert "token" not in out
+    assert "count=3" in out
 
 
 def test_message_deduped_against_title() -> None:
@@ -193,7 +254,7 @@ def test_threads_capped_by_max_threads() -> None:
 
 def test_spans_section() -> None:
     event = EventObject(
-        title="t", spans=[EvidenceSpan(op="db", description="SELECT 1", exclusive_time_ms=12.5)]
+        title="t", spans=[EvidenceSpan(op="db", description="SELECT 1", exclusive_time=12.5)]
     )
     out = spans_section(event, MD, LIMITS_DEFAULT)
     assert "db: SELECT 1 (12.5ms)" in out
@@ -254,6 +315,13 @@ def test_format_issue_xml() -> None:
 def test_invalid_format_raises() -> None:
     with pytest.raises(ValueError):
         format_issue(_serialized_event(), format="banana")  # type: ignore[arg-type]
+
+
+def test_unadaptable_payload_renders_nothing() -> None:
+    # a payload the adapter can't map degrades to empty output instead of raising at the
+    # caller; consumers treat empty as "no formatted output" and fall back
+    assert format_issue({"title": "t", "entries": "not-a-list"}) == ""
+    assert format_issue({}) == ""  # no title
 
 
 def test_event_sections_order() -> None:

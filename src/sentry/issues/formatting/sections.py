@@ -5,13 +5,17 @@ content mirrors Seer's per-section output.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, Sequence
+from datetime import UTC
 from typing import Any, Literal
 
 from sentry.issues.formatting.adapter import event_response_to_model
 from sentry.issues.formatting.formatter import Formatter, MarkdownFormatter, SectionFn, XmlFormatter
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, Limits
 from sentry.issues.formatting.models import EventObject, Frame, Stacktrace
+
+logger = logging.getLogger(__name__)
 
 
 def _truncate(text: str, max_chars: int | None) -> str:
@@ -52,9 +56,32 @@ def _render_frame(frame: Frame) -> str:
     return "\n".join(lines)
 
 
+def _select_frames(frames: Sequence[Frame], max_frames: int) -> list[Frame]:
+    """Cap the frame count, trimming system frames first and keeping the head and tail of each
+    group, so app frames survive a deep stack (mirrors Seer's ``Stacktrace._trim_frames``).
+    """
+    if len(frames) <= max_frames:
+        return list(frames)
+
+    app = [f for f in frames if f.in_app]
+    system = [f for f in frames if not f.in_app]
+    system_allowance = max(max_frames - len(app), 0)
+
+    def head_and_tail(group: list[Frame], allowance: int) -> list[Frame]:
+        half = allowance // 2
+        # an allowance of 1 keeps nothing rather than everything, which `group[-0:]` would
+        return group[:half] + group[-half:] if half else []
+
+    kept = head_and_tail(system, system_allowance) + head_and_tail(
+        app, max_frames - system_allowance
+    )
+    order = {id(frame): i for i, frame in enumerate(frames)}
+    return sorted(kept, key=lambda frame: order[id(frame)])
+
+
 def _render_stacktrace(stacktrace: Stacktrace, limits: Limits) -> str:
     # most-recent frame first, capped to max_frames (matches Seer)
-    frames = list(reversed(stacktrace.frames[-limits.max_frames :]))
+    frames = reversed(_select_frames(stacktrace.frames, limits.max_frames))
     body = "\n------\n".join(_render_frame(f) for f in frames)
     return _truncate(body, limits.max_stacktrace_chars)
 
@@ -78,10 +105,17 @@ def exceptions_section(model: EventObject, fmt: Formatter, limits: Limits) -> st
 
 
 def title_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
-    body = model.title
+    # transaction and date mirror the line Seer's format_event opens with
+    lines = [model.title]
+    if model.transaction_name:
+        lines.append(fmt.field("Transaction", model.transaction_name))
     if model.culprit:
-        body += "\n" + fmt.field("Culprit", model.culprit)
-    return fmt.block("Title", body)
+        lines.append(fmt.field("Culprit", model.culprit))
+    if model.timestamp:
+        lines.append(
+            fmt.field("Date", model.timestamp.astimezone(UTC).strftime("%Y-%m-%d %H:%M:%S UTC"))
+        )
+    return fmt.block("Title", "\n".join(lines))
 
 
 def message_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
@@ -173,7 +207,7 @@ def spans_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     lines: list[str] = []
     for span in model.spans:
         label = ": ".join(p for p in (span.op, span.description) if p)
-        timing = f" ({span.exclusive_time_ms}ms)" if span.exclusive_time_ms is not None else ""
+        timing = f" ({span.exclusive_time}ms)" if span.exclusive_time is not None else ""
         line = f"{label}{timing}".strip()
         if line:
             lines.append(line)
@@ -211,11 +245,19 @@ def format_issue(
     sections: Sequence[SectionFn] = EVENT_SECTIONS,
     limits: Limits = LIMITS_DEFAULT,
 ) -> str:
-    """Render a serialized event into text. The single path used by every consumer."""
+    """Render a serialized event into text. The single path used by every consumer.
+
+    Returns "" when the payload can't be adapted, matching how ``Formatter.render`` absorbs
+    per-section failures, so a malformed event never takes down the caller.
+    """
     try:
         formatter_cls = _FORMATTERS[format]
     except KeyError:
         raise ValueError(f"unsupported format: {format!r}") from None
 
-    model = event_response_to_model(data)
+    try:
+        model = event_response_to_model(data)
+    except Exception:
+        logger.exception("formatter.adapter_failed")
+        return ""
     return formatter_cls().render(model, sections, limits)
