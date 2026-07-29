@@ -34,9 +34,13 @@ _snuba_items_task_producer = get_task_producer(
     producer_name=_snuba_items_task_producer_name,
     producer_factory=partial(_get_snuba_items_producer, name=_snuba_items_task_producer_name),
 )
+
+_snuba_items_future_tracking_producer_name = "sentry.spans.process_segments.snuba_items_ftp"
 _snuba_items_future_tracking_producer = get_producer(
-    producer_name=_snuba_items_task_producer_name,
-    producer_factory=partial(_get_snuba_items_producer, name=_snuba_items_task_producer_name),
+    producer_name=_snuba_items_future_tracking_producer_name,
+    producer_factory=partial(
+        _get_snuba_items_producer, name=_snuba_items_future_tracking_producer_name
+    ),
 )
 _snuba_items_topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
 
