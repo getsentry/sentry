@@ -8,23 +8,7 @@ import {
   type TraceLayoutTabsConfig,
 } from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
-class MockResizeObserver {
-  disconnect() {}
-  observe() {}
-  unobserve() {}
-}
-
 describe('TraceTabsAndVitals', () => {
-  const originalResizeObserver = globalThis.ResizeObserver;
-
-  beforeEach(() => {
-    globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
-  });
-
-  afterEach(() => {
-    globalThis.ResizeObserver = originalResizeObserver;
-  });
-
   it('renders tabs while optional root event details are loading', () => {
     const tabsConfig: TraceLayoutTabsConfig = {
       currentTab: TraceLayoutTabKeys.WATERFALL,

@@ -34,6 +34,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     from sentry.integrations import models as integrations
     from sentry.monitors import models as monitors
     from sentry.preprod import models as preprod
+    from sentry.seer.models.run import SeerRun
     from sentry.sentry_apps import models as sentry_apps
     from sentry.snuba import models as snuba
     from sentry.uptime import models as uptime
@@ -124,6 +125,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(workflow_engine.Workflow, defaults.WorkflowDeletionTask)
     manager.register(uptime.UptimeSubscription, defaults.UptimeSubscriptionDeletionTask)
     manager.register(uptime.UptimeResponseCapture, ModelDeletionTask)
+    manager.register(SeerRun, ModelDeletionTask)
     # fmt: on
 
 

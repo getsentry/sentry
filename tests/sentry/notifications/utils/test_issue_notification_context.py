@@ -203,7 +203,7 @@ class TestIssueNotificationContext(MetricAlertHandlerBase):
 
     def test_organization(self) -> None:
         ctx = self._make_context()
-        assert ctx.organization == self.detector.project.organization
+        assert ctx.organization == self.detector.linked_project.organization
 
     def test_open_period(self) -> None:
         ctx = self._make_context()

@@ -16,13 +16,16 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
+import {
+  getAriaSort,
+  SortableHeaderCell,
+} from 'sentry/components/tables/sortableHeaderCell';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -40,7 +43,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {
   TableBodyCell,
   TableHead,
-  TableHeadCellContent,
   TableRow,
   TableStatus,
   useTableStyles,
@@ -293,9 +295,13 @@ export function LogsInfiniteTable({
   const estimateSize = useCallback(
     (index: number) => {
       const logItemId = data?.[index]?.[OurLogKnownFieldKey.ID];
-      const estimatedHeight =
-        expandedLogRowsHeights[logItemId ?? ''] ?? LOGS_GRID_BODY_ROW_HEIGHT;
-      return estimatedHeight;
+      const expandedDetailsHeight = expandedLogRowsHeights[logItemId ?? ''];
+      // A virtual item is the collapsed row plus, when expanded, its details
+      // panel rendered as a sibling row. The stored height only covers the
+      // details panel, so add the base row height back for the full item.
+      return expandedDetailsHeight === undefined
+        ? LOGS_GRID_BODY_ROW_HEIGHT
+        : LOGS_GRID_BODY_ROW_HEIGHT + expandedDetailsHeight;
     },
     [expandedLogRowsHeights, data]
   );
@@ -323,9 +329,14 @@ export function LogsInfiniteTable({
     getItemKey,
   });
 
+  // @tanstack/react-virtual does not rebuild its measurements cache when
+  // estimateSize returns new values, so re-measure whenever an expanded row's
+  // height changes. Without this the total size and item offsets keep treating
+  // expanded rows as collapsed, which desyncs the scroll range and leaves large
+  // blank gaps.
   useLayoutEffect(() => {
     virtualizer.measure();
-  }, [virtualizer]);
+  }, [virtualizer, expandedLogRowsHeights]);
 
   const virtualItems = virtualizer.getVirtualItems();
 
@@ -475,7 +486,9 @@ export function LogsInfiniteTable({
     });
   }, []);
   const handleExpandHeight = useCallback((logItemId: string, estimatedHeight: number) => {
-    setExpandedLogRowsHeights(prev => ({...prev, [logItemId]: estimatedHeight}));
+    setExpandedLogRowsHeights(prev =>
+      prev[logItemId] === estimatedHeight ? prev : {...prev, [logItemId]: estimatedHeight}
+    );
   }, []);
   const handleCollapse = useCallback((logItemId: string) => {
     setExpandedLogRows(prev => {
@@ -756,9 +769,7 @@ function LogsTableHeader({
   return (
     <TableHead>
       <LogTableRow>
-        <FirstTableHeadCell isFirst align="left">
-          <TableHeadCellContent isFrozen />
-        </FirstTableHeadCell>
+        <FirstTableHeadCell isFirst align="left" />
         {fields.map((field, index) => {
           const direction = sortBys.find(s => s.field === field)?.kind;
 
@@ -783,12 +794,14 @@ function LogsTableHeader({
           return (
             <LogTableHeadCell
               align={index === 0 ? 'left' : align}
+              aria-sort={getAriaSort(direction)}
               key={index}
               isFirst={index === 0}
               reservePinGutter={pinningEnabled && index === fields.length - 1}
             >
-              <TableHeadCellContent
-                onClick={
+              <SortableHeaderCell
+                direction={direction}
+                onSort={
                   isFrozen
                     ? undefined
                     : () => {
@@ -804,24 +817,9 @@ function LogsTableHeader({
                         }
                       }
                 }
-                isFrozen={isFrozen}
               >
-                <Tooltip showOnlyOnOverflow title={headerLabel}>
-                  {headerLabel}
-                </Tooltip>
-                {defined(direction) && (
-                  <IconArrow
-                    size="xs"
-                    direction={
-                      direction === 'desc'
-                        ? 'down'
-                        : direction === 'asc'
-                          ? 'up'
-                          : undefined
-                    }
-                  />
-                )}
-              </TableHeadCellContent>
+                {headerLabel}
+              </SortableHeaderCell>
               {index !== fields.length - 1 && (
                 <GridResizer
                   dataRows={!isError && !isPending && data ? data.length : 0}

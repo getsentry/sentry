@@ -43,4 +43,21 @@ describe('CreateNewIntegrationModal', () => {
       '/settings/org-slug/developer-settings/new-public/'
     );
   });
+
+  it('offers visible creation templates', () => {
+    renderGlobalModal({
+      organization: OrganizationFixture({
+        features: ['sentry-apps-creation-templates'],
+      }),
+    });
+
+    act(() => openModal(modalProps => <CreateNewIntegrationModal {...modalProps} />));
+
+    expect(screen.getByText('Templates')).toBeInTheDocument();
+    expect(screen.getByText('Trigger a Claude routine')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Use template'})).toHaveAttribute(
+      'href',
+      '/settings/org-slug/developer-settings/new-internal/?template=claude-routine&referrer=new_integration_modal'
+    );
+  });
 });

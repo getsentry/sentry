@@ -1,4 +1,4 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -97,28 +97,32 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
           </FeedbackButton>
         </TopBar.Slot>
 
-        <TraceHeaderComponents.HeaderRow>
-          <Title
-            isLoading={isRepresentativeLoading}
-            representativeEvent={rep}
-            rootEventResults={props.rootEventResults}
-          />
-          <Meta
-            tree={props.tree}
-            meta={props.metaResults.data}
-            overview={props.overview}
-            representativeEvent={rep}
-            logsEnabled={logsEnabled}
-            metricsEnabled={metricsEnabled}
-          />
-        </TraceHeaderComponents.HeaderRow>
-        <TraceHeaderComponents.HeaderRow>
-          <Highlights
-            rootEventResults={props.rootEventResults}
-            project={project}
-            organization={props.organization}
-          />
-          <Flex align="center" gap="md" marginLeft="auto">
+        <TraceHeaderComponents.HeaderGrid>
+          <Container area="title" minWidth={0}>
+            <Title
+              isLoading={isRepresentativeLoading}
+              representativeEvent={rep}
+              rootEventResults={props.rootEventResults}
+            />
+          </Container>
+          <Container area="meta" justifySelf={{zero: 'start', xl: 'end'}}>
+            <Meta
+              tree={props.tree}
+              meta={props.metaResults.data}
+              overview={props.overview}
+              representativeEvent={rep}
+              logsEnabled={logsEnabled}
+              metricsEnabled={metricsEnabled}
+            />
+          </Container>
+          <Container area="highlights" minWidth={0}>
+            <Highlights
+              rootEventResults={props.rootEventResults}
+              project={project}
+              organization={props.organization}
+            />
+          </Container>
+          <Container area="projects" justifySelf={{zero: 'start', xl: 'end'}}>
             {isProjectsLoading ? (
               <TraceHeaderComponents.StyledPlaceholder _width={50} _height={28} />
             ) : (
@@ -132,8 +136,8 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
                 )}
               />
             )}
-          </Flex>
-        </TraceHeaderComponents.HeaderRow>
+          </Container>
+        </TraceHeaderComponents.HeaderGrid>
       </TraceHeaderComponents.HeaderContent>
     </TraceHeaderComponents.HeaderLayout>
   );

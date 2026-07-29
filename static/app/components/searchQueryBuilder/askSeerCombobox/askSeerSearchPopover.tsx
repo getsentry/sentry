@@ -61,6 +61,7 @@ const ListBoxOverlay = styled(Overlay)`
   overflow-y: auto;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
+  will-change: auto;
 `;
 
 const BackgroundColorWrapper = styled('div')<{$hasAskSeerUxRework: boolean}>`

@@ -172,6 +172,17 @@ def test_process_segment_task_matches_consumer_output(
     assert headers["project_id"] == b"1"
 
 
+@mock.patch("sentry.spans.consumers.process_segments.tasks._process_segment_bytes", return_value=[])
+def test_process_segment_task_does_not_start_new_transaction(
+    mock_process_segment_bytes: mock.MagicMock,
+) -> None:
+    segment_bytes = b"segment"
+
+    process_segment_task(segment_bytes)
+
+    mock_process_segment_bytes.assert_called_once_with(segment_bytes, start_new_transaction=False)
+
+
 class TestCheckSpanDuplicates:
     @override_options({"spans.process-segments.dedupe-ttl": 0})
     def test_disabled_when_ttl_is_zero(self):

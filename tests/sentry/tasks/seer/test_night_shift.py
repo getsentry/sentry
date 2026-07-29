@@ -5,6 +5,7 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.issues.search import group_types_from
 from sentry.models.group import Group
 from sentry.models.organization import OrganizationStatus
+from sentry.models.project import Project
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
@@ -212,7 +213,12 @@ class TestScheduleNightShift(TestCase):
         org = self.create_org_with_seer()
 
         with (
-            self.options({"seer.night_shift.enable": True}),
+            self.options(
+                {
+                    "seer.night_shift.enable": True,
+                    "seer.night_shift.enable_for_legacy_orgs": False,
+                }
+            ),
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
@@ -224,6 +230,29 @@ class TestScheduleNightShift(TestCase):
         ):
             schedule_night_shift()
             mock_worker.apply_async.assert_not_called()
+
+    def test_dispatches_legacy_orgs_when_enabled(self) -> None:
+        org = self.create_org_with_seer()
+
+        with (
+            self.options(
+                {
+                    "seer.night_shift.enable": True,
+                    "seer.night_shift.enable_for_legacy_orgs": True,
+                }
+            ),
+            self.feature(
+                {
+                    "organizations:seer-night-shift": [org.slug],
+                    "organizations:gen-ai-features": [org.slug],
+                    # seat-based-seer-enabled intentionally omitted
+                }
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_for_org") as mock_worker,
+        ):
+            schedule_night_shift()
+            mock_worker.apply_async.assert_called_once()
+            assert mock_worker.apply_async.call_args.kwargs["args"] == [org.id]
 
     def test_skips_orgs_with_hidden_ai(self) -> None:
         org = self.create_org_with_seer()
@@ -330,6 +359,21 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         assert repos_by_slug[a.slug] == ["owner/a"]
         assert repos_by_slug[b.slug] == ["owner/b", "owner/b-extra"]
 
+    def test_carries_each_projects_automation_tuning(self) -> None:
+        org = self.create_organization()
+        low = self._make_eligible(self.create_project(organization=org, slug="low"))
+        low.update_option("sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.LOW)
+        always = self._make_eligible(self.create_project(organization=org, slug="always"))
+        always.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.ALWAYS
+        )
+
+        result = _get_eligible_projects(org, "manual")
+
+        tuning_by_slug = {ep.project.slug: ep.automation_tuning for ep in result}
+        assert tuning_by_slug[low.slug] == AutofixAutomationTuningSettings.LOW
+        assert tuning_by_slug[always.slug] == AutofixAutomationTuningSettings.ALWAYS
+
     def test_filters_by_project_id(self) -> None:
         org = self.create_organization()
         target = self._make_eligible(self.create_project(organization=org))
@@ -403,6 +447,67 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
             result = _get_eligible_projects(org, "manual")
 
         assert [ep.project for ep in result] == [present]
+
+    def test_filters_projects_at_autofix_rate_limit(self) -> None:
+        """A project already at its autotriggered-autofix rate limit shouldn't
+        be triaged — the eventual autofix trigger would be rate limited anyway."""
+        org = self.create_organization()
+        under_limit = self._make_eligible(self.create_project(organization=org, slug="under"))
+        at_limit = self._make_eligible(self.create_project(organization=org, slug="at-limit"))
+
+        def fake_rate_limited(project: Project) -> bool:
+            return project.id == at_limit.id
+
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.cron.is_seer_autotriggered_autofix_rate_limited",
+                side_effect=fake_rate_limited,
+            ),
+            patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger,
+        ):
+            result = _get_eligible_projects(org, "manual")
+
+        assert [ep.project for ep in result] == [under_limit]
+
+        at_limit_extra = next(
+            call.kwargs["extra"]
+            for call in mock_logger.info.call_args_list
+            if call.kwargs["extra"]["project_id"] == at_limit.id
+        )
+        assert at_limit_extra["reasons"] == ["autofix_rate_limited"]
+
+    def test_seat_based_orgs_skip_the_rate_limit_check(self) -> None:
+        org = self.create_organization()
+        at_limit = self._make_eligible(self.create_project(organization=org))
+
+        with (
+            patch(
+                "sentry.tasks.seer.night_shift.cron.is_seer_autotriggered_autofix_rate_limited",
+                return_value=True,
+            ),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.is_seer_seat_based_tier_enabled",
+                return_value=True,
+            ),
+        ):
+            result = _get_eligible_projects(org, "manual")
+
+        assert [ep.project for ep in result] == [at_limit]
+
+    def test_seat_based_orgs_get_no_automation_tuning(self) -> None:
+        org = self.create_organization()
+        project = self._make_eligible(self.create_project(organization=org))
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.LOW
+        )
+
+        with patch(
+            "sentry.tasks.seer.night_shift.cron.is_seer_seat_based_tier_enabled",
+            return_value=True,
+        ):
+            result = _get_eligible_projects(org, "manual")
+
+        assert result[0].automation_tuning is None
 
 
 @django_db_all
@@ -691,6 +796,64 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         assert run.extras.get("error_message") is None
         # Verdicts and autofix are Seer's responsibility now; no result rows here.
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
+
+    def test_payload_carries_automation_tuning_for_legacy_orgs(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.HIGH
+        )
+        self._store_event_and_update_group(project, "fixable", seer_fixability_score=0.9)
+
+        with self.feature("organizations:gen-ai-features"):
+            run_night_shift_for_org(org.id)
+
+        _, body = _dispatched_feature_body(org)
+        assert body["payload"]["candidates"][0]["automation_tuning"] == "high"
+
+    def test_payload_omits_automation_tuning_for_seat_based_orgs(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project)
+        self._store_event_and_update_group(project, "fixable", seer_fixability_score=0.9)
+
+        with (
+            self.feature("organizations:gen-ai-features"),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.is_seer_seat_based_tier_enabled",
+                return_value=True,
+            ),
+        ):
+            run_night_shift_for_org(org.id)
+
+        _, body = _dispatched_feature_body(org)
+        assert body["payload"]["candidates"][0]["automation_tuning"] is None
+
+    def test_payload_carries_per_project_automation_tuning_within_one_org(self) -> None:
+        org = self.create_organization()
+        low = self._make_eligible(self.create_project(organization=org, slug="low"))
+        low.update_option("sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.LOW)
+        always = self._make_eligible(self.create_project(organization=org, slug="always"))
+        always.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.ALWAYS
+        )
+        low_group = self._store_event_and_update_group(
+            low, "low-fixable", seer_fixability_score=0.9
+        )
+        always_group = self._store_event_and_update_group(
+            always, "always-fixable", seer_fixability_score=0.9
+        )
+
+        with self.feature("organizations:gen-ai-features"):
+            run_night_shift_for_org(org.id)
+
+        _, body = _dispatched_feature_body(org)
+        tuning_by_group_id = {
+            c["group_id"]: c["automation_tuning"] for c in body["payload"]["candidates"]
+        }
+        assert tuning_by_group_id[low_group.id] == "low"
+        assert tuning_by_group_id[always_group.id] == "always"
 
     def test_allowed_project_slugs_gives_each_project_its_own_quota(self) -> None:
         org = self.create_organization()

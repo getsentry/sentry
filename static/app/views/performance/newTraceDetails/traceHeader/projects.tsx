@@ -35,9 +35,11 @@ export function Projects({projectSlugs}: Props) {
   );
 }
 
-// We cannot change the cursor of the ProjectBadge component so we need to wrap it in a div
+// We cannot change the cursor or icon separator of the ProjectBadge component so we
+// need to wrap it in a div
 const ProjectsRendererWrapper = styled('div')`
   img {
     cursor: pointer;
+    box-shadow: none;
   }
 `;

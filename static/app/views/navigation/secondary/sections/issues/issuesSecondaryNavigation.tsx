@@ -10,10 +10,22 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import {useInboxIssueCount} from 'sentry/views/issueList/queries/useInboxIssueCount';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
+import {IssueCount} from 'sentry/views/navigation/secondary/sections/issues/issueCount';
 import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
+
+function InboxCountBadge() {
+  const count = useInboxIssueCount();
+
+  if (!count) {
+    return null;
+  }
+
+  return <IssueCount count={count} />;
+}
 
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
@@ -34,26 +46,16 @@ export function IssuesSecondaryNavigation() {
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
             {organization.features.includes('issue-stream-progress-ui') && (
-              <Fragment>
-                <SecondaryNavigation.ListItem>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/inbox/`}
-                    end
-                    analyticsItemName="issues_inbox"
-                  >
-                    {t('Inbox')}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-                <SecondaryNavigation.ListItem>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/awaiting-input/`}
-                    end
-                    analyticsItemName="issues_awaiting_input"
-                  >
-                    {t('Awaiting Input')}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-              </Fragment>
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/inbox/`}
+                  end
+                  analyticsItemName="issues_inbox"
+                  trailingItems={<InboxCountBadge />}
+                >
+                  {t('Inbox')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
             )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>

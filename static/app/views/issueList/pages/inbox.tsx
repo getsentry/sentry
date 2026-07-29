@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryState} from 'nuqs';
+import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {ActorAvatar, ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
@@ -9,6 +9,7 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -16,33 +17,34 @@ import {NotFound} from 'sentry/components/errors/notFound';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
-import {NoProjectMessage} from 'sentry/components/noProjectMessage';
-import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
-import {TimeSince} from 'sentry/components/timeSince';
+import {QueryCount} from 'sentry/components/queryCount';
 import {IconArrow, IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {ProgressState, type Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getUtcDateString} from 'sentry/utils/dates';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
+import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 
 const TITLE = t('Inbox');
 const ISSUE_LIMIT = 5;
 const SELECTED_ISSUE_QUERY_PARAM = 'preview';
+const ASSIGNMENT_QUERY_PARAM = 'assignment';
+const ASSIGNMENT_FILTERS = ['me', 'my_teams', 'all'] as const;
+type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
+export const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
+  me: ' assigned:me',
+  my_teams: ' assigned:[me,my_teams]',
+  all: '',
+};
 
 interface InboxSectionConfig {
   defaultExpanded: boolean;
@@ -53,7 +55,7 @@ interface InboxSectionConfig {
   query: string;
 }
 
-const SECTIONS: InboxSectionConfig[] = [
+export const SECTIONS: InboxSectionConfig[] = [
   {
     key: 'fix-proposed',
     label: t('Fix Proposed'),
@@ -89,17 +91,18 @@ export default function InboxPage() {
 
   return (
     <IssueListContainer title={TITLE}>
-      <PageFiltersContainer>
-        <NoProjectMessage organization={organization}>
-          <InboxContent />
-        </NoProjectMessage>
-      </PageFiltersContainer>
+      <InboxContent />
     </IssueListContainer>
   );
 }
 
 function InboxContent() {
-  const {selection, isReady} = usePageFilters();
+  const [assignmentFilter, setAssignmentFilter] = useQueryState(
+    ASSIGNMENT_QUERY_PARAM,
+    parseAsStringLiteral(ASSIGNMENT_FILTERS)
+      .withDefault('my_teams')
+      .withOptions({history: 'replace'})
+  );
   const [selectedIssueId, setSelectedIssueId] = useQueryState(
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
@@ -108,13 +111,6 @@ function InboxContent() {
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
       <Layout.Title>{TITLE}</Layout.Title>
-      <Container padding="lg xl" borderBottom="muted">
-        <PageFilterBar condensed>
-          <ProjectPageFilter resetParamsOnChange={[SELECTED_ISSUE_QUERY_PARAM]} />
-          <EnvironmentPageFilter resetParamsOnChange={[SELECTED_ISSUE_QUERY_PARAM]} />
-          <DatePageFilter resetParamsOnChange={[SELECTED_ISSUE_QUERY_PARAM]} />
-        </PageFilterBar>
-      </Container>
       <Grid
         flex={1}
         minHeight={0}
@@ -122,26 +118,50 @@ function InboxContent() {
           'screen:xs': 'minmax(0, 1fr)',
           'screen:md': 'minmax(320px, 2fr) minmax(0, 3fr)',
         }}
-        gap="lg"
       >
         <Stack
           as="section"
           aria-label={t('Issue inbox')}
           minHeight={0}
-          overflowY="auto"
           display={selectedIssueId ? {'screen:xs': 'none', 'screen:md': 'flex'} : 'flex'}
           background="primary"
           borderRight="muted"
         >
-          {SECTIONS.map(section => (
-            <InboxSection
-              key={section.key}
-              section={section}
-              selection={selection}
-              isReady={isReady}
-              selectedIssueId={selectedIssueId}
-            />
-          ))}
+          <Flex
+            as="header"
+            align="center"
+            justify="between"
+            padding="md lg"
+            background="secondary"
+            borderBottom="muted"
+            flexShrink={0}
+          >
+            <Heading as="h2" size="md">
+              {t('Issues')}
+            </Heading>
+            <SegmentedControl
+              aria-label={t('Issue assignee')}
+              size="xs"
+              value={assignmentFilter}
+              onChange={setAssignmentFilter}
+            >
+              <SegmentedControl.Item key="me">{t('Me')}</SegmentedControl.Item>
+              <SegmentedControl.Item key="my_teams">
+                {t('My Teams')}
+              </SegmentedControl.Item>
+              <SegmentedControl.Item key="all">{t('All')}</SegmentedControl.Item>
+            </SegmentedControl>
+          </Flex>
+          <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
+            {SECTIONS.map(section => (
+              <InboxSection
+                key={section.key}
+                section={section}
+                assignmentFilter={assignmentFilter}
+                selectedIssueId={selectedIssueId}
+              />
+            ))}
+          </Stack>
         </Stack>
         <Stack
           as="aside"
@@ -174,37 +194,30 @@ function InboxContent() {
 }
 
 interface InboxSectionProps {
-  isReady: boolean;
+  assignmentFilter: AssignmentFilter;
   section: InboxSectionConfig;
   selectedIssueId: string | null;
-  selection: ReturnType<typeof usePageFilters>['selection'];
 }
 
-function InboxSection({isReady, section, selection, selectedIssueId}: InboxSectionProps) {
+function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSectionProps) {
   const organization = useOrganization();
-  const {start, end, period, utc} = selection.datetime;
   const queryResult = useInfiniteQuery({
     ...apiOptions.asInfinite<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
-        project: selection.projects,
-        environment: selection.environments,
-        query: section.query,
+        project: [-1],
+        query: `${section.query}${ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter]}`,
         sort: IssueSortOptions.PROGRESS,
         limit: ISSUE_LIMIT,
-        expand: ['owners', 'derivedData'],
-        ...(period ? {statsPeriod: period} : {}),
-        ...(start ? {start: getUtcDateString(start)} : {}),
-        ...(end ? {end: getUtcDateString(end)} : {}),
-        ...(utc === null ? {} : {utc}),
+        collapse: ['stats', 'unhandled'],
       },
       staleTime: 0,
     }),
-    enabled: isReady,
     refetchOnWindowFocus: true,
   });
   const groups = queryResult.data?.pages.flatMap(page => page.json) ?? [];
   const count = queryResult.data?.pages[0]?.headers['X-Hits'] ?? groups.length;
+  const maxCount = queryResult.data?.pages[0]?.headers['X-Max-Hits'];
   const {data: members = []} = useMembers();
   const membersById = new Map(members.map(member => [member.id, member]));
 
@@ -217,10 +230,16 @@ function InboxSection({isReady, section, selection, selectedIssueId}: InboxSecti
     >
       <Container padding="xs" width="100%">
         <Container width="100%" padding="sm" background="secondary" radius="sm">
-          <Disclosure.Title trailingItems={<Badge variant="muted">{count}</Badge>}>
+          <Disclosure.Title
+            trailingItems={
+              <Badge variant="muted">
+                <QueryCount count={count} max={maxCount} hideIfEmpty={false} hideParens />
+              </Badge>
+            }
+          >
             <Flex align="center" gap="sm">
               {getProgressIcon(section.progress)}
-              <Heading as="h2" size="md">
+              <Heading as="h3" size="md">
                 {section.label}
               </Heading>
             </Flex>
@@ -297,9 +316,11 @@ function InboxIssueCard({
   const location = useLocation();
   const {title} = getTitle(group);
   const message = getMessage(group);
+  const prefetchHoverProps = useInboxPreviewPrefetch(group.id);
 
   return (
     <IssueCardLink
+      {...prefetchHoverProps}
       aria-current={selected ? 'true' : undefined}
       data-selected={selected}
       to={{
@@ -319,7 +340,7 @@ function InboxIssueCard({
           )}
         </Flex>
         <Stack minWidth={0} gap="xs">
-          <Heading as="h3" size="md" ellipsis>
+          <Heading as="h4" size="md" ellipsis>
             {title}
           </Heading>
           <EventMessage level={group.level} message={message} type={group.type} />
@@ -330,24 +351,7 @@ function InboxIssueCard({
             </Text>
           </Flex>
         </Stack>
-        <Stack align="end" justify="between" gap="sm">
-          <Flex align="center" gap="xs" wrap="nowrap">
-            <TimeSince
-              date={group.lastSeen}
-              suffix=""
-              unitStyle="extraShort"
-              tooltipPrefix={t('Last Seen')}
-              variant="muted"
-            />
-            <Text variant="muted">|</Text>
-            <TimeSince
-              date={group.firstSeen}
-              suffix=""
-              unitStyle="extraShort"
-              tooltipPrefix={t('First Seen')}
-              variant="muted"
-            />
-          </Flex>
+        <Flex align="center">
           {group.assignedTo &&
             (group.assignedTo.type === 'user' ? (
               <UserAvatar
@@ -364,7 +368,7 @@ function InboxIssueCard({
                 title={group.assignedTo.name}
               />
             ))}
-        </Stack>
+        </Flex>
       </Grid>
     </IssueCardLink>
   );

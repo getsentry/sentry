@@ -101,7 +101,7 @@ export function Title({isLoading, representativeEvent, rootEventResults}: TitleP
 
   if (traceTitle) {
     return (
-      <Stack align="start" width="75%">
+      <Stack align="start" width="100%">
         <Text size="xl" bold ellipsis>
           {traceTitle.title}
         </Text>

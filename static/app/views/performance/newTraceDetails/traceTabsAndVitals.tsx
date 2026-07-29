@@ -1,6 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
-
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -17,14 +15,22 @@ type TraceTabsAndVitalsProps = {
 
 const CONTAINER_MIN_HEIGHT = 36;
 
-function Placeholder() {
+function ToolbarLayout(props: FlexProps) {
   return (
     <Flex
+      direction={{zero: 'column-reverse', xl: 'row'}}
       justify="between"
-      align="center"
+      align={{zero: 'start', xl: 'center'}}
       gap="md"
       minHeight={`${CONTAINER_MIN_HEIGHT}px`}
-    >
+      {...props}
+    />
+  );
+}
+
+function Placeholder() {
+  return (
+    <ToolbarLayout>
       <Flex align="center" gap="md">
         <TraceHeaderComponents.StyledPlaceholder
           _width={75}
@@ -44,7 +50,7 @@ function Placeholder() {
         <TraceHeaderComponents.StyledPlaceholder _width={100} _height={24} />
         <TraceHeaderComponents.StyledPlaceholder _width={100} _height={24} />
       </Flex>
-    </Flex>
+    </ToolbarLayout>
   );
 }
 
@@ -54,54 +60,17 @@ export function TraceTabsAndVitals({
   tree,
 }: TraceTabsAndVitalsProps) {
   const {tabOptions, currentTab, isLoading, onTabChange} = tabsConfig;
-  const containerRef = useRef<HTMLDivElement>(null);
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
-  const [containerWidth, setContainerWidth] = useState<number>();
-
-  const onResize = useCallback(() => {
-    if (containerRef.current) {
-      setContainerWidth(containerRef.current.clientWidth);
-    }
-  }, []);
-
-  const setRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      // Clean up old observer if it exists
-      if (resizeObserverRef.current && containerRef.current) {
-        resizeObserverRef.current.unobserve(containerRef.current);
-      }
-
-      containerRef.current = node;
-
-      if (node) {
-        resizeObserverRef.current = new ResizeObserver(() => {
-          onResize();
-        });
-        resizeObserverRef.current.observe(node);
-
-        // Trigger on load
-        onResize();
-      }
-    },
-    [onResize]
-  );
-
-  useEffect(() => {
-    return () => {
-      // Clean up resize observer on unmount
-      if (resizeObserverRef.current && containerRef.current) {
-        resizeObserverRef.current.unobserve(containerRef.current);
-        resizeObserverRef.current.disconnect();
-      }
-    };
-  }, []);
 
   if (isLoading || tree.type === 'loading') {
     return <Placeholder />;
   }
 
+  if (rootEventResults.error || tree.type === 'error') {
+    return <Placeholder />;
+  }
+
   return (
-    <Flex ref={setRef} justify="between" minHeight={`${CONTAINER_MIN_HEIGHT}px`}>
+    <ToolbarLayout>
       <Tabs value={currentTab} onChange={onTabChange}>
         <TabList variant="floating">
           {tabOptions.map(tab => (
@@ -109,11 +78,7 @@ export function TraceTabsAndVitals({
           ))}
         </TabList>
       </Tabs>
-      <TraceContextVitals
-        rootEventResults={rootEventResults}
-        tree={tree}
-        containerWidth={containerWidth}
-      />
-    </Flex>
+      <TraceContextVitals rootEventResults={rootEventResults} tree={tree} />
+    </ToolbarLayout>
   );
 }

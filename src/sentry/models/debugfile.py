@@ -45,6 +45,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
 from sentry.objectstore import get_debug_files_session, get_download_redirect_url
+from sentry.objectstore.metrics import measure_storage_operation
 from sentry.utils import json, metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.zip import safe_extract_zip
@@ -60,6 +61,7 @@ DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 
+OBJECTSTORE_MULTIPART_UPLOAD_THRESHOLD = 128 * 1024 * 1024  # 128 MiB
 OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE = 32 * 1024 * 1024  # 32 MiB
 
 
@@ -284,12 +286,15 @@ class ProjectDebugFile(Model):
             assert self.storage_path is not None
             try:
                 response = self._get_objectstore_session().get(self.storage_path)
+                if response is None:
+                    raise FileNotFoundError("Debug file does not exist in objectstore")
                 return response.payload
             except Exception:
                 logger.exception("Failed to read debug file from Objectstore")
                 raise
         if self.file is not None:
-            return self.file.getfile()
+            with measure_storage_operation("get", "debug_files", self.get_file_size()):
+                return self.file.getfile()
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def get_objectstore_presigned_url(self, request: HttpRequest) -> str:
@@ -319,7 +324,10 @@ class ProjectDebugFile(Model):
             tmp_path = None
             try:
                 # Get the payload and save it to a temporary file.
-                stream = self._get_objectstore_session().get(self.storage_path).payload
+                response = self._get_objectstore_session().get(self.storage_path)
+                if response is None:
+                    raise FileNotFoundError("Debug file does not exist in objectstore")
+                stream = response.payload
                 try:
                     tmp = tempfile.NamedTemporaryFile(dir=base, delete=False)
                     tmp_path = tmp.name
@@ -437,7 +445,21 @@ def _upload_dif_to_objectstore(
     file_size: int,
     filename: str,
 ) -> str:
-    """Uploads a debug file to Objectstore via parallel multipart upload, returning the key under which the file was uploaded."""
+    """Uploads a debug file to Objectstore, returning the key under which the file was uploaded."""
+    if file_size <= OBJECTSTORE_MULTIPART_UPLOAD_THRESHOLD:
+        return session.put(fileobj, content_type=content_type, filename=filename)
+
+    return _upload_dif_to_objectstore_multipart(session, fileobj, content_type, file_size, filename)
+
+
+def _upload_dif_to_objectstore_multipart(
+    session: Session,
+    fileobj: IO[bytes],
+    content_type: str,
+    file_size: int,
+    filename: str,
+) -> str:
+    """Uploads a debug file to Objectstore via parallel multipart upload."""
     upload = session.initiate_multipart_upload(content_type=content_type, filename=filename)
 
     lock = threading.Lock()
@@ -571,7 +593,7 @@ def create_dif_from_id(
     metrics.distribution(
         "storage.put.size",
         file.size,
-        tags={"usecase": "debug-files", "compression": "none"},
+        tags={"usecase": "debug_files", "compression": "none"},
         unit="byte",
     )
 
