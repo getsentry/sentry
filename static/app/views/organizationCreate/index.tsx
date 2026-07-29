@@ -61,7 +61,7 @@ function OrganizationCreate() {
 
   const schema = z
     .object({
-      name: z.string().min(1, t('Field is required')),
+      name: z.string().min(1, t('Please enter an organization name')),
       defaultTeam: z.boolean(),
       agreeTerms: z.boolean(),
       dataStorageLocation: z.string().nullable(),
