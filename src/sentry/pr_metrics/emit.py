@@ -554,13 +554,35 @@ def _emitting_rows(pull_requests: list[PullRequest]) -> list[PullRequest]:
     ]
 
 
+def _attribution_completeness(siblings: list[PullRequest]) -> dict[int, tuple[bool, bool, int]]:
+    """Per-sibling completeness of the emitted event, from valid attributions in one
+    query: whether any carries a run id, whether any carries group ids, and how many
+    there are. The fallback prefers the fullest of these — the org whose issues the PR
+    resolves stamps run id / group ids into its attribution signal_details, while
+    shadow rows carry only the bare author signal.
+    """
+    by_pr: dict[int, tuple[bool, bool, int]] = {}
+    for pr_id, details in PullRequestAttribution.objects.filter(
+        pull_request__in=siblings, is_valid=True
+    ).values_list("pull_request_id", "signal_details"):
+        has_run_id, has_group_ids, count = by_pr.get(pr_id, (False, False, 0))
+        details = details or {}
+        by_pr[pr_id] = (
+            has_run_id or details.get("run_id") is not None,
+            has_group_ids or bool(details.get("group_ids")),
+            count + 1,
+        )
+    return by_pr
+
+
 def _canonical_sibling(siblings: list[PullRequest]) -> PullRequest:
     """The single row that emits for a provider PR fanned out across orgs.
 
-    Prefer the row whose org owns the Seer run linked to it (the run's-org row,
-    the one with real signal); fall back to the lowest-id row when no link ties a
-    row to its own org. Deterministic either way, so concurrent per-org emissions
-    all agree on the same winner.
+    Prefer the row whose org owns the Seer run linked to it (the run's-org row). With
+    no such link, pick the row whose emitted event would be most complete — the org
+    whose issues the PR resolves carries the run id / group ids / richer attributions,
+    while shadow rows have only the bare author signal. Ties (and the common
+    single-row case) break on lowest id, so concurrent per-org emissions all agree.
     """
     run_org_by_pr = dict(
         SeerRunPullRequest.objects.filter(pull_request__in=siblings).values_list(
@@ -571,13 +593,14 @@ def _canonical_sibling(siblings: list[PullRequest]) -> PullRequest:
         if run_org_by_pr.get(pull_request.id) == pull_request.organization_id:
             return pull_request
 
-    canonical = min(siblings, key=lambda pr: pr.id)
+    completeness = _attribution_completeness(siblings)
+    # Fullest event wins; lowest id is the deterministic final tiebreak.
+    canonical = max(siblings, key=lambda pr: (*completeness.get(pr.id, (False, False, 0)), -pr.id))
     if len(siblings) > 1:
         # ≥2 orgs' rows emit for one provider PR but none is linked to a run in its
         # own org — an app-authored PR that fanned out with no run link anywhere
-        # (e.g. a delegated coding-agent PR whose handoff link dropped). We still
-        # dedupe deterministically to the lowest-id row; surface it so the link loss
-        # is visible rather than silent.
+        # (e.g. a delegated coding-agent PR whose handoff link dropped). Surface it so
+        # the link loss is visible rather than silent.
         logger.warning(
             "pr_metrics.emit.dedup_no_run_org_row",
             extra={

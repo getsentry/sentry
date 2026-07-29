@@ -1538,6 +1538,19 @@ class MultiOrgEmissionDedupeTest(TestCase):
         )
 
     @patch("sentry.analytics.record")
+    def test_fallback_prefers_more_complete_row(self, mock_record: Any) -> None:
+        # No run link on either row (the fallback). The higher-id sibling carries the
+        # richer attribution (run_id + group_ids in signal_details), so it — not the
+        # lower-id row — is canonical and emits the fuller event.
+        SeerRunPullRequest.objects.all().delete()
+        PullRequestAttribution.objects.filter(pull_request=self.sibling_pull_request).update(
+            signal_details={"run_id": 777, "group_ids": [1]}
+        )
+        assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is True
+        assert emit_pr_metrics_row(pull_request=self.pull_request) is False
+        assert mock_record.call_count == 1
+
+    @patch("sentry.analytics.record")
     def test_tracked_sibling_emits_when_lower_id_row_untracked(self, mock_record: Any) -> None:
         # No run link, and the lower-id row is an untracked shadow (its attribution
         # feature was off in that org) — as happens for a run-less MCP-attributed PR.
