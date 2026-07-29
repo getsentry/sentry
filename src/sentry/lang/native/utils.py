@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any, overload
 
 from sentry.attachments import CachedAttachment, get_attachments_for_event
+from sentry.lang.native.gpu import GPU_CRASH_DUMP_ATTACHMENT_TYPE
 from sentry.stacktraces.processing import StacktraceInfo
 from sentry.utils.safe import get_path
 
@@ -168,8 +169,6 @@ def find_gpu_crash_dump_attachment(data: Any) -> CachedAttachment | None:
     Relay classifies it as `event.nv_gpudmp` when it splits the GPU crash onto
     its own event, so matching that type alone is enough.
     """
-    from sentry.lang.native.gpu import GPU_CRASH_DUMP_ATTACHMENT_TYPE
-
     return get_event_attachment(data, GPU_CRASH_DUMP_ATTACHMENT_TYPE)
 
 
