@@ -61,8 +61,7 @@ function OrganizationCreate() {
 
   const schema = z
     .object({
-      // Trimmed to match the backend, which trims and rejects blank names.
-      name: z.string().trim().min(1, t('Please enter an organization name')),
+      name: z.string().min(1, t('Field is required')),
       defaultTeam: z.boolean(),
       agreeTerms: z.boolean(),
       dataStorageLocation: z.string().nullable(),
@@ -126,7 +125,6 @@ function OrganizationCreate() {
     onSubmit: ({value, formApi}) => {
       addLoadingMessage(t('Creating Organization…'));
 
-      // `value` is raw form state; parse to pick up the schema's trim.
       const data: CreateOrganizationPayload = {
         name: schema.parse(value).name,
         defaultTeam: value.defaultTeam,
