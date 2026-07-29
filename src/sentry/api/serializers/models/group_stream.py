@@ -436,7 +436,8 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         if self._expand("integrationIssues"):
             group_ids_by_external_issue_id: dict[int, list[int]] = defaultdict(list)
             for group_id, linked_id in GroupLink.objects.filter(
-                group_id__in=[item.id for item in item_list]
+                group_id__in=[item.id for item in item_list],
+                linked_type=GroupLink.LinkedType.issue,
             ).values_list("group_id", "linked_id"):
                 group_ids_by_external_issue_id[linked_id].append(group_id)
 

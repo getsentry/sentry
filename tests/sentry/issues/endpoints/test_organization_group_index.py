@@ -2111,6 +2111,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
             for index, event in enumerate(events[:2])
         ]
+        self.create_group_link(group=events[0].group, linked_id=issues[0].id)
+        self.create_group_link(group=events[2].group, linked_id=issues[0].id)
         self.login_as(user=self.user)
 
         with CaptureQueriesContext(connection) as queries:
@@ -2124,6 +2126,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert response.status_code == 200
         issues_by_group = {int(group["id"]): group["integrationIssues"] for group in response.data}
+        assert len(issues_by_group[events[0].group.id]) == 1
         assert issues_by_group[events[0].group.id][0]["title"] == issues[0].title
         assert issues_by_group[events[1].group.id][0]["title"] == issues[1].title
         assert issues_by_group[events[2].group.id] == []
