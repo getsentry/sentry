@@ -538,8 +538,11 @@ const FixedRowHeightGrid = styled('div')`
 `;
 
 // Separator is full-height by default; pin it to a short fixed height so it
-// reads as a small inline divider between the id and the user.
+// reads as a small inline divider between the id and the user. Override its
+// `align-self: stretch` so the fixed height stays centered in the row instead
+// of pinning to the top.
 const CellDivider = styled(Separator)`
+  align-self: center;
   height: 12px;
   flex-shrink: 0;
 `;
