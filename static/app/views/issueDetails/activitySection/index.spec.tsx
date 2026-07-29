@@ -1605,6 +1605,62 @@ describe('ActivitySection', () => {
     expect(await screen.findByText('f7f395d')).toBeInTheDocument();
   });
 
+  it('hides an adjacent Seer creation activity for the same pull request', async () => {
+    const repository = RepositoryFixture({name: 'example/repository'});
+    const pullRequest = PullRequestFixture({
+      externalUrl: 'https://github.com/example/repository/pull/1234',
+      repository,
+    });
+    const activityGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+          id: 'referenced-in-pull-request',
+          dateCreated: '2020-01-01T00:00:03Z',
+          data: {pullRequest},
+          user: null,
+        },
+        {
+          type: GroupActivityType.SEER_PR_CREATED,
+          id: 'seer-pull-request-created',
+          dateCreated: '2020-01-01T00:00:00Z',
+          data: {
+            run_id: 123,
+            pull_requests: [
+              {
+                provider: 'github',
+                repo_name: repository.name,
+                pull_request: {
+                  pr_number: 1234,
+                  pr_url: pullRequest.externalUrl,
+                },
+              },
+            ],
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({
+          features: [
+            'display-seer-actions-as-issue-activities',
+            'issue-activity-feed-v2',
+          ],
+        }),
+      }
+    );
+
+    expect(await screen.findByText('Referenced in pull request')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', {name: `#${pullRequest.id}`})).toHaveLength(1);
+  });
+
   it('prefers commit repository details for resolved commit activity line items', async () => {
     const commitRepository = RepositoryFixture({
       name: 'getsentry/sentry',
@@ -2055,7 +2111,7 @@ describe('ActivitySection', () => {
             iteration_index: 1,
             referrer: 'github.check_suite',
           },
-          user: null,
+          user,
         },
       ],
       project,
@@ -2075,8 +2131,9 @@ describe('ActivitySection', () => {
       {organization: org}
     );
     expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
-      'Pull request #42 updated on GitHub'
+      'Pull request #42 updated after CI failed'
     );
+    expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
     expect(screen.queryByText('1 second')).not.toBeInTheDocument();
     expect(screen.queryByText('Pull request iteration started')).not.toBeInTheDocument();
     expect(screen.getByRole('link', {name: '#42'})).toHaveAttribute(

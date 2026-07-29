@@ -13,8 +13,12 @@ import {Timeline} from 'sentry/components/timeline';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Group, GroupActivity} from 'sentry/types/group';
-import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
+import {
+  GroupActivityType,
+  SEER_ACTIVITY_TYPES,
+  type Group,
+  type GroupActivity,
+} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
@@ -22,8 +26,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
-import type {ActivityFeedItem} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {collapseSeerActivityPairs} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
+import {
+  collapseSeerActivityPairs,
+  type ActivityFeedItem,
+} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
 import {
   ActivityLineNote,
   isActivityNote,
@@ -233,6 +239,23 @@ function isDuplicatePullRequestActivity(
       return (
         pullRequest.id === adjacentPullRequest.id &&
         pullRequest.repository.id === adjacentPullRequest.repository.id
+      );
+    }
+    case GroupActivityType.SEER_PR_CREATED: {
+      if (adjacentActivity?.type !== GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST) {
+        return false;
+      }
+
+      const adjacentPullRequest = adjacentActivity.data.pullRequest;
+      if (!adjacentPullRequest) {
+        return false;
+      }
+
+      return Boolean(
+        activity.data.pull_requests?.some(
+          pullRequest =>
+            pullRequest.pull_request.pr_url === adjacentPullRequest.externalUrl
+        )
       );
     }
     default:

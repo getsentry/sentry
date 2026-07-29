@@ -148,6 +148,22 @@ function getSeerActivityDuration(
   ) : null;
 }
 
+function getSeerIterationReferrer(referrer: string | undefined) {
+  if (referrer === 'github.check_suite') {
+    return t('after CI failed');
+  }
+
+  return referrer?.startsWith('github.') ? t('from GitHub') : null;
+}
+
+function getCollapsedSeerIterationReferrer(item: ActivityFeedItem) {
+  if (item.type !== GroupActivityType.SEER_ITERATION_COMPLETED) {
+    return null;
+  }
+
+  return getSeerIterationReferrer(item.startedActivity.data.referrer);
+}
+
 export function getCompactGroupActivityItem({
   item,
   organization,
@@ -519,28 +535,25 @@ export function getCompactGroupActivityItem({
       const {referrer} = activity.data;
       return {
         title: t('Pull request iteration started'),
-        details:
-          referrer === 'github.check_suite'
-            ? t('after CI failed')
-            : referrer?.startsWith('github.')
-              ? t('from GitHub')
-              : null,
+        details: getSeerIterationReferrer(referrer),
       };
     }
     case GroupActivityType.SEER_ITERATION_COMPLETED: {
       const pullRequest = activity.data.pull_requests?.[0];
       const provider = pullRequest ? getProviderName(pullRequest.provider) : null;
-      let details: React.ReactNode = null;
+      const referrer = getCollapsedSeerIterationReferrer(item);
+      let details: React.ReactNode = referrer;
 
-      if (provider && seerActivityDuration) {
-        details = tct('on [provider] in [duration]', {
-          provider,
-          duration: seerActivityDuration,
-        });
-      } else if (provider) {
+      if (!details && provider) {
         details = tct('on [provider]', {provider});
-      } else if (seerActivityDuration) {
-        details = tct('in [duration]', {duration: seerActivityDuration});
+      }
+      if (seerActivityDuration) {
+        details = details
+          ? tct('[details] in [duration]', {
+              details,
+              duration: seerActivityDuration,
+            })
+          : tct('in [duration]', {duration: seerActivityDuration});
       }
 
       return {

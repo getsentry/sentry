@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {TimeSince} from 'sentry/components/timeSince';
-import type {Group} from 'sentry/types/group';
+import {GroupActivityType, type Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {ActivityFeedItem} from './activityFeedItem';
@@ -34,10 +34,18 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
   const timestamp = (
     <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
   );
+  const actorActivity =
+    item.type === GroupActivityType.SEER_ITERATION_COMPLETED
+      ? item.startedActivity
+      : activity;
 
   return (
     <ActivityLineRow>
-      <ActivityLineMarker item={activity} showProgress={showProgress} />
+      <ActivityLineMarker
+        actorItem={actorActivity}
+        item={activity}
+        showProgress={showProgress}
+      />
       <ActivityLineHeadline
         title={compactItem.title}
         details={compactItem.details}

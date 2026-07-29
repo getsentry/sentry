@@ -6,14 +6,15 @@ type ActivityOfType<Type extends GroupActivityType> = Extract<
   {type: Type}
 >;
 
-type SeerActivityPair = {
-  [GroupActivityType.SEER_RCA_COMPLETED]: GroupActivityType.SEER_RCA_STARTED;
-  [GroupActivityType.SEER_SOLUTION_COMPLETED]: GroupActivityType.SEER_SOLUTION_STARTED;
-  [GroupActivityType.SEER_CODING_COMPLETED]: GroupActivityType.SEER_CODING_STARTED;
-  [GroupActivityType.SEER_ITERATION_COMPLETED]: GroupActivityType.SEER_ITERATION_STARTED;
-};
+const SEER_ACTIVITY_PAIRS = {
+  [GroupActivityType.SEER_RCA_COMPLETED]: GroupActivityType.SEER_RCA_STARTED,
+  [GroupActivityType.SEER_SOLUTION_COMPLETED]: GroupActivityType.SEER_SOLUTION_STARTED,
+  [GroupActivityType.SEER_CODING_COMPLETED]: GroupActivityType.SEER_CODING_STARTED,
+  [GroupActivityType.SEER_ITERATION_COMPLETED]: GroupActivityType.SEER_ITERATION_STARTED,
+} as const;
 
-type CollapsedSeerActivityType = keyof SeerActivityPair;
+type SeerActivityPair = typeof SEER_ACTIVITY_PAIRS;
+type CollapsedSeerActivityType = keyof typeof SEER_ACTIVITY_PAIRS;
 type CollapsibleSeerCompletionActivity = ActivityOfType<CollapsedSeerActivityType>;
 
 export type CollapsedSeerActivity = {
@@ -42,12 +43,7 @@ function getSeerRunId(activity: GroupActivity): number | undefined {
 function isCollapsibleSeerCompletionActivity(
   activity: GroupActivity
 ): activity is CollapsibleSeerCompletionActivity {
-  return (
-    activity.type === GroupActivityType.SEER_RCA_COMPLETED ||
-    activity.type === GroupActivityType.SEER_SOLUTION_COMPLETED ||
-    activity.type === GroupActivityType.SEER_CODING_COMPLETED ||
-    activity.type === GroupActivityType.SEER_ITERATION_COMPLETED
-  );
+  return activity.type in SEER_ACTIVITY_PAIRS;
 }
 
 function collapseSeerActivityPair(
@@ -121,7 +117,7 @@ function findCollapsedSeerActivity(
  * Issue activity is ordered newest first. Collapse a completed Seer activity with the next
  * Seer activity when it is the corresponding start event, allowing unrelated activity to
  * remain between them. Keep the completed activity as the representative item so its marker,
- * actor, timestamp, and result details are preserved.
+ * timestamp, and result details are preserved.
  */
 export function collapseSeerActivityPairs(
   activities: GroupActivity[]
