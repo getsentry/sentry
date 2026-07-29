@@ -25,7 +25,7 @@ interface TraceBreadcrumbsProps {
   organization: Organization;
   traceSlug: string;
   project?: Project;
-  /** Omitted while the trace is still loading, which disables prev/next and the actions menu. */
+  /** Omitted while the trace is still loading, which hides prev/next navigation. */
   rootEventResults?: TraceRootEventQueryResults;
 }
 
@@ -119,33 +119,31 @@ export function TraceBreadcrumbs({
               />
             ) : undefined,
             pagination,
-            trailingActions: rootEventResults
-              ? {
-                  type: 'menu',
-                  triggerLabel: t('Trace Actions'),
-                  triggerIcon: <IconEllipsis />,
-                  items: [
-                    {
-                      key: 'copy-trace-id',
-                      label: t('Copy ID'),
-                      onAction: () =>
-                        copy(traceSlug, {
-                          successMessage: t('Copied trace ID to clipboard'),
-                        }),
-                    },
-                    ...(exploreTarget
-                      ? [
-                          {
-                            key: 'open-in-explore',
-                            label: t('Open in Explore'),
-                            to: exploreTarget.to,
-                            onAction: exploreTarget.onClick,
-                          },
-                        ]
-                      : []),
-                  ],
-                }
-              : undefined,
+            trailingActions: {
+              type: 'menu',
+              triggerLabel: t('Trace Actions'),
+              triggerIcon: <IconEllipsis />,
+              items: [
+                {
+                  key: 'copy-trace-id',
+                  label: t('Copy ID'),
+                  onAction: () =>
+                    copy(traceSlug, {
+                      successMessage: t('Copied trace ID to clipboard'),
+                    }),
+                },
+                ...(exploreTarget
+                  ? [
+                      {
+                        key: 'open-in-explore',
+                        label: t('Open in Explore'),
+                        to: exploreTarget.to,
+                        onAction: exploreTarget.onClick,
+                      },
+                    ]
+                  : []),
+              ],
+            },
           }}
         />
       </TopBar.Slot>
