@@ -430,9 +430,9 @@ overflow button. Other parent types, such as `select-projects`, simply collapse
 out of view. The page title is rendered separately in the title slot and remains
 visible there.
 
-Drag the sizing handle below to see the transition:
+Drag the resize handle to see the transition:
 
-<Storybook.SizingWindow display="block">
+<Storybook.Demo resizable align="start">
   <BreadcrumbListDemo
     items={[
       {
@@ -453,7 +453,7 @@ Drag the sizing handle below to see the transition:
       },
     ]}
   />
-</Storybook.SizingWindow>
+</Storybook.Demo>
 ```tsx
 <TopBar.Slot name="breadcrumbs">
   <BreadcrumbList

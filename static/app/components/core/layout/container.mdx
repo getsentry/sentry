@@ -27,20 +27,6 @@ export function ContainerBreakpointLabel() {
   );
 }
 
-export function ContainerBreakpointExample() {
-  return (
-    <Container
-      containerType="inline-size"
-      padding="md"
-      background="secondary"
-      border="primary"
-      radius="md"
-    >
-      <ContainerBreakpointLabel />
-    </Container>
-  );
-}
-
 The `Container` component is a foundational layout component that extends HTML elements with responsive CSS properties through props. It serves as the building block for other layout components like `Flex` and `Grid` to provides a consistent API for spacing, sizing, positioning, and styling.
 
 You can specialize the `Container` component yourself and tailor it to your use case if neither `Grid` nor `Flex` are sufficient, but that should be an exception and you should try to use the higher order components instead.
@@ -239,25 +225,17 @@ Resolve against the nearest query container (`@container`, `theme.container`).
 An element can't query its own size — mark a parent with
 `containerType="inline-size"`, then use bare keys on its descendants:
 
-<Storybook.SizingWindow display="block">
-  <Container
-    containerType="inline-size"
-    padding="md"
-    background="secondary"
-    radius="md"
-    border="primary"
-  >
-    <Flex direction={{zero: 'column', sm: 'row'}} gap="md">
-      <Container padding="sm" background="primary" border="primary" radius="md">
-        Stacked below `sm` (container narrower than 512px)...
-      </Container>
-      <Container padding="sm" background="primary" border="primary" radius="md">
-        ...and side by side from `sm` up (512px+). Drag the handle at the bottom-right to
-        flip it — the viewport never changes.
-      </Container>
-    </Flex>
-  </Container>
-</Storybook.SizingWindow>
+<Storybook.Demo resizable align="start">
+  <Flex direction={{zero: 'column', sm: 'row'}} gap="md">
+    <Container padding="sm" background="primary" border="primary" radius="md">
+      Stacked below `sm` (container narrower than 512px)...
+    </Container>
+    <Container padding="sm" background="primary" border="primary" radius="md">
+      ...and side by side from `sm` up (512px+). Drag the handle at the bottom-right to
+      flip it — the viewport never changes.
+    </Container>
+  </Flex>
+</Storybook.Demo>
 ```jsx
 <Container containerType="inline-size">
   {/* Bare keys on descendants resolve against the container's width. */}
@@ -309,9 +287,9 @@ through `5xl`), updating as the container crosses a breakpoint. Drag the box bel
 across the `3xs` breakpoint (320px) to see the label swap — independent of the
 viewport width.
 
-<Storybook.SizingWindow display="block">
-  <ContainerBreakpointExample />
-</Storybook.SizingWindow>
+<Storybook.Demo resizable align="start">
+  <ContainerBreakpointLabel />
+</Storybook.Demo>
 ```jsx
 // Rendered inside a query container, e.g.
 // <Container containerType="inline-size">…</Container>
