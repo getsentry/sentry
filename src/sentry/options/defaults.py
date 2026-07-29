@@ -3996,6 +3996,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rolls out FutureTrackingProducer to spans process-segments tasks
+register(
+    "tasks.producer.process-segments.rollout",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # If False, TaskWorkers will wait for a task's producer futures to complete
 # before marking a task as complete
 register(
