@@ -34,6 +34,27 @@ function Wrapper({children}: {children: ReactNode}) {
 
 jest.mock('sentry/actionCreators/modal');
 
+jest.mock('sentry/views/explore/components/traceItemSearchQueryBuilder', () => {
+  const actual = jest.requireActual(
+    'sentry/views/explore/components/traceItemSearchQueryBuilder'
+  );
+  return {
+    ...actual,
+    TraceItemSearchQueryBuilder: (props: {
+      initialQuery?: string;
+      onSearch?: (query: string) => void;
+      placeholder?: string;
+    }) => (
+      <input
+        aria-label={props.placeholder ?? 'Filter spans for this series'}
+        defaultValue={props.initialQuery ?? ''}
+        onChange={event => props.onSearch?.(event.target.value)}
+        placeholder={props.placeholder}
+      />
+    ),
+  };
+});
+
 describe('ExploreToolbar', () => {
   const organization = OrganizationFixture({
     features: ['dashboards-edit'],
@@ -106,6 +127,16 @@ describe('ExploreToolbar', () => {
         },
         valid: true,
       },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: [],
     });
   });
 
@@ -187,6 +218,9 @@ describe('ExploreToolbar', () => {
     await userEvent.click(within(section).getByRole('option', {name: 'epm'}));
 
     expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
+    expect(
+      within(section).queryByRole('textbox', {name: 'Filter spans for this series'})
+    ).not.toBeInTheDocument();
   });
 
   it('changes to epm() when using epm', async () => {
@@ -922,6 +956,40 @@ describe('ExploreToolbar', () => {
 
     act(() => setMode(Mode.AGGREGATE));
     expect(aggregateSortBys).toEqual([{field: 'count(span.duration)', kind: 'asc'}]);
+  });
+
+  it('applies visualize filters as _if aggregates', async () => {
+    let visualizes: any;
+    function Component() {
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(
+      <Wrapper>
+        <Component />
+      </Wrapper>
+    );
+
+    const section = screen.getByTestId('section-visualizes');
+    const searchInput = within(section).getByRole('textbox', {
+      name: 'Filter spans for this series',
+    });
+
+    await userEvent.clear(searchInput);
+    await userEvent.type(searchInput, 'span.op:db');
+
+    await waitFor(() => {
+      expect(visualizes).toEqual([
+        new VisualizeFunction('count_if(`span.op:db`,span.duration)'),
+      ]);
+    });
+
+    await userEvent.clear(searchInput);
+
+    await waitFor(() => {
+      expect(visualizes).toEqual([new VisualizeFunction('count(span.duration)')]);
+    });
   });
 
   it('disables compare queries when only one chart is available', async () => {

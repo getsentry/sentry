@@ -20,6 +20,23 @@ describe('getColumnFieldsForValidation', () => {
       })
     ).toEqual(['id', 'span.op', 'avg(sentry.duration)', 'sentry.duration', 'count()']);
   });
+
+  it('excludes _if filter queries from fields sent for validation', () => {
+    expect(
+      getColumnFieldsForValidation({
+        aggregateFields: [
+          new VisualizeFunction('avg_if(`span.op:db`,span.duration)'),
+          new VisualizeFunction('failure_rate_if(`span.status:error`)'),
+        ],
+        fields: ['id'],
+      })
+    ).toEqual([
+      'id',
+      'avg_if(`span.op:db`,span.duration)',
+      'span.duration',
+      'failure_rate_if(`span.status:error`)',
+    ]);
+  });
 });
 
 describe('getValidatedColumnData', () => {
@@ -84,5 +101,38 @@ describe('getValidatedColumnData', () => {
         'groupBy' in aggregateField ? aggregateField.groupBy : aggregateField.yAxis
       )
     ).toEqual(['custom.user', 'avg(custom.duration)']);
+  });
+
+  it('preserves _if aggregates when only the filter query would be invalid as a field', () => {
+    const filterQuery = '`span.op:db`';
+    const yAxis = `avg_if(${filterQuery},span.duration)`;
+    const validationData: EventValidationData = {
+      dataset: [],
+      environment: [],
+      field: [
+        {attrType: 'number', error: null, name: yAxis, valid: true},
+        {attrType: 'number', error: null, name: 'span.duration', valid: true},
+        // If the filter were sent as a field, it would be invalid — ensure we
+        // still keep the visualize even if it somehow appears in invalidFields.
+        {attrType: null, error: 'unknown field', name: filterQuery, valid: false},
+      ],
+      orderby: [],
+      projects: [],
+      query: {error: null, fields: [], valid: true},
+      valid: false,
+    };
+
+    const result = getValidatedColumnData({
+      aggregateFields: [new VisualizeFunction(yAxis)],
+      attributes: {boolean: {}, number: {}, string: {}},
+      fields: ['id'],
+      validationData,
+    });
+
+    expect(
+      result.aggregateFields.map(aggregateField =>
+        'groupBy' in aggregateField ? aggregateField.groupBy : aggregateField.yAxis
+      )
+    ).toEqual([yAxis]);
   });
 });

@@ -16,6 +16,8 @@ import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -34,6 +36,7 @@ import {
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
@@ -62,6 +65,12 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  applyConditionalFilter,
+  buildConditionalAggregate,
+  parseConditionalAggregate,
+  supportsConditionalAggregateFilter,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
@@ -412,8 +421,24 @@ function AggregateSelector({
   booleanTags,
   visualize,
 }: VisualizeSelectorProps) {
-  const yAxis = visualize.yAxis;
-  const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
+  const {selection} = usePageFilters();
+
+  const conditionalAggregate = useMemo(
+    () => parseConditionalAggregate(visualize.yAxis),
+    [visualize.yAxis]
+  );
+
+  // Dropdowns operate on the base aggregate (without `_if` / filter).
+  const parsedFunction = useMemo(() => {
+    if (!conditionalAggregate) {
+      return parseFunction(visualize.yAxis);
+    }
+    return {
+      name: conditionalAggregate.name,
+      arguments: conditionalAggregate.arguments,
+    };
+  }, [conditionalAggregate, visualize.yAxis]);
+
   const aggregateFunc = parsedFunction?.name;
   const aggregateDefinition = aggregateFunc
     ? getFieldDefinition(aggregateFunc, 'span')
@@ -436,9 +461,16 @@ function AggregateSelector({
         oldAggregate: parsedFunction?.name,
         oldArguments: parsedFunction?.arguments,
       });
-      onChange(visualize.replace({yAxis: newYAxis}));
+      const filter = supportsConditionalAggregateFilter(option.value as string)
+        ? (conditionalAggregate?.filter ?? '')
+        : '';
+      onChange(
+        visualize.replace({
+          yAxis: applyConditionalFilter(newYAxis, filter),
+        })
+      );
     },
-    [parsedFunction, onChange, visualize]
+    [conditionalAggregate?.filter, parsedFunction, onChange, visualize]
   );
 
   const handleArgumentChange = (index: number, option: SelectOption<SelectKey>) => {
@@ -449,52 +481,96 @@ function AggregateSelector({
       } else {
         args = [option.value];
       }
-      const newYAxis = `${parsedFunction?.name}(${args.join(',')})`;
-      onChange(visualize.replace({yAxis: newYAxis}));
+      onChange(
+        visualize.replace({
+          yAxis: buildConditionalAggregate({
+            name: parsedFunction?.name ?? '',
+            arguments: args,
+            filter: conditionalAggregate?.filter ?? '',
+          }),
+        })
+      );
     }
   };
 
+  const handleFilterSearch = useCallback(
+    (filter: string) => {
+      if (!parsedFunction) {
+        return;
+      }
+      onChange(
+        visualize.replace({
+          yAxis: buildConditionalAggregate({
+            name: parsedFunction.name,
+            arguments: parsedFunction.arguments,
+            filter,
+          }),
+        })
+      );
+    },
+    [onChange, parsedFunction, visualize]
+  );
+
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects: selection.projects,
+    initialQuery: conditionalAggregate?.filter ?? '',
+    onSearch: handleFilterSearch,
+    searchSource: 'explore',
+    placeholder: t('Filter spans for this series'),
+  });
+
+  const showFilterSearchBar = supportsConditionalAggregateFilter(
+    parsedFunction?.name ?? ''
+  );
+
   return (
-    <Fragment>
-      <SingleWidthCompactSelect
-        data-test-id="editor-visualize-function"
-        options={aggregateOptions}
-        value={parsedFunction?.name}
-        onChange={handleFunctionChange}
-        search
-        trigger={triggerProps => (
-          <OverlayTrigger.Button
-            {...triggerProps}
-            prefix={t('Function')}
-            style={{
-              width: '100%',
-            }}
+    <VisualizeColumn>
+      <SelectsRow>
+        <SingleWidthCompactSelect
+          data-test-id="editor-visualize-function"
+          options={aggregateOptions}
+          value={parsedFunction?.name}
+          onChange={handleFunctionChange}
+          search
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              prefix={t('Function')}
+              style={{
+                width: '100%',
+              }}
+            />
+          )}
+        />
+        {aggregateDefinition?.parameters?.map((param, index) => (
+          <AttributeArgumentSelect
+            key={param.name}
+            numberTags={numberTags}
+            stringTags={stringTags}
+            booleanTags={booleanTags}
+            parsedFunction={parsedFunction}
+            value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
+            onChange={option => handleArgumentChange(index, option)}
+          />
+        ))}
+        {aggregateDefinition?.parameters?.length === 0 && (
+          <AttributeArgumentSelect
+            numberTags={numberTags}
+            stringTags={stringTags}
+            booleanTags={booleanTags}
+            parsedFunction={parsedFunction}
+            value={parsedFunction?.arguments[0] ?? ''}
+            onChange={option => handleArgumentChange(0, option)}
+            forceDisabled
           />
         )}
-      />
-      {aggregateDefinition?.parameters?.map((param, index) => (
-        <AttributeArgumentSelect
-          key={param.name}
-          numberTags={numberTags}
-          stringTags={stringTags}
-          booleanTags={booleanTags}
-          parsedFunction={parsedFunction}
-          value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
-          onChange={option => handleArgumentChange(index, option)}
-        />
-      ))}
-      {aggregateDefinition?.parameters?.length === 0 && (
-        <AttributeArgumentSelect
-          numberTags={numberTags}
-          stringTags={stringTags}
-          booleanTags={booleanTags}
-          parsedFunction={parsedFunction}
-          value={parsedFunction?.arguments[0] ?? ''}
-          onChange={option => handleArgumentChange(0, option)}
-          forceDisabled
-        />
-      )}
-    </Fragment>
+      </SelectsRow>
+      {showFilterSearchBar ? (
+        <FilterSearchBar>
+          <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+        </FilterSearchBar>
+      ) : null}
+    </VisualizeColumn>
   );
 }
 
@@ -724,7 +800,7 @@ function EquationSelector({
 const RowContainer = styled('div')`
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
   gap: ${p => p.theme.space.md};
 
   :not(:first-child) {
@@ -740,6 +816,41 @@ const StyledDragReorderButton = styled(DragReorderButton)`
 const StyledButton = styled(Button)`
   padding-left: 0;
   padding-right: 0;
+`;
+
+const VisualizeColumn = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: ${p => p.theme.space.sm};
+`;
+
+const SelectsRow = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  min-width: 0;
+`;
+
+const FilterSearchBar = styled('div')`
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+
+  [data-test-id='search-query-builder'] {
+    max-width: 100%;
+    resize: none;
+  }
+
+  &:focus-within {
+    overflow: visible;
+
+    [data-test-id='search-query-builder'] {
+      background-color: ${p => p.theme.tokens.background.primary};
+    }
+  }
 `;
 
 const SingleWidthCompactSelect = styled(CompactSelect)`

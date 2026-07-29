@@ -357,6 +357,48 @@ describe('AggregatesTable', () => {
     expect(screen.queryByText(aggregate)).not.toBeInTheDocument();
   });
 
+  it('prettifies wildcard operators in _if aggregate headers', () => {
+    const contains = '\uF00DContains\uF00D';
+    const aggregate = `avg_if(\`span.op:${contains}db\`,span.duration)`;
+    const eventView = EventView.fromLocation(
+      LocationFixture({query: {field: ['span.op', aggregate]}})
+    );
+
+    render(
+      <AggregatesTableWithParamsProvider
+        aggregatesTableResult={createAggregatesTableResult({
+          eventView,
+          result: {
+            meta: {
+              fields: {
+                'span.op': FieldValueType.STRING,
+                [aggregate]: FieldValueType.DURATION,
+              },
+              units: {},
+            },
+          },
+        })}
+      />,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              visualize: JSON.stringify({yAxes: [aggregate]}),
+              aggregateSort: `-${aggregate}`,
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    expect(screen.getByText('avg_if(`span.op:*db*`,span.duration)')).toBeInTheDocument();
+    expect(screen.queryByText(new RegExp(contains))).not.toBeInTheDocument();
+  });
+
   it('abbreviates span counts when validation returns a less specific type', () => {
     const aggregate = 'count(span.duration)';
     const eventView = EventView.fromLocation(
