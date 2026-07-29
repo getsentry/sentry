@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
@@ -439,10 +440,13 @@ class SlackRequestParserTest(TestCase):
         mock_apply.assert_not_called()
 
     @staticmethod
-    def _response_time_calls(mock_timing: MagicMock) -> list[MagicMock]:
-        """`metrics` is a shared module, so filter out timings from unrelated code."""
+    def _response_time_calls(mock_timing: MagicMock) -> list[tuple[float, dict[str, Any]]]:
+        """Return (elapsed, tags) for each response time timing.
+
+        `metrics` is a shared module, so filter out timings from unrelated code.
+        """
         return [
-            call
+            (call.args[1], call.kwargs["tags"])
             for call in mock_timing.call_args_list
             if call.args and call.args[0] == "hybrid_cloud.integration_control.slack.response_time"
         ]
@@ -461,9 +465,9 @@ class SlackRequestParserTest(TestCase):
         response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
-        (call,) = self._response_time_calls(mock_timing)
-        assert call.args[1] == 2.5
-        assert call.kwargs["tags"] == {
+        ((elapsed, tags),) = self._response_time_calls(mock_timing)
+        assert elapsed == 2.5
+        assert tags == {
             "provider": "slack",
             "url_name": "sentry-integration-slack-event",
             "status_code": status.HTTP_200_OK,
@@ -494,8 +498,8 @@ class SlackRequestParserTest(TestCase):
         parser.request.META["HTTP_X_SLACK_REQUEST_TIMESTAMP"] = str(sent_at)
         parser.get_response()
 
-        (call,) = self._response_time_calls(mock_timing)
-        assert call.args[1] == -5
+        ((elapsed, _),) = self._response_time_calls(mock_timing)
+        assert elapsed == -5
 
     @patch("sentry.middleware.integrations.parsers.slack.metrics.timing")
     @patch("sentry.middleware.integrations.parsers.slack.time.time")
@@ -511,6 +515,6 @@ class SlackRequestParserTest(TestCase):
             with pytest.raises(ValueError):
                 parser.get_response()
 
-        (call,) = self._response_time_calls(mock_timing)
-        assert call.args[1] == 1.0
-        assert call.kwargs["tags"]["status_code"] == "error"
+        ((elapsed, tags),) = self._response_time_calls(mock_timing)
+        assert elapsed == 1.0
+        assert tags["status_code"] == "error"
