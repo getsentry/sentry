@@ -123,7 +123,7 @@ function OrganizationCreate() {
     },
     validators: {onDynamic: schema},
     onSubmit: ({value, formApi}) => {
-      addLoadingMessage(t('Creating Organization…'));
+      addLoadingMessage(t('Creating Organization\u2026'));
 
       const data: CreateOrganizationPayload = {
         name: schema.parse(value).name,
