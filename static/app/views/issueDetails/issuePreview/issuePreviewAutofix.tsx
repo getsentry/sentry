@@ -22,13 +22,13 @@ import type {Project} from 'sentry/types/project';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 interface IssuePreviewAutofixProps {
+  autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
   project: Project;
 }
 
-export function IssuePreviewAutofix({group, project}: IssuePreviewAutofixProps) {
+export function IssuePreviewAutofix({autofix, group, project}: IssuePreviewAutofixProps) {
   const aiConfig = useAiConfig(group, project);
-  const autofix = useExplorerAutofix(group);
 
   const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix: autofix});
   const handleRestart = useHandleRestart({aiAutofix: autofix});

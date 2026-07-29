@@ -42,7 +42,6 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix_agent import (
-    UNKNOWN_RUN_ID_FOR_GROUP,
     AutofixStep,
     NoSeerQuotaException,
     get_autofix_agent_state,
@@ -76,7 +75,7 @@ from sentry.seer.autofix.utils import (
     CodingAgentProviderType,
 )
 from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
-from sentry.seer.models import SeerPermissionError
+from sentry.seer.models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
 from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -397,6 +396,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     feedback=feedback,
                     referrer=referrer,
                     run_state=run_state,
+                    actor_user_id=request.user.id,
                 )
 
                 consume_queued_autofix_feedback.apply_async(
@@ -410,7 +410,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
             case _:
                 try:
-                    run_id = trigger_autofix_agent(
+                    run = trigger_autofix_agent(
                         group=group,
                         step=AutofixStep(step),
                         referrer=referrer,
@@ -432,6 +432,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         return Response(status=status.HTTP_404_NOT_FOUND)
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
+                run_id = run.seer_run_state_id
+
                 if is_autofix_kickoff:
                     actor = resolve_action_actor(request)
                     with action_context_scope(
@@ -447,8 +449,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                             data={"referrer": referrer.value},
                             send_notification=False,
                         )
-                    run = get_seer_run(run_id, group.organization)
-                    sentry_run_id = str(run.uuid) if run else None
+                    sentry_run_id = str(run.uuid)
                 else:
                     sentry_run_id = resolved_sentry_run_id
 

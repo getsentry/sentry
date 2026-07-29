@@ -103,18 +103,30 @@ export function getMaxPickableDays(
 ): MaxPickableDaysOptions {
   switch (dataCategory) {
     case DataCategory.SPANS:
-    case DataCategory.SPANS_INDEXED:
+    case DataCategory.SPANS_INDEXED: {
+      const maxPickableDays = organization.features.includes(
+        'visibility-explore-range-high'
+      )
+        ? MAX_PICKABLE_DAYS
+        : 30;
+
+      return {
+        maxPickableDays,
+        maxUpgradableDays: MAX_PICKABLE_DAYS,
+        upsellFooter: SpansUpsellFooter,
+      };
+    }
     case DataCategory.ERRORS: {
       const maxPickableDays = organization.features.includes(
         'visibility-explore-range-high'
       )
         ? MAX_PICKABLE_DAYS
         : 30;
+
       return {
         maxPickableDays,
         maxUpgradableDays: MAX_PICKABLE_DAYS,
-        upsellFooter:
-          dataCategory === DataCategory.ERRORS ? ErrorsUpsellFooter : SpansUpsellFooter,
+        upsellFooter: ErrorsUpsellFooter,
       };
     }
     case DataCategory.TRACE_METRICS:

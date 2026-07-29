@@ -9,10 +9,12 @@ import {
 } from 'sentry/views/explore/logs/types';
 import {
   compareLogRowsBySortBys,
+  createErrorLogRow,
   getLogsUrlFromSavedQueryUrl,
   type LogTableRowItem,
 } from 'sentry/views/explore/logs/utils';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 describe('getLogsUrlFromSavedQueryUrl', () => {
   const organization = OrganizationFixture();
@@ -228,5 +230,37 @@ describe('compareLogRowsBySortBys', () => {
     expect(() =>
       sortedIds([invalid, older], [{field: OurLogKnownFieldKey.TIMESTAMP, kind: 'desc'}])
     ).not.toThrow();
+  });
+});
+
+describe('createErrorLogRow', () => {
+  const baseError: TraceTree.TraceError = {
+    event_id: 'abc123',
+    issue: 'JAVASCRIPT-1',
+    issue_id: 42,
+    level: 'error',
+    message: 'Boom happened',
+    project_id: 1,
+    project_slug: 'my-project',
+    span: 'span1',
+    title: 'TypeError: Boom happened',
+  };
+
+  it('uses the error timestamp when present', () => {
+    const row = createErrorLogRow({...baseError, timestamp: 100}, 5);
+
+    expect(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]).toBe(100 * 1e9);
+  });
+
+  it('falls back to the provided timestamp when the error has no timestamp', () => {
+    const row = createErrorLogRow(baseError, 50);
+
+    expect(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]).toBe(50 * 1e9);
+  });
+
+  it('defaults to the epoch when no error or fallback timestamp is available', () => {
+    const row = createErrorLogRow(baseError);
+
+    expect(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]).toBe(0);
   });
 });

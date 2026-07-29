@@ -24,10 +24,7 @@ import {
 } from 'sentry/components/modals/featureTourModal';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
   TabSelectionScope,
@@ -341,7 +338,6 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const doesNotSupportPerformance = project.platform
     ? withoutPerformanceSupport.has(project.platform)
@@ -450,7 +446,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
         <div>
           <LinkButton
             size="sm"
-            href="https://docs.sentry.io/product/performance/getting-started/"
+            href="https://docs.sentry.io/product/trace-explorer/"
             external
             onClick={() => {
               traceAnalytics.trackPerformanceSetupDocsViewed(
@@ -524,7 +520,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
               stepKey={title}
               title={title}
               trailingItems={
-                index === 0 && copyEnabled ? (
+                index === 0 ? (
                   <OnboardingCopyMarkdownButton
                     borderless
                     steps={steps}
