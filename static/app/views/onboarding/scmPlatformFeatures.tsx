@@ -1,3 +1,4 @@
+import {useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {LayoutGroup, motion} from 'framer-motion';
 
@@ -20,6 +21,7 @@ import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -30,7 +32,6 @@ import type {StepProps} from './types';
 
 interface ScmPlatformFeaturesProps {
   createdProjectSlug: string | undefined;
-  onClearProjectDetailsForm: () => void;
   onComplete: StepProps['onComplete'];
   onFeaturesChange: (features: ProductSolution[] | undefined) => void;
   onPlatformChange: (platform: OnboardingSelectedSDK | undefined) => void;
@@ -43,7 +44,6 @@ interface ScmPlatformFeaturesProps {
 
 export function ScmPlatformFeatures({
   createdProjectSlug,
-  onClearProjectDetailsForm,
   onComplete,
   onFeaturesChange,
   onPlatformChange,
@@ -58,6 +58,8 @@ export function ScmPlatformFeatures({
   const {teams, fetching: isLoadingTeams} = useTeams();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const createProject = useCreateProject();
+  const isCompletingRef = useRef(false);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   // React Query dedupes with the core's call; we only need detectedPlatformKey
   // here so handleContinue's auto-create path can fall back to the
@@ -94,6 +96,9 @@ export function ScmPlatformFeatures({
   const autoCreateDataPending = isLoadingTeams || !projectsLoaded;
 
   async function handleContinue() {
+    if (isCompletingRef.current) {
+      return;
+    }
     // Persist derived defaults if the user accepted them without an explicit click
     if (currentPlatformKey && !selectedPlatform?.key) {
       setPlatform(currentPlatformKey);
@@ -126,13 +131,23 @@ export function ScmPlatformFeatures({
 
     const firstAdminTeam = teams.find((team: Team) => team.access.includes('team:admin'));
 
+    isCompletingRef.current = true;
+    setIsCompleting(true);
     try {
-      const project = await createProject.mutateAsync({
-        name: platform.key,
-        platform,
-        default_rules: true,
-        firstTeamSlug: firstAdminTeam?.slug,
-      });
+      let project: Project;
+      try {
+        project = await createProject.mutateAsync({
+          name: platform.key,
+          platform,
+          default_rules: true,
+          firstTeamSlug: firstAdminTeam?.slug,
+        });
+      } catch (error) {
+        addErrorMessage(t('Failed to create project'));
+        Sentry.captureException(error);
+        return;
+      }
+
       onProjectCreated(project.slug);
 
       if (selectedRepository?.id) {
@@ -148,9 +163,9 @@ export function ScmPlatformFeatures({
       }
 
       onComplete(platform, {product: currentFeatures});
-    } catch (error) {
-      addErrorMessage(t('Failed to create project'));
-      Sentry.captureException(error);
+    } finally {
+      isCompletingRef.current = false;
+      setIsCompleting(false);
     }
   }
 
@@ -179,7 +194,6 @@ export function ScmPlatformFeatures({
             selectedPlatform={selectedPlatform}
             onPlatformChange={onPlatformChange}
             onFeaturesChange={onFeaturesChange}
-            onClearProjectDetailsForm={onClearProjectDetailsForm}
           />
           <ScmFeatureSelectionPanel
             analyticsFlow="onboarding"
@@ -206,10 +220,8 @@ export function ScmPlatformFeatures({
                   features: currentFeatures,
                 }}
                 onClick={handleContinue}
-                disabled={
-                  !currentPlatformKey || createProject.isPending || autoCreateDataPending
-                }
-                busy={createProject.isPending}
+                disabled={!currentPlatformKey || isCompleting || autoCreateDataPending}
+                busy={isCompleting}
               >
                 {t('Continue')}
               </Button>

@@ -975,7 +975,7 @@ describe('Onboarding', () => {
       });
     });
 
-    it('redirects invalid step to welcome', () => {
+    it('redirects the retired Project Details route to welcome', () => {
       const {router} = render(
         <OnboardingContextProvider>
           <OnboardingWithoutContext />
@@ -984,14 +984,14 @@ describe('Onboarding', () => {
           organization: scmOrganization,
           initialRouterConfig: {
             location: {
-              pathname: `/onboarding/${scmOrganization.slug}/select-platform/`,
+              pathname: `/onboarding/${scmOrganization.slug}/scm-project-details/`,
             },
             route: '/onboarding/:orgId/:step/',
           },
         }
       );
 
-      // select-platform doesn't exist in SCM flow, should redirect to welcome
+      // The retired step must not render or strand a stale direct navigation.
       expect(router.location.pathname).toBe(
         `/onboarding/${scmOrganization.slug}/welcome/`
       );

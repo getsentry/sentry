@@ -105,7 +105,6 @@ function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
     setSelectedPlatform,
     selectedFeatures,
     setSelectedFeatures,
-    setProjectDetailsForm,
     createdProjectSlug,
     setCreatedProjectSlug,
   } = useOnboardingContext();
@@ -118,7 +117,6 @@ function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
       createdProjectSlug={createdProjectSlug}
       onPlatformChange={setSelectedPlatform}
       onFeaturesChange={setSelectedFeatures}
-      onClearProjectDetailsForm={() => setProjectDetailsForm(undefined)}
       onProjectCreated={setCreatedProjectSlug}
       onComplete={onComplete}
       genBackButton={genBackButton}
