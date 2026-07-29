@@ -4,7 +4,6 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
-from django.utils import timezone
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.dynamic_sampling.per_org.configuration import (
@@ -19,7 +18,6 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_eap_organization_volume,
     get_eap_project_volumes,
     get_eap_transaction_volumes,
-    get_generic_metrics_transaction_volumes,
     get_outcomes_organization_volume,
     run_eap_spans_table_query_in_chunks,
 )
@@ -28,10 +26,9 @@ from sentry.models.organization import Organization
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
-from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, SpanTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
 class EAPSpansTableQueryChunkingTest(TestCase, SnubaTestCase, SpanTestCase):
@@ -718,43 +715,3 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ("quiet-high", 3),
             ("quiet-low", 2),
         ]
-
-
-MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
-    hour=0, minute=0, second=0, microsecond=0
-)
-
-
-@freeze_time(MOCK_DATETIME)
-class GenericMetricsTransactionVolumesTest(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
-    @property
-    def now(self):
-        return MOCK_DATETIME
-
-    def test_get_generic_metrics_transaction_volumes(self) -> None:
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
-        other_project = self.create_project(organization=organization)
-
-        for transaction, count in (("checkout", 5), ("product", 2)):
-            self.store_performance_metric(
-                name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-                tags={"transaction": transaction, "is_segment": "true"},
-                minutes_before_now=30,
-                value=count,
-                project_id=project.id,
-                org_id=organization.id,
-            )
-        # Different project — must not be counted toward `project`.
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "checkout", "is_segment": "true"},
-            minutes_before_now=30,
-            value=9,
-            project_id=other_project.id,
-            org_id=organization.id,
-        )
-
-        volumes = get_generic_metrics_transaction_volumes(organization.id, project.id)
-
-        assert sorted(volumes) == [("checkout", 5.0), ("product", 2.0)]

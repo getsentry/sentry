@@ -14,7 +14,6 @@ from sentry.dynamic_sampling.per_org.calculations import (
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
     is_within_relative_tolerance,
-    log_transaction_volume_debug,
     run_project_balancing,
     run_transaction_balancing,
 )
@@ -504,48 +503,6 @@ class TransactionBalancingCalculationsTest(TestCase):
         assert extras[1]["generic_metrics_sample_rate"] is None
         assert extras[1]["relative_deviation"] is None
         assert extras[1]["is_equal"] is False
-
-    def test_log_transaction_volume_debug_logs_only_debug_projects(self) -> None:
-        org = self.create_organization()
-        debug_project = self.create_project(organization=org)
-        other_project = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-
-        transaction_volumes = [
-            ProjectTransactionCounts(
-                org_id=org.id,
-                project_id=debug_project.id,
-                transaction_counts=[("checkout", 100.0), ("eap-only", 5.0)],
-            ),
-            ProjectTransactionCounts(
-                org_id=org.id,
-                project_id=other_project.id,
-                transaction_counts=[("checkout", 1.0)],
-            ),
-        ]
-
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.calculations.get_generic_metrics_transaction_volumes",
-                return_value=[("checkout", 90.0), ("generic-metrics-only", 3.0)],
-            ),
-            patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info,
-        ):
-            log_transaction_volume_debug(config, transaction_volumes, {debug_project.id})
-
-        logger_info.assert_called_once_with(
-            "dynamic_sampling.per_org.transaction_volume_debug",
-            extra={
-                "org_id": org.id,
-                "ds_proj_id": debug_project.id,
-                "transactions": {
-                    "checkout": {"eap_volume": 100.0, "generic_metrics_volume": 90.0},
-                    "eap-only": {"eap_volume": 5.0, "generic_metrics_volume": None},
-                    "generic-metrics-only": {"eap_volume": None, "generic_metrics_volume": 3.0},
-                },
-            },
-        )
 
 
 def _branch3_project_volume(project_id: int) -> ProjectVolume:
