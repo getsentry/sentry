@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from django.db import router, transaction
 from django.utils import timezone
+from pydantic import ValidationError
 from scm.manager import SourceCodeManager
 
 from sentry import analytics, features
@@ -759,7 +760,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if not features.has("organizations:seer-autofix-introspection", organization=organization):
             return None
 
-        artifact = state.get_artifact("root_cause", RootCauseArtifact)
+        try:
+            artifact = state.get_artifact("root_cause", RootCauseArtifact)
+        except ValidationError:
+            # This should only happen during the transition
+            return None
+
         if artifact is None:
             return None
 
