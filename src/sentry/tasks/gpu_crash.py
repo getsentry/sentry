@@ -1,12 +1,9 @@
 """Isolated GPU crash dump symbolication task.
 
-The GPU crash arrives from Relay as its own native event (see
-``sentry.lang.native.gpu``) carrying the ``.nv-gpudmp`` attachment.
-``preprocess_event`` routes such events here — a dedicated task in the
-``gpu.crash_dump`` namespace, so a slow or unavailable teapot can never back up
-CPU symbolication. We run teapot, apply the decode to the in-flight event, and
-hand it to the normal save pipeline. Best-effort: on any failure the event is
-still saved through ``submit_process``, just unenriched.
+``preprocess_event`` routes GPU events here — a dedicated ``gpu.crash_dump``
+namespace, so a slow/down teapot can't back up CPU symbolication. Runs teapot,
+applies the decode, and hands the event to the normal save pipeline. Best-effort:
+any failure still saves the event (unenriched) via ``submit_process``.
 """
 
 from __future__ import annotations
@@ -58,7 +55,6 @@ def submit_symbolicate_gpu_crash(
 @instrumented_task(
     name="sentry.tasks.symbolicate_gpu_crash_event",
     namespace=gpu_crash_dump_tasks,
-    # Bounds how long a stuck teapot can hold a worker in the GPU pool.
     processing_deadline_duration=120,
     silo_mode=SiloMode.CELL,
 )
@@ -104,11 +100,10 @@ def symbolicate_gpu_crash_event(
 
 
 def _try_symbolicate(data: Any, project_id: int, event_id: str) -> bool:
-    """Best-effort teapot symbolication. Returns whether ``data`` was enriched.
+    """Best-effort teapot symbolication; returns whether ``data`` was enriched.
 
-    Every failure is swallowed: teapot being slow, down, or wrong must never stop
-    the GPU event from saving. The kill switch and feature flag are re-checked
-    here so ops can halt already-queued work.
+    All failures are swallowed — teapot must never block the save. The kill
+    switch and feature flag are re-checked here so ops can halt queued work.
     """
     from sentry.lang.native.gpu import apply_gpu_crash_symbolication
     from sentry.lang.native.teapot import submit_to_teapot

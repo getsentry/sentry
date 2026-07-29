@@ -24,8 +24,6 @@ SUBMIT_PROCESS = "sentry.tasks.store.submit_process"
 
 
 class _FakeAttachment:
-    """A `CachedAttachment` stand-in: name + bytes via `load_data`."""
-
     def __init__(self, name: str = "dump.nv-gpudmp", data: bytes = b"dump") -> None:
         self.name = name
         self.stored_id = None
@@ -41,18 +39,10 @@ def _completed() -> dict[str, Any]:
 
 @pytest.fixture(autouse=True)
 def circuit_breaker() -> Iterator[mock.Mock]:
-    """A closed (request-allowing) teapot circuit breaker by default, so tests
-    don't couple to redis. Flip `should_allow_request` in a test to simulate an
-    open circuit; assert on `record_success` / `record_error` to check wiring."""
     breaker = mock.Mock()
     breaker.should_allow_request.return_value = True
     with mock.patch("sentry.tasks.gpu_crash._teapot_circuit_breaker", return_value=breaker):
         yield breaker
-
-
-# ---------------------------------------------------------------------------
-# _try_symbolicate — the teapot call + apply, best-effort
-# ---------------------------------------------------------------------------
 
 
 @django_db_all
@@ -71,6 +61,7 @@ def test_try_symbolicate_happy_path(default_project: Project, circuit_breaker: m
     assert changed is True
     assert teapot.call_count == 1
     assert apply.call_count == 1
+
     # A successful decode closes the loop on the breaker.
     circuit_breaker.record_success.assert_called_once()
     circuit_breaker.record_error.assert_not_called()
@@ -173,11 +164,6 @@ def test_try_symbolicate_swallows_errors(default_project: Project) -> None:
     assert changed is False
 
 
-# ---------------------------------------------------------------------------
-# the task always continues to save; the submit helper uses the dedicated queue
-# ---------------------------------------------------------------------------
-
-
 def test_task_always_continues_to_save() -> None:
     # Whatever teapot does, the event is handed to submit_process — Relay already
     # ingested and billed it.
@@ -206,10 +192,6 @@ def test_submit_schedules_on_dedicated_queue() -> None:
     assert delay.call_count == 1
     assert delay.call_args.kwargs["cache_key"] == "k"
 
-
-# ---------------------------------------------------------------------------
-# preprocess routing: a GPU event goes to the dedicated task, others don't
-# ---------------------------------------------------------------------------
 
 IS_GPU_EVENT = "sentry.lang.native.utils.is_gpu_crash_event"
 SUBMIT_GPU = "sentry.tasks.gpu_crash.submit_symbolicate_gpu_crash"
