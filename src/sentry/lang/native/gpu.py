@@ -33,8 +33,8 @@ def apply_gpu_crash_symbolication(
         metrics.incr("process.gpu.event.skipped", tags={"status": status or "unknown"})
         return None
 
-    fault = _as_dict(response.get("fault"))
-    gpu_state = _as_dict(response.get("gpu_state"))
+    fault = response.get("fault") or {}
+    gpu_state = response.get("gpu_state") or {}
     primary_shader = _primary_shader(response)
     category = response.get("fault_category") or "unknown"
 
@@ -51,13 +51,13 @@ def apply_gpu_crash_symbolication(
     data["platform"] = "native"
     data["level"] = "fatal"
     data["type"] = "error"
-    data["fingerprint"] = list(_as_list(response.get("fingerprint"))) or ["gpu", category]
+    data["fingerprint"] = list(response.get("fingerprint") or []) or ["gpu", category]
     data["exception"] = {
         "values": [
             {
                 "type": exc_type,
                 "value": exc_value,
-                "stacktrace": {"frames": _normalize_gpu_frames(_as_list(response.get("frames")))},
+                "stacktrace": {"frames": _normalize_gpu_frames(response.get("frames") or [])},
                 "mechanism": {"type": "gpu_crash", "handled": False},
             }
         ]
@@ -93,7 +93,7 @@ def apply_gpu_crash_symbolication(
         gpu_tags["gpu.shader_type"] = primary_shader["shader_type"]
     data["tags"] = _merge_tags(data.get("tags"), gpu_tags)
 
-    breadcrumbs = _markers_to_breadcrumbs(_as_list(response.get("markers")))
+    breadcrumbs = _markers_to_breadcrumbs(response.get("markers") or [])
     if breadcrumbs:
         data["breadcrumbs"] = {"values": breadcrumbs}
 
@@ -101,22 +101,10 @@ def apply_gpu_crash_symbolication(
     return data
 
 
-def _as_dict(value: Any) -> dict[str, Any]:
-    """Coerce untrusted teapot JSON to a dict (``{}`` otherwise)."""
-    return value if isinstance(value, dict) else {}
-
-
-def _as_list(value: Any) -> list[Any]:
-    """Coerce untrusted teapot JSON to a list (``[]`` otherwise)."""
-    return value if isinstance(value, list) else []
-
-
 def _primary_shader(response: Mapping[str, Any]) -> dict[str, Any]:
-    """First active shader, or ``{}`` (every level is untrusted JSON)."""
-    active_shaders = _as_dict(response.get("shader_context")).get("active_shaders")
-    if not isinstance(active_shaders, list) or not active_shaders:
-        return {}
-    return _as_dict(active_shaders[0])
+    """First active shader from teapot's response, or ``{}``."""
+    active = (response.get("shader_context") or {}).get("active_shaders") or []
+    return active[0] if active else {}
 
 
 def _build_flat_gpu_context(response: Mapping[str, Any]) -> dict[str, Any]:
@@ -126,8 +114,8 @@ def _build_flat_gpu_context(response: Mapping[str, Any]) -> dict[str, Any]:
     behind ``> { N items }``.
     """
 
-    fault = _as_dict(response.get("fault"))
-    gpu_state = _as_dict(response.get("gpu_state"))
+    fault = response.get("fault") or {}
+    gpu_state = response.get("gpu_state") or {}
     primary_shader = _primary_shader(response)
 
     flat: dict[str, Any] = {
@@ -154,9 +142,9 @@ def _build_flat_gpu_context(response: Mapping[str, Any]) -> dict[str, Any]:
         "shader_hash": primary_shader.get("shader_hash"),
         "shader_type": primary_shader.get("shader_type"),
         "shader_debug_info_uid": primary_shader.get("shader_debug_info_uid"),
-        "missing_dif_count": len(_as_list(response.get("missing_difs"))),
+        "missing_dif_count": len(response.get("missing_difs") or []),
     }
-    warnings = _as_list(response.get("warnings"))
+    warnings = response.get("warnings") or []
     if warnings:
         flat["warnings"] = warnings
     return {k: v for k, v in flat.items() if v is not None}
@@ -185,15 +173,11 @@ def _merge_tags(existing: Any, extra: Mapping[str, str]) -> list[tuple[str, str]
     return list(merged.items())
 
 
-def _markers_to_breadcrumbs(markers: Any) -> list[dict[str, Any]]:
+def _markers_to_breadcrumbs(markers: list[Any]) -> list[dict[str, Any]]:
     """Map teapot's ``markers`` to breadcrumbs (often the only signal for
     non-shader crashes)."""
-    if not isinstance(markers, list):
-        return []
     out: list[dict[str, Any]] = []
     for m in markers:
-        if not isinstance(m, dict):
-            continue
         kind = m.get("kind") or "marker"
         label = m.get("label") or kind
         data = m.get("data")
@@ -210,43 +194,34 @@ def _markers_to_breadcrumbs(markers: Any) -> list[dict[str, Any]]:
     return out
 
 
-def _normalize_gpu_frames(teapot_frames: Any) -> list[dict[str, Any]]:
+def _normalize_gpu_frames(teapot_frames: list[Any]) -> list[dict[str, Any]]:
     """Map teapot's ``frames[]`` to Sentry stacktrace frames: pass through known
     fields, force ``symbolicator_status=symbolicated`` (shader frames have no
     debug image), and synthesise ``package`` from the shader hash."""
-    if not isinstance(teapot_frames, list):
-        return []
-
     normalized: list[dict[str, Any]] = []
     for raw in teapot_frames:
-        if not isinstance(raw, dict):
-            continue
-
         frame: dict[str, Any] = {}
-        for src, dst in (
-            ("function", "function"),
-            ("module", "module"),
-            ("filename", "filename"),
-            ("abs_path", "abs_path"),
-            ("lineno", "lineno"),
-            ("colno", "colno"),
-            ("instruction_addr", "instruction_addr"),
-            ("pre_context", "pre_context"),
-            ("context_line", "context_line"),
-            ("post_context", "post_context"),
+        for field in (
+            "function",
+            "module",
+            "filename",
+            "abs_path",
+            "lineno",
+            "colno",
+            "instruction_addr",
+            "pre_context",
+            "context_line",
+            "post_context",
         ):
-            value = raw.get(src)
+            value = raw.get(field)
             if value is not None:
-                frame[dst] = value
-        # `data` is external — only trust a mapping.
-        raw_data = raw.get("data")
-        if not isinstance(raw_data, dict):
-            raw_data = {}
+                frame[field] = value
+        raw_data = raw.get("data") or {}
         if raw_data:
             frame["data"] = dict(raw_data)
 
         shader_hash = raw_data.get("shader_hash")
-        if isinstance(shader_hash, str) and shader_hash and not frame.get("package"):
+        if shader_hash and not frame.get("package"):
             frame["package"] = (
                 shader_hash if shader_hash.startswith("shader_") else f"shader_{shader_hash}"
             )

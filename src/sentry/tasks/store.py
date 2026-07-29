@@ -165,28 +165,16 @@ def _do_preprocess_event(
         "organization", Organization.objects.get_from_cache(id=project.organization_id)
     )
 
-    # Get the list of platforms for which we want to use Symbolicator.
-    # Possible values are `js`, `jvm`, and `native`.
-    # The event will be submitted to Symbolicator for all returned platforms,
-    # one after the other, so we handle mixed stacktraces.
-    stacktraces = find_stacktraces_in_data(data)
-    symbolicate_functions = get_symbolication_functions(data, stacktraces)
-    metrics.incr(
-        "events.to-symbolicate",
-        tags={f.value: True for f in symbolicate_functions},
-        skip_internal=False,
-    )
-
-    should_symbolicate = len(symbolicate_functions) > 0
-
     # A GPU crash dump is its own native event (Relay split it off the minidump
     # upload) carrying only the `.nv-gpudmp` — no CPU crash report. Route it to
     # teapot in a dedicated isolated task before symbolication/save, so a slow
-    # teapot can never back up CPU symbolication. `has_attachments` short-circuits
-    # the common path cheaply; reprocessing never sets it, so fall through on
-    # `from_reprocessing` too. The feature flag is checked here (project already
-    # loaded) rather than in the task. The load-shed killswitch drops the isolated
-    # routing (event still saves via the normal path) if the pool is overwhelmed.
+    # teapot can never back up CPU symbolication. Checked before the stacktrace
+    # lookup below — that work is pointless for an event bound for teapot.
+    # `has_attachments` short-circuits the common path cheaply; reprocessing never
+    # sets it, so fall through on `from_reprocessing` too. The feature flag is
+    # checked here (project already loaded) rather than in the task. The load-shed
+    # killswitch drops the isolated routing (event still saves via the normal
+    # path) if the pool is overwhelmed.
     if (
         (has_attachments or from_reprocessing)
         and is_gpu_crash_event(data)
@@ -209,6 +197,20 @@ def _do_preprocess_event(
             from_reprocessing=from_reprocessing,
         )
         return
+
+    # Get the list of platforms for which we want to use Symbolicator.
+    # Possible values are `js`, `jvm`, and `native`.
+    # The event will be submitted to Symbolicator for all returned platforms,
+    # one after the other, so we handle mixed stacktraces.
+    stacktraces = find_stacktraces_in_data(data)
+    symbolicate_functions = get_symbolication_functions(data, stacktraces)
+    metrics.incr(
+        "events.to-symbolicate",
+        tags={f.value: True for f in symbolicate_functions},
+        skip_internal=False,
+    )
+
+    should_symbolicate = len(symbolicate_functions) > 0
     if should_symbolicate:
         symbolication_function = symbolicate_functions.pop(0)
         symbolication_function_name = getattr(symbolication_function.function(), "__name__", "none")
