@@ -77,7 +77,7 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
 
             super().update(instance, validated_data)
 
-            project = instance.project
+            project = instance.linked_project
             # update configs, which are project options. continue using them
             for config in validated_data:
                 if config in Detector.error_detector_project_options:

@@ -92,7 +92,7 @@ dependencies = [
   "sentry-ophio>=1.1.3",
   # sentry-options is only used in getsentry for now
   "sentry-options>=1.1.2",
-  "sentry-protos>=0.51.0",
+  "sentry-protos>=0.53.0",
   "sentry-redis-tools>=0.5.0",
   "sentry-relay>=0.9.27",
   "sentry-scm>=1.3.0",
@@ -846,7 +846,6 @@ module = [
     "sentry.integrations.github.integration",
     "sentry.integrations.github.issue_sync",
     "sentry.integrations.github.issues",
-    "sentry.integrations.github.platform_detection",
     "sentry.integrations.github.search",
     "sentry.integrations.github.status_check",
     "sentry.integrations.github.tasks.*",
