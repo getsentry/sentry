@@ -25,6 +25,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
+    AggregateReviewStatus,
     PullRequestStatusRequest,
     PullRequestStatusResult,
 )
@@ -1085,9 +1086,10 @@ class GitHubApiClientTest(TestCase):
                 "data": {
                     "repository0": {
                         "pullRequest": {
+                            "reviewDecision": "APPROVED",
                             "commits": {
                                 "nodes": [{"commit": {"statusCheckRollup": {"state": "SUCCESS"}}}]
-                            }
+                            },
                         }
                     }
                 }
@@ -1096,7 +1098,9 @@ class GitHubApiClientTest(TestCase):
 
         assert self.github_client.get_pull_request_status(
             repo=self.repo.name, pull_number="42"
-        ) == PullRequestStatusResult(checks=AggregateChecksStatus.SUCCESS)
+        ) == PullRequestStatusResult(
+            checks=AggregateChecksStatus.SUCCESS, review=AggregateReviewStatus.APPROVED
+        )
 
         body = orjson.loads(responses.calls[-1].request.body)
         assert PULL_REQUEST_STATUS_FRAGMENT in body["query"]
@@ -1114,6 +1118,7 @@ class GitHubApiClientTest(TestCase):
                 "data": {
                     "repository0": {
                         "pullRequest": {
+                            "reviewDecision": "APPROVED",
                             "commits": {
                                 "nodes": [{"commit": {"statusCheckRollup": {"state": "SUCCESS"}}}]
                             },
@@ -1121,6 +1126,7 @@ class GitHubApiClientTest(TestCase):
                     },
                     "repository1": {
                         "pullRequest": {
+                            "reviewDecision": "CHANGES_REQUESTED",
                             "commits": {
                                 "nodes": [{"commit": {"statusCheckRollup": {"state": "FAILURE"}}}]
                             },
@@ -1133,8 +1139,14 @@ class GitHubApiClientTest(TestCase):
         second = PullRequestStatusRequest(repo=self.repo.name, pull_number="42")
 
         assert self.github_client.get_pull_request_statuses([first, second]) == {
-            first: PullRequestStatusResult(checks=AggregateChecksStatus.SUCCESS),
-            second: PullRequestStatusResult(checks=AggregateChecksStatus.FAILURE),
+            first: PullRequestStatusResult(
+                checks=AggregateChecksStatus.SUCCESS,
+                review=AggregateReviewStatus.APPROVED,
+            ),
+            second: PullRequestStatusResult(
+                checks=AggregateChecksStatus.FAILURE,
+                review=AggregateReviewStatus.CHANGES_REQUESTED,
+            ),
         }
         assert len(responses.calls) == 1
 
@@ -1158,15 +1170,18 @@ class GitHubApiClientTest(TestCase):
                 "data": {
                     "repository0": {
                         "pullRequest": {
+                            "reviewDecision": "APPROVED",
                             "commits": {
                                 "nodes": [{"commit": {"statusCheckRollup": {"state": "SUCCESS"}}}]
-                            }
+                            },
                         }
                     }
                 }
             }
         )
-        expected = PullRequestStatusResult(checks=AggregateChecksStatus.SUCCESS)
+        expected = PullRequestStatusResult(
+            checks=AggregateChecksStatus.SUCCESS, review=AggregateReviewStatus.APPROVED
+        )
 
         first = self.github_client.get_pull_request_status(repo=self.repo.name, pull_number="45")
         second = self.github_client.get_pull_request_status(repo=self.repo.name, pull_number="45")

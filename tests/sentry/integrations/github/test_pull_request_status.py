@@ -12,16 +12,22 @@ from sentry.integrations.github.pull_request_status import (
 )
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
+    AggregateReviewStatus,
     PullRequestStatusRequest,
     PullRequestStatusResult,
 )
 
 
-def response(rollup: dict[str, Any] | None = None) -> dict[str, Any]:
+def response(
+    rollup: dict[str, Any] | None = None, review_decision: str | None = None
+) -> dict[str, Any]:
     return {
         "data": {
             "repository": {
-                "pullRequest": {"commits": {"nodes": [{"commit": {"statusCheckRollup": rollup}}]}}
+                "pullRequest": {
+                    "reviewDecision": review_decision,
+                    "commits": {"nodes": [{"commit": {"statusCheckRollup": rollup}}]},
+                }
             }
         }
     }
@@ -63,14 +69,24 @@ def test_extract_pull_request_statuses() -> None:
     second = PullRequestStatusRequest(repo="getsentry/snuba", pull_number="7")
     batch_response = {
         "data": {
-            "repository0": response({"state": "SUCCESS"})["data"]["repository"],
-            "repository1": response({"state": "FAILURE"})["data"]["repository"],
+            "repository0": response({"state": "SUCCESS"}, review_decision="APPROVED")["data"][
+                "repository"
+            ],
+            "repository1": response({"state": "FAILURE"}, review_decision="CHANGES_REQUESTED")[
+                "data"
+            ]["repository"],
         }
     }
 
     assert extract_pull_request_statuses_from_response(batch_response, [first, second]) == {
-        first: PullRequestStatusResult(checks=AggregateChecksStatus.SUCCESS),
-        second: PullRequestStatusResult(checks=AggregateChecksStatus.FAILURE),
+        first: PullRequestStatusResult(
+            checks=AggregateChecksStatus.SUCCESS,
+            review=AggregateReviewStatus.APPROVED,
+        ),
+        second: PullRequestStatusResult(
+            checks=AggregateChecksStatus.FAILURE,
+            review=AggregateReviewStatus.CHANGES_REQUESTED,
+        ),
     }
 
 
@@ -91,8 +107,31 @@ def test_extract_checks(state: str, expected: AggregateChecksStatus | None) -> N
     assert extract_pull_request_status_from_response(response({"state": state})).checks == expected
 
 
-def test_extract_without_ci() -> None:
-    # No CI is an absent state, not a pending one.
+@pytest.mark.parametrize(
+    ("decision", "expected"),
+    (
+        ("APPROVED", AggregateReviewStatus.APPROVED),
+        ("CHANGES_REQUESTED", AggregateReviewStatus.CHANGES_REQUESTED),
+        ("REVIEW_REQUIRED", AggregateReviewStatus.REVIEW_REQUIRED),
+        ("SOMETHING_NEW", None),
+    ),
+)
+def test_extract_review(decision: str, expected: AggregateReviewStatus | None) -> None:
+    result = extract_pull_request_status_from_response(response(review_decision=decision))
+    assert result.review == expected
+
+
+def test_extract_reads_checks_and_review_from_one_response() -> None:
+    # Failing checks alongside an approving review: neither field masks the other.
+    assert extract_pull_request_status_from_response(
+        response({"state": "FAILURE"}, review_decision="APPROVED")
+    ) == PullRequestStatusResult(
+        checks=AggregateChecksStatus.FAILURE, review=AggregateReviewStatus.APPROVED
+    )
+
+
+def test_extract_without_ci_or_required_review() -> None:
+    # No CI and no required review are absent states, not pending ones.
     assert extract_pull_request_status_from_response(response()) == PullRequestStatusResult()
 
 

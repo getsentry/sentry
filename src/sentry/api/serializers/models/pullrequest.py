@@ -10,6 +10,7 @@ from sentry.api.serializers.models.repository import RepositorySerializerRespons
 from sentry.api.serializers.release_details_types import Author
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
+    AggregateReviewStatus,
     PullRequestStatusResult,
 )
 from sentry.models.commitauthor import CommitAuthor
@@ -62,6 +63,7 @@ class LinkedPullRequestResponse(PullRequestSerializerResponse):
     attribution: LinkedPullRequestAttributionResponse | None
     dateLinked: datetime
     checksStatus: AggregateChecksStatus | None
+    reviewStatus: AggregateReviewStatus | None
 
 
 def get_users_for_pull_requests(item_list, user=None):
@@ -127,9 +129,9 @@ def _serialize_attribution(
 class LinkedPullRequestSerializer(PullRequestSerializer):
     """Serialize a pull request linked to a group.
 
-    The caller passes in the linked-at timestamp, status, and provider-reported checks;
-    this serializer maps them, along with the PR's Seer attribution, into the response
-    shape.
+    The caller passes in the linked-at timestamp, status, and provider-reported checks
+    and review; this serializer maps them, along with the PR's Seer attribution, into
+    the response shape.
     """
 
     def __init__(
@@ -165,4 +167,5 @@ class LinkedPullRequestSerializer(PullRequestSerializer):
             "dateLinked": self.date_linked_by_pr_id[obj.id],
             "status": self.status_by_pr_id[obj.id],
             "checksStatus": checks_and_review.checks,
+            "reviewStatus": checks_and_review.review,
         }

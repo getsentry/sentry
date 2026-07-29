@@ -9,6 +9,7 @@ from django.utils import timezone
 from sentry.constants import ObjectStatus
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
+    AggregateReviewStatus,
     PullRequestStatusClient,
     PullRequestStatusRequest,
     PullRequestStatusResult,
@@ -30,7 +31,7 @@ from sentry.types.activity import ActivityType
 
 
 class PullRequestStatusClientFake(PullRequestStatusClient):
-    """A client reporting checks state per pull request key."""
+    """A client reporting checks and review state per pull request key."""
 
     def __init__(
         self,
@@ -58,7 +59,7 @@ class PullRequestStatusClientFake(PullRequestStatusClient):
 
 
 class UnsupportedClient:
-    """A client that cannot report checks state, like the non-GitHub providers."""
+    """A client that cannot report checks or review state, like the non-GitHub providers."""
 
 
 class GroupPullRequestsEndpointTest(APITestCase):
@@ -137,11 +138,13 @@ class GroupPullRequestsEndpointTest(APITestCase):
         client.get_pull_request.return_value = response
         return self.set_provider_client(mock_get_integration, client)
 
-    def get_checks(self, *, expand: bool = True) -> list[str | None]:
-        """The checksStatus of each pull request, in response order."""
+    def get_checks_and_review(self, *, expand: bool = True) -> list[tuple[str | None, str | None]]:
+        """The (checksStatus, reviewStatus) pair of each pull request, in response order."""
         response = self.client.get(self.expanded_path if expand else self.path)
         assert response.status_code == 200
-        return [item["checksStatus"] for item in response.data["pullRequests"]]
+        return [
+            (item["checksStatus"], item["reviewStatus"]) for item in response.data["pullRequests"]
+        ]
 
     def test_empty_response(self) -> None:
         response = self.client.get(self.path)
@@ -413,31 +416,31 @@ class GroupPullRequestsEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data["pullRequests"][0]["status"] == "unknown"
 
-    def test_checks_absent_without_feature(self) -> None:
+    def test_checks_and_review_absent_without_feature(self) -> None:
         self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
 
         with patch(
             "sentry.issues.endpoints.group_pull_requests.integration_service.get_integration"
         ) as mock_get_integration:
-            assert self.get_checks() == [None]
+            assert self.get_checks_and_review() == [(None, None)]
 
         # Both gates skip the provider request itself, not just the response field.
         mock_get_integration.assert_not_called()
 
     @with_feature("organizations:issue-pr-checks-status")
-    def test_checks_absent_without_expand(self) -> None:
+    def test_checks_and_review_absent_without_expand(self) -> None:
         self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
 
         with patch(
             "sentry.issues.endpoints.group_pull_requests.integration_service.get_integration"
         ) as mock_get_integration:
-            assert self.get_checks(expand=False) == [None]
+            assert self.get_checks_and_review(expand=False) == [(None, None)]
 
         mock_get_integration.assert_not_called()
 
     @with_feature("organizations:issue-pr-checks-status")
     @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
-    def test_checks_for_open_pull_requests(self, mock_get_integration: Mock) -> None:
+    def test_checks_and_review_for_open_pull_requests(self, mock_get_integration: Mock) -> None:
         self.create_linked_pull_request(
             key="1",
             linked_delta=timedelta(days=2),
@@ -461,20 +464,32 @@ class GroupPullRequestsEndpointTest(APITestCase):
             mock_get_integration,
             PullRequestStatusClientFake(
                 {
-                    "1": PullRequestStatusResult(checks=AggregateChecksStatus.FAILURE),
-                    "2": PullRequestStatusResult(checks=AggregateChecksStatus.SUCCESS),
+                    "1": PullRequestStatusResult(
+                        checks=AggregateChecksStatus.FAILURE,
+                        review=AggregateReviewStatus.CHANGES_REQUESTED,
+                    ),
+                    "2": PullRequestStatusResult(
+                        checks=AggregateChecksStatus.SUCCESS,
+                        review=AggregateReviewStatus.APPROVED,
+                    ),
                 }
             ),
         )
 
-        assert self.get_checks() == [None, "success", "failure"]
+        assert self.get_checks_and_review() == [
+            (None, None),
+            ("success", "approved"),
+            ("failure", "changes_requested"),
+        ]
         assert set(client.requested_keys) == {"1", "2", "3"}
         assert client.request_count == 1
         assert mock_get_integration.call_count == 1
 
     @with_feature("organizations:issue-pr-checks-status")
     @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
-    def test_checks_skipped_for_finished_pull_requests(self, mock_get_integration: Mock) -> None:
+    def test_checks_and_review_skipped_for_finished_pull_requests(
+        self, mock_get_integration: Mock
+    ) -> None:
         self.create_linked_pull_request(
             key="1",
             linked_delta=timedelta(days=2),
@@ -488,12 +503,12 @@ class GroupPullRequestsEndpointTest(APITestCase):
         )
         client = self.set_provider_client(mock_get_integration, PullRequestStatusClientFake())
 
-        assert self.get_checks() == [None, None]
+        assert self.get_checks_and_review() == [(None, None), (None, None)]
         assert client.requested_keys == []
 
     @with_feature("organizations:issue-pr-checks-status")
     @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
-    def test_checks_fetch_failure_is_not_fatal(self, mock_get_integration: Mock) -> None:
+    def test_checks_and_review_fetch_failure_is_not_fatal(self, mock_get_integration: Mock) -> None:
         pull_request, _ = self.create_linked_pull_request(
             key="1", state=PullRequestLifecycleState.OPEN, draft=False
         )
@@ -505,6 +520,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["pullRequests"][0]["checksStatus"] is None
+        assert response.data["pullRequests"][0]["reviewStatus"] is None
         # The rest of the pull request still serializes.
         assert response.data["pullRequests"][0]["id"] == pull_request.key
         assert response.data["pullRequests"][0]["status"] == "open"
@@ -512,21 +528,21 @@ class GroupPullRequestsEndpointTest(APITestCase):
     @with_feature("organizations:issue-pr-checks-status")
     @patch("sentry.issues.endpoints.group_pull_requests.logger")
     @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
-    def test_checks_without_client_support(
+    def test_checks_and_review_without_client_support(
         self, mock_get_integration: Mock, mock_logger: Mock
     ) -> None:
         self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
         self.set_provider_client(mock_get_integration, UnsupportedClient())
 
-        assert self.get_checks() == [None]
+        assert self.get_checks_and_review() == [(None, None)]
         # Nothing logged, so the capability check produced the None rather than a
         # swallowed AttributeError.
         mock_logger.info.assert_not_called()
 
     @with_feature("organizations:issue-pr-checks-status")
     @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
-    def test_checks_without_integration(self, mock_get_integration: Mock) -> None:
+    def test_checks_and_review_without_integration(self, mock_get_integration: Mock) -> None:
         self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
         mock_get_integration.return_value = None
 
-        assert self.get_checks() == [None]
+        assert self.get_checks_and_review() == [(None, None)]
