@@ -2,11 +2,10 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Container, Stack} from '@sentry/scraps/layout';
+import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
-import {t} from 'sentry/locale';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import {
   detectAIContentType,
   parseXmlTagSegments,
@@ -94,11 +93,7 @@ function MarkdownWithXmlRenderer({
             collapsible={collapsibleXmlTags}
           />
         ) : (
-          <MarkedText
-            key={i}
-            as={TraceDrawerComponents.MarkdownContainer}
-            text={segment.content}
-          />
+          <Markdown key={i} raw={segment.content} />
         )
       )}
     </Fragment>
@@ -123,6 +118,7 @@ export function AIContentRenderer({
 
   switch (detection.type) {
     case 'json':
+    case 'fixed-json':
     case 'python-dict':
       return (
         <TraceDrawerComponents.MultilineJSON
@@ -131,21 +127,6 @@ export function AIContentRenderer({
           autoCollapseLimit={autoCollapseLimit}
           clip={clipJson}
         />
-      );
-
-    case 'fixed-json':
-      return (
-        <Fragment>
-          <TraceDrawerComponents.MultilineJSON
-            value={detection.parsedData}
-            maxDefaultDepth={maxJsonDepth}
-            autoCollapseLimit={autoCollapseLimit}
-            clip={clipJson}
-          />
-          <Text size="xs" variant="muted">
-            {t('Truncated')}
-          </Text>
-        </Fragment>
       );
 
     case 'markdown-with-xml':
@@ -170,7 +151,7 @@ export function AIContentRenderer({
 
     case 'markdown':
       if (inline) {
-        return <MarkedText as={TraceDrawerComponents.MarkdownContainer} text={text} />;
+        return <Markdown raw={text} />;
       }
       return (
         <TraceDrawerComponents.MultilineText clip={clipText}>

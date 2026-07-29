@@ -7,20 +7,6 @@ import BugBImage from 'sentry-images/spot/seer-config-bug-1.svg';
 
 import {Image} from '@sentry/scraps/image';
 
-export function WelcomeBackground() {
-  return (
-    <Container
-      variants={{
-        animate: {},
-        exit: {},
-      }}
-      transition={{staggerChildren: 0.1}}
-    >
-      <WelcomeBackgroundImages />
-    </Container>
-  );
-}
-
 function WelcomeBackgroundImages() {
   return (
     <Fragment>
@@ -93,19 +79,6 @@ const BugB = styled(Illustration)`
   right: -16rem;
   bottom: 0;
   width: 12rem;
-`;
-
-const Container = styled(motion.div)`
-  pointer-events: none;
-  position: absolute;
-  height: 150%;
-  max-width: 100vw;
-  width: 300%;
-  top: -25%;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
 
 const ContainerNewUi = styled(motion.div)`

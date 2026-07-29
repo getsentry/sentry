@@ -79,11 +79,11 @@ def can_edit_detector(detector: Detector, request: Request) -> bool:
     in their request.
     """
     if is_system_created_detector(detector) and not can_edit_system_created_detectors(
-        request, detector.project
+        request, detector.linked_project
     ):
         return False
 
-    return can_edit_user_created_detectors(request, detector.project)
+    return can_edit_user_created_detectors(request, detector.linked_project)
 
 
 def can_delete_detectors(detectors: QuerySet[Detector], request: Request) -> bool:
@@ -108,7 +108,7 @@ def can_delete_detector(detector: Detector, request: Request) -> bool:
     if is_system_created_detector(detector):
         return False
 
-    return can_edit_user_created_detectors(request, detector.project)
+    return can_edit_user_created_detectors(request, detector.linked_project)
 
 
 def can_edit_detector_workflow_connections(detector: Detector, request: Request) -> bool:
@@ -117,7 +117,7 @@ def can_edit_detector_workflow_connections(detector: Detector, request: Request)
     which is slightly different from full edit access which differs by detector type.
     """
     return request.access.has_any_project_scope(
-        detector.project, USER_CREATED_DETECTOR_REQUIRED_SCOPES
+        detector.linked_project, USER_CREATED_DETECTOR_REQUIRED_SCOPES
     )
 
 

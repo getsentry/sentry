@@ -235,7 +235,7 @@ export function Alert({
       expand={expand}
       trailingItems={trailingItems}
       onClick={handleClick}
-      className={classNames(variant ? `ref-${variant}` : '', className)}
+      className={classNames(`ref-${variant}`, className)}
       variant={variant}
       {...props}
       showIcon={showIcon}

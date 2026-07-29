@@ -5,17 +5,22 @@ import {
   type ExplorerAutofixState,
   getOrderedAutofixSections,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import type {Level} from 'sentry/types/event';
-import type {PlatformKey} from 'sentry/types/platform';
+import {t} from 'sentry/locale';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  type OverviewIssue,
+  QUERY_STALE_TIME,
+  REQUIRED_ISSUE_FILTER,
+  RUNS_QUERY,
+  type SeerRun,
+} from 'sentry/views/seerWorkflows/overview/types';
+
+export {REQUIRED_ISSUE_FILTER};
 
 // Visible default query for the search bar. The required autofix filter below
 // is always applied on top, so it isn't part of the editable query.
 export const DEFAULT_ISSUE_QUERY = 'is:unresolved';
-
-// Always applied to the issue query: only issues Seer has run autofix on.
-export const REQUIRED_ISSUE_FILTER = 'has:issue.seer_last_run';
 
 function withRequiredFilter(query: string): string {
   const trimmed = query.trim();
@@ -27,13 +32,9 @@ function withRequiredFilter(query: string): string {
     : `${trimmed} ${REQUIRED_ISSUE_FILTER}`;
 }
 
-// Runs filter: the explorer runs autofix creates. Combined with a
-// ``group:[...]`` filter so we only fetch runs for the issues on the page.
-const RUNS_QUERY = 'type:explorer source:autofix';
-
-// Custom one-shot question asked about each run, sent to the endpoint as a
-// repeatable `question` param (see organization_seer_runs.py). Edit this list
-// to iterate on prompts without a backend change. Capped at 5 by the endpoint.
+// Custom one-shot questions asked about each run, sent to the endpoint as a
+// repeatable `question` param (see organization_seer_runs.py). Capped at 5 by
+// the endpoint.
 const DEMO_QUESTIONS = [
   'What was the most important bit of evidence while investigating this issue?',
   'What is the complexity of the fix? Count or estimate number of lines and files touched.',
@@ -45,11 +46,11 @@ const PER_PAGE = 10;
 export type AutofixPhase = 'rca' | 'planning' | 'coding' | 'pr_open' | 'pr_merged';
 
 export const AUTOFIX_PHASE_LABELS: Record<AutofixPhase, string> = {
-  rca: 'Root cause',
-  planning: 'Planning',
-  coding: 'Coding',
-  pr_open: 'PR open',
-  pr_merged: 'PR merged',
+  rca: t('Root cause'),
+  planning: t('Planning'),
+  coding: t('Coding'),
+  pr_open: t('PR open'),
+  pr_merged: t('PR merged'),
 };
 
 /**
@@ -81,50 +82,10 @@ function deriveAutofixPhase(runState: ExplorerAutofixState | null): AutofixPhase
   }
 }
 
-// One answered question, mirrors the run output in
-// src/sentry/api/serializers/models/seer_run.py
-export interface RunQuestion {
-  answer: string;
-  key: string;
-  // The question text, echoed back only for user-supplied questions.
-  question?: string;
-}
-
-// A pull request linked to a run, serialized by PullRequestSerializer
-// src/sentry/api/serializers/models/pullrequest.py
-// `status` is 'open' | 'merged' | 'closed' | 'draft' | 'unknown'.
-interface RunPullRequest {
-  status: string | null;
-  mergedAt?: string | null;
-}
-
-// Subset of the runs list response we consume
-// src/sentry/api/serializers/models/seer_run.py
-interface SeerRun {
-  groupId: string | null;
-  id: string;
-  lastTriggeredAt: string;
-  source: string | null;
-  // Present only when ?outputs is requested.
-  outputs?: RunQuestion[];
-  // Linked PRs with merge status.
-  pullRequests?: RunPullRequest[];
-}
-
-// Subset of the issue-stream group we render.
-interface Issue {
-  // Event count over the stats period. Endpoint sadly returns a string.
-  count: string;
+// The overview's issue shape plus the two extra fields this demo renders.
+interface Issue extends OverviewIssue {
   culprit: string;
-  id: string;
-  lastSeen: string;
-  level: Level;
-  project: {slug: string; platform?: PlatformKey};
-  seerAutofixLastTriggered: string | null;
   seerFixabilityScore: number | null;
-  shortId: string;
-  title: string;
-  userCount: number;
 }
 
 export interface AutofixIssue extends Issue {
@@ -136,6 +97,16 @@ export interface AutofixIssue extends Issue {
 
 interface UseAutofixIssuesParams {
   cursor?: string;
+  // Gates the issues request; pass page-filters readiness so the initial
+  // fetch waits for the restored project selection. Defaults to true.
+  enabled?: boolean;
+  // Fetch exactly these group ids instead of searching the stream. The
+  // endpoint ignores every other query component in this mode, so a
+  // deep-linked issue resolves even outside the list's filters/pagination.
+  groupIds?: string[];
+  // Project ids to scope the issue stream to (page-filters selection: [] is
+  // "My Projects", [-1] is all). Defaults to all accessible projects.
+  projects?: number[];
   query?: string;
   // One-shot questions asked about each run (repeatable `question` param,
   // capped at 5 by the endpoint). Defaults to this page's demo set.
@@ -161,6 +132,9 @@ interface UseAutofixIssuesResult {
 export function useAutofixIssues({
   query,
   cursor,
+  enabled = true,
+  groupIds: pinnedGroupIds,
+  projects,
   questions = DEMO_QUESTIONS,
   runsQuery: runsQueryFilter = RUNS_QUERY,
 }: UseAutofixIssuesParams): UseAutofixIssuesResult {
@@ -173,7 +147,10 @@ export function useAutofixIssues({
       query: {
         query: withRequiredFilter(query ?? ''),
         cursor,
-        project: -1,
+        group: pinnedGroupIds,
+        // In group-id mode the page-filters project selection must not hide
+        // the deep-linked issue — the backend still enforces access.
+        project: pinnedGroupIds ? -1 : (projects ?? -1),
         statsPeriod: '90d',
         // Explicit endpoint default: last-seen desc selects the issues still
         // actively occurring as the candidate pool; callers order the loaded
@@ -181,8 +158,9 @@ export function useAutofixIssues({
         sort: 'date',
         limit: PER_PAGE,
       },
-      staleTime: 30_000,
+      staleTime: QUERY_STALE_TIME,
     }),
+    enabled,
     select: selectJsonWithHeaders,
   });
 
@@ -190,12 +168,9 @@ export function useAutofixIssues({
   const groupIds = useMemo(() => issues.map(issue => issue.id), [issues]);
   const runsEnabled = groupIds.length > 0;
 
-  // 2. Enrich with each group's latest run, one request per group with
-  // per_page=1. A single batched group:[...] request looked cheaper, but the
-  // endpoint caps outputs-enabled pages at 10 runs ordered by recency — when
-  // the page's groups collectively have more runs than that, the oldest
-  // groups' runs fall off and their issues silently lose all answers. Per-
-  // group requests make coverage guaranteed with the same total one-shot work.
+  // One request per group (per_page=1): the endpoint caps outputs-enabled pages
+  // at 10 runs by recency, so a batched group:[...] request would silently drop
+  // the oldest groups' runs.
   const runResults = useQueries({
     queries: groupIds.map(groupId =>
       apiOptions.as<SeerRun[]>()('/organizations/$organizationIdOrSlug/seer/runs/', {
@@ -205,7 +180,7 @@ export function useAutofixIssues({
           question: questions,
           per_page: 1,
         },
-        staleTime: 30_000,
+        staleTime: QUERY_STALE_TIME,
       })
     ),
   });
@@ -213,7 +188,7 @@ export function useAutofixIssues({
   // 3. Fetch the full autofix state per group to derive its phase. This is one
   // request per issue on the page (bounded by PER_PAGE) -- the runs list
   // endpoint doesn't expose fine-grained phase, so we read each run's state
-  // ("the whole history") directly. useQueries preserves groupIds order.
+  // directly. useQueries preserves groupIds order.
   const autofixResults = useQueries({
     queries: groupIds.map(groupId =>
       apiOptions.as<{autofix: ExplorerAutofixState | null}>()(
@@ -221,7 +196,7 @@ export function useAutofixIssues({
         {
           path: {organizationIdOrSlug: organization.slug, issueId: groupId},
           query: {mode: 'explorer'},
-          staleTime: 30_000,
+          staleTime: QUERY_STALE_TIME,
         }
       )
     ),
@@ -234,8 +209,8 @@ export function useAutofixIssues({
   const enriched: AutofixIssue[] = issues.map((issue, i) => {
     const autofixResult = autofixResults[i];
     const autofixState = autofixResult?.data?.autofix ?? null;
-    // The server already scopes each request to its group; the find() guards
-    // against mocks/responses carrying runs for other groups.
+    // The server scopes each request to its group; find() guards against a
+    // response carrying runs for another group.
     const runs = runResults[i]?.data;
     const run = runs?.find(candidate => candidate.groupId === issue.id) ?? null;
     return {

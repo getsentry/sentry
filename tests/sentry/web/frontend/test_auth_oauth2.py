@@ -125,7 +125,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
                     assert resp.status_code == 302
                     resp = self.client.post(reverse("sentry-2fa-dialog"), {"otp": "something"})
                     assert resp.status_code == 302
-                    assert resp["Location"].startswith("http://testserver/auth/sso/?")
+                    assert resp["Location"] == "http://testserver/auth/sso/"
                     resp = self.client.get(resp["Location"])
 
             assert resp.status_code == 302

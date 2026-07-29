@@ -108,6 +108,7 @@ export function isNavItemVisible(
   return typeof item.show === 'function' ? item.show(context) : item.show;
 }
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
@@ -387,12 +388,22 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/explore/metrics/`}
             />
           )}
-          {organization.features.includes('explore-errors') && (
-            <CMDKAction display={{label: t('Errors')}} to={`${prefix}/explore/errors/`} />
-          )}
+          {organization.features.includes('explore-errors') &&
+            !getDiscoverDeprecation(organization) && (
+              <CMDKAction
+                display={{label: t('Errors')}}
+                to={`${prefix}/explore/errors-v2/`}
+              />
+            )}
           <CMDKAction
-            display={{label: t('Discover')}}
-            to={`${prefix}/explore/discover/homepage/`}
+            display={{
+              label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
+            }}
+            to={
+              getDiscoverDeprecation(organization)
+                ? `${prefix}/explore/errors/homepage/`
+                : `${prefix}/explore/discover/homepage/`
+            }
           />
           {organization.features.includes('profiling') && (
             <CMDKAction
@@ -433,16 +444,8 @@ export function GlobalCommandPaletteActions() {
         </CMDKAction>
 
         <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
-          {hasPrebuiltDashboards && (
-            <CMDKAction
-              display={{label: t('Dashboards')}}
-              to={`${prefix}/dashboards/?filter=${DashboardFilter.ALL}`}
-            />
-          )}
           <CMDKAction
-            display={{
-              label: hasPrebuiltDashboards ? t('Custom Dashboards') : t('All Dashboards'),
-            }}
+            display={{label: t('All Dashboards')}}
             to={`${prefix}/dashboards/`}
           />
           {hasPrebuiltDashboards && (
@@ -466,7 +469,7 @@ export function GlobalCommandPaletteActions() {
             </CMDKAction>
           )}
           <CMDKAction
-            display={{label: t('All Dashboards'), icon: <IconSearch />}}
+            display={{label: t('Search Dashboards'), icon: <IconSearch />}}
             prompt={t('Search for a dashboard...')}
             limit={5}
             resource={query =>

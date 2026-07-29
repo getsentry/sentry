@@ -1,7 +1,6 @@
 import sentry_sdk
 
 from sentry import features
-from sentry.constants import DataCategory
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import TeamStatus
@@ -14,14 +13,16 @@ from sentry.tasks.summaries.utils import (
     fetch_past_resolved_issue_links,
     org_key_error_issues,
     organization_project_issue_summaries,
+    organization_top_spans,
+    organization_top_spans_timeseries,
     project_event_counts_for_organization,
     project_key_performance_issues,
     project_past_resolved_issues,
+    spans_count_by_project,
 )
 from sentry.tasks.summaries.weekly_report_cache import read_project_metrics
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
-from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import parse_snuba_datetime
 from sentry.utils.tracing import start_span
 
@@ -95,6 +96,7 @@ class OrganizationReportContextFactory:
 
             error_missed_project_ids: set[int] = set()
             issue_missed_project_ids: set[int] = set()
+            spans_missed_project_ids: set[int] = set()
 
             for project_id, values in cached.items():
                 project_ctx = ctx.projects_context_map[project_id]
@@ -106,10 +108,15 @@ class OrganizationReportContextFactory:
                     project_ctx.prev_week_total_substatus_count = values["i"]
                 else:
                     issue_missed_project_ids.add(project_id)
+                if "s" in values:
+                    ctx.prev_week_spans_count_by_project[project_id] = values["s"]
+                else:
+                    spans_missed_project_ids.add(project_id)
 
             no_cache_project_ids = set(project_ids) - set(cached.keys())
             error_missed_project_ids |= no_cache_project_ids
             issue_missed_project_ids |= no_cache_project_ids
+            spans_missed_project_ids |= no_cache_project_ids
 
             prev_start = ctx.start - (ctx.end - ctx.start)
             prev_end = ctx.start
@@ -125,13 +132,10 @@ class OrganizationReportContextFactory:
                     project_id = data["project_id"]
                     if project_id not in ctx.projects_context_map:
                         continue
-                    project_ctx = ctx.projects_context_map[project_id]
-                    total = data["total"]
-                    if data["outcome"] != Outcome.ACCEPTED:
+                    if project_id not in error_missed_project_ids:
                         continue
-                    if data["category"] in DataCategory.error_categories():
-                        if project_id in error_missed_project_ids:
-                            project_ctx.prev_week_accepted_error_count += total
+                    project_ctx = ctx.projects_context_map[project_id]
+                    project_ctx.prev_week_accepted_error_count += data["total"]
 
             if issue_missed_project_ids:
                 issue_data = organization_project_issue_summaries(
@@ -145,6 +149,29 @@ class OrganizationReportContextFactory:
                         ctx.projects_context_map[
                             project_id
                         ].prev_week_total_substatus_count += item["total"]
+
+            if (
+                spans_missed_project_ids
+                and not ctx.organization.flags.enhanced_privacy
+                and features.has("organizations:weekly-report-spans-chart", ctx.organization)
+            ):
+                try:
+                    tx_projects = [
+                        pctx.project
+                        for pid, pctx in ctx.projects_context_map.items()
+                        if pid in spans_missed_project_ids and pctx.project.flags.has_transactions
+                    ]
+                    if tx_projects:
+                        fallback = spans_count_by_project(
+                            tx_projects,
+                            ctx.organization,
+                            prev_start,
+                            prev_end,
+                            Referrer.REPORTS_TOP_SPANS.value,
+                        )
+                        ctx.prev_week_spans_count_by_project.update(fallback)
+                except Exception:
+                    sentry_sdk.capture_exception()
 
     @metrics.wraps("weekly_report.create_context.issue_summaries")
     def _append_organization_project_issue_summaries(self, ctx: OrganizationReportContext) -> None:
@@ -253,6 +280,27 @@ class OrganizationReportContextFactory:
 
             fetch_past_resolved_issue_links(ctx)
 
+    @metrics.wraps("weekly_report.create_context.top_spans")
+    def _append_organization_top_spans(self, ctx: OrganizationReportContext) -> None:
+        with start_span(
+            op="weekly_reports.organization_top_spans",
+            name="weekly_reports.organization_top_spans",
+        ):
+            referrer = Referrer.REPORTS_TOP_SPANS.value
+            try:
+                organization_top_spans(ctx, referrer=referrer)
+            except Exception:
+                sentry_sdk.capture_exception()
+                ctx.top_spans = []
+                ctx.top_spans_projects = {}
+                ctx.spans_count_by_project = {}
+                return
+            try:
+                organization_top_spans_timeseries(ctx, referrer=referrer)
+            except Exception:
+                sentry_sdk.capture_exception()
+                ctx.top_spans_timeseries = {}
+
     def create_context(self) -> OrganizationReportContext:
         ctx = OrganizationReportContext(self.timestamp, self.duration, self.organization)
 
@@ -275,5 +323,7 @@ class OrganizationReportContextFactory:
                 self._hydrate_key_performance_issues(ctx)
                 if features.has("organizations:weekly-report-past-issues", self.organization):
                     self._append_project_past_resolved_issues(ctx)
+                if features.has("organizations:weekly-report-spans-chart", self.organization):
+                    self._append_organization_top_spans(ctx)
 
         return ctx

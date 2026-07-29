@@ -136,9 +136,12 @@ def resource_of(event: str) -> SentryAppResourceType | None:
     return EVENT_TO_RESOURCE.get(event)
 
 
-def has_granular_events(events: Collection[str] | None) -> bool:
-    """Whether any entry is an individual event rather than a whole resource."""
-    return any(event in EVENT_TO_RESOURCE for event in events or ())
+def has_error_events(events: Collection[str] | None) -> bool:
+    """Whether any entry subscribes to error webhooks, as the whole resource or a single event."""
+    return any(
+        event == SentryAppResourceType.ERROR or resource_of(event) is SentryAppResourceType.ERROR
+        for event in events or ()
+    )
 
 
 def is_subscribed(stored_events: Collection[str], event: str) -> bool:

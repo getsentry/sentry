@@ -56,6 +56,9 @@ export function WidgetFrame(props: WidgetFrameProps) {
   const shouldShowCopyUrlButton = Boolean(props.onCopyUrlClick) && !props.error;
 
   const shouldShowActions = actions && actions.length > 0;
+  const hasDisabledActionsMessage = Boolean(
+    props.actionsDisabled && props.actionsMessage
+  );
 
   return (
     <Widget
@@ -140,6 +143,9 @@ export function WidgetFrame(props: WidgetFrameProps) {
                     variant: 'transparent',
                     showChevron: false,
                     icon: <IconEllipsis direction="down" size="sm" />,
+                    tooltipProps: {
+                      title: hasDisabledActionsMessage ? undefined : t('Widget actions'),
+                    },
                   }}
                   position="bottom-end"
                 />
@@ -166,6 +172,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             <Button
               size="xs"
               aria-label={t('Open Full-Screen View')}
+              tooltipProps={{title: t('Open Full-Screen View')}}
               variant="transparent"
               icon={<IconExpand />}
               onClick={e => {

@@ -41,6 +41,13 @@ frontend_all: &frontend_all
 api_url_codegen:
   - added|modified: 'static/app/utils/api/knownSentryApiUrls.generated.ts'
 
+embed_widget_schema:
+  - added|modified: 'static/app/components/seer/markdown/embeds/schemas.ts'
+  - added|modified: 'scripts/genEmbedWidgets.ts'
+
+embed_widget_codegen:
+  - added|modified: 'src/sentry/seer/agent/embed_widgets.generated.json'
+
 # Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'

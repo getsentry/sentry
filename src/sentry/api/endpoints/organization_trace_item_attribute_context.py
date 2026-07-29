@@ -13,11 +13,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
+from sentry.api.bases.organization import OrganizationEventPermission
 from sentry.api.endpoints.organization_trace_item_attributes import (
     POSSIBLE_ATTRIBUTE_TYPES,
     SUPPORTED_DATASETS,
     OrganizationTraceItemAttributesEndpointBase,
-    adjust_start_end_window,
+    full_retention_window,
     get_column_definitions,
     is_known_attribute,
     resolve_attribute_referrer,
@@ -85,6 +86,7 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.DATA_BROWSING
+    permission_classes = (OrganizationEventPermission,)
 
     def put(self, request: Request, organization: Organization, key: str) -> Response:
         """Create or update the authored context for a custom trace item attribute."""
@@ -126,9 +128,10 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
                 status=400,
             )
 
-        adjusted_start, adjusted_end = adjust_start_end_window(
-            snuba_params.start_date, snuba_params.end_date
-        )
+        # Existence is a property of all the org's data, so always check against
+        # the full retention window and ignore any time range filters
+        # (`statsPeriod`/`start`/`end`) on the request.
+        adjusted_start, adjusted_end = full_retention_window()
         snuba_params.start = adjusted_start
         snuba_params.end = adjusted_end
 

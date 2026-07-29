@@ -5,10 +5,11 @@ from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
-from typing import Any, Literal, Protocol
+from typing import Any, Protocol
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
+from sentry import options
 from sentry.dynamic_sampling.rules.utils import ProjectId
 from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
@@ -25,6 +26,7 @@ from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.outcomes import QueryDefinition, run_outcomes_query_totals
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.rpc_dataset_common import LimitBy
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.snuba import raw_snql_query
 
@@ -229,6 +231,39 @@ def get_generic_metrics_organization_volume(
     return OrganizationDataVolume(org_id=org_id, total=total, indexed=None)
 
 
+def get_generic_metrics_transaction_volumes(
+    org_id: int,
+    project_ids: set[int],
+    max_transactions: int | None = None,
+) -> dict[int, list[tuple[str, float]]]:
+    """
+    Per-transaction volumes of a set of projects from the legacy generic-metrics pipeline,
+    for side-by-side debugging against ``get_eap_transaction_volumes``. Reuses
+    ``FetchProjectTransactionVolumes`` (the same query the legacy pipeline runs) rather
+    than issuing a new one, scanning the org once for every requested project instead of
+    once per project.
+    """
+    from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
+        FetchProjectTransactionVolumes,
+    )
+
+    if max_transactions is None:
+        max_transactions = int(
+            options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
+        )
+
+    remaining = set(project_ids)
+    result: dict[int, list[tuple[str, float]]] = {}
+    for project_transactions in FetchProjectTransactionVolumes([org_id], max_transactions):
+        if not remaining:
+            break
+        project_id = project_transactions["project_id"]
+        if project_id in remaining:
+            result[project_id] = project_transactions["transaction_counts"]
+            remaining.discard(project_id)
+    return result
+
+
 def get_eap_project_volumes(
     config: OrganizationVolumeConfig,
     time_interval: timedelta = timedelta(hours=1),
@@ -291,57 +326,71 @@ def get_eap_project_volumes(
 def get_eap_transaction_volumes(
     config: OrganizationVolumeConfig,
     time_interval: timedelta = timedelta(hours=1),
-    order_by_volume: Literal["asc", "desc"] = "asc",
-    max_transactions: int = 100,
+    max_transactions_per_project: int | None = None,
     root_projects: Sequence[Project] | None = None,
 ) -> list[ProjectTransactionCounts]:
+    """
+    Fetch the highest-volume transactions of every root project in a single
+    LIMIT BY query, mirroring the legacy pipeline's per-project top-N
+    (``LIMIT BY (org_id, project_id)`` in boost_low_volume_transactions) so the
+    transaction rebalancing model sees the same explicit transaction set.
+    """
     # Spans rooted in one project can be owned by any project in the org, so the query
     # scope stays config.projects; root_projects only narrows which root projects
     # (dsc.project_id) are counted.
     if root_projects is None:
         root_projects = config.projects
+    if not root_projects:
+        return []
+
+    if max_transactions_per_project is None:
+        # Shared with the legacy pipeline so both select the same explicit transaction
+        # set per project. The companion small-transactions option is 0 in production,
+        # so only the largest transactions are fetched.
+        max_transactions_per_project = int(
+            options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
+        )
+    if max_transactions_per_project <= 0:
+        return []
 
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
     transaction_counts_by_project: defaultdict[int, list[tuple[str, float]]] = defaultdict(list)
 
-    count_order = (
-        DynamicSamplingQueryFields.COUNT
-        if order_by_volume == "asc"
-        else f"-{DynamicSamplingQueryFields.COUNT}"
-    )
     orderby = [
-        count_order,
         DynamicSamplingQueryFields.DSC_PROJECT_ID,
+        f"-{DynamicSamplingQueryFields.COUNT}",
         DynamicSamplingQueryFields.DSC_TRANSACTION,
     ]
 
     root_project_filter = ",".join(str(project.id) for project in root_projects)
-    result = Spans.run_table_query(
-        params=SnubaParams(
-            start=start_time,
-            end=end_time,
-            projects=config.projects,
-            organization=config.organization,
-        ),
-        query_string=f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}] has:{DynamicSamplingQueryFields.DSC_TRANSACTION}",
-        selected_columns=[
-            DynamicSamplingQueryFields.DSC_PROJECT_ID,
-            DynamicSamplingQueryFields.DSC_TRANSACTION,
-            DynamicSamplingQueryFields.COUNT,
-        ],
-        orderby=orderby,
-        offset=0,
-        limit=max_transactions,
-        referrer=Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_TRANSACTION_VOLUMES.value,
-        config=SearchResolverConfig(
-            auto_fields=True,
-            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY,
-        ),
-        sampling_mode=SAMPLING_MODE_HIGHEST_ACCURACY,
-    )
-
-    for row in result.get("data", []):
+    for row in run_eap_spans_table_query_in_chunks(
+        {
+            "params": SnubaParams(
+                start=start_time,
+                end=end_time,
+                projects=config.projects,
+                organization=config.organization,
+            ),
+            "query_string": f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}] has:{DynamicSamplingQueryFields.DSC_TRANSACTION}",
+            "selected_columns": [
+                DynamicSamplingQueryFields.DSC_PROJECT_ID,
+                DynamicSamplingQueryFields.DSC_TRANSACTION,
+                DynamicSamplingQueryFields.COUNT,
+            ],
+            "orderby": orderby,
+            "limit_by": LimitBy(
+                columns=[DynamicSamplingQueryFields.DSC_PROJECT_ID],
+                limit=max_transactions_per_project,
+            ),
+            "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_TRANSACTION_VOLUMES.value,
+            "config": SearchResolverConfig(
+                auto_fields=True,
+                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY,
+            ),
+            "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
+        }
+    ):
         transaction = row.get(DynamicSamplingQueryFields.DSC_TRANSACTION)
         total = _get_aggregate_float(row, DynamicSamplingQueryFields.COUNT)
         if total <= 0:

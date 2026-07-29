@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
+from collections.abc import Sequence
 
 from sentry import features
 from sentry.hybridcloud.rpc.service import RpcException
@@ -11,7 +12,10 @@ from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.organization import Organization
-from sentry.seer.sentry_data_models import MonitoringProviderConnectionData
+from sentry.seer.sentry_data_models import (
+    HeaderAuthConnectionData,
+    MonitoringProviderConnectionData,
+)
 from sentry.seer.utils import encrypt_access_token_for_seer
 from sentry.utils.registry import Registry
 
@@ -26,8 +30,13 @@ class OrgMonitoringProvider(abc.ABC):
     @abc.abstractmethod
     def build_connection(
         self, organization: Organization
-    ) -> MonitoringProviderConnectionData | None:
-        """Build the Seer connection for this org's integration, or None if unconfigured."""
+    ) -> Sequence[MonitoringProviderConnectionData] | None:
+        """
+        Build Seer connection(s) for this org's integration, or None if unconfigured.
+
+        A single integration may map to multiple MCP connections (e.g. GCP has
+        separate logging, monitoring, and trace endpoints).
+        """
 
 
 org_monitoring_provider_registry = Registry[type[OrgMonitoringProvider]]()
@@ -61,7 +70,7 @@ def get_org_monitoring_connections(
     connections: list[MonitoringProviderConnectionData] = []
     for provider in _org_monitoring_providers():
         try:
-            connection = provider.build_connection(organization)
+            result = provider.build_connection(organization)
         except RpcException:
             logger.warning(
                 "seer.monitoring_providers.org_fetch_failed",
@@ -72,8 +81,8 @@ def get_org_monitoring_connections(
                 exc_info=True,
             )
             continue
-        if connection is not None:
-            connections.append(connection)
+        if result is not None:
+            connections.extend(result)
     return connections
 
 
@@ -113,16 +122,16 @@ def _get_personal_monitoring_connections(
             urls = provider.build_mcp_urls(identity.data)
             if not urls:
                 continue
-            encrypted_access_token = encrypt_access_token_for_seer(access_token)
-            if not encrypted_access_token:
+            encrypted_auth_header = encrypt_access_token_for_seer(f"Bearer {access_token}")
+            if not encrypted_auth_header:
                 continue
             auth_method = "oauth" if is_oauth_provider else "pat"
             for url in urls:
                 connections.append(
-                    MonitoringProviderConnectionData(
+                    HeaderAuthConnectionData(
                         provider_key=provider_type,
                         url=url,
-                        encrypted_access_token=encrypted_access_token,
+                        encrypted_auth_headers={"Authorization": encrypted_auth_header},
                         identity_id=identity.id,
                         auth_method=auth_method,
                         refreshable=is_oauth_provider,

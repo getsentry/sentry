@@ -1,6 +1,8 @@
 import datetime
 
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
@@ -9,6 +11,7 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo.base import SiloMode
 from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -102,6 +105,85 @@ class GroupNoteTest(APITestCase):
         assert response.data[3]["id"] == str(note3.id)
         assert response.data[3]["data"]["text"] == note3.data["text"]
 
+    @with_feature("projects:issue-action-log-activity")
+    def test_reads_from_gale(self) -> None:
+        group = self.group
+
+        self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            data={"comment_id": 123, "text": "hello world"},
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{group.id}/comments/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        # `id` is the Activity id (comment_id), matching the flag-off contract
+        assert response.data[0]["id"] == "123"
+        assert response.data[0]["type"] == "note"
+        assert response.data[0]["user"]["id"] == str(self.user.id)
+        assert response.data[0]["data"]["text"] == "hello world"
+        assert response.data[0]["data"]["comment_id"] == 123
+
+    @with_feature("projects:issue-action-log-activity")
+    def test_reads_from_gale_with_edits(self) -> None:
+        group = self.group
+
+        unedited = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            data={"comment_id": 1, "text": "unedited comment"},
+        )
+        edited = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            data={"comment_id": 2, "text": "stale text"},
+        )
+        # two edits of the same comment; only the latest text should win
+        self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT_EDIT,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            data={"comment_id": edited.id, "text": "first edit"},
+        )
+        self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT_EDIT,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            data={"comment_id": edited.id, "text": "latest edit"},
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{group.id}/comments/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+
+        # edits collapse into the original comment, so there is one row per comment
+        assert len(response.data) == 2
+        # `id` is the Activity id (comment_id), matching the flag-off contract
+        unedited_id = str(unedited.data["comment_id"])
+        edited_id = str(edited.data["comment_id"])
+        rows_by_id = {row["id"]: row for row in response.data}
+        assert set(rows_by_id) == {unedited_id, edited_id}
+
+        # the edited comment keeps type "note" and shows the latest edit text
+        assert rows_by_id[edited_id]["type"] == "note"
+        assert rows_by_id[edited_id]["data"]["text"] == "latest edit"
+        # the unedited comment is unaffected
+        assert rows_by_id[unedited_id]["data"]["text"] == "unedited comment"
+
 
 class GroupNoteCreateTest(APITestCase):
     def test_simple(self) -> None:
@@ -124,6 +206,28 @@ class GroupNoteCreateTest(APITestCase):
 
         response = self.client.post(url, format="json", data={"text": "hello world"})
         assert response.status_code == 400, response.content
+
+    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
+    def test_returns_gale(self) -> None:
+        group = self.group
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{group.id}/comments/"
+        response = self.client.post(url, format="json", data={"text": "hello world"})
+        assert response.status_code == 201, response.content
+
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.NOTE.value, user_id=self.user.id
+        )
+        GroupActionLogEntry.objects.get(group_id=group.id, type=GroupActionType.COMMENT.value)
+
+        # `id` is the Activity id (comment_id), matching the flag-off contract
+        assert response.data["id"] == str(activity.id)
+        assert response.data["type"] == "note"
+        assert response.data["user"]["id"] == str(self.user.id)
+        assert response.data["data"]["text"] == "hello world"
+        assert response.data["data"]["comment_id"] == activity.id
 
     def test_with_mentions(self) -> None:
         user_not_on_team = self.create_user(email="hello@meow.com")

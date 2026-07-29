@@ -10,6 +10,7 @@ import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Stack} from '@sentry/scraps/layout';
 
 import {
@@ -78,6 +79,7 @@ import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getD
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -109,7 +111,9 @@ export const UNSAVED_FILTERS_MESSAGE = t(
   'You have unsaved dashboard filters. You can save or discard them.'
 );
 
-const OverrideHeader = OverrideOrDefault({overrideName: 'component:dashboards-header'});
+const OverrideHeader = OverrideOrDefault({
+  overrideName: 'component:dashboards-header',
+});
 
 const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.EVENTS]: WidgetType.DISCOVER,
@@ -132,6 +136,7 @@ type RouteParams = {
 type Props = {
   api: Client;
   dashboard: DashboardDetails;
+  hasNewBreadcrumbs: boolean;
   initialState: DashboardState;
   location: Location;
   navigate: ReactRouter3Navigate;
@@ -511,7 +516,10 @@ class DashboardDetail extends Component<Props, State> {
           ...modifiedDashboard,
           widgets: modifiedDashboard?.widgets.map(widget => omit(widget, 'layout')),
         },
-        {...dashboard, widgets: dashboard.widgets.map(widget => omit(widget, 'layout'))}
+        {
+          ...dashboard,
+          widgets: dashboard.widgets.map(widget => omit(widget, 'layout')),
+        }
       );
     }
 
@@ -1176,6 +1184,7 @@ class DashboardDetail extends Component<Props, State> {
       navigate,
       organization,
       dashboard,
+      hasNewBreadcrumbs,
       location,
       onDashboardUpdate,
       pageAlerts,
@@ -1203,25 +1212,58 @@ class DashboardDetail extends Component<Props, State> {
             <NoProjectMessage organization={organization}>
               {this.isEmbedded ? null : (
                 <Fragment>
-                  <TopBar.Slot name="title">
-                    <Breadcrumbs
-                      crumbs={[
-                        {
-                          label: t('Dashboards'),
-                          to: `/organizations/${organization.slug}/dashboards/`,
-                        },
-                        {
-                          label: (
-                            <DashboardTitle
-                              dashboard={modifiedDashboard ?? dashboard}
-                              onUpdate={this.setModifiedDashboard}
-                              isEditingDashboard={this.isEditingDashboard}
-                            />
-                          ),
-                        },
-                      ]}
-                    />
-                  </TopBar.Slot>
+                  {hasNewBreadcrumbs ? (
+                    <Fragment>
+                      <TopBar.Slot name="breadcrumbs">
+                        <BreadcrumbList
+                          items={[
+                            {
+                              type: 'link',
+                              label: t('Dashboards'),
+                              to: `/organizations/${organization.slug}/dashboards/`,
+                            },
+                          ]}
+                        />
+                      </TopBar.Slot>
+                      <TopBar.Slot name="title">
+                        <BreadcrumbList.Title
+                          item={{
+                            type: 'editable-title',
+                            value: (modifiedDashboard ?? dashboard).title,
+                            onChange: newTitle =>
+                              this.setModifiedDashboard({
+                                ...(modifiedDashboard ?? dashboard),
+                                title: newTitle,
+                              }),
+                            isDisabled: !this.isEditingDashboard,
+                            errorMessage: t('Please set a title for this dashboard'),
+                            autoSelect: true,
+                            'aria-label': t('Edit Dashboard Name'),
+                          }}
+                        />
+                      </TopBar.Slot>
+                    </Fragment>
+                  ) : (
+                    <TopBar.Slot name="title">
+                      <Breadcrumbs
+                        crumbs={[
+                          {
+                            label: t('Dashboards'),
+                            to: `/organizations/${organization.slug}/dashboards/`,
+                          },
+                          {
+                            label: (
+                              <DashboardTitle
+                                dashboard={modifiedDashboard ?? dashboard}
+                                onUpdate={this.setModifiedDashboard}
+                                isEditingDashboard={this.isEditingDashboard}
+                              />
+                            ),
+                          },
+                        ]}
+                      />
+                    </TopBar.Slot>
+                  )}
                   <TopBar.Slot name="actions">
                     <Controls
                       organization={organization}
@@ -1303,7 +1345,9 @@ class DashboardDetail extends Component<Props, State> {
                                     widgets: undefined,
                                   }),
                                 };
-                                this.setState({isSavingDashboardFilters: true});
+                                this.setState({
+                                  isSavingDashboardFilters: true,
+                                });
                                 addLoadingMessage(t('Saving dashboard filters'));
                                 await updateDashboard(
                                   api,
@@ -1351,7 +1395,9 @@ class DashboardDetail extends Component<Props, State> {
                                     }
 
                                     navigateToDashboard();
-                                    this.setState({isSavingDashboardFilters: false});
+                                    this.setState({
+                                      isSavingDashboardFilters: false,
+                                    });
                                   },
                                   // `updateDashboard` does its own error handling
                                   () => {}
@@ -1403,9 +1449,6 @@ class DashboardDetail extends Component<Props, State> {
                             {dashboardState === DashboardState.EDIT &&
                               organization.features.includes(
                                 'dashboards-ai-generate-edit'
-                              ) &&
-                              organization.features.includes(
-                                'dashboards-ai-generate'
                               ) && (
                                 <DashboardEditSeerChat
                                   dashboard={modifiedDashboard ?? dashboard}
@@ -1519,6 +1562,7 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'location'
   | 'params'
   | 'queryClient'
+  | 'hasNewBreadcrumbs'
 > {}
 
 export function DashboardDetailWithInjectedProps(
@@ -1533,6 +1577,7 @@ export function DashboardDetailWithInjectedProps(
   const params = useParams<RouteParams>();
   const [chartInterval] = useDashboardChartInterval();
   const queryClient = useQueryClient();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
   // filter period (e.g. won't return 1m for a 30d range) and always has a value.
@@ -1550,6 +1595,7 @@ export function DashboardDetailWithInjectedProps(
       params={params}
       widgetInterval={widgetInterval}
       queryClient={queryClient}
+      hasNewBreadcrumbs={hasNewBreadcrumbs}
     />
   );
 }

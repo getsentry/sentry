@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
+import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
@@ -181,25 +182,33 @@ function useStoriesFavicon() {
   }, []);
 }
 
+const storiesTracking: React.ComponentProps<typeof TrackingContextProvider>['value'] =
+  () => props => {
+    // eslint-disable-next-line no-console
+    console.log('analyticsEvent', props);
+  };
+
 function StoriesLayout(props: PropsWithChildren) {
   useStoriesFavicon();
   return (
-    <Fragment>
-      <GlobalStoryStyles key="global-story-styles" />
-      <RouteAnalyticsContextProvider>
-        <GlobalDrawer>
-          <OrganizationContainer>
-            <Layout>
-              <HeaderContainer>
-                <StoryHeader />
-              </HeaderContainer>
-              <StorySidebar />
-              {props.children}
-            </Layout>
-          </OrganizationContainer>
-        </GlobalDrawer>
-      </RouteAnalyticsContextProvider>
-    </Fragment>
+    <TrackingContextProvider value={storiesTracking}>
+      <Fragment>
+        <GlobalStoryStyles key="global-story-styles" />
+        <RouteAnalyticsContextProvider>
+          <GlobalDrawer>
+            <OrganizationContainer>
+              <Layout>
+                <HeaderContainer>
+                  <StoryHeader />
+                </HeaderContainer>
+                <StorySidebar />
+                {props.children}
+              </Layout>
+            </OrganizationContainer>
+          </GlobalDrawer>
+        </RouteAnalyticsContextProvider>
+      </Fragment>
+    </TrackingContextProvider>
   );
 }
 

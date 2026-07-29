@@ -27,6 +27,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.helpers.group_index.validators import GroupValidator
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupDetailsResponse
+from sentry.api.serializers.models.groupactionlogentry import serialize_first_seen_entry
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
@@ -46,7 +47,7 @@ from sentry.issues.action_log import (
     resolve_action_actor,
     resolve_action_source,
 )
-from sentry.issues.action_log.types import ReconcileStatusAction, ViewAction
+from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import (
     ISSUE_VIEW_CACHE_KEY_TTL,
     cache_key_for_issue_view,
@@ -55,6 +56,7 @@ from sentry.issues.constants import (
 from sentry.issues.derived.features import STATUS, IssueStatus
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
@@ -72,6 +74,7 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import is_mcp_request
@@ -159,15 +162,17 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 "expected_status": expected_status.value,
             },
         )
-        publish_action(
-            ReconcileStatusAction(
-                status=expected_status.value,
-                reason=f"derived status {derived_status.value} does not match expected status {expected_status.value}",
-            ),
-            source=resolve_action_source(request),
-            group_id=group.id,
-            project=group.project,
-            actor=resolve_action_actor(request),
+        # Status reconciliation is disabled for now; log divergences so we can
+        # find and investigate these cases automatically instead of publishing a
+        # ReconcileStatusAction.
+        logger.info(
+            "issues.status_reconciliation.diverged",
+            extra={
+                "group_id": group.id,
+                "project_id": group.project_id,
+                "derived_status": derived_status.value,
+                "expected_status": expected_status.value,
+            },
         )
 
     @staticmethod
@@ -374,13 +379,28 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 }
             )
 
+            if features.has(
+                "projects:issue-action-log-activity", group.project, actor=request.user
+            ):
+                action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
+                if action_log:
+                    # swap action log data in under the activity name
+                    first_seen_entry = cast(dict[str, Any], serialize_first_seen_entry(group))
+                    data.update(
+                        {"activity": [*serialize(action_log, request.user), first_seen_entry]}
+                    )
+                else:
+                    logger.info(
+                        "group_details.groupactionlogentry.not_found", extra={"group_id": group.id}
+                    )
+
             if "stats" not in collapse:
                 hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)
                 data["stats"] = {"24h": hourly_stats, "30d": daily_stats}
 
             participants = user_service.serialize_many(
                 filter={"user_ids": GroupSubscriptionManager.get_participating_user_ids(group)},
-                as_user=request.user,
+                as_user=serialize_generic_user(request.user),
             )
 
             for participant in participants:

@@ -8,10 +8,10 @@ import {NoteBody} from 'sentry/components/activity/note/body';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {GroupActivityType, type Group, type GroupActivity} from 'sentry/types/group';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 
-import {ActivityLineActor} from './actor';
 import {ActivityLineContent, ActivityLineRow, type ActivityLineVariant} from './layout';
 import {ActivityLineMarker} from './progressMarker';
 
@@ -47,20 +47,20 @@ export function ActivityLineNote({
   timestampUnitStyle,
 }: ActivityLineNoteProps) {
   const [editing, setEditing] = useState(false);
+  const organization = useOrganization();
+  const showProgress = organization.features.includes('issue-activity-progress');
   const timestamp = (
     <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
   );
 
   return (
     <ActivityLineRow>
-      <ActivityLineMarker item={activity} />
-      <ActivityLineActor item={activity} />
+      <ActivityLineMarker item={activity} showProgress={showProgress} />
       <ActivityLineNoteHeadline
         title={t('%s commented', getNoteAuthorName(activity))}
         timestamp={timestamp}
         variant={inputVariant}
         actions={
-          inputVariant === 'full' &&
           !editing && (
             <CommentActionsDropdown
               onDelete={onDelete}
@@ -109,13 +109,14 @@ function ActivityLineNoteHeadline({
 }) {
   return (
     <ActivityLineNoteHeadlineLayout
-      column={3}
+      column={2}
       row={1}
-      columns="minmax(0, max-content) auto"
+      columns={variant === 'compact' ? 'minmax(0, 1fr)' : 'minmax(0, max-content) auto'}
       minWidth={0}
       minHeight="22px"
       align="center"
       gap="xs"
+      data-compact={variant === 'compact' ? true : undefined}
     >
       <ActivityLineNoteSentence data-compact={variant === 'compact' ? true : undefined}>
         <ActivityLineNoteTitle
@@ -135,14 +136,23 @@ function ActivityLineNoteHeadline({
           </Text>
         </ActivityLineNoteMeta>
       </ActivityLineNoteSentence>
-      {actions ? <ActivityLineNoteActions>{actions}</ActivityLineNoteActions> : null}
+      {actions ? (
+        <ActivityLineNoteActions data-compact={variant === 'compact' ? true : undefined}>
+          {actions}
+        </ActivityLineNoteActions>
+      ) : null}
     </ActivityLineNoteHeadlineLayout>
   );
 }
 
 const ActivityLineNoteHeadlineLayout = styled(Grid)`
+  position: relative;
   justify-self: start;
   max-width: 100%;
+
+  &[data-compact='true'] {
+    justify-self: stretch;
+  }
 `;
 
 const ActivityLineNoteSentence = styled('span')`
@@ -155,6 +165,7 @@ const ActivityLineNoteSentence = styled('span')`
     overflow: hidden;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+    padding-right: ${p => p.theme.space.xl};
   }
 `;
 
@@ -172,6 +183,12 @@ const ActivityLineNoteMeta = styled('span')`
 const ActivityLineNoteActions = styled('span')`
   display: inline-grid;
   place-items: center;
+
+  &[data-compact='true'] {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
 `;
 
 const ActivityNoteBubble = styled('div')`

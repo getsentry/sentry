@@ -39,6 +39,14 @@ ERR_NO_SAML_SSO = _("The organization does not exist or does not have SAML SSO e
 ERR_SAML_FAILED = _("SAML SSO failed, {reason}")
 
 
+def strip_op_from_post(request: HttpRequest) -> None:
+    # op is only meaningful at /auth/sso/; strip it here.
+    if "op" in request.POST:
+        post = request.POST.copy()
+        del post["op"]
+        request.POST = post  # type: ignore[assignment]
+
+
 def get_provider(organization_slug: str) -> SAML2Provider | None:
     try:
         mapping = OrganizationMapping.objects.get(slug=organization_slug)
@@ -98,6 +106,8 @@ class SAML2AcceptACSView(BaseView):
     def dispatch(self, request: HttpRequest, organization_slug: str) -> HttpResponseBase:
         from sentry.auth.helper import AuthHelper
 
+        strip_op_from_post(request)
+
         pipeline = AuthHelper.get_for_request(request)
 
         # SP initiated authentication, request helper is provided
@@ -138,6 +148,8 @@ class SAML2AcceptACSView(BaseView):
 class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
+        strip_op_from_post(request)
+
         provider = pipeline.provider
 
         # If we're authenticating during the setup pipeline the provider will

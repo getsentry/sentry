@@ -1,5 +1,5 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
-import {Fragment, memo, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {UseQueryResult} from '@tanstack/react-query';
 import classNames from 'classnames';
@@ -29,6 +29,7 @@ import type {Organization} from 'sentry/types/organization';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {toSplicedSorted} from 'sentry/utils/array/toSplicedSorted';
 import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -254,7 +255,6 @@ export const LogRowContent = memo(function LogRowContent({
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
   const isFrozen = useLogsFrozenIsFrozen();
-  const measureRef = useRef<HTMLTableRowElement>(null);
 
   const rowId = String(dataRow[OurLogKnownFieldKey.ID]);
   const expansionKey = expansionKeyProp ?? rowId;
@@ -317,12 +317,6 @@ export const LogRowContent = memo(function LogRowContent({
       organization,
     });
   }
-
-  useLayoutEffect(() => {
-    if (measureRef.current && isExpanded) {
-      onExpandHeight?.(expansionKey, measureRef.current.clientHeight);
-    }
-  }, [expansionKey, isExpanded, onExpandHeight]);
 
   const addSearchFilter = useAddSearchFilter();
   const {copy} = useCopyToClipboard();
@@ -639,7 +633,8 @@ export const LogRowContent = memo(function LogRowContent({
           highlightTerms={highlightTerms}
           embedded={embedded}
           meta={meta}
-          ref={measureRef}
+          expansionKey={expansionKey}
+          onExpandHeight={onExpandHeight}
         />
       )}
     </Fragment>
@@ -651,14 +646,29 @@ function LogRowDetails({
   embedded,
   highlightTerms,
   meta,
-  ref,
+  expansionKey,
+  onExpandHeight,
 }: {
   dataRow: OurLogsResponseItem;
   embedded: boolean;
+  expansionKey: string;
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
-  ref: React.RefObject<HTMLTableRowElement | null>;
+  onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
 }) {
+  const measureRef = useCallback(
+    (node: HTMLTableRowElement | null) => {
+      if (!node || !onExpandHeight) {
+        return;
+      }
+      const report = () => onExpandHeight(expansionKey, node.offsetHeight);
+      report();
+      const observer = new ResizeObserver(report);
+      observer.observe(node);
+      return () => observer.disconnect();
+    },
+    [expansionKey, onExpandHeight]
+  );
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -713,7 +723,7 @@ function LogRowDetails({
 
   if (missingLogId || isError) {
     return (
-      <DetailsWrapper ref={ref}>
+      <DetailsWrapper ref={measureRef}>
         <EmptyStreamWrapper>
           <IconWarning variant="muted" size="lg" />
         </EmptyStreamWrapper>
@@ -727,7 +737,7 @@ function LogRowDetails({
   );
 
   return (
-    <DetailsWrapper ref={isPending ? undefined : ref}>
+    <DetailsWrapper ref={measureRef}>
       <LogDetailTableBodyCell colSpan={colSpan}>
         {isPending && <LoadingIndicator />}
         {!isPending && data && (
@@ -762,8 +772,16 @@ function LogRowDetails({
               </DetailsBody>
               <LogAttributeTreeWrapper>
                 <AttributesTree<RendererExtra>
-                  attributes={data.attributes.filter(
-                    attribute => !HiddenLogDetailFields.includes(attribute.name)
+                  attributes={toSplicedSorted(
+                    data.attributes.filter(
+                      attribute => !HiddenLogDetailFields.includes(attribute.name)
+                    ),
+                    {
+                      name: OurLogKnownFieldKey.TIMESTAMP,
+                      type: 'str',
+                      value: dataRow[OurLogKnownFieldKey.TIMESTAMP],
+                    },
+                    (a, b) => a.name.localeCompare(b.name)
                   )}
                   getCustomActions={getActions}
                   getAdjustedAttributeKey={adjustAliases}

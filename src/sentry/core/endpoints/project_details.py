@@ -118,6 +118,11 @@ class ProjectMemberSerializer(serializers.Serializer):
         required=False,
     )
     preprodSizeStatusChecksRules = serializers.JSONField(required=False)
+    preprodSizePrCommentsEnabled = serializers.BooleanField(
+        help_text="Enable preprod size PR comments. Can be updated with **`project:read`** permission.",
+        required=False,
+    )
+    preprodSizePrCommentsRules = serializers.JSONField(required=False)
     preprodSnapshotStatusChecksEnabled = serializers.BooleanField(required=False)
     preprodSnapshotStatusChecksFailOnAdded = serializers.BooleanField(required=False)
     preprodSnapshotStatusChecksFailOnRemoved = serializers.BooleanField(required=False)
@@ -180,6 +185,8 @@ class ProjectMemberSerializer(serializers.Serializer):
         "debugFilesRole",
         "preprodSizeStatusChecksEnabled",
         "preprodSizeStatusChecksRules",
+        "preprodSizePrCommentsEnabled",
+        "preprodSizePrCommentsRules",
         "preprodSizeEnabledQuery",
         "preprodDistributionEnabledQuery",
         "preprodSizeEnabledByCustomer",
@@ -626,6 +633,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Note that solely having the **`project:read`** scope restricts updatable settings to
         `isBookmarked`, `autofixAutomationTuning`, `seerScannerAutomation`,
         `preprodSizeStatusChecksEnabled`, `preprodSizeStatusChecksRules`,
+        `preprodSizePrCommentsEnabled`, `preprodSizePrCommentsRules`,
         `preprodSizeEnabledQuery`, `preprodDistributionEnabledQuery`,
         `preprodSizeEnabledByCustomer`, `preprodDistributionEnabledByCustomer`,
         and `preprodDistributionPrCommentsEnabledByCustomer`.
@@ -868,6 +876,22 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:preprod_size_status_checks_rules"] = result[
                     "preprodSizeStatusChecksRules"
+                ]
+        if result.get("preprodSizePrCommentsEnabled") is not None:
+            if project.update_option(
+                "sentry:preprod_size_pr_comments_enabled",
+                result["preprodSizePrCommentsEnabled"],
+            ):
+                changed_proj_settings["sentry:preprod_size_pr_comments_enabled"] = result[
+                    "preprodSizePrCommentsEnabled"
+                ]
+        if result.get("preprodSizePrCommentsRules") is not None:
+            if project.update_option(
+                "sentry:preprod_size_pr_comments_rules",
+                result["preprodSizePrCommentsRules"],
+            ):
+                changed_proj_settings["sentry:preprod_size_pr_comments_rules"] = result[
+                    "preprodSizePrCommentsRules"
                 ]
 
         if "preprodSizeEnabledByCustomer" in result:

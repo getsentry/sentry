@@ -126,6 +126,7 @@ function Event({
     max-width: ${tooltipWidth}px !important;
     width: ${tooltipWidth}px;
 
+    /* Viewport-based: the tooltip is portaled to the body, so it has no query container. */
     @media screen and (max-width: ${theme.breakpoints.sm}) {
       max-width: ${mobileMaxWidth}px !important;
     }

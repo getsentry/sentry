@@ -5,7 +5,7 @@ These should be kept in sync with the models in Seer.
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, Field
 
@@ -155,6 +155,21 @@ class SendSeerWebhookErrorResponse(BaseModel):
     error: str
 
 
+class NotifySeerPrCreatedSuccessResponse(BaseModel):
+    """`notify_seer_pr_created` success: `{"success": true}`. The `success` literal
+    is the discriminator against the error shape below."""
+
+    success: Literal[True] = True
+
+
+class NotifySeerPrCreatedErrorResponse(BaseModel):
+    """`notify_seer_pr_created` error: `{"success": false, "error": <message>}`.
+    Only returned when the organization can't be resolved."""
+
+    success: Literal[False] = False
+    error: str
+
+
 class HasRepoCodeMappingsResponse(BaseModel):
     has_code_mappings: bool
     project_slug_to_id: dict[str, int]
@@ -221,6 +236,10 @@ class MetricMetadataRow(BaseModel):
     type: str
     unit: str
     count: int
+    # Authored context (brief, details) for the metric, populated only when the
+    # caller passes include_context=True (and the metric has context); otherwise
+    # None. Mirrors the attributes context shape (see BuiltInField.context).
+    context: dict[str, Any] | None = None
 
 
 class MetricMetadataSuccessResponse(BaseModel):
@@ -551,13 +570,6 @@ class TransactionsForProjectResponse(BaseModel):
     transactions: list[Transaction]
 
 
-class PrAttributionResponse(BaseModel):
-    """`record_pr_attribution` returns `{"attribution_id": <id or null>}`. None
-    is emitted when the pr-metrics-attribution feature is disabled for the org."""
-
-    attribution_id: int | None
-
-
 class UpdatePrMetricsSuccessResponse(BaseModel):
     """`update_pr_metrics` success: `{"success": true}`. The `success` literal is
     the discriminator against the error shape below."""
@@ -859,10 +871,12 @@ class ExecuteTimeseriesQueryErrorResponse(BaseModel):
         return id(self)
 
 
-class MonitoringProviderConnectionData(BaseModel):
+class HeaderAuthConnectionData(BaseModel):
+    """Connection authenticated via encrypted HTTP headers."""
+
+    type: Literal["header_auth"] = "header_auth"
     provider_key: str
     url: str
-    encrypted_access_token: str | None = None
     encrypted_auth_headers: dict[str, str] | None = None
     identity_id: int | None = None
     auth_method: str
@@ -872,10 +886,37 @@ class MonitoringProviderConnectionData(BaseModel):
         return self.dict()[key]
 
 
+class GcpSaImpersonationConnectionData(BaseModel):
+    """
+    Connection authenticated via GCP two-hop SA impersonation chain.
+
+    Seer uses ``sentry_sa_email`` and ``customer_sa_email`` to construct
+    ``GcpMcpCredentials`` for the ADC -> per-customer SA -> customer SA chain.
+    """
+
+    type: Literal["gcp_sa_impersonation"] = "gcp_sa_impersonation"
+    provider_key: str
+    url: str
+    sentry_sa_email: str
+    customer_sa_email: str
+    auth_method: Literal["gcp_sa_impersonation"] = "gcp_sa_impersonation"
+    refreshable: bool = False
+    gcp_project_ids: list[str] | None = None
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+
+MonitoringProviderConnectionData = Annotated[
+    Union[HeaderAuthConnectionData, GcpSaImpersonationConnectionData],
+    Field(discriminator="type"),
+]
+
+
 class MonitoringProviderConnectionsResponse(BaseModel):
     """`get_monitoring_provider_connections` success: the caller's connected
-    monitoring provider identities, each carrying a freshly-encrypted access
-    token."""
+    monitoring provider identities, each carrying freshly-encrypted auth
+    headers."""
 
     connections: list[MonitoringProviderConnectionData]
 
@@ -884,11 +925,7 @@ class MonitoringProviderConnectionsResponse(BaseModel):
 
 
 class RefreshMonitoringProviderTokenSuccessResponse(BaseModel):
-    """`refresh_monitoring_provider_token` success: the freshly-encrypted access
-    token plus the Unix-second expiry the OAuth2 base helper stamps onto
-    `identity.data["expires"]` (`int(time()) + int(payload["expires_in"])`)."""
-
-    encrypted_access_token: str
+    encrypted_auth_headers: dict[str, str]
     expires: int | None
 
     def __getitem__(self, key: str) -> Any:
