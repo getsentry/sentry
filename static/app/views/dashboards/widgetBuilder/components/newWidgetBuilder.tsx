@@ -271,14 +271,12 @@ export function WidgetPreviewContainer({
     selectedAggregate && extractTraceMetricFromColumn(selectedAggregate)
   );
 
-  // A metric auto-selects once its options are available, so a metrics widget with
-  // none picked is still resolving while the options are fetching or already loaded
-  // with results — keying off `hasMetricOptions` too (not just the fetch state)
-  // avoids flashing the error for the frame before the cached auto-select runs.
-  const isResolving =
-    isMetricsDataset &&
-    !hasSelectedMetric &&
-    (isFetchingMetricOptions || hasMetricOptions);
+  // A metric auto-selects once its options load, so a metrics widget with none
+  // picked shows loading while that fetch is in flight. Once the fetch settles the
+  // widget either resolves or falls through to an error below, so one that can never
+  // resolve — e.g. a heat map in a project with no distribution metrics — surfaces
+  // the error instead of spinning forever.
+  const isResolving = isMetricsDataset && !hasSelectedMetric && isFetchingMetricOptions;
   // The options finished loading and the selected projects have no metrics to pick.
   const hasNoMetrics =
     isMetricsDataset &&
