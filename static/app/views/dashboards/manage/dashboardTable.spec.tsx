@@ -276,10 +276,10 @@ describe('Dashboards - DashboardTable', () => {
   });
 
   it('renders favorite column', async () => {
-    MockApiClient.addMockResponse({
+    const favoriteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/2/favorite/',
       method: 'PUT',
-      body: {isFavorited: false},
+      body: {isFavorited: true},
     });
 
     const organizationWithFavorite = OrganizationFixture({
@@ -303,6 +303,11 @@ describe('Dashboards - DashboardTable', () => {
     expect(screen.queryAllByLabelText('Unstar')).toHaveLength(1);
 
     await userEvent.click(screen.queryAllByLabelText('Star')[0]!);
-    expect(screen.queryAllByLabelText('Unstar')).toHaveLength(2);
+    await waitFor(() =>
+      expect(favoriteMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/2/favorite/',
+        expect.objectContaining({method: 'PUT', data: {shouldFavorite: true}})
+      )
+    );
   });
 });
