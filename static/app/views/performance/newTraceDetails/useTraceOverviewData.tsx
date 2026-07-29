@@ -23,6 +23,7 @@ import type {TraceViewQueryParams} from 'sentry/views/performance/newTraceDetail
 type TraceDataAvailability = 'loading' | 'present' | 'absent' | 'unknown';
 
 export interface TraceOverviewData {
+  isProjectsLoading: boolean;
   isRepresentativeLoading: boolean;
   isTabLoading: boolean;
   logs: {
@@ -34,6 +35,7 @@ export interface TraceOverviewData {
     availability: TraceDataAvailability;
     count: number | undefined;
   };
+  projectIds: string[] | undefined;
 }
 
 const LOGS_COUNT_FIELD = `${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`;
@@ -42,6 +44,19 @@ const STALE_TIME = 5 * 60 * 1000;
 
 interface TraceCountResult {
   data: Array<Record<string, number>>;
+}
+
+interface TraceProjectResult {
+  data: Array<{[TraceMetricKnownFieldKey.PROJECT_ID]?: number | string}>;
+}
+
+function getProjectIds(result: TraceProjectResult | undefined): string[] {
+  return (
+    result?.data.flatMap(row => {
+      const projectId = row[TraceMetricKnownFieldKey.PROJECT_ID];
+      return projectId === undefined ? [] : [String(projectId)];
+    }) ?? []
+  );
 }
 
 function getDateTimeQuery(queryParams: TraceViewQueryParams) {
@@ -174,6 +189,48 @@ export function useTraceOverviewData({
     supplementalStatus: metricsCountResult.status,
   });
 
+  const logsCount = logsMetaCount ?? logsSupplementalCount;
+  const metricsCount = metricsMetaCount ?? metricsSupplementalCount;
+  const shouldFetchLogProjects =
+    tree.type === 'empty' && logsAvailability === 'present' && (logsCount ?? 0) > 1;
+  const logProjectsResult = useQuery(
+    apiOptions.as<TraceProjectResult>()('/organizations/$organizationIdOrSlug/events/', {
+      path: shouldFetchLogProjects
+        ? {organizationIdOrSlug: organization.slug}
+        : skipToken,
+      query: {
+        dataset: DiscoverDatasets.OURLOGS,
+        field: [OurLogKnownFieldKey.PROJECT_ID, LOGS_COUNT_FIELD],
+        query: traceSearch.formatString(),
+        per_page: 100,
+        referrer: 'api.trace-details.overview-log-projects',
+        ...projectQuery,
+        ...dateTimeQuery,
+      },
+      staleTime: STALE_TIME,
+    })
+  );
+
+  const shouldFetchMetricProjects =
+    tree.type === 'empty' && metricsAvailability === 'present';
+  const metricProjectsResult = useQuery(
+    apiOptions.as<TraceProjectResult>()('/organizations/$organizationIdOrSlug/events/', {
+      path: shouldFetchMetricProjects
+        ? {organizationIdOrSlug: organization.slug}
+        : skipToken,
+      query: {
+        dataset: DiscoverDatasets.TRACEMETRICS,
+        field: [TraceMetricKnownFieldKey.PROJECT_ID, METRICS_COUNT_FIELD],
+        query: metricsSearch.formatString(),
+        per_page: 100,
+        referrer: 'api.trace-details.overview-metric-projects',
+        ...projectQuery,
+        ...dateTimeQuery,
+      },
+      staleTime: STALE_TIME,
+    })
+  );
+
   const shouldFetchRepresentativeLog =
     tree.type === 'empty' && logsAvailability === 'present';
   const representativeLogResult = useQuery(
@@ -209,20 +266,47 @@ export function useTraceOverviewData({
     tree.type === 'empty' &&
     (logsAvailability === 'loading' ||
       (shouldFetchRepresentativeLog && representativeLogResult.status === 'pending'));
+  const logProjectsLoading =
+    shouldFetchLogProjects && logProjectsResult.status === 'pending';
+  const metricProjectsLoading =
+    shouldFetchMetricProjects && metricProjectsResult.status === 'pending';
+  const projectAvailabilityLoading =
+    tree.type === 'empty' &&
+    (logsAvailability === 'loading' || metricsAvailability === 'loading');
   const summaryLoading =
     logsAvailability === 'loading' || metricsAvailability === 'loading';
+  const isProjectsLoading =
+    projectAvailabilityLoading ||
+    representativeLogLoading ||
+    logProjectsLoading ||
+    metricProjectsLoading;
+  const representativeLog = representativeLogResult.data?.data[0];
+  const representativeProjectId = representativeLog?.[OurLogKnownFieldKey.PROJECT_ID];
+  const projectIds = isProjectsLoading
+    ? undefined
+    : Array.from(
+        new Set([
+          ...getProjectIds(logProjectsResult.data),
+          ...getProjectIds(metricProjectsResult.data),
+          ...(representativeProjectId === undefined
+            ? []
+            : [String(representativeProjectId)]),
+        ])
+      );
 
   return {
+    isProjectsLoading,
     isRepresentativeLoading: representativeLogLoading,
     isTabLoading: summaryLoading,
+    projectIds,
     logs: {
       availability: logsAvailability,
-      count: logsMetaCount ?? logsSupplementalCount,
+      count: logsCount,
       representative: representativeLogResult.data?.data,
     },
     metrics: {
       availability: metricsAvailability,
-      count: metricsMetaCount ?? metricsSupplementalCount,
+      count: metricsCount,
     },
   };
 }

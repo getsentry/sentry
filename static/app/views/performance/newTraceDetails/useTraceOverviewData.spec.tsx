@@ -77,8 +77,10 @@ describe('useTraceOverviewData', () => {
     );
 
     expect(result.current).toEqual({
+      isProjectsLoading: false,
       isRepresentativeLoading: false,
       isTabLoading: false,
+      projectIds: [],
       logs: {
         availability: 'present',
         count: 2,
@@ -93,12 +95,209 @@ describe('useTraceOverviewData', () => {
     expect(traceLogsRequest).not.toHaveBeenCalled();
   });
 
+  it('loads project ids and one representative log for an EAP log-only trace', async () => {
+    const organization = OrganizationFixture();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'ourlogs',
+          field: ['project.id', 'count(message)'],
+        }),
+      ],
+      body: {
+        data: [
+          {'project.id': 1, 'count(message)': 1},
+          {'project.id': 2, 'count(message)': 1},
+        ],
+      },
+    });
+    const representativeLog = {
+      [OurLogKnownFieldKey.ID]: 'log-id',
+      [OurLogKnownFieldKey.MESSAGE]: 'Representative log message',
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: 1,
+      [OurLogKnownFieldKey.PROJECT_ID]: '1',
+      [OurLogKnownFieldKey.SEVERITY]: 'info',
+      [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
+      [OurLogKnownFieldKey.TIMESTAMP]: new Date().toISOString(),
+      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1',
+      [OurLogKnownFieldKey.TRACE_ID]: TRACE_SLUG,
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-logs/`,
+      body: {data: [representativeLog]},
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useTraceOverviewData({
+          logsEnabled: true,
+          meta: makeEapMeta({logsCount: 2}),
+          metricsEnabled: true,
+          queryParams: QUERY_PARAMS,
+          traceSlug: TRACE_SLUG,
+          tree: makeEmptyTree(),
+        }),
+      {organization}
+    );
+
+    expect(result.current.isProjectsLoading).toBe(true);
+    expect(result.current.projectIds).toBeUndefined();
+
+    await waitFor(() => {
+      expect(result.current.isProjectsLoading).toBe(false);
+    });
+
+    expect(result.current.projectIds).toEqual(['1', '2']);
+    expect(result.current.logs).toEqual({
+      availability: 'present',
+      count: 2,
+      representative: [representativeLog],
+    });
+  });
+
+  it('loads project ids for an EAP metric-only trace', async () => {
+    const organization = OrganizationFixture();
+    const metricProjectsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'tracemetrics',
+          field: ['project.id', 'count(metric.name)'],
+        }),
+      ],
+      body: {
+        data: [
+          {'project.id': 2, 'count(metric.name)': 1},
+          {'project.id': 3, 'count(metric.name)': 1},
+        ],
+      },
+    });
+    const traceLogsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-logs/`,
+      body: {data: []},
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useTraceOverviewData({
+          logsEnabled: true,
+          meta: makeEapMeta({metricsCount: 2}),
+          metricsEnabled: true,
+          queryParams: QUERY_PARAMS,
+          traceSlug: TRACE_SLUG,
+          tree: makeEmptyTree(),
+        }),
+      {organization}
+    );
+
+    expect(result.current.isProjectsLoading).toBe(true);
+    expect(result.current.projectIds).toBeUndefined();
+
+    await waitFor(() => {
+      expect(result.current.isProjectsLoading).toBe(false);
+    });
+
+    expect(result.current.projectIds).toEqual(['2', '3']);
+    expect(result.current.metrics).toEqual({
+      availability: 'present',
+      count: 2,
+    });
+    expect(metricProjectsRequest.mock.calls[0]?.[1]?.query).toEqual(
+      expect.objectContaining({
+        field: ['project.id', 'count(metric.name)'],
+        per_page: 100,
+        project: ['-1'],
+      })
+    );
+    expect(traceLogsRequest).not.toHaveBeenCalled();
+  });
+
+  it('combines log and metric project ids for an EAP trace', async () => {
+    const organization = OrganizationFixture();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'ourlogs',
+          field: ['project.id', 'count(message)'],
+        }),
+      ],
+      body: {
+        data: [
+          {'project.id': 1, 'count(message)': 1},
+          {'project.id': 2, 'count(message)': 1},
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'tracemetrics',
+          field: ['project.id', 'count(metric.name)'],
+        }),
+      ],
+      body: {
+        data: [
+          {'project.id': 2, 'count(metric.name)': 1},
+          {'project.id': 3, 'count(metric.name)': 1},
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-logs/`,
+      body: {
+        data: [
+          {
+            [OurLogKnownFieldKey.ID]: 'log-id',
+            [OurLogKnownFieldKey.PROJECT_ID]: '1',
+          },
+        ],
+      },
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useTraceOverviewData({
+          logsEnabled: true,
+          meta: makeEapMeta({logsCount: 2, metricsCount: 2}),
+          metricsEnabled: true,
+          queryParams: QUERY_PARAMS,
+          traceSlug: TRACE_SLUG,
+          tree: makeEmptyTree(),
+        }),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isProjectsLoading).toBe(false);
+    });
+
+    expect(result.current.projectIds).toEqual(['1', '2', '3']);
+  });
+
   it('loads legacy counts and one representative log for a log-only trace', async () => {
     const organization = OrganizationFixture();
     const logsCountRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      match: [MockApiClient.matchQuery({dataset: 'ourlogs'})],
+      match: [MockApiClient.matchQuery({dataset: 'ourlogs', field: ['count(message)']})],
       body: {data: [{'count(message)': 4}]},
+    });
+    const logProjectsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'ourlogs',
+          field: ['project.id', 'count(message)'],
+        }),
+      ],
+      body: {
+        data: [
+          {'project.id': 1, 'count(message)': 2},
+          {'project.id': 2, 'count(message)': 2},
+        ],
+      },
     });
     const metricsCountRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -135,13 +334,17 @@ describe('useTraceOverviewData', () => {
     );
 
     expect(result.current.isTabLoading).toBe(true);
+    expect(result.current.isProjectsLoading).toBe(true);
     expect(result.current.isRepresentativeLoading).toBe(true);
+    expect(result.current.projectIds).toBeUndefined();
 
     await waitFor(() => {
+      expect(result.current.isProjectsLoading).toBe(false);
       expect(result.current.isRepresentativeLoading).toBe(false);
       expect(result.current.isTabLoading).toBe(false);
     });
 
+    expect(result.current.projectIds).toEqual(['1', '2']);
     expect(result.current.logs).toEqual({
       availability: 'present',
       count: 4,
@@ -170,6 +373,14 @@ describe('useTraceOverviewData', () => {
         per_page: 1,
         project: ['-1'],
         traceId: [TRACE_SLUG],
+      })
+    );
+    expect(logProjectsRequest).toHaveBeenCalledTimes(1);
+    expect(logProjectsRequest.mock.calls[0]?.[1]?.query).toEqual(
+      expect.objectContaining({
+        field: ['project.id', 'count(message)'],
+        per_page: 100,
+        project: ['-1'],
       })
     );
   });
