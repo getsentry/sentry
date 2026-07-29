@@ -1226,8 +1226,10 @@ const MultilineTextWrapper = styled('div')`
     margin-bottom: ${p => p.theme.space.md};
   }
 
-  /* Tables scroll on their own, so let their columns take natural widths
-   * instead of being broken mid-word to fit the container. */
+  /* word-break: break-word is legacy for overflow-wrap: anywhere, which counts
+   * toward min-content intrinsic size. Inherited into cells, it collapses them to
+   * about one character: the table then fits any container, columns squish, and
+   * its scroll container never overflows. Tables scroll on their own. */
   table {
     word-break: normal;
   }
