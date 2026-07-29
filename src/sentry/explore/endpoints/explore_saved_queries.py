@@ -499,6 +499,15 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
             )
             order_by = ["position", "-date_added"]
 
+        # Entries with null last visited need a deterministic tiebreaker,
+        # hence adding id to serve this purpose.
+        if features.has(
+            "organizations:dashboards-user-last-visited",
+            organization,
+            actor=request.user,
+        ):
+            order_by.append("-id")
+
         queryset = queryset.order_by(*order_by)
 
         def data_fn(offset, limit):
