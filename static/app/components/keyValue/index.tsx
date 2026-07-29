@@ -168,7 +168,7 @@ function KeyValueTitle({children}: {children: React.ReactNode}) {
   );
 }
 
-function sortEntries(entries: KeyValueEntry[], sort: KeyValueSort) {
+function sortEntries(entries: KeyValueEntry[], sort: KeyValueSort | undefined) {
   switch (sort) {
     case 'key':
       return entries.toSorted((a, b) => {
