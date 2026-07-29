@@ -7,6 +7,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.issues.action_log.types import (
     PullRequestClosedAction,
     PullRequestMergedAction,
+    PullRequestOrigin,
     PullRequestReopenedAction,
     PullRequestUnlinkedAction,
 )
@@ -474,7 +475,27 @@ class PullRequestLifecycleSignalTest(TestCase):
         assert activity.data == {
             "pull_request": self.pull_request.id,
             "has_other_open_prs": False,
+            "pull_request_origin": PullRequestOrigin.OTHER.value,
         }
+
+    def test_closed_automated_fix_emits_origin(self) -> None:
+        seer_run = self.create_seer_run(organization=self.organization)
+        self.create_seer_run_pull_request(run=seer_run, pull_request=self.pull_request)
+
+        with capture_action_log() as action_log:
+            self._save_with_state(PullRequestLifecycleState.CLOSED)
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.PULL_REQUEST_CLOSED.value
+        )
+        assert activity.data["pull_request_origin"] == PullRequestOrigin.AUTOMATED_FIX.value
+        action_log.assert_logged(
+            PullRequestClosedAction,
+            group_id=self.group.id,
+            pull_request=self.pull_request.id,
+            has_other_open_prs=False,
+            pull_request_origin=PullRequestOrigin.AUTOMATED_FIX,
+        )
 
     @with_feature({"organizations:pr-lifecycle-activity": False})
     def test_flag_disabled_still_emits_closed_activity(self) -> None:
@@ -594,12 +615,14 @@ class PullRequestLifecycleSignalTest(TestCase):
         assert activity.data == {
             "pull_request": self.pull_request.id,
             "has_other_open_prs": False,
+            "pull_request_origin": PullRequestOrigin.OTHER.value,
         }
         action_log.assert_logged(
             PullRequestClosedAction,
             group_id=self.group.id,
             pull_request=self.pull_request.id,
             has_other_open_prs=False,
+            pull_request_origin=PullRequestOrigin.OTHER,
         )
 
     def test_reopened_emits_activity(self) -> None:
