@@ -96,12 +96,12 @@ type State = {
 };
 
 const DEFAULT_COLUMNS: GroupListColumn[] = [
+  'firstSeen',
+  'lastSeen',
   'graph',
   'event',
   'users',
   'assignee',
-  'firstSeen',
-  'lastSeen',
 ];
 
 export function GroupList({
