@@ -2083,7 +2083,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["integrationIssues"][0]["title"] == external_issue_1.title
         assert response.data[0]["integrationIssues"][1]["title"] == external_issue_2.title
 
-    def test_expand_integration_issues_is_batched(self) -> None:
+    def test_expand_integration_issues_resolves_group_links_in_two_batched_queries(
+        self,
+    ) -> None:
         events = [
             self.store_event(
                 data={
@@ -2130,7 +2132,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len([query for query in queries if "sentry_grouplink" in query["sql"]]) == 1
         assert len([query for query in queries if "sentry_externalissue" in query["sql"]]) == 1
 
-    def test_expand_integration_issues_ignores_non_issue_group_links(self) -> None:
+    def test_expand_integration_issues_only_associates_issue_type_group_links(self) -> None:
         events = [
             self.store_event(
                 data={
@@ -2235,7 +2237,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["sentryAppIssues"][0]["displayName"] == issue_1.display_name
         assert response.data[0]["sentryAppIssues"][1]["displayName"] == issue_2.display_name
 
-    def test_expand_sentry_app_issues_is_batched(self) -> None:
+    def test_expand_sentry_app_issues_loads_direct_group_relations_in_one_query(self) -> None:
         events = [
             self.store_event(
                 data={
