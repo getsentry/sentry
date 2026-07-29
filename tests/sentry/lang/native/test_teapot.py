@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import contextlib
 from collections.abc import Iterator
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 
@@ -102,12 +103,13 @@ def _skip_retry_backoff() -> Iterator[None]:
 @pytest.fixture(autouse=True)
 def mock_objectstore() -> Iterator[mock.Mock]:
     session = mock.Mock()
-    session.object_url.side_effect = lambda key: f"http://objectstore/{key}?sig=abc"
+    session.object_url.side_effect = (
+        lambda key, token_validity=None: f"http://objectstore/{key}?sig=abc"
+    )
     with (
         mock.patch("sentry.lang.native.teapot.get_attachments_session", return_value=session),
-        # get_symbolicator_url wraps object_url with this; identity in the test.
         mock.patch(
-            "sentry.objectstore.maybe_rewrite_url_for_symbolicator",
+            "sentry.lang.native.teapot.maybe_rewrite_url_for_symbolicator",
             side_effect=lambda url: url,
         ),
     ):
@@ -209,7 +211,7 @@ def test_apply_fills_os_from_gpu_state_as_raw_description() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_client_sends_storage_urls(mock_objectstore: mock.Mock) -> None:
+def test_client_sends_presigned_urls(mock_objectstore: mock.Mock) -> None:
     project = _FakeProject()
     dump = _FakeAttachment(stored_id="dump-obj-id")
     nvdbg = _FakeAttachment(
@@ -240,11 +242,11 @@ def test_client_sends_storage_urls(mock_objectstore: mock.Mock) -> None:
     assert shader["uid"] == "cafebabecafebabecafebabecafebabe"  # recovered from filename
     assert shader["storage_url"] == "http://objectstore/nvdbg-obj-id?sig=abc"
 
-    # Both attachments (dump + shader) resolve through the same objectstore helper
-    # Symbolicator uses — object_url(key), no token (keys covered above).
+    # Both attachments (dump + shader) get a short-lived presigned URL (embedded
+    # read-only token); the keys are covered by the storage_url asserts above.
     assert mock_objectstore.object_url.call_count == 2
     for call in mock_objectstore.object_url.call_args_list:
-        assert call.kwargs == {}
+        assert call.kwargs["token_validity"] == timedelta(seconds=60)
 
 
 @pytest.mark.parametrize(
