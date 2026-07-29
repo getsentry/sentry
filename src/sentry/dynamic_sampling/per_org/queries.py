@@ -396,8 +396,6 @@ def get_eap_transaction_volumes(
     orderby = [
         DynamicSamplingQueryFields.DSC_PROJECT_ID,
         f"-{DynamicSamplingQueryFields.COUNT}",
-        # Tiebreaker: without it, transactions with equal counts order arbitrarily and the
-        # LIMIT BY cut picks a different set on every run.
         DynamicSamplingQueryFields.DSC_TRANSACTION,
     ]
 
@@ -410,7 +408,7 @@ def get_eap_transaction_volumes(
                 projects=config.projects,
                 organization=config.organization,
             ),
-            "query_string": f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}]",
+            "query_string": f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}] has:{DynamicSamplingQueryFields.DSC_TRANSACTION}",
             "selected_columns": [
                 DynamicSamplingQueryFields.DSC_PROJECT_ID,
                 DynamicSamplingQueryFields.DSC_TRANSACTION,
@@ -429,10 +427,7 @@ def get_eap_transaction_volumes(
             "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
         }
     ):
-        # A span without a transaction groups under None here; the generic metrics pipeline
-        # reads the same span as an empty transaction tag, so it becomes the "" class there.
-        # Use "" too, so both pipelines boost the same class.
-        transaction = row.get(DynamicSamplingQueryFields.DSC_TRANSACTION) or ""
+        transaction = row.get(DynamicSamplingQueryFields.DSC_TRANSACTION)
         total = _get_aggregate_float(row, DynamicSamplingQueryFields.COUNT)
         if total <= 0:
             continue

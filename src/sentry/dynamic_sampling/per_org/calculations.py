@@ -60,6 +60,7 @@ if TYPE_CHECKING:
 
 PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
+REBALANCE_INTENSITY = 0.8
 PROJECT_BALANCING_DEBUG_METRIC_PREFIX = "dynamic_sampling.per_org.project_balancing_debug"
 SLIDING_WINDOW_METRIC_PREFIX = "dynamic_sampling.per_org.sliding_window"
 logger = logging.getLogger(__name__)
@@ -350,7 +351,6 @@ def run_transaction_balancing(
 ) -> dict[int, tuple[list[RebalancedItem], float]]:
     sample_rates = config.get_project_sample_rates()
     min_sample_rate = options.get("dynamic-sampling.prioritise_transactions.min_sample_rate")
-    intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity")
     apply_implicit_floor = is_implicit_sample_rate_floor_enabled()
     result: dict[int, tuple[list[RebalancedItem], float]] = {}
     project_volume_by_id = {
@@ -378,12 +378,6 @@ def run_transaction_balancing(
         # lines that would only ever hit cache misses.
         if sample_rate == 1.0:
             continue
-        # The legacy pipeline counts spans without a transaction as the "" class (a missing
-        # tag reads as "" in generic metrics), but EAP's count_unique skips spans without
-        # the attribute. When "" shows up as an explicit class, add it back to the total.
-        total_num_classes = project_volume.num_distinct_transactions
-        if any(transaction_name == "" for transaction_name, _ in project_data.transaction_counts):
-            total_num_classes += 1
         named_rates, implicit_rate = TransactionsRebalancingModel().run(
             TransactionsRebalancingInput(
                 classes=[
@@ -391,9 +385,9 @@ def run_transaction_balancing(
                     for transaction_name, count in project_data.transaction_counts
                 ],
                 sample_rate=sample_rate,
-                total_num_classes=total_num_classes,
+                total_num_classes=project_volume.num_distinct_transactions,
                 total=project_volume.total,
-                intensity=intensity,
+                intensity=REBALANCE_INTENSITY,  # this should use the option like in the old pipeline
                 min_sample_rate=min_sample_rate,
             )
         )
@@ -404,7 +398,6 @@ def run_transaction_balancing(
                 implicit_sample_rate=implicit_rate,
                 floor_sample_rate=sample_rate,
                 total_volume=project_volume.total,
-                intensity=intensity,
                 min_sample_rate=min_sample_rate,
             )
 
@@ -417,7 +410,6 @@ def _apply_implicit_sample_rate_floor(
     implicit_sample_rate: float,
     floor_sample_rate: float,
     total_volume: int,
-    intensity: float,
     min_sample_rate: float = 0.0,
 ) -> tuple[list[RebalancedItem], float]:
     total_explicit_volume = sum(item.count for item in named_rates)
@@ -437,7 +429,7 @@ def _apply_implicit_sample_rate_floor(
         FullRebalancingInput(
             classes=[RebalancedItem(id=item.id, count=item.count) for item in named_rates],
             sample_rate=new_explicit_sample_rate,
-            intensity=intensity,
+            intensity=REBALANCE_INTENSITY,
             # keep the head floor here too, so reclaiming budget for the implicit tail can't push the
             # explicit rates back below the floor. Clamp to the floor rate (the overall rate here).
             min_sample_rate=min(min_sample_rate, floor_sample_rate),

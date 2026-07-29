@@ -432,8 +432,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                     project=project,
                     start_ts=timestamp + timedelta(seconds=5),
                 ),
-                # missing dsc.transaction — counted as the "" class, matching the generic
-                # metrics pipeline where a missing transaction tag reads as ""
+                # missing dsc.transaction — excluded by the has:sentry.dsc.transaction filter
                 self.create_span(
                     {
                         "is_segment": True,
@@ -469,9 +468,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ProjectTransactionCounts(
                 org_id=organization.id,
                 project_id=project.id,
-                # The missing name is a null attribute in EAP; it sorts after the named
-                # transactions in the tiebreaker and maps to the "" class.
-                transaction_counts=[("checkout", 3), ("product", 1), ("", 1)],
+                transaction_counts=[("checkout", 3), ("product", 1)],
             ),
             ProjectTransactionCounts(
                 org_id=organization.id,

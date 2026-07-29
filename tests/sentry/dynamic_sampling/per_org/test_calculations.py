@@ -379,58 +379,6 @@ class TransactionBalancingCalculationsTest(TestCase):
 
         assert model_run.call_args.args[-1].min_sample_rate == 0.002
 
-    def test_run_transaction_balancing_passes_intensity_option(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.get_project_sample_rates.return_value = {project.id: 0.5}
-
-        with override_options(
-            {"dynamic-sampling.prioritise_transactions.rebalance_intensity": 0.6}
-        ):
-            with patch(
-                "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
-                side_effect=lambda model_input: ([], model_input.sample_rate),
-            ) as model_run:
-                run_transaction_balancing(
-                    config,
-                    [_project_volume(project.id)],
-                    [_project_transactions(org.id, project.id, [("/a", 1.0)])],
-                )
-
-        assert model_run.call_args.args[-1].intensity == 0.6
-
-    def test_run_transaction_balancing_counts_empty_transaction_as_class(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.get_project_sample_rates.return_value = {project.id: 0.5}
-
-        project_volume = ProjectVolume(
-            project_id=project.id,
-            total=100,
-            keep=25,
-            drop=75,
-            # count_unique skips the missing attribute, so "" is not included here...
-            num_distinct_transactions=3,
-        )
-
-        with patch(
-            "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
-            side_effect=lambda model_input: ([], model_input.sample_rate),
-        ) as model_run:
-            run_transaction_balancing(
-                config,
-                [project_volume],
-                [_project_transactions(org.id, project.id, [("/a", 10.0), ("", 5.0)])],
-            )
-
-        # ...but it is an explicit class, so the total must include it, like the legacy
-        # pipeline's uniq() over the raw tag does.
-        assert model_run.call_args.args[-1].total_num_classes == 4
-
     def test_run_transaction_balancing_floors_dominant_transaction(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)

@@ -59,9 +59,6 @@ logger = logging.getLogger(__name__)
 # How long a full pass through all organizations should take.
 CYCLE_DURATION = timedelta(minutes=10)
 
-# |EAP - generic metrics| above this counts a transaction as differing in the summary log.
-TRANSACTION_RATE_COMPARISON_TOLERANCE = 0.05
-
 
 @instrumented_task(
     name="sentry.dynamic_sampling.per_org.run_calculations_per_org",
@@ -182,17 +179,7 @@ def log_sample_rates_summary(
     One line per org per cycle with the org, project and transaction sample rates of both
     the EAP and the generic metrics (legacy) pipeline, for side-by-side comparison without
     having to join the per-project and per-transaction comparison logs.
-
-    The transaction comparison is also aggregated into top-level numeric fields, because
-    the nested projects payload gets scrubbed to "[Filtered]" by Relay's PII rules for
-    many orgs and would otherwise be the only place holding the comparison result.
     """
-    n_transactions_compared = 0
-    n_transactions_differing = 0
-    max_transaction_rate_diff = 0.0
-    n_transactions_eap_only = 0
-    n_transactions_generic_metrics_only = 0
-
     projects_summary = {}
     for project in config.projects:
         project_id = project.id
@@ -201,30 +188,14 @@ def log_sample_rates_summary(
         generic_metrics_named_rates, generic_metrics_implicit_rate = (
             ({}, None) if cached_transactions is None else cached_transactions
         )
-
-        eap_rates_by_transaction = {str(item.id): item.new_sample_rate for item in eap_named_rates}
-        for transaction, eap_rate in eap_rates_by_transaction.items():
-            generic_metrics_rate = generic_metrics_named_rates.get(transaction)
-            if generic_metrics_rate is None:
-                n_transactions_eap_only += 1
-                continue
-            n_transactions_compared += 1
-            diff = abs(eap_rate - generic_metrics_rate)
-            if diff > TRANSACTION_RATE_COMPARISON_TOLERANCE:
-                n_transactions_differing += 1
-            max_transaction_rate_diff = max(max_transaction_rate_diff, diff)
-        n_transactions_generic_metrics_only += sum(
-            1
-            for transaction in generic_metrics_named_rates
-            if transaction not in eap_rates_by_transaction
-        )
-
         projects_summary[str(project_id)] = {
             "eap_sample_rate": project_sample_rates.get(project_id),
             "generic_metrics_sample_rate": cached_project_sample_rates.get(project_id),
             "eap_transaction_implicit_sample_rate": eap_implicit_rate,
             "generic_metrics_transaction_implicit_sample_rate": generic_metrics_implicit_rate,
-            "eap_transaction_sample_rates": eap_rates_by_transaction,
+            "eap_transaction_sample_rates": {
+                str(item.id): item.new_sample_rate for item in eap_named_rates
+            },
             "generic_metrics_transaction_sample_rates": generic_metrics_named_rates,
         }
 
@@ -234,15 +205,9 @@ def log_sample_rates_summary(
             "org_id": config.organization.id,
             "eap_org_sample_rate": config.get_sample_rate(),
             "eap_org_serving_sample_rate": config.get_serving_sample_rate(),
-            "eap_org_serving_sample_rate_gate": config.get_serving_sample_rate_gate(),
             "generic_metrics_org_sample_rate": get_cached_organization_sample_rate(
                 config.organization.id
             ),
-            "n_transactions_compared": n_transactions_compared,
-            "n_transactions_differing": n_transactions_differing,
-            "max_transaction_rate_diff": max_transaction_rate_diff,
-            "n_transactions_eap_only": n_transactions_eap_only,
-            "n_transactions_generic_metrics_only": n_transactions_generic_metrics_only,
             "projects": projects_summary,
         },
     )
