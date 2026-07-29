@@ -58,6 +58,7 @@ const AlwaysHiddenLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.SEVERITY_NUMBER,
   OurLogKnownFieldKey.ITEM_TYPE,
   OurLogKnownFieldKey.TIMESTAMP_PRECISE,
+  OurLogKnownFieldKey.TIMESTAMP_SEQUENCE,
   'project.id',
   'project_id', // these are both aliases that might show up
 ];

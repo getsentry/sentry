@@ -27,7 +27,6 @@ export enum OnboardingStepId {
   // SCM-first onboarding flow
   SCM_CONNECT = 'scm-connect',
   SCM_PLATFORM_FEATURES = 'scm-platform-features',
-  SCM_PROJECT_DETAILS = 'scm-project-details',
 }
 
 export enum OnboardingWelcomeProductId {
