@@ -6,6 +6,7 @@ from typing import Any
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -63,6 +64,18 @@ def parse_and_convert_issue_search_query(
     return search_filters
 
 
+def get_search_referrer(request: Request, organization: Organization) -> Referrer:
+    # Split UI (browser session) traffic from API/integration traffic so the two can be
+    # measured separately in Snuba.
+    if not features.has(
+        "organizations:search-group-index-api-referrer", organization, actor=request.user
+    ):
+        return Referrer.SEARCH_GROUP_INDEX
+    if isinstance(request.successful_authenticator, SessionAuthentication):
+        return Referrer.SEARCH_GROUP_INDEX
+    return Referrer.SEARCH_GROUP_INDEX_API
+
+
 def build_query_params_from_request(
     request: Request,
     organization: Organization,
@@ -72,7 +85,7 @@ def build_query_params_from_request(
     query_kwargs: dict[str, Any] = {
         "projects": projects,
         "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION),
-        "referrer": Referrer.SEARCH_GROUP_INDEX,
+        "referrer": get_search_referrer(request, organization),
     }
 
     limit = request.GET.get("limit")
