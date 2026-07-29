@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules, textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
@@ -125,5 +125,84 @@ describe('FormattedQuery', () => {
     expect(getEmotionRules(filter).join(' ')).toContain('white-space: nowrap');
     expect(getEmotionRules(value).join(' ')).toContain('white-space: normal');
     expect(getEmotionRules(value).join(' ')).toContain('overflow-wrap: anywhere');
+  });
+
+  it('middle-ellipsizes long path-like filter values', () => {
+    const path = '/api/0/organizations/{organization_id_or_slug}/events/';
+    render(<FormattedQuery {...defaultProps} query={`transaction:${path}`} />);
+
+    expect(
+      screen.getByText('/api/0…{organization_id_or_slug}/events/')
+    ).toBeInTheDocument();
+    expect(screen.queryByText(path)).not.toBeInTheDocument();
+  });
+
+  it('tightens and restores middle-ellipsis as available width changes', () => {
+    const path = '/api/0/organizations/{organization_id_or_slug}/events/';
+    const capped = '/api/0…{organization_id_or_slug}/events/';
+    let clientWidth = 0;
+    let resizeCallback: ResizeObserverCallback | undefined;
+
+    const originalClientWidth = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      'clientWidth'
+    );
+    const originalScrollWidth = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      'scrollWidth'
+    );
+    const originalResizeObserver = window.ResizeObserver;
+
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+      configurable: true,
+      get() {
+        return clientWidth;
+      },
+    });
+    Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
+      configurable: true,
+      get() {
+        // Approximate: treat each character as 10px wide.
+        return (this.textContent?.length ?? 0) * 10;
+      },
+    });
+    window.ResizeObserver = class {
+      constructor(callback: ResizeObserverCallback) {
+        resizeCallback = callback;
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+
+    try {
+      render(<FormattedQuery {...defaultProps} query={`transaction:${path}`} />);
+
+      // clientWidth 0 → fall through to the character cap.
+      expect(screen.getByText(capped)).toBeInTheDocument();
+
+      clientWidth = 120;
+      act(() => {
+        resizeCallback?.([], {} as ResizeObserver);
+      });
+
+      expect(screen.getByText('/api…events/')).toBeInTheDocument();
+      expect(screen.queryByText(capped)).not.toBeInTheDocument();
+
+      clientWidth = 500;
+      act(() => {
+        resizeCallback?.([], {} as ResizeObserver);
+      });
+
+      expect(screen.getByText(capped)).toBeInTheDocument();
+    } finally {
+      window.ResizeObserver = originalResizeObserver;
+      if (originalClientWidth) {
+        Object.defineProperty(HTMLElement.prototype, 'clientWidth', originalClientWidth);
+      }
+      if (originalScrollWidth) {
+        Object.defineProperty(HTMLElement.prototype, 'scrollWidth', originalScrollWidth);
+      }
+    }
   });
 });

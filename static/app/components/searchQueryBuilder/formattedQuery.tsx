@@ -231,7 +231,6 @@ const FilterValue = styled('div')<{$wrapTokens?: boolean}>`
   width: 100%;
   white-space: ${p => (p.$wrapTokens ? 'normal' : 'nowrap')};
   overflow: ${p => (p.$wrapTokens ? 'visible' : 'hidden')};
-  text-overflow: ${p => (p.$wrapTokens ? 'clip' : 'ellipsis')};
   overflow-wrap: ${p => (p.$wrapTokens ? 'anywhere' : undefined)};
 `;
 

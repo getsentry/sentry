@@ -43,6 +43,7 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {prettifyTagKey} from 'sentry/utils/fields';
+import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 
 interface SearchQueryTokenProps {
   item: Node<ParseResultToken>;
@@ -55,6 +56,136 @@ interface FilterValueProps extends SearchQueryTokenProps {
   onActiveChange: (active: boolean) => void;
 }
 
+const FILTER_VALUE_ELLIPSIS_DELIMITER = /[\s\-:/]/;
+const FILTER_VALUE_MAX_LENGTH = 40;
+const FILTER_MULTI_VALUE_MAX_LENGTH = 20;
+
+/**
+ * Fit middle-ellipsis to the element's available width.
+ *
+ * Always starts from the character cap so that when the constraint loosens
+ * (e.g. the window grows), content can reclaim width before we measure.
+ */
+function fitMiddleEllipsisToElement(
+  value: string,
+  maxLengthCap: number,
+  element: HTMLElement
+): string {
+  const maxLength = Math.min(value.length, maxLengthCap);
+  if (maxLength <= 0) {
+    return value;
+  }
+
+  const previousText = element.textContent;
+  const previousWidth = element.style.width;
+  const capped = middleEllipsis(value, maxLength, FILTER_VALUE_ELLIPSIS_DELIMITER);
+
+  try {
+    // Expand to the cap first so content-sized ancestors can grow up to their
+    // max-width when the window/search bar is no longer constraining them.
+    element.textContent = capped;
+    element.style.width = '';
+
+    if (element.clientWidth <= 0 || element.scrollWidth <= element.clientWidth + 1) {
+      return capped;
+    }
+
+    // Lock the constrained width so shrinking candidates don't collapse the
+    // content-sized parent mid-search.
+    const availableWidth = element.clientWidth;
+    element.style.width = `${availableWidth}px`;
+
+    let low = 1;
+    let high = maxLength;
+    let best = middleEllipsis(value, 1, FILTER_VALUE_ELLIPSIS_DELIMITER);
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const candidate = middleEllipsis(value, mid, FILTER_VALUE_ELLIPSIS_DELIMITER);
+      element.textContent = candidate;
+      if (element.scrollWidth <= availableWidth + 1) {
+        best = candidate;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    return best;
+  } finally {
+    element.textContent = previousText;
+    element.style.width = previousWidth;
+  }
+}
+
+function TruncatedFilterDisplayValue({
+  value,
+  wrap,
+  maxLengthCap,
+  multi,
+}: {
+  maxLengthCap: number;
+  value: string;
+  multi?: boolean;
+  wrap?: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [displayValue, setDisplayValue] = useState(() =>
+    wrap ? value : middleEllipsis(value, maxLengthCap, FILTER_VALUE_ELLIPSIS_DELIMITER)
+  );
+
+  useLayoutEffect(() => {
+    if (wrap) {
+      setDisplayValue(value);
+      return;
+    }
+
+    const element = ref.current;
+    if (!element) {
+      return;
+    }
+
+    let isFitting = false;
+    const update = () => {
+      if (isFitting) {
+        return;
+      }
+      isFitting = true;
+      try {
+        const next = fitMiddleEllipsisToElement(value, maxLengthCap, element);
+        setDisplayValue(prev => (prev === next ? prev : next));
+      } finally {
+        isFitting = false;
+      }
+    };
+
+    update();
+
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    // Observe the search bar (or viewport) — not the value itself. After
+    // truncating the chip is content-sized, so it won't grow on window expand
+    // unless we re-fit from an ancestor that actually resized.
+    const observed =
+      element.closest('[data-test-id="search-query-builder"]') ??
+      document.documentElement;
+
+    const observer = new ResizeObserver(update);
+    observer.observe(observed);
+    return () => observer.disconnect();
+  }, [value, wrap, maxLengthCap]);
+
+  const Truncated = multi ? FilterMultiValueTruncated : FilterValueSingleTruncatedValue;
+
+  return (
+    <Truncated ref={ref} $wrap={wrap}>
+      {displayValue}
+    </Truncated>
+  );
+}
+
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const {size} = useSearchQueryBuilderLayout();
@@ -63,9 +194,11 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
 
   if (token.filter === FilterType.HAS) {
     return (
-      <FilterValueSingleTruncatedValue $wrap={wrapTokens}>
-        {prettifyTagKey(token.value.text)}
-      </FilterValueSingleTruncatedValue>
+      <TruncatedFilterDisplayValue
+        value={prettifyTagKey(token.value.text)}
+        maxLengthCap={FILTER_VALUE_MAX_LENGTH}
+        wrap={wrapTokens}
+      />
     );
   }
 
@@ -77,9 +210,11 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
 
       if (items.length === 1 && items[0]!.value) {
         return (
-          <FilterValueSingleTruncatedValue $wrap={wrapTokens}>
-            {formatFilterValue({token: items[0]!.value, valueType})}
-          </FilterValueSingleTruncatedValue>
+          <TruncatedFilterDisplayValue
+            value={formatFilterValue({token: items[0]!.value, valueType})}
+            maxLengthCap={FILTER_VALUE_MAX_LENGTH}
+            wrap={wrapTokens}
+          />
         );
       }
 
@@ -94,9 +229,12 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
         >
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
-              <FilterMultiValueTruncated $wrap={wrapTokens}>
-                {formatFilterValue({token: item.value!, valueType})}
-              </FilterMultiValueTruncated>
+              <TruncatedFilterDisplayValue
+                value={formatFilterValue({token: item.value!, valueType})}
+                maxLengthCap={FILTER_MULTI_VALUE_MAX_LENGTH}
+                wrap={wrapTokens}
+                multi
+              />
               {index !== items.length - 1 && index < maxItems - 1 ? (
                 <FilterValueJoiner> {multiValueJoiner} </FilterValueJoiner>
               ) : null}
@@ -115,9 +253,11 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
     }
     default: {
       return (
-        <FilterValueSingleTruncatedValue $wrap={wrapTokens}>
-          {formatFilterValue({token: token.value, valueType})}
-        </FilterValueSingleTruncatedValue>
+        <TruncatedFilterDisplayValue
+          value={formatFilterValue({token: token.value, valueType})}
+          maxLengthCap={FILTER_VALUE_MAX_LENGTH}
+          wrap={wrapTokens}
+        />
       );
     }
   }
@@ -368,18 +508,18 @@ const FilterMultiValueTruncated = styled('div')<{$wrap?: boolean}>`
   display: block;
   white-space: ${p => (p.$wrap ? 'normal' : 'nowrap')};
   overflow: ${p => (p.$wrap ? 'visible' : 'hidden')};
-  text-overflow: ${p => (p.$wrap ? 'clip' : 'ellipsis')};
   overflow-wrap: ${p => (p.$wrap ? 'anywhere' : undefined)};
   max-width: ${p => (p.$wrap ? '100%' : '110px')};
-  width: ${p => (p.$wrap ? 'auto' : 'min-content')};
+  width: ${p => (p.$wrap ? 'auto' : '100%')};
+  min-width: 0;
 `;
 
 const FilterValueSingleTruncatedValue = styled('div')<{$wrap?: boolean}>`
   display: block;
   white-space: ${p => (p.$wrap ? 'normal' : 'nowrap')};
   overflow: ${p => (p.$wrap ? 'visible' : 'hidden')};
-  text-overflow: ${p => (p.$wrap ? 'clip' : 'ellipsis')};
   overflow-wrap: ${p => (p.$wrap ? 'anywhere' : undefined)};
   max-width: 100%;
-  width: ${p => (p.$wrap ? 'auto' : 'min-content')};
+  width: ${p => (p.$wrap ? 'auto' : '100%')};
+  min-width: 0;
 `;
