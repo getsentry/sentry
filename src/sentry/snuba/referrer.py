@@ -677,6 +677,7 @@ class Referrer(StrEnum):
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
     GROUP_GET_HELPFUL = "Group.get_helpful"
     GROUP_GET_LATEST = "Group.get_latest"
+    GROUP_GET_LATEST_BULK = "Group.get_latest_bulk"
     GROUP_UNHANDLED_FLAG = "group.unhandled-flag"
     GROUPING_RECORDS_BACKFILL_REFERRER = "getsentry.tasks.backfill_grouping_records"
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
