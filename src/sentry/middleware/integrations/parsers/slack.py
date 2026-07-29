@@ -56,9 +56,7 @@ logger = logging.getLogger(__name__)
 
 ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS = UNFURL_ACTION_OPTIONS + NOTIFICATION_SETTINGS_ACTION_OPTIONS
 
-METRIC_EVENT_TYPES = frozenset(
-    # The event types SlackEventEndpoint dispatches on. Slack controls the `type`
-    # field, so anything else is tagged "other" to keep metric cardinality bounded.
+SLACK_WEBHOOK_METRIC_EVENT_TYPES = frozenset(
     ["app_mention", "assistant_thread_started", "link_shared", "message", "reaction_added"]
 )
 
@@ -324,7 +322,7 @@ class SlackRequestParser(BaseRequestParser):
         if event_type is None:
             return "none"
 
-        return event_type if event_type in METRIC_EVENT_TYPES else "other"
+        return event_type if event_type in SLACK_WEBHOOK_METRIC_EVENT_TYPES else "other"
 
     def _record_response_time(self, status_code: int | str) -> None:
         """
