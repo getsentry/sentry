@@ -69,6 +69,8 @@ const AI_SETUP_PROMPT =
 
 const INSTALL_PLUGIN_COMMAND = `npx @sentry/ai install "${AI_SETUP_PROMPT}"`;
 
+const AGENT_PLUGIN_DOCS_URL = 'https://docs.sentry.io/ai/agent-plugin/';
+
 const LOG_DRAIN_PLATFORM_DOCS: Record<string, {name: string; url: string}> = {
   'node-cloudflare-pages': {
     name: 'Cloudflare',
@@ -140,9 +142,10 @@ function OnboardingPanel({
   });
 
   const trackPromptCopied = (source: 'install_command' | 'prompt') => {
-    trackAnalytics('logs.onboarding_ai_prompt_copied', {
+    trackAnalytics('onboarding.ai_prompt_copied', {
       organization,
       platform: project.platform ?? 'unknown',
+      product: 'logs',
       source,
     });
   };
@@ -197,7 +200,10 @@ function OnboardingPanel({
                         </Flex>
                       </BodyTitle>
                       <SubTitle>
-                        {t('First, run this command to install the Sentry plugin')}
+                        {tct(
+                          'First, run this command to install the [pluginLink:Sentry plugin]:',
+                          {pluginLink: <ExternalLink href={AGENT_PLUGIN_DOCS_URL} />}
+                        )}
                       </SubTitle>
                       <PromptSnippet>
                         <OnboardingCodeSnippet
@@ -207,7 +213,7 @@ function OnboardingPanel({
                           {INSTALL_PLUGIN_COMMAND}
                         </OnboardingCodeSnippet>
                       </PromptSnippet>
-                      <SubTitle>{t('Then paste this in your agent of choice')}</SubTitle>
+                      <SubTitle>{t('Then paste this in your agent of choice:')}</SubTitle>
                       <PromptSnippet>
                         <OnboardingCodeSnippet
                           language="text"

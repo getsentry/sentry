@@ -1,4 +1,14 @@
 export type OnboardingEventParameters = {
+  /**
+   * Fired from the product empty states (logs, traces) when one of the
+   * AI-assisted setup snippets is copied. `product` identifies which empty
+   * state the prompt was copied from.
+   */
+  'onboarding.ai_prompt_copied': {
+    platform: string;
+    product: 'logs' | 'traces';
+    source: 'install_command' | 'prompt';
+  };
   'onboarding.back_button_clicked': {
     browserBackButton: boolean;
     from: string;
@@ -171,6 +181,7 @@ export type OnboardingEventParameters = {
 };
 
 export const onboardingEventMap: Record<keyof OnboardingEventParameters, string> = {
+  'onboarding.ai_prompt_copied': 'Onboarding: AI Prompt Copied',
   'onboarding.js_loader_optional_configuration_shown':
     'Onboarding: JS Loader Optional Configuration Expanded',
   'onboarding.js_loader_npm_docs_shown':
