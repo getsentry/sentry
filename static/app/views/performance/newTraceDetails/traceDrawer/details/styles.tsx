@@ -1230,11 +1230,6 @@ const MultilineTextWrapper = styled('div')`
    * instead of being broken mid-word to fit the container. */
   table {
     word-break: normal;
-
-    /* base.less gives every bare table margin: 0 0 20px, which sits inside the
-     * scroll container but outside the table's box. Only the rows are painted, so
-     * it read as a band of this wrapper below the last row. */
-    margin: 0;
   }
 `;
 
