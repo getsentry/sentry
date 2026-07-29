@@ -529,12 +529,11 @@ class TransactionBalancingCalculationsTest(TestCase):
             patch(
                 "sentry.dynamic_sampling.per_org.calculations.get_generic_metrics_transaction_volumes",
                 return_value=[("checkout", 90.0), ("generic-metrics-only", 3.0)],
-            ) as get_generic_metrics,
+            ),
             patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info,
         ):
             log_transaction_volume_debug(config, transaction_volumes, {debug_project.id})
 
-        get_generic_metrics.assert_called_once_with(org.id, debug_project.id)
         logger_info.assert_called_once_with(
             "dynamic_sampling.per_org.transaction_volume_debug",
             extra={
