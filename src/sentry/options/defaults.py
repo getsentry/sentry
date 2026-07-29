@@ -1588,6 +1588,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "store.load-shed-gpu-crash-projects",
+    type=Any,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "post_process.get-autoassign-owners",
     type=Sequence,
     default=[],

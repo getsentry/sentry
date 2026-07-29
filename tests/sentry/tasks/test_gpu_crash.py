@@ -7,19 +7,17 @@ from unittest import mock
 import pytest
 
 from sentry.models.project import Project
-from sentry.tasks.gpu_crash import (
-    _try_symbolicate,
-    submit_symbolicate_gpu_crash,
-    symbolicate_gpu_crash_event,
-)
+from sentry.tasks.gpu_crash import _try_symbolicate, symbolicate_gpu_crash_event
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
-FIND_DUMP = "sentry.lang.native.utils.find_gpu_crash_dump_attachment"
-FIND_SHADERS = "sentry.lang.native.utils.find_all_shader_debug_attachments"
-SUBMIT_TEAPOT = "sentry.lang.native.teapot.submit_to_teapot"
-APPLY = "sentry.lang.native.gpu.apply_gpu_crash_symbolication"
+# Patch where used (gpu_crash binds these names via top-level imports), not at
+# their source modules.
+FIND_DUMP = "sentry.tasks.gpu_crash.find_gpu_crash_dump_attachment"
+FIND_SHADERS = "sentry.tasks.gpu_crash.find_all_shader_debug_attachments"
+SUBMIT_TEAPOT = "sentry.tasks.gpu_crash.submit_to_teapot"
+APPLY = "sentry.tasks.gpu_crash.apply_gpu_crash_symbolication"
 SUBMIT_PROCESS = "sentry.tasks.store.submit_process"
 
 
@@ -50,7 +48,6 @@ def test_try_symbolicate_happy_path(default_project: Project, circuit_breaker: m
     data: dict[str, Any] = {"event_id": "e", "project": default_project.id}
     with (
         override_options({"teapot.enabled": True}),
-        Feature("organizations:gpu-crash-symbolication"),
         mock.patch(FIND_DUMP, return_value=_FakeAttachment()),
         mock.patch(FIND_SHADERS, return_value=[]),
         mock.patch(SUBMIT_TEAPOT, return_value=_completed()) as teapot,
@@ -76,7 +73,6 @@ def test_try_symbolicate_skips_when_circuit_open(
     circuit_breaker.should_allow_request.return_value = False
     with (
         override_options({"teapot.enabled": True}),
-        Feature("organizations:gpu-crash-symbolication"),
         mock.patch(FIND_DUMP, return_value=_FakeAttachment()),
         mock.patch(FIND_SHADERS, return_value=[]),
         mock.patch(SUBMIT_TEAPOT) as teapot,
@@ -93,19 +89,6 @@ def test_try_symbolicate_skips_when_circuit_open(
 def test_try_symbolicate_skipped_when_disabled(default_project: Project) -> None:
     with (
         override_options({"teapot.enabled": False}),
-        Feature("organizations:gpu-crash-symbolication"),
-        mock.patch(SUBMIT_TEAPOT) as teapot,
-    ):
-        changed = _try_symbolicate({"event_id": "e"}, default_project.id, "e")
-
-    assert changed is False
-    assert teapot.call_count == 0
-
-
-@django_db_all
-def test_try_symbolicate_skipped_when_flag_off(default_project: Project) -> None:
-    with (
-        override_options({"teapot.enabled": True}),
         mock.patch(SUBMIT_TEAPOT) as teapot,
     ):
         changed = _try_symbolicate({"event_id": "e"}, default_project.id, "e")
@@ -118,7 +101,6 @@ def test_try_symbolicate_skipped_when_flag_off(default_project: Project) -> None
 def test_try_symbolicate_skipped_without_dump(default_project: Project) -> None:
     with (
         override_options({"teapot.enabled": True}),
-        Feature("organizations:gpu-crash-symbolication"),
         mock.patch(FIND_DUMP, return_value=None),
         mock.patch(SUBMIT_TEAPOT) as teapot,
     ):
@@ -134,7 +116,6 @@ def test_try_symbolicate_teapot_unavailable(
 ) -> None:
     with (
         override_options({"teapot.enabled": True}),
-        Feature("organizations:gpu-crash-symbolication"),
         mock.patch(FIND_DUMP, return_value=_FakeAttachment()),
         mock.patch(FIND_SHADERS, return_value=[]),
         mock.patch(SUBMIT_TEAPOT, return_value=None),
@@ -154,7 +135,6 @@ def test_try_symbolicate_swallows_errors(default_project: Project) -> None:
     # A hard failure deep in teapot must never propagate — the event still saves.
     with (
         override_options({"teapot.enabled": True}),
-        Feature("organizations:gpu-crash-symbolication"),
         mock.patch(FIND_DUMP, return_value=_FakeAttachment()),
         mock.patch(FIND_SHADERS, return_value=[]),
         mock.patch(SUBMIT_TEAPOT, side_effect=RuntimeError("boom")),
@@ -179,24 +159,9 @@ def test_task_always_continues_to_save() -> None:
     assert submit_process.call_args.kwargs["data_has_changed"] is False
 
 
-def test_submit_schedules_on_dedicated_queue() -> None:
-    with mock.patch("sentry.tasks.gpu_crash.symbolicate_gpu_crash_event.delay") as delay:
-        submit_symbolicate_gpu_crash(
-            cache_key="k",
-            event_id="e",
-            start_time=None,
-            has_attachments=True,
-            from_reprocessing=False,
-        )
-
-    assert delay.call_count == 1
-    assert delay.call_args.kwargs["cache_key"] == "k"
-
-
 IS_GPU_EVENT = "sentry.lang.native.utils.is_gpu_crash_event"
-SUBMIT_GPU = "sentry.tasks.gpu_crash.submit_symbolicate_gpu_crash"
-
-
+SUBMIT_GPU = "sentry.tasks.gpu_crash.symbolicate_gpu_crash_event.delay"
+KILLSWITCH = "sentry.tasks.store.killswitch_matches_context"
 BACKUP = "sentry.tasks.store.reprocessing2.backup_unprocessed_event"
 
 
@@ -206,6 +171,7 @@ def test_preprocess_routes_gpu_event_to_dedicated_task(default_project: Project)
 
     data = {"event_id": "e" * 32, "project": default_project.id, "platform": "native"}
     with (
+        Feature("organizations:gpu-crash-symbolication"),
         mock.patch(IS_GPU_EVENT, return_value=True),
         mock.patch(SUBMIT_GPU) as submit_gpu,
         mock.patch(BACKUP) as backup,
@@ -233,6 +199,7 @@ def test_preprocess_routes_gpu_event_on_reprocessing(default_project: Project) -
 
     data = {"event_id": "e" * 32, "project": default_project.id, "platform": "native"}
     with (
+        Feature("organizations:gpu-crash-symbolication"),
         mock.patch(IS_GPU_EVENT, return_value=True),
         mock.patch(SUBMIT_GPU) as submit_gpu,
         mock.patch(BACKUP) as backup,
@@ -270,6 +237,59 @@ def test_preprocess_ignores_non_gpu_event(default_project: Project) -> None:
             from_reprocessing=False,
             project=default_project,
             has_attachments=False,
+        )
+
+    assert submit_gpu.call_count == 0
+
+
+@django_db_all
+def test_preprocess_not_routed_without_feature_flag(default_project: Project) -> None:
+    # Org hasn't opted in: don't route to teapot even for a GPU crash event.
+    from sentry.tasks.store import _do_preprocess_event
+
+    data = {"event_id": "e" * 32, "project": default_project.id, "platform": "native"}
+    with (
+        mock.patch(IS_GPU_EVENT, return_value=True),
+        mock.patch(SUBMIT_GPU) as submit_gpu,
+        mock.patch("sentry.tasks.store.submit_save_event"),
+        mock.patch("sentry.tasks.store.submit_process"),
+    ):
+        _do_preprocess_event(
+            cache_key="k",
+            data=data,
+            start_time=None,
+            event_id="e" * 32,
+            from_reprocessing=False,
+            project=default_project,
+            has_attachments=True,
+        )
+
+    assert submit_gpu.call_count == 0
+
+
+@django_db_all
+def test_preprocess_sheds_gpu_event_when_killswitch_matches(default_project: Project) -> None:
+    # The load-shed killswitch drops the isolated GPU routing so it can't overwhelm
+    # the GPU task pool; the event still continues down the normal path.
+    from sentry.tasks.store import _do_preprocess_event
+
+    data = {"event_id": "e" * 32, "project": default_project.id, "platform": "native"}
+    with (
+        Feature("organizations:gpu-crash-symbolication"),
+        mock.patch(IS_GPU_EVENT, return_value=True),
+        mock.patch(KILLSWITCH, return_value=True),
+        mock.patch(SUBMIT_GPU) as submit_gpu,
+        mock.patch("sentry.tasks.store.submit_save_event"),
+        mock.patch("sentry.tasks.store.submit_process"),
+    ):
+        _do_preprocess_event(
+            cache_key="k",
+            data=data,
+            start_time=None,
+            event_id="e" * 32,
+            from_reprocessing=False,
+            project=default_project,
+            has_attachments=True,
         )
 
     assert submit_gpu.call_count == 0

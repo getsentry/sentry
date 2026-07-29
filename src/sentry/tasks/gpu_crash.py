@@ -9,11 +9,20 @@ any failure still saves the event (unenriched) via ``submit_process``.
 from __future__ import annotations
 
 import logging
+from collections.abc import MutableMapping
 from typing import Any
 
 import sentry_sdk
 
-from sentry import features, options
+from sentry import options
+from sentry.lang.native.gpu import apply_gpu_crash_symbolication
+from sentry.lang.native.teapot import submit_to_teapot
+from sentry.lang.native.utils import (
+    find_all_shader_debug_attachments,
+    find_gpu_crash_dump_attachment,
+)
+from sentry.models.project import Project
+from sentry.services.eventstore import processing
 from sentry.silo.base import SiloMode
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
@@ -35,23 +44,6 @@ def _teapot_circuit_breaker() -> CircuitBreaker:
     return CircuitBreaker(_CIRCUIT_BREAKER_KEY, config, CountBasedTripStrategy.from_config(config))
 
 
-def submit_symbolicate_gpu_crash(
-    cache_key: str,
-    event_id: str | None,
-    start_time: float | None,
-    has_attachments: bool,
-    from_reprocessing: bool,
-) -> None:
-    """Schedule GPU crash symbolication on its dedicated queue (pre-save)."""
-    symbolicate_gpu_crash_event.delay(
-        cache_key=cache_key,
-        start_time=start_time,
-        event_id=event_id,
-        has_attachments=has_attachments,
-        from_reprocessing=from_reprocessing,
-    )
-
-
 @instrumented_task(
     name="sentry.tasks.symbolicate_gpu_crash_event",
     namespace=gpu_crash_dump_tasks,
@@ -62,14 +54,12 @@ def symbolicate_gpu_crash_event(
     cache_key: str,
     start_time: float | None = None,
     event_id: str | None = None,
-    data: Any | None = None,
+    data: MutableMapping[str, Any] | None = None,
     has_attachments: bool = False,
     from_reprocessing: bool = False,
     **kwargs: Any,
 ) -> None:
     """Run teapot over the event's ``.nv-gpudmp`` and apply the decode, pre-save."""
-    from sentry.services.eventstore import processing
-
     if data is None:
         data = processing.event_processing_store.get(cache_key)
     if data is None:
@@ -99,28 +89,16 @@ def symbolicate_gpu_crash_event(
     )
 
 
-def _try_symbolicate(data: Any, project_id: int, event_id: str) -> bool:
+def _try_symbolicate(data: MutableMapping[str, Any], project_id: int, event_id: str) -> bool:
     """Best-effort teapot symbolication; returns whether ``data`` was enriched.
 
     All failures are swallowed — teapot must never block the save. The kill
-    switch and feature flag are re-checked here so ops can halt queued work.
+    switch is re-checked here so ops can halt already-queued work (the feature
+    flag is gated at routing time, where the project is already loaded).
     """
-    from sentry.lang.native.gpu import apply_gpu_crash_symbolication
-    from sentry.lang.native.teapot import submit_to_teapot
-    from sentry.lang.native.utils import (
-        find_all_shader_debug_attachments,
-        find_gpu_crash_dump_attachment,
-    )
-    from sentry.models.project import Project
-
     try:
         if not options.get("teapot.enabled"):
             metrics.incr("tasks.gpu_crash.skipped", tags={"reason": "disabled"})
-            return False
-
-        project = Project.objects.get_from_cache(id=project_id)
-        if not features.has("organizations:gpu-crash-symbolication", project.organization):
-            metrics.incr("tasks.gpu_crash.skipped", tags={"reason": "flag_off"})
             return False
 
         dump = find_gpu_crash_dump_attachment(data)
@@ -134,10 +112,12 @@ def _try_symbolicate(data: Any, project_id: int, event_id: str) -> bool:
             metrics.incr("tasks.gpu_crash.skipped", tags={"reason": "circuit_open"})
             return False
 
+        count = len(shaders)
         metrics.incr(
             "tasks.gpu_crash.request",
-            tags={"shader_debug_count": str(min(len(shaders), 10))},
+            tags={"shader_debug_count": str(count) if count < 10 else "10+"},
         )
+        project = Project.objects.get_from_cache(id=project_id)
         with metrics.timer("tasks.gpu_crash.teapot"):
             response = submit_to_teapot(project, event_id, dump, shaders)
         if response is None:

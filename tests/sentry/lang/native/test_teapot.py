@@ -208,6 +208,16 @@ def test_apply_skips_failed_status() -> None:
     assert "fingerprint" not in data
 
 
+def test_apply_fills_os_from_gpu_state_as_raw_description() -> None:
+    """With no SDK os scope, teapot's combined os string fills `raw_description`
+    (not `name`, which drives OS filtering)."""
+    data = _relay_gpu_event()  # no os context
+    apply_gpu_crash_symbolication(
+        data, _completed_response(gpu_state={"os_version": "Windows 10 (19H1)"})
+    )
+    assert data["contexts"]["os"] == {"raw_description": "Windows 10 (19H1)", "type": "os"}
+
+
 # ---------------------------------------------------------------------------
 # TeapotClient — request wire format
 # ---------------------------------------------------------------------------
