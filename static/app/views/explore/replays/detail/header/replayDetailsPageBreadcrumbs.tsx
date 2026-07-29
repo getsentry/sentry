@@ -26,6 +26,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
@@ -34,6 +35,7 @@ interface Props {
 export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   const replayRecord = readerResult.replayRecord;
   const organization = useOrganization();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const location = useLocation();
   const eventView = EventView.fromLocation(location);
   const project = useProjectFromId({
@@ -74,7 +76,7 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
 
   const {copy} = useCopyToClipboard();
 
-  if (organization.features.includes('ui-migration-breadcrumbs')) {
+  if (hasNewBreadcrumbs) {
     return (
       <Fragment>
         <TopBar.Slot name="breadcrumbs">

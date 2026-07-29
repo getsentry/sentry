@@ -27,10 +27,6 @@ const SKIP_CONFIG_BY_STEP: Partial<Record<OnboardingStepId, SkipAnalyticsConfig>
     sidebarSource: 'targeted_onboarding_scm_platform_features_skip',
     referrer: 'onboarding-scm-platform-features-skip',
   },
-  [OnboardingStepId.SCM_PROJECT_DETAILS]: {
-    sidebarSource: 'targeted_onboarding_scm_project_details_skip',
-    referrer: 'onboarding-scm-project-details-skip',
-  },
   [OnboardingStepId.SETUP_DOCS]: {
     sidebarSource: 'targeted_onboarding_first_event_footer_skip',
     referrer: 'onboarding-first-event-footer-skip',

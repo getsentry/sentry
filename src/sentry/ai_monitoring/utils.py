@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from django.db.models import F
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_sdk import trace
 
@@ -81,6 +82,32 @@ def clamp_conversation_id_for_storage(conversation_id: str) -> str:
     if len(conversation_id) <= CONVERSATION_ID_MAX_LENGTH:
         return conversation_id
     return conversation_id[:CONVERSATION_ID_TRUNCATE_TO] + "..."
+
+
+def fetch_conversation_title(
+    conversation_id: str,
+    project_ids: Collection[int],
+) -> AIConversationMetadata | None:
+    """Look up the titled metadata row for one conversation across the given projects.
+
+    A conversation id is only unique within a project, so the same id can be titled in
+    several projects. The earliest title wins: titles come from the first user message,
+    so the smallest ``title_source_timestamp`` is the one closest to the start of the
+    conversation. Ordering happens in the database; ``project_id`` only breaks ties.
+    """
+    if not project_ids:
+        return None
+
+    return (
+        AIConversationMetadata.objects.filter(
+            project_id__in=set(project_ids),
+            conversation_id_hash=conversation_id_hash(conversation_id),
+            title__isnull=False,
+        )
+        .exclude(title="")
+        .order_by(F("title_source_timestamp").asc(nulls_last=True), "project_id")
+        .first()
+    )
 
 
 def fetch_conversation_titles(
@@ -243,6 +270,10 @@ def generate_title_with_seer(
         max_tokens=64,
         response_schema=TITLE_RESPONSE_SCHEMA,
         reasoning="off",  # force thinking_budget=0 on Gemini 2.x flash-lite
+        # Never attach this call to a conversation: its own gen_ai spans would be
+        # ingested as a conversation, which would enqueue another title
+        # generation, and so on forever.
+        conversation_id=None,
     )
     try:
         response = make_llm_generate_request(body, timeout=20, viewer_context=viewer_context)

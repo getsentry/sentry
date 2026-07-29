@@ -6,37 +6,8 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {SuperuserAccessCategoryProps} from 'sentry/types/overrides';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
-function TestAccessCategory({
-  accessCategory,
-  accessCategoryError,
-  onAccessCategoryChange,
-  onReasonChange,
-  reason,
-  reasonError,
-}: SuperuserAccessCategoryProps) {
-  return (
-    <div>
-      <label>
-        <input
-          checked={accessCategory === 'development'}
-          name="superuserAccessCategory"
-          type="radio"
-          onChange={() => onAccessCategoryChange?.('development')}
-        />
-        Development
-      </label>
-      {accessCategoryError ? <div role="alert">{accessCategoryError}</div> : null}
-      <label>
-        Reason for Access
-        <input
-          name="superuserReason"
-          value={reason ?? ''}
-          onChange={event => onReasonChange?.(event.target.value)}
-        />
-      </label>
-      {reasonError ? <div role="alert">{reasonError}</div> : null}
-    </div>
-  );
+function TestAccessCategory({RadioItem}: SuperuserAccessCategoryProps) {
+  return <RadioItem value="development">Development</RadioItem>;
 }
 
 function addAuthenticatorResponse(body: unknown[] = [{id: 'u2f', challenge: {}}]) {
