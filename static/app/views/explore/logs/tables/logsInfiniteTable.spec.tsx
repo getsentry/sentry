@@ -799,6 +799,11 @@ describe('LogsInfiniteTable', () => {
         meta: {fields: {}, units: {}},
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/1/`,
+      method: 'GET',
+      body: {},
+    });
 
     const traceError: TraceTree.TraceError = {
       event_id: 'abc123def456',
