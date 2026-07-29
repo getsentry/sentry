@@ -789,6 +789,16 @@ class Columns(Enum):
         issue_platform_name=None,  # TODO: This doesn't exist yet
         alias="profiler.id",
     )
+    # `profiler.id` above is promoted on transactions only, and errors read it from the
+    # contexts map instead
+    PROFILER_ID_CONTEXT = Column(
+        group_name=None,
+        event_name="contexts[profile.profiler_id]",
+        transaction_name=None,
+        discover_name="contexts[profile.profiler_id]",
+        issue_platform_name="contexts[profile.profiler_id]",
+        alias="contexts[profile.profiler_id]",
+    )
     THREAD_ID = Column(
         group_name=None,
         event_name=None,
