@@ -62,20 +62,20 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   });
 
   const isLoading =
-    props.metaResults.status === 'pending' ||
-    props.rootEventResults.isLoading ||
-    props.tree.type === 'loading';
+    props.metaResults.status === 'pending' || props.tree.type === 'loading';
 
-  const isError =
-    props.metaResults.status === 'error' ||
-    props.rootEventResults.status === 'error' ||
-    props.tree.type === 'error';
+  const isError = props.metaResults.status === 'error' || props.tree.type === 'error';
 
-  const noEvents = props.tree.type === 'empty' && !hasLogs && !hasMetrics;
+  const isRepresentativeLoading = props.overview.isRepresentativeLoading;
+  const noEvents =
+    props.tree.type === 'empty' &&
+    !hasLogs &&
+    !hasMetrics &&
+    !props.overview.isTabLoading &&
+    !isRepresentativeLoading;
   if (isLoading || isError || noEvents) {
     return <PlaceHolder organization={props.organization} traceSlug={props.traceSlug} />;
   }
-
   const rep = props.tree.findRepresentativeTraceNode({
     logs: props.overview.logs.representative,
   });
@@ -114,7 +114,11 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
 
         <TraceHeaderComponents.HeaderGrid>
           <Container area="title" minWidth={0}>
-            <Title representativeEvent={rep} rootEventResults={props.rootEventResults} />
+            <Title
+              isLoading={isRepresentativeLoading}
+              representativeEvent={rep}
+              rootEventResults={props.rootEventResults}
+            />
           </Container>
           <Container area="meta" justifySelf={{zero: 'start', xl: 'end'}}>
             <Meta
@@ -134,14 +138,18 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             />
           </Container>
           <Container area="projects" justifySelf={{zero: 'start', xl: 'end'}}>
-            <Projects
-              projectSlugs={Array.from(
-                new Set([
-                  ...Array.from(props.tree.projects.values()).map(p => p.slug),
-                  ...(project ? [project.slug] : []),
-                ])
-              )}
-            />
+            {isRepresentativeLoading ? (
+              <TraceHeaderComponents.StyledPlaceholder _width={50} _height={28} />
+            ) : (
+              <Projects
+                projectSlugs={Array.from(
+                  new Set([
+                    ...Array.from(props.tree.projects.values()).map(p => p.slug),
+                    ...(project ? [project.slug] : []),
+                  ])
+                )}
+              />
+            )}
           </Container>
         </TraceHeaderComponents.HeaderGrid>
       </TraceHeaderComponents.HeaderContent>
