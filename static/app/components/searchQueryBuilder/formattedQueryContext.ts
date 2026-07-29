@@ -9,5 +9,13 @@ export const FormattedQueryConfigContext = createContext<FormattedQueryConfig>({
 });
 
 export function useFormattedQueryConfig() {
-  return useContext(FormattedQueryConfigContext);
+  const context = useContext(FormattedQueryConfigContext);
+
+  if (!context) {
+    throw new Error(
+      'useFormattedQueryConfig must be used within a FormattedQueryConfigProvider'
+    );
+  }
+
+  return context;
 }
