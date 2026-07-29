@@ -1,9 +1,9 @@
 """HTTP client for teapot, the NVIDIA Aftermath ``.nv-gpudmp`` decode service.
 
 Synchronous request/response with a bounded retry on transient 5xx. Attachments
-are passed by reference: we hand teapot a short-lived presigned GET URL per
-attachment and it fetches the bytes from objectstore itself (self-authenticating
-URL, no bearer token, bytes never pass through the worker).
+are passed by reference: we hand teapot the same objectstore URL Symbolicator
+uses (``get_symbolicator_url``) per attachment and it fetches the bytes itself —
+bytes never pass through the worker.
 """
 
 from __future__ import annotations
@@ -12,7 +12,6 @@ import logging
 import re
 import time
 from collections.abc import Sequence
-from datetime import timedelta
 from typing import Any, Protocol
 
 import orjson
@@ -21,7 +20,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry import options
-from sentry.objectstore import get_attachments_session, maybe_rewrite_url_for_symbolicator
+from sentry.objectstore import get_attachments_session, get_symbolicator_url
 
 logger = logging.getLogger(__name__)
 
@@ -51,9 +50,6 @@ class TeapotAttachment(Protocol):
     name: str
     stored_id: str | None
 
-
-# Presigned URLs live just long enough to cover the request window, then expire.
-_PRESIGNED_URL_TTL = timedelta(seconds=60)
 
 # Fallbacks for the `teapot.timeout-seconds` / `teapot.max-attempts` options.
 # The timeout is tight on purpose: decode is sub-second, so a slow teapot should
@@ -113,10 +109,10 @@ class TeapotClient:
     """Synchronous HTTP client for POST /symbolicate.
 
     Every attachment (the `.nv-gpudmp` and each shader-debug `.nvdbg`) must be in
-    objectstore; teapot fetches them by presigned URL. Raises `TeapotUnavailable`
-    on a genuine outage (network, exhausted 5xx retries) and `TeapotRequestError`
-    on a request the caller can't complete (unconfigured URL, missing attachment,
-    4xx) — callers treat both as "skip", never fatal.
+    objectstore; teapot fetches them by URL. Raises `TeapotUnavailable` on a
+    genuine outage (network, exhausted 5xx retries) and `TeapotRequestError` on a
+    request the caller can't complete (unconfigured URL, missing attachment, 4xx)
+    — callers treat both as "skip", never fatal.
     """
 
     def __init__(self, project: Any, event_id: str) -> None:
@@ -146,29 +142,24 @@ class TeapotClient:
             "event_id": self.event_id,
             "project_id": str(self.project.id),
             "organization_id": str(self.project.organization_id),
-            "dump": {"storage_url": self._presigned_url(session, dump)},
+            "dump": {"storage_url": self._storage_url(session, dump)},
             "shader_debug_info": [
                 {
                     "uid": _uid_from_nvdbg_filename(att.name) or att.name,
-                    "storage_url": self._presigned_url(session, att),
+                    "storage_url": self._storage_url(session, att),
                 }
                 for att in shader_debug_info
             ],
         }
         return self._send(url, headers=headers, data=orjson.dumps(body))
 
-    def _presigned_url(self, session: Any, att: TeapotAttachment) -> str:
-        """Short-lived self-authenticating GET URL for the attachment in objectstore.
-
-        Mirrors the internal-caller branch of
-        ``objectstore.get_download_redirect_url``, inlined because that helper
-        needs an ``HttpRequest`` and we're in a background task.
-        """
+    def _storage_url(self, session: Any, att: TeapotAttachment) -> str:
+        """The URL teapot fetches the attachment from — the same objectstore helper
+        Symbolicator uses (``get_symbolicator_url``), so both sibling decoders read
+        objectstore identically (internal URL, rewritten in dev/test)."""
         if not att.stored_id:
             raise TeapotRequestError(f"attachment {att.name!r} is not in objectstore")
-        return maybe_rewrite_url_for_symbolicator(
-            session.presigned_object_url("GET", att.stored_id, duration=_PRESIGNED_URL_TTL)
-        )
+        return get_symbolicator_url(session, att.stored_id)
 
     def _send(self, url: str, headers: dict[str, str], data: bytes) -> dict[str, Any]:
         last_exc: Exception | None = None
