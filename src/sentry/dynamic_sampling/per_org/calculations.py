@@ -537,12 +537,13 @@ def log_transaction_volume_debug(
         for project_data in transaction_volumes
         if project_data.project_id in debug_project_ids
     }
+    generic_metrics_counts_by_project = get_generic_metrics_transaction_volumes(
+        config.organization.id, debug_project_ids
+    )
 
     for project_id in sorted(debug_project_ids):
         eap_counts = eap_counts_by_project.get(project_id, {})
-        generic_metrics_counts = dict(
-            get_generic_metrics_transaction_volumes(config.organization.id, project_id)
-        )
+        generic_metrics_counts = dict(generic_metrics_counts_by_project.get(project_id, []))
 
         transactions = {
             transaction: {
