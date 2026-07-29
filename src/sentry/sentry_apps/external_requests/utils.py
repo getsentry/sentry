@@ -84,7 +84,8 @@ SELECT_OPTIONS_SCHEMA = {
 ISSUE_LINKER_SCHEMA = {
     "type": "object",
     "properties": {
-        "webUrl": {"type": "string"},
+        # Require an HTTP(S) URL before storing it and including it in webhook payloads.
+        "webUrl": {"type": "string", "pattern": "^https?://"},
         "identifier": {"type": "string"},
         "project": {"type": "string"},
     },
