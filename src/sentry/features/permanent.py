@@ -29,16 +29,10 @@ def register_permanent_features(manager: FeatureManager) -> None:
     permanent_organization_features = {
         # Enable advanced search features, like negation and wildcard matching.
         "organizations:advanced-search": True,
-        # Denotes organizations on the AM3 billing tier
-        "organizations:am3-tier": False,
         # Enable discover 2 basic functions
         "organizations:discover-basic": True,
         # Enable discover 2 custom queries and saved queries
         "organizations:discover-query": True,
-        # Enable the new opinionated dynamic sampling
-        "organizations:dynamic-sampling": False,
-        # Enable attaching arbitrary files to events.
-        "organizations:event-attachments": True,
         # Enable incidents feature
         "organizations:incidents": False,
         # Enable integration functionality to work with alert rules
@@ -55,14 +49,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:integrations-stacktrace-link": True,
         # Enable metric alert charts in email/slack
         "organizations:metric-alert-chartcuterie": False,
-        # Enable Performance view
-        "organizations:performance-view": True,
-        # Enable profiling view
-        "organizations:profiling-view": False,
-        # Enable core Session Replay backend APIs
-        "organizations:session-replay": False,
-        # Measure usage by spans instead of transactions
-        "organizations:spans-usage-tracking": False,
         # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
         # must be installed to use this functionality.
         "organizations:sso-saml2": True,
@@ -148,6 +134,20 @@ def register_permanent_features(manager: FeatureManager) -> None:
         # using services like GitHub / Google. This is *not* the same as the signup
         # and login with Github / Azure DevOps that sentry.io provides.
         "organizations:sso-basic": FlagpoleFeature(default=True, api_expose=True),
+        # Denotes organizations on the AM3 billing tier
+        "organizations:am3-tier": FlagpoleFeature(default=False, api_expose=True),
+        # Measure usage by spans instead of transactions
+        "organizations:spans-usage-tracking": FlagpoleFeature(default=False, api_expose=True),
+        # Enable the new opinionated dynamic sampling
+        "organizations:dynamic-sampling": FlagpoleFeature(default=False, api_expose=True),
+        # Enable attaching arbitrary files to events.
+        "organizations:event-attachments": FlagpoleFeature(default=True, api_expose=True),
+        # Enable Performance view
+        "organizations:performance-view": FlagpoleFeature(default=True, api_expose=True),
+        # Enable core Session Replay backend APIs
+        "organizations:session-replay": FlagpoleFeature(default=False, api_expose=True),
+        # Enable profiling view
+        "organizations:profiling-view": FlagpoleFeature(default=False, api_expose=True),
     }
 
     # Permanent project features that are controlled via flagpole. These are
