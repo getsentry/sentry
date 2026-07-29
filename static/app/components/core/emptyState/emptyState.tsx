@@ -25,23 +25,17 @@ export function EmptyState({
       flexGrow={1}
       align="center"
       gap={{zero: 'xl', [switchOn]: '2xl'}}
-      justify={{[switchOn]: 'center'}}
+      justify={{zero: 'start', [switchOn]: 'center'}}
       data-test-id="empty-state"
       {...props}
     >
       {illustration && (
-        <Flex
-          justify="center"
-          align="center"
-          overflow="hidden"
-          flexShrink={0}
-          flexGrow={1}
-        >
+        <Flex justify="center" align="center" overflow="hidden" flexShrink={0}>
           {illustration}
         </Flex>
       )}
       <Stack gap="xl">
-        <Stack gap="md" maxWidth="72ch">
+        <Stack gap="md" width="100%" maxWidth="48ch">
           <Heading as="h3" size="lg" align={textAlign}>
             {title}
           </Heading>
