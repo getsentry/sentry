@@ -51,9 +51,11 @@ export function EmptyState({
             </Text>
           )}
         </Stack>
-        <Flex gap="md" justify={{zero: 'center', [switchOn]: 'start'}}>
-          {action}
-        </Flex>
+        {action && (
+          <Flex gap="md" justify={{zero: 'center', [switchOn]: 'start'}}>
+            {action}
+          </Flex>
+        )}
       </Stack>
     </Flex>
   );
