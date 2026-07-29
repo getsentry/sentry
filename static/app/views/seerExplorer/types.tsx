@@ -46,8 +46,8 @@ const codingAgentResultSchema = z.object({
   description: z.string(),
   repo_full_name: z.string(),
   repo_provider: z.string(),
-  pr_number: z.number().nullable().optional(),
-  pr_url: z.string().nullable().optional(),
+  pr_number: z.number().nullable(),
+  pr_url: z.string().nullable(),
 });
 
 const explorerCodingAgentStateSchema = z.object({
