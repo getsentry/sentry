@@ -1329,9 +1329,12 @@ class TestSendResourceChangeWebhook(TestCase):
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=13
         )
 
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @with_feature("organizations:integrations-event-hooks")
-    def test_sends_webhooks_with_send_webhook_sentry_failure(self, mock_record: MagicMock) -> None:
+    def test_sends_webhooks_with_stale_service_hook_events(
+        self, mock_record: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
         self.project = self.create_project()
         self.sentry_app_1 = self.create_sentry_app(
             organization=self.project.organization,
@@ -1371,18 +1374,19 @@ class TestSendResourceChangeWebhook(TestCase):
                 eventstream_type=EventStreamEventType.Error.value,
             )
 
+        # ServiceHook.events is a denormalized copy that the outbox may not have
+        # caught up on yet; delivery follows the app's own subscriptions.
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        assert kwargs["url"] == self.sentry_app_1.webhook_url
+
         assert_success_metric(mock_record)
         # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) ->
-        # PREPARE_WEBHOOK (failure, exception propagates from send_resource_change_webhook) ->
-        # SEND_WEBHOOK (success) x 1 -> SEND_WEBHOOK (failure)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) x 3
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=6
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=7
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
-        )
-        assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=7
         )
 
 
@@ -1695,7 +1699,7 @@ class TestWorkflowNotification(TestCase):
 
         # SLO assertions
         assert_failure_metric(
-            mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK)
+            mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.EVENT_NOT_SUBSCRIBED)
         )
         # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (failure)
         assert_count_of_metric(
@@ -1707,6 +1711,24 @@ class TestWorkflowNotification(TestCase):
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
+
+    def test_sends_webhook_to_install_subscribed_as_issue_archived(
+        self, safe_urlopen: MagicMock
+    ) -> None:
+        sentry_app = self.create_sentry_app(
+            name="Legacy App",
+            organization=self.project.organization,
+            events=["issue.archived"],
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.project.organization, slug=sentry_app.slug
+        )
+
+        workflow_notification(install.id, self.issue.id, "archived", self.user.id)
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        assert kwargs["url"] == sentry_app.webhook_url
+        assert json.loads(kwargs["data"])["action"] == "archived"
 
 
 class TestWebhookRequests(TestCase):

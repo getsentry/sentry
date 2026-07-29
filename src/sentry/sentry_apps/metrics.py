@@ -57,7 +57,8 @@ class SentryAppWebhookFailureReason(StrEnum):
     MISSING_EVENT = "missing_event"
     INVALID_EVENT = "invalid_event"
     MISSING_SERVICEHOOK = "missing_servicehook"
-    EVENT_NOT_IN_SERVCEHOOK = "event_not_in_servicehook"
+    # Value differs from the member name: dashboards and alerts query the string.
+    EVENT_NOT_SUBSCRIBED = "event_not_in_servicehook"
     MISSING_ISSUE_OCCURRENCE = "missing_issue_occurrence"
     MISSING_USER = "missing_user"
     MULTIPLE_INSTALLATIONS = "multiple_installations"
