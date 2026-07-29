@@ -238,7 +238,7 @@ class ExploreSavedQueriesTest(APITestCase):
                 assert values[0] == expected[0]
                 assert values[1] == expected[1]
 
-    def test_get_sortby_recently_viewed_stable_order_with_flag(self) -> None:
+    def test_get_sortby_recently_viewed_stable_order(self) -> None:
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
         same_date = before_now(minutes=1)
         created = [
@@ -253,11 +253,7 @@ class ExploreSavedQueriesTest(APITestCase):
             for i in range(3)
         ]
 
-        features = {
-            **self.features,
-            "organizations:dashboards-user-last-visited": True,
-        }
-        with self.feature(features):
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"sortBy": "recentlyViewed"})
 
         assert response.status_code == 200, response.content
