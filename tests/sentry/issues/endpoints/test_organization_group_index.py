@@ -2111,8 +2111,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
             for index, event in enumerate(events[:2])
         ]
-        self.create_group_link(group=events[0].group, linked_id=issues[0].id)
-        self.create_group_link(group=events[2].group, linked_id=issues[0].id)
         self.login_as(user=self.user)
 
         with CaptureQueriesContext(connection) as queries:
@@ -2126,12 +2124,62 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert response.status_code == 200
         issues_by_group = {int(group["id"]): group["integrationIssues"] for group in response.data}
-        assert len(issues_by_group[events[0].group.id]) == 1
         assert issues_by_group[events[0].group.id][0]["title"] == issues[0].title
         assert issues_by_group[events[1].group.id][0]["title"] == issues[1].title
         assert issues_by_group[events[2].group.id] == []
         assert len([query for query in queries if "sentry_grouplink" in query["sql"]]) == 1
         assert len([query for query in queries if "sentry_externalissue" in query["sql"]]) == 1
+
+    def test_expand_integration_issues_ignores_non_issue_group_links(self) -> None:
+        events = [
+            self.store_event(
+                data={
+                    "timestamp": before_now(seconds=500 - index).isoformat(),
+                    "fingerprint": [f"group-{index}"],
+                },
+                project_id=self.project.id,
+            )
+            for index in range(2)
+        ]
+        integration = self.create_integration(
+            organization=events[0].group.organization,
+            provider="jira",
+            external_id="jira_external_id",
+            name="Jira",
+            metadata={"base_url": "https://example.com", "domain_name": "test/"},
+        )
+        issue = self.create_integration_external_issue(
+            group=events[0].group,
+            integration=integration,
+            key="APP-1",
+            title="jira issue",
+            description="this is an example description",
+        )
+        self.create_group_link(
+            group=events[0].group,
+            linked_id=issue.id,
+            linked_type=GroupLink.LinkedType.commit,
+        )
+        self.create_group_link(
+            group=events[1].group,
+            linked_id=issue.id,
+            linked_type=GroupLink.LinkedType.commit,
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            query="status:unresolved",
+            collapse=["base"],
+            expand=["integrationIssues"],
+        )
+
+        assert response.status_code == 200
+        issues_by_group = {int(group["id"]): group["integrationIssues"] for group in response.data}
+        assert len(issues_by_group[events[0].group.id]) == 1
+        assert issues_by_group[events[0].group.id][0]["title"] == issue.title
+        assert issues_by_group[events[1].group.id] == []
 
     def test_expand_sentry_app_issues(self) -> None:
         event = self.store_event(
