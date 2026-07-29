@@ -5,6 +5,7 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -283,7 +284,7 @@ function ConversationCell({conversation}: {conversation: Conversation}) {
             {getConversationIdLabel(conversation.conversationId)}
           </Text>
         </Flex>
-        <CellDivider />
+        <CellDivider orientation="vertical" />
         <ConversationUserLabel user={conversation.user} />
       </Flex>
     </Stack>
@@ -488,8 +489,8 @@ function ToolsCell({toolNames}: {toolNames: string[]}) {
           style={maxTagWidth ? {maxWidth: maxTagWidth} : undefined}
         >
           {/* Tag's own text node is display:flex, which breaks text-overflow;
-              wrap the label in a block element so it ellipsizes. */}
-          <TruncatedTagLabel>{name}</TruncatedTagLabel>
+              a block-level Text ellipsizes within it. */}
+          <Text ellipsis>{name}</Text>
         </Tag>
       ))}
       {overflowCount > 0 && (
@@ -536,19 +537,11 @@ const FixedRowHeightGrid = styled('div')`
   }
 `;
 
-const CellDivider = styled('div')`
-  width: 0;
+// Separator is full-height by default; pin it to a short fixed height so it
+// reads as a small inline divider between the id and the user.
+const CellDivider = styled(Separator)`
   height: 12px;
-  border-left: 1px solid ${p => p.theme.tokens.border.primary};
   flex-shrink: 0;
-`;
-
-const TruncatedTagLabel = styled('span')`
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 `;
 
 // align-content isn't a Flex prop, so keep it as a small styled(Flex) so wrapped
