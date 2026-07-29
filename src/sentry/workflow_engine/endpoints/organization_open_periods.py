@@ -53,7 +53,7 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         except Detector.DoesNotExist:
             raise ValidationError({"detectorId": "Detector not found"})
 
-        if detector.project.organization_id != organization.id:
+        if detector.linked_project.organization_id != organization.id:
             raise ValidationError({"detectorId": "Detector not found"})
 
         return detector
@@ -86,7 +86,7 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
     ) -> Group | None:
         if detector_id:
             detector = self.get_detector_from_detector_id(detector_id, organization)
-            if not request.access.has_project_access(detector.project):
+            if not request.access.has_project_access(detector.linked_project):
                 raise ValidationError({"detectorId": "Detector not found"})
             return self.get_group_from_detector(detector)
 

@@ -42,7 +42,7 @@ describe('Onboarding', () => {
     jest.clearAllMocks();
   });
 
-  it('renders the welcome page', () => {
+  it('renders the welcome UI', () => {
     render(
       <OnboardingContextProvider>
         <OnboardingWithoutContext />
@@ -57,29 +57,6 @@ describe('Onboarding', () => {
       }
     );
 
-    expect(screen.getByTestId('onboarding-welcome-start')).toBeInTheDocument();
-  });
-
-  it('renders the new welcome UI when feature flag is enabled', () => {
-    const organization = OrganizationFixture({
-      features: ['onboarding-new-welcome-ui'],
-    });
-
-    render(
-      <OnboardingContextProvider>
-        <OnboardingWithoutContext />
-      </OnboardingContextProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: `/onboarding/${organization.slug}/welcome/`,
-          },
-          route: '/onboarding/:orgId/:step/',
-        },
-      }
-    );
-
     expect(screen.getByText('Welcome to Sentry')).toBeInTheDocument();
     expect(screen.getByText('Error monitoring')).toBeInTheDocument();
     expect(screen.getByText('Tracing')).toBeInTheDocument();
@@ -87,7 +64,7 @@ describe('Onboarding', () => {
     expect(screen.getByTestId('onboarding-welcome-start')).toBeInTheDocument();
   });
 
-  describe('legacy welcome screen analytics', () => {
+  describe('welcome screen analytics', () => {
     it('calls trackAnalytics on mount', () => {
       render(
         <OnboardingContextProvider>
@@ -111,7 +88,7 @@ describe('Onboarding', () => {
       );
     });
 
-    it('calls trackAnalytics and onComplete on start button click', async () => {
+    it('calls trackAnalytics and onComplete on next button click', async () => {
       const {router} = render(
         <OnboardingContextProvider>
           <OnboardingWithoutContext />
@@ -153,116 +130,6 @@ describe('Onboarding', () => {
             initialRouterConfig: {
               location: {
                 pathname: '/onboarding/org-slug/welcome/',
-              },
-              route: '/onboarding/:orgId/:step/',
-            },
-          }
-        );
-
-        await userEvent.click(screen.getByRole('link', {name: 'Skip onboarding.'}), {
-          delay: null,
-        });
-
-        expect(trackAnalytics).toHaveBeenCalledWith(
-          'growth.onboarding_clicked_skip',
-          expect.objectContaining({
-            source: 'targeted_onboarding',
-          })
-        );
-
-        jest.runAllTimers();
-
-        expect(openSpy).toHaveBeenCalled();
-      } finally {
-        jest.useRealTimers();
-        openSpy.mockRestore();
-      }
-    });
-  });
-
-  describe('new welcome screen analytics', () => {
-    it('calls trackAnalytics on mount', () => {
-      const organization = OrganizationFixture({
-        features: ['onboarding-new-welcome-ui'],
-      });
-
-      render(
-        <OnboardingContextProvider>
-          <OnboardingWithoutContext />
-        </OnboardingContextProvider>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {
-              pathname: `/onboarding/${organization.slug}/welcome/`,
-            },
-            route: '/onboarding/:orgId/:step/',
-          },
-        }
-      );
-
-      expect(trackAnalytics).toHaveBeenCalledWith(
-        'growth.onboarding_start_onboarding',
-        expect.objectContaining({
-          source: 'targeted_onboarding',
-        })
-      );
-    });
-
-    it('calls trackAnalytics and onComplete on next button click', async () => {
-      const organization = OrganizationFixture({
-        features: ['onboarding-new-welcome-ui'],
-      });
-
-      const {router} = render(
-        <OnboardingContextProvider>
-          <OnboardingWithoutContext />
-        </OnboardingContextProvider>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {
-              pathname: `/onboarding/${organization.slug}/welcome/`,
-            },
-            route: '/onboarding/:orgId/:step/',
-          },
-        }
-      );
-
-      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
-
-      expect(trackAnalytics).toHaveBeenCalledWith(
-        'growth.onboarding_clicked_instrument_app',
-        expect.objectContaining({
-          source: 'targeted_onboarding',
-        })
-      );
-
-      await waitFor(() => {
-        expect(router.location.pathname).toBe(
-          `/onboarding/${organization.slug}/select-platform/`
-        );
-      });
-    });
-
-    it('calls trackAnalytics and activateSidebar on skip click', async () => {
-      jest.useFakeTimers();
-      const openSpy = jest.spyOn(OnboardingDrawerStore, 'open');
-
-      const organization = OrganizationFixture({
-        features: ['onboarding-new-welcome-ui'],
-      });
-
-      try {
-        render(
-          <OnboardingContextProvider>
-            <OnboardingWithoutContext />
-          </OnboardingContextProvider>,
-          {
-            organization,
-            initialRouterConfig: {
-              location: {
-                pathname: `/onboarding/${organization.slug}/welcome/`,
               },
               route: '/onboarding/:orgId/:step/',
             },
