@@ -265,20 +265,26 @@ export function WidgetPreviewContainer({
   const {data: metricOptions, isFetching: isFetchingMetricOptions} = useMetricOptions({
     enabled: isMetricsDataset,
   });
+  const hasMetricOptions = (metricOptions?.data?.length ?? 0) > 0;
   const selectedAggregate = getSelectedAggregate(widget);
   const hasSelectedMetric = Boolean(
     selectedAggregate && extractTraceMetricFromColumn(selectedAggregate)
   );
 
-  // A metric auto-selects once its options load, so a metrics widget with none
-  // picked is just waiting on that fetch.
-  const isResolving = isMetricsDataset && !hasSelectedMetric && isFetchingMetricOptions;
+  // A metric auto-selects once its options are available, so a metrics widget with
+  // none picked is still resolving while the options are fetching or already loaded
+  // with results — keying off `hasMetricOptions` too (not just the fetch state)
+  // avoids flashing the error for the frame before the cached auto-select runs.
+  const isResolving =
+    isMetricsDataset &&
+    !hasSelectedMetric &&
+    (isFetchingMetricOptions || hasMetricOptions);
   // The options finished loading and the selected projects have no metrics to pick.
   const hasNoMetrics =
     isMetricsDataset &&
     !hasSelectedMetric &&
     !isFetchingMetricOptions &&
-    (metricOptions?.data?.length ?? 0) === 0;
+    !hasMetricOptions;
 
   const message =
     getWidgetConfigError(widget) ??
