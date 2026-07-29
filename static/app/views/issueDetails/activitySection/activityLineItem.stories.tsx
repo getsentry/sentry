@@ -426,7 +426,7 @@ function ActivityExamples({items}: {items: GroupActivity[]}) {
           <ActivityLine
             key={`${item.id}-${index}`}
             group={group}
-            item={item}
+            item={{kind: 'activity', activity: item}}
             timestampUnitStyle="short"
           />
         )

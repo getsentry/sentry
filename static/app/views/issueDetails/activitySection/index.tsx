@@ -22,6 +22,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+import type {ActivityFeedItem} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
+import {collapseSeerActivityPairs} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
 import {
   ActivityLineNote,
   isActivityNote,
@@ -41,7 +43,7 @@ interface TimelineItemProps {
   group: Group;
   handleDelete: (item: GroupActivity) => Promise<void>;
   inputVariant: 'compact' | 'full';
-  item: GroupActivity;
+  item: ActivityFeedItem;
   size: 'sm' | 'md';
   teams: Team[];
   onCommentEdited?: (activity: GroupActivity[]) => void;
@@ -60,16 +62,17 @@ function TimelineItem({
 }: TimelineItemProps) {
   const organization = useOrganization();
   const useActivityLineItems = organization.features.includes('issue-activity-feed-v2');
+  const {activity} = item;
 
   if (useActivityLineItems) {
-    if (isActivityNote(item)) {
+    if (isActivityNote(activity)) {
       // Keep note mutations wired from ActivitySection until the v2 note API settles.
       return (
         <ActivityLineNote
-          activity={item}
+          activity={activity}
           group={group}
           inputVariant={inputVariant}
-          onDelete={() => handleDelete(item)}
+          onDelete={() => handleDelete(activity)}
           onCommentEdited={onCommentEdited}
           timestampUnitStyle={timestampUnitStyle}
         />
@@ -83,7 +86,7 @@ function TimelineItem({
 
   return (
     <LegacyTimelineItemWithEditing
-      item={item}
+      item={activity}
       handleDelete={handleDelete}
       onCommentEdited={onCommentEdited}
       group={group}
@@ -95,7 +98,9 @@ function TimelineItem({
   );
 }
 
-function LegacyTimelineItemWithEditing(props: TimelineItemProps) {
+type LegacyTimelineItemProps = Omit<TimelineItemProps, 'item'> & {item: GroupActivity};
+
+function LegacyTimelineItemWithEditing(props: LegacyTimelineItemProps) {
   const [editing, setEditing] = useState(false);
 
   return <LegacyTimelineItem {...props} editing={editing} setEditing={setEditing} />;
@@ -112,17 +117,9 @@ function LegacyTimelineItem({
   timestampUnitStyle,
   editing,
   setEditing,
-}: {
+}: LegacyTimelineItemProps & {
   editing: boolean;
-  group: Group;
-  handleDelete: (item: GroupActivity) => Promise<void>;
-  inputVariant: 'compact' | 'full';
-  item: GroupActivity;
   setEditing: (editing: boolean) => void;
-  size: 'sm' | 'md';
-  teams: Team[];
-  onCommentEdited?: (activity: GroupActivity[]) => void;
-  timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }) {
   const organization = useOrganization();
   const {title, message} = getGroupActivityItem(
@@ -317,17 +314,20 @@ export function ActivitySection({
   const filteredActivities = removeAdjacentDuplicatePullRequestActivities(
     visibleActivities
   ).filter(item => !filterComments || item.type === GroupActivityType.NOTE);
+  const displayedActivities: ActivityFeedItem[] = useActivityLineItems
+    ? collapseSeerActivityPairs(filteredActivities)
+    : filteredActivities.map(activity => ({kind: 'activity', activity}));
   const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
   const timestampUnitStyle = variant === 'sidebar' ? 'short' : undefined;
 
-  const renderActivityItem = (item: GroupActivity) => (
+  const renderActivityItem = (item: ActivityFeedItem) => (
     <TimelineItem
       item={item}
       handleDelete={handleDelete}
       onCommentEdited={onCommentEdited}
       group={group}
       teams={teams}
-      key={item.id}
+      key={item.activity.id}
       size={size}
       inputVariant={inputVariant}
       timestampUnitStyle={timestampUnitStyle}
@@ -354,11 +354,11 @@ export function ActivitySection({
     />
   );
 
-  const timeline = renderActivityList(filteredActivities.map(renderActivityItem));
+  const timeline = renderActivityList(displayedActivities.map(renderActivityItem));
   const hiddenActivityCount =
-    filteredActivities.length >= 5 ? filteredActivities.length - 3 : 0;
+    displayedActivities.length >= 5 ? displayedActivities.length - 3 : 0;
   const sidebarVisibleActivities =
-    hiddenActivityCount > 0 ? filteredActivities.slice(0, 3) : filteredActivities;
+    hiddenActivityCount > 0 ? displayedActivities.slice(0, 3) : displayedActivities;
   const sidebarActivityItems = (
     <Fragment>
       {sidebarVisibleActivities.map(renderActivityItem)}

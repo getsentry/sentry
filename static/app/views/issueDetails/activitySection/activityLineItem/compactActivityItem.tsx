@@ -28,6 +28,7 @@ import {getResolvedInCommitDetails} from './compactActivityItem/commitDetails';
 import {getProviderName} from './compactActivityItem/provider';
 import {getResolvedInReleaseDetails} from './compactActivityItem/releaseDetails';
 import type {CompactGroupActivityItem} from './compactActivityItem/types';
+import type {ActivityFeedItem, CollapsedSeerActivity} from './activityFeedItem';
 import {getArchiveDetails} from './archiveDetails';
 
 export type {CompactGroupActivityItem} from './compactActivityItem/types';
@@ -125,20 +126,39 @@ function getPriorityDetails(
 }
 
 interface GetCompactGroupActivityItemParams {
-  activity: GroupActivity;
   issueCategory: IssueCategory;
+  item: ActivityFeedItem;
   organization: Organization;
   project: Project;
 }
 
+const MINIMUM_SEER_ACTIVITY_DURATION_SECONDS = 5 * 60;
+
+function getSeerActivityDuration(
+  activity: CollapsedSeerActivity
+): React.ReactNode | null {
+  const durationSeconds =
+    (new Date(activity.activity.dateCreated).getTime() -
+      new Date(activity.startedActivity.dateCreated).getTime()) /
+    1000;
+
+  return Number.isFinite(durationSeconds) &&
+    durationSeconds >= MINIMUM_SEER_ACTIVITY_DURATION_SECONDS ? (
+    <Duration seconds={durationSeconds} />
+  ) : null;
+}
+
 export function getCompactGroupActivityItem({
-  activity,
+  item,
   organization,
   project,
   issueCategory,
 }: GetCompactGroupActivityItemParams): CompactGroupActivityItem {
+  const {activity} = item;
   const issuesLink = `/organizations/${organization.slug}/issues/`;
   const activityContext = {id: activity.id, type: activity.type};
+  const seerActivityDuration =
+    item.kind === 'collapsed-seer' ? getSeerActivityDuration(item) : null;
 
   switch (activity.type) {
     case GroupActivityType.NOTE:
@@ -454,6 +474,9 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.SEER_RCA_COMPLETED:
       return {
         title: t('Root cause found'),
+        details: seerActivityDuration
+          ? tct('in [duration]', {duration: seerActivityDuration})
+          : null,
       };
     case GroupActivityType.SEER_SOLUTION_STARTED:
       return {
@@ -462,6 +485,9 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.SEER_SOLUTION_COMPLETED:
       return {
         title: t('Plan created'),
+        details: seerActivityDuration
+          ? tct('in [duration]', {duration: seerActivityDuration})
+          : null,
       };
     case GroupActivityType.SEER_CODING_STARTED:
       return {
@@ -470,6 +496,9 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.SEER_CODING_COMPLETED:
       return {
         title: t('Code changes suggested'),
+        details: seerActivityDuration
+          ? tct('in [duration]', {duration: seerActivityDuration})
+          : null,
       };
     case GroupActivityType.SEER_PR_CREATED: {
       const pullRequest = activity.data.pull_requests?.[0];
@@ -500,17 +529,27 @@ export function getCompactGroupActivityItem({
     }
     case GroupActivityType.SEER_ITERATION_COMPLETED: {
       const pullRequest = activity.data.pull_requests?.[0];
+      const provider = pullRequest ? getProviderName(pullRequest.provider) : null;
+      let details: React.ReactNode = null;
+
+      if (provider && seerActivityDuration) {
+        details = tct('on [provider] in [duration]', {
+          provider,
+          duration: seerActivityDuration,
+        });
+      } else if (provider) {
+        details = tct('on [provider]', {provider});
+      } else if (seerActivityDuration) {
+        details = tct('in [duration]', {duration: seerActivityDuration});
+      }
+
       return {
         title: pullRequest
           ? tct('Pull request [pullRequest] updated', {
               pullRequest: <SeerPullRequestChip pullRequest={pullRequest} />,
             })
           : t('Pull request updated'),
-        details: pullRequest
-          ? tct('on [provider]', {
-              provider: getProviderName(pullRequest.provider),
-            })
-          : null,
+        details,
       };
     }
     case GroupActivityType.TRIGGER_AUTOFIX:
