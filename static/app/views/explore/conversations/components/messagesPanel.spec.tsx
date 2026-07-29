@@ -354,7 +354,7 @@ describe('MessagesPanel', () => {
     ).toBeInTheDocument();
   });
 
-  it('keeps reasoning text in the DOM inside a collapsed details element', () => {
+  it('keeps reasoning text in the DOM while collapsed', () => {
     const node = createMockNode({
       id: 'span-1',
       attributes: {
@@ -382,10 +382,10 @@ describe('MessagesPanel', () => {
     );
 
     // The reasoning appears both as the collapsed preview and the full content.
-    const matches = screen.getAllByText('My secret thinking text');
-    expect(matches.length).toBeGreaterThan(0);
-    const details = matches[0]!.closest('details');
-    expect(details).not.toBeNull();
-    expect(details).not.toHaveAttribute('open');
+    // The content stays in the DOM but hidden, so find-in-page can reveal it.
+    const [preview, content] = screen.getAllByText('My secret thinking text');
+    expect(preview).toBeVisible();
+    expect(content).toBeInTheDocument();
+    expect(content).not.toBeVisible();
   });
 });

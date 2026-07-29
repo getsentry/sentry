@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {MessageRow} from '@sentry/scraps/chat';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {
   AssistantMessageBlock,
   UserMessageBlock,
@@ -283,30 +283,26 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
   const organization = useOrganization();
 
   return (
-    <CollapsibleContent
-      title={
-        <Text size="sm" variant="muted" monospace>
-          {t('Thinking...')}
-        </Text>
-      }
-      preview={
-        <Text size="sm" variant="muted" monospace>
-          {reasoning}
-        </Text>
-      }
-      onToggle={open =>
+    <Disclosure
+      size="sm"
+      onExpandedChange={expanded =>
         trackAnalytics('conversations.detail.expand-thinking', {
           organization,
-          expanded: open,
+          expanded,
         })
       }
     >
-      <Container padding="xs md">
+      <Disclosure.Title preview={reasoning}>
+        <Text size="sm" variant="muted" monospace>
+          {t('Thinking...')}
+        </Text>
+      </Disclosure.Title>
+      <Disclosure.Content>
         <MessageText size="sm" align="left" variant="muted" monospace>
           <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
         </MessageText>
-      </Container>
-    </CollapsibleContent>
+      </Disclosure.Content>
+    </Disclosure>
   );
 }
 

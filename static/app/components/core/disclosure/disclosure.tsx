@@ -77,14 +77,23 @@ function DisclosureComponent({
 
 interface DisclosureTitleProps extends React.HTMLAttributes<HTMLButtonElement> {
   children?: NonNullable<React.ReactNode>;
+  /**
+   * A single-line summary of the collapsed content, shown after the title and
+   * truncated to the space left over. Hidden once expanded, where the content
+   * itself takes over. Sits outside the toggle button so it stays out of the
+   * button's accessible name — it is a visual affordance, not a label.
+   */
+  preview?: React.ReactNode;
   trailingItems?: React.ReactNode;
 }
 
-function Title({children, trailingItems, ...rest}: DisclosureTitleProps) {
+function Title({children, preview, trailingItems, ...rest}: DisclosureTitleProps) {
   const {buttonProps, state, context} = useDisclosureContext();
 
   const {isDisabled, ...restProps} = buttonProps;
   const {pressProps} = usePress({...restProps});
+
+  const showPreview = preview !== undefined && !state.isExpanded;
 
   return (
     <Flex
@@ -95,23 +104,36 @@ function Title({children, trailingItems, ...rest}: DisclosureTitleProps) {
       paddingRight="xs"
       radius="md"
     >
-      <StretchedButton
+      <TitleButton
         icon={<IconChevron direction={state.isExpanded ? 'down' : 'right'} />}
         disabled={isDisabled}
         size={context.size}
         variant="transparent"
+        $stretch={!showPreview}
         {...pressProps}
         {...rest}
       >
         {children}
-      </StretchedButton>
+      </TitleButton>
+      {showPreview ? (
+        // Shrinks before trailingItems do, so a long preview truncates instead
+        // of squeezing them out.
+        <Flex flex="1" minWidth={0} aria-hidden>
+          <Text size={context.size} variant="muted" ellipsis>
+            {preview}
+          </Text>
+        </Flex>
+      ) : null}
       {trailingItems ?? null}
     </Flex>
   );
 }
 
-const StretchedButton = styled(Button)`
-  flex-grow: 1;
+const TitleButton = styled(Button)<{$stretch: boolean}>`
+  /* Without a preview the button owns the row; with one it hugs its label so
+   * the preview takes the remaining space. */
+  flex-grow: ${p => (p.$stretch ? 1 : 0)};
+  flex-shrink: 0;
   justify-content: flex-start;
   padding-left: ${p => p.theme.space.xs};
 `;

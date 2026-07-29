@@ -45,6 +45,21 @@ describe('Disclosure', () => {
     expect(screen.queryByText('This is the content of the disclosure')).not.toBeVisible();
   });
 
+  it('shows the preview only while collapsed, and keeps it out of the button name', async () => {
+    render(
+      <Disclosure defaultExpanded={false}>
+        <Disclosure.Title preview="a short summary">Thinking</Disclosure.Title>
+        <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+      </Disclosure>
+    );
+
+    expect(screen.getByText('a short summary')).toBeVisible();
+    expect(screen.getByRole('button', {name: 'Thinking'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Thinking'}));
+    expect(screen.queryByText('a short summary')).not.toBeInTheDocument();
+  });
+
   it('toggling a disclosure triggers the onExpandedChange callback', async () => {
     const onExpandedChange = jest.fn();
     render(
