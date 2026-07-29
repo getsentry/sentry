@@ -99,9 +99,8 @@ export function Body({noRowGap, ...props}: BodyProps) {
   return (
     <Grid
       flexGrow={1}
-      display="grid"
       columns={{zero: 'minmax(0, 1fr)', '4xl': 'minmax(100px, auto) 325px'}}
-      alignContent={{zero: 'start', '4xl': 'start'}}
+      alignContent="start"
       gap={{zero: '0', '4xl': noRowGap ? '0 2xl' : '2xl'}}
       background="primary"
       padding="lg xl"
