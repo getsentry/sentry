@@ -634,6 +634,7 @@ def create_dif_from_id(
     if file is not None:
         file_size = file.size
         checksum = file.checksum
+        assert checksum is not None
     elif fileobj is not None:
         file_size = 0
         h = hashlib.sha1()
@@ -648,7 +649,6 @@ def create_dif_from_id(
     else:
         raise RuntimeError("missing file object")
 
-    assert checksum is not None
     dif = _find_existing_dif(project, meta, checksum)
 
     if dif is not None:
