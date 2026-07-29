@@ -309,8 +309,6 @@ export function usePrefetchTraceItemDetailsOnHover({
     isDisabled: hoverPrefetchDisabled,
   });
 
-  // Rows sharing the ref unmount independently (virtual scrolling), so an
-  // unmounting row must cancel only the prefetch it scheduled itself.
   useEffect(
     () => () => {
       if (ownHoverTimeoutRef.current === null) {
