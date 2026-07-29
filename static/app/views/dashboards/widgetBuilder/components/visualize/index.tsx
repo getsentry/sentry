@@ -62,6 +62,7 @@ import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {MAX_METRICS_ALLOWED} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
 
 export const NONE = 'none';
 
@@ -741,10 +742,13 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                       fields[index]!.kind === FieldValueKind.FUNCTION &&
                       FieldValueKind.FUNCTION in fields[index]!
                     ) {
+                      const fieldName =
+                        state.dataset === WidgetType.SPANS
+                          ? (parseConditionalAggregate(stringFields?.[index] ?? '')
+                              ?.name ?? parseFunction(stringFields?.[index] ?? '')?.name)
+                          : parseFunction(stringFields?.[index] ?? '')?.name;
                       matchingAggregate = aggregates.find(
-                        option =>
-                          option.value.meta.name ===
-                          parseFunction(stringFields?.[index] ?? '')?.name
+                        option => option.value.meta.name === fieldName
                       );
                     }
 

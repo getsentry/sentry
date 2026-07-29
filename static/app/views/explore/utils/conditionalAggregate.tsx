@@ -16,8 +16,15 @@ export interface ConditionalAggregate extends ParsedFunction {
   filter: string;
 }
 
+function isBacktickSearchFilter(value: string): boolean {
+  return value.length >= 2 && value.startsWith('`') && value.endsWith('`');
+}
+
 /**
  * Strip a leading `_if` combinator and extract its filter query from a function token.
+ *
+ * Only Explore-style search filters (backtick-wrapped first argument) are treated as
+ * conditional. Discover-style forms like `count_if(column,equals,value)` are left as-is.
  */
 export function normalizeConditionalFunctionToken(token: TokenFunction): {
   filter: string;
@@ -27,18 +34,16 @@ export function normalizeConditionalFunctionToken(token: TokenFunction): {
     return {plainAggregate: token.text, filter: ''};
   }
 
-  const plainName = token.function.slice(0, -IF_SUFFIX.length);
   const [filterAttr, ...restAttrs] = token.attributes;
   const filterText = filterAttr?.text ?? '';
+  if (!isBacktickSearchFilter(filterText)) {
+    return {plainAggregate: token.text, filter: ''};
+  }
 
-  const filter =
-    filterText.startsWith('`') && filterText.endsWith('`')
-      ? filterText.slice(1, -1)
-      : filterText;
-
+  const plainName = token.function.slice(0, -IF_SUFFIX.length);
   return {
     plainAggregate: `${plainName}(${restAttrs.map(a => a.text).join(',')})`,
-    filter,
+    filter: filterText.slice(1, -1),
   };
 }
 
@@ -72,15 +77,15 @@ export function parseConditionalAggregate(yAxis: string): ConditionalAggregate |
   // Fallback when tokenization fails but the name still looks like an `_if` aggregate.
   const [filterArg, ...restArgs] = parsed.arguments;
   const filterText = filterArg ?? '';
-  const filter =
-    filterText.startsWith('`') && filterText.endsWith('`')
-      ? filterText.slice(1, -1)
-      : filterText;
+  if (!isBacktickSearchFilter(filterText)) {
+    // Discover-style `count_if(column,equals,value)` — keep the original aggregate.
+    return {...parsed, filter: ''};
+  }
 
   return {
     name: parsed.name.slice(0, -IF_SUFFIX.length),
     arguments: restArgs,
-    filter,
+    filter: filterText.slice(1, -1),
   };
 }
 
@@ -166,6 +171,8 @@ export function supportsConditionalAggregateFilter(aggregateName: string): boole
   }
   return (
     aggregateName !== AggregationKey.PERFORMANCE_SCORE &&
-    aggregateName !== AggregationKey.OPPORTUNITY_SCORE
+    aggregateName !== AggregationKey.OPPORTUNITY_SCORE &&
+    aggregateName !== AggregationKey.APDEX &&
+    aggregateName !== AggregationKey.USER_MISERY
   );
 }

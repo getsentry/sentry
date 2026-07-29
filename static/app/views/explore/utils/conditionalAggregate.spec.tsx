@@ -41,6 +41,16 @@ describe('conditionalAggregate', () => {
         filter: 'span.status:error',
       });
     });
+
+    it('leaves Discover-style count_if without backticks as-is', () => {
+      expect(
+        parseConditionalAggregate('count_if(transaction.duration,equals,300)')
+      ).toEqual({
+        name: 'count_if',
+        arguments: ['transaction.duration', 'equals', '300'],
+        filter: '',
+      });
+    });
   });
 
   describe('buildConditionalAggregate', () => {
@@ -135,6 +145,8 @@ describe('conditionalAggregate', () => {
       expect(supportsConditionalAggregateFilter('failure_count')).toBe(false);
       expect(supportsConditionalAggregateFilter('performance_score')).toBe(false);
       expect(supportsConditionalAggregateFilter('opportunity_score')).toBe(false);
+      expect(supportsConditionalAggregateFilter('apdex')).toBe(false);
+      expect(supportsConditionalAggregateFilter('user_misery')).toBe(false);
     });
   });
 });
