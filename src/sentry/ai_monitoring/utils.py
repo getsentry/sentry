@@ -243,6 +243,10 @@ def generate_title_with_seer(
         max_tokens=64,
         response_schema=TITLE_RESPONSE_SCHEMA,
         reasoning="off",  # force thinking_budget=0 on Gemini 2.x flash-lite
+        # Never attach this call to a conversation: its own gen_ai spans would be
+        # ingested as a conversation, which would enqueue another title
+        # generation, and so on forever.
+        conversation_id=None,
     )
     try:
         response = make_llm_generate_request(body, timeout=20, viewer_context=viewer_context)
