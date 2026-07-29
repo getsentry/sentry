@@ -247,6 +247,7 @@ export function Table({
 
 function withRole<C extends React.ElementType>(Component: C, role: string) {
   return function RoleComponent(props: ComponentProps<C>) {
+    // eslint-disable-next-line @sentry/no-unnecessary-type-annotation -- widening off `C` is what lets JSX accept the spread props
     const Tag: React.ElementType = Component;
     return <Tag role={role} {...props} />;
   };
