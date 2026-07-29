@@ -40,7 +40,7 @@ export function LinkButton({
       title={tooltipProps?.title}
       disabled={!tooltipProps?.title}
     >
-      <LinkButtonBase
+      <StyledLinkButton
         aria-label={accessibleLabel}
         aria-disabled={disabled}
         disabled={disabled}
@@ -84,66 +84,80 @@ export function LinkButton({
           )}
           {props.children}
         </Flex>
-      </LinkButtonBase>
+      </StyledLinkButton>
     </Tooltip>
   );
 }
 
-type LinkButtonBaseProps = LinkButtonProps & {
-  shapeVariant: 'rectangular' | 'square';
-};
+const StyledLinkButton = styled(
+  ({
+    size: _size,
+    shapeVariant: _shapeVariant,
+    ...props
+  }: LinkButtonProps & {shapeVariant: 'rectangular' | 'square'}) => {
+    const {handleClick} = useClickTracking(props);
 
-type LinkButtonStyleProps = Omit<LinkButtonProps, 'size'> & {
-  shapeVariant: 'rectangular' | 'square';
-  size: NonNullable<LinkButtonProps['size']>;
-};
+    if ('to' in props && props.to) {
+      const {openInNewTab, ...linkProps} = props;
+      return (
+        <Link
+          {...linkProps}
+          to={props.to}
+          role="button"
+          {...(openInNewTab ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
+        />
+      );
+    }
 
-function LinkButtonBase(props: LinkButtonBaseProps) {
-  const {handleClick} = useClickTracking(props);
-  const size = props.size ?? 'md';
+    if ('href' in props && props.href) {
+      const {
+        external,
+        analyticsEventKey: _analyticsEventKey,
+        analyticsEventName: _analyticsEventName,
+        analyticsParams: _analyticsParams,
+        busy: _busy,
+        variant: _variant,
+        ...rest
+      } = props;
+      return (
+        <a
+          {...rest}
+          onClick={handleClick}
+          {...(external ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
+          role="button"
+        />
+      );
+    }
 
-  if ('to' in props && props.to) {
-    const {openInNewTab, ...linkProps} = props;
-    return (
-      <StyledLink
-        {...linkProps}
-        size={size}
-        to={props.to}
-        role="button"
-        {...(openInNewTab ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
-      />
-    );
+    const {
+      external: _e,
+      replace: _r,
+      preventScrollReset: _p,
+      openInNewTab: _o,
+      analyticsEventKey: _analyticsEventKey,
+      analyticsEventName: _analyticsEventName,
+      analyticsParams: _analyticsParams,
+      busy: _busy,
+      variant: _variant,
+      ...rest
+      // cast because props cannot be statically determined at this point
+    } = props as any;
+    return <a {...rest} onClick={handleClick} role="button" />;
+  },
+  {
+    shouldForwardProp: prop =>
+      prop === 'analyticsEventKey' ||
+      prop === 'analyticsEventName' ||
+      prop === 'analyticsParams' ||
+      prop === 'busy' ||
+      prop === 'external' ||
+      prop === 'replace' ||
+      prop === 'preventScrollReset' ||
+      prop === 'openInNewTab' ||
+      prop === 'variant' ||
+      (typeof prop === 'string' && isPropValid(prop)),
   }
-
-  if ('href' in props && props.href) {
-    const {external, ...anchorProps} = props;
-    return (
-      <StyledA
-        {...anchorProps}
-        size={size}
-        onClick={handleClick}
-        {...(external ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
-        role="button"
-      />
-    );
-  }
-
-  return <StyledA {...props} size={size} onClick={handleClick} role="button" />;
-}
-
-const StyledA = styled('a', {
-  shouldForwardProp: prop =>
-    isPropValid(prop) &&
-    prop !== 'disabled' &&
-    prop !== 'shapeVariant' &&
-    prop !== 'size',
-})<LinkButtonStyleProps>`
-  ${p => getLinkButtonStyles(p, p.theme)}
-`;
-
-const StyledLink = styled(Link, {
-  shouldForwardProp: prop => prop !== 'shapeVariant' && prop !== 'size',
-})<LinkButtonStyleProps>`
+)<Omit<LinkButtonProps, 'size'> & {size: NonNullable<LinkButtonProps['size']>}>`
   ${p => getLinkButtonStyles(p, p.theme)}
 `;
 
