@@ -33,7 +33,7 @@ from sentry.issues.derived.serialization import GroupDerivedDataResponse
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.group import Group
+from sentry.models.group import Group, bulk_get_latest_event_ids
 from sentry.models.groupinbox import InboxDetails, get_inbox_details
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import OwnersSerialized, get_owner_details
@@ -456,13 +456,20 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             and item_list
             and features.has("organizations:event-attachments", item_list[0].project.organization)
         ):
+            latest_events = bulk_get_latest_event_ids(item_list)
+            latest_event_keys = set(latest_events.values())
+            attachment_event_keys = set(
+                EventAttachment.objects.filter(
+                    project_id__in={project_id for project_id, _ in latest_event_keys},
+                    event_id__in={event_id for _, event_id in latest_event_keys},
+                ).values_list("project_id", "event_id")
+            )
             for item in item_list:
-                latest_event = item.get_latest_event()
-                if latest_event is not None:
-                    num_attachments = EventAttachment.objects.filter(
-                        project_id=latest_event.project_id, event_id=latest_event.event_id
-                    ).count()
-                    attrs[item]["latestEventHasAttachments"] = num_attachments > 0
+                latest_event_key = latest_events.get(item.id)
+                if latest_event_key is not None:
+                    attrs[item]["latestEventHasAttachments"] = (
+                        latest_event_key in attachment_event_keys
+                    )
 
         return attrs
 

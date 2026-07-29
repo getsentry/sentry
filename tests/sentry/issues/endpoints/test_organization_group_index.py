@@ -10,7 +10,9 @@ from unittest import mock
 from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
+from django.db import connection
 from django.db.utils import OperationalError
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.response import Response
@@ -2175,8 +2177,51 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["latestEventHasAttachments"] is True
 
     @with_feature("organizations:event-attachments")
-    @patch("sentry.models.Group.get_latest_event", return_value=None)
-    def test_expand_no_latest_event_has_no_attachments(self, mock_latest_event: MagicMock) -> None:
+    def test_expand_latest_event_has_attachments_is_batched(self) -> None:
+        events = [
+            self.store_event(
+                data={
+                    "timestamp": before_now(seconds=500 - index).isoformat(),
+                    "fingerprint": [f"group-{index}"],
+                },
+                project_id=self.project.id,
+            )
+            for index in range(3)
+        ]
+        EventAttachment.objects.create(
+            group_id=events[0].group.id,
+            event_id=events[0].event_id,
+            project_id=events[0].project_id,
+            name="hello.png",
+            content_type="image/png",
+        )
+        self.login_as(user=self.user)
+
+        with CaptureQueriesContext(connection) as queries:
+            response = self.get_response(
+                sort_by="date",
+                limit=10,
+                query="status:unresolved",
+                expand=["latestEventHasAttachments"],
+            )
+
+        assert response.status_code == 200
+        attachments_by_group = {
+            int(group["id"]): group["latestEventHasAttachments"] for group in response.data
+        }
+        assert attachments_by_group == {
+            events[0].group.id: True,
+            events[1].group.id: False,
+            events[2].group.id: False,
+        }
+        attachment_queries = [
+            query for query in queries if "sentry_eventattachment" in query["sql"]
+        ]
+        assert len(attachment_queries) == 1
+
+    @with_feature("organizations:event-attachments")
+    @patch("sentry.api.serializers.models.group_stream.bulk_get_latest_event_ids", return_value={})
+    def test_expand_no_latest_event_has_no_attachments(self, mock_latest_events: MagicMock) -> None:
         self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
