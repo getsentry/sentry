@@ -537,6 +537,11 @@ def _get_dif_object_name(meta: DifMeta) -> str:
     raise TypeError(f"unknown dif type {meta.file_format!r}")
 
 
+def _get_dif_download_filename(meta: DifMeta) -> str:
+    file_type = (meta.data or {}).get("type")
+    return f"{os.path.basename(meta.debug_id)}{_dif_file_extension(meta.file_format, file_type)}"
+
+
 def _find_existing_dif(project: Project, meta: DifMeta, checksum: str) -> ProjectDebugFile | None:
     return (
         ProjectDebugFile.objects.select_related("file")
@@ -546,11 +551,6 @@ def _find_existing_dif(project: Project, meta: DifMeta, checksum: str) -> Projec
         .order_by("-id")
         .first()
     )
-
-
-def _get_dif_objectstore_filename(meta: DifMeta) -> str:
-    file_type = (meta.data or {}).get("type")
-    return f"{os.path.basename(meta.debug_id)}{_dif_file_extension(meta.file_format, file_type)}"
 
 
 def create_objectstore_dif_from_id(
@@ -572,7 +572,7 @@ def create_objectstore_dif_from_id(
         fileobj,
         content_type,
         file_size,
-        _get_dif_objectstore_filename(meta),
+        _get_dif_download_filename(meta),
     )
 
     metrics.distribution(
@@ -678,7 +678,7 @@ def create_dif_from_id(
     objectstore_metadata: dict[str, Any] = {}
     if features.has("organizations:objectstore-debugfiles-write", project.organization):
         session = get_debug_files_session(project.organization_id, project.id)
-        filename = _get_dif_objectstore_filename(meta)
+        filename = _get_dif_download_filename(meta)
         try:
             with file.getfile() as source:
                 storage_path = _upload_dif_to_objectstore(
