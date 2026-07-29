@@ -27,6 +27,7 @@ import {ReplayDetailsPageBreadcrumbs} from 'sentry/views/explore/replays/detail/
 import {ReplayDetailsUserBadge} from 'sentry/views/explore/replays/detail/header/replayDetailsUserBadge';
 import {ReplayDetailsPage} from 'sentry/views/explore/replays/detail/page';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
@@ -62,6 +63,7 @@ function ReplayDetailsContent() {
   const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const {replaySlug} = useParams();
   invariant(replaySlug, '`replaySlug` is required as part of the route params');
 
@@ -109,7 +111,7 @@ function ReplayDetailsContent() {
 
   const pageContent = (
     <Fragment>
-      {organization.features.includes('ui-migration-breadcrumbs') ? (
+      {hasNewBreadcrumbs ? (
         <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
       ) : (
         <TopBar.Slot name="title">
