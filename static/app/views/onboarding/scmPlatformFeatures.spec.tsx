@@ -5,6 +5,7 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -19,6 +20,7 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
+import * as queryClient from 'sentry/utils/queryClient';
 
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
 
@@ -69,7 +71,6 @@ function defaultProps(state: StateOverrides = {}) {
     createdProjectSlug: state.createdProjectSlug,
     onPlatformChange: jest.fn(),
     onFeaturesChange: jest.fn(),
-    onClearProjectDetailsForm: jest.fn(),
     onProjectCreated: jest.fn(),
     onComplete: jest.fn(),
   };
@@ -408,32 +409,6 @@ describe('ScmPlatformFeatures', () => {
     );
   });
 
-  it('clears persisted project details form when detected platform changes', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/42/platforms/`,
-      body: {
-        platforms: [
-          DetectedPlatformFixture(),
-          DetectedPlatformFixture({
-            platform: 'python-django',
-            language: 'Python',
-            priority: 2,
-          }),
-        ],
-      },
-    });
-
-    // The component is stateless w.r.t. the form, so we just verify it calls
-    // the clear callback when the user changes the detected platform.
-    const props = defaultProps({selectedRepository: mockRepository});
-    render(<ScmPlatformFeatures {...props} />, {organization});
-
-    const djangoCard = await screen.findByRole('radio', {name: /Django/});
-    await userEvent.click(djangoCard);
-
-    expect(props.onClearProjectDetailsForm).toHaveBeenCalled();
-  });
-
   describe('analytics', () => {
     let trackAnalyticsSpy: jest.SpyInstance;
 
@@ -624,7 +599,7 @@ describe('ScmPlatformFeatures', () => {
     });
   });
 
-  describe('project-details step skipped (control group)', () => {
+  describe('auto-creating the project on Continue', () => {
     const adminTeam = TeamFixture({slug: 'admin-team', access: ['team:admin']});
     const nextJsPlatform = {
       key: 'javascript-nextjs' as const,
@@ -744,6 +719,52 @@ describe('ScmPlatformFeatures', () => {
       );
     });
 
+    it('blocks duplicate creation while repository linking is pending', async () => {
+      let resolveRepositoryLink!: () => void;
+      const repositoryLink = new Promise<void>(resolve => {
+        resolveRepositoryLink = resolve;
+      });
+      const fetchMutationSpy = jest
+        .spyOn(queryClient, 'fetchMutation')
+        .mockReturnValue(repositoryLink);
+      const createdProject = ProjectFixture({
+        slug: 'javascript-nextjs',
+        platform: 'javascript-nextjs',
+      });
+      const createRequest = MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        body: createdProject,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/${mockRepository.id}/platforms/`,
+        body: [],
+      });
+
+      const props = defaultProps({
+        selectedPlatform: nextJsPlatform,
+        selectedRepository: mockRepository,
+        selectedFeatures: [ProductSolution.ERROR_MONITORING],
+      });
+      render(<ScmPlatformFeatures {...props} />, {organization});
+
+      const continueButton = screen.getByRole('button', {name: 'Continue'});
+      await waitFor(() => expect(continueButton).toBeEnabled());
+      await userEvent.click(continueButton);
+
+      await waitFor(() => expect(createRequest).toHaveBeenCalledTimes(1));
+      expect(continueButton).toBeDisabled();
+      await userEvent.click(continueButton);
+      expect(createRequest).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        resolveRepositoryLink();
+        await repositoryLink;
+      });
+      await waitFor(() => expect(props.onComplete).toHaveBeenCalled());
+      fetchMutationSpy.mockRestore();
+    });
+
     it('reuses the existing project when the platform is unchanged', async () => {
       const existingProject = ProjectFixture({
         slug: 'javascript-nextjs',
@@ -859,51 +880,6 @@ describe('ScmPlatformFeatures', () => {
           {product: [ProductSolution.ERROR_MONITORING]}
         );
       });
-    });
-  });
-
-  describe('project-details step enabled (experiment group)', () => {
-    const experimentOrganization = OrganizationFixture({
-      features: [
-        'performance-view',
-        'session-replay',
-        'profiling-view',
-        'onboarding-scm-project-details-experiment',
-      ],
-    });
-    const nextJsPlatform = {
-      key: 'javascript-nextjs' as const,
-      name: 'Next.js',
-      language: 'javascript' as const,
-      link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
-      type: 'framework' as const,
-      category: 'browser' as const,
-    };
-
-    it('advances without creating a project on Continue', async () => {
-      const createRequest = MockApiClient.addMockResponse({
-        url: `/teams/${experimentOrganization.slug}/team-slug/projects/`,
-        method: 'POST',
-        body: ProjectFixture(),
-      });
-
-      const props = defaultProps({
-        selectedPlatform: nextJsPlatform,
-        selectedFeatures: [ProductSolution.ERROR_MONITORING],
-      });
-      render(<ScmPlatformFeatures {...props} />, {
-        organization: experimentOrganization,
-      });
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
-      });
-      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-
-      await waitFor(() => {
-        expect(props.onComplete).toHaveBeenCalledWith();
-      });
-      expect(createRequest).not.toHaveBeenCalled();
     });
   });
 });

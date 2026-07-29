@@ -40,7 +40,6 @@ import {OnboardingSkipButton} from './components/onboardingSkipButton';
 import {PlatformSelection} from './platformSelection';
 import {ScmConnect} from './scmConnect';
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
-import {ScmProjectDetails} from './scmProjectDetails';
 import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
 
@@ -106,7 +105,6 @@ function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
     setSelectedPlatform,
     selectedFeatures,
     setSelectedFeatures,
-    setProjectDetailsForm,
     createdProjectSlug,
     setCreatedProjectSlug,
   } = useOnboardingContext();
@@ -119,34 +117,7 @@ function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
       createdProjectSlug={createdProjectSlug}
       onPlatformChange={setSelectedPlatform}
       onFeaturesChange={setSelectedFeatures}
-      onClearProjectDetailsForm={() => setProjectDetailsForm(undefined)}
       onProjectCreated={setCreatedProjectSlug}
-      onComplete={onComplete}
-      genBackButton={genBackButton}
-    />
-  );
-}
-
-function ScmProjectDetailsAdapter({onComplete, genBackButton}: StepProps) {
-  const {
-    selectedPlatform,
-    selectedFeatures,
-    selectedRepository,
-    createdProjectSlug,
-    setCreatedProjectSlug,
-    projectDetailsForm,
-    setProjectDetailsForm,
-  } = useOnboardingContext();
-
-  return (
-    <ScmProjectDetails
-      selectedPlatform={selectedPlatform}
-      selectedFeatures={selectedFeatures}
-      selectedRepository={selectedRepository}
-      createdProjectSlug={createdProjectSlug}
-      projectDetailsForm={projectDetailsForm}
-      onProjectCreated={setCreatedProjectSlug}
-      onProjectDetailsFormChange={setProjectDetailsForm}
       onComplete={onComplete}
       genBackButton={genBackButton}
     />
@@ -170,13 +141,6 @@ const scmOnboardingSteps: StepDescriptor[] = [
     id: OnboardingStepId.SCM_PLATFORM_FEATURES,
     title: t('Create your first project'),
     Component: ScmPlatformFeaturesAdapter,
-    cornerVariant: 'top-left',
-  },
-  {
-    id: OnboardingStepId.SCM_PROJECT_DETAILS,
-    title: t('Project details'),
-    Component: ScmProjectDetailsAdapter,
-    hasFooter: true,
     cornerVariant: 'top-left',
   },
   {
@@ -265,18 +229,7 @@ export function OnboardingWithoutContext() {
     reportExposure: isNewOrgOnboarding,
   });
 
-  // Only report exposure for users who are actually in SCM onboarding —
-  // the assignment is irrelevant for legacy onboarding.
-  const {inExperiment: hasProjectDetailsStep} = useExperiment({
-    feature: 'onboarding-scm-project-details-experiment',
-    reportExposure: hasScmOnboarding && isNewOrgOnboarding,
-  });
-
-  const scmSteps = hasProjectDetailsStep
-    ? scmOnboardingSteps
-    : scmOnboardingSteps.filter(s => s.id !== OnboardingStepId.SCM_PROJECT_DETAILS);
-
-  const onboardingSteps = hasScmOnboarding ? scmSteps : legacyOnboardingSteps;
+  const onboardingSteps = hasScmOnboarding ? scmOnboardingSteps : legacyOnboardingSteps;
 
   useReplayForCriticalFlow({
     flowName: 'scm_onboarding',

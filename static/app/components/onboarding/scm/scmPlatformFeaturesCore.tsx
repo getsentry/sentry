@@ -58,11 +58,11 @@ const SKIP_DETECTION_CLICKED_EVENT = {
 
 interface ScmPlatformFeaturesCoreProps {
   analyticsFlow: ScmAnalyticsFlow;
-  onClearProjectDetailsForm: () => void;
   onFeaturesChange: (features: ProductSolution[] | undefined) => void;
   onPlatformChange: (platform: OnboardingSelectedSDK | undefined) => void;
   selectedPlatform: OnboardingSelectedSDK | undefined;
   selectedRepository: Repository | undefined;
+  onClearProjectDetailsForm?: () => void;
 }
 
 /**
@@ -175,7 +175,7 @@ export function ScmPlatformFeaturesCore({
   const applyPlatformSelection = (sdk: OnboardingSelectedSDK) => {
     onPlatformChange(sdk);
     onFeaturesChange(DEFAULT_SCM_FEATURES);
-    onClearProjectDetailsForm();
+    onClearProjectDetailsForm?.();
   };
 
   // Inverse of a platform selection: drop the platform and everything derived
@@ -194,7 +194,7 @@ export function ScmPlatformFeaturesCore({
     autoDetectionTrackedRef.current = true;
     onPlatformChange(undefined);
     onFeaturesChange(undefined);
-    onClearProjectDetailsForm();
+    onClearProjectDetailsForm?.();
   };
 
   const handleManualPlatformSelect = async (option: {value: string}) => {
@@ -254,7 +254,7 @@ export function ScmPlatformFeaturesCore({
 
     setPlatform(platformKey);
     onFeaturesChange(DEFAULT_SCM_FEATURES);
-    onClearProjectDetailsForm();
+    onClearProjectDetailsForm?.();
 
     trackScmPlatformSelected(analyticsFlow, organization, platformKey, 'manual');
   };
@@ -265,7 +265,7 @@ export function ScmPlatformFeaturesCore({
     }
     setPlatform(platformKey);
     onFeaturesChange(DEFAULT_SCM_FEATURES);
-    onClearProjectDetailsForm();
+    onClearProjectDetailsForm?.();
 
     trackScmPlatformSelected(analyticsFlow, organization, platformKey, 'detected');
   };
@@ -305,7 +305,7 @@ export function ScmPlatformFeaturesCore({
     }
     setPlatform(detectedPlatformKey);
     onFeaturesChange(DEFAULT_SCM_FEATURES);
-    onClearProjectDetailsForm();
+    onClearProjectDetailsForm?.();
     // Leaving a manual pick for the detected platform is itself a platform
     // selection, so record it as the detected source (mirrors the auto-adopt
     // path and handleSelectDetectedPlatform, which were the only detected-source

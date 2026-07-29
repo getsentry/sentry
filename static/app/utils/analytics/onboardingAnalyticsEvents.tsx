@@ -92,21 +92,6 @@ export type OnboardingEventParameters = {
     platform: string;
     source: 'detected' | 'manual';
   };
-  'onboarding.scm_project_details_alert_selected': {
-    option: string;
-  };
-  'onboarding.scm_project_details_create_clicked': Record<string, unknown>;
-  'onboarding.scm_project_details_create_failed': Record<string, unknown>;
-  'onboarding.scm_project_details_create_succeeded': {
-    project_slug: string;
-  };
-  'onboarding.scm_project_details_name_edited': {
-    custom: boolean;
-  };
-  'onboarding.scm_project_details_step_viewed': Record<string, unknown>;
-  'onboarding.scm_project_details_team_selected': {
-    team: string;
-  };
   'onboarding.scm_select_framework_modal_rendered': {
     platform: string;
   };
@@ -225,20 +210,6 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
     'Onboarding: SCM Platform Features Step Viewed',
   'onboarding.scm_platform_selected': 'Onboarding: SCM Platform Selected',
   'onboarding.scm_skip_detection_clicked': 'Onboarding: SCM Skip Detection Clicked',
-  'onboarding.scm_project_details_alert_selected':
-    'Onboarding: SCM Project Details Alert Selected',
-  'onboarding.scm_project_details_create_clicked':
-    'Onboarding: SCM Project Details Create Clicked',
-  'onboarding.scm_project_details_create_failed':
-    'Onboarding: SCM Project Details Create Failed',
-  'onboarding.scm_project_details_create_succeeded':
-    'Onboarding: SCM Project Details Create Succeeded',
-  'onboarding.scm_project_details_name_edited':
-    'Onboarding: SCM Project Details Name Edited',
-  'onboarding.scm_project_details_step_viewed':
-    'Onboarding: SCM Project Details Step Viewed',
-  'onboarding.scm_project_details_team_selected':
-    'Onboarding: SCM Project Details Team Selected',
   'onboarding.scm_setup_platform_later_clicked':
     'Onboarding: SCM Setup Platform Later Clicked',
   'onboarding.scm_take_to_error_clicked': 'Onboarding: SCM Take to Error Clicked',
