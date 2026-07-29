@@ -26,6 +26,7 @@ import {
   MAX_PICKABLE_DAYS,
 } from 'sentry/views/explore/conversations/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 function ConversationsLayout() {
   const organization = useOrganization();
@@ -90,6 +91,7 @@ function ConversationsHeader() {
 
 function ConversationsLandingHeader() {
   const organization = useOrganization();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const location = useLocation();
   const savedQueryTitle = decodeScalar(location.query.title);
   const savedQueryId = decodeScalar(location.query.id);
@@ -108,7 +110,7 @@ function ConversationsLandingHeader() {
     );
   }
 
-  if (organization.features.includes('ui-migration-breadcrumbs')) {
+  if (hasNewBreadcrumbs) {
     return (
       <Fragment>
         <TopBar.Slot name="breadcrumbs">
