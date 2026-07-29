@@ -19,8 +19,8 @@ import {
   TraceViewMetricsProviderWrapper,
   TraceViewMetricsSection,
 } from 'sentry/views/performance/newTraceDetails/traceMetrics';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
-  type InjectedTraceError,
   TraceViewLogsDataProvider,
   TraceViewLogsSection,
 } from 'sentry/views/performance/newTraceDetails/traceOurlogs';
@@ -176,18 +176,22 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     metricsEnabled,
   });
 
+  const traceNode = tree.root.children[0];
   const traceErrors = useMemo(() => {
-    const errorsByEventId = new Map<string, InjectedTraceError>();
-    for (const node of tree.list) {
-      const nodeStartMs = node.space[0];
-      const fallbackTimestampSeconds =
-        Number.isFinite(nodeStartMs) && nodeStartMs > 0 ? nodeStartMs / 1000 : 0;
-      for (const error of node.errors) {
-        errorsByEventId.set(error.event_id, {error, fallbackTimestampSeconds});
-      }
+    if (!traceNode) {
+      return [];
     }
+
+    const errorsByEventId = new Map<string, TraceTree.TraceErrorIssue>();
+    for (const error of traceNode.errors) {
+      errorsByEventId.set(error.event_id, error);
+    }
+
     return Array.from(errorsByEventId.values());
-  }, [tree.list]);
+  }, [traceNode]);
+
+  const traceStartMs = traceNode?.space[0] ?? 0;
+  const traceStartSeconds = traceStartMs > 0 ? traceStartMs / 1000 : 0;
 
   // Push trace metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
@@ -267,7 +271,10 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
               <TraceProfiles tree={tree} />
             ) : null}
             {currentTab === TraceLayoutTabKeys.LOGS ? (
-              <TraceViewLogsSection errors={traceErrors} />
+              <TraceViewLogsSection
+                errors={traceErrors}
+                fallbackTimestampSeconds={traceStartSeconds}
+              />
             ) : null}
             {currentTab === TraceLayoutTabKeys.METRICS ? (
               <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>

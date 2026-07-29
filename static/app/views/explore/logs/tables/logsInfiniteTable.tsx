@@ -86,6 +86,7 @@ import {
   isErrorLogRow,
   isRegularLogResponseItem,
   logsFieldAlignment,
+  mergeRowsByTimestampDescending,
   quantizeTimestampToMinutes,
   type ErrorLogRowItem,
   type LogTableRowItem,
@@ -185,6 +186,13 @@ export function LogsInfiniteTable({
   const baseData = localOnlyItemFilters?.filteredItems ?? originalData;
   const baseDataLength = useBox(baseData.length);
 
+  const sortBys = useQueryParamsSortBys();
+  const hasInjectedErrorRows =
+    !!injectedErrorRows?.length &&
+    sortBys.length === 1 &&
+    sortBys[0]!.field === logsTimestampDescendingSortBy.field &&
+    sortBys[0]!.kind === logsTimestampDescendingSortBy.kind;
+
   const pseudoRowIndex = useMemo(() => {
     if (
       !additionalData?.event ||
@@ -229,15 +237,11 @@ export function LogsInfiniteTable({
       );
     }
 
-    if (!injectedErrorRows?.length || isPending) {
+    if (!hasInjectedErrorRows || isPending) {
       return withEvent;
     }
 
-    // Safe to sort descending because the trace logs table is always fixed to
-    // timestamp-descending; errors outside the loaded window land at the edge.
-    return [...withEvent, ...injectedErrorRows].sort(
-      (a, b) => getLogRowTimestampMillis(b) - getLogRowTimestampMillis(a)
-    );
+    return mergeRowsByTimestampDescending(withEvent, injectedErrorRows);
   }, [
     baseData,
     additionalData,
@@ -245,10 +249,11 @@ export function LogsInfiniteTable({
     isError,
     pseudoRowIndex,
     baseDataLength,
+    hasInjectedErrorRows,
     injectedErrorRows,
   ]);
 
-  const isEmptyWithoutInjectedErrors = isEmpty && !injectedErrorRows?.length;
+  const isEmptyWithoutInjectedErrors = isEmpty && !hasInjectedErrorRows;
 
   // Calculate quantized start and end times for replay links
   const {logStart, logEnd} = useMemo(() => {
@@ -600,7 +605,7 @@ export function LogsInfiniteTable({
   }
 
   if (
-    !injectedErrorRows?.length &&
+    !hasInjectedErrorRows &&
     originalData.length < 20 &&
     originalData.length > 0 &&
     !isPending &&

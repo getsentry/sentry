@@ -45,30 +45,36 @@ export function TraceViewLogsDataProvider({
   );
 }
 
-export interface InjectedTraceError {
-  error: TraceTree.TraceErrorIssue;
-  fallbackTimestampSeconds: number;
+interface TraceViewLogsSectionProps {
+  errors?: TraceTree.TraceErrorIssue[];
+  fallbackTimestampSeconds?: number;
 }
 
-export function TraceViewLogsSection({errors = []}: {errors?: InjectedTraceError[]}) {
+export function TraceViewLogsSection({
+  errors = [],
+  fallbackTimestampSeconds = 0,
+}: TraceViewLogsSectionProps) {
   return (
     <StyledPanel>
-      <LogsSectionContent errors={errors} />
+      <LogsSectionContent
+        errors={errors}
+        fallbackTimestampSeconds={fallbackTimestampSeconds}
+      />
     </StyledPanel>
   );
 }
 
-function LogsSectionContent({errors}: {errors: InjectedTraceError[]}) {
+function LogsSectionContent({
+  errors,
+  fallbackTimestampSeconds,
+}: Required<TraceViewLogsSectionProps>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const traceIds = useLogsFrozenTraceIds();
 
   const injectedErrorRows = useMemo(
-    () =>
-      errors.map(({error, fallbackTimestampSeconds}) =>
-        createErrorLogRow(error, fallbackTimestampSeconds)
-      ),
-    [errors]
+    () => errors.map(error => createErrorLogRow(error, fallbackTimestampSeconds)),
+    [errors, fallbackTimestampSeconds]
   );
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =

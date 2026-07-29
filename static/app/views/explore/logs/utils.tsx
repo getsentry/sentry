@@ -259,6 +259,36 @@ export function getLogRowTimestampMillis(row: LogTableRowItem): number {
   return Number(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000;
 }
 
+export function mergeRowsByTimestampDescending(
+  sortedRows: readonly LogTableRowItem[],
+  injectedRows: readonly LogTableRowItem[]
+): LogTableRowItem[] {
+  const sortedInjectedRows = [...injectedRows].sort(
+    (a, b) => getLogRowTimestampMillis(b) - getLogRowTimestampMillis(a)
+  );
+
+  const merged: LogTableRowItem[] = [];
+  let rowIndex = 0;
+  let injectedIndex = 0;
+
+  while (rowIndex < sortedRows.length && injectedIndex < sortedInjectedRows.length) {
+    const row = sortedRows[rowIndex]!;
+    const injectedRow = sortedInjectedRows[injectedIndex]!;
+    if (getLogRowTimestampMillis(injectedRow) > getLogRowTimestampMillis(row)) {
+      merged.push(injectedRow);
+      injectedIndex++;
+    } else {
+      merged.push(row);
+      rowIndex++;
+    }
+  }
+
+  return merged.concat(
+    sortedRows.slice(rowIndex),
+    sortedInjectedRows.slice(injectedIndex)
+  );
+}
+
 function getLogRowSortValue(
   row: LogTableRowItem,
   field: OurLogFieldKey
