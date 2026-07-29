@@ -57,7 +57,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
-            details_url = f'[href="/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.id}'
+            details_url = f'[href="/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}'
             self.browser.wait_until(details_url)
             self.browser.click(details_url)
 
