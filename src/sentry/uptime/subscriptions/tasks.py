@@ -219,7 +219,7 @@ def broken_monitor_checker(**kwargs):
             disable_uptime_detector(detector)
 
             create_system_audit_entry(
-                organization=detector.project.organization,
+                organization=detector.linked_project.organization,
                 target_object=detector.id,
                 event=audit_log.get_event_id("UPTIME_MONITOR_DISABLE_BROKEN"),
                 data={

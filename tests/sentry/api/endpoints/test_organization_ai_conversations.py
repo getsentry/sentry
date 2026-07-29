@@ -243,6 +243,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["inputTokens"] == LLM_INPUT_TOKENS * 2
         assert conversation["outputTokens"] == LLM_OUTPUT_TOKENS * 2
         assert conversation["totalCost"] == LLM_COST * 2
+        assert conversation["projectId"] == self.project.id
+        assert conversation["generationDuration"] > 0
         assert conversation["traceCount"] == 1
         assert conversation["startTimestamp"] > 0
         assert conversation["endTimestamp"] > 0
