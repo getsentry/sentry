@@ -128,5 +128,44 @@
         }
       }
     ]
+  },
+  {
+    "name": "code",
+    "description": "Display a syntax-highlighted code snippet, typically from a stack trace frame. Use this for source code, stack frames, and configuration examples — NOT for inline code spans (use markdown backticks for those). MUST NOT appear inside a markdown table or list.",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "language": {
+          "type": "string"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "highlight": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "required": ["code"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Stack frame",
+        "data": {
+          "code": "function handleClick() {\n  const data = null;\n  return data.value;\n}",
+          "language": "javascript",
+          "filename": "src/app/utils/handler.js",
+          "highlight": [3]
+        }
+      }
+    ]
   }
 ]

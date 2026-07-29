@@ -72,6 +72,31 @@ export const SEER_EMBED_SCHEMAS = {
       {label: 'Team', data: {id: '2', type: 'team', name: 'platform'}},
     ],
   },
+  code: {
+    description:
+      'Display a syntax-highlighted code snippet, typically from a stack trace frame. ' +
+      'Use this for source code, stack frames, and configuration examples — ' +
+      'NOT for inline code spans (use markdown backticks for those). ' +
+      'MUST NOT appear inside a markdown table or list.',
+    level: ['block'],
+    schema: z.object({
+      code: z.string(),
+      language: z.string().optional(),
+      filename: z.string().optional(),
+      highlight: z.array(z.number()).optional(),
+    }),
+    examples: [
+      {
+        label: 'Stack frame',
+        data: {
+          code: 'function handleClick() {\n  const data = null;\n  return data.value;\n}',
+          language: 'javascript',
+          filename: 'src/app/utils/handler.js',
+          highlight: [3],
+        },
+      },
+    ],
+  },
 } as const satisfies Record<string, SeerEmbedSchema>;
 
 export type SeerEmbedName = keyof typeof SEER_EMBED_SCHEMAS;
