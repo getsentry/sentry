@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
@@ -318,6 +318,52 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
 
     expect(localStorage.getItem('seer-explorer-sidebar-seer-size:bottom')).toBe('700');
+  });
+
+  it('keeps the persisted Seer width when the available width changes', async () => {
+    mockWideScreen(true);
+    const dims = jest
+      .spyOn(useDimensionsModule, 'useDimensions')
+      .mockReturnValue({width: 1200, height: 800});
+    localStorage.setItem('seer-explorer-sidebar-seer-size:right', '500');
+
+    const pendingFrames: FrameRequestCallback[] = [];
+    jest.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
+      pendingFrames.push(callback);
+      return pendingFrames.length;
+    });
+    jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+
+    const {rerender} = render(sidebarTree(), {organization: orgWithSidebar});
+    await userEvent.click(screen.getByText('open-seer'));
+    const input = await screen.findByTestId('seer-explorer-input');
+    await waitFor(() => expect(input).toHaveFocus());
+
+    const separator = screen.getByRole('separator');
+    // Available width 1200 - persisted Seer width 500 = content width 700.
+    expect(separator).toHaveAttribute('aria-valuenow', '700');
+
+    // Move the divider 10px left. Keep the animation frame pending so the test
+    // covers the same event ordering as a fast pointer drag followed by release.
+    await userEvent.pointer([
+      {keys: '[MouseLeft>]', target: separator, coords: {x: 700, y: 0}},
+      {target: separator, coords: {x: 690, y: 0}},
+    ]);
+    act(() => {
+      document.dispatchEvent(new MouseEvent('pointerup', {bubbles: true}));
+      pendingFrames.forEach(callback => callback(0));
+    });
+
+    expect(separator).toHaveAttribute('aria-valuenow', '690');
+    expect(localStorage.getItem('seer-explorer-sidebar-seer-size:right')).toBe('510');
+
+    // Simulate a secondary navigation/window resize. The content pane should
+    // change size while Seer remains at its persisted 510px width.
+    dims.mockReturnValue({width: 1000, height: 800});
+    rerender(sidebarTree());
+
+    expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '490');
+    expect(localStorage.getItem('seer-explorer-sidebar-seer-size:right')).toBe('510');
   });
 
   it('switches to the run when opened with a runId (deep link / session picker)', async () => {

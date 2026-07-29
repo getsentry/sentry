@@ -130,36 +130,40 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
       // applied to the root most element to work
       document.documentElement.style.cursor = isXAxis ? 'ew-resize' : 'ns-resize';
 
+      if (!currentMouseVectorRaf.current) {
+        return;
+      }
+
+      const newPositionVector: [number, number] = [event.clientX, event.clientY];
+      const newAxisPosition = isXAxis ? newPositionVector[0] : newPositionVector[1];
+
+      const currentAxisPosition = isXAxis
+        ? currentMouseVectorRaf.current[0]
+        : currentMouseVectorRaf.current[1];
+
+      const positionDelta = currentAxisPosition - newAxisPosition;
+
+      currentMouseVectorRaf.current = newPositionVector;
+
+      // Round to 1px precision. Clamp to [min, max]. Update sizeRef
+      // synchronously so a drag-end that races the pending frame (fast
+      // drag + release) still reports the size the user dragged to via
+      // onResizeEnd, rather than a stale value.
+      sizeRef.current = Math.round(
+        clampSize(
+          sizeRef.current + positionDelta * (isInverted ? -1 : 1),
+          options.min,
+          options.max
+        )
+      );
+
+      // Throttle the state update / side effects to one per frame.
       if (rafIdRef.current !== null) {
         window.cancelAnimationFrame(rafIdRef.current);
       }
-
       rafIdRef.current = window.requestAnimationFrame(() => {
-        if (!currentMouseVectorRaf.current) {
-          return;
-        }
-
-        const newPositionVector: [number, number] = [event.clientX, event.clientY];
-        const newAxisPosition = isXAxis ? newPositionVector[0] : newPositionVector[1];
-
-        const currentAxisPosition = isXAxis
-          ? currentMouseVectorRaf.current[0]
-          : currentMouseVectorRaf.current[1];
-
-        const positionDelta = currentAxisPosition - newAxisPosition;
-
-        currentMouseVectorRaf.current = newPositionVector;
-
-        // Round to 1px precision. Clamp to [min, max].
-        const newSize = Math.round(
-          clampSize(
-            sizeRef.current + positionDelta * (isInverted ? -1 : 1),
-            options.min,
-            options.max
-          )
-        );
-
-        updateSize(newSize, true);
+        rafIdRef.current = null;
+        updateSize(sizeRef.current, true);
       });
     },
     [options.direction, options.min, options.max, updateSize]
