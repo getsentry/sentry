@@ -90,10 +90,7 @@ export function ReplayAccessMembersField({
   organization: Organization;
 }) {
   const endpoint = `/organizations/${organization.slug}/`;
-  const initialValue = useMemo(
-    () => (organization.replayAccessMembers ?? []).map(String),
-    [organization.replayAccessMembers]
-  );
+  const initialValue = (organization.replayAccessMembers ?? []).map(String);
 
   const [selectedIds, setSelectedIds] = useState(initialValue);
   const {data: selectedMembers = []} = useMembers({ids: selectedIds});
