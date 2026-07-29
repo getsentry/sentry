@@ -29,6 +29,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {ProjectTableHeader} from 'sentry/components/seer/projectTable/seerProjectTableHeader';
+import type {TableColumnConfig} from 'sentry/components/tables/table';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
@@ -64,6 +65,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const estimateSize = () => 41;
+
+const TABLE_COLUMNS: TableColumnConfig[] = [
+  {key: 'select', width: 'max-content'},
+  {key: 'project', width: '2fr'},
+  {key: 'repos', width: '74px'},
+  {key: 'fixes', width: '1fr'},
+  {key: 'automation_steps', width: '1fr'},
+];
 
 export function SeerProjectTable() {
   const queryClient = useQueryClient();
@@ -194,7 +203,7 @@ export function SeerProjectTable() {
         knownIds={data?.map(item => String(item.projectId)) ?? []}
         endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
       >
-        <InfiniteTable.Table gridTemplateColumns="max-content 2fr 74px repeat(2, 1fr)">
+        <InfiniteTable.Table columns={TABLE_COLUMNS}>
           <ProjectTableHeader
             settings={data ?? []}
             sort={sortBy}

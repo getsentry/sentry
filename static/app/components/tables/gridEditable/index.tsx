@@ -11,7 +11,6 @@ import {
   COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
   Table,
-  TABLE_HEAD_ROW_HEIGHT,
   type TableColumnConfig,
 } from 'sentry/components/tables/table';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
@@ -242,7 +241,7 @@ export function GridEditable<
             columns={columns}
             data-test-id="grid-editable"
             fit={fit}
-            headRowHeight={TABLE_HEAD_ROW_HEIGHT}
+            definiteHeadRow
             height={height}
             minimumColumnWidth={minimumColWidth}
             onColumnResize={onColumnResize}

@@ -320,6 +320,7 @@ export function LogsInfiniteTable({
 
   const {paddingBottom, paddingTop, virtualItems, virtualizer} = useVirtualRows({
     count: data?.length ?? 0,
+    estimateKey: expandedLogRowsHeights,
     estimateSize,
     getItemKey,
     getScrollElement: () => tableBodyRef?.current,

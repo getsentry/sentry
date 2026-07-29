@@ -21,7 +21,6 @@ import {useColumnResize} from 'sentry/components/tables/useColumnResize';
 import {defined} from 'sentry/utils/defined';
 
 import {
-  TABLE_HEAD_ROW_HEIGHT,
   TableBody,
   TableCell,
   TableGrid,
@@ -31,8 +30,6 @@ import {
   TableRow,
   TableStatusCell,
 } from './styles';
-
-export {TABLE_HEAD_ROW_HEIGHT};
 
 export const COL_WIDTH_UNDEFINED = -1;
 
@@ -73,7 +70,6 @@ interface TableContextValue {
   onResizeMouseDown: (event: React.MouseEvent, index: number) => void;
   resizableByIndex: boolean[];
   tableRef: RefObject<HTMLTableElement | null>;
-  headRowHeight?: number;
 }
 
 const TableContext = createContext<TableContextValue | null>(null);
@@ -96,14 +92,17 @@ export interface TableProps extends Omit<
 > {
   children: ReactNode;
   columns?: TableColumnConfig[];
+  /**
+   * Pins the head row to a definite track height. Opt-in because it forces
+   * every head row to a fixed height regardless of its content.
+   */
+  definiteHeadRow?: boolean;
   fit?: 'max-content';
   getColumnTrack?: (
     width: ResolvedWidth,
     column: TableColumnConfig,
     index: number
   ) => string;
-  gridTemplateColumns?: string;
-  headRowHeight?: number;
   height?: CSSProperties['height'];
   minimumColumnWidth?: number;
   onColumnResize?: (index: number, width: number) => void;
@@ -115,10 +114,9 @@ export interface TableProps extends Omit<
 export function Table({
   children,
   columns = EMPTY_COLUMNS,
+  definiteHeadRow,
   fit,
   getColumnTrack,
-  gridTemplateColumns,
-  headRowHeight,
   height,
   minimumColumnWidth = COL_WIDTH_MINIMUM,
   onColumnResize,
@@ -153,19 +151,12 @@ export function Table({
       });
 
       if (!tracks.length) {
-        return gridTemplateColumns ?? '';
+        return '';
       }
 
       return [...(prependColumnWidths ?? []), ...tracks].join(' ');
     },
-    [
-      columns,
-      getColumnTrack,
-      gridTemplateColumns,
-      minimumColumnWidth,
-      prependColumnWidths,
-      resolveWidth,
-    ]
+    [columns, getColumnTrack, minimumColumnWidth, prependColumnWidths, resolveWidth]
   );
 
   const {onResizeMouseDown, applyTemplate} = useColumnResize({
@@ -203,7 +194,13 @@ export function Table({
   );
 
   const redraw = useCallback(() => {
-    applyTemplate(buildTemplate());
+    const template = buildTemplate();
+
+    // An empty template means the shell has no opinion about tracks, so writing
+    // it would clobber whatever the consumer set via CSS or an inline style.
+    if (template) {
+      applyTemplate(template);
+    }
   }, [applyTemplate, buildTemplate]);
 
   useEffect(() => {
@@ -218,22 +215,21 @@ export function Table({
   const contextValue = useMemo<TableContextValue>(
     () => ({
       columnIndexByKey: new Map(columns.map((column, index) => [column.key, index])),
-      headRowHeight,
       lastColumnIndex: columns.length - 1,
       onResetColumnSize,
       onResizeMouseDown,
       resizableByIndex: columns.map(column => column.resizable !== false),
       tableRef: gridRef,
     }),
-    [columns, gridRef, headRowHeight, onResetColumnSize, onResizeMouseDown]
+    [columns, gridRef, onResetColumnSize, onResizeMouseDown]
   );
 
   return (
     <TableContext value={contextValue}>
       <TableGrid
         {...props}
+        definiteHeadRow={definiteHeadRow}
         fit={fit}
-        headRowHeight={headRowHeight}
         height={height}
         ref={gridRef}
         role="table"
@@ -245,18 +241,21 @@ export function Table({
   );
 }
 
-function withRole<C extends React.ElementType>(Component: C, role: string) {
-  return function RoleComponent(props: ComponentProps<C>) {
-    // eslint-disable-next-line @sentry/no-unnecessary-type-annotation -- widening off `C` is what lets JSX accept the spread props
-    const Tag: React.ElementType = Component;
-    return <Tag role={role} {...props} />;
-  };
+function Head(props: ComponentProps<typeof TableHead>) {
+  return <TableHead role="rowgroup" {...props} />;
 }
 
-const Head = withRole(TableHead, 'rowgroup');
-const Body = withRole(TableBody, 'rowgroup');
-const Row = withRole(TableRow, 'row');
-const Cell = withRole(TableCell, 'cell');
+function Body(props: ComponentProps<typeof TableBody>) {
+  return <TableBody role="rowgroup" {...props} />;
+}
+
+function Row(props: ComponentProps<typeof TableRow>) {
+  return <TableRow role="row" {...props} />;
+}
+
+function Cell(props: ComponentProps<typeof TableCell>) {
+  return <TableCell role="cell" {...props} />;
+}
 
 interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
   column?: string;
@@ -280,7 +279,6 @@ function HeadCell({children, column, columnIndex, ...props}: HeadCellProps) {
       {showResizer && (
         <TableResizer
           data-test-id="table-column-resizer"
-          headRowHeight={context.headRowHeight}
           onContextMenu={event => context.onResizeMouseDown(event, index)}
           onDoubleClick={event => context.onResetColumnSize(event, index)}
           onMouseDown={event => context.onResizeMouseDown(event, index)}

@@ -15,6 +15,7 @@ import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgentDropdownMenu';
 import {StoppingPointDropdownMenu} from 'sentry/components/seer/stoppingPointDropdownMenu';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import type {TableColumnConfig} from 'sentry/components/tables/table';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
@@ -47,6 +48,14 @@ import type {
 } from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+
+const STORY_COLUMNS: TableColumnConfig[] = [
+  {key: 'select', width: 'max-content'},
+  {key: 'project', width: '2fr'},
+  {key: 'repos', width: 'max-content'},
+  {key: 'agent', width: '1fr'},
+  {key: 'stoppingPoint', width: '1fr'},
+];
 
 export default Storybook.story('SeerProjectSettings', story => {
   story('Autofix Project Settings', () => {
@@ -316,10 +325,7 @@ export default Storybook.story('SeerProjectSettings', story => {
             />
           </Flex>
 
-          <InfiniteTable.Table
-            gridTemplateColumns="max-content 2fr max-content repeat(2, 1fr)"
-            style={{maxHeight: '400px'}}
-          >
+          <InfiniteTable.Table columns={STORY_COLUMNS} style={{maxHeight: '400px'}}>
             <InfiniteTable.Head sticky>
               <InfiniteTable.Header>
                 <InfiniteTable.HeaderCell />

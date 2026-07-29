@@ -5,6 +5,7 @@ interface UseVirtualRowsOptions {
   count: number;
   estimateSize: (index: number) => number;
   getScrollElement: () => HTMLElement | null;
+  estimateKey?: unknown;
   getItemKey?: (index: number) => string | number;
   overscan?: number;
   scrollMargin?: number;
@@ -12,6 +13,7 @@ interface UseVirtualRowsOptions {
 
 export function useVirtualRows({
   count,
+  estimateKey,
   estimateSize,
   getItemKey,
   getScrollElement,
@@ -28,21 +30,23 @@ export function useVirtualRows({
   });
 
   // @tanstack/react-virtual does not rebuild its measurements cache when
-  // estimateSize returns new values, so re-measure whenever it changes. Without
-  // this the total size and item offsets keep using the previous estimates,
-  // which desyncs the scroll range and leaves large blank gaps.
+  // estimateSize starts returning new values. Without this the total size and item
+  // offsets keep using the previous estimates, which desyncs the scroll range.
   useLayoutEffect(() => {
     virtualizer.measure();
-  }, [virtualizer, estimateSize]);
+  }, [virtualizer, estimateKey]);
 
   const virtualItems = virtualizer.getVirtualItems();
   const first = virtualItems[0];
   const last = virtualItems[virtualItems.length - 1];
+  const margin = virtualizer.options.scrollMargin;
 
   return {
     virtualizer,
     virtualItems,
-    paddingTop: first ? Math.max(0, first.start - virtualizer.options.scrollMargin) : 0,
-    paddingBottom: last ? Math.max(0, virtualizer.getTotalSize() - last.end) : 0,
+    paddingTop: first ? Math.max(0, first.start - margin) : 0,
+    paddingBottom: last
+      ? Math.max(0, virtualizer.getTotalSize() - (last.end - margin))
+      : 0,
   };
 }

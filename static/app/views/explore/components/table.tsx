@@ -16,7 +16,6 @@ import {
 } from 'sentry/components/tables/gridEditable/styles';
 import {
   Table as SharedTable,
-  TABLE_HEAD_ROW_HEIGHT,
   type TableColumnConfig,
 } from 'sentry/components/tables/table';
 import {defined} from 'sentry/utils/defined';
@@ -66,7 +65,7 @@ function useExploreTableProps({
   return {
     columns,
     getColumnTrack,
-    headRowHeight: TABLE_HEAD_ROW_HEIGHT,
+    definiteHeadRow: true,
     minimumColumnWidth,
     prependColumnWidths,
   };

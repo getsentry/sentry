@@ -3,13 +3,13 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-export const TABLE_HEAD_ROW_HEIGHT = 45;
+const TABLE_HEAD_ROW_HEIGHT = 45;
 
 const Z_INDEX_RESIZER = 1;
 
 export const TableGrid = styled('table')<{
+  definiteHeadRow?: boolean;
   fit?: 'max-content';
-  headRowHeight?: number;
   height?: CSSProperties['height'];
   scrollable?: boolean;
 }>`
@@ -39,14 +39,14 @@ export const TableGrid = styled('table')<{
   /* Pin the header to a definite track height; a content-based header track lets
      Safari mis-size the <thead> on back/forward navigation. */
   ${p =>
-    p.headRowHeight &&
+    p.definiteHeadRow &&
     css`
       &:has(> thead + tbody) {
-        grid-template-rows: ${p.headRowHeight}px ${p.height ? '1fr' : 'auto'};
+        grid-template-rows: ${TABLE_HEAD_ROW_HEIGHT}px ${p.height ? '1fr' : 'auto'};
       }
 
       &:has(> thead + tbody + tbody) {
-        grid-template-rows: ${p.headRowHeight}px fit-content(100%) ${p.height
+        grid-template-rows: ${TABLE_HEAD_ROW_HEIGHT}px fit-content(100%) ${p.height
             ? '1fr'
             : 'auto'};
       }
@@ -109,14 +109,13 @@ export const TableStatusCell = styled('td')`
   justify-content: center;
 `;
 
-export const TableResizer = styled('div')<{headRowHeight?: number}>`
+export const TableResizer = styled('div')`
   position: absolute;
   top: 0px;
   right: -6px;
   width: 11px;
 
-  height: ${p =>
-    `var(--table-resizer-height, ${p.headRowHeight ?? TABLE_HEAD_ROW_HEIGHT}px)`};
+  height: var(--table-resizer-height, ${TABLE_HEAD_ROW_HEIGHT}px);
 
   padding-left: 5px;
   padding-right: 5px;
@@ -147,7 +146,7 @@ export const TableResizer = styled('div')<{headRowHeight?: number}>`
     content: ' ';
     display: block;
     width: 7px;
-    height: ${p => p.headRowHeight ?? TABLE_HEAD_ROW_HEIGHT}px;
+    height: ${TABLE_HEAD_ROW_HEIGHT}px;
     background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     opacity: 0.4;
   }

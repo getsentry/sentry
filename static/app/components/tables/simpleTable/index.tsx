@@ -14,7 +14,6 @@ import {
   type SortDirection,
 } from 'sentry/components/tables/sortableHeaderCell';
 import {Table, type TableColumnConfig} from 'sentry/components/tables/table';
-import {TableStatusCell} from 'sentry/components/tables/table/styles';
 import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 
@@ -91,14 +90,6 @@ function RowCell({
     <Flex as="td" role="cell" align="center" overflow="hidden" padding="lg xl" {...props}>
       {children}
     </Flex>
-  );
-}
-
-function Empty({children, ...props}: HTMLAttributes<HTMLTableCellElement>) {
-  return (
-    <Table.Row>
-      <StyledEmptyMessage {...props}>{children}</StyledEmptyMessage>
-    </Table.Row>
   );
 }
 
@@ -217,7 +208,7 @@ const FullWidthHeaderCell = styled(HeaderCell)`
   padding: 0;
 `;
 
-const StyledEmptyMessage = styled(TableStatusCell)`
+const Empty = styled(Table.Status)`
   min-height: 200px;
   padding: ${p => p.theme.space.xl};
   color: ${p => p.theme.tokens.content.secondary};

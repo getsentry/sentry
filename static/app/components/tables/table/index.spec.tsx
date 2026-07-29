@@ -157,9 +157,9 @@ describe('Table', () => {
     expect(onColumnResize).toHaveBeenCalledWith(0, COL_WIDTH_UNDEFINED);
   });
 
-  it('uses the supplied track list when no columns are described', () => {
+  it('leaves consumer-provided tracks alone when no columns are described', () => {
     render(
-      <Table gridTemplateColumns="1fr 2fr">
+      <Table style={{gridTemplateColumns: '1fr 2fr'}}>
         <Table.Body>
           <Table.Status>No results</Table.Status>
         </Table.Body>
