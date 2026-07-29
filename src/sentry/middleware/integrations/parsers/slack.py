@@ -56,6 +56,12 @@ logger = logging.getLogger(__name__)
 
 ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS = UNFURL_ACTION_OPTIONS + NOTIFICATION_SETTINGS_ACTION_OPTIONS
 
+METRIC_EVENT_TYPES = frozenset(
+    # The event types SlackEventEndpoint dispatches on. Slack controls the `type`
+    # field, so anything else is tagged "other" to keep metric cardinality bounded.
+    ["app_mention", "assistant_thread_started", "link_shared", "message", "reaction_added"]
+)
+
 
 class SlackRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]  # "slack"
@@ -309,6 +315,17 @@ class SlackRequestParser(BaseRequestParser):
             and slack_request.is_seer_agent_request
         )
 
+    def _get_metric_event_type(self) -> str:
+        """Slack event type behind this request, or "none" when it carries no type.
+
+        SlackRequest itself defines no `type`, and options-load requests don't add one.
+        """
+        event_type = getattr(self.slack_request, "type", None)
+        if event_type is None:
+            return "none"
+
+        return event_type if event_type in METRIC_EVENT_TYPES else "other"
+
     def _record_response_time(self, status_code: int | str) -> None:
         """
         Record how long Slack waited on us, measured from the timestamp Slack stamped
@@ -337,6 +354,7 @@ class SlackRequestParser(BaseRequestParser):
                 "provider": self.provider,
                 "url_name": self.match.url_name,
                 "status_code": status_code,
+                "event_type": self._get_metric_event_type(),
             },
             sample_rate=1.0,
         )

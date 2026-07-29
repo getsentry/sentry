@@ -471,6 +471,7 @@ class SlackRequestParserTest(TestCase):
             "provider": "slack",
             "url_name": "sentry-integration-slack-event",
             "status_code": status.HTTP_200_OK,
+            "event_type": "app_mention",
         }
 
     @patch("sentry.middleware.integrations.parsers.slack.metrics.timing")
@@ -483,6 +484,54 @@ class SlackRequestParserTest(TestCase):
         parser.get_response()
 
         assert self._response_time_calls(mock_timing) == []
+
+    @responses.activate
+    @patch("sentry.middleware.integrations.parsers.slack.metrics.timing")
+    @patch("sentry.middleware.integrations.parsers.slack.time.time")
+    def test_records_response_time_event_type_other(
+        self, mock_time: MagicMock, mock_timing: MagicMock
+    ) -> None:
+        """Slack controls the event type, so unrecognized values collapse to "other"."""
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/slack/event/",
+            status=status.HTTP_200_OK,
+            body=b"",
+        )
+        sent_at = 1700000000
+        mock_time.return_value = sent_at + 1.0
+
+        parser = self._make_parser_with_seer_event(event_type="channel_archive")
+        parser.request.META["HTTP_X_SLACK_REQUEST_TIMESTAMP"] = str(sent_at)
+        parser.get_response()
+
+        ((_, tags),) = self._response_time_calls(mock_timing)
+        assert tags["event_type"] == "other"
+
+    @patch("sentry.middleware.integrations.parsers.slack.metrics.timing")
+    @patch("sentry.middleware.integrations.parsers.slack.time.time")
+    def test_records_response_time_for_action_request(
+        self, mock_time: MagicMock, mock_timing: MagicMock
+    ) -> None:
+        """SlackActionRequest defines its own `type`, which is not an event type."""
+        sent_at = 1700000000
+        mock_time.return_value = sent_at + 1.0
+
+        data = self._make_link_identity_action_data(
+            slack_user_id="U1234567890",
+            response_url="https://hooks.slack.com/actions/TXXXXXXX1/1234567890123/something",
+        )
+        request = self.factory.post(
+            reverse("sentry-integration-slack-action"),
+            data=data,
+            HTTP_X_SLACK_REQUEST_TIMESTAMP=str(sent_at),
+        )
+        parser = SlackRequestParser(request, self.get_response)
+        parser.get_response()
+
+        ((_, tags),) = self._response_time_calls(mock_timing)
+        assert tags["url_name"] == "sentry-integration-slack-action"
+        assert tags["event_type"] == "other"
 
     @patch("sentry.middleware.integrations.parsers.slack.metrics.timing")
     @patch("sentry.middleware.integrations.parsers.slack.time.time")
