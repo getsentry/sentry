@@ -16,6 +16,7 @@ from sentry.dynamic_sampling.tasks.common import (
     MEASURE_CONFIGS,
     OrganizationDataVolume,
 )
+from sentry.dynamic_sampling.tasks.constants import BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL
 from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -231,6 +232,74 @@ def get_generic_metrics_organization_volume(
     return OrganizationDataVolume(org_id=org_id, total=total, indexed=None)
 
 
+def get_generic_metrics_transaction_volumes(
+    org_id: int,
+    project_id: int,
+    time_interval: timedelta = BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
+    end: datetime | None = None,
+) -> list[tuple[str, float]]:
+    """
+    Per-transaction volumes of a single project from the legacy generic-metrics pipeline,
+    for side-by-side debugging against ``get_eap_transaction_volumes``. Unlike
+    ``FetchProjectTransactionVolumes``, this has no top-N cap, so it reflects every
+    transaction name the legacy pipeline saw for the project in the window.
+    """
+    from snuba_sdk import (
+        AliasedExpression,
+        Column,
+        Condition,
+        Entity,
+        Function,
+        Granularity,
+        Op,
+        Query,
+        Request,
+    )
+
+    end_time = end or datetime.now(UTC)
+    start_time = end_time - time_interval
+
+    config = MEASURE_CONFIGS[SamplingMeasure.SEGMENTS]
+    metric_id = indexer.resolve_shared_org(str(config["mri"]))
+    transaction_string_id = indexer.resolve_shared_org("transaction")
+    transaction_tag = f"tags_raw[{transaction_string_id}]"
+
+    where: list[Condition] = [
+        Condition(Column("timestamp"), Op.GTE, start_time),
+        Condition(Column("timestamp"), Op.LT, end_time),
+        Condition(Column("metric_id"), Op.EQ, metric_id),
+        Condition(Column("org_id"), Op.EQ, org_id),
+        Condition(Column("project_id"), Op.EQ, project_id),
+    ]
+    for tag_name, tag_value in config["tags"].items():
+        tag_string_id = indexer.resolve_shared_org(tag_name)
+        tag_column = f"tags_raw[{tag_string_id}]"
+        where.append(Condition(Column(tag_column), Op.EQ, tag_value))
+
+    query = Query(
+        match=Entity(EntityKey.GenericOrgMetricsCounters.value),
+        select=[
+            Function("sum", [Column("value")], "num_transactions"),
+            AliasedExpression(Column(transaction_tag), "transaction_name"),
+        ],
+        groupby=[AliasedExpression(Column(transaction_tag), "transaction_name")],
+        where=where,
+        granularity=Granularity(60),
+    )
+    request = Request(
+        dataset=Dataset.PerformanceMetrics.value,
+        app_id="dynamic_sampling",
+        query=query,
+        tenant_ids={"use_case_id": config["use_case_id"].value, "organization_id": org_id},
+    )
+    data = raw_snql_query(
+        request,
+        referrer=Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_GENERIC_METRICS_TRANSACTION_VOLUMES.value,
+    )["data"]
+
+    return [(str(row["transaction_name"]), float(row["num_transactions"])) for row in data]
+
+
 def get_eap_project_volumes(
     config: OrganizationVolumeConfig,
     time_interval: timedelta = timedelta(hours=1),
@@ -327,6 +396,8 @@ def get_eap_transaction_volumes(
     orderby = [
         DynamicSamplingQueryFields.DSC_PROJECT_ID,
         f"-{DynamicSamplingQueryFields.COUNT}",
+        # Tiebreaker: without it, transactions with equal counts order arbitrarily and the
+        # LIMIT BY cut picks a different set on every run.
         DynamicSamplingQueryFields.DSC_TRANSACTION,
     ]
 
@@ -339,7 +410,7 @@ def get_eap_transaction_volumes(
                 projects=config.projects,
                 organization=config.organization,
             ),
-            "query_string": f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}] has:{DynamicSamplingQueryFields.DSC_TRANSACTION}",
+            "query_string": f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}]",
             "selected_columns": [
                 DynamicSamplingQueryFields.DSC_PROJECT_ID,
                 DynamicSamplingQueryFields.DSC_TRANSACTION,
@@ -358,7 +429,10 @@ def get_eap_transaction_volumes(
             "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
         }
     ):
-        transaction = row.get(DynamicSamplingQueryFields.DSC_TRANSACTION)
+        # A span without a transaction groups under None here; the generic metrics pipeline
+        # reads the same span as an empty transaction tag, so it becomes the "" class there.
+        # Use "" too, so both pipelines boost the same class.
+        transaction = row.get(DynamicSamplingQueryFields.DSC_TRANSACTION) or ""
         total = _get_aggregate_float(row, DynamicSamplingQueryFields.COUNT)
         if total <= 0:
             continue

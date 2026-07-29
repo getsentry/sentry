@@ -2269,6 +2269,13 @@ register(
 )
 
 register(
+    "dynamic-sampling.per_org.transaction-volume-debug-project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate",
     type=Float,
     default=0.0,

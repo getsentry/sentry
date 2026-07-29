@@ -14,6 +14,7 @@ from sentry.dynamic_sampling.per_org.calculations import (
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
     is_within_relative_tolerance,
+    log_transaction_volume_debug,
     run_project_balancing,
     run_transaction_balancing,
 )
@@ -378,6 +379,58 @@ class TransactionBalancingCalculationsTest(TestCase):
 
         assert model_run.call_args.args[-1].min_sample_rate == 0.002
 
+    def test_run_transaction_balancing_passes_intensity_option(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.get_project_sample_rates.return_value = {project.id: 0.5}
+
+        with override_options(
+            {"dynamic-sampling.prioritise_transactions.rebalance_intensity": 0.6}
+        ):
+            with patch(
+                "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
+                side_effect=lambda model_input: ([], model_input.sample_rate),
+            ) as model_run:
+                run_transaction_balancing(
+                    config,
+                    [_project_volume(project.id)],
+                    [_project_transactions(org.id, project.id, [("/a", 1.0)])],
+                )
+
+        assert model_run.call_args.args[-1].intensity == 0.6
+
+    def test_run_transaction_balancing_counts_empty_transaction_as_class(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.get_project_sample_rates.return_value = {project.id: 0.5}
+
+        project_volume = ProjectVolume(
+            project_id=project.id,
+            total=100,
+            keep=25,
+            drop=75,
+            # count_unique skips the missing attribute, so "" is not included here...
+            num_distinct_transactions=3,
+        )
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
+            side_effect=lambda model_input: ([], model_input.sample_rate),
+        ) as model_run:
+            run_transaction_balancing(
+                config,
+                [project_volume],
+                [_project_transactions(org.id, project.id, [("/a", 10.0), ("", 5.0)])],
+            )
+
+        # ...but it is an explicit class, so the total must include it, like the legacy
+        # pipeline's uniq() over the raw tag does.
+        assert model_run.call_args.args[-1].total_num_classes == 4
+
     def test_run_transaction_balancing_floors_dominant_transaction(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -503,6 +556,49 @@ class TransactionBalancingCalculationsTest(TestCase):
         assert extras[1]["generic_metrics_sample_rate"] is None
         assert extras[1]["relative_deviation"] is None
         assert extras[1]["is_equal"] is False
+
+    def test_log_transaction_volume_debug_logs_only_debug_projects(self) -> None:
+        org = self.create_organization()
+        debug_project = self.create_project(organization=org)
+        other_project = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+
+        transaction_volumes = [
+            ProjectTransactionCounts(
+                org_id=org.id,
+                project_id=debug_project.id,
+                transaction_counts=[("checkout", 100.0), ("eap-only", 5.0)],
+            ),
+            ProjectTransactionCounts(
+                org_id=org.id,
+                project_id=other_project.id,
+                transaction_counts=[("checkout", 1.0)],
+            ),
+        ]
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.calculations.get_generic_metrics_transaction_volumes",
+                return_value=[("checkout", 90.0), ("generic-metrics-only", 3.0)],
+            ) as get_generic_metrics,
+            patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info,
+        ):
+            log_transaction_volume_debug(config, transaction_volumes, {debug_project.id})
+
+        get_generic_metrics.assert_called_once_with(org.id, debug_project.id)
+        logger_info.assert_called_once_with(
+            "dynamic_sampling.per_org.transaction_volume_debug",
+            extra={
+                "org_id": org.id,
+                "ds_proj_id": debug_project.id,
+                "transactions": {
+                    "checkout": {"eap_volume": 100.0, "generic_metrics_volume": 90.0},
+                    "eap-only": {"eap_volume": 5.0, "generic_metrics_volume": None},
+                    "generic-metrics-only": {"eap_volume": None, "generic_metrics_volume": 3.0},
+                },
+            },
+        )
 
 
 def _branch3_project_volume(project_id: int) -> ProjectVolume:
