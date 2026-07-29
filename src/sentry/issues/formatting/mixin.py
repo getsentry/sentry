@@ -17,6 +17,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.issues.formatting.formatter import Format
+from sentry.issues.formatting.limits import LIMITS_LOW
 from sentry.issues.formatting.sections import format_issue
 
 if TYPE_CHECKING:
@@ -69,5 +70,11 @@ class FormattableResponseMixin(_Base):
 
 
 def format_event_response(data: Mapping[str, Any], fmt: Format) -> str:
-    """Adapter for event endpoints: the serialized event is what ``format_issue`` consumes."""
-    return format_issue(data, format=fmt)
+    """Adapter for event endpoints: the serialized event is what ``format_issue`` consumes.
+
+    Renders with the low limits because every ``?llmFormat`` consumer pastes into a model's
+    context (Copy to Markdown, the MCP), and these caps are what the copy-markdown builder
+    already applies client-side. Callers that want the default profile use ``format_issue``
+    directly, as the Seer RPC does.
+    """
+    return format_issue(data, format=fmt, limits=LIMITS_LOW)
