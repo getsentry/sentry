@@ -1033,6 +1033,7 @@ interface GroupActivitySeerPrCreated extends GroupActivityBase {
 interface GroupActivitySeerIterationStarted extends GroupActivityBase {
   data: {
     iteration_index?: number;
+    referrer?: AutofixReferrer;
     run_id?: number;
   };
   type: GroupActivityType.SEER_ITERATION_STARTED;
