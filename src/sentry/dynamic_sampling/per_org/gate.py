@@ -10,6 +10,10 @@ PROJECT_BALANCING_DEBUG_PROJECT_IDS_OPTION = (
     "dynamic-sampling.per_org.project-balancing-debug-project-ids"
 )
 PROJECT_BALANCING_DEBUG_PROJECT_IDS_LIMIT = 100
+TRANSACTION_VOLUME_DEBUG_PROJECT_IDS_OPTION = (
+    "dynamic-sampling.per_org.transaction-volume-debug-project-ids"
+)
+TRANSACTION_VOLUME_DEBUG_PROJECT_IDS_LIMIT = 100
 SLIDING_WINDOW_COMPARISON_ORG_IDS_OPTION = (
     "dynamic-sampling.per_org.sliding-window-comparison-org-ids"
 )
@@ -53,6 +57,18 @@ def project_balancing_debug_project_ids() -> set[int]:
     project_ids: set[int] = set()
     for project_id in options.get(PROJECT_BALANCING_DEBUG_PROJECT_IDS_OPTION)[
         :PROJECT_BALANCING_DEBUG_PROJECT_IDS_LIMIT
+    ]:
+        if isinstance(project_id, int):
+            project_ids.add(project_id)
+        elif isinstance(project_id, str) and project_id.isdigit():
+            project_ids.add(int(project_id))
+    return project_ids
+
+
+def transaction_volume_debug_project_ids() -> set[int]:
+    project_ids: set[int] = set()
+    for project_id in options.get(TRANSACTION_VOLUME_DEBUG_PROJECT_IDS_OPTION)[
+        :TRANSACTION_VOLUME_DEBUG_PROJECT_IDS_LIMIT
     ]:
         if isinstance(project_id, int):
             project_ids.add(project_id)
