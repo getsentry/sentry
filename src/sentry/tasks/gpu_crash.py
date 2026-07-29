@@ -131,7 +131,13 @@ def _try_symbolicate(data: MutableMapping[str, Any], project_id: int, event_id: 
             "tasks.gpu_crash.request",
             tags={"shader_debug_count": str(count) if count < 10 else "10+"},
         )
-        project = Project.objects.get_from_cache(id=project_id)
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+        except Project.DoesNotExist:
+            # Deleted between routing and execution — routine stale ref, not an error.
+            metrics.incr("tasks.gpu_crash.skipped", tags={"reason": "project_missing"})
+            return False
+
         try:
             with metrics.timer("tasks.gpu_crash.teapot"):
                 response = submit_to_teapot(project, event_id, dump, shaders)

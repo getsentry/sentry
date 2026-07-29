@@ -93,9 +93,12 @@ def apply_gpu_crash_symbolication(
         gpu_tags["gpu.shader_type"] = primary_shader["shader_type"]
     data["tags"] = _merge_tags(data.get("tags"), gpu_tags)
 
-    breadcrumbs = _markers_to_breadcrumbs(response.get("markers") or [])
-    if breadcrumbs:
-        data["breadcrumbs"] = {"values": breadcrumbs}
+    marker_breadcrumbs = _markers_to_breadcrumbs(response.get("markers") or [])
+    if marker_breadcrumbs:
+        # Append after any SDK/Relay breadcrumbs already on the split event (GPU
+        # markers are the most crash-proximate) rather than replacing them.
+        existing = (data.get("breadcrumbs") or {}).get("values") or []
+        data["breadcrumbs"] = {"values": [*existing, *marker_breadcrumbs]}
 
     metrics.incr("process.gpu.event.symbolicated", tags={"fault_category": category})
     return data
