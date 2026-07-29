@@ -40,6 +40,17 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 **kwargs,
             )
 
+    def _store_conversation_span(self, conversation_id, timestamp, project=None) -> None:
+        """One minimal span, enough for the conversation to resolve to a project."""
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=timestamp,
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=uuid4().hex,
+            project=project,
+        )
+
     def test_no_feature(self) -> None:
         conversation_id = uuid4().hex
         response = self.do_request(conversation_id, features=[])
@@ -690,3 +701,268 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert occurrence_issue["event_type"] == "occurrence"
         assert occurrence_issue["issue_id"] == group_info.group.id
         assert occurrence_issue["description"] == "File IO on Main Thread"
+
+    def test_default_and_api_version_1_return_a_bare_span_list(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+
+        query: dict[str, Any] = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        default_response = self.do_request(conversation_id, query)
+        v1_response = self.do_request(conversation_id, {**query, "apiVersion": "1"})
+
+        assert default_response.status_code == 200
+        assert v1_response.status_code == 200
+        assert isinstance(default_response.data, list)
+        assert len(default_response.data) == 1
+        assert v1_response.data == default_response.data
+
+    def test_api_version_2_wraps_spans_under_spans(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+
+        query: dict[str, Any] = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        v1_response = self.do_request(conversation_id, query)
+        response = self.do_request(conversation_id, {**query, "apiVersion": "2"})
+
+        assert response.status_code == 200
+        assert set(response.data) == {"conversationId", "title", "spans"}
+        assert response.data["conversationId"] == conversation_id
+        assert response.data["spans"] == v1_response.data
+
+    def test_api_version_2_returns_stored_title(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id=conversation_id,
+            title="Refund a duplicate charge",
+            title_source_timestamp=now,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "apiVersion": "2",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert response.data["title"] == "Refund a duplicate charge"
+        assert len(response.data["spans"]) == 1
+
+    def test_api_version_2_title_is_null_without_metadata(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+
+        query = {
+            "project": [self.project.id],
+            "apiVersion": "2",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert response.data["title"] is None
+
+    def test_api_version_2_title_is_null_when_row_is_untitled(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id=conversation_id,
+            title=None,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "apiVersion": "2",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert response.data["title"] is None
+
+    def test_api_version_2_title_not_taken_from_unrelated_project(self) -> None:
+        """A same-named conversation in a project without spans must not supply the title."""
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        other_project = self.create_project(organization=self.organization)
+
+        self._store_conversation_span(conversation_id, now)
+        self.create_ai_conversation_metadata(
+            project=other_project,
+            conversation_id=conversation_id,
+            title="Someone else's conversation",
+            title_source_timestamp=now,
+        )
+
+        query = {
+            "project": [self.project.id, other_project.id],
+            "apiVersion": "2",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert response.data["title"] is None
+
+    def test_api_version_2_earliest_titled_project_wins(self) -> None:
+        """A conversation spanning projects is titled from the earliest title source."""
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        other_project = self.create_project(organization=self.organization)
+
+        self._store_conversation_span(conversation_id, now - timedelta(seconds=2))
+        self._store_conversation_span(
+            conversation_id, now - timedelta(seconds=1), project=other_project
+        )
+
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id=conversation_id,
+            title="Started here",
+            title_source_timestamp=now - timedelta(seconds=2),
+        )
+        self.create_ai_conversation_metadata(
+            project=other_project,
+            conversation_id=conversation_id,
+            title="Continued here",
+            title_source_timestamp=now - timedelta(seconds=1),
+        )
+
+        query = {
+            "project": [self.project.id, other_project.id],
+            "apiVersion": "2",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert len(response.data["spans"]) == 2
+        assert response.data["title"] == "Started here"
+
+    def test_api_version_2_conversation_not_found(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(uuid4().hex, now)
+
+        query = {
+            "project": [self.project.id],
+            "apiVersion": "2",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert response.data["conversationId"] == conversation_id
+        assert response.data["title"] is None
+        assert response.data["spans"] == []
+
+    def test_api_version_2_paginates(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+
+        for i in range(3):
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now - timedelta(seconds=i),
+                op="gen_ai.chat",
+                trace_id=trace_id,
+            )
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id=conversation_id,
+            title="Long conversation",
+            title_source_timestamp=now,
+        )
+
+        query: dict[str, Any] = {
+            "project": [self.project.id],
+            "apiVersion": "2",
+            "per_page": "2",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert response.data["title"] == "Long conversation"
+        assert len(response.data["spans"]) == 2
+
+        links = parse_link_header(response.headers["Link"])
+        next_link = next(link for link in links.values() if link["rel"] == "next")
+        assert next_link["results"] == "true"
+
+        query["cursor"] = next_link["cursor"]
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert response.data["title"] == "Long conversation"
+        assert len(response.data["spans"]) == 1
+
+    @patch(
+        "sentry.api.endpoints.organization_ai_conversation_details.fetch_conversation_title",
+        side_effect=Exception("metadata unavailable"),
+    )
+    def test_api_version_2_survives_a_failing_title_lookup(
+        self, mock_fetch_conversation_title: MagicMock
+    ) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+
+        query = {
+            "project": [self.project.id],
+            "apiVersion": "2",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert response.data["title"] is None
+        assert len(response.data["spans"]) == 1
+        assert mock_fetch_conversation_title.call_count == 1
+
+    def test_unsupported_api_version_returns_400(self) -> None:
+        query = {"project": [self.project.id], "apiVersion": "3"}
+
+        response = self.do_request(uuid4().hex, query)
+        assert response.status_code == 400
+        assert "apiVersion" in response.data
+
+    def test_non_numeric_api_version_returns_400(self) -> None:
+        query = {"project": [self.project.id], "apiVersion": "v2"}
+
+        response = self.do_request(uuid4().hex, query)
+        assert response.status_code == 400
+        assert "apiVersion" in response.data

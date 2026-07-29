@@ -1,4 +1,6 @@
-from sentry.ai_monitoring.utils import fetch_conversation_titles
+from datetime import UTC, datetime
+
+from sentry.ai_monitoring.utils import fetch_conversation_title, fetch_conversation_titles
 from sentry.testutils.cases import TestCase
 
 
@@ -87,3 +89,135 @@ class FetchConversationTitlesTest(TestCase):
             ("conv-1", self.project.id): "Owned by project one",
             ("conv-1", other_project.id): "Owned by project two",
         }
+
+
+class FetchConversationTitleTest(TestCase):
+    def test_returns_none_without_projects(self) -> None:
+        assert fetch_conversation_title("conv-1", []) is None
+
+    def test_returns_none_when_conversation_is_unknown(self) -> None:
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id="conv-1",
+            title="Reset my password",
+        )
+
+        assert fetch_conversation_title("conv-2", [self.project.id]) is None
+
+    def test_returns_stored_title(self) -> None:
+        source_timestamp = datetime(2024, 5, 1, tzinfo=UTC)
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id="conv-1",
+            title="Reset my password",
+            title_source_timestamp=source_timestamp,
+        )
+
+        stored = fetch_conversation_title("conv-1", [self.project.id])
+
+        assert stored is not None
+        assert stored.project_id == self.project.id
+        assert stored.title == "Reset my password"
+        assert stored.title_source_timestamp == source_timestamp
+
+    def test_skips_untitled_rows(self) -> None:
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id="conv-1",
+            title=None,
+        )
+
+        assert fetch_conversation_title("conv-1", [self.project.id]) is None
+
+    def test_ignores_projects_that_were_not_requested(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        self.create_ai_conversation_metadata(
+            project=other_project,
+            conversation_id="conv-1",
+            title="Owned by project two",
+        )
+
+        assert fetch_conversation_title("conv-1", [self.project.id]) is None
+
+    def test_earliest_source_timestamp_wins(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id="conv-1",
+            title="Later half of the conversation",
+            title_source_timestamp=datetime(2024, 5, 1, 12, 0, tzinfo=UTC),
+        )
+        self.create_ai_conversation_metadata(
+            project=other_project,
+            conversation_id="conv-1",
+            title="Start of the conversation",
+            title_source_timestamp=datetime(2024, 5, 1, 11, 0, tzinfo=UTC),
+        )
+
+        stored = fetch_conversation_title("conv-1", [self.project.id, other_project.id])
+
+        assert stored is not None
+        assert stored.project_id == other_project.id
+        assert stored.title == "Start of the conversation"
+
+    def test_rows_without_source_timestamp_lose(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id="conv-1",
+            title="Unknown when this started",
+            title_source_timestamp=None,
+        )
+        self.create_ai_conversation_metadata(
+            project=other_project,
+            conversation_id="conv-1",
+            title="Start of the conversation",
+            title_source_timestamp=datetime(2024, 5, 1, 11, 0, tzinfo=UTC),
+        )
+
+        stored = fetch_conversation_title("conv-1", [self.project.id, other_project.id])
+
+        assert stored is not None
+        assert stored.title == "Start of the conversation"
+
+    def test_falls_back_to_row_without_source_timestamp(self) -> None:
+        row = self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id="conv-1",
+            title="Unknown when this started",
+            title_source_timestamp=None,
+        )
+        assert row.title_source_timestamp is None
+
+        stored = fetch_conversation_title("conv-1", [self.project.id])
+
+        assert stored is not None
+        assert stored.title == "Unknown when this started"
+
+    def test_ties_break_on_project_id(self) -> None:
+        source_timestamp = datetime(2024, 5, 1, tzinfo=UTC)
+        lower_project, higher_project = sorted(
+            (
+                self.create_project(organization=self.organization),
+                self.create_project(organization=self.organization),
+            ),
+            key=lambda project: project.id,
+        )
+
+        self.create_ai_conversation_metadata(
+            project=lower_project,
+            conversation_id="conv-1",
+            title="Lower project id",
+            title_source_timestamp=source_timestamp,
+        )
+        self.create_ai_conversation_metadata(
+            project=higher_project,
+            conversation_id="conv-1",
+            title="Higher project id",
+            title_source_timestamp=source_timestamp,
+        )
+
+        stored = fetch_conversation_title("conv-1", [lower_project.id, higher_project.id])
+
+        assert stored is not None
+        assert stored.project_id == lower_project.id
