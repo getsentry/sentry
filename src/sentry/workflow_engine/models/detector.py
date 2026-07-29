@@ -73,7 +73,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     objects: ClassVar[DetectorManager] = DetectorManager()
     objects_for_deletion: ClassVar[BaseManager[Detector]] = BaseManager()
 
-    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
+    project = FlexibleForeignKey("sentry.Project", null=True, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
 
     # The data sources that the detector is watching
