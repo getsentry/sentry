@@ -23,13 +23,11 @@ import {uniq} from 'sentry/utils/array/uniq';
 import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   useIssueSelectionActions,
   useIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 import {ActionSet} from './actionSet';
 import {Headers} from './headers';
@@ -190,14 +188,8 @@ export function IssueListActions({
     const uniqProjects = uniq(projects);
     return uniqProjects.length === 1 ? uniqProjects[0] : undefined;
   }, [selectedIdsSet]);
-  const [isSavedSearchesOpen] = useSyncedLocalStorageState(
-    SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
-    false
-  );
   const theme = useTheme();
-  const disableActions = useMedia(
-    `(width < ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
-  );
+  const disableActions = useMedia(`(width < ${theme.breakpoints.md})`);
   const area = useAnalyticsArea();
   const numIssues = selectedIdsSet.size;
 
