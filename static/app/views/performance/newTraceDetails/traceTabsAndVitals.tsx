@@ -65,10 +65,6 @@ export function TraceTabsAndVitals({
     return <Placeholder />;
   }
 
-  if (rootEventResults.error || tree.type === 'error') {
-    return <Placeholder />;
-  }
-
   return (
     <ToolbarLayout>
       <Tabs value={currentTab} onChange={onTabChange}>

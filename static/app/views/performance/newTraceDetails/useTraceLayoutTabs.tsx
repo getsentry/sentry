@@ -4,7 +4,6 @@ import * as qs from 'query-string';
 import {t} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {
   getTraceMetaLogsCount,
@@ -42,7 +41,10 @@ const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
     slug: TraceLayoutTabKeys.PROFILES,
     label: t('Profiles'),
   },
-  [TraceLayoutTabKeys.LOGS]: {slug: TraceLayoutTabKeys.LOGS, label: t('Logs')},
+  [TraceLayoutTabKeys.LOGS]: {
+    slug: TraceLayoutTabKeys.LOGS,
+    label: t('Logs'),
+  },
   [TraceLayoutTabKeys.METRICS]: {
     slug: TraceLayoutTabKeys.METRICS,
     label: t('Application Metrics'),
@@ -138,9 +140,7 @@ export function getInitialTab({
 
 interface UseTraceLayoutTabsProps {
   isLoading: boolean;
-  logs: OurLogsResponseItem[] | undefined;
   logsEnabled: boolean;
-  metrics: {count: number} | undefined;
   metricsEnabled: boolean;
   tree: TraceTree;
   meta?: TraceMetaQueryResults['data'];
@@ -149,9 +149,7 @@ interface UseTraceLayoutTabsProps {
 export function useTraceLayoutTabs({
   isLoading,
   tree,
-  logs,
   meta,
-  metrics,
   logsEnabled,
   metricsEnabled,
 }: UseTraceLayoutTabsProps): TraceLayoutTabsConfig {
@@ -159,13 +157,20 @@ export function useTraceLayoutTabs({
   const organization = useOrganization();
   const sections = useTraceContextSections({
     tree,
-    logs,
+    logs: undefined,
     meta,
-    metrics,
+    metrics: undefined,
     logsEnabled,
     metricsEnabled,
   });
-  const tabOptions = getTabOptions({sections: {...sections}});
+  const logsCount = getTraceMetaLogsCount(meta);
+  const metricsCount = getTraceMetaMetricsCount(meta);
+  const sectionsWithUnknownData = {
+    ...sections,
+    hasLogs: logsEnabled && (logsCount === undefined || logsCount > 0),
+    hasMetrics: metricsEnabled && (metricsCount === undefined || metricsCount > 0),
+  };
+  const tabOptions = getTabOptions({sections: sectionsWithUnknownData});
 
   const queryParams = qs.parse(window.location.search);
 
@@ -174,7 +179,7 @@ export function useTraceLayoutTabs({
     logsEnabled,
     metricsEnabled,
     meta,
-    sections,
+    sections: sectionsWithUnknownData,
     tabOptions,
     tabSlugFromUrl: typeof queryParams.tab === 'string' ? queryParams.tab : undefined,
   });

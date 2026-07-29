@@ -7,10 +7,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
-import {
-  OurLogKnownFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -29,9 +26,7 @@ import {Meta} from './meta';
 import {Title} from './title';
 
 export interface TraceMetadataHeaderProps {
-  logs: OurLogsResponseItem[] | undefined;
   metaResults: TraceMetaQueryResults;
-  metrics: {count: number} | undefined;
   organization: Organization;
   rootEventResults: TraceRootEventQueryResults;
   traceSlug: string;
@@ -55,8 +50,8 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const {projects} = useProjects();
   const {hasLogs, hasMetrics} = useTraceContextSections({
     tree: props.tree,
-    logs: props.logs,
-    metrics: props.metrics,
+    logs: undefined,
+    metrics: undefined,
     meta: props.metaResults.data,
     logsEnabled,
     metricsEnabled,
@@ -77,7 +72,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     return <PlaceHolder organization={props.organization} traceSlug={props.traceSlug} />;
   }
 
-  const rep = props.tree.findRepresentativeTraceNode({logs: props.logs});
+  const rep = props.tree.findRepresentativeTraceNode({logs: undefined});
   const project = projects.find(p => {
     const id =
       rep?.event && OurLogKnownFieldKey.PROJECT_ID in rep.event
@@ -120,8 +115,6 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
               tree={props.tree}
               meta={props.metaResults.data}
               representativeEvent={rep}
-              logs={props.logs}
-              metrics={props.metrics}
               logsEnabled={logsEnabled}
               metricsEnabled={metricsEnabled}
             />
@@ -134,7 +127,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             />
           </Container>
           <Container area="projects" justifySelf={{zero: 'start', xl: 'end'}}>
-            <Projects projects={projects} logs={props.logs} tree={props.tree} />
+            <Projects tree={props.tree} />
           </Container>
         </TraceHeaderComponents.HeaderGrid>
       </TraceHeaderComponents.HeaderContent>
