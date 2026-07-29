@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
+from django.utils import timezone
 from snuba_sdk import Column, Condition, Op
 
 from sentry.issues.grouptype import (
@@ -105,6 +106,30 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, SearchIs
 
         assert bulk_get_latest_event_ids([stale_group]) == {
             stale_group.id: (project.id, latest_event.event_id)
+        }
+
+    def test_bulk_get_latest_event_ids_includes_accepted_future_event(self) -> None:
+        project = self.create_project()
+        initial_event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": before_now(minutes=1).isoformat(),
+                "fingerprint": ["future-group"],
+            },
+            project_id=project.id,
+        )
+        latest_event = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": (timezone.now() + timedelta(seconds=30)).isoformat(),
+                "fingerprint": ["future-group"],
+            },
+            project_id=project.id,
+        )
+        assert initial_event.group is not None
+
+        assert bulk_get_latest_event_ids([initial_event.group]) == {
+            initial_event.group.id: (project.id, latest_event.event_id)
         }
 
     def test_get_oldest_latest_for_environments(self) -> None:

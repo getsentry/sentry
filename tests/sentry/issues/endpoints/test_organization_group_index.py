@@ -2243,6 +2243,65 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             "organizations:issue-stream-batched-latest-event-attachments",
         ]
     )
+    def test_expand_latest_event_attachments_match_project_and_event(self) -> None:
+        other_project = self.create_project(organization=self.organization, teams=[self.team])
+        shared_event_id = "b" * 32
+        old_event = self.store_event(
+            data={
+                "event_id": shared_event_id,
+                "timestamp": before_now(minutes=2).isoformat(),
+                "fingerprint": ["first-project-group"],
+            },
+            project_id=self.project.id,
+        )
+        latest_first_project_event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": before_now(minutes=1).isoformat(),
+                "fingerprint": ["first-project-group"],
+            },
+            project_id=self.project.id,
+        )
+        second_project_event = self.store_event(
+            data={
+                "event_id": shared_event_id,
+                "timestamp": before_now(seconds=30).isoformat(),
+                "fingerprint": ["second-project-group"],
+            },
+            project_id=other_project.id,
+        )
+        EventAttachment.objects.create(
+            group_id=old_event.group.id,
+            event_id=old_event.event_id,
+            project_id=old_event.project_id,
+            name="old-event.png",
+            content_type="image/png",
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            query="status:unresolved",
+            project=[self.project.id, other_project.id],
+            expand=["latestEventHasAttachments"],
+        )
+
+        assert response.status_code == 200
+        attachments_by_group = {
+            int(group["id"]): group["latestEventHasAttachments"] for group in response.data
+        }
+        assert attachments_by_group == {
+            latest_first_project_event.group.id: False,
+            second_project_event.group.id: False,
+        }
+
+    @with_feature(
+        [
+            "organizations:event-attachments",
+            "organizations:issue-stream-batched-latest-event-attachments",
+        ]
+    )
     @patch("sentry.api.serializers.models.group_stream.bulk_get_latest_event_ids", return_value={})
     def test_expand_no_latest_event_has_no_attachments(self, mock_latest_events: MagicMock) -> None:
         self.store_event(

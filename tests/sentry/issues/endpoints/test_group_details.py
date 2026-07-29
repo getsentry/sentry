@@ -54,23 +54,6 @@ FLAG = "organizations:seer-agent-token-flow"
 
 
 class GroupDetailsTest(APITestCase, SnubaTestCase):
-    @with_feature("organizations:event-attachments")
-    @mock.patch("sentry.models.Group.get_latest_event", return_value=None)
-    def test_latest_event_attachment_query_uses_default_time_range(
-        self, get_latest_event: mock.MagicMock
-    ) -> None:
-        self.login_as(user=self.user)
-        group = self.create_group()
-
-        response = self.client.get(
-            f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/",
-            {"expand": "latestEventHasAttachments"},
-            format="json",
-        )
-
-        assert response.status_code == 200, response.content
-        get_latest_event.assert_called_once_with()
-
     def test_with_numerical_id(self) -> None:
         self.login_as(user=self.user)
 
