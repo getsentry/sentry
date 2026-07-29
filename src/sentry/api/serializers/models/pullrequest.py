@@ -8,6 +8,10 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.api.serializers.models.repository import RepositorySerializerResponse
 from sentry.api.serializers.release_details_types import Author
+from sentry.integrations.source_code_management.status_check import (
+    AggregateChecksStatus,
+    PullRequestStatusResult,
+)
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import (
     PullRequest,
@@ -57,6 +61,7 @@ LinkedPullRequestAttributionResponse = LinkedPullRequestSeerAttributionResponse
 class LinkedPullRequestResponse(PullRequestSerializerResponse):
     attribution: LinkedPullRequestAttributionResponse | None
     dateLinked: datetime
+    checksStatus: AggregateChecksStatus | None
 
 
 def get_users_for_pull_requests(item_list, user=None):
@@ -122,8 +127,9 @@ def _serialize_attribution(
 class LinkedPullRequestSerializer(PullRequestSerializer):
     """Serialize a pull request linked to a group.
 
-    The caller passes in the linked-at timestamp and PR status; this serializer
-    maps them, along with the PR's Seer attribution, into the response shape.
+    The caller passes in the linked-at timestamp, status, and provider-reported checks;
+    this serializer maps them, along with the PR's Seer attribution, into the response
+    shape.
     """
 
     def __init__(
@@ -131,9 +137,11 @@ class LinkedPullRequestSerializer(PullRequestSerializer):
         *,
         date_linked_by_pr_id: Mapping[int, datetime],
         status_by_pr_id: Mapping[int, PullRequestStatus],
+        checks_and_review_by_pr_id: Mapping[int, PullRequestStatusResult],
     ) -> None:
         self.date_linked_by_pr_id = date_linked_by_pr_id
         self.status_by_pr_id = status_by_pr_id
+        self.checks_and_review_by_pr_id = checks_and_review_by_pr_id
 
     def get_attrs(self, item_list, user, **kwargs):
         attrs = super().get_attrs(item_list, user)
@@ -150,9 +158,11 @@ class LinkedPullRequestSerializer(PullRequestSerializer):
         return attrs
 
     def serialize(self, obj: PullRequest, attrs, user, **kwargs) -> LinkedPullRequestResponse:
+        checks_and_review = self.checks_and_review_by_pr_id.get(obj.id, PullRequestStatusResult())
         return {
             **super().serialize(obj, attrs, user, **kwargs),
             "attribution": attrs["attribution"],
             "dateLinked": self.date_linked_by_pr_id[obj.id],
             "status": self.status_by_pr_id[obj.id],
+            "checksStatus": checks_and_review.checks,
         }

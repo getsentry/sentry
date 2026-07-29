@@ -22,6 +22,10 @@ from sentry.integrations.github.blame import (
     is_graphql_response,
 )
 from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
+from sentry.integrations.github.pull_request_status import (
+    create_pull_request_status_query,
+    extract_pull_request_statuses_from_response,
+)
 from sentry.integrations.github.utils import get_jwt, get_last_page_number, get_next_link
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
@@ -36,7 +40,12 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
-from sentry.integrations.source_code_management.status_check import StatusCheckClient
+from sentry.integrations.source_code_management.status_check import (
+    PullRequestStatusClient,
+    PullRequestStatusRequest,
+    PullRequestStatusResult,
+    StatusCheckClient,
+)
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, IntegrationProviderSlug
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
@@ -156,6 +165,7 @@ class GitHubApiRequestType(StrEnum):
     GET_PULL_REQUEST_COMMENTS = "get_pull_request_comments"
     GET_PULL_REQUEST_FILES = "get_pull_request_files"
     GET_PULL_REQUEST_FROM_COMMIT = "get_pull_request_from_commit"
+    GET_PULL_REQUEST_STATUS = "get_pull_request_status"
     GET_RATE_LIMIT = "get_rate_limit"
     GET_REPO = "get_repo"
     GET_REPO_TREE = "get_repo_tree"
@@ -445,7 +455,12 @@ class GithubProxyClient(IntegrationProxyClient):
 
 
 class GitHubBaseClient(
-    GithubProxyClient, RepositoryClient, CommitContextClient, RepoTreesClient, StatusCheckClient
+    GithubProxyClient,
+    RepositoryClient,
+    CommitContextClient,
+    RepoTreesClient,
+    StatusCheckClient,
+    PullRequestStatusClient,
 ):
     allow_redirects = True
 
@@ -1214,6 +1229,63 @@ class GitHubBaseClient(
                 "organization_integration_id": self.org_integration_id,
             },
         )
+
+    def _get_pull_request_status_cache_key(self, pull_request: PullRequestStatusRequest) -> str:
+        cache_data = orjson.dumps(
+            {"repo": pull_request.repo, "pull_number": pull_request.pull_number}
+        ).decode()
+        return self.get_cache_key("/graphql/pull-request-status", "", cache_data)
+
+    def get_pull_request_statuses(
+        self, pull_requests: Sequence[PullRequestStatusRequest]
+    ) -> dict[PullRequestStatusRequest, PullRequestStatusResult]:
+        """Return checks and review state, fetching all cache misses in one query."""
+        results: dict[PullRequestStatusRequest, PullRequestStatusResult] = {}
+        cache_keys: dict[PullRequestStatusRequest, str] = {}
+        uncached_pull_requests: list[PullRequestStatusRequest] = []
+
+        for pull_request in dict.fromkeys(pull_requests):
+            cache_key = self._get_pull_request_status_cache_key(pull_request)
+            cache_keys[pull_request] = cache_key
+            cached_result = self.check_cache(cache_key)
+            if isinstance(cached_result, PullRequestStatusResult):
+                results[pull_request] = cached_result
+            else:
+                uncached_pull_requests.append(pull_request)
+
+        if not uncached_pull_requests:
+            return results
+
+        data = create_pull_request_status_query(uncached_pull_requests)
+        response = self.post(
+            path="/graphql",
+            data=data,
+            allow_text=False,
+            api_request_type=GitHubApiRequestType.GET_PULL_REQUEST_STATUS,
+        )
+
+        if not is_graphql_response(response):
+            raise ApiError("Response is not JSON")
+
+        errors = response.get("errors", [])
+        if errors:
+            if any(error.get("type") == "RATE_LIMITED" for error in errors):
+                raise ApiRateLimitedError("GitHub rate limit exceeded")
+            if not response.get("data"):
+                raise ApiError("\n".join(error.get("message", "") for error in errors))
+            logger.info(
+                "github.get_pull_request_statuses.partial_errors",
+                extra={"error_count": len(errors)},
+            )
+
+        fetched_results = extract_pull_request_statuses_from_response(
+            response, uncached_pull_requests
+        )
+        for pull_request, result in fetched_results.items():
+            # Short enough that checks still appear to advance while CI runs.
+            self.set_cache(cache_keys[pull_request], result, 60)
+        results.update(fetched_results)
+        return results
 
     def create_check_run(self, repo: str, data: dict[str, Any]) -> Any:
         """
