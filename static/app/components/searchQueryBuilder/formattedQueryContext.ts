@@ -4,18 +4,12 @@ type FormattedQueryConfig = {
   wrapTokens: boolean;
 };
 
+// FilterValueText is also used by the interactive query builder, where the
+// absence of a provider means tokens should retain their default no-wrap behavior.
 export const FormattedQueryConfigContext = createContext<FormattedQueryConfig>({
   wrapTokens: false,
 });
 
 export function useFormattedQueryConfig() {
-  const context = useContext(FormattedQueryConfigContext);
-
-  if (!context) {
-    throw new Error(
-      'useFormattedQueryConfig must be used within a FormattedQueryConfigProvider'
-    );
-  }
-
-  return context;
+  return useContext(FormattedQueryConfigContext);
 }
