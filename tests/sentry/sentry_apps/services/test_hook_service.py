@@ -59,6 +59,8 @@ class TestHookService(TestCase):
             "comment.updated",
             "issue.assigned",
             "issue.created",
+            "issue.external_issue_created",
+            "issue.external_issue_linked",
             "issue.ignored",
             "issue.resolved",
             "issue.unresolved",

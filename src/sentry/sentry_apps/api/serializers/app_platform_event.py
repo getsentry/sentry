@@ -6,7 +6,7 @@ from typing import Any, TypedDict
 from uuid import uuid4
 
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
+from sentry.sentry_apps.services.app.model import RpcSentryApp, RpcSentryAppInstallation
 from sentry.sentry_apps.utils.headers import mask_header_values, parse_custom_headers
 from sentry.sentry_apps.utils.webhooks import SentryAppActionType, SentryAppResourceType
 from sentry.users.models.user import User
@@ -50,7 +50,7 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
         action: SentryAppActionType,
         install: RpcSentryAppInstallation | SentryAppInstallation,
         data: T,
-        actor: RpcUser | User | None = None,
+        actor: RpcSentryApp | RpcUser | User | None = None,
     ):
         self.resource = resource
         self.action = action
@@ -59,7 +59,8 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
         self.actor = actor
         self.include_text_summary = False
 
-    def get_actor(self) -> AppPlatformEventActor:
+    @property
+    def actor_payload(self) -> AppPlatformEventActor:
         # when sentry auto assigns, auto resolves, etc.
         # or when an alert rule is triggered
         if not self.actor:
@@ -67,6 +68,13 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
                 type=AppPlatformEventActorType.APPLICATION,
                 id="sentry",
                 name="Sentry",
+            )
+
+        if isinstance(self.actor, RpcSentryApp):
+            return AppPlatformEventActor(
+                type=AppPlatformEventActorType.APPLICATION,
+                id=self.actor.uuid,
+                name=self.actor.name,
             )
 
         if self.actor.is_sentry_app:
@@ -101,7 +109,7 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
             action=self.action,
             installation=AppPlatformEventInstallation(uuid=self.install.uuid),
             data=self.data,
-            actor=self.get_actor(),
+            actor=self.actor_payload,
         )
         if self.include_text_summary:
             return json.dumps({**body, "text": self.get_text_summary()})
