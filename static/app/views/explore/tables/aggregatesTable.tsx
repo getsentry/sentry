@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -11,13 +10,15 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
-import {IconArrow} from 'sentry/icons/iconArrow';
+import {
+  getAriaSort,
+  SortableHeaderCell,
+} from 'sentry/components/tables/sortableHeaderCell';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {parseCursor} from 'sentry/utils/cursor';
-import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {prettifyTagKey, type FieldValueType} from 'sentry/utils/fields';
@@ -33,7 +34,6 @@ import {
   TableBodyCell,
   TableHead,
   TableHeadCell,
-  TableHeadCellContent,
   TableRow,
   TableStatus,
   useTableStyles,
@@ -155,9 +155,7 @@ export function AggregatesTable({
       <Table ref={tableRef} style={initialTableStyles}>
         <TableHead>
           <TableRow>
-            <TableHeadCell isFirst={false}>
-              <TableHeadCellContent />
-            </TableHeadCell>
+            <TableHeadCell isFirst={false} />
             {visibleAggregateFields.map((aggregateField, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
@@ -180,24 +178,15 @@ export function AggregatesTable({
               }
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <TableHeadCellContent onClick={updateSort}>
-                    <Tooltip showOnlyOnOverflow title={label}>
-                      {label}
-                    </Tooltip>
-                    {defined(direction) && (
-                      <IconArrow
-                        size="xs"
-                        direction={
-                          direction === 'desc'
-                            ? 'down'
-                            : direction === 'asc'
-                              ? 'up'
-                              : undefined
-                        }
-                      />
-                    )}
-                  </TableHeadCellContent>
+                <TableHeadCell
+                  align={align}
+                  aria-sort={getAriaSort(direction)}
+                  key={i}
+                  isFirst={i === 0}
+                >
+                  <SortableHeaderCell direction={direction} onSort={updateSort}>
+                    {label}
+                  </SortableHeaderCell>
                   {i !== visibleAggregateFields.length - 1 && (
                     <GridResizer
                       dataRows={

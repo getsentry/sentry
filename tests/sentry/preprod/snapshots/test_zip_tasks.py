@@ -48,11 +48,11 @@ class BuildSnapshotImagesZipTest(TestCase):
             data[archive_key] = b"ZIPBYTES"
 
         def _get(key):
-            if key in data:
-                result = MagicMock()
-                result.payload.read.return_value = data[key]
-                return result
-            raise RequestError("not found", status=404, response="")
+            if key not in data:
+                return None
+            result = MagicMock()
+            result.payload.read.return_value = data[key]
+            return result
 
         session = MagicMock()
         session.get.side_effect = _get

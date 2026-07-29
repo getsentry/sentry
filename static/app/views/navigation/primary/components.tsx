@@ -33,7 +33,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  NAVIGATION_MOBILE_CONTENT_HEIGHT,
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
   PRIMARY_HEADER_HEIGHT,
   PRIMARY_SIDEBAR_WIDTH,
@@ -81,12 +81,12 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         width="100%"
         minHeight={
           layout === 'mobile'
-            ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
+            ? `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`
             : `${PRIMARY_HEADER_HEIGHT}px`
         }
         height={
           layout === 'mobile'
-            ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
+            ? `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`
             : `${PRIMARY_HEADER_HEIGHT}px`
         }
         {...props}
@@ -144,7 +144,7 @@ interface PrimaryNavigationLinkProps
 function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   const organization = useOrganization({allowNull: true});
   const {layout, features} = usePrimaryNavigation();
-  const isMobilePageFrame = layout === 'mobile';
+  const isMobile = layout === 'mobile';
   // Reload the page when the frontend is stale to ensure users get the latest version
   const {state: appState} = useFrontendVersion();
   const theme = useTheme();
@@ -158,8 +158,8 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
     onMouseEnter: props.onMouseEnter,
     onMouseLeave: props.onMouseLeave,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
-      // On touch devices with page frame, prevent navigation and let setActiveGroup handle the active state
-      if (isMobilePageFrame && !features.hover) {
+      // On touch mobile devices, prevent navigation and let setActiveGroup handle the active state
+      if (isMobile && !features.hover) {
         e.preventDefault();
       }
       trackAnalytics('navigation.primary_item_clicked', {
@@ -194,9 +194,7 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   );
 
   return (
-    <DesktopPageFrameNavigationLink {...sharedLinkProps}>
-      {desktopChildren}
-    </DesktopPageFrameNavigationLink>
+    <DesktopNavigationLink {...sharedLinkProps}>{desktopChildren}</DesktopNavigationLink>
   );
 }
 
@@ -418,7 +416,7 @@ function PrimaryNavigationFooterItems(props: PrimaryNavigationFooterItemsProps) 
   );
 }
 
-const DesktopPageFrameNavigationLink = styled((props: LinkProps) => {
+const DesktopNavigationLink = styled((props: LinkProps) => {
   return (
     <Stack
       position="relative"

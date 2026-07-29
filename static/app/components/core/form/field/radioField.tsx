@@ -96,9 +96,9 @@ function RadioItem({children, value, description}: RadioItemProps) {
         onChange={() => onChange(value)}
       />
       <Stack gap="xs" paddingTop="xs">
-        <Text>{children}</Text>
+        <Text bold={false}>{children}</Text>
         {description && (
-          <Text size="sm" variant="muted" id={descriptionId}>
+          <Text bold={false} size="sm" variant="muted" id={descriptionId}>
             {description}
           </Text>
         )}
