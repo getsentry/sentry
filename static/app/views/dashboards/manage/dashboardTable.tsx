@@ -48,6 +48,7 @@ import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 type Props = {
   api: Client;
   dashboards: DashboardListItem[] | undefined;
+  isOnlyPrebuilt: boolean;
   location: Location;
   onDashboardsChange: () => void;
   organization: Organization;
@@ -61,6 +62,8 @@ enum ResponseKeys {
   ACCESS = 'permissions',
   CREATED = 'dateCreated',
   FAVORITE = 'isFavorited',
+  DESCRIPTION = 'description',
+  LAST_VISITED = 'lastVisited',
 }
 
 const SortKeys = {
@@ -131,6 +134,7 @@ function DashboardTable({
   dashboards,
   onDashboardsChange,
   isLoading,
+  isOnlyPrebuilt,
 }: Props) {
   const handleDuplicateDashboard = useDuplicateDashboard({
     onSuccess: onDashboardsChange,
@@ -138,26 +142,121 @@ function DashboardTable({
   const handleDeleteDashboard = useDeleteDashboard({
     onSuccess: onDashboardsChange,
   });
-  const columnOrder: Array<GridColumnOrder<ResponseKeys>> = [
-    {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
-    {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
-    {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
-    {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
-    {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
-  ];
+  const hasUserLastVisited = organization.features.includes(
+    'dashboards-user-last-visited'
+  );
+
+  // TODO: When `dashboards-user-last-visited` is fully rolled out, delete the
+  // flag-off `columnOrder` branch below, the `createdBy` SortKeys entry and its
+  // special case in `renderHeadCell`, and the `mydashboards` default/fallback.
+  const columnOrder: Array<GridColumnOrder<ResponseKeys>> = hasUserLastVisited
+    ? [
+        {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
+        ...(isOnlyPrebuilt
+          ? [
+              {
+                key: ResponseKeys.DESCRIPTION,
+                name: t('Description'),
+                width: COL_WIDTH_UNDEFINED,
+              },
+            ]
+          : []),
+        {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
+        ...(isOnlyPrebuilt
+          ? []
+          : [{key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED}]),
+        ...(isOnlyPrebuilt
+          ? []
+          : [{key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED}]),
+        ...(isOnlyPrebuilt
+          ? []
+          : [
+              {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
+            ]),
+        {
+          key: ResponseKeys.LAST_VISITED,
+          name: t('Last Visited'),
+          width: COL_WIDTH_UNDEFINED,
+        },
+      ]
+    : [
+        // Legacy layout; delete this when hasUserLastVisited is cleaned up
+        {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
+        {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
+        {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
+        {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
+        {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
+      ];
+
+  const renderActions = (dataRow: DashboardListItem) => {
+    return (
+      <Flex gap="xs">
+        <DashboardCreateLimitWrapper>
+          {({
+            hasReachedDashboardLimit,
+            isLoading: isLoadingDashboardsLimit,
+            limitMessage,
+          }) => (
+            <StyledButton
+              onClick={e => {
+                e.stopPropagation();
+                openConfirmModal({
+                  message: t('Are you sure you want to duplicate this dashboard?'),
+                  priority: 'primary',
+                  onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
+                });
+              }}
+              variant="transparent"
+              aria-label={t('Duplicate Dashboard')}
+              data-test-id="dashboard-duplicate"
+              icon={<IconCopy />}
+              size="sm"
+              disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+              tooltipProps={{
+                title: limitMessage,
+              }}
+            />
+          )}
+        </DashboardCreateLimitWrapper>
+        <StyledButton
+          onClick={e => {
+            e.stopPropagation();
+            openConfirmModal({
+              message: t('Are you sure you want to delete this dashboard?'),
+              priority: 'danger',
+              onConfirm: () => handleDeleteDashboard(dataRow, 'table'),
+            });
+          }}
+          variant="transparent"
+          aria-label={t('Delete Dashboard')}
+          data-test-id="dashboard-delete"
+          icon={<IconDelete />}
+          size="sm"
+          disabled={defined(dataRow.prebuiltId)}
+          tooltipProps={{
+            title: defined(dataRow.prebuiltId)
+              ? tct('[label] dashboards cannot be deleted', {
+                  label: PREBUILT_DASHBOARD_LABEL,
+                })
+              : undefined,
+          }}
+        />
+      </Flex>
+    );
+  };
 
   function renderHeadCell(column: GridColumnOrder<string>) {
     if (column.key in SortKeys) {
-      const urlSort = decodeScalar(location.query.sort, 'mydashboards');
-      const isCurrentSort =
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        urlSort === SortKeys[column.key].asc || urlSort === SortKeys[column.key].desc;
+      const sortKey = SortKeys[column.key as keyof typeof SortKeys];
+      const urlSort = decodeScalar(
+        location.query.sort,
+        hasUserLastVisited ? 'recentlyViewed' : 'mydashboards'
+      );
+      const currentDirection =
+        urlSort === sortKey.asc ? 'asc' : urlSort === sortKey.desc ? 'desc' : undefined;
+      const isCurrentSort = currentDirection !== undefined;
       const sortDirection =
-        !isCurrentSort || column.key === 'createdBy'
-          ? undefined
-          : urlSort.startsWith('-')
-            ? 'desc'
-            : 'asc';
+        !isCurrentSort || column.key === 'createdBy' ? undefined : currentDirection;
 
       return (
         <SortLink
@@ -166,14 +265,8 @@ function DashboardTable({
           direction={sortDirection}
           canSort
           generateSortLink={() => {
-            const newSort = isCurrentSort
-              ? sortDirection === 'asc'
-                ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  SortKeys[column.key].desc
-                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  SortKeys[column.key].asc
-              : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                SortKeys[column.key].asc;
+            const newSort =
+              isCurrentSort && currentDirection === 'asc' ? sortKey.desc : sortKey.asc;
             return {
               ...location,
               query: {...location.query, sort: newSort},
@@ -255,6 +348,8 @@ function DashboardTable({
       );
     }
 
+    // TODO: only last visited will show renderActions. Delete ternary below
+    // when hasUserLastVisited is cleaned up.
     if (column.key === ResponseKeys.CREATED) {
       return (
         <Flex justify="between" align="center" gap="3xl">
@@ -267,60 +362,30 @@ function DashboardTable({
               <DateStatus />
             )}
           </DateSelected>
-          <Flex gap="xs">
-            <DashboardCreateLimitWrapper>
-              {({
-                hasReachedDashboardLimit,
-                isLoading: isLoadingDashboardsLimit,
-                limitMessage,
-              }) => (
-                <StyledButton
-                  onClick={e => {
-                    e.stopPropagation();
-                    openConfirmModal({
-                      message: t('Are you sure you want to duplicate this dashboard?'),
-                      priority: 'primary',
-                      onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
-                    });
-                  }}
-                  variant="transparent"
-                  aria-label={t('Duplicate Dashboard')}
-                  data-test-id="dashboard-duplicate"
-                  icon={<IconCopy />}
-                  size="sm"
-                  disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-                  tooltipProps={{
-                    title: limitMessage,
-                  }}
-                />
-              )}
-            </DashboardCreateLimitWrapper>
-            <StyledButton
-              onClick={e => {
-                e.stopPropagation();
-                openConfirmModal({
-                  message: t('Are you sure you want to delete this dashboard?'),
-                  priority: 'danger',
-                  onConfirm: () => handleDeleteDashboard(dataRow, 'table'),
-                });
-              }}
-              variant="transparent"
-              aria-label={t('Delete Dashboard')}
-              data-test-id="dashboard-delete"
-              icon={<IconDelete />}
-              size="sm"
-              disabled={defined(dataRow.prebuiltId)}
-              tooltipProps={{
-                title: defined(dataRow.prebuiltId)
-                  ? tct('[label] dashboards cannot be deleted', {
-                      label: PREBUILT_DASHBOARD_LABEL,
-                    })
-                  : undefined,
-              }}
-            />
-          </Flex>
+          {hasUserLastVisited ? undefined : renderActions(dataRow)}
         </Flex>
       );
+    }
+
+    if (column.key === ResponseKeys.LAST_VISITED && hasUserLastVisited) {
+      return (
+        <Flex justify="between" align="center" gap="3xl">
+          <DateSelected>
+            {dataRow[ResponseKeys.LAST_VISITED] ? (
+              <DateStatus>
+                <TimeSince date={dataRow[ResponseKeys.LAST_VISITED]} />
+              </DateStatus>
+            ) : (
+              <DateStatus />
+            )}
+          </DateSelected>
+          {renderActions(dataRow)}
+        </Flex>
+      );
+    }
+
+    if (column.key === ResponseKeys.DESCRIPTION && hasUserLastVisited) {
+      return <Text ellipsis>{dataRow.description}</Text>;
     }
 
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

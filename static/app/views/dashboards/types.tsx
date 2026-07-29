@@ -205,6 +205,7 @@ export type DashboardListItem = {
   widgetPreview: WidgetPreview[];
   createdBy?: User;
   dateCreated?: string;
+  description?: string;
   isFavorited?: boolean;
   lastVisited?: string;
   permissions?: DashboardPermissions;
