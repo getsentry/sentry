@@ -471,7 +471,16 @@ function ToolsCell({toolNames}: {toolNames: string[]}) {
     : undefined;
 
   return (
-    <ToolsContainer ref={containerRef} style={maxHeight ? {maxHeight} : undefined}>
+    <ToolsContainer
+      ref={containerRef}
+      position="relative"
+      wrap="wrap"
+      gap="xs"
+      width="100%"
+      minWidth={0}
+      overflow="hidden"
+      style={maxHeight ? {maxHeight} : undefined}
+    >
       {toolNames.slice(0, visibleCount).map((name, index) => (
         <Tag
           key={`${name}-${index}`}
@@ -492,7 +501,19 @@ function ToolsCell({toolNames}: {toolNames: string[]}) {
       {/* Hidden measurement layer: always renders every tag so their intrinsic
           widths (and the badge width) stay available no matter what is
           currently visible. */}
-      <MeasureLayer ref={measureRef} aria-hidden>
+      <Flex
+        ref={measureRef}
+        aria-hidden
+        position="absolute"
+        top={0}
+        left={0}
+        height={0}
+        overflow="hidden"
+        visibility="hidden"
+        pointerEvents="none"
+        wrap="wrap"
+        gap="xs"
+      >
         {toolNames.map((name, index) => (
           <Tag key={`${name}-${index}`} variant="muted" data-tool-tag>
             {name}
@@ -501,7 +522,7 @@ function ToolsCell({toolNames}: {toolNames: string[]}) {
         <Tag variant="muted" data-tool-badge>
           {`+${toolNames.length}`}
         </Tag>
-      </MeasureLayer>
+      </Flex>
     </ToolsContainer>
   );
 }
@@ -530,26 +551,8 @@ const TruncatedTagLabel = styled('span')`
   white-space: nowrap;
 `;
 
-const ToolsContainer = styled('div')`
-  position: relative;
-  display: flex;
-  flex-wrap: wrap;
+// align-content isn't a Flex prop, so keep it as a small styled(Flex) so wrapped
+// tag rows stack from the top instead of spreading across the container height.
+const ToolsContainer = styled(Flex)`
   align-content: flex-start;
-  gap: ${p => p.theme.space.xs};
-  width: 100%;
-  min-width: 0;
-  overflow: hidden;
-`;
-
-const MeasureLayer = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 0;
-  overflow: hidden;
-  visibility: hidden;
-  pointer-events: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${p => p.theme.space.xs};
 `;
