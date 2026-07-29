@@ -15,6 +15,7 @@ import {
   GridHeadCell,
   GridRow,
 } from 'sentry/components/tables/gridEditable/styles';
+import {useColumnResize} from 'sentry/components/tables/useColumnResize';
 import {defined} from 'sentry/utils/defined';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 
@@ -77,7 +78,6 @@ export function useTableStyles(
       : options?.prefixColumnWidth;
   const staticColumnWidths = options?.staticColumnWidths;
 
-  const resizingColumnIndex = useRef<number | null>(null);
   const columnWidthsRef = useRef<Array<number | null>>(fields.map(_ => null));
 
   useEffect(() => {
@@ -114,51 +114,13 @@ export function useTableStyles(
     [buildGridTemplateColumns]
   );
 
-  const onResizeMouseDown = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>, index: number) => {
-      event.preventDefault();
-
-      // <GridResizer> is expected to be nested 1 level down from <GridHeadCell>
-      const cell = event.currentTarget.parentElement;
-      if (!cell) {
-        return;
-      }
-
-      resizingColumnIndex.current = index;
-
-      const startX = event.clientX;
-      const initialWidth = cell.offsetWidth;
-
-      const gridElement = tableRef.current;
-
-      function onMouseMove(e: MouseEvent) {
-        if (resizingColumnIndex.current === null || !gridElement) {
-          return;
-        }
-
-        const newWidth = Math.max(
-          minimumColumnWidth,
-          initialWidth + (e.clientX - startX)
-        );
-
-        columnWidthsRef.current[index] = newWidth;
-
-        gridElement.style.gridTemplateColumns = buildGridTemplateColumns();
-      }
-
-      function onMouseUp() {
-        resizingColumnIndex.current = null;
-
-        // Cleaning up event listeners
-        window.removeEventListener('mousemove', onMouseMove);
-        window.removeEventListener('mouseup', onMouseUp);
-      }
-
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('mouseup', onMouseUp);
+  const {onResizeMouseDown} = useColumnResize({
+    gridRef: tableRef,
+    getResizeTemplate: (index, newWidth) => {
+      columnWidthsRef.current[index] = Math.max(minimumColumnWidth, newWidth);
+      return buildGridTemplateColumns();
     },
-    [buildGridTemplateColumns, minimumColumnWidth, tableRef]
-  );
+  });
 
   return {initialTableStyles, onResizeMouseDown};
 }
