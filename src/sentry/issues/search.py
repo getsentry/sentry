@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import functools
-import logging
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from copy import deepcopy
 from typing import Any, Optional, Protocol, TypedDict, TypeGuard
 
@@ -194,17 +193,15 @@ def _query_params_for_generic(
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
     actor: Any | None = None,
-    categories: Sequence[GroupCategory] | None = None,
+    *,
+    categories: Sequence[GroupCategory],
+    visible_group_type_ids: Collection[int],
 ) -> SnubaQueryParams | None:
-    if categories is None:
-        logging.error("Category is required in _query_params_for_generic")
-        return None
-
-    category_ids = {gc.value for gc in categories}
     group_types = {
-        gt.type_id
-        for gt in grouptype.registry.get_visible(organization, actor)
-        if gt.category in category_ids
+        type_id
+        for category in categories
+        for type_id in grouptype.registry.get_by_category(category.value)
+        if type_id in visible_group_type_ids
     }
     if not group_types:
         return None
@@ -227,16 +224,17 @@ def _query_params_for_generic(
     return SnubaQueryParams(**params)
 
 
-def get_search_strategies() -> dict[int, GroupSearchStrategy]:
-    strategies: dict[int, GroupSearchStrategy] = {}
-    for group_category in GroupCategory:
-        if group_category == GroupCategory.ERROR:
-            strategies[group_category.value] = _query_params_for_error
-        else:
-            strategies[group_category.value] = functools.partial(
-                _query_params_for_generic, categories=[group_category]
-            )
-    return strategies
+def get_search_strategy(
+    group_category: GroupCategory,
+    visible_group_type_ids: Collection[int],
+) -> GroupSearchStrategy:
+    if group_category == GroupCategory.ERROR:
+        return _query_params_for_error
+    return functools.partial(
+        _query_params_for_generic,
+        categories=[group_category],
+        visible_group_type_ids=visible_group_type_ids,
+    )
 
 
 def _update_profiling_search_filters(
