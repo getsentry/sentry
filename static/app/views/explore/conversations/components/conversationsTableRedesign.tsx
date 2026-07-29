@@ -279,7 +279,7 @@ function ConversationCell({conversation}: {conversation: Conversation}) {
       </Text>
       <Flex align="center" gap="sm" minWidth={0}>
         <Flex align="center" gap="xs" minWidth={0}>
-          {project && <ProjectAvatar project={project} size={16} />}
+          {project && <ProjectAvatar project={project} size={14} />}
           <Text size="sm" variant="muted" ellipsis>
             {getConversationIdLabel(conversation.conversationId)}
           </Text>
