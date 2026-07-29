@@ -4,6 +4,7 @@ from sentry.issues.action_log.types import (
     AutofixCodingCompleteAction,
     PullRequestClosedAction,
     PullRequestMergedAction,
+    PullRequestOrigin,
     PullRequestReopenedAction,
     PullRequestUnlinkedAction,
     ReconcileStatusAction,
@@ -30,6 +31,7 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.derived.features import (
     BLOCKER,
+    FIX_ATTEMPT_SIGNALS,
     HAS_OPEN_FIX_PR,
     HAS_ROOT_CAUSE,
     IS_ASSIGNED,
@@ -38,6 +40,7 @@ from sentry.issues.derived.features import (
     PROGRESS,
     STATUS,
     VIEW_COUNT,
+    FixAttemptSignal,
     IssueStatus,
 )
 from sentry.issues.derived.framework import (
@@ -98,26 +101,23 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
 
 # Progress for open issues (None when closed).
 #
-# Progress is derived from a few features, which are tracked independently:
+# Progress is currently derived from independently tracked facts:
 #
 #   * IS_ASSIGNED     — issue has an assignee. Survives close/reopen.
 #   * HAS_ROOT_CAUSE  — a root cause has been identified (diagnosed). Cleared on
 #     regression (SET_REGRESSED), but preserved when manually reopened (UNRESOLVE).
 #   * HAS_OPEN_FIX_PR — at least one PR which resolves the issue is still open.
-#     Cleared when the last linked PR closes without being merged.
+#     Cleared when the last linked PR closes, merges, or is unlinked.
 #
 # Highest applicable stage wins:
+#
 #   HAS_OPEN_FIX_PR → FIX_PROPOSED
 #   HAS_ROOT_CAUSE  → DIAGNOSED
 #   IS_ASSIGNED     → ASSIGNED
 #   (none)          → IDENTIFIED
 #
-# A merged fix PR advances progress to FIX_APPLIED, which remains sticky until
-# the issue closes.
-#
-#   IDENTIFIED → ASSIGNED → DIAGNOSED → FIX_PROPOSED → FIX_APPLIED
-#   (RESOLVE / ARCHIVE) → None (closed)
-#   (UNRESOLVE / SET_REGRESSED) → Reopen
+# FIX_ATTEMPT_SIGNALS is populated in parallel for a later cutover. It records
+# the open-PR and failed-automated-fix facts without affecting progress yet.
 
 
 @aggregator(
@@ -167,10 +167,7 @@ def track_root_cause(state: StateView, entry: GroupActionLogEntry) -> Aggregator
     ),
 )
 def track_open_fix_prs(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
-    """Track whether an issue has an open fix PR.
-    When an issue has a fix PR created or reopened, the flag should be True.
-    When the last open PR closes, merges, or is unlinked, the flag should be False.
-    """
+    """Track whether an issue has an open fix PR."""
     current_has_open_fix_pr = state[HAS_OPEN_FIX_PR]
 
     match entry.action:
@@ -185,6 +182,48 @@ def track_open_fix_prs(state: StateView, entry: GroupActionLogEntry) -> Aggregat
         ) if current_has_open_fix_pr:
             return emit(HAS_OPEN_FIX_PR.value(False))
 
+    return None
+
+
+@aggregator(
+    (FIX_ATTEMPT_SIGNALS,),
+    scope=(
+        ResolvedInPullRequestAction,
+        PullRequestClosedAction,
+        PullRequestReopenedAction,
+        PullRequestMergedAction,
+        PullRequestUnlinkedAction,
+        RootCauseIdentifiedAction,
+        SeerRCACompletedAction,
+        SetRegressedAction,
+    ),
+)
+def track_fix_attempt_signals(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    current_signals = FixAttemptSignal(state[FIX_ATTEMPT_SIGNALS])
+    signals = current_signals
+    action = entry.action
+
+    match action:
+        case ResolvedInPullRequestAction() | PullRequestReopenedAction():
+            signals |= FixAttemptSignal.HAS_OPEN_PR
+        case PullRequestClosedAction() | PullRequestMergedAction() | PullRequestUnlinkedAction():
+            # Preserve the open-PR signal while another linked PR remains open.
+            if action.has_other_open_prs is True:
+                signals |= FixAttemptSignal.HAS_OPEN_PR
+            elif action.has_other_open_prs is False:
+                signals &= ~FixAttemptSignal.HAS_OPEN_PR
+
+            # Record failed automated fixes now so progress can use them after cutover.
+            if (
+                isinstance(action, PullRequestClosedAction)
+                and action.pull_request_origin == PullRequestOrigin.AUTOMATED_FIX
+            ):
+                signals |= FixAttemptSignal.HAS_FAILED_AUTOMATED_FIX
+        case RootCauseIdentifiedAction() | SeerRCACompletedAction() | SetRegressedAction():
+            signals &= ~FixAttemptSignal.HAS_FAILED_AUTOMATED_FIX
+
+    if signals != current_signals:
+        return emit(FIX_ATTEMPT_SIGNALS.value(signals.value))
     return None
 
 
@@ -299,6 +338,7 @@ AGGREGATORS: list[Aggregator[GroupActionLogEntry]] = [
     track_assignment,
     track_root_cause,
     track_open_fix_prs,
+    track_fix_attempt_signals,
     track_progress,
     track_last_completed_autofix_step,
     track_blocker,
