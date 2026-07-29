@@ -7,6 +7,7 @@ interface UseVirtualRowsOptions {
   getScrollElement: () => HTMLElement | null;
   getItemKey?: (index: number) => string | number;
   overscan?: number;
+  scrollMargin?: number;
 }
 
 export function useVirtualRows({
@@ -15,6 +16,7 @@ export function useVirtualRows({
   getItemKey,
   getScrollElement,
   overscan = 5,
+  scrollMargin = 0,
 }: UseVirtualRowsOptions) {
   const virtualizer = useVirtualizer<HTMLElement, Element>({
     count,
@@ -22,6 +24,7 @@ export function useVirtualRows({
     getItemKey,
     getScrollElement,
     overscan,
+    scrollMargin,
   });
 
   // @tanstack/react-virtual does not rebuild its measurements cache when

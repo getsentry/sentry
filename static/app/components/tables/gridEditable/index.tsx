@@ -193,6 +193,7 @@ export function GridEditable<
 
     return (
       <GridRow
+        divider
         key={row}
         onMouseOver={event => onRowMouseOver?.(dataRow, row, event)}
         onMouseOut={event => onRowMouseOut?.(dataRow, row, event)}
