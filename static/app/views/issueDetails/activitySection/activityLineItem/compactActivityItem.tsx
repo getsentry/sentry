@@ -486,10 +486,18 @@ export function getCompactGroupActivityItem({
           : null,
       };
     }
-    case GroupActivityType.SEER_ITERATION_STARTED:
+    case GroupActivityType.SEER_ITERATION_STARTED: {
+      const {referrer} = activity.data;
       return {
         title: t('Pull request iteration started'),
+        details:
+          referrer === 'github.check_suite'
+            ? t('after CI failed')
+            : referrer?.startsWith('github.')
+              ? t('from GitHub')
+              : null,
       };
+    }
     case GroupActivityType.SEER_ITERATION_COMPLETED: {
       const pullRequest = activity.data.pull_requests?.[0];
       return {

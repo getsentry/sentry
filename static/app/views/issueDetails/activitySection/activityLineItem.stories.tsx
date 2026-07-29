@@ -308,6 +308,12 @@ const seerActivities = [
     pull_requests: [seerPullRequest],
   }),
   seerActivity(GroupActivityType.SEER_ITERATION_STARTED),
+  seerActivity(GroupActivityType.SEER_ITERATION_STARTED, {
+    referrer: 'github.pr_comment',
+  }),
+  seerActivity(GroupActivityType.SEER_ITERATION_STARTED, {
+    referrer: 'github.check_suite',
+  }),
   seerActivity(GroupActivityType.SEER_ITERATION_COMPLETED, {
     pull_requests: [seerPullRequest],
   }),
