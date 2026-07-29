@@ -363,10 +363,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     )
                     return self.respond(status=404)
 
-                latest_event = group.get_latest_event(
-                    start=group.first_seen - timedelta(minutes=5),
-                    end=group.last_seen + timedelta(minutes=1),
-                )
+                latest_event = group.get_latest_event()
                 if latest_event is not None:
                     num_attachments = EventAttachment.objects.filter(
                         project_id=latest_event.project_id, event_id=latest_event.event_id

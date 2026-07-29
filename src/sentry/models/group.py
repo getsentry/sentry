@@ -264,9 +264,11 @@ def bulk_get_latest_event_ids(groups: Sequence[Group]) -> dict[int, tuple[int, s
 
     requests = []
     request_groups = []
+    end = timezone.now() + timedelta(seconds=1)
     for (organization_id, dataset), partition in partitions.items():
+        # Use first_seen to avoid scanning partitions from before the issues existed.
+        # last_seen is asynchronously updated and may lag behind events already in Snuba.
         start = min(group.first_seen for group in partition) - timedelta(minutes=5)
-        end = max(group.last_seen for group in partition) + timedelta(minutes=1)
         expired, start = outside_retention_with_modified_start(
             start, end, Organization(organization_id)
         )

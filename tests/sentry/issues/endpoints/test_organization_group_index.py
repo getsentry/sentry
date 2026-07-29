@@ -2137,8 +2137,16 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["sentryAppIssues"][0]["displayName"] == issue_1.display_name
         assert response.data[0]["sentryAppIssues"][1]["displayName"] == issue_2.display_name
 
-    @with_feature("organizations:event-attachments")
-    def test_expand_latest_event_has_attachments(self) -> None:
+    @with_feature(
+        {
+            "organizations:event-attachments": True,
+            "organizations:issue-stream-batched-latest-event-attachments": False,
+        }
+    )
+    @patch("sentry.api.serializers.models.group_stream.bulk_get_latest_event_ids")
+    def test_expand_latest_event_has_attachments(
+        self, mock_bulk_get_latest_event_ids: MagicMock
+    ) -> None:
         event = self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -2175,9 +2183,18 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert response.status_code == 200
         assert response.data[0]["latestEventHasAttachments"] is True
+        mock_bulk_get_latest_event_ids.assert_not_called()
 
-    @with_feature("organizations:event-attachments")
-    def test_expand_latest_event_has_attachments_is_batched(self) -> None:
+    @with_feature(
+        [
+            "organizations:event-attachments",
+            "organizations:issue-stream-batched-latest-event-attachments",
+        ]
+    )
+    @patch("sentry.models.Group.get_latest_event")
+    def test_expand_latest_event_has_attachments_is_batched(
+        self, mock_get_latest_event: MagicMock
+    ) -> None:
         events = [
             self.store_event(
                 data={
@@ -2218,8 +2235,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             query for query in queries if "sentry_eventattachment" in query["sql"]
         ]
         assert len(attachment_queries) == 1
+        mock_get_latest_event.assert_not_called()
 
-    @with_feature("organizations:event-attachments")
+    @with_feature(
+        [
+            "organizations:event-attachments",
+            "organizations:issue-stream-batched-latest-event-attachments",
+        ]
+    )
     @patch("sentry.api.serializers.models.group_stream.bulk_get_latest_event_ids", return_value={})
     def test_expand_no_latest_event_has_no_attachments(self, mock_latest_events: MagicMock) -> None:
         self.store_event(
@@ -2235,6 +2258,37 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         # Expand should not execute since there is no latest event
         assert "latestEventHasAttachments" not in response.data[0]
+
+    @with_feature(
+        {
+            "organizations:event-attachments": True,
+            "organizations:issue-stream-batched-latest-event-attachments": False,
+        }
+    )
+    @patch("sentry.api.serializers.models.group_stream.bulk_get_latest_event_ids")
+    @patch("sentry.models.Group.get_latest_event", return_value=None)
+    def test_expand_no_latest_event_has_no_attachments_legacy(
+        self,
+        mock_get_latest_event: MagicMock,
+        mock_bulk_get_latest_event_ids: MagicMock,
+    ) -> None:
+        self.store_event(
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            query="status:unresolved",
+            expand=["latestEventHasAttachments"],
+        )
+
+        assert response.status_code == 200
+        assert "latestEventHasAttachments" not in response.data[0]
+        mock_get_latest_event.assert_called_once_with()
+        mock_bulk_get_latest_event_ids.assert_not_called()
 
     def test_expand_owners(self) -> None:
         event = self.store_event(

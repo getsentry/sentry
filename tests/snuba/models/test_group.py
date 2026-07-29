@@ -81,6 +81,32 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, SearchIs
             feedback_group_info.group.id: (project.id, feedback_event.event_id),
         }
 
+    def test_bulk_get_latest_event_ids_with_stale_last_seen(self) -> None:
+        project = self.create_project()
+        initial_event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": before_now(minutes=10).isoformat(),
+                "fingerprint": ["stale-group"],
+            },
+            project_id=project.id,
+        )
+        assert initial_event.group is not None
+        stale_group = Group.objects.get(id=initial_event.group.id)
+
+        latest_event = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": before_now(minutes=1).isoformat(),
+                "fingerprint": ["stale-group"],
+            },
+            project_id=project.id,
+        )
+
+        assert bulk_get_latest_event_ids([stale_group]) == {
+            stale_group.id: (project.id, latest_event.event_id)
+        }
+
     def test_get_oldest_latest_for_environments(self) -> None:
         project = self.create_project()
         self.store_event(
