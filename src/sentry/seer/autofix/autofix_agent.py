@@ -49,7 +49,11 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     read_preference_from_sentry_db,
 )
-from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import (
+    SeerActivityAttribution,
+    SeerAutofixOperator,
+    process_autofix_updates,
+)
 from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.models.run import SeerRun
 from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
@@ -383,6 +387,7 @@ def trigger_autofix_agent(
     feedback: Sequence[Feedback] | None = None,
     user: User | RpcUser | AnonymousUser | None = None,
     enable_bash_tools: bool = False,
+    actor_user_id: int | None = None,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -514,13 +519,19 @@ def trigger_autofix_agent(
     try:
         sentry_app_event_type = SentryAppEventType(event_type)
         if SeerAutofixOperator.has_access(organization=group.organization):
-            process_autofix_updates.apply_async(
-                kwargs={
-                    "event_type": sentry_app_event_type,
-                    "event_payload": payload,
-                    "organization_id": group.organization.id,
+            task_kwargs: dict[str, Any] = {
+                "event_type": sentry_app_event_type,
+                "event_payload": payload,
+                "organization_id": group.organization.id,
+            }
+            if is_iteration_step:
+                activity_attribution: SeerActivityAttribution = {
+                    "referrer": referrer,
                 }
-            )
+                if actor_user_id is not None:
+                    activity_attribution["actor_user_id"] = actor_user_id
+                task_kwargs["activity_attribution"] = activity_attribution
+            process_autofix_updates.apply_async(kwargs=task_kwargs)
     except ValueError:
         logger.exception(
             "autofix.trigger.webhook_invalid_event_type",

@@ -717,11 +717,24 @@ export const replayMobilePlatforms: PlatformKey[] = [
   'cocoa-swift',
 ];
 
+// These are the gaming/engine platforms that can set up replay. Only consumed
+// locally via replayVideoPlatforms / replayPlatforms / replayOnboardingPlatforms.
+const replayGamingPlatforms: readonly PlatformKey[] = ['unreal'];
+
+// These are the platforms whose replays are recorded as video (mobile SDKs +
+// gaming engines). They share the same native replay UI: video-only table
+// columns and platform-specific onboarding rather than the browser (rrweb) flow.
+export const replayVideoPlatforms: readonly PlatformKey[] = [
+  ...replayMobilePlatforms,
+  ...replayGamingPlatforms,
+];
+
 // These are all the platforms that can set up replay.
 export const replayPlatforms: readonly PlatformKey[] = [
   ...replayFrontendPlatforms,
   ...replayBackendPlatforms,
   ...replayMobilePlatforms,
+  ...replayGamingPlatforms,
 ];
 
 /**
@@ -732,6 +745,7 @@ export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   ...replayFrontendPlatforms.filter(p => !['javascript-backbone'].includes(p)),
   ...replayBackendPlatforms,
   ...replayMobilePlatforms,
+  ...replayGamingPlatforms,
 ];
 
 // These are the supported replay platforms that can also be set up using the JS loader.

@@ -1,10 +1,10 @@
 import {createContext, useContext, useEffect, useMemo, useRef} from 'react';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import type {IntegrationAction} from 'sentry/types/alerts';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import type {NotificationSelection} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptions';
 
 /**
@@ -15,7 +15,7 @@ import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptio
  */
 export interface ProjectDetailsFormState {
   alertRuleConfig?: AlertRuleOptions;
-  notificationAction?: IntegrationAction;
+  notificationSelection?: NotificationSelection;
   projectName?: string;
   teamSlug?: string;
 }

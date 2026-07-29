@@ -7,7 +7,7 @@
 {% block title %}{% trans "Confirm Identity" %} | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
-  <form class="form-stacked" action="" method="post">
+  <form class="form-stacked" action="{{ confirmation_url }}" method="post">
     {% csrf_token %}
 
     <div class="sso-link">
