@@ -4,12 +4,13 @@ import {ExternalLink} from '@sentry/scraps/link';
 import type {LinkProps} from '@sentry/scraps/link';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {ConnectedTraceConnection} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/types';
 import {useFindAdjacentTrace} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/useFindLinkedTraces';
-import type {ConnectedTraceConnection} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/useFindLinkedTraces';
 import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -24,6 +25,7 @@ interface UseAdjacentTraceNavigationProps {
 export interface AdjacentTraceNavigation {
   ariaLabel: string;
   disabled: boolean;
+  icon: React.ReactNode;
   onClick: () => void;
   to: LinkProps['to'];
   tooltip: React.ReactNode;
@@ -48,34 +50,38 @@ export function useAdjacentTraceNavigation({
       ? currentTraceStartTimestamp - LINKED_TRACE_MAX_DURATION // Earliest start time of previous trace (- 1h)
       : currentTraceStartTimestamp + LINKED_TRACE_MAX_DURATION; // Latest end time of next trace (+ 1h)
 
-  const {adjacentTraceEndTimestamp, adjacentTraceStartTimestamp, ariaLabel, tooltip} =
-    useMemo(() => {
-      if (direction === 'previous') {
-        return {
-          adjacentTraceEndTimestamp: currentTraceStartTimestamp,
-          adjacentTraceStartTimestamp: linkedTraceWindowTimestamp,
-          ariaLabel: t('Previous Trace'),
-          tooltip: tct(
-            'Go to the previous trace of the same session. [link:Learn More]',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
-              ),
-            }
-          ),
-        };
-      }
+  const {
+    adjacentTraceEndTimestamp,
+    adjacentTraceStartTimestamp,
+    icon,
+    ariaLabel,
+    tooltip,
+  } = useMemo(() => {
+    if (direction === 'previous') {
       return {
-        adjacentTraceEndTimestamp: linkedTraceWindowTimestamp,
-        adjacentTraceStartTimestamp: currentTraceStartTimestamp,
-        ariaLabel: t('Next Trace'),
-        tooltip: tct('Go to the next trace of the same session. [link:Learn More]', {
+        adjacentTraceEndTimestamp: currentTraceStartTimestamp,
+        adjacentTraceStartTimestamp: linkedTraceWindowTimestamp,
+        icon: <IconChevron direction="left" />,
+        ariaLabel: t('Previous Trace'),
+        tooltip: tct('Go to the previous trace of the same session. [link:Learn More]', {
           link: (
             <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
           ),
         }),
       };
-    }, [direction, currentTraceStartTimestamp, linkedTraceWindowTimestamp]);
+    }
+    return {
+      adjacentTraceEndTimestamp: linkedTraceWindowTimestamp,
+      adjacentTraceStartTimestamp: currentTraceStartTimestamp,
+      icon: <IconChevron direction="right" />,
+      ariaLabel: t('Next Trace'),
+      tooltip: tct('Go to the next trace of the same session. [link:Learn More]', {
+        link: (
+          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
+        ),
+      }),
+    };
+  }, [direction, currentTraceStartTimestamp, linkedTraceWindowTimestamp]);
 
   const {
     available: isTraceAvailable,
@@ -96,6 +102,7 @@ export function useAdjacentTraceNavigation({
 
   return {
     ariaLabel,
+    icon,
     tooltip,
     disabled: !traceId || isTraceLoading || !isTraceAvailable,
     onClick: () => traceDispatch({type: 'minimize drawer', payload: true}),

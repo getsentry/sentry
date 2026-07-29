@@ -1,9 +1,8 @@
 import {LinkButton} from '@sentry/scraps/button';
 
-import {IconChevron} from 'sentry/icons';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {ConnectedTraceConnection} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/types';
 import {useAdjacentTraceNavigation} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/useAdjacentTraceNavigation';
-import type {ConnectedTraceConnection} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/useFindLinkedTraces';
 
 type TraceLinkNavigationButtonProps = {
   attributes: TraceItemResponseAttribute[];
@@ -16,7 +15,7 @@ export function TraceLinkNavigationButton({
   attributes,
   currentTraceStartTimestamp,
 }: TraceLinkNavigationButtonProps) {
-  const {ariaLabel, tooltip, disabled, onClick, to} = useAdjacentTraceNavigation({
+  const {ariaLabel, icon, tooltip, disabled, onClick, to} = useAdjacentTraceNavigation({
     direction,
     attributes,
     currentTraceStartTimestamp,
@@ -25,7 +24,7 @@ export function TraceLinkNavigationButton({
   return (
     <LinkButton
       size="xs"
-      icon={<IconChevron direction={direction === 'previous' ? 'left' : 'right'} />}
+      icon={icon}
       aria-label={ariaLabel}
       tooltipProps={{
         position: 'top',

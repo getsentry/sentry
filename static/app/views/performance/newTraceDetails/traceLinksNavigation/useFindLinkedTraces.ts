@@ -2,8 +2,7 @@ import {useMemo} from 'react';
 
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-
-export type ConnectedTraceConnection = 'previous' | 'next';
+import type {ConnectedTraceConnection} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/types';
 
 /**
  * Find an adjacent trace (next or previous) by querying the spans endpoint.
