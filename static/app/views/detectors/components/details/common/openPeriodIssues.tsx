@@ -17,6 +17,7 @@ import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import type {TableColumnConfig} from 'sentry/components/tables/table';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t, tn} from 'sentry/locale';
@@ -31,6 +32,13 @@ import {
 } from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+const OPEN_PERIOD_COLUMNS: TableColumnConfig[] = [
+  {key: 'issue', width: '1fr'},
+  {key: 'status', width: 'min-content'},
+  {key: 'lastSeen', width: 'auto'},
+  {key: 'assignee', width: 'min-content'},
+];
 
 interface OpenPeriodsSubTableProps {
   groupId: string;
@@ -187,7 +195,7 @@ function LatestGroupWithOpenPeriods({
   }
 
   return (
-    <StyledTable>
+    <SimpleTable columns={OPEN_PERIOD_COLUMNS}>
       <SimpleTable.Header>
         <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
@@ -220,7 +228,7 @@ function LatestGroupWithOpenPeriods({
           <OpenPeriodsSubTable groupId={group.id} onZoom={zoomToRange} />
         </SimpleTable.RowCell>
       </SimpleTable.Row>
-    </StyledTable>
+    </SimpleTable>
   );
 }
 
@@ -310,10 +318,6 @@ const EventOrGroupCell = styled(SimpleTable.RowCell)`
   & > div {
     overflow: hidden;
   }
-`;
-
-const StyledTable = styled(SimpleTable)`
-  grid-template-columns: 1fr min-content auto min-content;
 `;
 
 const SubTable = styled(SimpleTable)`

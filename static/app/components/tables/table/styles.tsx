@@ -55,10 +55,14 @@ export const TableGrid = styled('table')<{
   min-width: ${p => p.fit};
 `;
 
-export const TableHead = styled('thead')<{sticky?: boolean; stickyZIndex?: number}>`
+const subgrid = css`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1 / -1;
+`;
+
+export const TableHead = styled('thead')<{sticky?: boolean; stickyZIndex?: number}>`
+  ${subgrid}
 
   ${p =>
     p.sticky &&
@@ -70,17 +74,13 @@ export const TableHead = styled('thead')<{sticky?: boolean; stickyZIndex?: numbe
 `;
 
 export const TableBody = styled('tbody')`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
+  ${subgrid}
 `;
 
 export const TableRow = styled('tr', {
   shouldForwardProp: prop => prop !== 'divider' && isPropValid(prop),
 })<{divider?: boolean}>`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
+  ${subgrid}
   position: relative;
 
   ${p =>

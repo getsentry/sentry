@@ -11,6 +11,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import type {TableColumnConfig} from 'sentry/components/tables/table';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -18,6 +19,13 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {automationFireHistoryApiOptions} from 'sentry/views/automations/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
+
+const HISTORY_COLUMNS: TableColumnConfig[] = [
+  {key: 'lastTriggered', width: '2fr'},
+  {key: 'monitor', width: '2.5fr'},
+  {key: 'issue', width: '3.5fr'},
+  {key: 'alerts', width: '1fr'},
+];
 
 const DEFAULT_HISTORY_PER_PAGE = 10;
 
@@ -91,7 +99,7 @@ export function AutomationHistoryList({
 
   return (
     <Fragment>
-      <SimpleTableWithColumns>
+      <SimpleTable columns={HISTORY_COLUMNS}>
         <SimpleTable.Header>
           <SimpleTable.HeaderCell>{t('Last Triggered')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Monitor')}</SimpleTable.HeaderCell>
@@ -142,7 +150,7 @@ export function AutomationHistoryList({
             <SimpleTable.RowCell>{row.count}</SimpleTable.RowCell>
           </SimpleTable.Row>
         ))}
-      </SimpleTableWithColumns>
+      </SimpleTable>
       <StyledPagination
         onCursor={newCursor => {
           navigate({
@@ -159,10 +167,6 @@ export function AutomationHistoryList({
     </Fragment>
   );
 }
-
-const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 2fr 2.5fr 3.5fr 1fr;
-`;
 
 const StyledLink = styled(Link)`
   overflow: hidden;

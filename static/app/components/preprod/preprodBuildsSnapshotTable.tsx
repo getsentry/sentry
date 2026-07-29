@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -16,7 +15,7 @@ import type {
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getSnapshotPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
-import {FullRowLink} from './preprodBuildsTableCommon';
+import {FullRowLink, BuildsTableGrid} from './preprodBuildsTableCommon';
 
 interface PreprodBuildsSnapshotTableProps {
   builds: BuildDetailsApiResponse[];
@@ -159,7 +158,7 @@ export function PreprodBuildsSnapshotTable({
   });
 
   return (
-    <BuildsSnapshotTable showProjectColumn={showProjectColumn}>
+    <BuildsTableGrid tracks={snapshotTableColumns} showProjectColumn={showProjectColumn}>
       <SimpleTable.Header>
         <SimpleTable.HeaderCell>{t('Snapshot')}</SimpleTable.HeaderCell>
         {showProjectColumn && (
@@ -171,7 +170,7 @@ export function PreprodBuildsSnapshotTable({
         <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
       </SimpleTable.Header>
       {content ?? rows}
-    </BuildsSnapshotTable>
+    </BuildsTableGrid>
   );
 }
 
@@ -181,12 +180,3 @@ const snapshotTableColumns = {
   withoutProject: `minmax(200px, 2fr) minmax(100px, 1fr) minmax(100px, 140px)
     minmax(180px, 2fr) minmax(80px, 120px)`,
 };
-
-const BuildsSnapshotTable = styled(SimpleTable)<{showProjectColumn?: boolean}>`
-  overflow-x: auto;
-  overflow-y: auto;
-  grid-template-columns: ${p =>
-    p.showProjectColumn
-      ? snapshotTableColumns.withProject
-      : snapshotTableColumns.withoutProject};
-`;

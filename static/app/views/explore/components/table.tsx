@@ -110,15 +110,10 @@ export function Table({
   );
 }
 
-interface TableStatusProps {
-  children: React.ReactNode;
-  size?: number;
-}
-
-export function TableStatus({children, size}: TableStatusProps) {
+export function TableStatus({children}: {children: React.ReactNode}) {
   return (
     <GridRow>
-      <GridBodyCellStatus size={size}>{children}</GridBodyCellStatus>
+      <GridBodyCellStatus>{children}</GridBodyCellStatus>
     </GridRow>
   );
 }

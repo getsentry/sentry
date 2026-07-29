@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -19,6 +18,7 @@ import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import type {TableColumnConfig} from 'sentry/components/tables/table';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconAdd, IconDelete, IconEdit, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -29,6 +29,15 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+const CUSTOM_FILTER_COLUMNS: TableColumnConfig[] = [
+  {key: 'active', width: 'max-content'},
+  {key: 'name', width: 'minmax(0, 1fr)'},
+  {key: 'conditions', width: 'minmax(0, 2fr)'},
+  {key: 'created', width: 'max-content'},
+  {key: 'edited', width: 'max-content'},
+  {key: 'action', width: 'max-content'},
+];
 
 // Condition types accepted by the custom inbound filters API. The values match
 // the `type` field on the backend serializer exactly.
@@ -514,7 +523,7 @@ export function CustomFilters({project}: {project: Project}) {
       ) : isPending ? (
         <LoadingIndicator />
       ) : (
-        <CustomFiltersTable>
+        <SimpleTable columns={CUSTOM_FILTER_COLUMNS}>
           <SimpleTable.Header>
             <SimpleTable.HeaderCell divider={false}>{t('Active')}</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell divider={false}>{t('Name')}</SimpleTable.HeaderCell>
@@ -605,14 +614,8 @@ export function CustomFilters({project}: {project: Project}) {
               </SimpleTable.RowCell>
             </SimpleTable.Row>
           ))}
-        </CustomFiltersTable>
+        </SimpleTable>
       )}
     </Stack>
   );
 }
-
-const CustomFiltersTable = styled(SimpleTable)`
-  grid-template-columns:
-    max-content minmax(0, 1fr) minmax(0, 2fr) max-content max-content
-    max-content;
-`;

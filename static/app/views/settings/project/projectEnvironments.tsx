@@ -12,6 +12,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import type {TableColumnConfig} from 'sentry/components/tables/table';
 import {t} from 'sentry/locale';
 import type {TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -27,6 +28,12 @@ import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+const ENVIRONMENT_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: 'minmax(0, 1fr)'},
+  {key: 'toggle', width: 'max-content'},
+  {key: 'action', width: 'max-content'},
+];
 
 interface EnvironmentRowProps {
   name: React.ReactNode;
@@ -218,7 +225,7 @@ export default function ProjectEnvironments() {
       </TabsContainer>
       <ProjectPermissionAlert project={project} />
 
-      <EnvironmentTable>
+      <SimpleTable columns={ENVIRONMENT_COLUMNS}>
         <SimpleTable.Header>
           <SimpleTable.HeaderCell>
             {isHidden ? t('Hidden') : t('Active Environments')}
@@ -276,15 +283,11 @@ export default function ProjectEnvironments() {
               : t("You don't have any environments yet.")}
           </SimpleTable.Empty>
         )}
-      </EnvironmentTable>
+      </SimpleTable>
     </div>
   );
 }
 
 const TabsContainer = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
-`;
-
-const EnvironmentTable = styled(SimpleTable)`
-  grid-template-columns: minmax(0, 1fr) max-content max-content;
 `;

@@ -14,6 +14,7 @@ import {
   PreprodBuildsCreatedRowCell,
   PreprodBuildsHeaderCells,
   PreprodBuildsRowCells,
+  BuildsTableGrid,
 } from './preprodBuildsTableCommon';
 
 interface PreprodBuildsDistributionTableProps {
@@ -62,14 +63,17 @@ export function PreprodBuildsDistributionTable({
   });
 
   return (
-    <BuildsDistributionTable showProjectColumn={showProjectColumn}>
+    <BuildsTableGrid
+      tracks={distributionTableColumns}
+      showProjectColumn={showProjectColumn}
+    >
       <SimpleTable.Header>
         <PreprodBuildsHeaderCells showProjectColumn={showProjectColumn} />
         <SimpleTable.HeaderCell>{t('Download Count')}</SimpleTable.HeaderCell>
         <PreprodBuildsCreatedHeaderCell />
       </SimpleTable.Header>
       {content ?? rows}
-    </BuildsDistributionTable>
+    </BuildsTableGrid>
   );
 }
 
@@ -79,15 +83,6 @@ const distributionTableColumns = {
   withoutProject: `minmax(250px, 2fr) minmax(250px, 2fr) minmax(120px, 1fr)
     minmax(80px, 120px)`,
 };
-
-const BuildsDistributionTable = styled(SimpleTable)<{showProjectColumn?: boolean}>`
-  overflow-x: auto;
-  overflow-y: auto;
-  grid-template-columns: ${p =>
-    p.showProjectColumn
-      ? distributionTableColumns.withProject
-      : distributionTableColumns.withoutProject};
-`;
 
 const DisabledRow = styled(SimpleTable.Row)`
   [role='cell'] {

@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -20,6 +19,7 @@ import {
   PreprodBuildsCreatedRowCell,
   PreprodBuildsHeaderCells,
   PreprodBuildsRowCells,
+  BuildsTableGrid,
 } from './preprodBuildsTableCommon';
 
 interface PreprodBuildsSizeTableProps {
@@ -65,7 +65,7 @@ export function PreprodBuildsSizeTable({
   });
 
   return (
-    <BuildsSizeTable showProjectColumn={showProjectColumn}>
+    <BuildsTableGrid tracks={sizeTableColumns} showProjectColumn={showProjectColumn}>
       <SimpleTable.Header>
         <PreprodBuildsHeaderCells showProjectColumn={showProjectColumn} />
         <SimpleTable.HeaderCell>
@@ -86,7 +86,7 @@ export function PreprodBuildsSizeTable({
         <PreprodBuildsCreatedHeaderCell />
       </SimpleTable.Header>
       {content ?? rows}
-    </BuildsSizeTable>
+    </BuildsTableGrid>
   );
 }
 
@@ -96,10 +96,3 @@ const sizeTableColumns = {
   withoutProject: `minmax(250px, 2fr) minmax(250px, 2fr) minmax(100px, 1fr)
     minmax(100px, 1fr) minmax(80px, 120px)`,
 };
-
-const BuildsSizeTable = styled(SimpleTable)<{showProjectColumn?: boolean}>`
-  overflow-x: auto;
-  overflow-y: auto;
-  grid-template-columns: ${p =>
-    p.showProjectColumn ? sizeTableColumns.withProject : sizeTableColumns.withoutProject};
-`;

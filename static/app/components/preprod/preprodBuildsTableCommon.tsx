@@ -205,6 +205,19 @@ export function PreprodBuildsCreatedRowCell({build}: {build: BuildDetailsApiResp
   );
 }
 
+interface BuildsTableTracks {
+  withProject: string;
+  withoutProject: string;
+}
+
+export const BuildsTableGrid = styled(SimpleTable, {
+  shouldForwardProp: prop => prop !== 'tracks' && prop !== 'showProjectColumn',
+})<{tracks: BuildsTableTracks; showProjectColumn?: boolean}>`
+  overflow: auto;
+  grid-template-columns: ${p =>
+    p.showProjectColumn ? p.tracks.withProject : p.tracks.withoutProject};
+`;
+
 export const FullRowLink = styled(Link)`
   cursor: pointer;
   color: inherit;

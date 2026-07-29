@@ -6,9 +6,18 @@ import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/types';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import type {TableColumnConfig} from 'sentry/components/tables/table';
 import {t} from 'sentry/locale';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
+
+const AUDIT_LOG_COLUMNS: TableColumnConfig[] = [
+  {key: 'id', width: 'max-content'},
+  {key: 'dateCreated', width: 'max-content'},
+  {key: 'query', width: '1fr'},
+  {key: 'countDeleted', width: 'max-content'},
+  {key: 'status', width: 'max-content'},
+];
 
 export function ReplayBulkDeleteAuditLogTable({
   error,
@@ -20,7 +29,7 @@ export function ReplayBulkDeleteAuditLogTable({
   rows: ReplayBulkDeleteAuditLog[] | undefined;
 }) {
   return (
-    <SimpleTableWithColumns>
+    <SimpleTable columns={AUDIT_LOG_COLUMNS}>
       <SimpleTable.Header>
         <SimpleTable.HeaderCell>{t('ID')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell>{t('Date Created')}</SimpleTable.HeaderCell>
@@ -71,13 +80,9 @@ export function ReplayBulkDeleteAuditLogTable({
       ) : (
         <SimpleTable.Empty>{t('No deletes found')}</SimpleTable.Empty>
       )}
-    </SimpleTableWithColumns>
+    </SimpleTable>
   );
 }
-
-const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: max-content max-content 1fr max-content max-content;
-`;
 
 function getErrorMessage(fetchError: Error | string) {
   if (typeof fetchError === 'string') {

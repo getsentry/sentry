@@ -151,7 +151,7 @@ export function ReplayTable({
       ))}
       {pageLinks ? (
         <SimpleTable.Row>
-          <PaginationCell>
+          <SimpleTable.FullWidthCell>
             <StyledPagination
               pageLinks={pageLinks}
               onCursor={(cursor, path, searchQuery) => {
@@ -161,7 +161,7 @@ export function ReplayTable({
                 });
               }}
             />
-          </PaginationCell>
+          </SimpleTable.FullWidthCell>
         </SimpleTable.Row>
       ) : null}
     </StyledSimpleTable>
@@ -196,11 +196,6 @@ const StyledSimpleTable = styled(SimpleTable)`
   [data-clickable='true'] {
     cursor: pointer;
   }
-`;
-
-const PaginationCell = styled(SimpleTable.RowCell)`
-  grid-column: 1 / -1;
-  padding: 0;
 `;
 
 const StyledPagination = styled(Pagination)`

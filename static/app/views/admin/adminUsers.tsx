@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import {debounce, parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
@@ -15,10 +14,17 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import type {TableColumnConfig} from 'sentry/components/tables/table';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+
+const USERS_COLUMNS: TableColumnConfig[] = [
+  {key: 'user', width: 'minmax(0, 1fr)'},
+  {key: 'joined', width: 'max-content'},
+  {key: 'lastLogin', width: 'max-content'},
+];
 
 type Status = 'active' | 'disabled';
 
@@ -95,7 +101,7 @@ export default function AdminUsers() {
       ) : isPending ? (
         <LoadingIndicator />
       ) : (
-        <UsersTable>
+        <SimpleTable columns={USERS_COLUMNS}>
           <SimpleTable.Header>
             <SimpleTable.HeaderCell>{t('User')}</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>{t('Joined')}</SimpleTable.HeaderCell>
@@ -127,14 +133,10 @@ export default function AdminUsers() {
           ) : (
             <SimpleTable.Empty>{t('No users found.')}</SimpleTable.Empty>
           )}
-        </UsersTable>
+        </SimpleTable>
       )}
 
       {pageLinks && <Pagination pageLinks={pageLinks} />}
     </Fragment>
   );
 }
-
-const UsersTable = styled(SimpleTable)`
-  grid-template-columns: minmax(0, 1fr) max-content max-content;
-`;

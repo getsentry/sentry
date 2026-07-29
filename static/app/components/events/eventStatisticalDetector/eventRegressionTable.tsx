@@ -1,5 +1,4 @@
 import {Fragment, useMemo, type ReactNode} from 'react';
-import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -9,6 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {Duration} from 'sentry/components/duration';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import type {TableColumnConfig} from 'sentry/components/tables/table';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -16,6 +16,14 @@ import {RateUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {unreachable} from 'sentry/utils/unreachable';
+
+const REGRESSION_COLUMNS: TableColumnConfig[] = [
+  {key: 'col1', width: '100px'},
+  {key: 'col2', width: 'minmax(100px, 2fr)'},
+  {key: 'col3', width: '150px'},
+  {key: 'col4', width: '150px'},
+  {key: 'col5', width: '100px'},
+];
 
 export interface EventRegressionTableRow {
   group: string | null;
@@ -71,7 +79,7 @@ export function EventRegressionTable({
   }, [causeType]);
 
   return (
-    <RegressionTable>
+    <SimpleTable columns={REGRESSION_COLUMNS}>
       <SimpleTable.Header>
         {columns.map(column => {
           return (
@@ -114,7 +122,7 @@ export function EventRegressionTable({
           </SimpleTable.Row>
         ))
       )}
-    </RegressionTable>
+    </SimpleTable>
   );
 }
 
@@ -207,10 +215,6 @@ const RIGHT_ALIGNED_STYLE = {
   justifyContent: 'flex-end',
   textAlign: 'right',
 } as const;
-
-const RegressionTable = styled(SimpleTable)`
-  grid-template-columns: 100px minmax(100px, 2fr) 150px 150px 100px;
-`;
 
 function changeTextVariant(change: number): 'danger' | 'primary' | 'success' {
   if (change > 0) {

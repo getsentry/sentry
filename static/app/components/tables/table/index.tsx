@@ -12,6 +12,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -189,17 +190,17 @@ export function Table({
     [applyTemplate, buildTemplate, columns, onColumnResize]
   );
 
-  const redraw = useCallback(() => {
-    const template = buildTemplate();
+  const template = buildTemplate();
 
+  const redraw = useCallback(() => {
     // An empty template means the shell has no opinion about tracks, so writing
     // it would clobber whatever the consumer set via CSS or an inline style.
     if (template) {
       applyTemplate(template);
     }
-  }, [applyTemplate, buildTemplate]);
+  }, [applyTemplate, template]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     redraw();
   }, [redraw]);
 

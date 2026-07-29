@@ -182,14 +182,10 @@ export const GridBodyCellStatic = styled(GridBodyCell)`
   }
 `;
 
-const GridStatusWrapper = styled(TableStatusCell)`
+export const GridBodyCellStatus = styled(TableStatusCell)`
   min-height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
   background-color: transparent;
   font-size: ${p => p.theme.font.size.md};
 `;
-
-export function GridBodyCellStatus(props: any) {
-  return <GridStatusWrapper>{props.children}</GridStatusWrapper>;
-}
 
 export const GridResizer = TableResizer;

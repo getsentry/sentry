@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -18,6 +17,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import type {TableColumnConfig} from 'sentry/components/tables/table';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconBot,
@@ -59,6 +59,14 @@ import type {
   WorkflowKind,
   WorkflowRow,
 } from 'sentry/views/seerWorkflows/types';
+
+const RUNS_COLUMNS: TableColumnConfig[] = [
+  {key: 'select', width: 'min-content'},
+  {key: 'date', width: 'max-content'},
+  {key: 'strategy', width: '1fr'},
+  {key: 'result', width: '2fr'},
+  {key: 'actions', width: 'min-content'},
+];
 
 function SeerWorkflows() {
   const organization = useOrganization();
@@ -331,7 +339,7 @@ function SeerWorkflows() {
                 ) : null}
               </Flex>
             </Container>
-            <RunsTable>
+            <SimpleTable columns={RUNS_COLUMNS}>
               <SimpleTable.Header>
                 <SimpleTable.HeaderCell />
                 <SimpleTable.HeaderCell
@@ -425,7 +433,7 @@ function SeerWorkflows() {
                   );
                 })
               )}
-            </RunsTable>
+            </SimpleTable>
           </Container>
         )}
       </Stack>
@@ -919,10 +927,6 @@ function TriageIssuesDebugAddendum({
     </Stack>
   );
 }
-
-const RunsTable = styled(SimpleTable)`
-  grid-template-columns: min-content max-content 1fr 2fr min-content;
-`;
 
 function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
   const status: RunStatus = run.errorMessage ? 'failed' : 'succeeded';
