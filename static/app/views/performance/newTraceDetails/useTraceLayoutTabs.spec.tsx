@@ -148,8 +148,10 @@ describe('useTraceLayoutTabs', () => {
             logsEnabled: true,
             metricsEnabled: true,
             overview: {
+              isProjectsLoading: false,
               isRepresentativeLoading: false,
               isTabLoading: true,
+              projectIds: [],
               logs: {
                 availability: 'loading',
                 count: undefined,
@@ -196,8 +198,10 @@ describe('useTraceLayoutTabs', () => {
             logsEnabled: true,
             metricsEnabled: true,
             overview: {
+              isProjectsLoading: false,
               isRepresentativeLoading: false,
               isTabLoading: false,
+              projectIds: [],
               logs: {
                 availability: 'unknown',
                 count: undefined,
@@ -233,8 +237,10 @@ describe('useTraceLayoutTabs', () => {
           logsEnabled: true,
           metricsEnabled: true,
           overview: {
+            isProjectsLoading: false,
             isRepresentativeLoading: false,
             isTabLoading: false,
+            projectIds: [],
             logs: {
               availability: 'unknown',
               count: undefined,
@@ -262,8 +268,10 @@ describe('useTraceLayoutTabs', () => {
       const organization = OrganizationFixture();
       let isLoading = true;
       let overview: TraceOverviewData = {
+        isProjectsLoading: false,
         isRepresentativeLoading: false,
         isTabLoading: true,
+        projectIds: [],
         logs: {
           availability: 'loading',
           count: undefined,
@@ -295,8 +303,10 @@ describe('useTraceLayoutTabs', () => {
       renderedTabs.length = 0;
       isLoading = false;
       overview = {
+        isProjectsLoading: false,
         isRepresentativeLoading: false,
         isTabLoading: false,
+        projectIds: [],
         logs: {
           availability: resolvedTab === TraceLayoutTabKeys.LOGS ? 'present' : 'absent',
           count: resolvedTab === TraceLayoutTabKeys.LOGS ? 1 : 0,

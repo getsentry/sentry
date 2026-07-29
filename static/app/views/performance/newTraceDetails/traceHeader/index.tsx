@@ -4,6 +4,7 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
@@ -76,6 +77,8 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   if (isLoading || isError || noEvents) {
     return <PlaceHolder organization={props.organization} traceSlug={props.traceSlug} />;
   }
+
+  const isProjectsLoading = props.overview.isProjectsLoading;
   const rep = props.tree.findRepresentativeTraceNode({
     logs: props.overview.logs.representative,
   });
@@ -86,6 +89,9 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
         : rep?.event?.projectId;
     return p.id === String(id);
   });
+  const overviewProjectSlugs = (props.overview.projectIds ?? [])
+    .map(projectId => projects.find(p => p.id === projectId)?.slug)
+    .filter(defined);
 
   return (
     <TraceHeaderComponents.HeaderLayout>
@@ -138,13 +144,14 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             />
           </Container>
           <Container area="projects" justifySelf={{zero: 'start', xl: 'end'}}>
-            {isRepresentativeLoading ? (
+            {isProjectsLoading ? (
               <TraceHeaderComponents.StyledPlaceholder _width={50} _height={28} />
             ) : (
               <Projects
                 projectSlugs={Array.from(
                   new Set([
                     ...Array.from(props.tree.projects.values()).map(p => p.slug),
+                    ...overviewProjectSlugs,
                     ...(project ? [project.slug] : []),
                   ])
                 )}
