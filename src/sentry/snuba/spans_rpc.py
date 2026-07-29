@@ -13,6 +13,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry import options
 from sentry.models.project import Project
@@ -62,6 +63,7 @@ class Spans(rpc_dataset_common.RPCBase):
         additional_queries: AdditionalQueries | None = None,
         max_string_length: int | None = None,
         limit_by: rpc_dataset_common.LimitBy | None = None,
+        extra_conditions: TraceItemFilter | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -78,6 +80,7 @@ class Spans(rpc_dataset_common.RPCBase):
                 additional_queries=additional_queries,
                 max_string_length=max_string_length,
                 limit_by=limit_by,
+                extra_conditions=extra_conditions,
             ),
             params.debug,
         )

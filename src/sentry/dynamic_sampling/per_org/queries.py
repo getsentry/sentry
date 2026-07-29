@@ -7,7 +7,8 @@ from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Any, Protocol
 
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue, ExtrapolationMode
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry import options
 from sentry.dynamic_sampling.rules.utils import ProjectId
@@ -20,6 +21,7 @@ from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
+from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.sentry_metrics import indexer
@@ -47,6 +49,13 @@ class DynamicSamplingQueryFields(StrEnum):
     COUNT_SAMPLE = "count_sample()"
     COUNT_UNIQUE_TRANSACTIONS = "count_unique(sentry.dsc.transaction)"
     MAX_RECEIVED = "max(received)"
+
+
+# Transaction names longer than this are not addressable by a sampling rule, so a per-name
+# rate for them cannot be served. They all count as one class under the empty transaction
+# name, which is the name the rule for that class carries.
+MAX_DSC_TRANSACTION_LENGTH = 200
+LUMPED_DSC_TRANSACTION = ""
 
 
 @dataclass(order=True)
@@ -330,10 +339,15 @@ def get_eap_transaction_volumes(
     root_projects: Sequence[Project] | None = None,
 ) -> list[ProjectTransactionCounts]:
     """
-    Fetch the highest-volume transactions of every root project in a single
-    LIMIT BY query, mirroring the legacy pipeline's per-project top-N
-    (``LIMIT BY (org_id, project_id)`` in boost_low_volume_transactions) so the
-    transaction rebalancing model sees the same explicit transaction set.
+    Fetch the highest-volume transactions of every root project, mirroring the legacy
+    pipeline's per-project top-N (``LIMIT BY (org_id, project_id)`` in
+    boost_low_volume_transactions) so the transaction rebalancing model sees the same
+    explicit transaction set.
+
+    Transactions longer than ``MAX_DSC_TRANSACTION_LENGTH`` cannot be named by a sampling
+    rule, so they are counted as one class under ``LUMPED_DSC_TRANSACTION`` rather than
+    individually. That takes two queries: the top-N one excludes them, and a second one
+    sums them per project.
     """
     # Spans rooted in one project can be owned by any project in the org, so the query
     # scope stays config.projects; root_projects only narrows which root projects
@@ -355,56 +369,151 @@ def get_eap_transaction_volumes(
 
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
-    transaction_counts_by_project: defaultdict[int, list[tuple[str, float]]] = defaultdict(list)
-
-    orderby = [
-        DynamicSamplingQueryFields.DSC_PROJECT_ID,
-        f"-{DynamicSamplingQueryFields.COUNT}",
-        DynamicSamplingQueryFields.DSC_TRANSACTION,
-    ]
+    params = SnubaParams(
+        start=start_time,
+        end=end_time,
+        projects=config.projects,
+        organization=config.organization,
+    )
+    resolver_config = SearchResolverConfig(
+        auto_fields=True,
+        extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY,
+    )
+    # Shared so both queries resolve their columns once and see the same attribute definitions.
+    resolver = Spans.get_resolver(params, resolver_config)
 
     root_project_filter = ",".join(str(project.id) for project in root_projects)
-    for row in run_eap_spans_table_query_in_chunks(
-        {
-            "params": SnubaParams(
-                start=start_time,
-                end=end_time,
-                projects=config.projects,
-                organization=config.organization,
-            ),
-            "query_string": f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}] has:{DynamicSamplingQueryFields.DSC_TRANSACTION}",
-            "selected_columns": [
-                DynamicSamplingQueryFields.DSC_PROJECT_ID,
-                DynamicSamplingQueryFields.DSC_TRANSACTION,
-                DynamicSamplingQueryFields.COUNT,
-            ],
-            "orderby": orderby,
-            "limit_by": LimitBy(
-                columns=[DynamicSamplingQueryFields.DSC_PROJECT_ID],
-                limit=max_transactions_per_project,
-            ),
-            "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_TRANSACTION_VOLUMES.value,
-            "config": SearchResolverConfig(
-                auto_fields=True,
-                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY,
-            ),
-            "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
-        }
-    ):
-        transaction = row.get(DynamicSamplingQueryFields.DSC_TRANSACTION)
-        total = _get_aggregate_float(row, DynamicSamplingQueryFields.COUNT)
-        if total <= 0:
-            continue
+    shared_query = {
+        "params": params,
+        "query_string": f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}] has:{DynamicSamplingQueryFields.DSC_TRANSACTION}",
+        "referrer": Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_TRANSACTION_VOLUMES.value,
+        "config": resolver_config,
+        "search_resolver": resolver,
+        "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
+    }
 
-        project_id = _get_aggregate_int(row, DynamicSamplingQueryFields.DSC_PROJECT_ID)
-        transaction_counts = transaction_counts_by_project[project_id]
-        transaction_counts.append((str(transaction), total))
+    named_counts = _get_named_transaction_counts(
+        shared_query,
+        _dsc_transaction_length_filter(resolver, over_length=False),
+        max_transactions_per_project,
+    )
+    over_length_counts = _get_over_length_transaction_counts(
+        shared_query, _dsc_transaction_length_filter(resolver, over_length=True)
+    )
 
     return [
         ProjectTransactionCounts(
             project_id=project_id,
             org_id=config.organization.id,
-            transaction_counts=transaction_counts,
+            transaction_counts=_merge_over_length_counts(
+                named_counts.get(project_id, []),
+                over_length_counts.get(project_id, 0.0),
+                max_transactions_per_project,
+            ),
         )
-        for project_id, transaction_counts in sorted(transaction_counts_by_project.items())
+        for project_id in sorted(named_counts.keys() | over_length_counts.keys())
     ]
+
+
+def _dsc_transaction_length_filter(resolver: SearchResolver, over_length: bool) -> TraceItemFilter:
+    """
+    A filter on the length of ``dsc.transaction``, keeping either only the over-length names
+    or only the rest.
+
+    The RPC has no length function, so the length test is a ClickHouse LIKE pattern of one
+    ``_`` (any single character) per allowed character, followed by ``%``. A name matches
+    that pattern only if it has more characters than the limit.
+    """
+    attribute, _ = resolver.resolve_attribute(DynamicSamplingQueryFields.DSC_TRANSACTION)
+    return TraceItemFilter(
+        comparison_filter=ComparisonFilter(
+            key=attribute.proto_definition,
+            op=ComparisonFilter.OP_LIKE if over_length else ComparisonFilter.OP_NOT_LIKE,
+            value=AttributeValue(val_str="_" * (MAX_DSC_TRANSACTION_LENGTH + 1) + "%"),
+        )
+    )
+
+
+def _get_named_transaction_counts(
+    shared_query: dict[str, Any],
+    length_filter: TraceItemFilter,
+    max_transactions_per_project: int,
+) -> dict[int, list[tuple[str, float]]]:
+    """Per-project top-N volumes of the transactions a sampling rule can name."""
+    counts_by_project: defaultdict[int, list[tuple[str, float]]] = defaultdict(list)
+    for row in run_eap_spans_table_query_in_chunks(
+        {
+            **shared_query,
+            "selected_columns": [
+                DynamicSamplingQueryFields.DSC_PROJECT_ID,
+                DynamicSamplingQueryFields.DSC_TRANSACTION,
+                DynamicSamplingQueryFields.COUNT,
+            ],
+            "orderby": [
+                DynamicSamplingQueryFields.DSC_PROJECT_ID,
+                f"-{DynamicSamplingQueryFields.COUNT}",
+                DynamicSamplingQueryFields.DSC_TRANSACTION,
+            ],
+            "limit_by": LimitBy(
+                columns=[DynamicSamplingQueryFields.DSC_PROJECT_ID],
+                limit=max_transactions_per_project,
+            ),
+            "extra_conditions": length_filter,
+        }
+    ):
+        total = _get_aggregate_float(row, DynamicSamplingQueryFields.COUNT)
+        if total <= 0:
+            continue
+
+        project_id = _get_aggregate_int(row, DynamicSamplingQueryFields.DSC_PROJECT_ID)
+        transaction = str(row.get(DynamicSamplingQueryFields.DSC_TRANSACTION))
+        counts_by_project[project_id].append((transaction, total))
+
+    return counts_by_project
+
+
+def _get_over_length_transaction_counts(
+    shared_query: dict[str, Any], length_filter: TraceItemFilter
+) -> dict[int, float]:
+    """
+    Per-project volume of all over-length transactions together. They group by project only,
+    so every one of them is counted, however many distinct names a project has.
+    """
+    counts_by_project: dict[int, float] = {}
+    for row in run_eap_spans_table_query_in_chunks(
+        {
+            **shared_query,
+            "selected_columns": [
+                DynamicSamplingQueryFields.DSC_PROJECT_ID,
+                DynamicSamplingQueryFields.COUNT,
+            ],
+            "orderby": [DynamicSamplingQueryFields.DSC_PROJECT_ID],
+            "extra_conditions": length_filter,
+        }
+    ):
+        total = _get_aggregate_float(row, DynamicSamplingQueryFields.COUNT)
+        if total <= 0:
+            continue
+
+        counts_by_project[_get_aggregate_int(row, DynamicSamplingQueryFields.DSC_PROJECT_ID)] = (
+            total
+        )
+
+    return counts_by_project
+
+
+def _merge_over_length_counts(
+    named_counts: list[tuple[str, float]],
+    over_length_count: float,
+    max_transactions_per_project: int,
+) -> list[tuple[str, float]]:
+    """
+    Add the over-length volume as one more class and keep the per-project top-N. The lumped
+    class competes for a slot like any named one, so a project still gets at most N classes.
+    """
+    if over_length_count <= 0:
+        return named_counts
+
+    merged = named_counts + [(LUMPED_DSC_TRANSACTION, over_length_count)]
+    merged.sort(key=lambda entry: (-entry[1], entry[0]))
+    return merged[:max_transactions_per_project]

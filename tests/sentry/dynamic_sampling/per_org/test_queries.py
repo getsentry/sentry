@@ -11,6 +11,8 @@ from sentry.dynamic_sampling.per_org.configuration import (
     get_configuration,
 )
 from sentry.dynamic_sampling.per_org.queries import (
+    LUMPED_DSC_TRANSACTION,
+    MAX_DSC_TRANSACTION_LENGTH,
     DynamicSamplingQueryFields,
     DynamicSamplingQueryFilters,
     ProjectTransactionCounts,
@@ -714,4 +716,98 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         assert volumes_by_project[quiet_project.id].transaction_counts == [
             ("quiet-high", 3),
             ("quiet-low", 2),
+        ]
+
+    def test_get_eap_transaction_volumes_lumps_over_length_transactions(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
+
+        at_limit = "a" * MAX_DSC_TRANSACTION_LENGTH
+        first_over_limit = "b" * (MAX_DSC_TRANSACTION_LENGTH + 1)
+        second_over_limit = "c" * (MAX_DSC_TRANSACTION_LENGTH + 10)
+
+        def segment(transaction, offset):
+            return self.create_span(
+                {
+                    "is_segment": True,
+                    "sentry_tags": {
+                        "transaction": transaction,
+                        "dsc.transaction": transaction,
+                        "dsc.project_id": str(project.id),
+                    },
+                },
+                organization=organization,
+                project=project,
+                start_ts=timestamp + timedelta(seconds=offset),
+            )
+
+        self.store_spans(
+            [
+                segment(at_limit, 0),
+                segment(at_limit, 1),
+                segment(at_limit, 2),
+                segment(at_limit, 3),
+                segment(first_over_limit, 4),
+                segment(first_over_limit, 5),
+                segment(second_over_limit, 6),
+            ]
+        )
+
+        volumes = get_eap_transaction_volumes(self.get_config(organization))
+
+        # The two over-length names are one class, so their counts add up to 3.
+        assert volumes == [
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=project.id,
+                transaction_counts=[(at_limit, 4), (LUMPED_DSC_TRANSACTION, 3)],
+            )
+        ]
+
+    def test_get_eap_transaction_volumes_counts_over_length_transactions_beyond_the_cap(
+        self,
+    ) -> None:
+        """
+        The over-length names are one class no matter how many of them a project has, so
+        the per-project cap cannot hide any of their volume.
+        """
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
+
+        def segment(transaction, offset):
+            return self.create_span(
+                {
+                    "is_segment": True,
+                    "sentry_tags": {
+                        "transaction": transaction,
+                        "dsc.transaction": transaction,
+                        "dsc.project_id": str(project.id),
+                    },
+                },
+                organization=organization,
+                project=project,
+                start_ts=timestamp + timedelta(seconds=offset),
+            )
+
+        spans = [segment("named", 0), segment("named", 1), segment("named", 2)]
+        # Five distinct over-length names, well past the cap of two.
+        for index in range(5):
+            spans.append(
+                segment(chr(ord("a") + index) * (MAX_DSC_TRANSACTION_LENGTH + 1), 10 + index)
+            )
+        self.store_spans(spans)
+
+        volumes = get_eap_transaction_volumes(
+            self.get_config(organization),
+            max_transactions_per_project=2,
+        )
+
+        assert volumes == [
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=project.id,
+                transaction_counts=[(LUMPED_DSC_TRANSACTION, 5), ("named", 3)],
+            )
         ]
