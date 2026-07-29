@@ -4,7 +4,6 @@ import {useRef} from 'react';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 
-import {Placeholder} from 'sentry/components/placeholder';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -176,7 +175,7 @@ function MeasuredContentSplit({
 
   return (
     <SplitPanel
-      orientation={{xs: 'vertical', md: 'horizontal'}}
+      orientation={{zero: 'vertical', '2xl': 'horizontal'}}
       defaultSize={MAX_CONTENT_WIDTH}
       initialSize={storedSize}
       minSize={CONTENT_MIN_WIDTH}
@@ -188,8 +187,8 @@ function MeasuredContentSplit({
           flex="1"
           minWidth="0"
           minHeight="0"
-          paddingRight={{xs: '0', md: 'md'}}
-          paddingBottom={{xs: 'md', md: '0'}}
+          paddingRight={{zero: '0', '2xl': 'md'}}
+          paddingBottom={{zero: 'md', '2xl': '0'}}
           maxWidth={`${MAX_CONTENT_WIDTH}px`}
         >
           {content}
@@ -201,8 +200,8 @@ function MeasuredContentSplit({
             flex="1"
             minWidth="0"
             minHeight="0"
-            paddingLeft={{xs: '0', md: 'md'}}
-            paddingTop={{xs: 'md', md: '0'}}
+            paddingLeft={{zero: '0', '2xl': 'md'}}
+            paddingTop={{zero: 'md', '2xl': '0'}}
           >
             {detail}
           </Stack>
@@ -242,80 +241,5 @@ export function ConversationDetailPanel({
         initiallyCollapseAiIO,
       })}
     </Stack>
-  );
-}
-
-export function ConversationViewSkeleton() {
-  return (
-    <ConversationSplitLayout
-      left={
-        <ConversationLeftPanel>
-          <Container borderBottom="primary" padding="md lg">
-            <Flex gap="lg">
-              <Placeholder height="14px" width="40px" />
-              <Placeholder height="14px" width="40px" />
-            </Flex>
-          </Container>
-          <Stack flex="1" gap="md" padding="lg" background="secondary">
-            <Stack gap="sm" padding="sm md">
-              <Placeholder height="12px" width="120px" />
-              <Placeholder height="12px" width="80%" />
-            </Stack>
-            <Container background="primary" radius="md" border="primary" padding="sm md">
-              <Stack gap="sm">
-                <Flex align="center" gap="sm">
-                  <Placeholder height="12px" width="100px" />
-                  <Placeholder height="12px" width="40px" />
-                </Flex>
-                <Container background="tertiary" radius="sm" padding="xs sm">
-                  <Placeholder height="12px" width="150px" />
-                </Container>
-                <Placeholder height="12px" width="90%" />
-                <Placeholder height="12px" width="70%" />
-                <Placeholder height="12px" width="60%" />
-              </Stack>
-            </Container>
-            <Stack gap="sm" padding="sm md">
-              <Placeholder height="12px" width="120px" />
-              <Placeholder height="12px" width="60%" />
-            </Stack>
-            <Container background="primary" radius="md" border="primary" padding="sm md">
-              <Stack gap="sm">
-                <Flex align="center" gap="sm">
-                  <Placeholder height="12px" width="80px" />
-                  <Placeholder height="12px" width="35px" />
-                </Flex>
-                <Placeholder height="12px" width="85%" />
-                <Placeholder height="12px" width="50%" />
-              </Stack>
-            </Container>
-          </Stack>
-        </ConversationLeftPanel>
-      }
-      right={
-        <Stack gap="lg" padding="lg">
-          <Stack gap="sm">
-            <Placeholder height="14px" width="180px" />
-            <Placeholder height="16px" width="60px" />
-          </Stack>
-          <Stack gap="sm">
-            <Placeholder height="12px" width="80px" />
-            <Placeholder height="12px" width="200px" />
-          </Stack>
-          <Stack gap="sm">
-            <Placeholder height="12px" width="60px" />
-            <Placeholder height="12px" width="160px" />
-          </Stack>
-          <Stack gap="sm">
-            <Placeholder height="14px" width="80px" />
-            <Placeholder height="80px" width="100%" />
-          </Stack>
-          <Stack gap="sm">
-            <Placeholder height="14px" width="80px" />
-            <Placeholder height="120px" width="100%" />
-          </Stack>
-        </Stack>
-      }
-    />
   );
 }

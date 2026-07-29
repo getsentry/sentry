@@ -155,11 +155,16 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.pool.close()
 
 
-def _process_segment_bytes(segment_bytes: bytes, skip_produce: bool = False) -> list[KafkaPayload]:
+def _process_segment_bytes(
+    segment_bytes: bytes, skip_produce: bool = False, start_new_transaction: bool = True
+) -> list[KafkaPayload]:
     segment = orjson.loads(segment_bytes)
     skip_enrichment = segment.get("skip_enrichment", False)
     processed = process_segment(
-        segment["spans"], skip_produce=skip_produce, skip_enrichment=skip_enrichment
+        segment["spans"],
+        skip_produce=skip_produce,
+        skip_enrichment=skip_enrichment,
+        start_new_transaction=start_new_transaction,
     )
     processed = _check_span_duplicates(processed)
     return [_serialize_payload(span) for span in processed]

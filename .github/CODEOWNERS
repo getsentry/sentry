@@ -40,6 +40,8 @@
 
 /tests/js/sentry-test/                                  @getsentry/app-frontend
 /static/app/utils/                                      @getsentry/app-frontend
+# This file is auto-generated on endpoint changes
+/static/app/utils/api/knownSentryApiUrls.generated.ts
 /src/sentry/web/frontend/                               @getsentry/app-frontend
 /.agents/skills/sentry-javascript-bugs/                 @getsentry/app-frontend
 /.agents/skills/generate-snapshot-tests/                @getsentry/app-frontend
@@ -602,6 +604,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/relay/config/ai_model_costs.py                                       @getsentry/telemetry-experience
 /src/sentry/tasks/ai_agent_monitoring.py                                         @getsentry/telemetry-experience
 /tests/sentry/tasks/test_ai_agent_monitoring.py                                  @getsentry/telemetry-experience
+/src/sentry/ai_monitoring/                                                       @getsentry/telemetry-experience
+/tests/sentry/ai_monitoring/                                                     @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
 /static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/insights/pages/agents/                                         @getsentry/telemetry-experience

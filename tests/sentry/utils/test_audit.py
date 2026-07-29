@@ -56,6 +56,21 @@ class CreateAuditEntryTest(TestCase):
 
         self.assert_no_delete_log_created()
 
+    def test_audit_entry_agent_token_attributes_to_delegating_user(self) -> None:
+        from sentry.auth.services.auth import AuthenticatedToken
+
+        req = fake_http_request(AnonymousUser())
+        # An agent token authenticates as a non-user actor; the audit entry should still be
+        # attributed to the member it acts on behalf of.
+        req.auth = AuthenticatedToken(
+            kind="agent_token", user_id=self.user.id, organization_id=self.org.id
+        )
+
+        entry = create_audit_entry(req, organization_id=self.org.id, data={"thing": "to True"})
+        assert entry.actor_id == self.user.id
+
+        self.assert_no_delete_log_created()
+
     def test_audit_entry_frontend(self) -> None:
         org = self.create_organization()
 

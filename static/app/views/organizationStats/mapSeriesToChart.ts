@@ -96,6 +96,10 @@ export function mapSeriesToChart({
     orgStats.groups.forEach(group => {
       const {outcome, category} = group.by;
 
+      if (outcome === Outcome.CLIENT_DISCARD && group.by.reason === 'no_parent_span') {
+        return;
+      }
+
       // For spans, we additionally query for `span_indexed` data
       // to get the `accepted_stored` count
       if (category === 'span_indexed') {

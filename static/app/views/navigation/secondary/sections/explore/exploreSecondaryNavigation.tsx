@@ -5,6 +5,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
@@ -22,6 +23,8 @@ export function ExploreSecondaryNavigation() {
     starred: true,
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
   });
+
+  const discoverTransactionsDeprecation = getDiscoverDeprecation(organization);
 
   return (
     <Fragment>
@@ -65,8 +68,8 @@ export function ExploreSecondaryNavigation() {
             <Feature features="organizations:explore-errors">
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={`${baseUrl}/errors/`}
-                  activeTo={`${baseUrl}/errors/`}
+                  to={`${baseUrl}/errors-v2/`}
+                  activeTo={`${baseUrl}/errors-v2/`}
                   analyticsItemName="explore_errors"
                   trailingItems={<FeatureBadge type="alpha" />}
                 >
@@ -80,11 +83,19 @@ export function ExploreSecondaryNavigation() {
             >
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={`${baseUrl}/discover/homepage/`}
-                  activeTo={`${baseUrl}/discover/`}
+                  to={
+                    discoverTransactionsDeprecation
+                      ? `${baseUrl}/errors/homepage/`
+                      : `${baseUrl}/discover/homepage/`
+                  }
+                  activeTo={
+                    discoverTransactionsDeprecation
+                      ? `${baseUrl}/errors/`
+                      : `${baseUrl}/discover/`
+                  }
                   analyticsItemName="explore_discover"
                 >
-                  {t('Discover')}
+                  {discoverTransactionsDeprecation ? t('Errors') : t('Discover')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>

@@ -607,9 +607,18 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             status_code=200,
         )
 
-    @with_feature("organizations:sentry-apps-granular-events")
+    @with_feature({"organizations:integrations-event-hooks": False})
     @override_options({"staff.ga-rollout": True})
-    def test_can_add_granular_events_with_flag(self) -> None:
+    def test_cannot_add_granular_error_created_without_flag(self) -> None:
+        app = self.create_sentry_app(name="SampleApp", organization=self.organization)
+        self.get_error_response(
+            app.slug,
+            events=["error.created"],
+            status_code=403,
+        )
+
+    @override_options({"staff.ga-rollout": True})
+    def test_can_add_granular_events(self) -> None:
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
         self.get_success_response(
             app.slug,

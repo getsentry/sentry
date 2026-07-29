@@ -52,10 +52,10 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert connection["identity_id"] == identity.id
         assert connection["auth_method"] == "oauth"
         fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
-        decrypted_access_token = fernet.decrypt(
-            connection["encrypted_access_token"].encode("utf-8")
+        auth_header = fernet.decrypt(
+            connection["encrypted_auth_headers"]["Authorization"].encode("utf-8")
         ).decode("utf-8")
-        assert decrypted_access_token == "access-token"
+        assert auth_header == "Bearer access-token"
 
     def test_returns_multiple_connections(self) -> None:
         for site, ext_id in [("datadoghq.com", "org-1"), ("datadoghq.eu", "org-2")]:
@@ -212,10 +212,10 @@ class TestGetMonitoringProviderConnections(TestCase):
             assert connection["identity_id"] == identity.id
             assert connection["auth_method"] == "oauth"
             fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
-            decrypted = fernet.decrypt(connection["encrypted_access_token"].encode("utf-8")).decode(
-                "utf-8"
-            )
-            assert decrypted == "gcp-access-token"
+            auth_header = fernet.decrypt(
+                connection["encrypted_auth_headers"]["Authorization"].encode("utf-8")
+            ).decode("utf-8")
+            assert auth_header == "Bearer gcp-access-token"
 
     def test_gcp_and_datadog_connections_together(self) -> None:
         gcp_idp = self.create_identity_provider(type="gcp", external_id="")
@@ -284,7 +284,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         result = get_monitoring_provider_connections(self.organization, self.user.id)
 
         assert len(result) == 3
-        mock_encrypt.assert_called_once_with("gcp-token")
+        mock_encrypt.assert_called_once_with("Bearer gcp-token")
 
     def _create_org_datadog_integration(self, site: str = "datadoghq.com") -> None:
         self.create_integration(
@@ -307,7 +307,6 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert conn["identity_id"] is None
         assert conn["auth_method"] == "api_key"
         assert conn["refreshable"] is False
-        assert conn["encrypted_access_token"] is None
 
         fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
         headers = conn["encrypted_auth_headers"]
@@ -331,8 +330,10 @@ class TestGetMonitoringProviderConnections(TestCase):
         conn = result[0]
         assert conn["identity_id"] == identity.id
         assert conn["auth_method"] == "oauth"
-        assert conn["encrypted_auth_headers"] is None
         assert conn["refreshable"] is True
+        fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
+        headers = conn["encrypted_auth_headers"]
+        assert fernet.decrypt(headers["Authorization"].encode()).decode() == "Bearer personal-token"
 
     def test_personal_datadog_pat_overrides_org(self) -> None:
         self._create_org_datadog_integration()
@@ -351,8 +352,13 @@ class TestGetMonitoringProviderConnections(TestCase):
         conn = result[0]
         assert conn["identity_id"] == identity.id
         assert conn["auth_method"] == "pat"
-        assert conn["encrypted_auth_headers"] is None
         assert conn["refreshable"] is False
+        fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
+        headers = conn["encrypted_auth_headers"]
+        assert (
+            fernet.decrypt(headers["Authorization"].encode()).decode()
+            == "Bearer personal-pat-token"
+        )
 
     def test_org_datadog_kept_when_personal_is_different_family(self) -> None:
         self._create_org_datadog_integration()
@@ -432,3 +438,106 @@ class TestGetMonitoringProviderConnections(TestCase):
 
         assert result == []
         assert any("datadog_integration_invalid" in line for line in logs.output)
+
+    def _create_org_gcp_integration(
+        self, projects: list[str] | None = None, **kwargs: object
+    ) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="gcp",
+            external_id=str(self.organization.id),
+            name="Google Cloud Platform",
+            metadata={},
+            oi_params={
+                "config": {
+                    "sentry_sa_email": "sentry-org-1@sentry-connectors.iam.gserviceaccount.com",
+                    "customer_sa_email": "gcp-sentry@my-project.iam.gserviceaccount.com",
+                    "projects": projects if projects is not None else ["my-project-prod"],
+                }
+            },
+            **kwargs,
+        )
+
+    def test_org_gcp_connection_returns_three_mcp_endpoints(self) -> None:
+        self._create_org_gcp_integration(projects=["my-project-prod", "my-project-staging"])
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert len(result) == 3
+        assert all(c["provider_key"] == "gcp" for c in result)
+        urls = {c["url"] for c in result}
+        assert urls == {
+            "https://logging.googleapis.com/mcp",
+            "https://monitoring.googleapis.com/mcp",
+            "https://cloudtrace.googleapis.com/mcp",
+        }
+        for conn in result:
+            assert conn["type"] == "gcp_sa_impersonation"
+            assert conn["auth_method"] == "gcp_sa_impersonation"
+            assert conn["refreshable"] is False
+            assert conn["gcp_project_ids"] == ["my-project-prod", "my-project-staging"]
+            assert (
+                conn["sentry_sa_email"] == "sentry-org-1@sentry-connectors.iam.gserviceaccount.com"
+            )
+            assert conn["customer_sa_email"] == "gcp-sentry@my-project.iam.gserviceaccount.com"
+
+    def test_org_gcp_connection_ignores_non_active_integration(self) -> None:
+        self._create_org_gcp_integration(status=ObjectStatus.DISABLED)
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_gcp_connection_ignores_uninstalled_org_integration(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="gcp",
+            external_id=str(self.organization.id),
+            name="Google Cloud Platform",
+            metadata={},
+            oi_params={
+                "status": ObjectStatus.PENDING_DELETION,
+                "config": {
+                    "sentry_sa_email": "sentry-org-1@sentry-connectors.iam.gserviceaccount.com",
+                    "customer_sa_email": "gcp-sentry@my-project.iam.gserviceaccount.com",
+                    "projects": ["my-project-prod"],
+                },
+            },
+        )
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_gcp_connection_skips_empty_projects(self) -> None:
+        self._create_org_gcp_integration(projects=[])
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+        assert result == []
+
+    def test_org_gcp_connection_skips_missing_sa_emails(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="gcp",
+            external_id=str(self.organization.id),
+            name="Google Cloud Platform",
+            metadata={},
+            oi_params={
+                "config": {
+                    "projects": ["my-project-prod"],
+                }
+            },
+        )
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+        assert result == []
+
+    def test_org_gcp_connection_for_no_user_run(self) -> None:
+        self._create_org_gcp_integration()
+        result = get_monitoring_provider_connections(self.organization, None)
+        assert len(result) == 3
+        assert all(c["auth_method"] == "gcp_sa_impersonation" for c in result)
+
+    def test_org_gcp_and_datadog_together(self) -> None:
+        self._create_org_gcp_integration()
+        self._create_org_datadog_integration()
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert len(result) == 4
+        gcp_conns = [c for c in result if c["provider_key"] == "gcp"]
+        dd_conns = [c for c in result if c["provider_key"] == "datadog"]
+        assert len(gcp_conns) == 3
+        assert len(dd_conns) == 1

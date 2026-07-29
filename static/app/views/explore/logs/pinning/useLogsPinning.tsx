@@ -1,8 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
-import {useOurLogsPinningEnabled} from 'sentry/views/explore/logs/pinning/useOurLogsPinning';
-
 const LOGS_PINNED_KEY = 'logsPinned';
 
 export interface LogsPinning {
@@ -14,7 +12,6 @@ export interface LogsPinning {
 }
 
 export function useLogsPinning(): LogsPinning | undefined {
-  const logsPinningEnabled = useOurLogsPinningEnabled();
   const [pinnedRowsList, setPinnedRowsList] = useQueryState(
     LOGS_PINNED_KEY,
     parseAsArrayOf(parseAsString).withDefault([]).withOptions({history: 'replace'})
@@ -54,7 +51,7 @@ export function useLogsPinning(): LogsPinning | undefined {
     setPinnedRowsList([]);
   }, [setPinnedRowsList]);
 
-  const value = useMemo(
+  return useMemo(
     () => ({
       clearPinnedRows,
       getPinnedRowIds,
@@ -64,6 +61,4 @@ export function useLogsPinning(): LogsPinning | undefined {
     }),
     [clearPinnedRows, getPinnedRowIds, hasPinnedRow, removePinnedRows, togglePinnedRow]
   );
-
-  return logsPinningEnabled ? value : undefined;
 }

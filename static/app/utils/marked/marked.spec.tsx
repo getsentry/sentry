@@ -2,12 +2,65 @@
 
 import {
   asyncSanitizedMarked,
+  markdownRendersVisibleContent,
+  markdownToPlainText,
   sanitizedMarked,
   singleLineRenderer,
 } from 'sentry/utils/marked/marked';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 jest.unmock('prismjs');
+
+describe('markdownToPlainText', () => {
+  it('flattens headings without leaving markdown syntax', () => {
+    expect(markdownToPlainText('# Summarize revenue')).toBe('Summarize revenue');
+  });
+
+  it('keeps the visible text of inline markdown', () => {
+    expect(markdownToPlainText('**bold** and [a link](https://example.com)')).toBe(
+      'bold and a link'
+    );
+  });
+
+  it('strips HTML/XML tags but keeps their text', () => {
+    expect(markdownToPlainText('<thinking>plan</thinking> answer')).toBe('plan answer');
+  });
+
+  it('returns the code text for a fenced code block', () => {
+    expect(markdownToPlainText('```\nconst x = 1;\n```')).toBe('const x = 1;');
+  });
+
+  it('returns an empty string for an empty code fence', () => {
+    expect(markdownToPlainText('```\n```')).toBe('');
+  });
+});
+
+describe('markdownRendersVisibleContent', () => {
+  it.each([
+    '',
+    '   ',
+    '\n\n',
+    '```',
+    '```\n```',
+    '```js\n```',
+    // Images are stripped by `sanitizeHtml`, so image-only content renders
+    // nothing and must be treated as blank.
+    '![alt](img.png)',
+  ])('returns false for content that renders nothing: %j', text => {
+    expect(markdownRendersVisibleContent(text)).toBe(false);
+  });
+
+  it.each([
+    'hello',
+    '**bold**',
+    '# heading',
+    '```\nconst x = 1;\n```',
+    '- item',
+    '| a |\n|---|\n| 1 |',
+  ])('returns true for content that renders something: %j', text => {
+    expect(markdownRendersVisibleContent(text)).toBe(true);
+  });
+});
 
 function expectMarkdown(test: any) {
   expect(sanitizedMarked(test[0])).toEqual('<p>' + test[1] + '</p>\n');

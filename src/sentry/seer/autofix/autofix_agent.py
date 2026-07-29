@@ -35,6 +35,7 @@ from sentry.seer.autofix.artifact_schemas import (
     SolutionArtifact,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.prompts import (
     PromptBuilder,
@@ -48,10 +49,14 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     read_preference_from_sentry_db,
 )
-from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import (
+    SeerActivityAttribution,
+    SeerAutofixOperator,
+    process_autofix_updates,
+)
 from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.models.run import SeerRun
-from sentry.seer.models.seer_api_models import SeerPermissionError
+from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -68,8 +73,6 @@ if TYPE_CHECKING:
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
-
-UNKNOWN_RUN_ID_FOR_GROUP = "Unknown run id for group"
 
 
 class NoSeerQuotaException(Exception):
@@ -286,6 +289,7 @@ def get_autofix_agent_client(
     reasoning_effort: Literal["low", "medium", "high"] | None = None,
     enable_coding: bool = False,
     code_review_enabled: bool = False,
+    enable_bash_tools: bool = False,
     enable_pr_context_tools: bool = False,
     user: User | RpcUser | AnonymousUser | None = None,
 ) -> SeerAgentClient:
@@ -305,6 +309,7 @@ def get_autofix_agent_client(
         on_completion_hook=AutofixOnCompletionHook,
         enable_coding=enable_coding,
         code_review_enabled=code_review_enabled,
+        enable_bash_tools=enable_bash_tools,
         enable_pr_context_tools=enable_pr_context_tools,
     )
 
@@ -381,7 +386,9 @@ def trigger_autofix_agent(
     insert_index: int | None = None,
     feedback: Sequence[Feedback] | None = None,
     user: User | RpcUser | AnonymousUser | None = None,
-) -> int:
+    enable_bash_tools: bool = False,
+    actor_user_id: int | None = None,
+) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
 
@@ -390,9 +397,6 @@ def trigger_autofix_agent(
         step: Which autofix step to run
         run_id: Existing run ID to continue, or None for new run
         stopping_point: Where to stop the automated pipeline (only used for new runs)
-
-    Returns:
-        The run ID
     """
     # check billing quota for triggering a new autofix run
     if run_id is None:
@@ -410,6 +414,7 @@ def trigger_autofix_agent(
 
     client = get_autofix_agent_client(
         group,
+        enable_bash_tools=enable_bash_tools,
         enable_coding=config.enable_coding,
         enable_pr_context_tools=is_iteration_step,
         user=user,
@@ -454,7 +459,7 @@ def trigger_autofix_agent(
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
 
-    run: SeerRun | None = None
+    run: SeerRun
     if run_id is None:
         metadata: dict[str, Any] = {
             "group_id": group.id,
@@ -476,7 +481,7 @@ def trigger_autofix_agent(
             group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
         )
     else:
-        client.continue_run(
+        run = client.continue_run(
             run_id=run_id,
             prompt=prompt,
             prompt_metadata=prompt_metadata,
@@ -484,12 +489,6 @@ def trigger_autofix_agent(
             artifact_schema=artifact_schema,
             insert_index=insert_index,
         )
-
-    if run is None:
-        run = SeerRun.objects.filter(
-            organization_id=group.organization.id,
-            seer_run_state_id=run_id,
-        ).first()
 
     # Emit the started event after run_id is resolved so it can be joined to
     # downstream completed/PR events.
@@ -507,7 +506,7 @@ def trigger_autofix_agent(
 
     payload: dict[str, Any] = {
         "run_id": run_id,
-        "sentry_run_id": str(run.uuid) if run is not None else None,
+        "sentry_run_id": str(run.uuid),
         "group_id": group.id,
     }
     if iteration_index is not None:
@@ -520,13 +519,19 @@ def trigger_autofix_agent(
     try:
         sentry_app_event_type = SentryAppEventType(event_type)
         if SeerAutofixOperator.has_access(organization=group.organization):
-            process_autofix_updates.apply_async(
-                kwargs={
-                    "event_type": sentry_app_event_type,
-                    "event_payload": payload,
-                    "organization_id": group.organization.id,
+            task_kwargs: dict[str, Any] = {
+                "event_type": sentry_app_event_type,
+                "event_payload": payload,
+                "organization_id": group.organization.id,
+            }
+            if is_iteration_step:
+                activity_attribution: SeerActivityAttribution = {
+                    "referrer": referrer,
                 }
-            )
+                if actor_user_id is not None:
+                    activity_attribution["actor_user_id"] = actor_user_id
+                task_kwargs["activity_attribution"] = activity_attribution
+            process_autofix_updates.apply_async(kwargs=task_kwargs)
     except ValueError:
         logger.exception(
             "autofix.trigger.webhook_invalid_event_type",
@@ -563,7 +568,7 @@ def trigger_autofix_agent(
         },
     )
 
-    return run_id
+    return run
 
 
 def get_autofix_agent_state(organization: Organization, group_id: int):
@@ -798,13 +803,17 @@ def trigger_coding_agent_handoff(
     return cast(AutofixHandoffResponse, coding_agents)
 
 
+def _should_open_autofix_pr_as_draft(organization: Organization) -> bool:
+    """Draft Autofix PRs when the green-CI undraft / review-request flow is on."""
+    return features.has(REVIEW_REQUEST_FLAG, organization)
+
+
 def trigger_push_changes(
     group: Group,
     run_id: int,
     referrer: AutofixReferrer,
     state: SeerRunState | None = None,
     repo_name: str | None = None,
-    ready_for_review: bool = True,
 ):
     if not group.organization.get_option(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
@@ -828,11 +837,12 @@ def trigger_push_changes(
         )
     )
 
+    # Draft when review-request/CI-green is enabled; mark ready once green fires.
     client.push_changes(
         run_id,
         repo_name=repo_name,
         pr_description_suffix=build_pr_description_suffix(group),
-        ready_for_review=ready_for_review,
+        ready_for_review=not _should_open_autofix_pr_as_draft(group.organization),
         blocking=False,
     )
 

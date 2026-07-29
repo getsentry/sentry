@@ -5,15 +5,19 @@ from typing import TYPE_CHECKING
 
 from django.db import router, transaction
 from django.utils import timezone
+from scm.manager import SourceCodeManager
 
 from sentry import analytics, features
 from sentry.analytics.events.autofix_events import (
     AiAutofixIntrospectionEvent,
     AiAutofixPrCreatedCompletedEvent,
 )
+from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.repository import Repository
+from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import Artifact
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
@@ -41,6 +45,11 @@ from sentry.seer.autofix.introspection import (
     introspect_root_cause,
     introspect_solution,
 )
+from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
+    GithubPrCommentFeedbackSource,
+    GithubPrReviewCommentFeedbackSource,
+)
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     clear_preference_automation_handoff,
@@ -54,7 +63,11 @@ from sentry.seer.models import (
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
-from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
+from sentry.tasks.seer.pr_iteration import (
+    _add_comment_reaction,
+    _delete_own_comment_eyes_reaction,
+    consume_queued_autofix_feedback,
+)
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -75,6 +88,15 @@ STOPPING_POINT_TO_STEP: dict[AutofixStoppingPoint, AutofixStep] = {
     AutofixStoppingPoint.SOLUTION: AutofixStep.SOLUTION,
     AutofixStoppingPoint.CODE_CHANGES: AutofixStep.CODE_CHANGES,
 }
+
+
+def _record_completion_reaction(outcome: str) -> None:
+    """Record where a completion-reaction attempt exited so silent drop-offs of
+    the :tada: ack are visible in aggregate rather than invisible."""
+    metrics.incr(
+        "autofix.on_completion_hook.completion_reaction",
+        tags={"outcome": outcome},
+    )
 
 
 class AutofixOnCompletionHook(AgentOnCompletionHook):
@@ -124,6 +146,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # permissions the user needs to re-accept, comment on the affected PRs
         # so the user knows to update them (at most once per repo per run).
         cls._maybe_comment_on_missing_permissions(organization, run_id, state)
+
+        # Acknowledge the comment(s) that triggered a completed PR iteration.
+        cls._maybe_react_to_completed_iteration(organization, run_id, state)
 
         # Continue the automated pipeline if stopping_point hasn't been reached
         cls._maybe_continue_pipeline(organization, run_id, state, group)
@@ -185,6 +210,158 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         )
 
         comment_on_out_of_date_github_permissions(organization, state, missing_by_repo)
+
+    @classmethod
+    def _repo_name_for_feedback(
+        cls,
+        state: SeerRunState,
+        source: GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource,
+        run_id: int,
+        organization_id: int,
+    ) -> str | None:
+        # Only top-level PR comments capture ``repo_name`` at trigger time; review
+        # comments fall back to the sole repo when the run touches exactly one.
+        repo_name = getattr(source, "repo_name", None)
+        if repo_name is not None:
+            return repo_name
+        if len(state.repo_pr_states) == 1:
+            # Backward-compat path for feedback serialized before repo_name was
+            # captured at trigger time; unambiguous only with a single repo.
+            logger.info(
+                "autofix.on_completion_hook.completion_reaction.legacy_repo_inference",
+                extra={"run_id": run_id, "organization_id": organization_id},
+            )
+            return next(iter(state.repo_pr_states))
+        logger.warning(
+            "autofix.on_completion_hook.completion_reaction.repo_unresolved",
+            extra={"run_id": run_id, "organization_id": organization_id},
+        )
+        return None
+
+    @classmethod
+    def _maybe_react_to_completed_iteration(
+        cls,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+    ) -> None:
+        """React :tada: on the comment(s) that triggered a completed iteration and
+        remove the trigger-time :eyes:.
+
+        Only top-level ``@sentry`` PR comments are acked with :tada: — inline review
+        comments are resolvable threads acked separately (CW-1688). The trigger-time
+        :eyes: is removed from both, since both received it, completing the
+        :eyes:->:tada: swap on top-level comments and clearing the lingering :eyes:
+        on inline ones.
+        """
+        if not features.has("organizations:autofix-pr-iteration", organization=organization):
+            return
+
+        current_step, _ = cls._get_current_step(state)
+        if current_step != AutofixStep.PR_ITERATION or state.status != "completed":
+            return
+
+        # Don't react before the commit lands.
+        _, is_synced = state.has_code_changes()
+        if not is_synced:
+            _record_completion_reaction("not_synced")
+            return
+
+        # The consumed feedback is serialized onto the latest iteration's
+        # opening PR_ITERATION block.
+        iterations = get_iterations(state)
+        raw = (
+            (iterations[-1].blocks[0].message.metadata or {}).get("feedback")
+            if iterations
+            else None
+        )
+        if not raw:
+            _record_completion_reaction("no_feedback")
+            return
+
+        sources: list[GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource] = []
+        for feedback in parse_feedback(raw):
+            if isinstance(
+                feedback.source,
+                (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource),
+            ):
+                sources.append(feedback.source)
+        if not sources:
+            _record_completion_reaction("no_pr_comment_sources")
+            return
+
+        # Rate-limit-sensitive orgs skip the extra reaction-delete API calls.
+        delete_eyes = not is_github_rate_limit_sensitive(organization.slug)
+
+        scm_by_repo: dict[str, SourceCodeManager] = {}
+        for source in sources:
+            comment_id = source.comment.id
+            if comment_id is None:
+                _record_completion_reaction("no_comment_id")
+                continue
+
+            repo_name = cls._repo_name_for_feedback(state, source, run_id, organization.id)
+            if repo_name is None:
+                _record_completion_reaction("no_repo_name")
+                continue
+
+            scm = scm_by_repo.get(repo_name)
+            if scm is None:
+                # Refuse to guess when the same name spans providers; None on both
+                # "not found" and "ambiguous".
+                repo, resolution = Repository.objects.resolve_active(
+                    organization_id=organization.id,
+                    name=repo_name,
+                    normalized_provider=None,
+                )
+                if repo is None:
+                    logger.warning(
+                        "autofix.on_completion_hook.completion_reaction.repo_not_found",
+                        extra={
+                            "run_id": run_id,
+                            "organization_id": organization.id,
+                            "resolution": resolution,
+                        },
+                    )
+                    _record_completion_reaction("repo_not_found")
+                    continue
+                try:
+                    scm = make_scm(organization.id, repo.id, referrer="seer")
+                except Exception:
+                    logger.warning(
+                        "autofix.on_completion_hook.completion_reaction.scm_init_failed",
+                        extra={"run_id": run_id, "organization_id": organization.id},
+                        exc_info=True,
+                    )
+                    _record_completion_reaction("scm_init_failed")
+                    continue
+                scm_by_repo[repo_name] = scm
+
+            pr_state = state.repo_pr_states.get(repo_name)
+            if not pr_state or not pr_state.pr_number:
+                _record_completion_reaction("no_pr_number")
+                continue
+            pr_number = pr_state.pr_number
+
+            source_type = source.type
+            # Inline review comments are acked by resolving the thread (CW-1688),
+            # not with :tada:; only top-level PR comments get the :tada:.
+            if source_type == "github-pr-comment":
+                _add_comment_reaction(
+                    scm,
+                    source_type=source_type,
+                    pr_number=pr_number,
+                    comment_id=comment_id,
+                    reaction="hooray",
+                )
+                _record_completion_reaction("reacted")
+            if delete_eyes:
+                _delete_own_comment_eyes_reaction(
+                    scm,
+                    source_type=source_type,
+                    pr_number=pr_number,
+                    comment_id=comment_id,
+                )
 
     @classmethod
     def find_latest_artifact_for_step(cls, state: SeerRunState, key: str) -> Artifact | None:
@@ -363,10 +540,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         }
 
     @classmethod
-    def _format_pull_requests_payload(cls, state: SeerRunState) -> list[dict]:
+    def _format_pull_requests_payload(
+        cls,
+        state: SeerRunState,
+    ) -> list[dict]:
         return [
             {
-                "provider": "unknown",
+                "provider": pull_request.provider or "unknown",
                 "repo_name": pull_request.repo_name,
                 "pull_request": {
                     "pr_id": pull_request.pr_id,

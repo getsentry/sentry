@@ -5,6 +5,9 @@ import 'echarts/lib/component/brush';
 import 'echarts/lib/component/visualMap';
 import 'echarts/theme/v5.js';
 import 'zrender/lib/svg/svg';
+// Canvas backend. Explicit so `renderer: 'canvas'` never silently relies on
+// another module importing the full `echarts` bundle.
+import 'zrender/lib/canvas/canvas';
 
 import {useId, useMemo} from 'react';
 import type {Theme} from '@emotion/react';

@@ -1237,6 +1237,37 @@ class SearchResolver:
         # Check if the column looks like a function (matches a pattern), parse the function name and args out
 
         function_definition = self.get_function_definition(function_name)
+        if (
+            self.definitions.aggregate_deprecations
+            and function_name in self.definitions.aggregate_deprecations
+        ):
+            deprecated_definition = self.definitions.aggregate_deprecations[function_name]
+        else:
+            deprecated_definition = None
+
+        # Temporary while we get rid of the old _if combinators
+        if deprecated_definition:
+            try:
+                return self._resolve_function(
+                    function_definition, function_name, alias, columns, default_value
+                )
+            except Exception:
+                return self._resolve_function(
+                    deprecated_definition, function_name, alias, columns, default_value
+                )
+        else:
+            return self._resolve_function(
+                function_definition, function_name, alias, columns, default_value
+            )
+
+    def _resolve_function(
+        self,
+        function_definition: FormulaDefinition | AggregateDefinition,
+        function_name: str,
+        alias: str,
+        columns: str,
+        default_value: float | None = None,
+    ) -> tuple[ResolvedFunction, VirtualColumnDefinition | None]:
         if function_definition.private and function_name not in self.config.fields_acl.functions:
             raise InvalidSearchQuery(f"The function {function_name} is not allowed for this query")
 

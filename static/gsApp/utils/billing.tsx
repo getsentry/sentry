@@ -1,5 +1,3 @@
-import moment from 'moment-timezone';
-
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
@@ -210,7 +208,9 @@ export function formatUsageWithUnits(
     }
     return options.isAbbreviated
       ? displayNumber(usageProfileHours, 1)
-      : usageProfileHours.toLocaleString(undefined, {maximumFractionDigits: 1});
+      : usageProfileHours.toLocaleString(undefined, {
+          maximumFractionDigits: 1,
+        });
   }
   return options.isAbbreviated
     ? displayNumber(usageQuantity, 0)
@@ -333,16 +333,18 @@ export const isBizPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.BUS
 
 export const isTeamPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.TEAM);
 
+/**
+ * Whether the subscription is currently on a trial, derived from `trialPlan`
+ * (non-null iff trialing).
+ */
+export const isTrial = (subscription: Subscription) => defined(subscription.trialPlan);
+
 export const isBusinessTrial = (subscription: Subscription) => {
-  return (
-    subscription.isTrial &&
-    !subscription.isPerformancePlanTrial &&
-    !subscription.isEnterpriseTrial
-  );
+  return isTrial(subscription) && !subscription.isEnterpriseTrial;
 };
 
 export function hasJustStartedPlanTrial(subscription: Subscription) {
-  return subscription.isTrial && subscription.isTrialStarted;
+  return isTrial(subscription) && subscription.isTrialStarted;
 }
 
 export const displayBudgetName = (
@@ -423,14 +425,6 @@ export const isNewPayingCustomer = (
 export function getTrialDaysLeft(subscription: Subscription): number {
   // trial end is in the future
   return -1 * getDaysSinceDate(subscription.trialEnd ?? '');
-}
-
-/**
- * Get the number of days left on contract
- */
-export function getContractDaysLeft(subscription: Subscription): number {
-  // contract period end is in the future
-  return -1 * getDaysSinceDate(subscription.billingPeriodEnd ?? '');
 }
 
 /**
@@ -720,36 +714,6 @@ export function trialPromptIsDismissed(prompt: PromptData, subscription: Subscri
   }
   const onDemandPeriodStart = new Date(subscription.onDemandPeriodStart);
   return time >= onDemandPeriodStart.getTime() / 1000;
-}
-
-export function partnerPlanEndingModalIsDismissed(
-  prompt: PromptData,
-  subscription: Subscription,
-  timeframe: string
-) {
-  const {snoozedTime, dismissedTime} = prompt || {};
-  const time = snoozedTime || dismissedTime;
-  if (!time) {
-    return false;
-  }
-
-  const lastDaysLeft = moment(subscription.billingPeriodEnd).diff(
-    moment.unix(time),
-    'days'
-  );
-
-  switch (timeframe) {
-    case 'zero':
-      return lastDaysLeft <= 0;
-    case 'two':
-      return lastDaysLeft <= 2 && lastDaysLeft > 0;
-    case 'week':
-      return lastDaysLeft <= 7 && lastDaysLeft > 2;
-    case 'month':
-      return lastDaysLeft <= 30 && lastDaysLeft > 7;
-    default:
-      return true;
-  }
 }
 
 export function getPercentage(quantity: number, total: number | null) {
