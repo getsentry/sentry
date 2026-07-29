@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
@@ -8,10 +8,7 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderConfig,
 } from 'sentry/components/searchQueryBuilder/context';
-import {
-  FormattedQueryConfigContext,
-  useFormattedQueryConfig,
-} from 'sentry/components/searchQueryBuilder/formattedQueryContext';
+import {FormattedQueryConfigContext} from 'sentry/components/searchQueryBuilder/formattedQueryContext';
 import {AggregateKeyVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filter';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
@@ -63,7 +60,7 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
 
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
-  const {wrapTokens} = useFormattedQueryConfig();
+  const {wrapTokens} = useContext(FormattedQueryConfigContext);
   const label = useMemo(
     () =>
       getOperatorInfo({
@@ -84,7 +81,7 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
 }
 
 function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
-  const {wrapTokens} = useFormattedQueryConfig();
+  const {wrapTokens} = useContext(FormattedQueryConfigContext);
   const label = token.text.toUpperCase();
   return (
     <FilterWrapper aria-label={label} $wrapTokens={wrapTokens}>
@@ -94,7 +91,7 @@ function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
 }
 
 function QueryToken({token}: TokenProps) {
-  const {wrapTokens} = useFormattedQueryConfig();
+  const {wrapTokens} = useContext(FormattedQueryConfigContext);
 
   switch (token.type) {
     case Token.FILTER:

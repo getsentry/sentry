@@ -1,4 +1,4 @@
-import {createContext, useContext} from 'react';
+import {createContext} from 'react';
 
 type FormattedQueryConfig = {
   wrapTokens: boolean;
@@ -9,7 +9,3 @@ type FormattedQueryConfig = {
 export const FormattedQueryConfigContext = createContext<FormattedQueryConfig>({
   wrapTokens: false,
 });
-
-export function useFormattedQueryConfig() {
-  return useContext(FormattedQueryConfigContext);
-}

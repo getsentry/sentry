@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect, useRef, useState} from 'react';
+import {Fragment, useContext, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -14,7 +14,7 @@ import {
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
-import {useFormattedQueryConfig} from 'sentry/components/searchQueryBuilder/formattedQueryContext';
+import {FormattedQueryConfigContext} from 'sentry/components/searchQueryBuilder/formattedQueryContext';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {
   BaseGridCell,
@@ -58,7 +58,7 @@ interface FilterValueProps extends SearchQueryTokenProps {
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const {size} = useSearchQueryBuilderLayout();
-  const {wrapTokens} = useFormattedQueryConfig();
+  const {wrapTokens} = useContext(FormattedQueryConfigContext);
   const valueType = getFilterValueType(token, getFieldDefinition(getKeyName(token.key)));
 
   if (token.filter === FilterType.HAS) {
