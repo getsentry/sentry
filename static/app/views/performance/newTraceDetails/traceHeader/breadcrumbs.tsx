@@ -126,7 +126,6 @@ function getPerformanceBreadCrumbs(
     if (!organization.features.includes('insights-to-dashboards-ui-rollout')) {
       crumbs.push({
         label: DOMAIN_VIEW_BASE_TITLE,
-        to: undefined,
       });
     }
   }
