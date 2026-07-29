@@ -1126,7 +1126,7 @@ class SnubaQueryBuilder:
 
     def __update_query_dicts_with_component_entities(
         self,
-        component_entities: dict[MetricEntity | None, Sequence[str]],
+        component_entities: Mapping[MetricEntity | None, Sequence[str]],
         metric_mri_to_obj_dict: dict[tuple[MetricOperationType | None, str, str], MetricExpressionBase],
         fields_in_entities: dict[MetricEntity, list[tuple[MetricOperationType | None, str, str]]],
         parent_alias: str,
