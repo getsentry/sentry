@@ -39,7 +39,8 @@ class Frame(BaseModel):
     col_no: int | None = Field(None, alias="colNo")
     context: list[tuple[int, str | None]] = []  # [(line_no, source_line), ...]
     vars: dict[str, Any] | None = None
-    in_app: bool = Field(False, alias="inApp")
+    # nullable because the serializer emits inApp unpruned, so it can be an explicit null
+    in_app: bool | None = Field(False, alias="inApp")
 
     # ``context`` is declared above ``vars`` so it is already validated and available here
     @validator("vars")
