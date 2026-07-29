@@ -16,6 +16,7 @@ import {
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {TraceOverviewData} from 'sentry/views/performance/newTraceDetails/useTraceOverviewData';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 type MetaDataProps = {
@@ -53,6 +54,7 @@ interface MetaProps {
   logsEnabled: boolean;
   meta: TraceMetaQueryResults['data'];
   metricsEnabled: boolean;
+  overview: TraceOverviewData;
   representativeEvent: TraceTree.RepresentativeTraceEvent | null;
   tree: TraceTree;
 }
@@ -99,9 +101,10 @@ export function Meta(props: MetaProps) {
 
   const hasDifferentSpansCount = loadedSpansCount !== 0 && totalSpansCount !== 0;
   const hasSpans = spansCount > 0 || loadedSpansCount > 0 || totalSpansCount > 0;
-  const logsCount = getTraceMetaLogsCount(props.meta) ?? 0;
+  const logsCount = getTraceMetaLogsCount(props.meta) ?? props.overview.logs.count ?? 0;
   const hasLogs = props.logsEnabled && logsCount > 0;
-  const metricsCount = getTraceMetaMetricsCount(props.meta) ?? 0;
+  const metricsCount =
+    getTraceMetaMetricsCount(props.meta) ?? props.overview.metrics.count ?? 0;
   const hasMetrics = props.metricsEnabled && metricsCount > 0;
 
   const repEvent = props.representativeEvent?.event;
