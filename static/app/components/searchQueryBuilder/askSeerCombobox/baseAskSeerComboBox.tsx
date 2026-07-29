@@ -546,7 +546,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
                     {isError ? t('Try again') : t('Generate again')}
                   </Button>
                 ) : null}
-                {showLeftFooterAction && displayAskSeerFeedback ? (
+                {showLeftFooterAction && displayAskSeerFeedback && isDisplayingResults ? (
                   <AskSeerFeedback />
                 ) : null}
               </Flex>
