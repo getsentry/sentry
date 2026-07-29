@@ -171,6 +171,24 @@ def test_try_symbolicate_skips_when_killswitch_matches(
 
 
 @django_db_all
+def test_try_symbolicate_skips_when_project_deleted(circuit_breaker: mock.Mock) -> None:
+    # Project deleted between routing and execution is a routine stale ref — skip
+    # cleanly, don't report it as an unexpected error.
+    with (
+        override_options({"teapot.enabled": True}),
+        mock.patch(FIND_DUMP, return_value=_FakeAttachment()),
+        mock.patch(FIND_SHADERS, return_value=[]),
+        mock.patch(SUBMIT_TEAPOT) as teapot,
+        mock.patch("sentry.tasks.gpu_crash.sentry_sdk.capture_exception") as cap,
+    ):
+        changed = _try_symbolicate({"event_id": "e", "platform": "native"}, 2**31 - 1, "e")
+
+    assert changed is False
+    assert teapot.call_count == 0
+    cap.assert_not_called()
+
+
+@django_db_all
 def test_try_symbolicate_swallows_errors(default_project: Project) -> None:
     # A hard failure deep in teapot must never propagate — the event still saves.
     with (

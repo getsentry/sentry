@@ -206,6 +206,19 @@ def test_apply_fills_os_from_gpu_state_as_raw_description() -> None:
     assert data["contexts"]["os"] == {"raw_description": "Windows 10 (19H1)", "type": "os"}
 
 
+def test_apply_appends_markers_to_existing_breadcrumbs() -> None:
+    """teapot markers append to (not replace) breadcrumbs already on the split event."""
+    data = _relay_gpu_event()
+    data["breadcrumbs"] = {"values": [{"category": "app.start", "message": "boot"}]}
+    apply_gpu_crash_symbolication(
+        data,
+        _completed_response(markers=[{"kind": "draw", "label": "DrawIndexed", "data": {"n": 3}}]),
+    )
+    values = data["breadcrumbs"]["values"]
+    assert values[0]["message"] == "boot"  # SDK breadcrumb preserved, still first
+    assert values[-1]["category"] == "gpu.draw"  # GPU marker appended last
+
+
 # ---------------------------------------------------------------------------
 # TeapotClient — request wire format
 # ---------------------------------------------------------------------------
