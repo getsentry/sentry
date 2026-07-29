@@ -799,6 +799,19 @@ describe('LogsInfiniteTable', () => {
         meta: {fields: {}, units: {}},
       },
     });
+    for (const log of mockLogsData) {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${log[OurLogKnownFieldKey.ID]}/`,
+        method: 'GET',
+        body: {
+          itemId: log[OurLogKnownFieldKey.ID],
+          links: null,
+          meta: {},
+          timestamp: log[OurLogKnownFieldKey.TIMESTAMP],
+          attributes: [],
+        },
+      });
+    }
 
     const traceError: TraceTree.TraceError = {
       event_id: 'abc123def456',
@@ -831,6 +844,19 @@ describe('LogsInfiniteTable', () => {
       method: 'GET',
       statusCode: 500,
     });
+    for (const log of mockLogsData) {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${log[OurLogKnownFieldKey.ID]}/`,
+        method: 'GET',
+        body: {
+          itemId: log[OurLogKnownFieldKey.ID],
+          links: null,
+          meta: {},
+          timestamp: log[OurLogKnownFieldKey.TIMESTAMP],
+          attributes: [],
+        },
+      });
+    }
 
     const traceError: TraceTree.TraceError = {
       event_id: 'abc123def456',
