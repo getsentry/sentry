@@ -24,7 +24,12 @@ from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Req
 
 from sentry import eventstore, eventtypes, options, tagstore
 from sentry.backup.scopes import RelocationScope
-from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
+from sentry.constants import (
+    ALLOWED_FUTURE_DELTA,
+    DEFAULT_LOGGER_NAME,
+    LOG_LEVELS,
+    MAX_CULPRIT_LENGTH,
+)
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
@@ -262,9 +267,8 @@ def bulk_get_latest_event_ids(groups: Sequence[Group]) -> dict[int, tuple[int, s
         )
         partitions[(group.project.organization_id, dataset)].append(group)
 
-    requests = []
-    request_groups = []
-    end = timezone.now() + timedelta(seconds=1)
+    request_contexts: list[tuple[Request, dict[int, int]]] = []
+    end = timezone.now() + ALLOWED_FUTURE_DELTA + timedelta(seconds=1)
     for (organization_id, dataset), partition in partitions.items():
         # Use first_seen to avoid scanning partitions from before the issues existed.
         # last_seen is asynchronously updated and may lag behind events already in Snuba.
@@ -275,48 +279,47 @@ def bulk_get_latest_event_ids(groups: Sequence[Group]) -> dict[int, tuple[int, s
         if expired:
             continue
 
-        requests.append(
-            Request(
-                dataset=dataset.value,
-                app_id="eventstore",
-                query=Query(
-                    match=Entity(dataset.value),
-                    select=[
-                        Column("group_id"),
-                        Function(
-                            "argMax",
-                            [
-                                Column("event_id"),
-                                Function("tuple", [Column("timestamp"), Column("event_id")]),
-                            ],
-                            "event_id",
-                        ),
-                    ],
-                    groupby=[Column("group_id")],
-                    where=[
-                        Condition(
-                            Column("project_id"), Op.IN, list({g.project_id for g in partition})
-                        ),
-                        Condition(Column("group_id"), Op.IN, [g.id for g in partition]),
-                        Condition(Column("timestamp"), Op.GTE, start),
-                        Condition(Column("timestamp"), Op.LT, end),
-                    ],
-                    limit=Limit(len(partition)),
-                ),
-                tenant_ids={"organization_id": organization_id},
-            )
+        project_ids_by_group = {group.id: group.project_id for group in partition}
+        request = Request(
+            dataset=dataset.value,
+            app_id="eventstore",
+            query=Query(
+                match=Entity(dataset.value),
+                select=[
+                    Column("group_id"),
+                    Function(
+                        "argMax",
+                        [
+                            Column("event_id"),
+                            Function("tuple", [Column("timestamp"), Column("event_id")]),
+                        ],
+                        "event_id",
+                    ),
+                ],
+                groupby=[Column("group_id")],
+                where=[
+                    Condition(
+                        Column("project_id"), Op.IN, list(set(project_ids_by_group.values()))
+                    ),
+                    Condition(Column("group_id"), Op.IN, list(project_ids_by_group)),
+                    Condition(Column("timestamp"), Op.GTE, start),
+                    Condition(Column("timestamp"), Op.LT, end),
+                ],
+                limit=Limit(len(partition)),
+            ),
+            tenant_ids={"organization_id": organization_id},
         )
-        request_groups.append({group.id: group.project_id for group in partition})
+        request_contexts.append((request, project_ids_by_group))
 
-    if not requests:
+    if not request_contexts:
         return {}
 
     latest_event_ids = {}
     results = bulk_snuba_queries(
-        requests,
+        [request for request, _ in request_contexts],
         referrer=Referrer.GROUP_GET_LATEST_BULK.value,
     )
-    for project_ids_by_group, result in zip(request_groups, results):
+    for (_request, project_ids_by_group), result in zip(request_contexts, results, strict=True):
         for row in result["data"]:
             group_id = row["group_id"]
             latest_event_ids[group_id] = (project_ids_by_group[group_id], row["event_id"])
