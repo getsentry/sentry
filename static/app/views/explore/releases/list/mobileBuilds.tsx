@@ -9,11 +9,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {
-  MOBILE_BUILDS_ALLOWED_KEYS,
-  MOBILE_BUILDS_DISTRIBUTION_ALLOWED_KEYS,
-  SNAPSHOT_ALLOWED_KEYS,
-} from 'sentry/components/preprod/constants';
-import {
   getPreprodBuildsDisplay,
   PreprodBuildsDisplay,
 } from 'sentry/components/preprod/preprodBuildsDisplay';
@@ -217,13 +212,6 @@ export function MobileBuilds({
         initialQuery={searchQuery ?? ''}
         display={activeDisplay}
         projects={selectedProjectIds.map(Number)}
-        allowedKeys={
-          activeDisplay === PreprodBuildsDisplay.SNAPSHOT
-            ? SNAPSHOT_ALLOWED_KEYS
-            : activeDisplay === PreprodBuildsDisplay.DISTRIBUTION
-              ? MOBILE_BUILDS_DISTRIBUTION_ALLOWED_KEYS
-              : MOBILE_BUILDS_ALLOWED_KEYS
-        }
         hideDisplayToggle={hideDisplayToggle}
         onSearch={handleSearch}
         onDisplayChange={handleDisplayChange}

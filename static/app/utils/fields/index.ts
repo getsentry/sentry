@@ -2709,7 +2709,7 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.INTEGER,
   },
   install_groups: {
-    desc: t('The install groups this build belongs to'),
+    desc: t('The install groups this build distribution belongs to'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowWildcard: false,
