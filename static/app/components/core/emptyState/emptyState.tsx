@@ -1,4 +1,4 @@
-import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Heading, Text, type TextProps} from '@sentry/scraps/text';
 
 interface EmptyStateProps extends Omit<FlexProps, 'title' | 'children'> {
@@ -19,45 +19,44 @@ export function EmptyState({
   const textAlign: TextProps<'p'>['align'] = {zero: 'center', [switchOn]: 'left'};
 
   return (
-    <Container containerType="inline-size" flexGrow={1}>
-      <Flex
-        direction={{zero: 'column', [switchOn]: 'row'}}
-        flexGrow={1}
-        align="center"
-        gap={{zero: 'xl', [switchOn]: '2xl'}}
-        justify={{[switchOn]: 'center'}}
-        data-test-id="empty-state"
-        {...props}
-      >
-        {illustration && (
-          <Flex
-            justify="center"
-            align="center"
-            overflow="hidden"
-            flexShrink={0}
-            flexGrow={1}
-          >
-            {illustration}
-          </Flex>
-        )}
-        <Stack gap="xl">
-          <Stack gap="md" maxWidth="72ch">
-            <Heading as="h3" size="lg" align={textAlign}>
-              {title}
-            </Heading>
-            {description && (
-              <Text as="p" size="md" variant="muted" align={textAlign} textWrap="balance">
-                {description}
-              </Text>
-            )}
-          </Stack>
-          {action && (
-            <Flex gap="md" justify={{zero: 'center', [switchOn]: 'start'}}>
-              {action}
-            </Flex>
+    <Flex
+      containerType="inline-size"
+      direction={{zero: 'column', [switchOn]: 'row'}}
+      flexGrow={1}
+      align="center"
+      gap={{zero: 'xl', [switchOn]: '2xl'}}
+      justify={{[switchOn]: 'center'}}
+      data-test-id="empty-state"
+      {...props}
+    >
+      {illustration && (
+        <Flex
+          justify="center"
+          align="center"
+          overflow="hidden"
+          flexShrink={0}
+          flexGrow={1}
+        >
+          {illustration}
+        </Flex>
+      )}
+      <Stack gap="xl">
+        <Stack gap="md" maxWidth="72ch">
+          <Heading as="h3" size="lg" align={textAlign}>
+            {title}
+          </Heading>
+          {description && (
+            <Text as="p" size="md" variant="muted" align={textAlign} textWrap="balance">
+              {description}
+            </Text>
           )}
         </Stack>
-      </Flex>
-    </Container>
+        {action && (
+          <Flex gap="md" justify={{zero: 'center', [switchOn]: 'start'}}>
+            {action}
+          </Flex>
+        )}
+      </Stack>
+    </Flex>
   );
 }
