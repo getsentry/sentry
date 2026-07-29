@@ -170,6 +170,9 @@ team_created = (
 integration_added = BetterSignal()  # ["integration_id", "organization_id", "user_id"]
 integration_issue_created = BetterSignal()  # ["integration", "organization", "user"]
 integration_issue_linked = BetterSignal()  # ["integration", "organization", "user"]
+# ["project", "group", "user", "external_issue", "rule_label"]
+external_issue_created = BetterSignal()
+external_issue_linked = BetterSignal()
 
 monitor_environment_failed = BetterSignal()  # ["monitor"]
 

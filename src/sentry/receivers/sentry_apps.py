@@ -4,18 +4,28 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry.hybridcloud.rpc import coerce_id_from
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.sentry_apps.external_issues.kinds import ExternalIssueKind
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
-from sentry.sentry_apps.tasks.sentry_apps import build_comment_webhook, workflow_notification
+from sentry.sentry_apps.tasks.sentry_apps import (
+    build_comment_webhook,
+    build_external_issue_webhook,
+    workflow_notification,
+)
 from sentry.sentry_apps.utils.webhooks import is_subscribed
 from sentry.signals import (
     comment_created,
     comment_deleted,
     comment_updated,
+    external_issue_created,
+    external_issue_linked,
     issue_assigned,
     issue_escalating,
     issue_ignored,
@@ -111,6 +121,42 @@ def send_comment_updated_webhook(project, user, group, data, **kwargs):
 @comment_deleted.connect(weak=False)
 def send_comment_deleted_webhook(project, user, group, data, **kwargs):
     send_comment_webhooks(project.organization, group, user, "comment.deleted", data=data)
+
+
+@external_issue_created.connect(weak=False)
+def send_external_issue_created_webhook(
+    project, group, user, external_issue, rule_label=None, **kwargs
+):
+    event = SentryAppEventType.ISSUE_EXTERNAL_ISSUE_CREATED
+    send_external_issue_webhooks(project, group, user, external_issue, event, rule_label)
+
+
+@external_issue_linked.connect(weak=False)
+def send_external_issue_linked_webhook(
+    project, group, user, external_issue, rule_label=None, **kwargs
+):
+    event = SentryAppEventType.ISSUE_EXTERNAL_ISSUE_LINKED
+    send_external_issue_webhooks(project, group, user, external_issue, event, rule_label)
+
+
+def send_external_issue_webhooks(
+    project: Project,
+    issue: Group,
+    user: User | RpcUser | None,
+    external_issue: ExternalIssue | PlatformExternalIssue,
+    event: SentryAppEventType,
+    rule_label: str | None,
+) -> None:
+    for install in installations_to_notify(project.organization, event):
+        build_external_issue_webhook.delay(
+            installation_id=install.id,
+            issue_id=issue.id,
+            type=event,
+            user_id=coerce_id_from(user),
+            external_issue_id=external_issue.id,
+            external_issue_kind=ExternalIssueKind.of(external_issue),
+            rule_label=rule_label,
+        )
 
 
 def send_comment_webhooks(organization, issue, user, event, data=None):

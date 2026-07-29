@@ -51,6 +51,15 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         )
 
         self.login_as(user=self.user)
+
+        sentry_app = self.create_sentry_app(
+            organization=self.organization, events=["issue.external_issue_created"]
+        )
+        self.create_sentry_app_installation(organization=self.organization, slug=sentry_app.slug)
+        patcher = patch("sentry.sentry_apps.tasks.sentry_apps.build_external_issue_webhook.delay")
+        self.build_external_issue_webhook = patcher.start()
+        self.addCleanup(patcher.stop)
+
         responses.add(
             method=responses.POST,
             url="https://api.github.com/app/installations/1/access_tokens",
@@ -161,6 +170,12 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             actor=SYSTEM_ACTOR,
             provider="github",
         )
+
+        sentry_app_call = self.build_external_issue_webhook.call_args
+        assert sentry_app_call.kwargs["type"] == "issue.external_issue_created"
+        assert sentry_app_call.kwargs["issue_id"] == event.group_id
+        assert sentry_app_call.kwargs["user_id"] is None
+        assert sentry_app_call.kwargs["rule_label"] == rule_object.label
 
         # assert ticket created in DB
         key = self.get_key(event)

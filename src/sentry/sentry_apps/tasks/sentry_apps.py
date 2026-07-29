@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any, Protocol, SupportsInt, cast
 
 import sentry_sdk
+from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
 from requests import HTTPError, Timeout
 from requests.exceptions import ChunkedEncodingError, ConnectionError, RequestException
@@ -47,6 +48,7 @@ from sentry.models.project import Project
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.sentry_apps.external_issues.kinds import ExternalIssueKind
 from sentry.sentry_apps.metrics import (
     SentryAppInteractionEvent,
     SentryAppInteractionType,
@@ -602,6 +604,56 @@ def workflow_notification(
 
     if analytics_event is not None:
         analytics.record(analytics_event)
+
+
+@instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.build_external_issue_webhook",
+    namespace=sentryapp_tasks,
+    retry=Retry(
+        times=3,
+        delay=60 * 5,
+        on=_SENTRY_APP_WEBHOOK_RETRY_ON,
+        ignore=_SENTRY_APP_WEBHOOK_RETRY_IGNORE,
+    ),
+    processing_deadline_duration=15,
+    silo_mode=SiloMode.CELL,
+    silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
+)
+def build_external_issue_webhook(
+    installation_id: int,
+    issue_id: int,
+    type: str,
+    user_id: int | None,
+    external_issue_id: int,
+    external_issue_kind: str,
+    rule_label: str | None = None,
+    **kwargs: Any,
+) -> None:
+    event = SentryAppEventType(type)
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+        event_type=event,
+    ).capture():
+        install, issue, user = get_webhook_data(installation_id, issue_id, user_id)
+
+        kind = ExternalIssueKind(external_issue_kind)
+        try:
+            external_issue = kind.fetch(external_issue_id, group=issue)
+        except ObjectDoesNotExist:
+            raise SentryAppSentryError(
+                message=f"build_external_issue_webhook.{SentryAppWebhookFailureReason.MISSING_EXTERNAL_ISSUE}",
+            )
+
+        data: dict[str, Any] = {
+            "issue": _webhook_issue_data(group=issue, serialized_group=serialize(issue)),
+            "external_issue": serialize(external_issue),
+            "external_issue_kind": kind.value,
+        }
+        # Named `triggered_rule` to match event_alert.triggered.
+        if rule_label is not None:
+            data["triggered_rule"] = rule_label
+
+    send_webhooks(installation=install, event=event, data=data, actor=user)
 
 
 @instrumented_task(

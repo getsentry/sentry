@@ -29,6 +29,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationProviderError,
     IntegrationResourceNotFoundError,
 )
+from sentry.signals import external_issue_created
 from sentry.silo.base import cell_silo_function
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
@@ -42,6 +43,7 @@ def create_link(
     installation: IntegrationInstallation,
     event: GroupEvent,
     response: Response,
+    rule_label: str,
 ) -> None:
     """
     After creating the event on a third-party service, create a link to the
@@ -52,6 +54,7 @@ def create_link(
     :param response: The API response from creating the new resource.
         - key: String. The unique ID of the external resource
         - metadata: Optional Object. Can contain `display_name`.
+    :param rule_label: Display name of the rule or workflow that fired this action.
     """
 
     assert isinstance(installation, IssueBasicIntegration), (
@@ -97,6 +100,14 @@ def create_link(
         group_id=event.group.id,
         project=event.group.project,
         actor=SYSTEM_ACTOR,
+    )
+    external_issue_created.send_robust(
+        project=event.group.project,
+        group=event.group,
+        user=None,
+        external_issue=external_issue,
+        rule_label=rule_label,
+        sender=create_link,
     )
 
 
@@ -218,4 +229,4 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                 raise
             # If we successfully created the issue, we want to create the link
             else:
-                create_link(integration, installation, event, response)
+                create_link(integration, installation, event, response, future.rule.label)

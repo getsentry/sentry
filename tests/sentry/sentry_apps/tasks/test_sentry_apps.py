@@ -26,6 +26,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.tasks.sentry_apps import (
     build_comment_webhook,
+    build_external_issue_webhook,
     installation_webhook,
     notify_sentry_app,
     process_resource_change_bound,
@@ -2228,3 +2229,104 @@ class TestDisabledSentryAppWebhooks(TestCase):
         disable_app(self.sentry_app)
         workflow_notification(self.install.id, self.issue.id, "resolved", self.user.id)
         assert safe_urlopen.called
+
+
+@patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+class TestExternalIssueWebhook(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project()
+        self.user = self.create_user()
+        self.issue = self.create_group(project=self.project)
+
+        self.sentry_app = self.create_sentry_app(
+            organization=self.project.organization,
+            events=["issue.external_issue_created", "issue.external_issue_linked"],
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.project.organization, slug=self.sentry_app.slug
+        )
+        self.integration = self.create_integration(
+            organization=self.project.organization, provider="example", external_id="123"
+        )
+        self.external_issue = self.create_integration_external_issue(
+            group=self.issue, integration=self.integration, key="APP-123"
+        )
+
+    def run_task(
+        self, event: str, user_id: int | None = None, rule_label: str | None = None
+    ) -> None:
+        if external_issue_id is None:
+            external_issue_id = self.external_issue.id
+        build_external_issue_webhook(
+            installation_id=self.install.id,
+            issue_id=self.issue.id,
+            type=event,
+            user_id=user_id,
+            external_issue_id=self.external_issue.id,
+            rule_label=rule_label,
+        )
+
+    def test_sends_created_webhook(self, safe_urlopen: MagicMock) -> None:
+        self.run_task("issue.external_issue_created", user_id=self.user.id)
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["action"] == "external_issue_created"
+        assert data["data"]["issue"]["id"] == str(self.issue.id)
+        assert data["data"]["external_issue"]["key"] == "APP-123"
+        assert data["data"]["external_issue_kind"] == "integration"
+        assert kwargs["headers"]["Sentry-Hook-Resource"] == "issue"
+
+    def test_sends_linked_webhook(self, safe_urlopen: MagicMock) -> None:
+        self.run_task("issue.external_issue_linked", user_id=self.user.id)
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["action"] == "external_issue_linked"
+        assert data["data"]["external_issue"]["key"] == "APP-123"
+
+    def test_attributes_to_the_app_when_no_user(self, safe_urlopen: MagicMock) -> None:
+        self.run_task("issue.external_issue_created")
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["actor"]["type"] == "application"
+
+    def test_names_the_rule_that_created_the_ticket(self, safe_urlopen: MagicMock) -> None:
+        self.run_task("issue.external_issue_created", rule_label="Escalating issues")
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["data"]["triggered_rule"] == "Escalating issues"
+
+    def test_omits_the_rule_when_a_user_created_the_ticket(self, safe_urlopen: MagicMock) -> None:
+        self.run_task("issue.external_issue_created", user_id=self.user.id)
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert "triggered_rule" not in data["data"]
+
+    def test_will_not_send_an_issue_belonging_to_another_group(
+        self, safe_urlopen: MagicMock
+    ) -> None:
+        other_issue = self.create_group(project=self.project)
+        unrelated = self.create_integration_external_issue(
+            group=other_issue, integration=self.integration, key="APP-456"
+        )
+
+        with pytest.raises(SentryAppSentryError):
+            self.run_task(
+                "issue.external_issue_created",
+                user_id=self.user.id,
+                external_issue_id=unrelated.id,
+            )
+
+        assert not safe_urlopen.called
+
+    def test_raises_on_missing_external_issue(self, safe_urlopen: MagicMock) -> None:
+        self.external_issue.delete()
+
+        with pytest.raises(SentryAppSentryError):
+            self.run_task("issue.external_issue_created", user_id=self.user.id)
+
+        assert not safe_urlopen.called
