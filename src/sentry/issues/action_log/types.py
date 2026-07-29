@@ -155,6 +155,13 @@ class ActionSource(StrEnum):
     )
 
 
+class PullRequestOrigin(StrEnum):
+    """How a pull request was created, independent of a specific automation provider."""
+
+    AUTOMATED_FIX = "automated_fix"
+    OTHER = "other"
+
+
 COMMIT_ACTION_TYPES = {
     GroupActionType.SET_RESOLVED_IN_COMMIT.value,
     GroupActionType.REFERENCED_IN_COMMIT.value,
@@ -508,6 +515,7 @@ class PullRequestClosedAction(GroupAction):
     pull_request: Optional[int | str] = None  # PullRequest model ID
     # Whether the issue has other linked PRs still open when this one closed
     has_other_open_prs: Optional[bool] = None
+    pull_request_origin: PullRequestOrigin | None = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:

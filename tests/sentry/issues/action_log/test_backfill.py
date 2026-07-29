@@ -18,6 +18,7 @@ from sentry.issues.action_log.types import (
     GroupActionActor,
     GroupActionType,
     GroupActorType,
+    PullRequestOrigin,
     ResolveAction,
     ResolvedInPullRequestAction,
     ViewAction,
@@ -405,6 +406,22 @@ class BackfillGroupPullRequestLifecycleTest(TestCase):
         }
         assert {entry.date_added for entry in entries} == {closed_at}
 
+    def test_backfills_automated_fix_origin(self) -> None:
+        pull_request = self._create_linked_pull_request(
+            state=PullRequestLifecycleState.CLOSED,
+            closed_at=self.now - timedelta(minutes=1),
+        )
+        seer_run = self.create_seer_run(organization=self.organization)
+        self.create_seer_run_pull_request(run=seer_run, pull_request=pull_request)
+
+        assert self._backfill_pr_lifecycle() == 1
+
+        entry = GroupActionLogEntry.objects.get(
+            group_id=self.group.id,
+            type=GroupActionType.PULL_REQUEST_CLOSED,
+        )
+        assert entry.data["pull_request_origin"] == PullRequestOrigin.AUTOMATED_FIX.value
+
     def test_skips_open_pull_requests(self) -> None:
         self._create_linked_pull_request(state=None)
         self._create_linked_pull_request(state=PullRequestLifecycleState.OPEN)
@@ -464,7 +481,93 @@ class BackfillGroupPullRequestLifecycleTest(TestCase):
         )
 
         assert self._backfill_pr_lifecycle() == 0
-        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.data["pull_request_origin"] == PullRequestOrigin.OTHER.value
+
+    def test_heals_automated_fix_origin_on_existing_closed_action(self) -> None:
+        pull_request = self._create_linked_pull_request(
+            state=PullRequestLifecycleState.CLOSED,
+            closed_at=self.now - timedelta(minutes=1),
+        )
+        seer_run = self.create_seer_run(organization=self.organization)
+        self.create_seer_run_pull_request(run=seer_run, pull_request=pull_request)
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.PULL_REQUEST_CLOSED,
+            data={"pull_request": pull_request.id, "has_other_open_prs": False},
+            date_added=self.now - timedelta(minutes=1),
+        )
+
+        assert self._backfill_pr_lifecycle() == 0
+
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.data["pull_request_origin"] == PullRequestOrigin.AUTOMATED_FIX.value
+
+    def test_upgrades_other_origin_when_automated_fix_link_arrives_late(self) -> None:
+        pull_request = self._create_linked_pull_request(
+            state=PullRequestLifecycleState.CLOSED,
+            closed_at=self.now - timedelta(minutes=1),
+        )
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.PULL_REQUEST_CLOSED,
+            data={
+                "pull_request": pull_request.id,
+                "has_other_open_prs": False,
+                "pull_request_origin": PullRequestOrigin.OTHER.value,
+            },
+            date_added=self.now - timedelta(minutes=1),
+        )
+        seer_run = self.create_seer_run(organization=self.organization)
+        self.create_seer_run_pull_request(run=seer_run, pull_request=pull_request)
+
+        assert self._backfill_pr_lifecycle() == 0
+
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.data["pull_request_origin"] == PullRequestOrigin.AUTOMATED_FIX.value
+
+    def test_does_not_downgrade_automated_fix_origin(self) -> None:
+        pull_request = self._create_linked_pull_request(
+            state=PullRequestLifecycleState.CLOSED,
+            closed_at=self.now - timedelta(minutes=1),
+        )
+        entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.PULL_REQUEST_CLOSED,
+            data={
+                "pull_request": pull_request.id,
+                "has_other_open_prs": False,
+                "pull_request_origin": PullRequestOrigin.AUTOMATED_FIX.value,
+            },
+            date_added=self.now - timedelta(minutes=1),
+        )
+
+        assert self._backfill_pr_lifecycle() == 0
+
+        entry.refresh_from_db()
+        assert entry.data["pull_request_origin"] == PullRequestOrigin.AUTOMATED_FIX.value
+
+    def test_heals_automated_fix_origin_before_existing_reopen(self) -> None:
+        pull_request = self._create_linked_pull_request(state=PullRequestLifecycleState.OPEN)
+        seer_run = self.create_seer_run(organization=self.organization)
+        self.create_seer_run_pull_request(run=seer_run, pull_request=pull_request)
+        closed_entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.PULL_REQUEST_CLOSED,
+            data={"pull_request": pull_request.id, "has_other_open_prs": False},
+            date_added=self.now - timedelta(minutes=2),
+        )
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.PULL_REQUEST_REOPENED,
+            data={"pull_request": pull_request.id},
+            date_added=self.now - timedelta(minutes=1),
+        )
+
+        assert self._backfill_pr_lifecycle() == 0
+
+        closed_entry.refresh_from_db()
+        assert closed_entry.data["pull_request_origin"] == PullRequestOrigin.AUTOMATED_FIX.value
 
     def test_heals_activity_backfill_with_unknown_open_pr_state(self) -> None:
         pull_request = self._create_linked_pull_request(
