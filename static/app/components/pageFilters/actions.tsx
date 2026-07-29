@@ -400,10 +400,6 @@ export function initializeUrlState({
   }
 }
 
-function isProjectsValid(projects: number[]) {
-  return Array.isArray(projects) && projects.every(isInteger);
-}
-
 /**
  * Updates store and selection URL param if `location` and `navigate` is supplied
  *
