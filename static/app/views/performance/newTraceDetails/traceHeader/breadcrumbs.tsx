@@ -2,6 +2,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import type {LinkProps} from '@sentry/scraps/link';
+
 import type {Crumb} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -85,6 +87,15 @@ export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
   trace_metrics: 'explore/metrics',
 };
 
+/**
+ * A parent crumb of the trace view. Labels are plain strings so the same list
+ * can feed the legacy `Breadcrumbs` and the typed `BreadcrumbList`.
+ */
+export interface TraceParentCrumb {
+  label: string;
+  to?: LinkProps['to'];
+}
+
 function getBreadCrumbTarget(pathname: string, query: Location['query']) {
   return {
     pathname,
@@ -96,10 +107,9 @@ function getBreadCrumbTarget(pathname: string, query: Location['query']) {
 function getPerformanceBreadCrumbs(
   organization: Organization,
   location: Location,
-  leafBreadcrumb: Crumb,
   view?: DomainView
 ) {
-  const crumbs: Crumb[] = [];
+  const crumbs: TraceParentCrumb[] = [];
 
   const performanceUrl = getPerformanceBaseUrl(organization.slug, view, true);
   const transactionSummaryUrl = getTransactionSummaryBaseUrl(organization, view, true);
@@ -142,17 +152,11 @@ function getPerformanceBreadCrumbs(
       break;
   }
 
-  crumbs.push(leafBreadcrumb);
-
   return crumbs;
 }
 
-function getIssuesBreadCrumbs(
-  organization: Organization,
-  location: Location,
-  leafBreadcrumb: Crumb
-) {
-  const crumbs: Crumb[] = [];
+function getIssuesBreadCrumbs(organization: Organization, location: Location) {
+  const crumbs: TraceParentCrumb[] = [];
 
   crumbs.push({
     label: t('Issues'),
@@ -174,17 +178,11 @@ function getIssuesBreadCrumbs(
     });
   }
 
-  crumbs.push(leafBreadcrumb);
-
   return crumbs;
 }
 
-function getDashboardsBreadCrumbs(
-  organization: Organization,
-  location: Location,
-  leafBreadcrumb: Crumb
-) {
-  const crumbs: Crumb[] = [];
+function getDashboardsBreadCrumbs(organization: Organization, location: Location) {
+  const crumbs: TraceParentCrumb[] = [];
 
   crumbs.push({
     label: t('Dashboards'),
@@ -218,8 +216,6 @@ function getDashboardsBreadCrumbs(
     }
   }
 
-  crumbs.push(leafBreadcrumb);
-
   return crumbs;
 }
 
@@ -227,10 +223,9 @@ function getInsightsModuleBreadcrumbs(
   location: Location,
   organization: Organization,
   moduleURLBuilder: URLBuilder,
-  leafBreadcrumb: Crumb,
   view?: DomainView
 ) {
-  const crumbs: Crumb[] = [];
+  const crumbs: TraceParentCrumb[] = [];
 
   if (view && DOMAIN_VIEW_TITLES[view]) {
     crumbs.push({
@@ -358,8 +353,6 @@ function getInsightsModuleBreadcrumbs(
       break;
   }
 
-  crumbs.push(leafBreadcrumb);
-
   return crumbs;
 }
 
@@ -415,6 +408,102 @@ const Wrapper = styled('div')`
   }
 `;
 
+/**
+ * The crumbs leading up to the trace, derived from the `source` query param.
+ * Excludes the trace itself — that is the page title.
+ */
+export function getTraceViewParentCrumbs({
+  organization,
+  location,
+  moduleURLBuilder,
+  view,
+}: {
+  location: Location;
+  moduleURLBuilder: URLBuilder;
+  organization: Organization;
+  view?: DomainView;
+}): TraceParentCrumb[] {
+  if (
+    typeof location.query.source === 'string' &&
+    TRACE_SOURCE_TO_INSIGHTS_MODULE[
+      location.query.source as keyof typeof TRACE_SOURCE_TO_INSIGHTS_MODULE
+    ]
+  ) {
+    return getInsightsModuleBreadcrumbs(location, organization, moduleURLBuilder, view);
+  }
+
+  switch (location.query.source) {
+    case TraceViewSources.TRACES:
+      return [
+        {
+          label: t('Traces'),
+          to: getBreadCrumbTarget(
+            makeTracesPathname({path: '/', organization}),
+            location.query
+          ),
+        },
+      ];
+    case TraceViewSources.DISCOVER:
+      return [
+        {
+          label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
+          to: getBreadCrumbTarget(
+            makeDiscoverPathname({path: '/homepage/', organization}),
+            location.query
+          ),
+        },
+      ];
+    case TraceViewSources.METRICS:
+      return [
+        {
+          label: t('Metrics'),
+          to: getBreadCrumbTarget(
+            normalizeUrl(`/organizations/${organization.slug}/metrics/`),
+            location.query
+          ),
+        },
+      ];
+    case TraceViewSources.FEEDBACK_DETAILS:
+      return [
+        {
+          label: t('User Feedback'),
+          to: getBreadCrumbTarget(
+            makeFeedbackPathname({path: '/', organization}),
+            location.query
+          ),
+        },
+      ];
+    case TraceViewSources.DASHBOARDS:
+      return getDashboardsBreadCrumbs(organization, location);
+    case TraceViewSources.ISSUE_DETAILS:
+      return getIssuesBreadCrumbs(organization, location);
+    case TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY:
+      return getPerformanceBreadCrumbs(organization, location, view);
+    case TraceViewSources.LOGS:
+      return [
+        {
+          label: t('Logs'),
+          to: getBreadCrumbTarget(
+            normalizeUrl(`/organizations/${organization.slug}/explore/logs/`),
+            location.query
+          ),
+        },
+      ];
+    case TraceViewSources.TRACE_METRICS:
+      return [
+        {
+          label: t('Application Metrics'),
+          to: getBreadCrumbTarget(
+            normalizeUrl(`/organizations/${organization.slug}/explore/metrics/`),
+            location.query
+          ),
+        },
+      ];
+    default:
+      return [{label: t('Trace')}];
+  }
+}
+
 export function getTraceViewBreadcrumbs({
   organization,
   location,
@@ -430,103 +519,8 @@ export function getTraceViewBreadcrumbs({
   project?: Project;
   view?: DomainView;
 }): Crumb[] {
-  const leafBreadcrumb: Crumb = {
-    label: <LeafBreadCrumbLabel traceSlug={traceSlug} project={project} />,
-  };
-  if (
-    typeof location.query.source === 'string' &&
-    TRACE_SOURCE_TO_INSIGHTS_MODULE[
-      location.query.source as keyof typeof TRACE_SOURCE_TO_INSIGHTS_MODULE
-    ]
-  ) {
-    return getInsightsModuleBreadcrumbs(
-      location,
-      organization,
-      moduleURLBuilder,
-      leafBreadcrumb,
-      view
-    );
-  }
-
-  switch (location.query.source) {
-    case TraceViewSources.TRACES:
-      return [
-        {
-          label: t('Traces'),
-          to: getBreadCrumbTarget(
-            makeTracesPathname({path: '/', organization}),
-            location.query
-          ),
-        },
-        leafBreadcrumb,
-      ];
-    case TraceViewSources.DISCOVER:
-      return [
-        {
-          label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
-          to: getBreadCrumbTarget(
-            makeDiscoverPathname({path: '/homepage/', organization}),
-            location.query
-          ),
-        },
-        leafBreadcrumb,
-      ];
-    case TraceViewSources.METRICS:
-      return [
-        {
-          label: t('Metrics'),
-          to: getBreadCrumbTarget(
-            normalizeUrl(`/organizations/${organization.slug}/metrics/`),
-            location.query
-          ),
-        },
-        leafBreadcrumb,
-      ];
-    case TraceViewSources.FEEDBACK_DETAILS:
-      return [
-        {
-          label: t('User Feedback'),
-          to: getBreadCrumbTarget(
-            makeFeedbackPathname({path: '/', organization}),
-            location.query
-          ),
-        },
-        leafBreadcrumb,
-      ];
-    case TraceViewSources.DASHBOARDS:
-      return getDashboardsBreadCrumbs(organization, location, leafBreadcrumb);
-    case TraceViewSources.ISSUE_DETAILS:
-      return getIssuesBreadCrumbs(organization, location, leafBreadcrumb);
-    case TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY:
-      return getPerformanceBreadCrumbs(organization, location, leafBreadcrumb, view);
-    case TraceViewSources.LOGS:
-      return [
-        {
-          label: t('Logs'),
-          to: getBreadCrumbTarget(
-            normalizeUrl(`/organizations/${organization.slug}/explore/logs/`),
-            location.query
-          ),
-        },
-        leafBreadcrumb,
-      ];
-    case TraceViewSources.TRACE_METRICS:
-      return [
-        {
-          label: t('Application Metrics'),
-          to: getBreadCrumbTarget(
-            normalizeUrl(`/organizations/${organization.slug}/explore/metrics/`),
-            location.query
-          ),
-        },
-        leafBreadcrumb,
-      ];
-    default:
-      return [
-        {
-          label: t('Trace'),
-        },
-        leafBreadcrumb,
-      ];
-  }
+  return [
+    ...getTraceViewParentCrumbs({organization, location, moduleURLBuilder, view}),
+    {label: <LeafBreadCrumbLabel traceSlug={traceSlug} project={project} />},
+  ];
 }

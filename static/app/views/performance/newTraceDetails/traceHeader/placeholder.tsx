@@ -12,6 +12,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {TraceHeaderComponents} from './styles';
+import {TraceBreadcrumbs} from './traceBreadcrumbs';
 
 const traceViewFeedbackOptions = {
   messagePlaceholder: t('How can we make the trace view better for you?'),
@@ -38,18 +39,26 @@ export function PlaceHolder({
     <TraceHeaderComponents.HeaderLayout>
       <TraceHeaderComponents.HeaderContent>
         <Flex justify="between" align="center" gap="md">
-          <TopBar.Slot name="title">
-            <Breadcrumbs
-              crumbs={getTraceViewBreadcrumbs({
-                organization,
-                location,
-                moduleURLBuilder,
-                traceSlug,
-                project,
-                view,
-              })}
+          {organization.features.includes('ui-migration-breadcrumbs') ? (
+            <TraceBreadcrumbs
+              organization={organization}
+              traceSlug={traceSlug}
+              project={project}
             />
-          </TopBar.Slot>
+          ) : (
+            <TopBar.Slot name="title">
+              <Breadcrumbs
+                crumbs={getTraceViewBreadcrumbs({
+                  organization,
+                  location,
+                  moduleURLBuilder,
+                  traceSlug,
+                  project,
+                  view,
+                })}
+              />
+            </TopBar.Slot>
+          )}
           <Grid flow="column" align="center" gap="md">
             <TopBar.Slot name="feedback">
               <FeedbackButton

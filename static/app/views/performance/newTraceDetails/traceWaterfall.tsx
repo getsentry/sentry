@@ -1,5 +1,6 @@
 import type React from 'react';
 import {
+  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -682,20 +683,31 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     waterfallTraceId = undefined;
   }
 
+  // On the standalone trace page these two moved into the page-title crumb.
+  // Embedded waterfalls (issues, replay) have no such crumb, so they keep them.
+  const showToolbarTraceActions = !(
+    props.source === 'performance' &&
+    organization.features.includes('ui-migration-breadcrumbs')
+  );
+
   return (
     <Stack flex={1}>
       <Flex gap="md">
         <TraceSearchInput onTraceSearch={onTraceSearch} />
-        <TraceLinksNavigation
-          rootEventResults={props.rootEventResults}
-          source={props.source}
-        />
-        <TraceOpenInExploreButton
-          trace_id={props.traceSlug}
-          traceEventView={props.traceEventView}
-          source={props.source}
-          replayId={props.replay?.id}
-        />
+        {showToolbarTraceActions && (
+          <Fragment>
+            <TraceLinksNavigation
+              rootEventResults={props.rootEventResults}
+              source={props.source}
+            />
+            <TraceOpenInExploreButton
+              trace_id={props.traceSlug}
+              traceEventView={props.traceEventView}
+              source={props.source}
+              replayId={props.replay?.id}
+            />
+          </Fragment>
+        )}
         <TraceResetZoomButton
           viewManager={viewManager}
           organization={props.organization}

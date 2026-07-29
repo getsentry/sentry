@@ -27,6 +27,7 @@ import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/
 import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {Meta} from './meta';
 import {Title} from './title';
+import {TraceBreadcrumbs} from './traceBreadcrumbs';
 
 export interface TraceMetadataHeaderProps {
   logs: OurLogsResponseItem[] | undefined;
@@ -72,6 +73,10 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     props.rootEventResults.status === 'error' ||
     props.tree.type === 'error';
 
+  const hasNewBreadcrumbs = props.organization.features.includes(
+    'ui-migration-breadcrumbs'
+  );
+
   const noEvents = props.tree.type === 'empty' && !hasLogs && !hasMetrics;
   if (isLoading || isError || noEvents) {
     return <PlaceHolder organization={props.organization} traceSlug={props.traceSlug} />;
@@ -89,18 +94,27 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   return (
     <TraceHeaderComponents.HeaderLayout>
       <TraceHeaderComponents.HeaderContent gap="xs">
-        <TopBar.Slot name="title">
-          <Breadcrumbs
-            crumbs={getTraceViewBreadcrumbs({
-              organization: props.organization,
-              location,
-              moduleURLBuilder,
-              traceSlug: props.traceSlug,
-              project,
-              view,
-            })}
+        {hasNewBreadcrumbs ? (
+          <TraceBreadcrumbs
+            organization={props.organization}
+            traceSlug={props.traceSlug}
+            project={project}
+            rootEventResults={props.rootEventResults}
           />
-        </TopBar.Slot>
+        ) : (
+          <TopBar.Slot name="title">
+            <Breadcrumbs
+              crumbs={getTraceViewBreadcrumbs({
+                organization: props.organization,
+                location,
+                moduleURLBuilder,
+                traceSlug: props.traceSlug,
+                project,
+                view,
+              })}
+            />
+          </TopBar.Slot>
+        )}
         <TopBar.Slot name="feedback">
           <FeedbackButton
             feedbackOptions={traceViewFeedbackOptions}
