@@ -33,14 +33,11 @@ const INTERACTIVE_SELECTOR = [
 export function useIsInsideInteractiveElement<T extends HTMLElement>(
   ref: Ref<T> | undefined
 ) {
-  const [interactiveElement, setInteractiveElement] = useState<HTMLElement | null>(null);
+  const [interactiveElement, setInteractiveElement] = useState<Element | null>(null);
   const mergeRef = useStableMergeRef(ref);
 
   const insideInteractiveElementRef: RefCallback<T> = useCallback(element => {
-    setInteractiveElement(
-      (element?.parentElement?.closest(INTERACTIVE_SELECTOR) as HTMLElement | null) ??
-        null
-    );
+    setInteractiveElement(element?.parentElement?.closest(INTERACTIVE_SELECTOR) ?? null);
   }, []);
 
   const isInteractiveElementFocusVisible = useSyncExternalStore(
