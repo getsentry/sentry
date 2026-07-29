@@ -15,8 +15,8 @@ function useDefaultButtonTracking() {
       console.log('buttonAnalyticsEvent', {
         eventKey: props.analyticsEventKey,
         eventName: props.analyticsEventName,
-        variant: 'variant' in props ? props.variant : undefined,
-        href: 'href' in props ? props.href : undefined,
+        variant: props.variant,
+        href: props.href,
         ...props.analyticsParams,
       });
     }
