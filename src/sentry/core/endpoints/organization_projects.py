@@ -82,6 +82,9 @@ class _OrganizationProjectCreateResponse(OrganizationProjectResponse):
     team_slug: str
 
 
+# Only applies to the error `stats`; `transactionStats` always queries spans. Kept for
+# now until we have the frontend stop sending it, though every option resolves to discover for the error query anyway since the
+# metrics datasets is not compatible with `!event.type:transaction`.
 DATASETS = {
     "": discover,  # in case they pass an empty query string fall back on default
     "discover": discover,

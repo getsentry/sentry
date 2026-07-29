@@ -1,17 +1,22 @@
 import {TransactionEventFixture} from 'sentry-fixture/event';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {
   TraceMetaDataHeader,
   type TraceMetadataHeaderProps,
 } from 'sentry/views/performance/newTraceDetails/traceHeader';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {Projects} from 'sentry/views/performance/newTraceDetails/traceHeader/projects';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {RootNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/rootNode';
 import {TraceNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/traceNode';
@@ -23,6 +28,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 jest.mock('sentry/views/performance/newTraceDetails/traceState/traceStateProvider');
+jest.mock('sentry/views/performance/newTraceDetails/traceHeader/projects');
 jest.mock('sentry/utils/useLocation');
 
 const baseProps: Partial<TraceMetadataHeaderProps> = {
@@ -43,16 +49,33 @@ const baseProps: Partial<TraceMetadataHeaderProps> = {
   rootEventResults: {
     data: TransactionEventFixture(),
   } as any,
+  overview: {
+    isProjectsLoading: false,
+    isRepresentativeLoading: false,
+    isTabLoading: false,
+    projectIds: [],
+    logs: {
+      availability: 'absent',
+      count: 0,
+      representative: undefined,
+    },
+    metrics: {
+      availability: 'absent',
+      count: 0,
+    },
+  },
   tree: new TraceTree().build(),
   traceSlug: 'trace-slug',
 };
 let organization: Organization;
 
 const useLocationMock = jest.mocked(useLocation);
+const projectsMock = jest.mocked(Projects);
 
 describe('TraceMetaDataHeader', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    projectsMock.mockReturnValue(<div />);
 
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -265,6 +288,162 @@ describe('TraceMetaDataHeader', () => {
   });
 
   describe('meta', () => {
+    it('renders the core header while optional overview data is loading', () => {
+      useLocationMock.mockReturnValue(
+        LocationFixture({
+          pathname: '/organizations/org-slug/traces/trace/trace-slug',
+        })
+      );
+      const overviewOrganization = OrganizationFixture({
+        features: ['ourlogs-enabled', 'tracemetrics-enabled'],
+      });
+      const props = {
+        ...baseProps,
+        overview: {
+          isProjectsLoading: true,
+          isRepresentativeLoading: false,
+          isTabLoading: true,
+          projectIds: undefined,
+          logs: {
+            availability: 'loading',
+            count: undefined,
+            representative: undefined,
+          },
+          metrics: {
+            availability: 'loading',
+            count: undefined,
+          },
+        },
+      } as TraceMetadataHeaderProps;
+
+      render(<TraceMetaDataHeader {...props} organization={overviewOrganization} />);
+
+      expect(screen.getByText('Issues')).toBeInTheDocument();
+      expect(screen.getByText('Logs')).toBeInTheDocument();
+      expect(screen.getByText('Metrics')).toBeInTheDocument();
+    });
+
+    it('keeps the core header for an empty tree while overview availability loads', () => {
+      useLocationMock.mockReturnValue(
+        LocationFixture({
+          pathname: '/organizations/org-slug/traces/trace/trace-slug',
+        })
+      );
+      const overviewOrganization = OrganizationFixture({
+        features: ['ourlogs-enabled', 'tracemetrics-enabled'],
+      });
+      const rootEventResults = {
+        data: undefined,
+        isLoading: false,
+        status: 'pending',
+      } as TraceRootEventQueryResults;
+      const props = {
+        ...baseProps,
+        tree: TraceTree.Empty(),
+        rootEventResults,
+        overview: {
+          isProjectsLoading: true,
+          isRepresentativeLoading: true,
+          isTabLoading: true,
+          projectIds: undefined,
+          logs: {
+            availability: 'loading',
+            count: undefined,
+            representative: undefined,
+          },
+          metrics: {
+            availability: 'loading',
+            count: undefined,
+          },
+        },
+      } as TraceMetadataHeaderProps;
+
+      render(<TraceMetaDataHeader {...props} organization={overviewOrganization} />);
+
+      expect(screen.getByText('Issues')).toBeInTheDocument();
+      expect(screen.getByText('Logs')).toBeInTheDocument();
+      expect(screen.getByText('Metrics')).toBeInTheDocument();
+    });
+
+    it('renders the core header when root event details fail', () => {
+      useLocationMock.mockReturnValue(
+        LocationFixture({
+          pathname: '/organizations/org-slug/traces/trace/trace-slug',
+        })
+      );
+      const props = {
+        ...baseProps,
+        rootEventResults: {
+          data: undefined,
+          error: new Error('Trace item not found'),
+          isLoading: false,
+          status: 'error',
+        },
+      } as TraceMetadataHeaderProps;
+
+      render(<TraceMetaDataHeader {...props} organization={organization} />);
+
+      expect(screen.getByText('Issues')).toBeInTheDocument();
+      expect(screen.getByText('Spans')).toBeInTheDocument();
+    });
+
+    it('renders representative information for a log-only trace', () => {
+      useLocationMock.mockReturnValue(
+        LocationFixture({
+          pathname: '/organizations/org-slug/traces/trace/trace-slug',
+        })
+      );
+      const logsOrganization = OrganizationFixture({features: ['ourlogs-enabled']});
+      const projects = [
+        ProjectFixture({id: '1', slug: 'project-one'}),
+        ProjectFixture({id: '2', slug: 'project-two'}),
+      ];
+      ProjectsStore.loadInitialData(projects);
+      const representativeLog = {
+        [OurLogKnownFieldKey.MESSAGE]: 'Representative log message',
+        [OurLogKnownFieldKey.PROJECT_ID]: '1',
+        [OurLogKnownFieldKey.SEVERITY]: 'info',
+      } as NonNullable<
+        TraceMetadataHeaderProps['overview']['logs']['representative']
+      >[number];
+      const representativeLogs = [representativeLog];
+      const tree = TraceTree.Empty();
+      const findRepresentativeTraceNode = jest
+        .spyOn(tree, 'findRepresentativeTraceNode')
+        .mockReturnValue({event: representativeLog, dataset: null});
+      const props = {
+        ...baseProps,
+        tree,
+        overview: {
+          isProjectsLoading: false,
+          isRepresentativeLoading: false,
+          isTabLoading: false,
+          projectIds: ['1', '2'],
+          logs: {
+            availability: 'present',
+            count: 4,
+            representative: representativeLogs,
+          },
+          metrics: {
+            availability: 'absent',
+            count: 0,
+          },
+        },
+      } as TraceMetadataHeaderProps;
+
+      render(<TraceMetaDataHeader {...props} organization={logsOrganization} />);
+
+      expect(screen.getByText('Representative log message')).toBeInTheDocument();
+      expect(screen.getByText('Logs')).toBeInTheDocument();
+      expect(screen.getByText('4')).toBeInTheDocument();
+      expect(findRepresentativeTraceNode).toHaveBeenCalledWith({
+        logs: representativeLogs,
+      });
+      expect(projectsMock.mock.calls[0]?.[0]).toEqual({
+        projectSlugs: ['project-one', 'project-two'],
+      });
+    });
+
     it('should render logs count from trace meta before logs have loaded', () => {
       useLocationMock.mockReturnValue(
         LocationFixture({

@@ -1,8 +1,8 @@
-import {Fragment} from 'react';
-
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerLabel} from 'sentry/components/searchQueryBuilder/askSeer/components';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
@@ -13,6 +13,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function AskSeerFeedback() {
   const organization = useOrganization();
+  const hasAskSeerUxRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
   const analyticsArea = useAnalyticsArea();
   const {setDisplayAskSeerFeedback, askSeerNLQueryRef, askSeerSuggestedQueryRef} =
     useSearchQueryBuilderAI();
@@ -27,23 +28,38 @@ export function AskSeerFeedback() {
     });
     askSeerNLQueryRef.current = null;
     askSeerSuggestedQueryRef.current = null;
+    if (hasAskSeerUxRework) {
+      addSuccessMessage(t('Thanks for the feedback!'));
+    }
     setDisplayAskSeerFeedback(false);
   };
 
   return (
-    <Fragment>
+    <Flex
+      align="center"
+      justify={hasAskSeerUxRework ? undefined : 'between'}
+      gap="md"
+      flex="1"
+    >
       <AskSeerLabel fontWeight="normal">
-        <IconSeer />
-        <Text variant="primary">{t('We loaded the results. Does this look right?')}</Text>
+        {hasAskSeerUxRework ? null : <IconSeer />}
+        {hasAskSeerUxRework ? (
+          <Text variant="primary">{t('How did we do?')}</Text>
+        ) : (
+          <Text variant="primary">
+            {t('We loaded the results. Does this look right?')}
+          </Text>
+        )}
       </AskSeerLabel>
-      <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+
+      <Flex align="center" gap="sm">
         <Button
           size="zero"
           icon={<IconThumb />}
           onClick={() => handleClick('positive')}
           aria-label="Yep, correct results"
         >
-          Yep
+          {hasAskSeerUxRework ? null : t('Yep')}
         </Button>
         <Button
           size="zero"
@@ -51,9 +67,9 @@ export function AskSeerFeedback() {
           onClick={() => handleClick('negative')}
           aria-label="Nope, incorrect results"
         >
-          Nope
+          {hasAskSeerUxRework ? null : t('No')}
         </Button>
-      </div>
-    </Fragment>
+      </Flex>
+    </Flex>
   );
 }

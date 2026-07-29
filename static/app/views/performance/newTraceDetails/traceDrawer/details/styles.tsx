@@ -7,6 +7,7 @@ import type {LocationDescriptor} from 'history';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Markdown} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -54,7 +55,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {markdownRendersVisibleContent} from 'sentry/utils/marked/marked';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -218,8 +218,6 @@ const TitleOpText = styled('div')`
 `;
 
 const Table = styled('table')`
-  margin-bottom: 0 !important;
-
   td {
     overflow: hidden;
   }
@@ -1197,9 +1195,7 @@ function MultilineText({
       </Container>
       {showRaw || defaultFormattingIsBlank
         ? children.trim()
-        : (renderFormatted?.(children) ?? (
-            <MarkedText as={MarkdownContainer} text={children} />
-          ))}
+        : (renderFormatted?.(children) ?? <Markdown raw={children} />)}
     </MultilineTextWrapper>
   );
 
@@ -1219,62 +1215,6 @@ const StyledClippedBox = styled(ClippedBox)`
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-/**
- * Markdown wrapper including styles for markdown elements
- * Optimized for inline use, with minimal padding and margin and smaller heading font size
- */
-const MarkdownContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
-  white-space: normal;
-  p {
-    margin: 0;
-    padding: 0;
-  }
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    font-size: ${p => p.theme.font.size.md};
-    margin: 0;
-    padding-bottom: ${p => p.theme.space.sm};
-  }
-  ul,
-  ol {
-    margin: 0;
-  }
-  blockquote {
-    margin: 0;
-    padding: ${p => p.theme.space.sm};
-    border-left: 2px solid ${p => p.theme.tokens.border.primary};
-  }
-  pre {
-    margin: 0;
-    padding: ${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.radius.md};
-  }
-  img {
-    max-height: 200px;
-  }
-  hr {
-    margin: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-    border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-  table {
-    border-collapse: collapse;
-    width: auto;
-    width: max-content;
-  }
-  table th,
-  table td {
-    border: 1px solid ${p => p.theme.tokens.border.primary};
-    padding: ${p => p.theme.space.xs};
-  }
-`;
-
 const MultilineTextWrapper = styled('div')`
   position: relative;
   white-space: pre-wrap;
@@ -1284,6 +1224,14 @@ const MultilineTextWrapper = styled('div')`
   word-break: break-word;
   &:not(:last-child) {
     margin-bottom: ${p => p.theme.space.md};
+  }
+
+  /* word-break: break-word is legacy for overflow-wrap: anywhere, which counts
+   * toward min-content intrinsic size. Inherited into cells, it collapses them to
+   * about one character: the table then fits any container, columns squish, and
+   * its scroll container never overflows. Tables scroll on their own. */
+  table {
+    word-break: normal;
   }
 `;
 
@@ -1440,5 +1388,4 @@ export const TraceDrawerComponents = {
   MultilineText,
   MultilineJSON,
   MultilineTextLabel,
-  MarkdownContainer,
 };
