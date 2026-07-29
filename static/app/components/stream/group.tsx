@@ -1036,6 +1036,7 @@ const GroupSummary = styled('div')<{canSelect: boolean}>`
 const GroupCheckBoxWrapper = styled('div')`
   align-self: flex-start;
   width: 32px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
