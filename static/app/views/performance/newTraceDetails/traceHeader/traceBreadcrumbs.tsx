@@ -77,7 +77,14 @@ function useTracePagination(rootEventResults?: TraceRootEventQueryResults) {
     currentTraceStartTimestamp,
   });
 
-  return hasLinkedTraces ? {previous, next} : undefined;
+  // Both tooltips end in a "Learn More" docs link, so they have to stay
+  // hoverable for the link to be reachable.
+  return hasLinkedTraces
+    ? {
+        previous: {...previous, tooltip: {title: previous.tooltip, isHoverable: true}},
+        next: {...next, tooltip: {title: next.tooltip, isHoverable: true}},
+      }
+    : undefined;
 }
 
 export function TraceBreadcrumbs({
