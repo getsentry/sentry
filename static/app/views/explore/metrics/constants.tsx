@@ -372,3 +372,6 @@ export const METRICS_DRAWER_QUERY_PARAM = 'metricsDrawer';
 // We do not support labels beyond Z yet, due to requiring single-character labels
 // for the arithmetic builder currently.
 export const MAX_METRIC_ALLOWED_LABEL_VALUE = 'Z';
+
+// The default starting label for equations in metrics.
+export const DEFAULT_EQUATION_LABEL = 'ƒ1';

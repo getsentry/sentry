@@ -1,6 +1,4 @@
 import {Fragment, useEffect} from 'react';
-import * as Sentry from '@sentry/react';
-import scrollToElement from 'scroll-to-element';
 
 import {defined} from 'sentry/utils/defined';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
@@ -50,31 +48,32 @@ function JsonForm({
 }: JsonFormProps) {
   const location = useLocation();
 
-  const scrollToHash = (toHash?: string): void => {
-    // location.hash is optional because of tests.
-    const hash = toHash || location?.hash;
-
+  const scrollToHash = (hash?: string): void => {
     if (!hash) {
       return;
     }
 
-    // Push onto callback queue so it runs after the DOM is updated,
-    // this is required when navigating from a different page so that
-    // the element is rendered on the page before trying to getElementById.
-    try {
-      scrollToElement(sanitizeQuerySelector(decodeURIComponent(hash)), {
-        align: 'middle',
-        offset: -100,
-      });
-    } catch (err) {
-      Sentry.captureException(err);
+    const element = document.getElementById(
+      sanitizeQuerySelector(decodeURIComponent(hash.slice(1)))
+    );
+    if (!element) {
+      return;
     }
+
+    const {top, height} = element.getBoundingClientRect();
+    window.scrollTo({
+      behavior: 'smooth',
+      top: window.scrollY + top - (window.innerHeight - height) / 2 - 100,
+    });
   };
 
   useEffect(() => {
-    const hash = location?.hash;
-    scrollToHash(hash);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Let parent route effects finish, including the scroll-to-top behavior.
+    const animationFrame = window.requestAnimationFrame(() => {
+      scrollToHash(location?.hash);
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
   }, [location?.hash]);
 
   const shouldDisplayForm = (fieldList: FieldObject[]): boolean => {

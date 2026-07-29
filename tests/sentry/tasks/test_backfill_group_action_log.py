@@ -327,6 +327,22 @@ class BackfillGroupActionLogForProjectTest(TestCase):
         assert call_kwargs["cursor_datetime"] is not None
         assert call_kwargs["cursor_id"] > 0
 
+    def test_self_chain_propagates_pr_lifecycle_handoff(self) -> None:
+        for _ in range(3):
+            self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
+
+        with (
+            self._options(batch_size=2),
+            patch.object(backfill_group_action_log_for_project, "apply_async") as mock_apply,
+        ):
+            backfill_group_action_log_for_project(
+                self.project.id,
+                chain_pr_lifecycle=True,
+            )
+
+        call_kwargs = mock_apply.call_args.kwargs["kwargs"]
+        assert call_kwargs["chain_pr_lifecycle"] is True
+
     def test_completes_when_no_activities(self) -> None:
         with (
             self._options(),
@@ -465,3 +481,40 @@ class BackfillGroupActionLogForProjectTest(TestCase):
             backfill_group_action_log_for_project(self.project.id)
 
         mock_derived.assert_called_once_with(project_id=self.project.id)
+
+    def test_chains_pr_lifecycle_instead_of_derived_data_on_completion(self) -> None:
+        with (
+            self._options(),
+            patch(
+                "sentry.tasks.backfill_pr_lifecycle_action_log."
+                "backfill_pr_lifecycle_action_log_for_project.delay"
+            ) as mock_pr_lifecycle,
+            patch("sentry.issues.derived.tasks.process_project_derived_data.delay") as mock_derived,
+        ):
+            backfill_group_action_log_for_project(
+                self.project.id,
+                chain_pr_lifecycle=True,
+            )
+
+        mock_pr_lifecycle.assert_called_once_with(project_id=self.project.id)
+        mock_derived.assert_not_called()
+
+    def test_chains_pr_lifecycle_after_final_activity_batch(self) -> None:
+        self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
+
+        with (
+            self._options(),
+            patch(
+                "sentry.tasks.backfill_pr_lifecycle_action_log."
+                "backfill_pr_lifecycle_action_log_for_project.delay"
+            ) as mock_pr_lifecycle,
+            patch("sentry.issues.derived.tasks.process_project_derived_data.delay") as mock_derived,
+        ):
+            backfill_group_action_log_for_project(
+                self.project.id,
+                chain_pr_lifecycle=True,
+            )
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+        mock_pr_lifecycle.assert_called_once_with(project_id=self.project.id)
+        mock_derived.assert_not_called()

@@ -1,18 +1,25 @@
 from typing import Any
 from unittest.mock import patch
+from uuid import UUID
 
+from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, TriggerAutofixAction
+from sentry.models.activity import Activity
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
     SeerNightShiftRunResult,
     SeerNightShiftRunShard,
 )
+from sentry.seer.models.run import SeerRun
 from sentry.seer.night_shift.delivery import REASON_MAX_CHARS, deliver_night_shift_result
 from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.types.activity import ActivityType
 from sentry.utils.redis import redis_clusters
 
 
@@ -31,10 +38,13 @@ class TestDeliverNightShiftResult(TestCase):
         )
         return run
 
-    def _run_uuid(self, run: SeerNightShiftRun) -> str:
+    def _run_uuid(self, run: SeerNightShiftRun) -> UUID:
         seer_run = run.shards.get().seer_run
         assert seer_run is not None
-        return str(seer_run.uuid)
+        return seer_run.uuid
+
+    def _triggered_run(self, seer_run_state_id: int, organization: Organization) -> SeerRun:
+        return self.create_seer_run(organization=organization, seer_run_state_id=seer_run_state_id)
 
     def test_missing_run_logs_warning(self) -> None:
         """When run_uuid doesn't match any SeerNightShiftRun, log and return."""
@@ -43,7 +53,7 @@ class TestDeliverNightShiftResult(TestCase):
         with patch("sentry.seer.night_shift.delivery.logger") as mock_logger:
             deliver_night_shift_result(
                 organization_id=org.id,
-                run_uuid="00000000-0000-0000-0000-000000000000",
+                run_uuid=UUID("00000000-0000-0000-0000-000000000000"),
                 status="completed",
                 result={"verdicts": []},
                 error=None,
@@ -86,15 +96,18 @@ class TestDeliverNightShiftResult(TestCase):
 
         deliver_night_shift_result(
             organization_id=org.id,
-            run_uuid=str(failed_seer_run.uuid),
+            run_uuid=failed_seer_run.uuid,
             status="error",
             result=None,
             error="shard failed",
         )
-        with patch("sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=1):
+        with patch(
+            "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+            return_value=self._triggered_run(1, org),
+        ):
             deliver_night_shift_result(
                 organization_id=org.id,
-                run_uuid=str(ok_seer_run.uuid),
+                run_uuid=ok_seer_run.uuid,
                 status="completed",
                 result={
                     "verdicts": [
@@ -182,7 +195,8 @@ class TestDeliverNightShiftResult(TestCase):
         }
 
         with patch(
-            "sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=42
+            "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+            return_value=self._triggered_run(42, org),
         ) as mock_trigger:
             deliver_night_shift_result(
                 organization_id=org.id,
@@ -202,6 +216,43 @@ class TestDeliverNightShiftResult(TestCase):
         assert results[0].seer_run_id == "42"
         assert results[0].extras["action"] == TriageAction.AUTOFIX.value
         assert results[0].extras["reason"] == "looks good"
+
+    def test_autofix_verdict_creates_system_activity(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        group = self.create_group(project=project)
+        run = self._create_night_shift_run(organization=org)
+        result = {
+            "verdicts": [
+                {"group_id": group.id, "action": TriageAction.AUTOFIX.value, "reason": "fixable"}
+            ]
+        }
+
+        with (
+            patch(
+                "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+                return_value=self._triggered_run(42, org),
+            ),
+            capture_action_log() as action_log,
+        ):
+            deliver_night_shift_result(
+                organization_id=org.id,
+                run_uuid=self._run_uuid(run),
+                status="completed",
+                result=result,
+                error=None,
+            )
+
+        activity = Activity.objects.get(group=group, type=ActivityType.TRIGGER_AUTOFIX.value)
+        assert activity.user_id is None
+        assert activity.data == {"referrer": "night_shift"}
+        action_log.assert_logged(
+            TriggerAutofixAction,
+            group_id=group.id,
+            source=ActionSource.SYSTEM,
+            actor=SYSTEM_ACTOR,
+            referrer="night_shift",
+        )
 
     def test_root_cause_only_verdict_marks_group_skipped(self) -> None:
         """ROOT_CAUSE_ONLY verdicts are treated like SKIP: marked in the skip
@@ -402,10 +453,12 @@ class TestDeliverNightShiftResult(TestCase):
             ]
         }
 
-        def trigger_side_effect(**kwargs: Any) -> int:
+        ok_run = self._triggered_run(7, org)
+
+        def trigger_side_effect(**kwargs: Any) -> SeerRun:
             if kwargs["group"].id == failing_group.id:
                 raise RuntimeError("trigger failed")
-            return 7
+            return ok_run
 
         with (
             patch(
@@ -432,6 +485,105 @@ class TestDeliverNightShiftResult(TestCase):
         assert results[failing_group.id].seer_run_id is None
         assert results[failing_group.id].extras["action"] == TriageAction.AUTOFIX.value
         assert results[failing_group.id].extras["trigger_error"] is True
+
+    def test_rate_limited_group_skips_trigger_and_continues_with_others(self) -> None:
+        """A group whose project is at the autotriggered-autofix rate limit
+        should not have autofix triggered, but other groups in the same
+        delivery should still go through."""
+        org = self.create_organization()
+        limited_project = self.create_project(organization=org, slug="limited")
+        ok_project = self.create_project(organization=org, slug="ok")
+        limited_group = self.create_group(project=limited_project)
+        ok_group = self.create_group(project=ok_project)
+        run = self._create_night_shift_run(organization=org)
+
+        result = {
+            "verdicts": [
+                {
+                    "group_id": limited_group.id,
+                    "action": TriageAction.AUTOFIX.value,
+                    "reason": "rate limited",
+                },
+                {
+                    "group_id": ok_group.id,
+                    "action": TriageAction.AUTOFIX.value,
+                    "reason": "will work",
+                },
+            ]
+        }
+
+        def rate_limited_side_effect(project: Project, organization: Organization) -> bool:
+            return project.id == limited_group.project_id
+
+        with (
+            patch(
+                "sentry.seer.night_shift.delivery.is_seer_autotriggered_autofix_rate_limited_and_increment",
+                side_effect=rate_limited_side_effect,
+            ),
+            patch(
+                "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+                return_value=self._triggered_run(7, org),
+            ) as mock_trigger,
+        ):
+            deliver_night_shift_result(
+                organization_id=org.id,
+                run_uuid=self._run_uuid(run),
+                status="completed",
+                result=result,
+                error=None,
+            )
+
+        mock_trigger.assert_called_once()
+        assert mock_trigger.call_args.kwargs["group"].id == ok_group.id
+
+        results = {r.group_id: r for r in SeerNightShiftRunResult.objects.filter(run=run)}
+        assert set(results) == {limited_group.id, ok_group.id}
+        assert results[ok_group.id].seer_run_id == "7"
+        assert results[limited_group.id].seer_run_id is None
+        assert results[limited_group.id].extras["action"] == TriageAction.AUTOFIX.value
+        assert results[limited_group.id].extras["rate_limited"] is True
+        assert "trigger_error" not in results[limited_group.id].extras
+
+    def test_seat_based_orgs_skip_the_rate_limit_check(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        group = self.create_group(project=project)
+        run = self._create_night_shift_run(organization=org)
+
+        result = {
+            "verdicts": [
+                {"group_id": group.id, "action": TriageAction.AUTOFIX.value, "reason": "ok"}
+            ]
+        }
+
+        with (
+            patch(
+                "sentry.seer.night_shift.delivery.is_seer_autotriggered_autofix_rate_limited_and_increment",
+                return_value=True,
+            ) as mock_rate_limited,
+            patch(
+                "sentry.seer.night_shift.delivery.is_seer_seat_based_tier_enabled",
+                return_value=True,
+            ),
+            patch(
+                "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+                return_value=self._triggered_run(1, org),
+            ) as mock_trigger,
+        ):
+            deliver_night_shift_result(
+                organization_id=org.id,
+                run_uuid=self._run_uuid(run),
+                status="completed",
+                result=result,
+                error=None,
+            )
+
+        mock_rate_limited.assert_not_called()
+        mock_trigger.assert_called_once()
+
+        result_row = SeerNightShiftRunResult.objects.get(run=run)
+        assert result_row.seer_run_id == "1"
+        assert "rate_limited" not in result_row.extras
 
     def test_unknown_group_ids_logged(self) -> None:
         """Groups not belonging to the org should be logged and skipped."""
@@ -487,7 +639,8 @@ class TestDeliverNightShiftResult(TestCase):
         }
 
         with patch(
-            "sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=1
+            "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+            return_value=self._triggered_run(1, org),
         ) as mock_trigger:
             deliver_night_shift_result(
                 organization_id=org.id,
@@ -514,7 +667,10 @@ class TestDeliverNightShiftResult(TestCase):
             ]
         }
 
-        with patch("sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=1):
+        with patch(
+            "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+            return_value=self._triggered_run(1, org),
+        ):
             deliver_night_shift_result(
                 organization_id=org.id,
                 run_uuid=self._run_uuid(run),
@@ -541,7 +697,8 @@ class TestDeliverNightShiftResult(TestCase):
         }
 
         with patch(
-            "sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=11
+            "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+            return_value=self._triggered_run(11, org),
         ) as mock_trigger:
             for _ in range(2):
                 deliver_night_shift_result(
@@ -605,7 +762,10 @@ class TestDeliverNightShiftResult(TestCase):
             ]
         }
 
-        with patch("sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=99):
+        with patch(
+            "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+            return_value=autofix_seer_run,
+        ):
             deliver_night_shift_result(
                 organization_id=org.id,
                 run_uuid=self._run_uuid(run),
@@ -661,7 +821,8 @@ class TestDeliverNightShiftResult(TestCase):
         }
 
         with patch(
-            "sentry.seer.night_shift.delivery.trigger_autofix_agent", return_value=1
+            "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+            return_value=self._triggered_run(1, org),
         ) as mock_trigger:
             deliver_night_shift_result(
                 organization_id=org.id,

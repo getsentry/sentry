@@ -22,6 +22,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeed
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.models import SeerApiError
 from sentry.tasks.seer.pr_iteration import (
+    _delete_own_comment_eyes_reaction,
     _ineligible_pr_iteration_comment_body,
     consume_queued_autofix_feedback,
     trigger_consume_pr_iteration_feedback,
@@ -384,12 +385,18 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             metadata={"group_id": self.group.id} if metadata is None else metadata,
         )
 
-    def _queued(self, feedback: Feedback) -> QueuedAutofixFeedback:
+    def _queued(
+        self,
+        feedback: Feedback,
+        referrer: AutofixReferrer = AutofixReferrer.GITHUB_PR_COMMENT,
+        actor_user_id: int | None = None,
+    ) -> QueuedAutofixFeedback:
         return QueuedAutofixFeedback(
             organization_id=self.organization.id,
             group_id=self.group.id,
             feedback=feedback,
-            referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+            referrer=referrer,
+            actor_user_id=actor_user_id,
         )
 
     def _iteration_block(self, idx: int) -> MemoryBlock:
@@ -544,13 +551,26 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         fresh = Feedback(
             source=GithubPrCommentFeedbackSource(comment={"id": 777, "body": "@sentry fresh"})
         )
-        mock_pop.return_value = [self._queued(stale), self._queued(fresh)]
+        mock_pop.return_value = [
+            self._queued(
+                stale,
+                AutofixReferrer.GITHUB_PR_REVIEW,
+                actor_user_id=self.create_user().id,
+            ),
+            self._queued(
+                fresh,
+                AutofixReferrer.GITHUB_PR_COMMENT,
+                actor_user_id=self.user.id,
+            ),
+        ]
 
         self._call()
 
         mock_trigger.assert_called_once()
         _, kwargs = mock_trigger.call_args
         assert [f.text for f in kwargs["feedback"]] == ["fresh"]
+        assert kwargs["referrer"] == AutofixReferrer.GITHUB_PR_COMMENT
+        assert kwargs["actor_user_id"] == self.user.id
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -951,3 +971,133 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
 
         _, kwargs = mock_apply.call_args
         assert kwargs["countdown"] == 30
+
+
+class _ReactionScmProtocols:
+    """Method surface matching the reaction protocols so ``spec`` MagicMocks
+    satisfy the ``@runtime_checkable`` ``isinstance`` guards. Covers both the
+    top-level PR-comment and inline review-comment reaction namespaces."""
+
+    def get_authenticated_actor(self) -> Any: ...
+
+    def get_pull_request_comment_reactions(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def delete_pull_request_comment_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def get_review_comment_reactions(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def delete_review_comment_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
+
+
+class DeleteOwnCommentEyesReactionTest(TestCase):
+    ACTOR_ID = "actor-1"
+
+    def _scm(self) -> MagicMock:
+        return MagicMock(spec=_ReactionScmProtocols)
+
+    def _reactions_result(self, reactions: list[dict[str, Any]]) -> dict[str, Any]:
+        return {"data": reactions}
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_deletes_only_own_eyes(self, mock_scm_actions: MagicMock) -> None:
+        scm = self._scm()
+        mock_scm_actions.get_authenticated_actor.return_value = {"data": {"id": self.ACTOR_ID}}
+        mock_scm_actions.get_pull_request_comment_reactions.return_value = self._reactions_result(
+            [
+                {"id": "r1", "content": "eyes", "author": {"id": self.ACTOR_ID}},
+                {"id": "r2", "content": "eyes", "author": {"id": "someone-else"}},
+                {"id": "r3", "content": "hooray", "author": {"id": self.ACTOR_ID}},
+                {"id": "r4", "content": "eyes", "author": None},
+            ]
+        )
+
+        _delete_own_comment_eyes_reaction(
+            scm, source_type="github-pr-comment", pr_number=7, comment_id=111
+        )
+
+        mock_scm_actions.delete_pull_request_comment_reaction.assert_called_once_with(
+            scm, "7", "111", "r1"
+        )
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_deletes_only_own_eyes_on_review_comment(self, mock_scm_actions: MagicMock) -> None:
+        # Inline review comments use the review-comment reaction namespace, not
+        # the top-level PR-comment one.
+        scm = self._scm()
+        mock_scm_actions.get_authenticated_actor.return_value = {"data": {"id": self.ACTOR_ID}}
+        mock_scm_actions.get_review_comment_reactions.return_value = self._reactions_result(
+            [
+                {"id": "r1", "content": "eyes", "author": {"id": self.ACTOR_ID}},
+                {"id": "r2", "content": "eyes", "author": {"id": "someone-else"}},
+            ]
+        )
+
+        _delete_own_comment_eyes_reaction(
+            scm, source_type="github-pr-review-comment", pr_number=7, comment_id=222
+        )
+
+        mock_scm_actions.get_review_comment_reactions.assert_called_once_with(scm, "7", "222")
+        mock_scm_actions.delete_review_comment_reaction.assert_called_once_with(
+            scm, "7", "222", "r1"
+        )
+        mock_scm_actions.delete_pull_request_comment_reaction.assert_not_called()
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_noop_for_unsupported_provider(self, mock_scm_actions: MagicMock) -> None:
+        # A mock missing one protocol method fails the isinstance guard.
+        scm = MagicMock(
+            spec=[
+                "get_authenticated_actor",
+                "get_pull_request_comment_reactions",
+            ]
+        )
+
+        _delete_own_comment_eyes_reaction(
+            scm, source_type="github-pr-comment", pr_number=7, comment_id=111
+        )
+
+        mock_scm_actions.delete_pull_request_comment_reaction.assert_not_called()
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_noop_for_unsupported_provider_review_comment(
+        self, mock_scm_actions: MagicMock
+    ) -> None:
+        # Supports the top-level namespace but not the review-comment one.
+        scm = MagicMock(
+            spec=[
+                "get_authenticated_actor",
+                "get_pull_request_comment_reactions",
+                "delete_pull_request_comment_reaction",
+            ]
+        )
+
+        _delete_own_comment_eyes_reaction(
+            scm, source_type="github-pr-review-comment", pr_number=7, comment_id=222
+        )
+
+        mock_scm_actions.delete_review_comment_reaction.assert_not_called()
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_noop_when_actor_unavailable(self, mock_scm_actions: MagicMock) -> None:
+        # A mock missing get_authenticated_actor fails the isinstance guard.
+        scm = MagicMock(
+            spec=["get_pull_request_comment_reactions", "delete_pull_request_comment_reaction"]
+        )
+
+        _delete_own_comment_eyes_reaction(
+            scm, source_type="github-pr-comment", pr_number=7, comment_id=111
+        )
+
+        mock_scm_actions.get_authenticated_actor.assert_not_called()
+        mock_scm_actions.delete_pull_request_comment_reaction.assert_not_called()
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_swallows_exceptions(self, mock_scm_actions: MagicMock) -> None:
+        scm = self._scm()
+        mock_scm_actions.get_authenticated_actor.side_effect = RuntimeError("boom")
+
+        _delete_own_comment_eyes_reaction(
+            scm, source_type="github-pr-comment", pr_number=7, comment_id=111
+        )
+
+        mock_scm_actions.delete_pull_request_comment_reaction.assert_not_called()

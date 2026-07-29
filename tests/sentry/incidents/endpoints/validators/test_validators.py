@@ -1530,7 +1530,7 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
             data_source,
             data_condition,
             snuba_query,
-            detector.project,
+            detector.linked_project,
             "update",
             [SnubaQueryEventType.EventType.TRANSACTION],
         )

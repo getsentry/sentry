@@ -111,6 +111,44 @@ describe('VideoReplayer - no starting gap', () => {
     expect(inst.getVideo(inst._currentIndex)?.currentTime).toBe(1.5);
   });
 
+  it('does not crash when the previous video reports a non-finite duration', async () => {
+    const root = document.createElement('div');
+    const inst = new VideoReplayer(attachments, {
+      videoApiPrefix: '/foo/',
+      root,
+      start: 0,
+      onFinished: jest.fn(),
+      onLoaded: jest.fn(),
+      onBuffer: jest.fn(),
+      durationMs: 40000,
+      config: {skipInactive: false, speed: 1},
+    });
+
+    // Simulate a streaming/unbounded source, where the browser reports
+    // `duration` as `Infinity` (see https://sentry.sentry.io/issues/6270418712/).
+    // @ts-expect-error accessing a private field
+    const previousVideo = inst.getVideo(0)!;
+    Object.defineProperty(previousVideo, 'duration', {
+      value: Infinity,
+      configurable: true,
+    });
+
+    const playPromise = inst.play(6500);
+    // @ts-expect-error accessing a private field
+    const nextVideo = inst.getVideo(1)!;
+
+    expect(() => {
+      fireEvent(nextVideo, createEvent.loadedData(nextVideo));
+    }).not.toThrow();
+
+    jest.advanceTimersByTime(10000);
+    await playPromise;
+
+    // @ts-expect-error accessing a private field
+    expect(inst._currentIndex).toBe(1);
+    expect(previousVideo.currentTime).not.toBe(Infinity);
+  });
+
   it('seeks to a gap in a video', async () => {
     const root = document.createElement('div');
     const inst = new VideoReplayer(attachments, {

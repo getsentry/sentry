@@ -1,5 +1,5 @@
 import type React from 'react';
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -18,7 +18,12 @@ import {useLogsFrozenTraceIds} from 'sentry/views/explore/logs/logsFrozenContext
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
-import {adjustLogTraceID, getLogsUrl} from 'sentry/views/explore/logs/utils';
+import {
+  adjustLogTraceID,
+  createErrorLogRow,
+  getLogsUrl,
+} from 'sentry/views/explore/logs/utils';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 type UseTraceViewLogsDataProps = {
   children: React.ReactNode;
@@ -40,18 +45,37 @@ export function TraceViewLogsDataProvider({
   );
 }
 
-export function TraceViewLogsSection() {
+interface TraceViewLogsSectionProps {
+  errors?: TraceTree.TraceErrorIssue[];
+  fallbackTimestampSeconds?: number;
+}
+
+export function TraceViewLogsSection({
+  errors = [],
+  fallbackTimestampSeconds = 0,
+}: TraceViewLogsSectionProps) {
   return (
     <StyledPanel>
-      <LogsSectionContent />
+      <LogsSectionContent
+        errors={errors}
+        fallbackTimestampSeconds={fallbackTimestampSeconds}
+      />
     </StyledPanel>
   );
 }
 
-function LogsSectionContent() {
+function LogsSectionContent({
+  errors,
+  fallbackTimestampSeconds,
+}: Required<TraceViewLogsSectionProps>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const traceIds = useLogsFrozenTraceIds();
+
+  const injectedErrorRows = useMemo(
+    () => errors.map(error => createErrorLogRow(error, fallbackTimestampSeconds)),
+    [errors, fallbackTimestampSeconds]
+  );
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useLogItemAttributes({}, 'string', HiddenLogSearchFields);
@@ -89,6 +113,7 @@ function LogsSectionContent() {
         <LogsInfiniteTable
           analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
           embedded
+          injectedErrorRows={injectedErrorRows}
           showCellActions
           showExploreSimilarSpansLink
         />

@@ -91,7 +91,7 @@ describe('OrganizationCreate', () => {
     });
     expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
-      '/organizations/org-slug/projects/new/'
+      '/organizations/org-slug/projects/new/?projectCreationOrigin=org_creation'
     );
   });
 
@@ -128,7 +128,7 @@ describe('OrganizationCreate', () => {
 
     expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
-      'https://org-slug.sentry.io/projects/new/'
+      'https://org-slug.sentry.io/projects/new/?projectCreationOrigin=org_creation'
     );
   });
 
@@ -176,7 +176,7 @@ describe('OrganizationCreate', () => {
 
     expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
-      'https://org-slug.sentry.io/projects/new/'
+      'https://org-slug.sentry.io/projects/new/?projectCreationOrigin=org_creation'
     );
   });
 
@@ -213,7 +213,7 @@ describe('OrganizationCreate', () => {
 
     expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
-      'https://org-slug.sentry.io/projects/new/'
+      'https://org-slug.sentry.io/projects/new/?projectCreationOrigin=org_creation'
     );
   });
 
@@ -245,7 +245,7 @@ describe('OrganizationCreate', () => {
 
     expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
-      'https://org-slug.sentry.io/projects/new/'
+      'https://org-slug.sentry.io/projects/new/?projectCreationOrigin=org_creation'
     );
   });
 
@@ -291,7 +291,7 @@ describe('OrganizationCreate', () => {
 
     expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
-      'https://org-slug.sentry.io/projects/new/'
+      'https://org-slug.sentry.io/projects/new/?projectCreationOrigin=org_creation'
     );
   });
 });

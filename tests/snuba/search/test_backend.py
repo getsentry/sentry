@@ -33,7 +33,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import snuba
@@ -1142,82 +1141,8 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         assert self.group2 in set(results)
 
     def test_issue_progress(self) -> None:
-        self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
-        self.create_group_activity(group=self.group2, type=ActivityType.SEER_PR_CREATED.value)
-
-        results = self.make_query(search_filter_query="issue.progress:diagnosed")
-        assert set(results) == {self.group1}
-
-        results = self.make_query(search_filter_query="issue.progress:fix_proposed")
-        assert set(results) == {self.group2}
-
-        results = self.make_query(search_filter_query="issue.progress:fix_applied")
-        assert set(results) == set()
-
-    def test_issue_progress_multiple_values(self) -> None:
-        self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
-        self.create_group_activity(group=self.group2, type=ActivityType.SEER_PR_CREATED.value)
-
-        results = self.make_query(search_filter_query="issue.progress:[diagnosed, fix_proposed]")
-        assert set(results) == {self.group1, self.group2}
-
-    def test_issue_progress_identified(self) -> None:
-        results = self.make_query(search_filter_query="issue.progress:identified")
-        assert self.group1 in set(results)
-        assert self.group2 not in set(results)
-
-    def test_issue_progress_assigned(self) -> None:
-        results = self.make_query(search_filter_query="issue.progress:assigned")
-        assert self.group2 in set(results)
-        assert self.group1 not in set(results)
-
-    def test_issue_progress_assigned_with_activity(self) -> None:
-        self.create_group_activity(group=self.group2, type=ActivityType.SEER_RCA_COMPLETED.value)
-
-        results = self.make_query(search_filter_query="issue.progress:diagnosed")
-        assert self.group2 in set(results)
-
-        results = self.make_query(search_filter_query="issue.progress:assigned")
-        assert self.group2 not in set(results)
-
-    def test_issue_progress_negation(self) -> None:
-        self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
-
-        results = self.make_query(search_filter_query="!issue.progress:diagnosed")
-        assert self.group2 in set(results)
-        assert self.group1 not in set(results)
-
-    def test_issue_progress_regression_resets(self) -> None:
-        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
-        self.create_group_activity(group=self.group1, type=ActivityType.SET_REGRESSION.value)
-
-        results = self.make_query(search_filter_query="issue.progress:identified")
-        assert self.group1 in set(results)
-
-        results = self.make_query(search_filter_query="issue.progress:fix_proposed")
-        assert self.group1 not in set(results)
-
-    def test_issue_progress_regression_preserves_assigned(self) -> None:
-        GroupAssignee.objects.create(
-            user_id=self.user.id, group=self.group1, project=self.group1.project
-        )
-        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
-        self.create_group_activity(group=self.group1, type=ActivityType.SET_REGRESSION.value)
-
-        results = self.make_query(search_filter_query="issue.progress:assigned")
-        assert self.group1 in set(results)
-
-        results = self.make_query(search_filter_query="issue.progress:fix_proposed")
-        assert self.group1 not in set(results)
-
-    @with_feature("projects:issue-stream-derived-progress")
-    def test_issue_progress_from_db(self) -> None:
         self.create_group_derived_data(group=self.group1, progress=IssueProgressState.DIAGNOSED)
         self.create_group_derived_data(group=self.group2, progress=IssueProgressState.FIX_PROPOSED)
-        # group1 has a SEER_PR_CREATED activity that
-        # would make it "fix_proposed" on the activity path, but its column says
-        # "diagnosed", so it must only match "diagnosed".
-        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
 
         results = self.make_query(
             search_filter_query=f"issue.progress:{IssueProgressState.DIAGNOSED}"
@@ -1234,8 +1159,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == set()
 
-    @with_feature("projects:issue-stream-derived-progress")
-    def test_issue_progress_from_db_multiple_values(self) -> None:
+    def test_issue_progress_multiple_values(self) -> None:
         self.create_group_derived_data(group=self.group1, progress=IssueProgressState.DIAGNOSED)
         self.create_group_derived_data(group=self.group2, progress=IssueProgressState.FIX_PROPOSED)
 
@@ -1246,8 +1170,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == {self.group1, self.group2}
 
-    @with_feature("projects:issue-stream-derived-progress")
-    def test_issue_progress_from_db_base_states(self) -> None:
+    def test_issue_progress_base_states(self) -> None:
         self.create_group_derived_data(group=self.group1, progress=IssueProgressState.IDENTIFIED)
         self.create_group_derived_data(group=self.group2, progress=IssueProgressState.ASSIGNED)
 
@@ -1261,8 +1184,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == {self.group2}
 
-    @with_feature("projects:issue-stream-derived-progress")
-    def test_issue_progress_from_db_missing_row_is_identified(self) -> None:
+    def test_issue_progress_missing_row_is_identified(self) -> None:
         # A group with no GroupDerivedData row is implicitly "identified" on the DB
         # path, matching the sort resolver, so it's returned alongside groups with
         # an explicit "identified" row.
@@ -1273,8 +1195,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == {self.group1, self.group2}
 
-    @with_feature("projects:issue-stream-derived-progress")
-    def test_issue_progress_from_db_negation(self) -> None:
+    def test_issue_progress_negation(self) -> None:
         self.create_group_derived_data(group=self.group1, progress=IssueProgressState.DIAGNOSED)
         self.create_group_derived_data(group=self.group2, progress=IssueProgressState.FIX_PROPOSED)
 

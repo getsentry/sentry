@@ -80,6 +80,9 @@ def resolve_action_actor(request: Request | HttpRequest) -> GroupActionActor:
             if auth.kind in ("org_auth_token", "api_key"):
                 if auth.organization_id is not None:
                     return GroupActionActor.org(auth.organization_id)
+            elif auth.kind == "agent_token":
+                if auth.user_id is not None:
+                    return GroupActionActor.user(auth.user_id)
             elif auth.kind == "api_token":
                 user = request.user
                 # Gate on is_sentry_app (the app's proxy user), not application_id: an OAuth client

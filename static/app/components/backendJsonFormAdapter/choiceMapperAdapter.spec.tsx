@@ -460,6 +460,112 @@ describe('ChoiceMapperAdapter', () => {
     expect(screen.queryByText('Cool Repo (friendly name)')).not.toBeInTheDocument();
   });
 
+  it('choice_mapper lazy-loads statuses via statusUrl for new rows', async () => {
+    const statusUrl = '/extensions/jira/search/my-org/42/';
+
+    MockApiClient.addMockResponse({
+      url: statusUrl,
+      body: [
+        {value: '1', label: 'Open'},
+        {value: '6', label: 'Closed'},
+      ],
+      match: [MockApiClient.matchQuery({field: 'status', project: '10001'})],
+    });
+
+    render(
+      <BackendJsonAutoSaveForm
+        field={{
+          name: 'status_mapping',
+          type: 'choice_mapper',
+          label: 'Status Mapping',
+          addButtonText: 'Add Jira Project',
+          addDropdown: {
+            items: [
+              {value: '10000', label: 'Project A'},
+              {value: '10001', label: 'Project B'},
+            ],
+          },
+          columnLabels: {on_resolve: 'When Resolved'},
+          mappedColumnLabel: 'Jira Project',
+          perItemMapping: true,
+          statusUrl,
+          mappedSelectors: {
+            '10000': {
+              on_resolve: {
+                choices: [
+                  ['1', 'Open'],
+                  ['6', 'Closed'],
+                ],
+              },
+            },
+          },
+        }}
+        initialValue={{
+          '10000': {on_resolve: '1'},
+        }}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
+
+    // Pre-populated row renders immediately
+    expect(await screen.findByText('Open')).toBeInTheDocument();
+
+    // Add a new row that isn't in mappedSelectors
+    await userEvent.click(screen.getByRole('button', {name: /Add Jira Project/i}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Project B'}));
+
+    // After fetch completes, the select should be interactive with fetched options
+    const newSelect = await screen.findByText('Select...');
+    await userEvent.click(newSelect);
+    expect(await screen.findByText('Closed')).toBeInTheDocument();
+  });
+
+  it('choice_mapper does not fetch for pre-populated rows', async () => {
+    const statusUrl = '/extensions/jira/search/my-org/42/';
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: statusUrl,
+      body: [],
+    });
+
+    render(
+      <BackendJsonAutoSaveForm
+        field={{
+          name: 'status_mapping',
+          type: 'choice_mapper',
+          label: 'Status Mapping',
+          addButtonText: 'Add Jira Project',
+          addDropdown: {
+            items: [{value: '10000', label: 'Project A'}],
+          },
+          columnLabels: {on_resolve: 'When Resolved'},
+          mappedColumnLabel: 'Jira Project',
+          perItemMapping: true,
+          statusUrl,
+          mappedSelectors: {
+            '10000': {
+              on_resolve: {
+                choices: [
+                  ['1', 'Open'],
+                  ['6', 'Closed'],
+                ],
+              },
+            },
+          },
+        }}
+        initialValue={{
+          '10000': {on_resolve: '1'},
+        }}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
+
+    expect(await screen.findByText('Open')).toBeInTheDocument();
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
   it('choice_mapper disables controls while mutation is in flight', async () => {
     let resolveMutation!: () => void;
     const pendingMutationOptions = {

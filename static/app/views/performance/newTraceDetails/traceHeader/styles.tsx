@@ -3,35 +3,36 @@ import styled from '@emotion/styled';
 import {
   Container,
   type ContainerProps,
+  Grid,
+  type GridProps,
   Stack,
   type StackProps,
 } from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
 
-const HeaderLayout = styled((props: ContainerProps) => {
+function HeaderLayout(props: ContainerProps) {
+  return <Container padding="lg xl" borderBottom="primary" flexShrink={0} {...props} />;
+}
+
+// Shared responsive shell for the header body: two columns when wide, a single
+// stacked column when narrow. The loaded header and the loading placeholder both
+// render into the same `title`/`meta`/`highlights`/`projects` areas so they can't
+// drift out of sync.
+function HeaderGrid(props: GridProps) {
   return (
-    <Container
-      as="div"
-      padding="lg xl"
-      borderBottom="primary"
-      flexShrink={0}
+    <Grid
+      columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 1fr) minmax(0, max-content)'}}
+      gap="md xl"
+      align="start"
+      areas={{
+        zero: `"title" "meta" "highlights" "projects"`,
+        xl: `"title meta" "highlights projects"`,
+      }}
       {...props}
     />
   );
-})``;
-
-const HeaderRow = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.xl};
-  align-items: center;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    gap: ${p => p.theme.space.md};
-    flex-direction: column;
-  }
-`;
+}
 
 function HeaderContent(props: StackProps) {
   return <Stack {...props} />;
@@ -45,7 +46,7 @@ const StyledPlaceholder = styled(Placeholder)<{_height: number; _width: number}>
 
 const TraceHeaderComponents = {
   HeaderLayout,
-  HeaderRow,
+  HeaderGrid,
   HeaderContent,
   StyledPlaceholder,
 };

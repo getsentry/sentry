@@ -4,6 +4,7 @@ import {mutationOptions} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
@@ -169,6 +170,7 @@ describe('AskSeerComboBox', () => {
     expect(
       screen.queryByRole('button', {name: 'Generate again'})
     ).not.toBeInTheDocument();
+    expect(screen.queryByText('How did we do?')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
 
     const input = screen.getByRole('combobox', {
@@ -180,7 +182,7 @@ describe('AskSeerComboBox', () => {
       name: 'Generate again',
     });
     expect(regenerateButton).toBeEnabled();
-    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
+    expect(screen.getByText('How did we do?')).toBeInTheDocument();
 
     await userEvent.clear(input);
 
@@ -283,6 +285,84 @@ describe('AskSeerComboBox', () => {
     expect(filter).toBeInTheDocument();
     expect(screen.getByText('Do any of these look right to you?')).toBeInTheDocument();
     expect(screen.queryByText('Time Range')).not.toBeInTheDocument();
+  });
+
+  it('wraps long query tokens', async () => {
+    const longValue = 'a'.repeat(400);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      method: 'POST',
+      body: {status: 'ok', queries: [{query: `message:${longValue}`}]},
+    });
+    const reworkedOrganization = {
+      ...organization,
+      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
+    };
+
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
+      </SearchQueryBuilderProvider>,
+      {organization: reworkedOrganization}
+    );
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.type(input, 'test{Enter}');
+
+    const value = await screen.findByText(longValue);
+    expect(getEmotionRules(value).join(' ')).toContain('overflow-wrap: anywhere');
+
+    const formattedQuery = screen
+      .getAllByLabelText(`message:${longValue}`)
+      .find(element => element.parentElement?.tagName === 'SPAN')!;
+    expect(getEmotionRules(formattedQuery.parentElement!).join(' ')).toContain(
+      'width: fit-content'
+    );
+  });
+
+  it('sizes parameter chips to their content', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      method: 'POST',
+      body: {
+        status: 'ok',
+        queries: [
+          {
+            query: 'span.duration:>30s',
+            groupBys: ['span.name', 'browser.name'],
+          },
+        ],
+      },
+    });
+    const reworkedOrganization = {
+      ...organization,
+      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
+    };
+
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
+      </SearchQueryBuilderProvider>,
+      {organization: reworkedOrganization}
+    );
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.type(input, 'test{Enter}');
+
+    const groupBy = await screen.findByText('span.name');
+    expect(getEmotionRules(groupBy).join(' ')).toContain('width: fit-content');
   });
 
   it('hides the feedback option when the rework is enabled', async () => {

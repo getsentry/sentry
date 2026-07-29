@@ -324,6 +324,14 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Aggregate rows/sec ceiling for MonitorCheckIn deletions across all concurrent
+# deletion tasks. 0 disables rate limiting.
+register(
+    "deletions.monitor-check-in.rate-limit",
+    default=1000,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "unmerge.killswitch-projects",
@@ -941,6 +949,14 @@ register(
     type=Int,
 )
 
+# Fraction of JSON (SnQL/MQL) snuba queries that request zstd response compression via Accept-Encoding.
+register(
+    "snuba.json-response-compression.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Refresh Bundle Indexes reported as used by symbolicator
 register(
@@ -1224,6 +1240,16 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Deterministic % of gen_ai conversations that get Seer title generation, keyed
+# on conversation id. Requires organizations:gen-ai-conversation-title-generation.
+# 0.0 disables generation; 1.0 enables it for every conversation in flagged orgs.
+register(
+    "ai-monitoring.conversation-title-generation.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "seer.night_shift.enable",
     type=Bool,
@@ -1289,6 +1315,24 @@ register(
 )
 register(
     "issues.backfill_group_action_log.inter_batch_delay_s",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_action_log.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_action_log.batch_size",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_action_log.inter_batch_delay_s",
     type=Int,
     default=1,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2180,12 +2224,6 @@ register(
     30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Number of large transactions to retrieve from Snuba for transaction re-balancing.
-register(
-    "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions",
-    0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Toggles emitting the smallest-transaction sampling-factor bucket metric during transaction rebalancing.
 register(
     "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
@@ -2203,6 +2241,17 @@ register(
     "dynamic-sampling.prioritise_transactions.min_sample_rate",
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Applies the implicit sample rate floor in the per-org pipeline. The transaction rebalancing
+# model can return an implicit (tail) rate below the project's overall rate; the floor lifts it
+# back to that rate and pays for it by lowering the explicit rates. The legacy pipeline has no
+# such step, so with this enabled the two pipelines write different per-transaction rates for
+# identical input. Set to False to compare them like for like.
+register(
+    "dynamic-sampling.per_org.apply-implicit-sample-rate-floor",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Stops dynamic sampling rules from being emitted in relay config.
@@ -2245,6 +2294,20 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "dynamic-sampling.per_org.transaction-volume-debug-project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window
@@ -3725,16 +3788,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Which issue categories should we send issue.created webhooks for
+# Which issue categories should we not send issue.created webhooks for
 register(
-    "sentry-apps.expanded-webhook-categories",
+    "sentry-apps.unsupported-webhook-categories",
     type=Sequence,
     default=[
-        1,  # ERROR
-        4,  # CRON
-        6,  # FEEDBACK
-        7,  # UPTIME
-        10,  # OUTAGE
+        9,  # TEST_NOTIFICATION
     ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3955,6 +4014,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# If True, FutureTrackingProducer will backpressure on produce futures
+register(
+    "arroyo.ftp.backpressure",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Arroyo producer poll metrics should be logged every X poll iterations.
 register(
@@ -3991,5 +4058,19 @@ register(
     "issues.derived.project-max-tasks",
     default=1000,
     type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Number of projects to schedule for reprocessing per heal_stale_derived_data invocation.
+register(
+    "issues.derived.heal-project-limit",
+    default=3,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Kill switch for heal_stale_derived_data task.
+register(
+    "issues.derived.heal-enabled",
+    default=True,
+    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

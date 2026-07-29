@@ -486,10 +486,18 @@ export function getCompactGroupActivityItem({
           : null,
       };
     }
-    case GroupActivityType.SEER_ITERATION_STARTED:
+    case GroupActivityType.SEER_ITERATION_STARTED: {
+      const {referrer} = activity.data;
       return {
         title: t('Pull request iteration started'),
+        details:
+          referrer === 'github.check_suite'
+            ? t('after CI failed')
+            : referrer?.startsWith('github.')
+              ? t('from GitHub')
+              : null,
       };
+    }
     case GroupActivityType.SEER_ITERATION_COMPLETED: {
       const pullRequest = activity.data.pull_requests?.[0];
       return {
@@ -505,6 +513,17 @@ export function getCompactGroupActivityItem({
           : null,
       };
     }
+    case GroupActivityType.TRIGGER_AUTOFIX:
+      switch (activity.data.referrer) {
+        case 'slack':
+          return {title: t('Autofix triggered from Slack')};
+        case 'issue_summary.post_process_fixability':
+          return {title: t('Autofix triggered automatically after event ingestion')};
+        case 'night_shift':
+          return {title: t('Autofix triggered during agentic triage')};
+        default:
+          return {title: t('Autofix triggered')};
+      }
   }
 
   Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {

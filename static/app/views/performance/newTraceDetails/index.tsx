@@ -1,11 +1,16 @@
 import {useEffect, useMemo, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {IconClose} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
@@ -19,6 +24,7 @@ import {
   TraceViewMetricsProviderWrapper,
   TraceViewMetricsSection,
 } from 'sentry/views/performance/newTraceDetails/traceMetrics';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   TraceViewLogsDataProvider,
   TraceViewLogsSection,
@@ -175,6 +181,23 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     metricsEnabled,
   });
 
+  const traceNode = tree.root.children[0];
+  const traceErrors = useMemo(() => {
+    if (!traceNode) {
+      return [];
+    }
+
+    const errorsByEventId = new Map<string, TraceTree.TraceErrorIssue>();
+    for (const error of traceNode.errors) {
+      errorsByEventId.set(error.event_id, error);
+    }
+
+    return Array.from(errorsByEventId.values());
+  }, [traceNode]);
+
+  const traceStartMs = traceNode?.space[0] ?? 0;
+  const traceStartSeconds = traceStartMs > 0 ? traceStartMs / 1000 : 0;
+
   // Push trace metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
     contextHint:
@@ -216,6 +239,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
             metrics={traceMetricsData}
           />
           <TraceInnerLayout>
+            <TraceWaterfallVersionBanner />
             <ErrorsOnlyWarnings
               tree={tree}
               traceSlug={traceSlug}
@@ -252,7 +276,12 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
             {currentTab === TraceLayoutTabKeys.PROFILES ? (
               <TraceProfiles tree={tree} />
             ) : null}
-            {currentTab === TraceLayoutTabKeys.LOGS ? <TraceViewLogsSection /> : null}
+            {currentTab === TraceLayoutTabKeys.LOGS ? (
+              <TraceViewLogsSection
+                errors={traceErrors}
+                fallbackTimestampSeconds={traceStartSeconds}
+              />
+            ) : null}
             {currentTab === TraceLayoutTabKeys.METRICS ? (
               <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
                 <TraceViewMetricsSection />
@@ -269,6 +298,57 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
 }
 
 const TraceViewImpl = registerLLMContext('trace', TraceViewImplInner);
+
+function TraceWaterfallVersionBanner() {
+  const organization = useOrganization();
+  const openForm = useFeedbackForm();
+  const {isDismissed, dismiss} = useDismissAlert({
+    key: 'trace-waterfall-version-message',
+  });
+
+  if (
+    !organization.features.includes('trace-waterfall-version-message') ||
+    isDismissed ||
+    !openForm
+  ) {
+    return null;
+  }
+
+  return (
+    <Alert
+      variant="info"
+      trailingItems={
+        <Alert.Button
+          variant="transparent"
+          icon={<IconClose size="sm" />}
+          onClick={dismiss}
+          aria-label={t('Dismiss')}
+        />
+      }
+    >
+      {tct(
+        "You're seeing a new version of the trace waterfall that shows the full distributed trace. We'd love your [feedback].",
+        {
+          feedback: (
+            <Button
+              variant="link"
+              onClick={() =>
+                openForm({
+                  tags: {
+                    ['feedback.source']: 'trace-waterfall-version-message',
+                    ['feedback.owner']: 'performance',
+                  },
+                })
+              }
+            >
+              {t('feedback')}
+            </Button>
+          ),
+        }
+      )}
+    </Alert>
+  );
+}
 
 function TraceInnerLayout(props: FlexProps) {
   return (

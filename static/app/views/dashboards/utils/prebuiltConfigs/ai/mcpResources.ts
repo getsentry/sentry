@@ -5,7 +5,10 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {MCP_RESOURCES_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
+import {
+  MCP_RESOURCES_DASHBOARD_DESCRIPTION,
+  MCP_RESOURCES_DASHBOARD_TITLE,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
@@ -129,6 +132,7 @@ export const MCP_RESOURCES_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: MCP_RESOURCES_DASHBOARD_TITLE,
+  description: MCP_RESOURCES_DASHBOARD_DESCRIPTION,
   filters: {
     globalFilter: [
       {
