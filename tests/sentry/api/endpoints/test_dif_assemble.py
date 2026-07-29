@@ -314,10 +314,62 @@ class DifAssembleEndpoint(APITestCase):
         if first_dif.uses_objectstore_for_read():
             assert first_dif.storage_path != second_dif.storage_path
             assert first_dif.file_id != second_dif.file_id
-            assert File.objects.filter(type="project.dif", checksum=checksum).count() == 1
+            assert File.objects.filter(type="project.dif", checksum=checksum).count() == 2
         else:
             assert first_dif.file_id == second_dif.file_id
             assert File.objects.filter(type="project.dif", checksum=checksum).count() == 1
+
+    def test_objectstore_assemble_reuses_existing_proguard_without_file(self) -> None:
+        file_contents = b"proguard mapping"
+        checksum = sha1(file_contents).hexdigest()
+        blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
+        chunks = [blob.checksum]
+
+        with self.feature(
+            {
+                "organizations:objectstore-debugfiles-assemble": True,
+                "organizations:objectstore-debugfiles-write": False,
+                "organizations:objectstore-debugfiles-read": True,
+            }
+        ):
+            assemble_dif(
+                project_id=self.project.id,
+                name="/proguard/mapping-00000000-0000-0000-0000-000000000000.txt",
+                checksum=checksum,
+                chunks=chunks,
+            )
+
+            first_dif = ProjectDebugFile.objects.get(
+                project_id=self.project.id,
+                debug_id="00000000-0000-0000-0000-000000000000",
+            )
+
+            response = self.client.post(
+                self.url,
+                data={
+                    checksum: {
+                        "name": "/proguard/mapping-11111111-1111-1111-1111-111111111111.txt",
+                        "chunks": chunks,
+                    }
+                },
+                HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            )
+
+            assert response.status_code == 200, response.content
+            assert response.data[checksum]["state"] == ChunkFileState.OK
+            assert response.data[checksum]["dif"]["uuid"] == "11111111-1111-1111-1111-111111111111"
+
+            second_dif = ProjectDebugFile.objects.get(
+                project_id=self.project.id,
+                debug_id="11111111-1111-1111-1111-111111111111",
+            )
+
+            assert first_dif.file_id is None
+            assert second_dif.file_id is None
+            assert first_dif.storage_path is not None
+            assert second_dif.storage_path is not None
+            assert first_dif.storage_path != second_dif.storage_path
+            assert File.objects.filter(type="project.dif", checksum=checksum).count() == 0
 
     def test_reupload_proguard_with_same_debug_id_is_idempotent(self) -> None:
         file_contents = b"proguard mapping"
