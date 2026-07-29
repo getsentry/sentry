@@ -18,7 +18,7 @@ from django.db.models import F
 from django.utils import timezone
 from snuba_sdk.query import Query
 
-from sentry import features, options
+from sentry import options
 from sentry.api.event_search import SearchFilter
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
@@ -45,8 +45,6 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
-from sentry.search.eap.occurrences.search_executor import EAP_SORT_STRATEGIES, run_eap_group_search
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
@@ -60,8 +58,6 @@ from sentry.utils.snuba import (
     bulk_raw_query,
 )
 from sentry.utils.tracing import set_span_data, start_span
-
-logger = logging.getLogger(__name__)
 
 FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
@@ -130,19 +126,6 @@ POSTGRES_ONLY_SEARCH_FIELDS = [
 
 ENTITY_EVENTS = "events"
 ENTITY_SEARCH_ISSUES = "search_issues"
-
-
-def _reasonable_search_result_match(
-    control: tuple[list[tuple[int, Any]], int],
-    experimental: tuple[list[tuple[int, Any]], int],
-) -> bool:
-    control_group_ids = {gid for gid, _ in control[0]}
-    experimental_group_ids = {gid for gid, _ in experimental[0]}
-
-    if not experimental_group_ids:
-        return True
-
-    return experimental_group_ids.issubset(control_group_ids)
 
 
 @dataclass
@@ -523,8 +506,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 if query_params is not None:
                     query_params_for_categories[gc] = query_params
 
-        callsite = "PostgresSnubaQueryExecutor.snuba_search"
-
         def _run_snuba_query() -> tuple[list[tuple[int, Any]], int]:
             try:
                 bulk_query_results = bulk_raw_query(
@@ -566,55 +547,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
             effective_sort_field = "sample" if get_sample else sort_field
             return [(row["group_id"], row[effective_sort_field]) for row in rows], total  # type: ignore[literal-required]
-
-        def _run_eap_query() -> tuple[list[tuple[int, Any]], int]:
-            try:
-                return run_eap_group_search(
-                    start=start,
-                    end=end,
-                    project_ids=project_ids,
-                    environment_ids=environment_ids,
-                    sort_field=sort_field,
-                    organization=organization,
-                    cursor=cursor,
-                    group_ids=group_ids,
-                    limit=limit,
-                    offset=offset,
-                    search_filters=snuba_search_filters,
-                    referrer=referrer,
-                )
-            except Exception:
-                logger.exception(
-                    "eap.double_read.run_eap_group_search_failed",
-                    extra={"callsite": callsite, "sort_field": sort_field},
-                )
-                return ([], 0)
-
-        # Double-read from EAP for supported sort strategies
-        if (
-            not get_sample
-            and sort_field in EAP_SORT_STRATEGIES
-            and features.has("organizations:issue-feed.eap-search", organization)
-        ):
-            try:
-                return EAPOccurrencesComparator.check_and_choose_with_timings(
-                    control_data_func=_run_snuba_query,
-                    experimental_data_func=_run_eap_query,
-                    callsite=callsite,
-                    null_result_determiner=lambda r: len(r[0]) == 0,
-                    reasonable_match_comparator=_reasonable_search_result_match,
-                    debug_context={
-                        "sort_field": sort_field,
-                        "organization_id": organization.id,
-                        "num_group_ids": len(group_ids) if group_ids else 0,
-                        "num_filters": len(snuba_search_filters),
-                    },
-                )
-            except Exception:
-                logger.exception(
-                    "eap.double_read.snuba_search_failed",
-                    extra={"callsite": callsite, "sort_field": sort_field},
-                )
 
         return _run_snuba_query()
 
