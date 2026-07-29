@@ -10,6 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {
   COL_WIDTH_UNDEFINED,
   GridEditable,
@@ -21,7 +22,6 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconFire, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -198,8 +198,10 @@ function BodyCell({
     case 'duration':
       return (
         <Text tabular>
-          {/* generationDuration is the summed generation-span time in ms. */}
-          {getDuration(conversation.generationDuration / 1000, 1, true)}
+          <PerformanceDuration
+            milliseconds={conversation.generationDuration}
+            abbreviation
+          />
         </Text>
       );
     case 'messages':
