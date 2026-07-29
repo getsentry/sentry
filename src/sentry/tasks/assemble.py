@@ -325,7 +325,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         BadDif,
         create_dif_from_file,
         create_objectstore_dif_from_id,
-        detect_dif_from_file,
+        detect_single_dif_from_path,
     )
     from sentry.models.project import Project
 
@@ -348,7 +348,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
 
             with temporary_result.temp_file:
                 try:
-                    meta = detect_dif_from_file(
+                    meta = detect_single_dif_from_path(
                         temporary_result.temp_file.name, name=name, debug_id=debug_id
                     )
                 except BadDif as e:
