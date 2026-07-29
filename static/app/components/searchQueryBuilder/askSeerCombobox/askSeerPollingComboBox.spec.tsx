@@ -187,6 +187,35 @@ describe('AskSeerPollingComboBox results', () => {
     });
   });
 
+  it('shows result feedback in the reworked footer', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 123},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/123/',
+      body: {
+        session: {
+          status: 'completed',
+          current_step: null,
+          completed_steps: [],
+          final_response: {query: 'span.duration:>30s'},
+        },
+      },
+    });
+    renderPollingComboBox(['gen-ai-features', 'gen-ai-ask-seer-ux-rework']);
+
+    await submitQuery();
+
+    expect(await screen.findByText('How did we do?')).toBeInTheDocument();
+    expect(
+      screen.queryByText('We loaded the results. Does this look right?')
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Generate again'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /Query parameters:/})).toBeInTheDocument();
+  });
+
   it('does not autofocus the query builder after applying a selected query', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/search-agent/start/',

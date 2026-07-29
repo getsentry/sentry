@@ -169,6 +169,7 @@ describe('AskSeerComboBox', () => {
     expect(
       screen.queryByRole('button', {name: 'Generate again'})
     ).not.toBeInTheDocument();
+    expect(screen.queryByText('How did we do?')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
 
     const input = screen.getByRole('combobox', {
@@ -180,7 +181,7 @@ describe('AskSeerComboBox', () => {
       name: 'Generate again',
     });
     expect(regenerateButton).toBeEnabled();
-    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
+    expect(screen.getByText('How did we do?')).toBeInTheDocument();
 
     await userEvent.clear(input);
 
