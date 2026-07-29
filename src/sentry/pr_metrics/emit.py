@@ -570,7 +570,25 @@ def _canonical_sibling(siblings: list[PullRequest]) -> PullRequest:
     for pull_request in sorted(siblings, key=lambda pr: pr.id):
         if run_org_by_pr.get(pull_request.id) == pull_request.organization_id:
             return pull_request
-    return min(siblings, key=lambda pr: pr.id)
+
+    canonical = min(siblings, key=lambda pr: pr.id)
+    if len(siblings) > 1:
+        # ≥2 orgs' rows emit for one provider PR but none is linked to a run in its
+        # own org — an app-authored PR that fanned out with no run link anywhere
+        # (e.g. a delegated coding-agent PR whose handoff link dropped). We still
+        # dedupe deterministically to the lowest-id row; surface it so the link loss
+        # is visible rather than silent.
+        logger.warning(
+            "pr_metrics.emit.dedup_no_run_org_row",
+            extra={
+                "pr_key": canonical.key,
+                "canonical_pull_request_id": canonical.id,
+                "sibling_pull_request_ids": sorted(pr.id for pr in siblings),
+                "organization_ids": sorted({pr.organization_id for pr in siblings}),
+            },
+        )
+        metrics.incr("pr_metrics.emit.dedup_no_run_org_row")
+    return canonical
 
 
 def active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:

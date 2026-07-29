@@ -1509,6 +1509,34 @@ class MultiOrgEmissionDedupeTest(TestCase):
         assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is False
         assert mock_record.call_count == 1
 
+    @patch("sentry.pr_metrics.emit.logger")
+    @patch("sentry.analytics.record")
+    def test_warns_when_no_run_org_row_among_emitting_siblings(
+        self, mock_record: Any, mock_logger: Any
+    ) -> None:
+        # Two emitting rows for one provider PR, neither linked to a run in its own
+        # org (e.g. a delegated PR whose handoff link dropped) — dedupe still picks
+        # the lowest id, but the link loss is surfaced.
+        SeerRunPullRequest.objects.all().delete()
+        emit_pr_metrics_row(pull_request=self.pull_request)
+        warned = [
+            call
+            for call in mock_logger.warning.call_args_list
+            if call.args and call.args[0] == "pr_metrics.emit.dedup_no_run_org_row"
+        ]
+        assert len(warned) == 1
+
+    @patch("sentry.pr_metrics.emit.logger")
+    @patch("sentry.analytics.record")
+    def test_no_warning_when_run_org_row_present(self, mock_record: Any, mock_logger: Any) -> None:
+        # setUp links the run's-org row, so the canonical is found via the link, not
+        # the lowest-id fallback — no warning.
+        emit_pr_metrics_row(pull_request=self.pull_request)
+        assert not any(
+            call.args and call.args[0] == "pr_metrics.emit.dedup_no_run_org_row"
+            for call in mock_logger.warning.call_args_list
+        )
+
     @patch("sentry.analytics.record")
     def test_tracked_sibling_emits_when_lower_id_row_untracked(self, mock_record: Any) -> None:
         # No run link, and the lower-id row is an untracked shadow (its attribution
