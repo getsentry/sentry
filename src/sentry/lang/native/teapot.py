@@ -1,14 +1,9 @@
-"""HTTP client for the teapot GPU crash dump symbolication service.
+"""HTTP client for teapot, the NVIDIA Aftermath ``.nv-gpudmp`` decode service.
 
-Teapot is a sibling to Symbolicator that decodes NVIDIA Aftermath `.nv-gpudmp`
-dumps. It's synchronous (one request/response, no polling) with a bounded retry
-on transient 5xx.
-
-Attachments are always passed by reference: the dump and each shader-debug
-`.nvdbg` live in objectstore, and we hand teapot a short-lived presigned GET URL
-per attachment. Teapot fetches the bytes directly from objectstore; they never
-pass through the Sentry worker, and no bearer token is exchanged (the presigned
-URL is self-authenticating).
+Synchronous request/response with a bounded retry on transient 5xx. Attachments
+are passed by reference: we hand teapot a short-lived presigned GET URL per
+attachment and it fetches the bytes from objectstore itself (self-authenticating
+URL, no bearer token, bytes never pass through the worker).
 """
 
 from __future__ import annotations
@@ -30,12 +25,9 @@ from sentry.objectstore import get_attachments_session, maybe_rewrite_url_for_sy
 
 logger = logging.getLogger(__name__)
 
-# teapot keys each shader debug attachment by its 32-hex `shader_debug_info_uid`
-# — the value Aftermath asks for via `shaderDebugInfoLookupCb` at decode time.
-# Relay preserves the SDK filename, which carries the uid in one of two shapes:
-#   * `<32-hex-uid>.nvdbg`      — production SDKs ship the full uid.
-#   * `<16-hex>-<16-hex>.nvdbg` — the NVIDIA D3D12HelloNsightAftermath sample
-#                                 splits id[0]/id[1] with a dash; concatenate.
+# teapot keys each shader by its 32-hex `shader_debug_info_uid`, which the SDK
+# encodes in the `.nvdbg` filename as either `<32-hex>.nvdbg` or (the NVIDIA
+# sample's) dash-split `<16-hex>-<16-hex>.nvdbg`.
 _NVDBG_UID_RE = re.compile(r"([0-9a-fA-F]{32})\.nvdbg$")
 _NVDBG_SPLIT_UID_RE = re.compile(r"([0-9a-fA-F]{16})-([0-9a-fA-F]{16})\.nvdbg$")
 
@@ -52,26 +44,20 @@ def _uid_from_nvdbg_filename(name: str) -> str | None:
 
 
 class TeapotAttachment(Protocol):
-    """The ``CachedAttachment`` surface the client needs, as a structural type.
-
-    Lets callers pass a real ``CachedAttachment`` or a test double. ``name`` is
-    the attachment filename — for a shader-debug ``.nvdbg`` it carries the
-    ``shader_debug_info_uid`` teapot looks the bytes back up by. ``stored_id`` is
-    the objectstore key we presign; every GPU-crash attachment must be stored.
-    """
+    """The ``CachedAttachment`` surface the client needs (real or test double):
+    ``name`` (the filename, carrying the uid for a ``.nvdbg``) and ``stored_id``
+    (the objectstore key we presign)."""
 
     name: str
     stored_id: str | None
 
 
-# Presigned GET URLs handed to teapot are valid just long enough to cover the
-# request window (timeout x attempts + backoff), then expire.
+# Presigned URLs live just long enough to cover the request window, then expire.
 _PRESIGNED_URL_TTL = timedelta(seconds=60)
 
-# Fallbacks; live values come from the `teapot.timeout-seconds` /
-# `teapot.max-attempts` options (see `_timeout` / `_max_attempts`). The decode is
-# sub-second in practice, so the timeout is deliberately tight — a slow teapot
-# should fail fast rather than hold a worker (and the circuit breaker takes over).
+# Fallbacks for the `teapot.timeout-seconds` / `teapot.max-attempts` options.
+# The timeout is tight on purpose: decode is sub-second, so a slow teapot should
+# fail fast (the circuit breaker then takes over) rather than hold a worker.
 DEFAULT_TIMEOUT = 5
 DEFAULT_MAX_ATTEMPTS = 2
 
@@ -108,9 +94,6 @@ class TeapotUnavailable(Exception):
 
 
 def _resolve_url() -> str | None:
-    # SENTRY_TEAPOT_URL (sourced from the TEAPOT env var) is the endpoint,
-    # mirroring SENTRY_TEMPEST_URL / SENTRY_VROOM. The automator-modifiable
-    # `teapot.options` url is a fallback for installs that don't set the env var.
     base = getattr(settings, "SENTRY_TEAPOT_URL", None)
     if base:
         return base.rstrip("/")
@@ -147,8 +130,6 @@ class TeapotClient:
             "X-Teapot-Version": "1",
             "X-Request-Id": self.event_id,
             "Content-Type": "application/json",
-            # event_id as idempotency key → teapot replays a cached 200 for a
-            # retried task instead of re-decoding.
             "Idempotency-Key": self.event_id,
         }
 
@@ -169,21 +150,13 @@ class TeapotClient:
         return self._send(url, headers=headers, data=orjson.dumps(body))
 
     def _presigned_url(self, session: Any, att: TeapotAttachment) -> str:
-        """Short-lived, self-authenticating GET URL for the attachment in objectstore.
+        """Short-lived self-authenticating GET URL for the attachment in objectstore.
 
-        This mirrors the internal-caller branch of
-        ``objectstore.get_download_redirect_url`` (the recommended presigned-download
-        path, already used for debug-file downloads). Teapot is an internal service
-        like Symbolicator, so it reads straight from Objectstore's internal URL. We
-        inline the branch rather than call the helper because it needs the
-        ``HttpRequest`` it's redirecting to choose internal-vs-cell-proxy, and we're
-        in a background task with no request. Presigned means teapot issues a plain
-        GET with no auth header — unlike Symbolicator today, which still passes
-        ``object_url`` + a minted bearer token.
+        Mirrors the internal-caller branch of
+        ``objectstore.get_download_redirect_url``, inlined because that helper
+        needs an ``HttpRequest`` and we're in a background task.
         """
         if not att.stored_id:
-            # GPU-crash attachments are always uploaded to objectstore; if one
-            # isn't, we can't build a presigned URL, so skip rather than inline.
             raise TeapotUnavailable(f"attachment {att.name!r} is not in objectstore")
         return maybe_rewrite_url_for_symbolicator(
             session.presigned_object_url("GET", att.stored_id, duration=_PRESIGNED_URL_TTL)
