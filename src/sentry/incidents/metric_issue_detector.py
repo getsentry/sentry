@@ -68,7 +68,7 @@ def schedule_update_project_config(detector: Detector) -> None:
     """
     If `should_use_on_demand`, then invalidate the project configs
     """
-    enabled_features = on_demand_metrics_feature_flags(detector.project.organization)
+    enabled_features = on_demand_metrics_feature_flags(detector.linked_project.organization)
     prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
     if "organizations:on-demand-metrics-extraction" not in enabled_features and not prefilling:
         return
@@ -87,7 +87,7 @@ def schedule_update_project_config(detector: Detector) -> None:
     )
     if should_use_on_demand:
         schedule_invalidate_project_config(
-            trigger="alerts:create-on-demand-metric", project_id=detector.project.id
+            trigger="alerts:create-on-demand-metric", project_id=detector.linked_project.id
         )
 
 

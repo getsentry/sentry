@@ -598,6 +598,7 @@ class Referrer(StrEnum):
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
     API_SERIALIZER_PROJECTS_GET_STATS = "api.serializer.projects.get_stats"
+    API_SERIALIZER_PROJECTS_GET_TRANSACTION_STATS = "api.serializer.projects.get_transaction_stats"
     API_SERIALIZER_CHECKINS_TRACE_IDS = "api.serializer.checkins.trace-ids"
     API_TRACE_VIEW_ERRORS_VIEW = "api.trace-view.errors-view"
     API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS = "api.trace-view.get-timestamp-projects"

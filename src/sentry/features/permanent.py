@@ -48,9 +48,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         # Enable integration functionality to work with alert rules (specifically incident
         # management integrations)
         "organizations:integrations-incident-management": True,
-        # Enable integration functionality to create and link groups to issues on
-        # external services.
-        "organizations:integrations-issue-basic": True,
         # Enable interface functionality to synchronize groups between sentry and
         # issues on external services.
         "organizations:integrations-issue-sync": True,
@@ -66,10 +63,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:session-replay": False,
         # Measure usage by spans instead of transactions
         "organizations:spans-usage-tracking": False,
-        # Enable basic SSO functionality, providing configurable single sign on
-        # using services like GitHub / Google. This is *not* the same as the signup
-        # and login with Github / Azure DevOps that sentry.io provides.
-        "organizations:sso-basic": True,
         # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
         # must be installed to use this functionality.
         "organizations:sso-saml2": True,
@@ -96,14 +89,8 @@ def register_permanent_features(manager: FeatureManager) -> None:
     }
 
     permanent_project_features = {
-        # Enable functionality for rate-limiting events on projects.
-        "projects:rate-limits": True,
-        # Enable functionality to specify custom inbound filters on events.
-        "projects:custom-inbound-filters": False,
         # Enable functionality to discard groups.
         "projects:discard-groups": False,
-        # Enable functionality to trigger service hooks upon event ingestion.
-        "projects:servicehooks": False,
     }
 
     # Permanent organization features that are controlled via flagpole
@@ -154,6 +141,26 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:team-insights": FlagpoleFeature(default=True, api_expose=True),
         # Enable setting team-level roles and receiving permissions from them
         "organizations:team-roles": FlagpoleFeature(default=True, api_expose=True),
+        # Enable integration functionality to create and link groups to issues on
+        # external services.
+        "organizations:integrations-issue-basic": FlagpoleFeature(default=True, api_expose=True),
+        # Enable basic SSO functionality, providing configurable single sign on
+        # using services like GitHub / Google. This is *not* the same as the signup
+        # and login with Github / Azure DevOps that sentry.io provides.
+        "organizations:sso-basic": FlagpoleFeature(default=True, api_expose=True),
+    }
+
+    # Permanent project features that are controlled via flagpole. These are
+    # plan-gated the same way the organization flags above are — a project-scoped
+    # feature resolves its subscription from the project's organization — so their
+    # flagpole segments key off subscription_plan-family just the same.
+    permanent_flagpole_project_features: dict[str, FlagpoleFeature] = {
+        # Enable functionality to specify custom inbound filters on events.
+        "projects:custom-inbound-filters": FlagpoleFeature(default=False, api_expose=True),
+        # Enable functionality for rate-limiting events on projects.
+        "projects:rate-limits": FlagpoleFeature(default=True, api_expose=True),
+        # Enable functionality to trigger service hooks upon event ingestion.
+        "projects:servicehooks": FlagpoleFeature(default=False, api_expose=True),
     }
 
     # Flagpole cannot control system-scoped flags — keep these as INTERNAL.
@@ -186,6 +193,15 @@ def register_permanent_features(manager: FeatureManager) -> None:
         manager.add(
             org_feature,
             OrganizationFeature,
+            FeatureHandlerStrategy.FLAGPOLE,
+            default=config.default,
+            api_expose=config.api_expose,
+        )
+
+    for project_feature, config in permanent_flagpole_project_features.items():
+        manager.add(
+            project_feature,
+            ProjectFeature,
             FeatureHandlerStrategy.FLAGPOLE,
             default=config.default,
             api_expose=config.api_expose,
