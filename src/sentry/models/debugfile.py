@@ -422,12 +422,12 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
                 all_features.update(dif.features)
 
 
-def detect_dif_from_file(
+def detect_single_dif_from_path(
     path: str,
     name: str | None = None,
     debug_id: str | None = None,
 ) -> DifMeta:
-    """Validates a DIF file and returns its single debug information object."""
+    """Like :func:`detect_dif_from_path`, but requires exactly one architecture."""
     result = detect_dif_from_path(path, name=name, debug_id=debug_id)
 
     if len(result) != 1:
@@ -444,7 +444,7 @@ def create_dif_from_file(
     debug_id: str | None = None,
 ) -> tuple[ProjectDebugFile, bool]:
     """Validates an existing DIF file and ensures its ProjectDebugFile exists."""
-    meta = detect_dif_from_file(path, name=name, debug_id=debug_id)
+    meta = detect_single_dif_from_path(path, name=name, debug_id=debug_id)
     return create_dif_from_id(project, meta, file=file)
 
 
@@ -537,6 +537,11 @@ def _get_dif_object_name(meta: DifMeta) -> str:
     raise TypeError(f"unknown dif type {meta.file_format!r}")
 
 
+def _get_dif_download_filename(meta: DifMeta) -> str:
+    file_type = (meta.data or {}).get("type")
+    return f"{os.path.basename(meta.debug_id)}{_dif_file_extension(meta.file_format, file_type)}"
+
+
 def _find_existing_dif(project: Project, meta: DifMeta, checksum: str) -> ProjectDebugFile | None:
     return (
         ProjectDebugFile.objects.select_related("file")
@@ -548,11 +553,6 @@ def _find_existing_dif(project: Project, meta: DifMeta, checksum: str) -> Projec
     )
 
 
-def _get_dif_objectstore_filename(meta: DifMeta) -> str:
-    file_type = (meta.data or {}).get("type")
-    return f"{os.path.basename(meta.debug_id)}{_dif_file_extension(meta.file_format, file_type)}"
-
-
 def create_objectstore_dif_from_id(
     project: Project,
     meta: DifMeta,
@@ -560,7 +560,12 @@ def create_objectstore_dif_from_id(
     checksum: str,
     file_size: int,
 ) -> tuple[ProjectDebugFile, bool]:
-    """Creates an Objectstore-only ProjectDebugFile from an already validated stream."""
+    """Creates the :class:`ProjectDebugFile` entry for the provided DIF.
+
+    Analogous to :func:`create_dif_from_id`, but writes exclusively to Objectstore.
+
+    Returns a tuple of ``(dif, created)``.
+    """
     dif = _find_existing_dif(project, meta, checksum)
     if dif is not None:
         return dif, False
@@ -572,7 +577,7 @@ def create_objectstore_dif_from_id(
         fileobj,
         content_type,
         file_size,
-        _get_dif_objectstore_filename(meta),
+        _get_dif_download_filename(meta),
     )
 
     metrics.distribution(
@@ -634,6 +639,7 @@ def create_dif_from_id(
     if file is not None:
         file_size = file.size
         checksum = file.checksum
+        assert checksum is not None
     elif fileobj is not None:
         file_size = 0
         h = hashlib.sha1()
@@ -648,7 +654,6 @@ def create_dif_from_id(
     else:
         raise RuntimeError("missing file object")
 
-    assert checksum is not None
     dif = _find_existing_dif(project, meta, checksum)
 
     if dif is not None:
@@ -678,7 +683,7 @@ def create_dif_from_id(
     objectstore_metadata: dict[str, Any] = {}
     if features.has("organizations:objectstore-debugfiles-write", project.organization):
         session = get_debug_files_session(project.organization_id, project.id)
-        filename = _get_dif_objectstore_filename(meta)
+        filename = _get_dif_download_filename(meta)
         try:
             with file.getfile() as source:
                 storage_path = _upload_dif_to_objectstore(
