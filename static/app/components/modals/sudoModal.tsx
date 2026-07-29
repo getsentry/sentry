@@ -114,7 +114,7 @@ function SudoModal({
   const location = useLocation();
   const api = useApi();
 
-  const [errorType, setErrorType] = useState<ErrorCodes | undefined>(undefined);
+  const [errorType, setErrorType] = useState<ErrorCodes>();
   const [superuserStep, setSuperuserStep] = useState<SuperuserStep>({
     step: 'access',
   });
