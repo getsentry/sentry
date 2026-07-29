@@ -422,12 +422,12 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
                 all_features.update(dif.features)
 
 
-def detect_dif_from_file(
+def detect_single_dif_from_path(
     path: str,
     name: str | None = None,
     debug_id: str | None = None,
 ) -> DifMeta:
-    """Validates a DIF file and returns its single debug information object."""
+    """Like :func:`detect_dif_from_path`, but requires exactly one architecture."""
     result = detect_dif_from_path(path, name=name, debug_id=debug_id)
 
     if len(result) != 1:
@@ -444,7 +444,7 @@ def create_dif_from_file(
     debug_id: str | None = None,
 ) -> tuple[ProjectDebugFile, bool]:
     """Validates an existing DIF file and ensures its ProjectDebugFile exists."""
-    meta = detect_dif_from_file(path, name=name, debug_id=debug_id)
+    meta = detect_single_dif_from_path(path, name=name, debug_id=debug_id)
     return create_dif_from_id(project, meta, file=file)
 
 
