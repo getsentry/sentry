@@ -6,43 +6,28 @@ type ActivityOfType<Type extends GroupActivityType> = Extract<
   {type: Type}
 >;
 
-type CollapsibleSeerCompletionActivity = ActivityOfType<
-  | GroupActivityType.SEER_RCA_COMPLETED
-  | GroupActivityType.SEER_SOLUTION_COMPLETED
-  | GroupActivityType.SEER_CODING_COMPLETED
-  | GroupActivityType.SEER_ITERATION_COMPLETED
->;
+type SeerActivityPair = {
+  [GroupActivityType.SEER_RCA_COMPLETED]: GroupActivityType.SEER_RCA_STARTED;
+  [GroupActivityType.SEER_SOLUTION_COMPLETED]: GroupActivityType.SEER_SOLUTION_STARTED;
+  [GroupActivityType.SEER_CODING_COMPLETED]: GroupActivityType.SEER_CODING_STARTED;
+  [GroupActivityType.SEER_ITERATION_COMPLETED]: GroupActivityType.SEER_ITERATION_STARTED;
+};
 
-export type CollapsedSeerActivity =
-  | {
-      activity: ActivityOfType<GroupActivityType.SEER_RCA_COMPLETED>;
-      kind: 'collapsed-seer';
-      phase: 'root-cause';
-      startedActivity: ActivityOfType<GroupActivityType.SEER_RCA_STARTED>;
-    }
-  | {
-      activity: ActivityOfType<GroupActivityType.SEER_SOLUTION_COMPLETED>;
-      kind: 'collapsed-seer';
-      phase: 'planning';
-      startedActivity: ActivityOfType<GroupActivityType.SEER_SOLUTION_STARTED>;
-    }
-  | {
-      activity: ActivityOfType<GroupActivityType.SEER_CODING_COMPLETED>;
-      kind: 'collapsed-seer';
-      phase: 'coding';
-      startedActivity: ActivityOfType<GroupActivityType.SEER_CODING_STARTED>;
-    }
-  | {
-      activity: ActivityOfType<GroupActivityType.SEER_ITERATION_COMPLETED>;
-      kind: 'collapsed-seer';
-      phase: 'iteration';
-      startedActivity: ActivityOfType<GroupActivityType.SEER_ITERATION_STARTED>;
-    };
+type CollapsedSeerActivityType = keyof SeerActivityPair;
+type CollapsibleSeerCompletionActivity = ActivityOfType<CollapsedSeerActivityType>;
+
+export type CollapsedSeerActivity = {
+  [Type in CollapsedSeerActivityType]: {
+    activity: ActivityOfType<Type>;
+    startedActivity: ActivityOfType<SeerActivityPair[Type]>;
+    type: Type;
+  };
+}[CollapsedSeerActivityType];
 
 export type ActivityFeedItem =
   | {
       activity: GroupActivity;
-      kind: 'activity';
+      type: 'activity';
     }
   | CollapsedSeerActivity;
 
@@ -78,37 +63,33 @@ function collapseSeerActivityPair(
     case GroupActivityType.SEER_RCA_COMPLETED:
       return startedActivity.type === GroupActivityType.SEER_RCA_STARTED
         ? {
-            kind: 'collapsed-seer',
-            phase: 'root-cause',
             activity: completedActivity,
             startedActivity,
+            type: completedActivity.type,
           }
         : null;
     case GroupActivityType.SEER_SOLUTION_COMPLETED:
       return startedActivity.type === GroupActivityType.SEER_SOLUTION_STARTED
         ? {
-            kind: 'collapsed-seer',
-            phase: 'planning',
             activity: completedActivity,
             startedActivity,
+            type: completedActivity.type,
           }
         : null;
     case GroupActivityType.SEER_CODING_COMPLETED:
       return startedActivity.type === GroupActivityType.SEER_CODING_STARTED
         ? {
-            kind: 'collapsed-seer',
-            phase: 'coding',
             activity: completedActivity,
             startedActivity,
+            type: completedActivity.type,
           }
         : null;
     case GroupActivityType.SEER_ITERATION_COMPLETED:
       return startedActivity.type === GroupActivityType.SEER_ITERATION_STARTED
         ? {
-            kind: 'collapsed-seer',
-            phase: 'iteration',
             activity: completedActivity,
             startedActivity,
+            type: completedActivity.type,
           }
         : null;
   }
@@ -166,7 +147,7 @@ export function collapseSeerActivityPairs(
       collapsedActivities.push(collapsedActivity.activity);
       collapsedStartedActivityIndexes.add(collapsedActivity.startedActivityIndex);
     } else {
-      collapsedActivities.push({kind: 'activity', activity});
+      collapsedActivities.push({type: 'activity', activity});
     }
   }
 

@@ -158,7 +158,7 @@ export function getCompactGroupActivityItem({
   const issuesLink = `/organizations/${organization.slug}/issues/`;
   const activityContext = {id: activity.id, type: activity.type};
   const seerActivityDuration =
-    item.kind === 'collapsed-seer' ? getSeerActivityDuration(item) : null;
+    item.type === 'activity' ? null : getSeerActivityDuration(item);
 
   switch (activity.type) {
     case GroupActivityType.NOTE:

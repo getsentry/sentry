@@ -316,7 +316,7 @@ export function ActivitySection({
   ).filter(item => !filterComments || item.type === GroupActivityType.NOTE);
   const displayedActivities: ActivityFeedItem[] = useActivityLineItems
     ? collapseSeerActivityPairs(filteredActivities)
-    : filteredActivities.map(activity => ({kind: 'activity', activity}));
+    : filteredActivities.map(activity => ({type: 'activity', activity}));
   const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
   const timestampUnitStyle = variant === 'sidebar' ? 'short' : undefined;
 
