@@ -645,6 +645,22 @@ describe('ReleasesList', () => {
     expect(screen.queryByRole('button', {name: 'Download CSV'})).not.toBeInTheDocument();
   });
 
+  it('searches distribution builds by install group without fetching values', async () => {
+    const installGroupValuesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/install_groups/values/`,
+      body: [],
+    });
+    const {router} = renderMobileBuildsTab({display: 'distribution'});
+
+    const searchInput = await screen.findByTestId('query-builder-input');
+    await userEvent.type(searchInput, 'install_groups:alpha{enter}');
+
+    await waitFor(() => {
+      expect(router.location.query.query).toBe('install_groups:alpha');
+    });
+    expect(installGroupValuesMock).not.toHaveBeenCalled();
+  });
+
   it('allows searching within the mobile-builds tab', async () => {
     const mobileProject = ProjectFixture({
       id: '13',
