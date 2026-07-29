@@ -211,34 +211,35 @@ function processTraceItemAttributes(
   type?: TraceItemAttributeType,
   hiddenKeys?: string[]
 ) {
+  const hiddenKeySet = hiddenKeys ? new Set(hiddenKeys) : undefined;
   if (type === 'boolean') {
     return {
-      attributes: hiddenKeys
-        ? removeHiddenKeys(typedAttributesResult.boolean, hiddenKeys)
+      attributes: hiddenKeySet
+        ? removeHiddenKeys(typedAttributesResult.boolean, hiddenKeySet)
         : typedAttributesResult.boolean,
-      secondaryAliases: hiddenKeys
-        ? removeHiddenKeys(typedAttributesResult.booleanSecondaryAliases, hiddenKeys)
+      secondaryAliases: hiddenKeySet
+        ? removeHiddenKeys(typedAttributesResult.booleanSecondaryAliases, hiddenKeySet)
         : typedAttributesResult.booleanSecondaryAliases,
       isLoading: typedAttributesResult.booleanAttributesLoading,
     };
   }
   if (type === 'number') {
     return {
-      attributes: hiddenKeys
-        ? removeHiddenKeys(typedAttributesResult.number, hiddenKeys)
+      attributes: hiddenKeySet
+        ? removeHiddenKeys(typedAttributesResult.number, hiddenKeySet)
         : typedAttributesResult.number,
-      secondaryAliases: hiddenKeys
-        ? removeHiddenKeys(typedAttributesResult.numberSecondaryAliases, hiddenKeys)
+      secondaryAliases: hiddenKeySet
+        ? removeHiddenKeys(typedAttributesResult.numberSecondaryAliases, hiddenKeySet)
         : typedAttributesResult.numberSecondaryAliases,
       isLoading: typedAttributesResult.numberAttributesLoading,
     };
   }
   return {
-    attributes: hiddenKeys
-      ? removeHiddenKeys(typedAttributesResult.string, hiddenKeys)
+    attributes: hiddenKeySet
+      ? removeHiddenKeys(typedAttributesResult.string, hiddenKeySet)
       : typedAttributesResult.string,
-    secondaryAliases: hiddenKeys
-      ? removeHiddenKeys(typedAttributesResult.stringSecondaryAliases, hiddenKeys)
+    secondaryAliases: hiddenKeySet
+      ? removeHiddenKeys(typedAttributesResult.stringSecondaryAliases, hiddenKeySet)
       : typedAttributesResult.stringSecondaryAliases,
     isLoading: typedAttributesResult.stringAttributesLoading,
   };

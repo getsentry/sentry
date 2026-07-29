@@ -2,7 +2,7 @@ import {queryOptions, type QueryFunctionContext} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -15,7 +15,7 @@ import {findFreshEmptyPrefixSearchCacheMatch} from 'sentry/views/explore/utils/f
 
 type AttributeType = {
   attributeSource: {
-    source_type: string;
+    source_type: 'sentry' | 'user';
   };
   attributeType: TraceItemAttributeType;
   key: string;
@@ -167,7 +167,7 @@ export function getTraceItemTagCollection(
     // SnQL forbids `-` but is allowed in RPC. So add it back later
     if (
       !/^[\w.:@-]+$/.test(attribute.key) &&
-      !/^tags\[[\w.:@-]+,(number|boolean)\]$/.test(attribute.key)
+      !/^tags\[[\w.:@-]+,(number|boolean|string)\]$/.test(attribute.key)
     ) {
       continue;
     }
@@ -184,6 +184,7 @@ export function getTraceItemTagCollection(
         name: attribute.name,
         kind: FieldKind.TAG,
         secondaryAliases: attribute?.secondaryAliases ?? [],
+        attributeSource: attribute.attributeSource?.source_type,
       };
     } else if (attributeType === 'number') {
       numberAttributes[attribute.key] = {
@@ -191,6 +192,7 @@ export function getTraceItemTagCollection(
         name: attribute.name,
         kind: FieldKind.MEASUREMENT,
         secondaryAliases: attribute?.secondaryAliases ?? [],
+        attributeSource: attribute.attributeSource?.source_type,
       };
     } else if (attributeType === 'boolean') {
       booleanAttributes[attribute.key] = {
@@ -198,6 +200,7 @@ export function getTraceItemTagCollection(
         name: attribute.name,
         kind: FieldKind.BOOLEAN,
         secondaryAliases: attribute?.secondaryAliases ?? [],
+        attributeSource: attribute.attributeSource?.source_type,
       };
     }
   }
@@ -221,7 +224,7 @@ export function getTraceItemTagCollection(
   };
 }
 
-function isKnownAttribute(attribute: Tag) {
+function isKnownAttribute(attribute: {key: string}) {
   // For now, skip all the sentry. prefixed attributes as they
   // should be covered by the static attributes that will be
   // merged with these results.

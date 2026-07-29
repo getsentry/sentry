@@ -459,6 +459,12 @@ export type Tag = {
   name: string;
   alias?: string;
 
+  /**
+   * For trace-item attributes, whether the attribute was defined by Sentry
+   * ('sentry') or sent by the user ('user').
+   */
+  attributeSource?: 'sentry' | 'user';
+
   isInput?: boolean;
 
   kind?: FieldKind;
