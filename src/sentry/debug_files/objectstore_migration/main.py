@@ -11,21 +11,19 @@ from sentry.models.debugfile import ProjectDebugFile
 def start_migration(
     *,
     num_shards: int,
-    high_water_mark: int | None = None,
     cursors: Mapping[int, int] | None = None,
 ) -> None:
-    """Freeze the high-water mark (unless provided) and enqueue shard heads.
+    """Start the migration of debug files to Objectstore.
 
-    Progress lives only in task kwargs: each shard activation carries
-    ``cursor`` and re-enqueues itself with an advanced cursor.
+    Progress lives only in task kwargs: each shard activation carries an
+    inclusive ``cursor`` (the next id to start from) and re-enqueues itself
+    with that cursor moved downward past the batch just processed.
 
     Args:
         num_shards: Number of partitions (``id % num_shards``).
-        high_water_mark: Inclusive upper bound on ``ProjectDebugFile.id``.
-            Defaults to the current max id.
         cursors: Optional map of ``shard_id -> cursor``. When omitted, every
-            shard is enqueued at cursor ``0``. When set, only the listed shards
-            are enqueued.
+            shard is enqueued at the current max id.
+            When set, only the listed shards are enqueued (resume).
     """
     if options.get("debug-files.objectstore-migration.killswitch"):
         raise RuntimeError("Debug file Objectstore migration is killswitched")
@@ -34,11 +32,9 @@ def start_migration(
 
     from sentry.debug_files.objectstore_migration.tasks import enqueue_shard
 
-    if high_water_mark is None:
-        high_water_mark = ProjectDebugFile.objects.aggregate(max_id=Max("id"))["max_id"] or 0
-
     if cursors is None:
-        targets: Mapping[int, int] = {shard_id: 0 for shard_id in range(num_shards)}
+        start_cursor = ProjectDebugFile.objects.aggregate(max_id=Max("id"))["max_id"] or 0
+        targets: Mapping[int, int] = {shard_id: start_cursor for shard_id in range(num_shards)}
     else:
         targets = cursors
 
@@ -50,5 +46,4 @@ def start_migration(
             shard_id=shard_id,
             num_shards=num_shards,
             cursor=cursor,
-            high_water_mark=high_water_mark,
         )

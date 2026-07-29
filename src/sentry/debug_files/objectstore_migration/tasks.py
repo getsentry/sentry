@@ -26,14 +26,12 @@ def enqueue_shard(
     shard_id: int,
     num_shards: int,
     cursor: int,
-    high_water_mark: int,
 ) -> None:
     migrate_shard.apply_async(
         kwargs={
             "shard_id": shard_id,
             "num_shards": num_shards,
             "cursor": cursor,
-            "high_water_mark": high_water_mark,
         },
         headers={"sentry-propagate-traces": False},
     )
@@ -49,16 +47,17 @@ def migrate_shard(
     shard_id: int,
     num_shards: int,
     cursor: int,
-    high_water_mark: int,
     **kwargs: object,
 ) -> None:
     """Process one page of DIFs for a shard, then self-chain if more remain.
 
+    Walks ids high → low.
+    ``cursor`` is the inclusive first id to process on this activation.
+
     Args:
         shard_id: Partition index in ``0..num_shards-1``.
         num_shards: Number of partitions (``id % num_shards``).
-        cursor: Exclusive lower bound on ``ProjectDebugFile.id``.
-        high_water_mark: Inclusive upper bound on ``ProjectDebugFile.id``.
+        cursor: Inclusive upper bound on ``ProjectDebugFile.id``.
     """
 
     def log_extra(**extra: int) -> dict[str, int]:
@@ -66,7 +65,6 @@ def migrate_shard(
             "shard_id": shard_id,
             "num_shards": num_shards,
             "cursor": cursor,
-            "high_water_mark": high_water_mark,
             **extra,
         }
 
@@ -89,8 +87,7 @@ def migrate_shard(
     try:
         to_migrate = list(
             ProjectDebugFile.objects.filter(
-                id__gt=cursor,
-                id__lte=high_water_mark,
+                id__lte=cursor,
                 file_id__isnull=False,
             )
             .annotate(
@@ -100,7 +97,7 @@ def migrate_shard(
             )
             .filter(_migration_shard=shard_id)
             .select_related("file")
-            .order_by("id")[:_FILES_PER_ACTIVATION]
+            .order_by("-id")[:_FILES_PER_ACTIVATION]
         )
         if not to_migrate:
             logger.info(
@@ -111,11 +108,14 @@ def migrate_shard(
 
         for debug_file in to_migrate:
             migrate_debug_file(debug_file.id)
-            cursor = debug_file.id
 
+        lowest_id = to_migrate[-1].id
         logger.info(
             "debug_files.objectstore_migration.shard_progress",
-            extra=log_extra(processed_this_activation=len(to_migrate)),
+            extra=log_extra(
+                processed_this_activation=len(to_migrate),
+                lowest_id=lowest_id,
+            ),
         )
     except Exception:
         logger.exception(
@@ -124,18 +124,17 @@ def migrate_shard(
         )
         raise
 
-    if len(to_migrate) < _FILES_PER_ACTIVATION:
+    if len(to_migrate) < _FILES_PER_ACTIVATION or lowest_id <= 0:
         logger.info(
             "debug_files.objectstore_migration.shard_completed",
-            extra=log_extra(),
+            extra=log_extra(lowest_id=lowest_id),
         )
         return
 
     enqueue_shard(
         shard_id=shard_id,
         num_shards=num_shards,
-        high_water_mark=high_water_mark,
-        cursor=cursor,
+        cursor=lowest_id - 1,
     )
     if activation_id:
         mark_spawned(_SHARD_TASK_KEY, activation_id)

@@ -9,8 +9,8 @@ from sentry.testutils.cases import TestCase
 class DebugFileObjectstoreMigrationTaskTest(TestCase):
     def test_page_self_chains_or_completes(self) -> None:
         debug_files = [self.create_dif_file(project=self.project) for _ in range(3)]
-        high_water_mark = max(df.id for df in debug_files)
         ordered_ids = sorted(df.id for df in debug_files)
+        start_cursor = ordered_ids[-1]
 
         with (
             patch(
@@ -22,20 +22,22 @@ class DebugFileObjectstoreMigrationTaskTest(TestCase):
             ) as migrate_one,
             patch.object(migrate_shard, "apply_async") as enqueue_successor,
         ):
-            # full page → self-chain with advanced cursor
+            # full page → self-chain with inclusive cursor below lowest processed
             migrate_shard(
                 shard_id=0,
                 num_shards=1,
-                high_water_mark=high_water_mark,
-                cursor=0,
+                cursor=start_cursor,
             )
             assert migrate_one.call_count == 2
+            assert [c.args[0] for c in migrate_one.call_args_list] == [
+                ordered_ids[2],
+                ordered_ids[1],
+            ]
             enqueue_successor.assert_called_once()
             assert enqueue_successor.call_args.kwargs["kwargs"] == {
                 "shard_id": 0,
                 "num_shards": 1,
-                "cursor": ordered_ids[1],
-                "high_water_mark": high_water_mark,
+                "cursor": ordered_ids[1] - 1,
             }
 
             migrate_one.reset_mock()
@@ -45,8 +47,8 @@ class DebugFileObjectstoreMigrationTaskTest(TestCase):
             migrate_shard(
                 shard_id=0,
                 num_shards=1,
-                high_water_mark=high_water_mark,
-                cursor=ordered_ids[1],
+                cursor=ordered_ids[1] - 1,
             )
             assert migrate_one.call_count == 1
+            assert migrate_one.call_args.args[0] == ordered_ids[0]
             enqueue_successor.assert_not_called()

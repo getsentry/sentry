@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 
 class DebugFileObjectstoreMigrationMainTest(TestCase):
     def test_start_migration_enqueues_shards(self) -> None:
-        high_water_mark = ProjectDebugFile.objects.aggregate(max_id=Max("id"))["max_id"] or 0
+        start_cursor = ProjectDebugFile.objects.aggregate(max_id=Max("id"))["max_id"] or 0
 
         with patch(
             "sentry.debug_files.objectstore_migration.tasks.migrate_shard.apply_async"
@@ -19,22 +19,20 @@ class DebugFileObjectstoreMigrationMainTest(TestCase):
             start_migration(num_shards=3)
             start_migration(
                 num_shards=4,
-                high_water_mark=99,
                 cursors={1: 40, 3: 41},
             )
 
-        # fresh run: every shard at cursor 0 under the frozen max id
+        # fresh run: every shard starts at the inclusive max id
         fresh = [c.kwargs["kwargs"] for c in enqueue.call_args_list[:3]]
         assert {k["shard_id"] for k in fresh} == {0, 1, 2}
         for kwargs in fresh:
             assert kwargs == {
                 "shard_id": kwargs["shard_id"],
                 "num_shards": 3,
-                "cursor": 0,
-                "high_water_mark": high_water_mark,
+                "cursor": start_cursor,
             }
 
-        # resume: only the listed shards, with the given cursors / water mark
+        # resume: only the listed shards, with the given cursors
         resume = {
             c.kwargs["kwargs"]["shard_id"]: c.kwargs["kwargs"] for c in enqueue.call_args_list[3:]
         }
@@ -43,12 +41,10 @@ class DebugFileObjectstoreMigrationMainTest(TestCase):
                 "shard_id": 1,
                 "num_shards": 4,
                 "cursor": 40,
-                "high_water_mark": 99,
             },
             3: {
                 "shard_id": 3,
                 "num_shards": 4,
                 "cursor": 41,
-                "high_water_mark": 99,
             },
         }
