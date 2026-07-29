@@ -389,12 +389,12 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
                 if status_code and str(status_code).startswith("2"):
                     return None
 
-                method_str = f"{method} " if method else ""
+                request_str = f"{method} {url}" if method else url
                 status_str = str(status_code) if status_code else "no response"
                 if response_size is None:
-                    return f'Fetch request "{method_str}{url}" failed with {status_str} at {timestamp}'
+                    return f'Fetch request "{request_str}" failed with {status_str} at {timestamp}'
                 else:
-                    return f'Fetch request "{method_str}{url}" failed with {status_str} ({response_size} bytes) at {timestamp}'
+                    return f'Fetch request "{request_str}" failed with {status_str} ({response_size} bytes) at {timestamp}'
             case EventType.RESOURCE_XHR:
                 payload = event["data"]["payload"]
                 method = payload["data"].get("method")
@@ -414,18 +414,18 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
                 if status_code and str(status_code).startswith("2"):
                     return None
 
-                method_str = f"{method} " if method else ""
+                request_str = f"{method} {url}" if method else url
                 status_str = str(status_code) if status_code else "no response"
                 if response_size is None:
-                    return f'XHR request "{method_str}{url}" failed with {status_str} at {timestamp}'
+                    return f'XHR request "{request_str}" failed with {status_str} at {timestamp}'
                 else:
-                    return f'XHR request "{method_str}{url}" failed with {status_str} ({response_size} bytes) at {timestamp}'
+                    return f'XHR request "{request_str}" failed with {status_str} ({response_size} bytes) at {timestamp}'
             case EventType.LCP:
                 duration = event["data"]["payload"]["data"].get("size")
                 rating = event["data"]["payload"]["data"].get("rating")
-                if duration is None or rating is None:
-                    return None
-                return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp}"
+                if duration is not None and rating is not None:
+                    return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp}"
+                return f"Application largest contentful paint occurred at {timestamp}"
             case EventType.HYDRATION_ERROR:
                 return f"There was a hydration error on the page at {timestamp}"
             case EventType.TAP:
@@ -437,9 +437,9 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
             case EventType.DEVICE_BATTERY:
                 charging = event["data"]["payload"]["data"].get("charging")
                 level = event["data"]["payload"]["data"].get("level")
-                if charging is None or level is None:
-                    return None
-                return f"Device battery was {level}% and {'charging' if charging else 'not charging'} at {timestamp}"
+                if charging is not None and level is not None:
+                    return f"Device battery was {level}% and {'charging' if charging else 'not charging'} at {timestamp}"
+                return f"Device battery event occurred at {timestamp}"
             case EventType.DEVICE_ORIENTATION:
                 position = event["data"]["payload"]["data"].get("position")
                 if position is None:
