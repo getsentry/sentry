@@ -382,9 +382,6 @@ function AgentSelectCell({
               }
             }
             field.handleChange(newValue);
-            // AutoSaveForm only persists on blur, but the select's blur fires
-            // before this async handler resolves, so trigger the save
-            // explicitly now that the value is set.
             field.handleBlur();
           }}
           options={agentSelectOptions}
