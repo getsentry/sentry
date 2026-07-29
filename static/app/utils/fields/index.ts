@@ -55,6 +55,7 @@ export enum FieldKey {
   DIST = 'dist',
   ENVIRONMENT = 'environment',
   ERROR_HANDLED = 'error.handled',
+  ERROR_HAS_CONTINUOUS_PROFILE = 'error.has_continuous_profile',
   ERROR_MECHANISM = 'error.mechanism',
   ERROR_TYPE = 'error.type',
   ERROR_UNHANDLED = 'error.unhandled',
@@ -181,6 +182,7 @@ type ErrorFieldKey =
   | FieldKey.BOOKMARKS
   | FieldKey.CULPRIT
   | FieldKey.ERROR_HANDLED
+  | FieldKey.ERROR_HAS_CONTINUOUS_PROFILE
   | FieldKey.ERROR_MECHANISM
   | FieldKey.ERROR_TYPE
   | FieldKey.ERROR_UNHANDLED
@@ -1994,6 +1996,11 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
   },
+  [FieldKey.ERROR_HAS_CONTINUOUS_PROFILE]: {
+    desc: t('Errors with an associated continuous profile'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
   [FieldKey.ERROR_MECHANISM]: {
     desc: t('The mechanism that created the error'),
     kind: FieldKind.FIELD,
@@ -2851,6 +2858,7 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.DEVICE_UUID,
   FieldKey.DIST,
   FieldKey.ERROR_HANDLED,
+  FieldKey.ERROR_HAS_CONTINUOUS_PROFILE,
   FieldKey.ERROR_MAIN_THREAD,
   FieldKey.ERROR_MECHANISM,
   FieldKey.ERROR_TYPE,
@@ -2926,6 +2934,7 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS = new Set<FieldKey>(
   FieldKey.DEVICE_ORIENTATION,
   FieldKey.DEVICE_UUID,
   FieldKey.ERROR_HANDLED,
+  FieldKey.ERROR_HAS_CONTINUOUS_PROFILE,
   FieldKey.ERROR_MAIN_THREAD,
   FieldKey.ERROR_MECHANISM,
   FieldKey.ERROR_TYPE,

@@ -1,5 +1,5 @@
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
-import {ISSUE_PROPERTY_FIELDS} from 'sentry/utils/fields';
+import {FieldKey, ISSUE_PROPERTY_FIELDS} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -8,6 +8,8 @@ export const ALL_EVENTS_EXCLUDED_TAGS = [
   'performance.issue_ids',
   'transaction.op',
   'transaction.status',
+  // Only resolves on the issue search backend, not the event-level Discover datasets.
+  FieldKey.ERROR_HAS_CONTINUOUS_PROFILE,
   ...ISSUE_PROPERTY_FIELDS,
 ];
 
