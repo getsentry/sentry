@@ -9,11 +9,6 @@ interface UseVirtualRowsOptions {
   overscan?: number;
 }
 
-/**
- * Windows rows by padding the body rather than positioning them, because an
- * absolutely positioned row is not a grid item and so cannot inherit the
- * table's column tracks via `subgrid`.
- */
 export function useVirtualRows({
   count,
   estimateSize,

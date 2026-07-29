@@ -29,7 +29,7 @@ export interface ExploreTableColumnOptions {
   staticColumnWidths?: Record<string, number | string>;
 }
 
-export function useExploreTableProps({
+function useExploreTableProps({
   fields,
   minimumColumnWidth = COL_WIDTH_MINIMUM,
   prefixColumnWidth,
