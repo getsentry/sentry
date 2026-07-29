@@ -87,5 +87,46 @@
         }
       }
     ]
+  },
+  {
+    "name": "user",
+    "description": "Mention a Sentry user or team inline. Renders an avatar and display name. Use the actor type (\"user\" or \"team\") and the actor's ID and name.",
+    "level": ["inline"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["user", "team"]
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "type", "name"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "User",
+        "data": {
+          "id": "1",
+          "type": "user",
+          "name": "Jane Doe"
+        }
+      },
+      {
+        "label": "Team",
+        "data": {
+          "id": "2",
+          "type": "team",
+          "name": "platform"
+        }
+      }
+    ]
   }
 ]
