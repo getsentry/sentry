@@ -74,8 +74,10 @@ from sentry.search.eap.types import (
     SupportedTraceItemType,
 )
 from sentry.search.eap.utils import (
+    can_expose_attribute,
     can_expose_attribute_to_api,
     get_secondary_aliases,
+    is_internal_sentry_convention_attribute,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
 )
@@ -529,6 +531,34 @@ def can_expose_trace_item_attribute_to_api(
     )
 
 
+def _can_expose_data_attribute_to_api(
+    name: str,
+    attribute_key: TraceItemAttributeKey,
+    item_type: SupportedTraceItemType,
+    include_internal: bool = False,
+) -> bool:
+    """Whether an attribute found in a customer's data may be exposed.
+
+    A user-sent attribute whose name collides with a reserved public alias is
+    surfaced under an explicit ``tags[...]`` key that references only the user's
+    column. Its exposure is gated on the attribute's own name, so a private
+    reserved *column* it merely shadows doesn't suppress it (e.g. a customer's
+    ``organization.id``, which shadows the private ``sentry.organization_id``).
+    Internal sentry *conventions* are still hidden unless ``include_internal``.
+    """
+    if attribute_key["attributeSource"]["source_type"] == AttributeSourceType.USER.value:
+        if not can_expose_attribute(name, item_type, include_internal=include_internal):
+            return False
+        if include_internal:
+            return True
+        return not is_internal_sentry_convention_attribute(name, item_type)
+    return can_expose_attribute_to_api(
+        name, item_type, include_internal=include_internal
+    ) and can_expose_trace_item_attribute_to_api(
+        attribute_key, item_type, include_internal=include_internal
+    )
+
+
 @extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEndpointBase):
@@ -812,30 +842,30 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
     ) -> list[TraceItemAttributeKey]:
         attribute_keys = {}
         for attribute in rpc_response.attributes:
-            if attribute.name and can_expose_attribute_to_api(
+            if not attribute.name:
+                continue
+            attr_key = as_attribute_key(
                 attribute.name,
+                attribute_type,
                 trace_item_type,
-                include_internal=include_internal,
-            ):
-                attr_key = as_attribute_key(
+                include_context=include_context,
+            )
+            if (
+                _can_expose_data_attribute_to_api(
                     attribute.name,
-                    attribute_type,
+                    attr_key,
                     trace_item_type,
-                    include_context=include_context,
+                    include_internal=include_internal,
                 )
-                if (
-                    not is_sentry_convention_replacement_attribute(
-                        attr_key["name"], trace_item_type
-                    )
-                    # Remove anything where the public alias doesn't match the substring
-                    # This can happen when the public alias is different, but that's handled by
-                    # aliased_attributes
-                    and (substring_match in attr_key["name"] if substring_match else True)
-                    and can_expose_trace_item_attribute_to_api(
-                        attr_key, trace_item_type, include_internal=include_internal
-                    )
-                ):
-                    attribute_keys[attr_key["key"]] = attr_key
+                and not is_sentry_convention_replacement_attribute(
+                    attr_key["name"], trace_item_type
+                )
+                # Remove anything where the public alias doesn't match the substring
+                # This can happen when the public alias is different, but that's handled by
+                # aliased_attributes
+                and (substring_match in attr_key["name"] if substring_match else True)
+            ):
+                attribute_keys[attr_key["key"]] = attr_key
         # We need to exclude any aliased attributes here since because of pagination they might have already been seen
         # earlier
         for aliased_attr in exclude_attributes:

@@ -179,12 +179,14 @@ def translate_internal_to_public_alias(
 
     resolved_column = PUBLIC_ALIAS_TO_INTERNAL_MAPPING.get(item_type, {}).get(internal_alias)
     if resolved_column is not None:
-        # if there is a known public alias with this exact name, it means we need to wrap
-        # it in the explicitly typed tags syntax in order for it to reference the correct column
+        # A data attribute whose name collides with a known public alias is a
+        # user-sent attribute; it's wrapped in the explicitly typed tags syntax so
+        # it references the user's column rather than the reserved alias. It is
+        # user-sourced, not Sentry-defined (e.g. a customer's own `organization.id`).
         return (
             f"tags[{internal_alias},{search_type}]",
             internal_alias,
-            {"source_type": AttributeSourceType.SENTRY},
+            {"source_type": AttributeSourceType.USER},
         )
 
     definitions = TRACE_ITEM_TYPE_DEFINITIONS.get(item_type)
