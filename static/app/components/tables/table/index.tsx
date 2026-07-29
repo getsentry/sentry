@@ -18,6 +18,11 @@ import {
   useState,
 } from 'react';
 
+import {
+  getAriaSort,
+  SortableHeaderCell,
+  type SortDirection,
+} from 'sentry/components/tables/sortableHeaderCell';
 import {useColumnResize} from 'sentry/components/tables/useColumnResize';
 import {defined} from 'sentry/utils/defined';
 
@@ -257,9 +262,20 @@ function Cell(props: ComponentProps<typeof TableCell>) {
 interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
   column?: string;
   columnIndex?: number;
+  onSort?: () => void;
+  overlays?: ReactNode;
+  sort?: SortDirection;
 }
 
-function HeadCell({children, column, columnIndex, ...props}: HeadCellProps) {
+function HeadCell({
+  children,
+  column,
+  columnIndex,
+  onSort,
+  overlays,
+  sort,
+  ...props
+}: HeadCellProps) {
   const context = useTableContext();
   const index =
     columnIndex ?? (defined(column) ? context?.columnIndexByKey.get(column) : undefined);
@@ -270,9 +286,19 @@ function HeadCell({children, column, columnIndex, ...props}: HeadCellProps) {
     index !== context.lastColumnIndex &&
     context.resizableByIndex[index] === true;
 
+  const sortable = defined(onSort) || defined(sort) || defined(overlays);
+
   return (
-    <TableHeadCell {...props} role="columnheader">
-      {children}
+    // aria-sort precedes the spread so a caller that announces sorting itself, as
+    // GridEditable does for its own sort links, still wins.
+    <TableHeadCell aria-sort={getAriaSort(sort)} {...props} role="columnheader">
+      {sortable ? (
+        <SortableHeaderCell direction={sort} onSort={onSort} overlays={overlays}>
+          {children}
+        </SortableHeaderCell>
+      ) : (
+        children
+      )}
       {showResizer && (
         <TableResizer
           data-test-id="table-column-resizer"

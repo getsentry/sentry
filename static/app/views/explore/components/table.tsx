@@ -9,10 +9,10 @@ import {
   Body as _TableWrapper,
   GridBody,
   GridBodyCell,
-  GridBodyCellStatus,
   GridHead,
   GridHeadCell,
   GridRow,
+  GridStatus,
 } from 'sentry/components/tables/gridEditable/styles';
 import {
   Table as SharedTable,
@@ -110,13 +110,7 @@ export function Table({
   );
 }
 
-export function TableStatus({children}: {children: React.ReactNode}) {
-  return (
-    <GridRow>
-      <GridBodyCellStatus>{children}</GridBodyCellStatus>
-    </GridRow>
-  );
-}
+export {GridStatus as TableStatus};
 
 export const ALLOWED_CELL_ACTIONS: Actions[] = [
   Actions.ADD,

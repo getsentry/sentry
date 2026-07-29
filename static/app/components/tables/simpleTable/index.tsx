@@ -8,9 +8,7 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 
 import {
-  getAriaSort,
   HeaderCellContent,
-  SortableHeaderCell,
   type SortDirection,
 } from 'sentry/components/tables/sortableHeaderCell';
 import {Table, type TableColumnConfig} from 'sentry/components/tables/table';
@@ -55,19 +53,19 @@ function HeaderCell({
   sort?: SortDirection;
 }) {
   return (
-    <ColumnHeaderCell {...props} aria-sort={getAriaSort(sort)} scope="col">
-      <SortableHeaderCell
-        direction={sort}
-        onSort={handleSortClick}
-        overlays={
-          <Fragment>
-            {divider && <HeaderDivider />}
-            {handleSortClick && <InteractionStateLayer />}
-          </Fragment>
-        }
-      >
-        {children}
-      </SortableHeaderCell>
+    <ColumnHeaderCell
+      {...props}
+      onSort={handleSortClick}
+      overlays={
+        <Fragment>
+          {divider && <HeaderDivider />}
+          {handleSortClick && <InteractionStateLayer />}
+        </Fragment>
+      }
+      scope="col"
+      sort={sort}
+    >
+      {children}
     </ColumnHeaderCell>
   );
 }

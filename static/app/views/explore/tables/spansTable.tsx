@@ -4,10 +4,6 @@ import {Pagination} from '@sentry/scraps/pagination';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {
-  getAriaSort,
-  SortableHeaderCell,
-} from 'sentry/components/tables/sortableHeaderCell';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -105,14 +101,13 @@ export function SpansTable({
               return (
                 <TableHeadCell
                   align={align}
-                  aria-sort={getAriaSort(direction)}
                   columnIndex={i}
                   key={i}
                   isFirst={i === 0}
+                  onSort={updateSort}
+                  sort={direction}
                 >
-                  <SortableHeaderCell direction={direction} onSort={updateSort}>
-                    {label}
-                  </SortableHeaderCell>
+                  {label}
                 </TableHeadCell>
               );
             })}

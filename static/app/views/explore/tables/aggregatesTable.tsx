@@ -9,10 +9,6 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {
-  getAriaSort,
-  SortableHeaderCell,
-} from 'sentry/components/tables/sortableHeaderCell';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
@@ -175,14 +171,13 @@ export function AggregatesTable({
               return (
                 <TableHeadCell
                   align={align}
-                  aria-sort={getAriaSort(direction)}
                   columnIndex={i}
                   key={i}
                   isFirst={i === 0}
+                  onSort={updateSort}
+                  sort={direction}
                 >
-                  <SortableHeaderCell direction={direction} onSort={updateSort}>
-                    {label}
-                  </SortableHeaderCell>
+                  {label}
                 </TableHeadCell>
               );
             })}

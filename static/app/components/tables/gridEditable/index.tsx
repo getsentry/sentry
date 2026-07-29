@@ -3,9 +3,8 @@ import {Fragment, useMemo} from 'react';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
-import {GridEditableEmptyData} from 'sentry/components/tables/gridEditable/GridEditableEmptyData';
-import {GridEditableError} from 'sentry/components/tables/gridEditable/GridEditableError';
-import {GridEditableLoading} from 'sentry/components/tables/gridEditable/GridEditableLoading';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {getAriaSort} from 'sentry/components/tables/sortableHeaderCell';
 import {
   COL_WIDTH_MINIMUM,
@@ -13,6 +12,8 @@ import {
   Table,
   type TableColumnConfig,
 } from 'sentry/components/tables/table';
+import {IconWarning} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 
 import {
@@ -24,6 +25,7 @@ import {
   GridHeadCell,
   GridHeadCellStatic,
   GridRow,
+  GridStatus,
   Header,
   HeaderButtonContainer,
   HeaderTitle,
@@ -171,15 +173,31 @@ export function GridEditable<
 
   const renderGridBody = () => {
     if (error) {
-      return <GridEditableError />;
+      return (
+        <GridStatus>
+          <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
+        </GridStatus>
+      );
     }
 
     if (isLoading) {
-      return <GridEditableLoading />;
+      return (
+        <GridStatus>
+          <LoadingIndicator />
+        </GridStatus>
+      );
     }
 
     if (!data || data.length === 0) {
-      return <GridEditableEmptyData emptyMessage={props.emptyMessage} />;
+      return (
+        <GridStatus>
+          {props.emptyMessage ?? (
+            <EmptyStateWarning>
+              <p>{t('No results found for your query')}</p>
+            </EmptyStateWarning>
+          )}
+        </GridStatus>
+      );
     }
 
     return data.map(renderGridBodyRow);

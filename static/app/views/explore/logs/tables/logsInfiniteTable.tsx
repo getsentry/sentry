@@ -19,10 +19,6 @@ import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
-import {
-  getAriaSort,
-  SortableHeaderCell,
-} from 'sentry/components/tables/sortableHeaderCell';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -761,33 +757,29 @@ function LogsTableHeader({
           return (
             <LogTableHeadCell
               align={index === 0 ? 'left' : align}
-              aria-sort={getAriaSort(direction)}
               columnIndex={index}
               key={index}
               isFirst={index === 0}
               reservePinGutter={pinningEnabled && index === fields.length - 1}
-            >
-              <SortableHeaderCell
-                direction={direction}
-                onSort={
-                  isFrozen
-                    ? undefined
-                    : () => {
-                        switch (direction) {
-                          case 'asc':
-                            setSortBys([logsTimestampDescendingSortBy]);
-                            break;
-                          case 'desc':
-                            setSortBys([{field, kind: 'asc'}]);
-                            break;
-                          default:
-                            setSortBys([{field, kind: 'desc'}]);
-                        }
+              onSort={
+                isFrozen
+                  ? undefined
+                  : () => {
+                      switch (direction) {
+                        case 'asc':
+                          setSortBys([logsTimestampDescendingSortBy]);
+                          break;
+                        case 'desc':
+                          setSortBys([{field, kind: 'asc'}]);
+                          break;
+                        default:
+                          setSortBys([{field, kind: 'desc'}]);
                       }
-                }
-              >
-                {headerLabel}
-              </SortableHeaderCell>
+                    }
+              }
+              sort={direction}
+            >
+              {headerLabel}
             </LogTableHeadCell>
           );
         })}

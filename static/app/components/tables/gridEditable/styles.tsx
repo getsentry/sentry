@@ -182,10 +182,18 @@ export const GridBodyCellStatic = styled(GridBodyCell)`
   }
 `;
 
-export const GridBodyCellStatus = styled(TableStatusCell)`
+const GridBodyCellStatus = styled(TableStatusCell)`
   min-height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
   background-color: transparent;
   font-size: ${p => p.theme.font.size.md};
 `;
+
+export function GridStatus({children}: {children: React.ReactNode}) {
+  return (
+    <GridRow>
+      <GridBodyCellStatus>{children}</GridBodyCellStatus>
+    </GridRow>
+  );
+}
 
 export const GridResizer = TableResizer;
