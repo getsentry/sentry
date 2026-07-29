@@ -57,7 +57,7 @@ describe('spansWidgetQueries', () => {
     expect(await screen.findByText('low:partial')).toBeInTheDocument();
   });
 
-  it.isKnownFlake('calculates the confidence for a multi series', async () => {
+  it('calculates the confidence for a multi series', async () => {
     widget = WidgetFixture({
       queries: [
         {

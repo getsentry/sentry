@@ -115,56 +115,50 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     await screen.findByRole('textbox', {name: 'Search commands'});
   }
 
-  it.isKnownFlake(
-    'shows a "Current Project" tag on the active project entry',
-    async () => {
-      render(
-        <CommandPaletteProvider>
-          <GlobalCommandPaletteActions />
-          <SlotOutlets />
-          <CommandPalette {...makeRenderProps(jest.fn())} />
-        </CommandPaletteProvider>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
-            route: '/settings/:orgId/projects/:projectId/',
-          },
-        }
-      );
+  it('shows a "Current Project" tag on the active project entry', async () => {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
+          route: '/settings/:orgId/projects/:projectId/',
+        },
+      }
+    );
 
-      await drillIntoGeneralSettings();
+    await drillIntoGeneralSettings();
 
-      expect(await screen.findByText('Current')).toBeInTheDocument();
-    }
-  );
+    expect(await screen.findByText('Current')).toBeInTheDocument();
+  });
 
-  it.isKnownFlake(
-    'places the current route project first when on a :projectId route',
-    async () => {
-      render(
-        <CommandPaletteProvider>
-          <GlobalCommandPaletteActions />
-          <SlotOutlets />
-          <CommandPalette {...makeRenderProps(jest.fn())} />
-        </CommandPaletteProvider>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
-            route: '/settings/:orgId/projects/:projectId/',
-          },
-        }
-      );
+  it('places the current route project first when on a :projectId route', async () => {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
+          route: '/settings/:orgId/projects/:projectId/',
+        },
+      }
+    );
 
-      await drillIntoGeneralSettings();
+    await drillIntoGeneralSettings();
 
-      const option = (await screen.findAllByRole('option')).find(
-        el => !el.hasAttribute('aria-disabled')
-      );
-      expect(option).toHaveAccessibleName('project-b');
-    }
-  );
+    const option = (await screen.findAllByRole('option')).find(
+      el => !el.hasAttribute('aria-disabled')
+    );
+    expect(option).toHaveAccessibleName('project-b');
+  });
 
   it('does not duplicate the current project in the list', async () => {
     render(
@@ -188,35 +182,32 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     expect(screen.getAllByRole('option', {name: 'project-b'})).toHaveLength(1);
   });
 
-  it.isKnownFlake(
-    'places the project first when identified by a single ?project= query param',
-    async () => {
-      render(
-        <CommandPaletteProvider>
-          <GlobalCommandPaletteActions />
-          <SlotOutlets />
-          <CommandPalette {...makeRenderProps(jest.fn())} />
-        </CommandPaletteProvider>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query: {project: projectB.id},
-            },
+  it('places the project first when identified by a single ?project= query param', async () => {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {project: projectB.id},
           },
-        }
-      );
+        },
+      }
+    );
 
-      await drillIntoGeneralSettings();
+    await drillIntoGeneralSettings();
 
-      const option = (await screen.findAllByRole('option')).find(
-        el => !el.hasAttribute('aria-disabled')
-      );
-      expect(option).toHaveAccessibleName('project-b');
-      expect(screen.getByText('Current')).toBeInTheDocument();
-    }
-  );
+    const option = (await screen.findAllByRole('option')).find(
+      el => !el.hasAttribute('aria-disabled')
+    );
+    expect(option).toHaveAccessibleName('project-b');
+    expect(screen.getByText('Current')).toBeInTheDocument();
+  });
 
   it('highlights all projects when multiple ?project= params are set', async () => {
     render(

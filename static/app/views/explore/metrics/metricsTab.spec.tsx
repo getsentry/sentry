@@ -173,7 +173,7 @@ describe('MetricsTabContent', () => {
     });
   });
 
-  it.isKnownFlake('should add a metric when Add Metric button is clicked', async () => {
+  it('should add a metric when Add Metric button is clicked', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
@@ -228,7 +228,7 @@ describe('MetricsTabContent', () => {
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(3);
   });
 
-  it.isKnownFlake('should fire analytics for metadata', async () => {
+  it('should fire analytics for metadata', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
