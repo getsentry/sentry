@@ -88,15 +88,19 @@ def test_frames_capped_and_most_recent_first() -> None:
     assert out.index("f19") < out.index("f0")  # reversed order
 
 
-def test_frame_cap_keeps_app_frames() -> None:
-    # app frames must survive a deep stack: a blind tail slice would drop every one of these
-    frames = [Frame(function=f"app{i}", filename="a.py", in_app=True) for i in range(4)]
+@pytest.mark.parametrize("app_frame_count", [4, 9])  # even and odd allowances
+def test_frame_cap_keeps_app_frames(app_frame_count: int) -> None:
+    # app frames must survive a deep stack: a blind tail slice would drop every one of these,
+    # and halving an odd allowance would drop the middle one
+    frames = [
+        Frame(function=f"app{i}", filename="a.py", in_app=True) for i in range(app_frame_count)
+    ]
     frames += [Frame(function=f"lib{i}", filename="v.py") for i in range(50)]
     event = _event_with_exception(type="E", stacktrace=Stacktrace(frames=frames))
     out = exceptions_section(event, MarkdownFormatter(), LIMITS_DEFAULT)
-    for i in range(4):
+    for i in range(app_frame_count):
         assert f"app{i} in a.py" in out
-    assert out.count(" [Line: Unknown] ") == 16  # still bounded by max_frames
+    assert out.count(" [Line: Unknown] ") == 16  # cap is filled exactly, never under
 
 
 def test_stacktrace_char_truncation() -> None:

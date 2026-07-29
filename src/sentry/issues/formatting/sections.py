@@ -68,9 +68,13 @@ def _select_frames(frames: Sequence[Frame], max_frames: int) -> list[Frame]:
     system_allowance = max(max_frames - len(app), 0)
 
     def head_and_tail(group: list[Frame], allowance: int) -> list[Frame]:
-        half = allowance // 2
-        # an allowance of 1 keeps nothing rather than everything, which `group[-0:]` would
-        return group[:half] + group[-half:] if half else []
+        if len(group) <= allowance:
+            return group
+        # split the allowance exactly, giving an odd slot to the head; Seer halves it instead,
+        # which silently drops a frame that fits whenever the allowance is odd
+        head = (allowance + 1) // 2
+        tail = allowance - head
+        return group[:head] + (group[-tail:] if tail else [])
 
     kept = head_and_tail(system, system_allowance) + head_and_tail(
         app, max_frames - system_allowance
