@@ -2143,9 +2143,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             "organizations:issue-stream-batched-latest-event-attachments": False,
         }
     )
+    @patch("sentry.api.serializers.models.group_stream.metrics")
     @patch("sentry.api.serializers.models.group_stream.bulk_get_latest_event_ids")
     def test_expand_latest_event_has_attachments(
-        self, mock_bulk_get_latest_event_ids: MagicMock
+        self, mock_bulk_get_latest_event_ids: MagicMock, mock_metrics: MagicMock
     ) -> None:
         event = self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
@@ -2184,6 +2185,16 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert response.data[0]["latestEventHasAttachments"] is True
         mock_bulk_get_latest_event_ids.assert_not_called()
+        assert mock_metrics.timer.call_args_list == [
+            call(
+                "group_stream.get_attrs.latest_event_attachments.duration",
+                tags={"strategy": "n_plus_one"},
+            ),
+            call(
+                "group_stream.get_attrs.latest_event_attachments.duration",
+                tags={"strategy": "n_plus_one"},
+            ),
+        ]
 
     @with_feature(
         [
@@ -2191,9 +2202,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             "organizations:issue-stream-batched-latest-event-attachments",
         ]
     )
+    @patch("sentry.api.serializers.models.group_stream.metrics")
     @patch("sentry.models.Group.get_latest_event")
     def test_expand_latest_event_has_attachments_is_batched(
-        self, mock_get_latest_event: MagicMock
+        self, mock_get_latest_event: MagicMock, mock_metrics: MagicMock
     ) -> None:
         events = [
             self.store_event(
@@ -2236,6 +2248,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ]
         assert len(attachment_queries) == 1
         mock_get_latest_event.assert_not_called()
+        mock_metrics.timer.assert_called_once_with(
+            "group_stream.get_attrs.latest_event_attachments.duration",
+            tags={"strategy": "bulk"},
+        )
 
     @with_feature(
         [
