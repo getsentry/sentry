@@ -5,6 +5,7 @@ from uuid import uuid4
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
@@ -596,6 +597,72 @@ class GetOrCreateFromReferenceTest(TestCase):
         assert resolved.pull_request is not None
         assert resolved.pull_request.repository_id == other_repo.id
         assert not PullRequest.objects.filter(repository_id=self.repo.id).exists()
+
+
+class ForProviderPrTest(TestCase):
+    def setUp(self) -> None:
+        self.external_id = "556677"
+        self.integration_id = 909
+        self.repo = self.create_repo(
+            self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id=self.external_id,
+            integration_id=self.integration_id,
+        )
+        self.pull_request = self.create_pull_request(
+            organization_id=self.organization.id, repository_id=self.repo.id, key="42"
+        )
+
+    def _for_provider_pr(self, *, integration_id: int | None = None, key: int | str = 42):
+        return PullRequest.objects.for_provider_pr(
+            external_id=self.external_id,
+            integration_id=self.integration_id if integration_id is None else integration_id,
+            key=key,
+        )
+
+    def test_resolves_row_in_own_org(self) -> None:
+        assert [pr.id for pr in self._for_provider_pr()] == [self.pull_request.id]
+
+    def test_fans_across_orgs_sharing_installation(self) -> None:
+        other_org = self.create_organization()
+        other_repo = self.create_repo(
+            self.create_project(organization=other_org),
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id=self.external_id,
+            integration_id=self.integration_id,
+        )
+        other_pr = self.create_pull_request(
+            organization_id=other_org.id, repository_id=other_repo.id, key="42"
+        )
+
+        assert {pr.id for pr in self._for_provider_pr()} == {self.pull_request.id, other_pr.id}
+
+    def test_coerces_integer_key_to_string(self) -> None:
+        assert [pr.id for pr in self._for_provider_pr(key=42)] == [self.pull_request.id]
+
+    def test_excludes_other_pr_numbers(self) -> None:
+        self.create_pull_request(
+            organization_id=self.organization.id, repository_id=self.repo.id, key="99"
+        )
+        assert [pr.id for pr in self._for_provider_pr()] == [self.pull_request.id]
+
+    def test_excludes_hidden_repositories(self) -> None:
+        self.repo.update(status=ObjectStatus.HIDDEN)
+        assert self._for_provider_pr() == []
+
+    def test_includes_non_hidden_inactive_repositories(self) -> None:
+        # A pending-deletion repo still gets webhooks (the fan-out only excludes
+        # HIDDEN), so its PR can emit and must stay in its own sibling set — matching
+        # how _repo_external_identity reads the repo regardless of status.
+        self.repo.update(status=ObjectStatus.PENDING_DELETION)
+        assert [pr.id for pr in self._for_provider_pr()] == [self.pull_request.id]
+
+    def test_excludes_other_installations(self) -> None:
+        # Same external_id under a different installation (e.g. a second GHE host,
+        # where repo ids can collide) must not be treated as a sibling.
+        assert self._for_provider_pr(integration_id=self.integration_id + 1) == []
 
 
 class ParsePullRequestNumberTest(TestCase):
