@@ -94,12 +94,6 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
 
   const autoSubmittedRef = useRef(false);
 
-  const {mutateAsync: authenticate} = useMutation({
-    // authUrl is a runtime branch (/auth/ or /staff-auth/), not a known URL
-    // literal, so it's passed to fetchMutation as a plain string.
-    mutationFn: (data: AuthPayload) => fetchMutation({method: 'PUT', url: authUrl, data}),
-  });
-
   const handleError = useCallback((err: unknown) => {
     setState({
       step: 'access',
@@ -107,6 +101,14 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
         err instanceof RequestError ? getErrorType(err) : ErrorCodes.UNKNOWN_ERROR,
     });
   }, []);
+
+  const {mutateAsync: authenticate} = useMutation({
+    // authUrl is a runtime branch (/auth/ or /staff-auth/), not a known URL
+    // literal, so it's passed to fetchMutation as a plain string.
+    mutationFn: (data: AuthPayload) => fetchMutation({method: 'PUT', url: authUrl, data}),
+    onSuccess: reloadPage,
+    onError: handleError,
+  });
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -130,10 +132,8 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
 
       try {
         await authenticate({isSuperuserModal: true, ...access});
-        reloadPage();
-      } catch (err) {
+      } catch {
         form.reset();
-        handleError(err);
       }
     },
   });
@@ -153,15 +153,13 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
       }
       try {
         await authenticate(payload);
-        reloadPage();
       } catch (err) {
         form.reset();
-        handleError(err);
         // u2fInterface relies on this
         throw err;
       }
     },
-    [authenticate, form, handleError, hasStaff, webAuthnAccess]
+    [authenticate, form, hasStaff, webAuthnAccess]
   );
 
   // Staff local dev with U2F disabled: submit immediately on mount (once).
@@ -170,10 +168,8 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
       return;
     }
     autoSubmittedRef.current = true;
-    authenticate({superuserAccessCategory: '', superuserReason: ''})
-      .then(reloadPage)
-      .catch(handleError);
-  }, [authenticate, handleError, shouldAutoSubmit]);
+    authenticate({superuserAccessCategory: '', superuserReason: ''}).catch(() => {});
+  }, [authenticate, shouldAutoSubmit]);
 
   const requiresAuthenticator = !disableU2FForSUForm;
   const noAuthenticator =

@@ -155,11 +155,6 @@ function SudoModal({
     refetchOnWindowFocus: true,
   });
 
-  const {mutateAsync: authenticate} = useMutation({
-    mutationFn: (data: AuthPayload) =>
-      fetchMutation({method: 'PUT', url: '/auth/', data}),
-  });
-
   const handleSuccess = useCallback(() => {
     if (isSuperuser) {
       navigate(
@@ -190,6 +185,13 @@ function SudoModal({
     );
   }, []);
 
+  const {mutateAsync: authenticate} = useMutation({
+    mutationFn: (data: AuthPayload) =>
+      fetchMutation({method: 'PUT', url: '/auth/', data}),
+    onSuccess: handleSuccess,
+    onError: handleError,
+  });
+
   const passwordForm = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {password: ''},
@@ -200,10 +202,8 @@ function SudoModal({
           isSuperuserModal: isSuperuser,
           ...(user.hasPasswordAuth ? {password: value.password} : {}),
         });
-        handleSuccess();
-      } catch (err) {
+      } catch {
         passwordForm.reset();
-        handleError(err);
       }
     },
   });
@@ -231,10 +231,8 @@ function SudoModal({
 
       try {
         await authenticate({isSuperuserModal: true, ...access});
-        handleSuccess();
-      } catch (err) {
+      } catch {
         superuserForm.reset();
-        handleError(err);
       }
     },
   });
@@ -251,9 +249,8 @@ function SudoModal({
       }
       // It's ok to throw from here, u2fInterface will handle it.
       await authenticate(payload);
-      handleSuccess();
     },
-    [authenticate, handleSuccess, isSuperuser, webAuthnAccess]
+    [authenticate, isSuperuser, webAuthnAccess]
   );
 
   const getAuthLoginPath = (): string => {
