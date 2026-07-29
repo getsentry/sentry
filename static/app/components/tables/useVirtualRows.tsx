@@ -29,9 +29,13 @@ export function useVirtualRows({
     overscan,
   });
 
+  // @tanstack/react-virtual does not rebuild its measurements cache when
+  // estimateSize returns new values, so re-measure whenever it changes. Without
+  // this the total size and item offsets keep using the previous estimates,
+  // which desyncs the scroll range and leaves large blank gaps.
   useLayoutEffect(() => {
     virtualizer.measure();
-  }, [virtualizer]);
+  }, [virtualizer, estimateSize]);
 
   const virtualItems = virtualizer.getVirtualItems();
   const first = virtualItems[0];

@@ -32,6 +32,7 @@ def build_mock_group_evaluation() -> DataConditionGroupEvaluation:
     """A minimal trigger-group evaluation for use in mock detector evaluations."""
     return DataConditionGroupEvaluation(
         result=True,
+        triggered=True,
         data={"condition_evaluations": [], "logic_type": "any"},
     )
 
@@ -294,7 +295,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         DataConditionGroupEvaluation that is impractical to reconstruct in tests.
         """
         assert evaluation.data["group_key"] == group_key
-        assert evaluation.outcome.triggered is triggered
+        assert evaluation.triggered is triggered
         assert evaluation.priority == priority
         assert evaluation.result == result
         assert evaluation.data["event_data"] == event_data

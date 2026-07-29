@@ -28,7 +28,7 @@ class DataConditionGroupEvaluation(BaseWorkflowEngineEvaluation[bool, GroupEvalu
     - result: bool - evaluation of the logic_type and conditions
     - data: GroupEvaluationData - The list of condition evaluations and the logic used to evaluate it
     - error: ConditionError
-    - outcome: TriggerResult
+    - triggered: bool - whether the group's conditions passed
     """
 
     pass

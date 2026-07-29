@@ -427,7 +427,7 @@ export function getUserDisplayName(user: ConversationUser): string | null {
   );
 }
 
-const CELL_MAX_CHARS = 256;
+export const CELL_MAX_CHARS = 256;
 
 function cleanMarkdownForCell(text: string): string {
   return text

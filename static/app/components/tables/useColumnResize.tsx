@@ -16,6 +16,9 @@ interface UseColumnResizeOptions<T extends HTMLElement> {
    */
   onColumnResizeEnd?: (columnIndex: number, newWidth: number) => void;
 
+  /**
+   * Whether to set the `--table-resizer-height` CSS var to the rendered height after writing.
+   */
   writeResizerHeightVar?: boolean;
 }
 
@@ -37,21 +40,7 @@ export function useColumnResize<T extends HTMLElement>({
   writeResizerHeightVar = false,
 }: UseColumnResizeOptions<T>) {
   const resizeStateRef = useRef<ColumnResizeState | null>(null);
-  const activeListenersRef = useRef<{
-    onMouseMove: ((e: MouseEvent) => void) | null;
-    onMouseUp: ((e: MouseEvent) => void) | null;
-  }>({onMouseMove: null, onMouseUp: null});
-
-  const removeListeners = useCallback(() => {
-    const {onMouseMove, onMouseUp} = activeListenersRef.current;
-    if (onMouseMove) {
-      window.removeEventListener('mousemove', onMouseMove);
-    }
-    if (onMouseUp) {
-      window.removeEventListener('mouseup', onMouseUp);
-    }
-    activeListenersRef.current = {onMouseMove: null, onMouseUp: null};
-  }, []);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const applyTemplate = useCallback(
     (template: string) => {
@@ -113,18 +102,22 @@ export function useColumnResize<T extends HTMLElement>({
           );
         }
         resizeStateRef.current = null;
-        removeListeners();
+        abortControllerRef.current?.abort();
       };
 
-      removeListeners();
-      activeListenersRef.current = {onMouseMove, onMouseUp};
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('mouseup', onMouseUp);
+      abortControllerRef.current?.abort();
+
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      const {signal} = abortController;
+      window.addEventListener('mousemove', onMouseMove, {signal});
+      window.addEventListener('mouseup', onMouseUp, {signal});
     },
-    [applyTemplate, getResizeTemplate, onColumnResizeEnd, removeListeners]
+    [applyTemplate, getResizeTemplate, onColumnResizeEnd]
   );
 
-  useEffect(() => removeListeners, [removeListeners]);
+  useEffect(() => () => abortControllerRef.current?.abort(), []);
 
   return {onResizeMouseDown, applyTemplate};
 }

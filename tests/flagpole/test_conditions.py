@@ -76,17 +76,53 @@ class TestInConditions:
         values = ["bar", "baz"]
         condition = InCondition(property="foo", value=values)
 
-        bad_context = ([1], {"k": "v"})
-        for attr_val in bad_context:
-            with pytest.raises(ConditionTypeMismatchException):
-                condition.match(context=EvaluationContext({"foo": attr_val}), segment_name="test")
+        with pytest.raises(ConditionTypeMismatchException):
+            condition.match(context=EvaluationContext({"foo": {"k": "v"}}), segment_name="test")
 
         not_condition = NotInCondition(property="foo", value=values)
-        for attr_val in bad_context:
-            with pytest.raises(ConditionTypeMismatchException):
-                not_condition.match(
-                    context=EvaluationContext({"foo": attr_val}), segment_name="test"
-                )
+        with pytest.raises(ConditionTypeMismatchException):
+            not_condition.match(context=EvaluationContext({"foo": {"k": "v"}}), segment_name="test")
+
+    def test_is_in_list_property_matches_on_overlap(self) -> None:
+        """A list-valued property carries several names for one entity.
+
+        Used by plan families: an enterprise subscription reports both
+        "enterprise business" and "business", so a config may name either.
+        """
+        values = ["bar", "baz"]
+        condition = InCondition(property="foo", value=values)
+
+        assert condition.match(
+            context=EvaluationContext({"foo": ["bar", "unrelated"]}), segment_name="test"
+        )
+        assert not condition.match(
+            context=EvaluationContext({"foo": ["unrelated", "other"]}), segment_name="test"
+        )
+        assert not condition.match(context=EvaluationContext({"foo": []}), segment_name="test")
+
+    def test_is_not_in_list_property_requires_no_overlap(self) -> None:
+        values = ["bar", "baz"]
+        not_condition = NotInCondition(property="foo", value=values)
+
+        assert not not_condition.match(
+            context=EvaluationContext({"foo": ["bar", "unrelated"]}), segment_name="test"
+        )
+        assert not_condition.match(
+            context=EvaluationContext({"foo": ["unrelated", "other"]}), segment_name="test"
+        )
+        assert not_condition.match(context=EvaluationContext({"foo": []}), segment_name="test")
+
+    def test_is_in_list_property_case_insensitivity(self) -> None:
+        condition = InCondition(property="foo", value=["bAr"])
+        assert condition.match(context=EvaluationContext({"foo": ["BaR"]}), segment_name="test")
+
+    def test_is_in_list_property_no_type_coercion(self) -> None:
+        """Overlap must not coerce, matching the scalar path's behaviour."""
+        condition = InCondition(property="foo", value=["123"])
+        assert not condition.match(context=EvaluationContext({"foo": [123]}), segment_name="test")
+
+        int_condition = InCondition(property="foo", value=[123])
+        assert int_condition.match(context=EvaluationContext({"foo": [123]}), segment_name="test")
 
     def test_missing_context_property(self) -> None:
         values = ["bar", "baz"]

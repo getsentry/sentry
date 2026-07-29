@@ -292,9 +292,13 @@ export function LogsInfiniteTable({
   const estimateSize = useCallback(
     (index: number) => {
       const logItemId = data?.[index]?.[OurLogKnownFieldKey.ID];
-      const estimatedHeight =
-        expandedLogRowsHeights[logItemId ?? ''] ?? LOGS_GRID_BODY_ROW_HEIGHT;
-      return estimatedHeight;
+      const expandedDetailsHeight = expandedLogRowsHeights[logItemId ?? ''];
+      // A virtual item is the collapsed row plus, when expanded, its details
+      // panel rendered as a sibling row. The stored height only covers the
+      // details panel, so add the base row height back for the full item.
+      return expandedDetailsHeight === undefined
+        ? LOGS_GRID_BODY_ROW_HEIGHT
+        : LOGS_GRID_BODY_ROW_HEIGHT + expandedDetailsHeight;
     },
     [expandedLogRowsHeights, data]
   );
@@ -448,7 +452,9 @@ export function LogsInfiniteTable({
     });
   }, []);
   const handleExpandHeight = useCallback((logItemId: string, estimatedHeight: number) => {
-    setExpandedLogRowsHeights(prev => ({...prev, [logItemId]: estimatedHeight}));
+    setExpandedLogRowsHeights(prev =>
+      prev[logItemId] === estimatedHeight ? prev : {...prev, [logItemId]: estimatedHeight}
+    );
   }, []);
   const handleCollapse = useCallback((logItemId: string) => {
     setExpandedLogRows(prev => {
