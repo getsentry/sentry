@@ -11,6 +11,7 @@ from sentry.integrations.github_enterprise.actions.create_ticket import (
 )
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log import ActionSource, action_context_scope
 from sentry.models.activity import Activity
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
@@ -83,7 +84,9 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
         assert len(results) == 1
 
         rule_future = RuleFuture(rule=rule_object, kwargs=results[0].kwargs)
-        return results[0].callback(event, futures=[rule_future])
+        # Rule callbacks run inside post_process_group's action context in production.
+        with action_context_scope(ActionSource.SYSTEM):
+            return results[0].callback(event, futures=[rule_future])
 
     def get_key(self, event: GroupEvent):
         return ExternalIssue.objects.get_linked_issues(event, self.integration).values_list(
