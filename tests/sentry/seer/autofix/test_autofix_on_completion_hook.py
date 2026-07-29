@@ -531,6 +531,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         state.repo_pr_states = {
             "test-repo": RepoPRState(
                 repo_name="test-repo",
+                provider="github",
                 pr_id=77,
                 pr_number=7,
                 pr_url="https://example.com/pull/7",
@@ -545,6 +546,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         call_kwargs = mock_broadcast.call_args.kwargs
         assert call_kwargs["event_name"] == SeerActionType.ITERATION_COMPLETED.value
         assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["path"] == "test.py"
+        assert call_kwargs["payload"]["pull_requests"][0]["provider"] == "github"
         assert call_kwargs["payload"]["pull_requests"][0]["pull_request"]["pr_number"] == 7
         mock_process_autofix_updates.assert_called_once()
         assert (

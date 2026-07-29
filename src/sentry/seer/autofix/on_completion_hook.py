@@ -540,10 +540,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         }
 
     @classmethod
-    def _format_pull_requests_payload(cls, state: SeerRunState) -> list[dict]:
+    def _format_pull_requests_payload(
+        cls,
+        state: SeerRunState,
+    ) -> list[dict]:
         return [
             {
-                "provider": "unknown",
+                "provider": pull_request.provider or "unknown",
                 "repo_name": pull_request.repo_name,
                 "pull_request": {
                     "pr_id": pull_request.pr_id,
