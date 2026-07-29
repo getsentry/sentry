@@ -90,7 +90,14 @@ def _max_attempts() -> int:
 
 
 class TeapotUnavailable(Exception):
-    """Teapot is down or returned a non-retryable error. Caller should swallow."""
+    """Teapot is unreachable or erroring (network, timeout, exhausted 5xx retries,
+    malformed body) — a genuine outage. The caller trips the circuit breaker."""
+
+
+class TeapotRequestError(Exception):
+    """This request can't succeed regardless of teapot's health: the URL isn't
+    configured, an attachment is missing from objectstore, or teapot rejected the
+    request (4xx). NOT an outage — the caller skips without tripping the breaker."""
 
 
 def _resolve_url() -> str | None:
@@ -107,14 +114,15 @@ class TeapotClient:
 
     Every attachment (the `.nv-gpudmp` and each shader-debug `.nvdbg`) must be in
     objectstore; teapot fetches them by presigned URL. Raises `TeapotUnavailable`
-    on network errors, exhausted 5xx retries, or an attachment missing from
-    objectstore — callers treat that as "skip", never fatal.
+    on a genuine outage (network, exhausted 5xx retries) and `TeapotRequestError`
+    on a request the caller can't complete (unconfigured URL, missing attachment,
+    4xx) — callers treat both as "skip", never fatal.
     """
 
     def __init__(self, project: Any, event_id: str) -> None:
         base_url = _resolve_url()
         if not base_url:
-            raise TeapotUnavailable("SENTRY_TEAPOT_URL not configured")
+            raise TeapotRequestError("teapot url not configured")
         self.base_url = base_url
         self.project = project
         self.event_id = event_id
@@ -157,7 +165,7 @@ class TeapotClient:
         needs an ``HttpRequest`` and we're in a background task.
         """
         if not att.stored_id:
-            raise TeapotUnavailable(f"attachment {att.name!r} is not in objectstore")
+            raise TeapotRequestError(f"attachment {att.name!r} is not in objectstore")
         return maybe_rewrite_url_for_symbolicator(
             session.presigned_object_url("GET", att.stored_id, duration=_PRESIGNED_URL_TTL)
         )
@@ -199,7 +207,12 @@ class TeapotClient:
                         "body": resp.text[:512],
                     },
                 )
-                raise TeapotUnavailable(f"teapot returned {resp.status_code}: {resp.text[:256]}")
+                # A 4xx means teapot rejected this request but is itself healthy;
+                # only a 5xx (retryable ones already exhausted above) is an outage.
+                detail = f"teapot returned {resp.status_code}: {resp.text[:256]}"
+                if resp.status_code < 500:
+                    raise TeapotRequestError(detail)
+                raise TeapotUnavailable(detail)
 
             try:
                 return resp.json()
@@ -218,14 +231,22 @@ def submit_to_teapot(
     dump: TeapotAttachment,
     shader_debug_info: Sequence[TeapotAttachment] | None = None,
 ) -> dict[str, Any] | None:
-    """Best-effort teapot invocation. Returns None on any failure."""
+    """Best-effort teapot invocation.
+
+    Returns the decode on success, or None on a request/data error (unconfigured
+    URL, missing attachment, 4xx) — teapot is healthy, so the caller should not
+    trip the circuit breaker. Raises ``TeapotUnavailable`` on a genuine outage
+    (network, timeout, 5xx) so the caller can.
+    """
 
     try:
         client = TeapotClient(project=project, event_id=event_id)
         return client.symbolicate(dump, shader_debug_info or [])
-    except TeapotUnavailable as e:
-        logger.info("teapot.unavailable", extra={"event_id": event_id, "error": str(e)})
+    except TeapotRequestError as e:
+        logger.info("teapot.request_error", extra={"event_id": event_id, "error": str(e)})
         return None
+    except TeapotUnavailable:
+        raise  # a real outage — let the caller trip the breaker
     except Exception as e:
         sentry_sdk.capture_exception(e)
         logger.warning("teapot.unexpected_error", extra={"event_id": event_id, "error": str(e)})

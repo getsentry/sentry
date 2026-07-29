@@ -15,8 +15,9 @@ from typing import Any
 import sentry_sdk
 
 from sentry import options
+from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.gpu import apply_gpu_crash_symbolication
-from sentry.lang.native.teapot import submit_to_teapot
+from sentry.lang.native.teapot import TeapotUnavailable, submit_to_teapot
 from sentry.lang.native.utils import (
     find_all_shader_debug_attachments,
     find_gpu_crash_dump_attachment,
@@ -101,6 +102,19 @@ def _try_symbolicate(data: MutableMapping[str, Any], project_id: int, event_id: 
             metrics.incr("tasks.gpu_crash.skipped", tags={"reason": "disabled"})
             return False
 
+        # Re-check the load-shed killswitch (routing only gates new events) so ops
+        # can drain already-queued work when the pool is overwhelmed.
+        if killswitch_matches_context(
+            "store.load-shed-gpu-crash-projects",
+            {
+                "project_id": project_id,
+                "event_id": event_id,
+                "platform": data.get("platform") or "null",
+            },
+        ):
+            metrics.incr("tasks.gpu_crash.skipped", tags={"reason": "load_shed"})
+            return False
+
         dump = find_gpu_crash_dump_attachment(data)
         if dump is None:
             metrics.incr("tasks.gpu_crash.skipped", tags={"reason": "attachment_missing"})
@@ -118,11 +132,19 @@ def _try_symbolicate(data: MutableMapping[str, Any], project_id: int, event_id: 
             tags={"shader_debug_count": str(count) if count < 10 else "10+"},
         )
         project = Project.objects.get_from_cache(id=project_id)
-        with metrics.timer("tasks.gpu_crash.teapot"):
-            response = submit_to_teapot(project, event_id, dump, shaders)
-        if response is None:
+        try:
+            with metrics.timer("tasks.gpu_crash.teapot"):
+                response = submit_to_teapot(project, event_id, dump, shaders)
+        except TeapotUnavailable:
+            # A genuine outage — feed the breaker so repeated failures trip it.
             breaker.record_error()
             metrics.incr("tasks.gpu_crash.teapot_unavailable")
+            return False
+
+        if response is None:
+            # Request/data error (bad request, missing attachment): teapot is
+            # healthy, so don't trip the breaker — just save unenriched.
+            metrics.incr("tasks.gpu_crash.skipped", tags={"reason": "request_error"})
             return False
         breaker.record_success()
 

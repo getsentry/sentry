@@ -169,14 +169,15 @@ def _do_preprocess_event(
     # upload) carrying only the `.nv-gpudmp` — no CPU crash report. Route it to
     # teapot in a dedicated isolated task before symbolication/save, so a slow
     # teapot can never back up CPU symbolication. Checked before the stacktrace
-    # lookup below — that work is pointless for an event bound for teapot.
-    # `has_attachments` short-circuits the common path cheaply; reprocessing never
-    # sets it, so fall through on `from_reprocessing` too. The feature flag is
-    # checked here (project already loaded) rather than in the task. The load-shed
-    # killswitch drops the isolated routing (event still saves via the normal
-    # path) if the pool is overwhelmed.
+    # lookup below — that work is pointless for an event bound for teapot. Only on
+    # first ingest (`has_attachments`): teapot enriches once, and we deliberately
+    # don't back up the unprocessed payload, so a reprocess keeps the enriched
+    # event as-is instead of re-running teapot (the `.nv-gpudmp` isn't reloaded)
+    # and dropping the enrichment. The feature flag is checked here (project
+    # already loaded), not in the task; the load-shed killswitch drops the routing
+    # (event still saves via the normal path) if the pool is overwhelmed.
     if (
-        (has_attachments or from_reprocessing)
+        has_attachments
         and is_gpu_crash_event(data)
         and features.has("organizations:gpu-crash-symbolication", project.organization)
         and not killswitch_matches_context(
@@ -188,7 +189,6 @@ def _do_preprocess_event(
             },
         )
     ):
-        reprocessing2.backup_unprocessed_event(data=original_data)
         symbolicate_gpu_crash_event.delay(
             cache_key=cache_key,
             event_id=event_id,
