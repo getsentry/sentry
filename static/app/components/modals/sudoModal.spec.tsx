@@ -260,6 +260,29 @@ describe('Sudo Modal', () => {
       ).toBeInTheDocument();
     });
 
+    it('stays on the access step when there is no authenticator', async () => {
+      MockApiClient.addMockResponse({url: '/authenticators/', body: []});
+
+      renderSuperuserModal();
+
+      await userEvent.click(await screen.findByRole('radio', {name: 'Development'}));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Reason for Access'}),
+        'Investigating an issue'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      expect(
+        await screen.findByText('Please add a U2F authenticator to your Sentry account')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('textbox', {name: 'Reason for Access'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Re-authenticate'})
+      ).not.toBeInTheDocument();
+    });
+
     it('shows an error when authentication fails', async () => {
       ConfigStore.set('disableU2FForSUForm', true);
       MockApiClient.addMockResponse({

@@ -219,6 +219,12 @@ function SudoModal({
       const access = accessSchema.parse(value);
 
       if (!disableU2FForSUForm) {
+        // Without an authenticator the webauthn step has nothing to render.
+        if (!authenticators.length) {
+          setErrorType(ErrorCodes.NO_AUTHENTICATOR);
+          return;
+        }
+
         setErrorType(undefined);
         setSuperuserStep({step: 'webauthn', access});
         return;
