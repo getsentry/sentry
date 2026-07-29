@@ -219,11 +219,6 @@ function SudoModal({
       const access = accessSchema.parse(value);
 
       if (!disableU2FForSUForm) {
-        if (!authenticators.length) {
-          setErrorType(ErrorCodes.NO_AUTHENTICATOR);
-          return;
-        }
-
         setErrorType(undefined);
         setSuperuserStep({step: 'webauthn', access});
         return;
@@ -262,8 +257,15 @@ function SudoModal({
     return authLoginPath;
   };
 
+  // A superuser flow needs an authenticator unless U2F is disabled. Surfaced at
+  // render time so it reports even when validation blocks submission.
+  const noAuthenticator =
+    isSuperuser && !disableU2FForSUForm && authenticatorsLoaded && !authenticators.length;
+  const resolvedErrorType =
+    errorType ?? (noAuthenticator ? ErrorCodes.NO_AUTHENTICATOR : undefined);
+
   // An expired SSO session is terminal: redirect to re-auth.
-  const ssoExpired = errorType === ErrorCodes.INVALID_SSO_SESSION;
+  const ssoExpired = resolvedErrorType === ErrorCodes.INVALID_SSO_SESSION;
   useEffect(() => {
     if (ssoExpired) {
       logout(api, getAuthLoginPath());
@@ -299,7 +301,9 @@ function SudoModal({
       );
     }
 
-    const errorAlert = errorType ? <Alert variant="danger">{errorType}</Alert> : null;
+    const errorAlert = resolvedErrorType ? (
+      <Alert variant="danger">{resolvedErrorType}</Alert>
+    ) : null;
 
     if (
       (!user.hasPasswordAuth && authenticators.length === 0) ||
@@ -388,6 +392,7 @@ function SudoModal({
               <Flex width="100%" justify="between" align="center" gap="md">
                 <superuserForm.SubmitButton
                   variant="secondary"
+                  disabled={noAuthenticator}
                   onClick={() => {
                     superuserForm.setFieldValue('superuserAccessCategory', 'cops_csm');
                     superuserForm.setFieldValue('superuserReason', 'COPS and CSM use');
@@ -395,7 +400,9 @@ function SudoModal({
                 >
                   {t('COPS/CSM')}
                 </superuserForm.SubmitButton>
-                <superuserForm.SubmitButton>{t('Continue')}</superuserForm.SubmitButton>
+                <superuserForm.SubmitButton disabled={noAuthenticator}>
+                  {t('Continue')}
+                </superuserForm.SubmitButton>
               </Flex>
             ) : (
               <Flex width="100%" justify="between" align="center" gap="md">

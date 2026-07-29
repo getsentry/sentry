@@ -248,6 +248,19 @@ describe('Sudo Modal', () => {
       });
     });
 
+    it('reports a missing authenticator instead of a silently inert submit', async () => {
+      ConfigStore.set('isSelfHosted', true);
+      MockApiClient.addMockResponse({url: '/authenticators/', body: []});
+      setHasPasswordAuth(false);
+
+      renderSuperuserModal();
+
+      expect(
+        await screen.findByText('Please add a U2F authenticator to your Sentry account')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
+    });
+
     it('shows an error when authentication fails', async () => {
       ConfigStore.set('disableU2FForSUForm', true);
       MockApiClient.addMockResponse({
