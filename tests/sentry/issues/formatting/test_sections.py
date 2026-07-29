@@ -148,10 +148,11 @@ def test_frame_vars_trimmed_to_context_and_scrubbed() -> None:
         function="login",
         filename="a.py",
         line_no=2,
-        context=[(1, "user = get_user()"), (2, "check(password)")],
+        context=[(1, "user = get_user(missing)"), (2, "check(password)")],
         vars={
             "password": "[Filtered]",
             "user": {"email": "[Filtered]", "id": 7},
+            "missing": None,
             "unmentioned": "noise",
         },
     )
@@ -159,7 +160,7 @@ def test_frame_vars_trimmed_to_context_and_scrubbed() -> None:
     out = exceptions_section(event, MD, LIMITS_DEFAULT)
     assert "[Filtered]" not in out
     # only the unscrubbed part of the one mentioned var survives; the source lines still render
-    assert "vars: user={'id': 7}" in out
+    assert "vars: user={'id': 7}, missing=None" in out
     assert "password=" not in out
     assert "unmentioned" not in out
 

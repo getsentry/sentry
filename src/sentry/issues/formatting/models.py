@@ -12,7 +12,9 @@ from pydantic import BaseModel, Field, validator
 
 
 def _drop_filtered(value: Any) -> Any:
-    """Strip scrubbed leaves, recursing into dicts and lists. ``None`` means nothing survived."""
+    """Strip scrubbed leaves from a dict or list. ``None`` means nothing survived, so only call
+    this on containers: a scalar ``None`` is a legitimate value, not an empty result.
+    """
     if isinstance(value, dict):
         kept_items = {
             k: v for k, v in ((k, _drop_filtered(v)) for k, v in value.items()) if v is not None
@@ -58,9 +60,12 @@ class Frame(BaseModel):
         for key, value in vars.items():
             if code and key not in code:
                 continue
-            cleaned = _drop_filtered(value)
-            if cleaned is not None:
-                kept[key] = cleaned
+            if isinstance(value, dict | list):
+                cleaned = _drop_filtered(value)
+                if cleaned is not None:  # a container left empty by scrubbing carries nothing
+                    kept[key] = cleaned
+            elif "[Filtered]" not in str(value):
+                kept[key] = value  # a scalar None or 0 is worth keeping; often it's the cause
         return kept
 
 
