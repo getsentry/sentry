@@ -560,7 +560,12 @@ def create_objectstore_dif_from_id(
     checksum: str,
     file_size: int,
 ) -> tuple[ProjectDebugFile, bool]:
-    """Creates an Objectstore-only ProjectDebugFile from an already validated stream."""
+    """Creates the :class:`ProjectDebugFile` entry for the provided DIF.
+
+    Analogous to :func:`create_dif_from_id`, but writes exclusively to Objectstore.
+
+    Returns a tuple of ``(dif, created)``.
+    """
     dif = _find_existing_dif(project, meta, checksum)
     if dif is not None:
         return dif, False
