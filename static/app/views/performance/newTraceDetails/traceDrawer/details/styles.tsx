@@ -218,8 +218,6 @@ const TitleOpText = styled('div')`
 `;
 
 const Table = styled('table')`
-  margin-bottom: 0 !important;
-
   td {
     overflow: hidden;
   }

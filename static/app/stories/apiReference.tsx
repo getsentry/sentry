@@ -352,7 +352,6 @@ const StoryTableContainer = styled('div')`
 const StoryTypesTable = styled('table')`
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 0;
   border-radius: ${p => p.theme.radius.md};
   word-break: normal;
   table-layout: fixed;
