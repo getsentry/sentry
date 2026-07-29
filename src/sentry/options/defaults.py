@@ -440,23 +440,20 @@ register(
     default={"url": "http://127.0.0.1:8125"},
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# The decode is sub-second in practice; keep the timeout tight so a slow teapot
-# fails fast (holds a worker briefly) rather than pinning it. The circuit breaker
-# then trips on sustained failures so tasks skip teapot entirely.
+# Tight timeout: decode is sub-second, so a slow teapot should fail fast.
 register(
     "teapot.timeout-seconds",
     default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Retries only on transient 5xx; kept low so a slow teapot can't pile up work.
+# Retries only on transient 5xx; low so a slow teapot can't pile up work.
 register(
     "teapot.max-attempts",
     default=2,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Circuit breaker around teapot: after `error_limit` failures within
-# `error_limit_window` seconds, skip teapot for `broken_state_duration` seconds
-# (events still save, unenriched) so a teapot outage can't back up the GPU pool.
+# After `error_limit` failures in `error_limit_window`s, skip teapot for
+# `broken_state_duration`s so an outage can't back up the GPU pool.
 register(
     "teapot.circuit-breaker-config",
     default={

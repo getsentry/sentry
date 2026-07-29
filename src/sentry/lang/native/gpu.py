@@ -1,12 +1,8 @@
-"""GPU crash dump symbolication — teapot's decode applied to the in-flight event.
+"""Apply teapot's GPU crash decode to the in-flight event.
 
-The GPU crash arrives from Relay as its own native event carrying the
-``.nv-gpudmp`` attachment: Relay split it off the minidump/unreal upload and set
-the event id, trace context, release/environment and the ``cpu_event_id`` link.
-This module runs teapot over that attachment and applies the decode to the event
-in place — exception, grouping fingerprint, GPU contexts, tags and breadcrumbs —
-before it is saved through the normal pipeline. It enriches the event Relay
-created and billed; it never builds or bills one itself.
+Relay splits the ``.nv-gpudmp`` onto its own native event with identity/trace/
+release already set; this maps teapot's decode onto it (exception, fingerprint,
+GPU contexts, tags, breadcrumbs) before save. Enriches only — never bills.
 """
 
 from __future__ import annotations
@@ -21,9 +17,6 @@ logger = logging.getLogger(__name__)
 
 # NVIDIA Aftermath GPU crash dump attachment, decoded by teapot.
 GPU_CRASH_DUMP_ATTACHMENT_TYPE = "event.nv_gpudmp"
-
-
-# ─────────────────────────── public entry point ────────────────────────────
 
 
 def apply_gpu_crash_symbolication(
@@ -57,10 +50,6 @@ def apply_gpu_crash_symbolication(
 
     data["platform"] = "native"
     data["level"] = "fatal"
-    # Relay typed the scope-only event as "default" (the exception is added here,
-    # after normalization). Re-type it as an error so the event title is derived
-    # from the exception below instead of defaulting to "<unlabeled event>";
-    # `get_event_type` trusts `data["type"]` and never re-infers it.
     data["type"] = "error"
     data["fingerprint"] = list(_as_list(response.get("fingerprint"))) or ["gpu", category]
     data["exception"] = {
@@ -85,9 +74,7 @@ def apply_gpu_crash_symbolication(
             "vendor_name": "NVIDIA",
             "api": gpu_state.get("api"),
         }
-    # Only-if-absent: the GPU event inherits the SDK's richer os/app contexts from
-    # the copied scope; teapot's thinner versions just fill the gap when the upload
-    # carried no SDK scope (e.g. a raw minidump).
+    # Only fill os/app if the copied SDK scope didn't (teapot's are thinner).
     if gpu_state.get("os_version") and "os" not in contexts:
         contexts["os"] = {"name": gpu_state["os_version"], "type": "os"}
     if gpu_state.get("application_name") and "app" not in contexts:
@@ -112,26 +99,18 @@ def apply_gpu_crash_symbolication(
     return data
 
 
-# ─────────────────────────── event construction ────────────────────────────
-
-
 def _as_dict(value: Any) -> dict[str, Any]:
-    """Coerce an untrusted teapot JSON value to a dict (``{}`` if it isn't one)."""
+    """Coerce untrusted teapot JSON to a dict (``{}`` otherwise)."""
     return value if isinstance(value, dict) else {}
 
 
 def _as_list(value: Any) -> list[Any]:
-    """Coerce an untrusted teapot JSON value to a list (``[]`` if it isn't one)."""
+    """Coerce untrusted teapot JSON to a list (``[]`` otherwise)."""
     return value if isinstance(value, list) else []
 
 
 def _primary_shader(response: Mapping[str, Any]) -> dict[str, Any]:
-    """First active shader from teapot's response, or ``{}``.
-
-    Every level is untrusted external JSON, so type-check before indexing: a
-    truthy non-list ``active_shaders`` (or a non-dict entry) must not reach
-    ``active_shaders[0]`` / ``primary_shader.get(...)``.
-    """
+    """First active shader, or ``{}`` (every level is untrusted JSON)."""
     active_shaders = _as_dict(response.get("shader_context")).get("active_shaders")
     if not isinstance(active_shaders, list) or not active_shaders:
         return {}
@@ -139,10 +118,10 @@ def _primary_shader(response: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _build_flat_gpu_context(response: Mapping[str, Any]) -> dict[str, Any]:
-    """Flatten teapot's response into a ``contexts.gpu_crash`` dict.
+    """Flatten teapot's response into ``contexts.gpu_crash``.
 
-    Top-level scalars render inline in the context card; nested objects would
-    collapse behind ``> { N items }``, so we flatten fault / gpu_state out.
+    Flat scalars render inline in the context card; nested objects would collapse
+    behind ``> { N items }``.
     """
 
     fault = _as_dict(response.get("fault"))
@@ -152,20 +131,16 @@ def _build_flat_gpu_context(response: Mapping[str, Any]) -> dict[str, Any]:
     flat: dict[str, Any] = {
         "type": "gpu_crash",
         "status": response.get("status"),
-        # Top-level teapot fields — drive grouping + UX. Always populated
-        # in successful responses; missing only for `failed` ones.
         "fault_category": response.get("fault_category"),
         "title": response.get("title"),
         "handler": response.get("handler"),
         "sdk_version": response.get("sdk_version"),
         "decode_time_ms": response.get("decode_time_ms"),
-        # Fault
         "fault_type": fault.get("type"),
         "fault_description": fault.get("description"),
         "fault_code": fault.get("code"),
         "virtual_address": fault.get("virtual_address"),
         "access_type": fault.get("access_type"),
-        # GPU / host
         "device_name": gpu_state.get("device_name"),
         "device_status": gpu_state.get("device_status"),
         "driver_version": gpu_state.get("driver_version"),
@@ -174,12 +149,9 @@ def _build_flat_gpu_context(response: Mapping[str, Any]) -> dict[str, Any]:
         "application_name": gpu_state.get("application_name"),
         "engine_reset": gpu_state.get("engine_reset"),
         "adapter_reset": gpu_state.get("adapter_reset"),
-        # Shader (when present)
         "shader_hash": primary_shader.get("shader_hash"),
         "shader_type": primary_shader.get("shader_type"),
         "shader_debug_info_uid": primary_shader.get("shader_debug_info_uid"),
-        # Missing debug files (surface count so users see when they need
-        # to fix their SDK integration).
         "missing_dif_count": len(_as_list(response.get("missing_difs"))),
     }
     warnings = _as_list(response.get("warnings"))
@@ -188,20 +160,9 @@ def _build_flat_gpu_context(response: Mapping[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in flat.items() if v is not None}
 
 
-# ─────────────────────────── frame / tag helpers ──────────────────────────
-
-
-def _merge_tags(
-    existing: Any,
-    extra: Mapping[str, str],
-) -> list[tuple[str, str]]:
-    """Merge the event's existing tags with the GPU extras.
-
-    Returns the pipeline's canonical list-of-pairs form — what ``set_tag`` /
-    ``get_tag`` / ``pop_tag`` in ``event_manager`` operate on (a dict would break
-    them). Accepts either the dict or list-of-pairs input shape; extras win on a
-    key collision.
-    """
+def _merge_tags(existing: Any, extra: Mapping[str, str]) -> list[tuple[str, str]]:
+    """Merge existing tags with GPU extras into the pipeline's list-of-pairs form
+    (what ``event_manager``'s tag helpers expect). Extras win on collision."""
 
     merged: dict[str, str] = {}
     if isinstance(existing, dict):
@@ -223,12 +184,8 @@ def _merge_tags(
 
 
 def _markers_to_breadcrumbs(markers: Any) -> list[dict[str, Any]]:
-    """Map teapot's `markers` to breadcrumbs.
-
-    For non-shader crashes these are often the only actionable signal (the
-    CPU-side context that submitted the faulting GPU work).
-    """
-
+    """Map teapot's ``markers`` to breadcrumbs (often the only signal for
+    non-shader crashes)."""
     if not isinstance(markers, list):
         return []
     out: list[dict[str, Any]] = []
@@ -252,14 +209,9 @@ def _markers_to_breadcrumbs(markers: Any) -> list[dict[str, Any]]:
 
 
 def _normalize_gpu_frames(teapot_frames: Any) -> list[dict[str, Any]]:
-    """Map teapot's ``frames[]`` to Sentry stacktrace frames.
-
-    Mostly a pass-through of pre-populated fields, plus two normalisations:
-    force ``symbolicator_status=symbolicated`` (shader frames have no debug
-    image, so the walker would otherwise mark them missing), and synthesise a
-    ``package`` from the shader hash for the module column.
-    """
-
+    """Map teapot's ``frames[]`` to Sentry stacktrace frames: pass through known
+    fields, force ``symbolicator_status=symbolicated`` (shader frames have no
+    debug image), and synthesise ``package`` from the shader hash."""
     if not isinstance(teapot_frames, list):
         return []
 
@@ -284,8 +236,7 @@ def _normalize_gpu_frames(teapot_frames: Any) -> list[dict[str, Any]]:
             value = raw.get(src)
             if value is not None:
                 frame[dst] = value
-        # `data` is external; only trust it if it's a mapping (a truthy
-        # str/list would crash `dict(...)` and the `.get()` below).
+        # `data` is external — only trust a mapping.
         raw_data = raw.get("data")
         if not isinstance(raw_data, dict):
             raw_data = {}
