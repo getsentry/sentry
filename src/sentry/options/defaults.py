@@ -1309,6 +1309,24 @@ register(
     default=1,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "issues.backfill_pr_lifecycle_action_log.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_action_log.batch_size",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_action_log.inter_batch_delay_s",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "seer.supergroups_backfill_lightweight.killswitch",
@@ -3753,16 +3771,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Which issue categories should we send issue.created webhooks for
+# Which issue categories should we not send issue.created webhooks for
 register(
-    "sentry-apps.expanded-webhook-categories",
+    "sentry-apps.unsupported-webhook-categories",
     type=Sequence,
     default=[
-        1,  # ERROR
-        4,  # CRON
-        6,  # FEEDBACK
-        7,  # UPTIME
-        10,  # OUTAGE
+        9,  # TEST_NOTIFICATION
     ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
