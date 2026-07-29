@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Sequence
 from typing import Any, TypeGuard
 from urllib.parse import parse_qs
@@ -48,7 +49,7 @@ from sentry.middleware.integrations.tasks import (
     route_slack_seer_event,
 )
 from sentry.types.cell import Cell
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.signing import unsign
 
 logger = logging.getLogger(__name__)
@@ -308,7 +309,55 @@ class SlackRequestParser(BaseRequestParser):
             and slack_request.is_seer_agent_request
         )
 
+    def _record_response_time(self, status_code: int | str) -> None:
+        """
+        Record how long Slack waited on us, measured from the timestamp Slack stamped
+        on the request to the moment we finish handling it. Unlike an in-app timer this
+        includes transit time, so it's comparable to Slack's 3 second timeout.
+        """
+        raw_timestamp = self.request.META.get("HTTP_X_SLACK_REQUEST_TIMESTAMP")
+        if raw_timestamp is None:
+            return
+
+        try:
+            # Slack sends whole Unix seconds, so this delta has ~1s of granularity.
+            sent_at = int(raw_timestamp)
+        except ValueError:
+            logger.info(
+                "slack.control.invalid_request_timestamp",
+                extra={"path": self.request.path, "timestamp": raw_timestamp},
+            )
+            return
+
+        elapsed = time.time() - sent_at
+        if elapsed < 0:
+            # Clock skew between Slack and us; recording this would skew the low end.
+            return
+
+        metrics.timing(
+            "hybrid_cloud.integration_control.slack.response_time",
+            elapsed,
+            tags={
+                # SlackStagingRequestParser inherits this, so keep the two apart.
+                "provider": self.provider,
+                "url_name": self.match.url_name,
+                "status_code": status_code,
+            },
+            sample_rate=1.0,
+        )
+
     def get_response(self) -> HttpResponseBase:
+        try:
+            response = self._get_response()
+        except BaseException:
+            # The final status code is decided further up the stack.
+            self._record_response_time("error")
+            raise
+
+        self._record_response_time(response.status_code)
+        return response
+
+    def _get_response(self) -> HttpResponseBase:
         """
         Slack Webhook Requests all require synchronous responses.
         """

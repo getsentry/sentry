@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
 import orjson
+import pytest
 import responses
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
@@ -436,3 +437,78 @@ class SlackRequestParserTest(TestCase):
 
         assert isinstance(response, HttpResponse)
         mock_apply.assert_not_called()
+
+    @staticmethod
+    def _response_time_calls(mock_timing: MagicMock) -> list[MagicMock]:
+        """`metrics` is a shared module, so filter out timings from unrelated code."""
+        return [
+            call
+            for call in mock_timing.call_args_list
+            if call.args and call.args[0] == "hybrid_cloud.integration_control.slack.response_time"
+        ]
+
+    @patch("sentry.middleware.integrations.parsers.slack.metrics.timing")
+    @patch("sentry.middleware.integrations.parsers.slack.time.time")
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_records_response_time_from_slack_timestamp(
+        self, mock_apply: MagicMock, mock_time: MagicMock, mock_timing: MagicMock
+    ) -> None:
+        sent_at = 1700000000
+        mock_time.return_value = sent_at + 2.5
+
+        parser = self._make_parser_with_seer_event(event_type="app_mention")
+        parser.request.META["HTTP_X_SLACK_REQUEST_TIMESTAMP"] = str(sent_at)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        (call,) = self._response_time_calls(mock_timing)
+        assert call.args[1] == 2.5
+        assert call.kwargs["tags"] == {
+            "provider": "slack",
+            "url_name": "sentry-integration-slack-event",
+            "status_code": status.HTTP_200_OK,
+        }
+
+    @patch("sentry.middleware.integrations.parsers.slack.metrics.timing")
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_skips_response_time_without_slack_timestamp(
+        self, mock_apply: MagicMock, mock_timing: MagicMock
+    ) -> None:
+        parser = self._make_parser_with_seer_event(event_type="app_mention")
+        assert "HTTP_X_SLACK_REQUEST_TIMESTAMP" not in parser.request.META
+        parser.get_response()
+
+        assert self._response_time_calls(mock_timing) == []
+
+    @patch("sentry.middleware.integrations.parsers.slack.metrics.timing")
+    @patch("sentry.middleware.integrations.parsers.slack.time.time")
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_skips_response_time_on_clock_skew(
+        self, mock_apply: MagicMock, mock_time: MagicMock, mock_timing: MagicMock
+    ) -> None:
+        sent_at = 1700000000
+        mock_time.return_value = sent_at - 5
+
+        parser = self._make_parser_with_seer_event(event_type="app_mention")
+        parser.request.META["HTTP_X_SLACK_REQUEST_TIMESTAMP"] = str(sent_at)
+        parser.get_response()
+
+        assert self._response_time_calls(mock_timing) == []
+
+    @patch("sentry.middleware.integrations.parsers.slack.metrics.timing")
+    @patch("sentry.middleware.integrations.parsers.slack.time.time")
+    def test_records_response_time_on_exception(
+        self, mock_time: MagicMock, mock_timing: MagicMock
+    ) -> None:
+        sent_at = 1700000000
+        mock_time.return_value = sent_at + 1.0
+
+        parser = self._make_parser_with_seer_event(event_type="app_mention")
+        parser.request.META["HTTP_X_SLACK_REQUEST_TIMESTAMP"] = str(sent_at)
+        with patch.object(parser, "_get_response", side_effect=ValueError("boom")):
+            with pytest.raises(ValueError):
+                parser.get_response()
+
+        (call,) = self._response_time_calls(mock_timing)
+        assert call.args[1] == 1.0
+        assert call.kwargs["tags"]["status_code"] == "error"
