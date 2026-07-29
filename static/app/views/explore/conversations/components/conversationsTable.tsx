@@ -429,7 +429,7 @@ export function getUserDisplayName(user: ConversationUser): string | null {
 
 export const CELL_MAX_CHARS = 256;
 
-export function cleanMarkdownForCell(text: string): string {
+function cleanMarkdownForCell(text: string): string {
   return text
     .replace(/```[\s\S]*?```/g, '') // fenced code blocks
     .replace(/^#{1,6}\s+(.+)$/gm, '**$1**') // headings -> bold text
