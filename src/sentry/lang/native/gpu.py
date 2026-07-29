@@ -8,7 +8,7 @@ GPU contexts, tags, breadcrumbs) before save. Enriches only — never bills.
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 from sentry.utils import metrics
@@ -20,8 +20,8 @@ GPU_CRASH_DUMP_ATTACHMENT_TYPE = "event.nv_gpudmp"
 
 
 def apply_gpu_crash_symbolication(
-    data: dict[str, Any], response: Mapping[str, Any]
-) -> dict[str, Any] | None:
+    data: MutableMapping[str, Any], response: Mapping[str, Any]
+) -> MutableMapping[str, Any] | None:
     """Apply teapot's decode to the in-flight GPU event, mutating ``data``.
 
     Returns the mutated event on success, or ``None`` for a ``failed``/unknown
@@ -75,8 +75,10 @@ def apply_gpu_crash_symbolication(
             "api": gpu_state.get("api"),
         }
     # Only fill os/app if the copied SDK scope didn't (teapot's are thinner).
+    # `os_version` is a combined string ("Windows 10 (19H1)"), so it's the raw
+    # description — not `name` (which drives OS filtering and wants the identity).
     if gpu_state.get("os_version") and "os" not in contexts:
-        contexts["os"] = {"name": gpu_state["os_version"], "type": "os"}
+        contexts["os"] = {"raw_description": str(gpu_state["os_version"]), "type": "os"}
     if gpu_state.get("application_name") and "app" not in contexts:
         contexts["app"] = {"app_name": gpu_state["application_name"], "type": "app"}
     data["contexts"] = contexts

@@ -9,7 +9,7 @@ from typing import Any
 import orjson
 from sentry_relay.processing import StoreNormalizer
 
-from sentry import options, reprocessing2
+from sentry import features, options, reprocessing2
 from sentry.attachments import delete_cached_and_ratelimited_attachments, get_attachments_for_event
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.event_preprocessors import get_event_preprocessors
@@ -130,9 +130,11 @@ def _do_preprocess_event(
     has_attachments: bool = False,
     inline_save_event: bool = False,
 ) -> None:
+    # Imported here, not at module top, to avoid circular imports back into
+    # sentry.tasks (e.g. sentry.tasks.gpu_crash imports this module).
     from sentry.lang.native.utils import is_gpu_crash_event
     from sentry.stacktraces.processing import find_stacktraces_in_data
-    from sentry.tasks.gpu_crash import submit_symbolicate_gpu_crash
+    from sentry.tasks.gpu_crash import symbolicate_gpu_crash_event
     from sentry.tasks.symbolication import (
         submit_symbolicate,
     )
@@ -180,15 +182,26 @@ def _do_preprocess_event(
     # A GPU crash dump is its own native event (Relay split it off the minidump
     # upload) carrying only the `.nv-gpudmp` — no CPU crash report. Route it to
     # teapot in a dedicated isolated task before symbolication/save, so a slow
-    # teapot can never back up CPU symbolication. The no-crash-report check keeps
-    # us from hijacking a CPU minidump event when the org hasn't opted into the
-    # Relay-side split. `has_attachments` short-circuits the common path cheaply;
-    # reprocessing never sets it, so fall through on `from_reprocessing` too. Back
-    # up the unprocessed event first (as the symbolicate path does) so a later
-    # reprocess can reload it and re-run teapot.
-    if (has_attachments or from_reprocessing) and is_gpu_crash_event(data):
+    # teapot can never back up CPU symbolication. `has_attachments` short-circuits
+    # the common path cheaply; reprocessing never sets it, so fall through on
+    # `from_reprocessing` too. The feature flag is checked here (project already
+    # loaded) rather than in the task. The load-shed killswitch drops the isolated
+    # routing (event still saves via the normal path) if the pool is overwhelmed.
+    if (
+        (has_attachments or from_reprocessing)
+        and is_gpu_crash_event(data)
+        and features.has("organizations:gpu-crash-symbolication", project.organization)
+        and not killswitch_matches_context(
+            "store.load-shed-gpu-crash-projects",
+            {
+                "project_id": project_id,
+                "event_id": event_id,
+                "platform": data.get("platform") or "null",
+            },
+        )
+    ):
         reprocessing2.backup_unprocessed_event(data=original_data)
-        submit_symbolicate_gpu_crash(
+        symbolicate_gpu_crash_event.delay(
             cache_key=cache_key,
             event_id=event_id,
             start_time=start_time,
