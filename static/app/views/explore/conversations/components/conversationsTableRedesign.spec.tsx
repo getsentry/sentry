@@ -80,6 +80,22 @@ describe('ConversationsTableRedesign', () => {
     expect(await screen.findByText('Debug failing auth middleware')).toBeInTheDocument();
   });
 
+  it('flattens markdown and tags in the title to plain text', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: '# Summarize <b>Q2</b> revenue'}]);
+
+    renderTable();
+
+    expect(await screen.findByText('Summarize Q2 revenue')).toBeInTheDocument();
+  });
+
+  it('shows the placeholder when the first message flattens to nothing', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: null, firstInput: '```\n```'}]);
+
+    renderTable();
+
+    expect(await screen.findByText('Untitled conversation')).toBeInTheDocument();
+  });
+
   it('renders the user identity', async () => {
     mockConversations([
       {

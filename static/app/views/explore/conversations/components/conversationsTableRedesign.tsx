@@ -22,6 +22,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconFire, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {markdownToPlainText} from 'sentry/utils/marked/marked';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -31,7 +32,6 @@ import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
 import {
   CELL_MAX_CHARS,
-  cleanMarkdownForCell,
   getUserDisplayName,
   UserNotInstrumentedTooltip,
 } from 'sentry/views/explore/conversations/components/conversationsTable';
@@ -235,14 +235,23 @@ function BodyCell({
   }
 }
 
-function getConversationTitle(conversation: Conversation): string | null {
-  // Prefer the AI-generated title, falling back to the first user message. The
-  // input can contain markdown, so strip it down to a single line of text.
-  const raw = conversation.title ?? conversation.firstInput;
+function getConversationTitle(
+  title: string | null,
+  firstInput: string | null
+): string | null {
+  // Prefer the AI-generated title, falling back to the first user message. Both
+  // can contain markdown/tags and are rendered as plain Text, so flatten them to
+  // a single line; a value that flattens to nothing falls back to the caller's
+  // placeholder rather than showing a blank title.
+  const raw = title ?? firstInput;
   if (!raw) {
     return null;
   }
-  return ellipsize(cleanMarkdownForCell(raw), CELL_MAX_CHARS);
+  const plainText = ellipsize(
+    markdownToPlainText(raw).replace(/\s+/g, ' ').trim(),
+    CELL_MAX_CHARS
+  );
+  return plainText.length > 0 ? plainText : null;
 }
 
 function getConversationIdLabel(conversationId: string): string {
@@ -252,7 +261,12 @@ function getConversationIdLabel(conversationId: string): string {
 }
 
 function ConversationCell({conversation}: {conversation: Conversation}) {
-  const title = getConversationTitle(conversation);
+  // Flattening markdown to plain text renders HTML + parses it, so memoize on
+  // the inputs to avoid recomputing on unrelated re-renders (hover, resize).
+  const title = useMemo(
+    () => getConversationTitle(conversation.title, conversation.firstInput),
+    [conversation.title, conversation.firstInput]
+  );
   const project = useProjectFromId({
     project_id: conversation.projectId ? String(conversation.projectId) : undefined,
   });
