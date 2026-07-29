@@ -23,6 +23,7 @@ HALF_DAY = timedelta(hours=12)
 
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
 MAX_FILE_SIZE = 2**32  # 4GB is the maximum size/offset supported by `File/Blob/Index`
+MAX_OBJECTSTORE_DEBUG_FILE_SIZE = MAX_FILE_SIZE
 
 
 class nooplogger:

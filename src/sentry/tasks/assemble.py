@@ -33,7 +33,7 @@ from sentry.models.artifactbundle import (
     ReleaseArtifactBundle,
 )
 from sentry.models.files.file import File
-from sentry.models.files.utils import MAX_FILE_SIZE
+from sentry.models.files.utils import MAX_FILE_SIZE, MAX_OBJECTSTORE_DEBUG_FILE_SIZE
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -90,7 +90,12 @@ class TemporaryAssembleResult(NamedTuple):
 
 @trace
 def assemble_file_blobs_to_temp(
-    task, org_or_project, name, checksum, chunks
+    task,
+    org_or_project,
+    name,
+    checksum,
+    chunks,
+    max_file_size: int = MAX_FILE_SIZE,
 ) -> TemporaryAssembleResult | None:
     """Verifies and assembles organization-owned FileBlobs into a temporary file."""
     from sentry.models.files.fileblob import FileBlob
@@ -118,13 +123,13 @@ def assemble_file_blobs_to_temp(
     blobs_by_checksum = {blob.checksum: blob for blob in file_blobs}
     ordered_blobs = [blobs_by_checksum[chunk] for chunk in chunks]
     file_size = sum(blob.size or 0 for blob in ordered_blobs)
-    if file_size > MAX_FILE_SIZE:
+    if file_size > max_file_size:
         set_assemble_status(
             task,
             org_or_project.id,
             checksum,
             ChunkFileState.ERROR,
-            detail=f"File {name} exceeds maximum size ({file_size} > {MAX_FILE_SIZE})",
+            detail=f"File {name} exceeds maximum size ({file_size} > {max_file_size})",
         )
         return None
 
@@ -341,7 +346,12 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
 
         if features.has("organizations:objectstore-debugfiles-assemble", project.organization):
             temporary_result = assemble_file_blobs_to_temp(
-                AssembleTask.DIF, project, name, checksum, chunks
+                AssembleTask.DIF,
+                project,
+                name,
+                checksum,
+                chunks,
+                max_file_size=MAX_OBJECTSTORE_DEBUG_FILE_SIZE,
             )
             if temporary_result is None:
                 return

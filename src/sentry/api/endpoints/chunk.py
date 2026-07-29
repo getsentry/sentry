@@ -10,14 +10,14 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.api.utils import generate_locality_url
 from sentry.models.files.fileblob import FileBlob
-from sentry.models.files.utils import MAX_FILE_SIZE
+from sentry.models.files.utils import MAX_FILE_SIZE, MAX_OBJECTSTORE_DEBUG_FILE_SIZE
 from sentry.models.organization import Organization
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.ratelimits.config import RateLimitConfig
@@ -193,6 +193,12 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         )
         accept = CHUNK_UPLOAD_ACCEPT
 
+        max_file_size = (
+            MAX_OBJECTSTORE_DEBUG_FILE_SIZE
+            if features.has("organizations:objectstore-debugfiles-assemble", organization)
+            else MAX_FILE_SIZE
+        )
+
         # Sentry CLI versions ≤2.39.1 require "chunkSize" to be a power of two, and will error otherwise,
         # with no way for the user to work around the error. This restriction has been removed from
         # newer Sentry CLI versions.
@@ -203,7 +209,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 "url": url,
                 "chunkSize": settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE,
                 "chunksPerRequest": MAX_CHUNKS_PER_REQUEST,
-                "maxFileSize": MAX_FILE_SIZE,
+                "maxFileSize": max_file_size,
                 "maxRequestSize": MAX_REQUEST_SIZE,
                 "concurrency": MAX_CONCURRENCY,
                 "hashAlgorithm": HASH_ALGORITHM,
