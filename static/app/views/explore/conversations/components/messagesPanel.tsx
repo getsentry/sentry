@@ -419,13 +419,11 @@ function PanelContainer({children}: {children: React.ReactNode}) {
 const MessageText = styled(Text)`
   word-break: break-word;
 
-  /* The bubbles set overflow-wrap: anywhere so long unbroken strings can't widen
-   * them. Unlike break-word, anywhere counts toward min-content intrinsic size,
-   * so table cells collapse to about one character wide: the table then fits any
-   * container, columns squish, and its scroll container never overflows. Reset
-   * both inside tables, which scroll on their own. */
+  /* word-break: break-word is legacy for overflow-wrap: anywhere, which counts
+   * toward min-content intrinsic size. Inherited into cells, it collapses them to
+   * about one character: the table then fits any container, columns squish, and
+   * its scroll container never overflows. Tables scroll on their own. */
   table {
-    overflow-wrap: normal;
     word-break: normal;
   }
 `;
