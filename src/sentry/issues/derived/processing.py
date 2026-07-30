@@ -12,7 +12,7 @@ from django.utils import timezone
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.framework import Pipeline
 from sentry.issues.derived.store import GroupDerivedDataStore
-from sentry.issues.derived.tasks import process_group_log_task
+from sentry.issues.derived.tasks import generate_group_derived_data, process_group_log_task
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.group import Group
@@ -475,26 +475,33 @@ def invalidate_group_derived_data(
     group_id: int,
     cursor: tuple[datetime, int] | None = None,
 ) -> None:
-    """Delete derived state so it is rebuilt from scratch on the next pass,
-    then kicks off an async task to regenerate the derived data.
+    """Force derived state to be rebuilt from scratch via a full regeneration.
+
+    Uses ``generate_group_derived_data`` (a full rebuild from EPOCH that
+    promotes over the current row via a ``generated_at`` CAS) rather than
+    incremental processing: the entries prompting invalidation may be *behind*
+    the row's cursor (e.g. backfilled with a historical ``date_added``), and
+    incremental processing only reads entries ahead of the cursor, so it would
+    never pick them up.
 
     If *cursor* is ``(date_added, id)`` of the earliest affected entry, the
-    row is only deleted when its cursor is at or past that point; otherwise
-    the mutation is still ahead of processing and no invalidation is needed.
-    Without a cursor the invalidation is unconditional.
+    rebuild is only scheduled when the row has already processed past that
+    point; otherwise the entries are still ahead of the cursor and normal
+    incremental processing will pick them up. Without a cursor the row is
+    deleted first (the log may have shrunk, e.g. via merge) and rebuilt
+    unconditionally.
     """
     if cursor is None:
         GroupDerivedData.objects.filter(group_id=group_id).delete()
-        process_group_log_task.delay(group_id)
+        generate_group_derived_data.delay(group_id)
         return
 
-    # Only invalidate if the row has already processed past the affected point.
     cursor_date, cursor_id = cursor
-    deleted, _ = GroupDerivedData.objects.filter(
+    needs_rebuild = GroupDerivedData.objects.filter(
         Q(group_id=group_id)
         & (Q(cursor_date__gt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__gte=cursor_id)),
-    ).delete()
-    if deleted:
+    ).exists()
+    if needs_rebuild:
         logger.info(
             "issues.derived.invalidated",
             extra={
@@ -503,4 +510,4 @@ def invalidate_group_derived_data(
                 "cursor_id": cursor_id,
             },
         )
-        process_group_log_task.delay(group_id)
+        generate_group_derived_data.delay(group_id)
