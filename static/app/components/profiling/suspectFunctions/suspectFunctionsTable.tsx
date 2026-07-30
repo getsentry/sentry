@@ -9,6 +9,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
+import {GridStatus} from 'sentry/components/tables/gridEditable/styles';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
@@ -33,7 +34,6 @@ import {
   TableHead,
   TableHeadCell,
   TableRow,
-  TableStatus,
 } from 'sentry/views/explore/components/table';
 import {getProfileTargetId} from 'sentry/views/explore/profiling/utils';
 
@@ -260,13 +260,13 @@ export function SuspectFunctionsTable({
         </TableHead>
         <TableBody>
           {flamegraphQuery.isPending ? (
-            <TableStatus>
+            <GridStatus>
               <LoadingIndicator />
-            </TableStatus>
+            </GridStatus>
           ) : flamegraphQuery.isError ? (
-            <TableStatus>
+            <GridStatus>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
+            </GridStatus>
           ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
             metrics.map((metric, i) => (
               <TableEntry
@@ -279,11 +279,11 @@ export function SuspectFunctionsTable({
               />
             ))
           ) : (
-            <TableStatus>
+            <GridStatus>
               <EmptyStateWarning>
                 <p>{t('No functions found')}</p>
               </EmptyStateWarning>
-            </TableStatus>
+            </GridStatus>
           )}
         </TableBody>
       </Table>

@@ -4,6 +4,7 @@ import {Pagination} from '@sentry/scraps/pagination';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {GridStatus} from 'sentry/components/tables/gridEditable/styles';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -17,7 +18,6 @@ import {
   TableHead,
   TableHeadCell,
   TableRow,
-  TableStatus,
 } from 'sentry/views/explore/components/table';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
@@ -115,13 +115,13 @@ export function SpansTable({
         </TableHead>
         <TableBody>
           {result.isPending ? (
-            <TableStatus>
+            <GridStatus>
               <LoadingIndicator />
-            </TableStatus>
+            </GridStatus>
           ) : result.isError ? (
-            <TableStatus>
+            <GridStatus>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
+            </GridStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => (
               <TableRow key={i}>
@@ -140,11 +140,11 @@ export function SpansTable({
               </TableRow>
             ))
           ) : (
-            <TableStatus>
+            <GridStatus>
               <EmptyStateWarning>
                 <p>{t('No spans found')}</p>
               </EmptyStateWarning>
-            </TableStatus>
+            </GridStatus>
           )}
         </TableBody>
       </Table>

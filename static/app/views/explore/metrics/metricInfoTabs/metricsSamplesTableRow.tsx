@@ -29,7 +29,6 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {
-  ExpandedRowCell,
   NumericSimpleTableRowCell,
   StickyTableRow,
   StyledSimpleTableRowCell,
@@ -376,13 +375,13 @@ export function SampleTableRow({
       </StickyTableRow>
       {isExpanded && (
         <SimpleTable.Row>
-          <ExpandedRowCell>
+          <SimpleTable.FullWidthCell>
             <MetricDetails
               dataRow={row}
               ref={measureRef}
               showTelemetry={source === 'metricsPage'}
             />
-          </ExpandedRowCell>
+          </SimpleTable.FullWidthCell>
         </SimpleTable.Row>
       )}
     </Fragment>

@@ -7,12 +7,10 @@ import {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
 import type {ColumnAlign} from 'sentry/components/tables/gridEditable';
 import {
   Body as _TableWrapper,
-  GridBody,
   GridBodyCell,
   GridHead,
   GridHeadCell,
   GridRow,
-  GridStatus,
 } from 'sentry/components/tables/gridEditable/styles';
 import {
   Table as SharedTable,
@@ -67,7 +65,6 @@ interface TableProps
   height?: CSSProperties['height'];
   ref?: React.RefObject<HTMLTableElement | null>;
   scrollable?: boolean;
-  showVerticalScrollbar?: boolean;
 }
 
 export function Table({
@@ -97,8 +94,6 @@ export function Table({
   );
 }
 
-export {GridStatus as TableStatus};
-
 export const ALLOWED_CELL_ACTIONS: Actions[] = [
   Actions.ADD,
   Actions.EXCLUDE,
@@ -109,7 +104,7 @@ export const ALLOWED_CELL_ACTIONS: Actions[] = [
   Actions.OPEN_INTERNAL_LINK,
 ];
 
-export const TableBody = GridBody;
+export const TableBody = SharedTable.Body;
 export const TableRow = GridRow;
 export const TableBodyCell = GridBodyCell;
 

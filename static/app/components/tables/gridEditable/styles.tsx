@@ -131,12 +131,6 @@ export const GridHeadCellStatic = styled('th')`
   }
 `;
 
-/**
- * GridBody are the collection of elements that contains and display the data
- * of the Grid. They are rather simple.
- */
-export const GridBody = styled(Table.Body)``;
-
 export const GridRow = styled(Table.Row, {
   shouldForwardProp: prop => prop !== 'isClickable',
 })<{isClickable?: boolean}>`

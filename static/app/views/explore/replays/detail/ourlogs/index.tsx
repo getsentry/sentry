@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {GridBody} from 'sentry/components/tables/gridEditable/styles';
+import {Table} from 'sentry/components/tables/table';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
@@ -46,9 +46,9 @@ export function OurLogs() {
   if (!replay || !defined(replayStartedAt) || !defined(replayEndedAt) || !replayId) {
     return (
       <BorderedSection isStatus>
-        <GridBody>
+        <Table.Body>
           <LoadingRenderer />
-        </GridBody>
+        </Table.Body>
       </BorderedSection>
     );
   }

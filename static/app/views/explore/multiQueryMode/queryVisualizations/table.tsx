@@ -10,7 +10,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ColumnAlign} from 'sentry/components/tables/gridEditable';
-import {GridBodyCell, GridHeadCell} from 'sentry/components/tables/gridEditable/styles';
+import {
+  GridBodyCell,
+  GridHeadCell,
+  GridStatus,
+} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -23,12 +27,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import {
-  TableBody,
-  TableHead,
-  TableRow,
-  TableStatus,
-} from 'sentry/views/explore/components/table';
+import {TableBody, TableHead, TableRow} from 'sentry/views/explore/components/table';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
@@ -164,13 +163,13 @@ function AggregatesTable({
         </TableHead>
         <TableBody>
           {result.isPending ? (
-            <TableStatus>
+            <GridStatus>
               <LoadingIndicator />
-            </TableStatus>
+            </GridStatus>
           ) : result.isError ? (
-            <TableStatus>
+            <GridStatus>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
+            </GridStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
               const target = getSamplesTargetAtIndex(index, [...queries], row, location);
@@ -201,11 +200,11 @@ function AggregatesTable({
               );
             })
           ) : (
-            <TableStatus>
+            <GridStatus>
               <EmptyStateWarning>
                 <p>{t('No spans found')}</p>
               </EmptyStateWarning>
-            </TableStatus>
+            </GridStatus>
           )}
         </TableBody>
       </Table>
@@ -283,13 +282,13 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
         </TableHead>
         <TableBody>
           {result.isPending ? (
-            <TableStatus>
+            <GridStatus>
               <LoadingIndicator />
-            </TableStatus>
+            </GridStatus>
           ) : result.isError ? (
-            <TableStatus>
+            <GridStatus>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
+            </GridStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => (
               <TableRow key={i}>
@@ -309,11 +308,11 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
               </TableRow>
             ))
           ) : (
-            <TableStatus>
+            <GridStatus>
               <EmptyStateWarning>
                 <p>{t('No spans found')}</p>
               </EmptyStateWarning>
-            </TableStatus>
+            </GridStatus>
           )}
         </TableBody>
       </Table>

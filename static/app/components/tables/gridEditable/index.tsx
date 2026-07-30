@@ -18,7 +18,6 @@ import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 
 import {
   Body,
-  GridBody,
   GridBodyCell,
   GridBodyCellStatic,
   GridHead,
@@ -266,7 +265,7 @@ export function GridEditable<
             scrollable={scrollable}
           >
             <GridHead sticky={stickyHeader}>{renderGridHead()}</GridHead>
-            <GridBody>{renderGridBody()}</GridBody>
+            <Table.Body>{renderGridBody()}</Table.Body>
           </Table>
         </Body>
       </Profiler>

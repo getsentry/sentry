@@ -62,8 +62,6 @@ export const WrappingText = styled('div')`
   align-items: center;
 `;
 
-export const ExpandedRowCell = SimpleTable.FullWidthCell;
-
 export const StyledSimpleTableRowCell = styled(SimpleTable.RowCell)<{
   source: MetricsSamplesTableSource;
   noPadding?: boolean;

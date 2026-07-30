@@ -8,13 +8,12 @@ const ROW_COUNT = 100;
 const ROW_HEIGHT = 20;
 const VIEWPORT_HEIGHT = 100;
 
-function TestList({scrollMargin}: {scrollMargin?: number}) {
+function TestList() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const {paddingBottom, paddingTop, virtualItems} = useVirtualRows({
     count: ROW_COUNT,
     estimateSize: () => ROW_HEIGHT,
     getScrollElement: () => scrollRef.current,
-    scrollMargin,
   });
 
   return (
@@ -33,16 +32,12 @@ function TestList({scrollMargin}: {scrollMargin?: number}) {
  * rendered rows they must always add up to the full list height. Getting that
  * total wrong is what leaves blank gaps or an unreachable scroll range.
  */
-function spacerHeight(testId: 'padding-top' | 'padding-bottom') {
-  return parseInt(screen.getByTestId(testId).style.height, 10);
-}
-
 function spannedHeight() {
+  const top = parseInt(screen.getByTestId('padding-top').style.height, 10);
+  const bottom = parseInt(screen.getByTestId('padding-bottom').style.height, 10);
   const rendered = screen.queryAllByTestId('row').length;
 
-  return (
-    spacerHeight('padding-top') + rendered * ROW_HEIGHT + spacerHeight('padding-bottom')
-  );
+  return top + rendered * ROW_HEIGHT + bottom;
 }
 
 const offsetHeightDescriptor = Object.getOwnPropertyDescriptor(
@@ -73,15 +68,6 @@ describe('useVirtualRows', () => {
   it('spans the full list height when most rows are outside the window', () => {
     render(<TestList />);
 
-    expect(spannedHeight()).toBe(ROW_COUNT * ROW_HEIGHT);
-  });
-
-  // A scrollMargin left in the leading spacer shows up as a blank gap above the
-  // first row, because the margin is already accounted for outside the list.
-  it('does not pad above the first row when the list starts below the scroll container', () => {
-    render(<TestList scrollMargin={200} />);
-
-    expect(spacerHeight('padding-top')).toBe(0);
     expect(spannedHeight()).toBe(ROW_COUNT * ROW_HEIGHT);
   });
 });

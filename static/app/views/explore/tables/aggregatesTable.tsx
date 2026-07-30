@@ -9,6 +9,7 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {GridStatus} from 'sentry/components/tables/gridEditable/styles';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
@@ -30,7 +31,6 @@ import {
   TableHead,
   TableHeadCell,
   TableRow,
-  TableStatus,
 } from 'sentry/views/explore/components/table';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -185,13 +185,13 @@ export function AggregatesTable({
         </TableHead>
         <TableBody>
           {result.isPending ? (
-            <TableStatus>
+            <GridStatus>
               <LoadingIndicator />
-            </TableStatus>
+            </GridStatus>
           ) : result.isError ? (
-            <TableStatus>
+            <GridStatus>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
+            </GridStatus>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
               const menuItems: MenuItemProps[] = [
@@ -271,11 +271,11 @@ export function AggregatesTable({
               );
             })
           ) : (
-            <TableStatus>
+            <GridStatus>
               <EmptyStateWarning>
                 <p>{t('No spans found')}</p>
               </EmptyStateWarning>
-            </TableStatus>
+            </GridStatus>
           )}
         </TableBody>
       </Table>

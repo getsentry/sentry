@@ -7,6 +7,8 @@ const TABLE_HEAD_ROW_HEIGHT = 45;
 
 const Z_INDEX_RESIZER = 1;
 
+const Z_INDEX_STICKY_HEAD = 2;
+
 export const TableGrid = styled('table')<{
   definiteHeadRow?: boolean;
   fit?: 'max-content';
@@ -61,7 +63,7 @@ const subgrid = css`
   grid-column: 1 / -1;
 `;
 
-export const TableHead = styled('thead')<{sticky?: boolean; stickyZIndex?: number}>`
+export const TableHead = styled('thead')<{sticky?: boolean}>`
   ${subgrid}
 
   ${p =>
@@ -69,7 +71,7 @@ export const TableHead = styled('thead')<{sticky?: boolean; stickyZIndex?: numbe
     css`
       position: sticky;
       top: 0;
-      z-index: ${p.stickyZIndex ?? 2};
+      z-index: ${Z_INDEX_STICKY_HEAD};
     `}
 `;
 

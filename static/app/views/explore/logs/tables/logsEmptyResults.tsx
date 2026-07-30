@@ -4,11 +4,11 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {FileSize} from 'sentry/components/fileSize';
+import {GridStatus} from 'sentry/components/tables/gridEditable/styles';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TableStatus} from 'sentry/views/explore/components/table';
 import {LOGS_INSTRUCTIONS_URL} from 'sentry/views/explore/logs/constants';
 import {getDisplayTotalPayloadBytes} from 'sentry/views/explore/logs/getDisplayTotalPayloadBytes';
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
@@ -37,7 +37,7 @@ export function LogsEmptyResults({
     );
 
     return (
-      <TableStatus>
+      <GridStatus>
         <EmptyStateWarning withIcon variant="accent">
           <EmptyStateText size="xl">{t('No logs found yet')}</EmptyStateText>
           <EmptyStateText size="md">
@@ -74,12 +74,12 @@ export function LogsEmptyResults({
             </Button>
           </Container>
         </EmptyStateWarning>
-      </TableStatus>
+      </GridStatus>
     );
   }
 
   return (
-    <TableStatus>
+    <GridStatus>
       <EmptyStateWarning withIcon variant="accent">
         <EmptyStateText size="xl">{t('No logs found')}</EmptyStateText>
         <EmptyStateText size="md">
@@ -95,6 +95,6 @@ export function LogsEmptyResults({
           )}
         </EmptyStateText>
       </EmptyStateWarning>
-    </TableStatus>
+    </GridStatus>
   );
 }
