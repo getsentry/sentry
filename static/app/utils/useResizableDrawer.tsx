@@ -180,6 +180,15 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     document.removeEventListener('pointermove', onDragMove);
     document.removeEventListener('pointerup', onDragEnd);
     document.removeEventListener('pointercancel', onDragEnd);
+    // Flush any frame still pending from the last move synchronously. sizeRef
+    // already holds the dragged size; committing it here keeps the React state
+    // (and thus the rendered layout) in step before setIsHeld re-renders and
+    // its effect cleanup cancels the frame that would otherwise commit it.
+    if (rafIdRef.current !== null) {
+      window.cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+      updateSize(sizeRef.current, true);
+    }
     setIsHeld(false);
     if (dragStartSizeRef.current !== null) {
       options.onResizeEnd?.({
@@ -188,7 +197,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
       });
       dragStartSizeRef.current = null;
     }
-  }, [onDragMove, options]);
+  }, [onDragMove, options, updateSize]);
 
   const startDrag = useCallback((clientX: number, clientY: number) => {
     // Re-clamp to the current [min, max] before the drag begins: bounds can

@@ -327,12 +327,20 @@ describe('SeerExplorerSidebarLayout', () => {
       .mockReturnValue({width: 1200, height: 800});
     localStorage.setItem('seer-explorer-sidebar-seer-size:right', '500');
 
-    const pendingFrames: FrameRequestCallback[] = [];
+    // Model real requestAnimationFrame semantics: cancelAnimationFrame must
+    // actually drop the pending callback. This matters because drag end
+    // re-renders (setIsHeld) and the hook's cleanup cancels the in-flight
+    // frame — so the committed size can't rely on a frame that runs later.
+    const pendingFrames = new Map<number, FrameRequestCallback>();
+    let nextFrameId = 0;
     jest.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
-      pendingFrames.push(callback);
-      return pendingFrames.length;
+      nextFrameId += 1;
+      pendingFrames.set(nextFrameId, callback);
+      return nextFrameId;
     });
-    jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+    jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(id => {
+      pendingFrames.delete(id);
+    });
 
     const {rerender} = render(sidebarTree(), {organization: orgWithSidebar});
     await userEvent.click(screen.getByText('open-seer'));
@@ -343,15 +351,21 @@ describe('SeerExplorerSidebarLayout', () => {
     // Available width 1200 - persisted Seer width 500 = content width 700.
     expect(separator).toHaveAttribute('aria-valuenow', '700');
 
-    // Move the divider 10px left. Keep the animation frame pending so the test
-    // covers the same event ordering as a fast pointer drag followed by release.
+    // Move the divider 10px left, then release while the frame is still pending
+    // — the same event ordering as a fast pointer drag followed by release.
     await userEvent.pointer([
       {keys: '[MouseLeft>]', target: separator, coords: {x: 700, y: 0}},
       {target: separator, coords: {x: 690, y: 0}},
     ]);
     act(() => {
       document.dispatchEvent(new MouseEvent('pointerup', {bubbles: true}));
+    });
+    // Flush only frames that survived drag end. On a fast drag + release the
+    // pending frame is cancelled, so the committed size must already reflect
+    // the drag rather than wait for a frame that never runs.
+    act(() => {
       pendingFrames.forEach(callback => callback(0));
+      pendingFrames.clear();
     });
 
     expect(separator).toHaveAttribute('aria-valuenow', '690');
