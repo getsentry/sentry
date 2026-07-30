@@ -100,6 +100,30 @@ describe('AutomationDetail', () => {
     expect(screen.getByRole('heading', {name: 'Details'})).toBeInTheDocument();
   });
 
+  it('shows all projects for an all-projects detector', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [
+        IssueStreamDetectorFixture({
+          id: '10',
+          projectId: null,
+          config: {organization_id: 1},
+        }),
+      ],
+      match: [MockApiClient.matchQuery({query: 'type:issue_stream workflow:123'})],
+    });
+
+    render(<AutomationDetail />, {
+      organization,
+      initialRouterConfig: {
+        route: '/alerts/:automationId/',
+        location: {pathname: '/alerts/123/'},
+      },
+    });
+
+    expect(await screen.findByText('All Projects')).toBeInTheDocument();
+  });
+
   it('can disable an enabled automation', async () => {
     const disabledAutomation = AutomationFixture({
       ...automation,

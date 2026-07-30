@@ -29,3 +29,20 @@ export async function fetchIssueStreamDetectorIdsForProjects({
     .map(projectId => detectors.find(detector => detector.projectId === projectId)?.id)
     .filter(defined);
 }
+
+export async function fetchAllProjectsDetectorId({
+  queryClient,
+  organization,
+}: {
+  organization: Organization;
+  queryClient: QueryClient;
+}): Promise<string | undefined> {
+  const {json: detectors} = await queryClient.fetchQuery(
+    detectorListApiOptions(organization, {
+      query: 'type:issue_stream',
+      includeIssueStreamDetectors: true,
+    })
+  );
+
+  return detectors.find(detector => detector.projectId === null)?.id;
+}

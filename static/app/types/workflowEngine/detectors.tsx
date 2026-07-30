@@ -127,6 +127,10 @@ interface UptimeDetectorConfig {
   recoveryThreshold: number;
 }
 
+interface IssueStreamDetectorConfig {
+  organization_id: number;
+}
+
 type BaseDetector = Readonly<{
   createdBy: string | null;
   dateCreated: string;
@@ -167,8 +171,9 @@ export interface ErrorDetector extends BaseDetector {
   readonly type: 'error';
 }
 
-export interface IssueStreamDetector extends BaseDetector {
-  // TODO: Add issue stream detector type fields
+export interface IssueStreamDetector extends Omit<BaseDetector, 'projectId'> {
+  config: IssueStreamDetectorConfig | null;
+  projectId: string | null;
   readonly type: 'issue_stream';
 }
 

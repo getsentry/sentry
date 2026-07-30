@@ -132,6 +132,7 @@ export function IssueStreamDetectorFixture(
 ): IssueStreamDetector {
   return {
     ...BASE_DETECTOR,
+    config: null,
     name: 'Issue Stream Detector',
     id: '4',
     type: 'issue_stream',
