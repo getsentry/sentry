@@ -53,6 +53,7 @@ from sentry.models.debugfile import (
     build_proguard_reupload_dif_meta,
     create_dif_from_id,
     create_files_from_dif_zip,
+    create_objectstore_dif_from_id,
     get_debug_id_from_dif_request,
 )
 from sentry.models.files.file import File
@@ -840,8 +841,27 @@ def _clone_proguard_debug_file_for_reupload(
         }
 
     meta = build_proguard_reupload_dif_meta(debug_file, requested_debug_id)
-    if not debug_file.uses_objectstore_for_read():
-        assert debug_file.file is not None
+    if debug_file.file is None:
+        # Objectstore-only source: clone exclusively to Objectstore (no File row).
+        assert debug_file.storage_path is not None
+        assert debug_file.checksum is not None
+        assert debug_file.file_size is not None
+        source_fileobj = debug_file.get_file()
+        try:
+            # Spool into a temporary file to get a seekable stream.
+            with tempfile.TemporaryFile() as tmp:
+                shutil.copyfileobj(source_fileobj, tmp)
+                tmp.seek(0)
+                dif, created = create_objectstore_dif_from_id(
+                    project,
+                    meta,
+                    tmp,
+                    debug_file.checksum,
+                    debug_file.file_size,
+                )
+        finally:
+            source_fileobj.close()
+    elif not debug_file.uses_objectstore_for_read():
         dif, created = create_dif_from_id(project, meta, file=debug_file.file)
     else:
         source_fileobj = debug_file.get_file()
