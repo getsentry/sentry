@@ -1,5 +1,7 @@
 import {
   createContext,
+  type Dispatch,
+  type SetStateAction,
   useCallback,
   useContext,
   useLayoutEffect,
@@ -102,8 +104,8 @@ interface InputContext {
    */
   leadingWidth?: number;
   setInputProps?: (props: Pick<InputProps, 'size' | 'disabled'>) => void;
-  setLeadingWidth?: (width: number) => void;
-  setTrailingWidth?: (width: number) => void;
+  setLeadingWidth?: Dispatch<SetStateAction<number | undefined>>;
+  setTrailingWidth?: Dispatch<SetStateAction<number | undefined>>;
   /**
    * Width of the trailing items wrap, to be added to `Input`'s padding.
    */
@@ -194,7 +196,9 @@ interface InputItemsProps extends React.HTMLAttributes<HTMLDivElement> {
   disablePointerEvents?: boolean;
 }
 
-function useInputItemsWidthRef(setWidth: ((width: number) => void) | undefined) {
+function useInputItemsWidthRef(
+  setWidth: Dispatch<SetStateAction<number | undefined>> | undefined
+) {
   return useCallback(
     (node: HTMLDivElement | null) => {
       if (!node || !setWidth) {
@@ -213,7 +217,10 @@ function useInputItemsWidthRef(setWidth: ((width: number) => void) | undefined) 
       const observer = new ResizeObserver(updateWidth);
       observer.observe(node);
 
-      return () => observer.disconnect();
+      return () => {
+        observer.disconnect();
+        setWidth(undefined);
+      };
     },
     [setWidth]
   );
