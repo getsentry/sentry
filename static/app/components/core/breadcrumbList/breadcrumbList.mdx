@@ -11,6 +11,8 @@ resources:
 import {ProjectsBadge} from '@sentry/scraps/badge';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {IconEllipsis, IconGlobe} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
@@ -314,7 +316,7 @@ edit affordance.
 The `page-title` item accepts an optional `pagination` prop for pages where the
 user can step through a list of items, such as issues, replays, or traces. Each
 direction has an `ariaLabel`, an optional `to` URL, an optional `disabled` flag,
-and an optional rich `tooltip`. When `to` is omitted, that chevron is disabled.
+and an optional `tooltip`. When `to` is omitted, that chevron is disabled.
 
 <Storybook.Demo>
   <BreadcrumbListDemo
@@ -351,6 +353,68 @@ and an optional rich `tooltip`. When `to` is omitted, that chevron is disabled.
     }}
   />
 </TopBar.Slot>
+```
+
+The `tooltip` accepts rich content, not just a string. Pagination tooltips are
+always hoverable, so links and text inside stay reachable and selectable — hover
+a chevron below and move onto the tooltip to reach the link.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[{type: 'link', label: 'Traces', to: '/organizations/org-slug/traces/'}]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'Trace details',
+          pagination: {
+            previous: {
+              ariaLabel: 'Previous trace',
+              to: '/traces/abc123/',
+              tooltip: (
+                <span>
+                  Go to the previous trace of the same session.{' '}
+                  <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/">
+                    Learn More
+                  </ExternalLink>
+                </span>
+              ),
+            },
+            next: {
+              ariaLabel: 'Next trace',
+              to: '/traces/def456/',
+              tooltip: (
+                <span>
+                  Go to the next trace of the same session.{' '}
+                  <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/">
+                    Learn More
+                  </ExternalLink>
+                </span>
+              ),
+            },
+          },
+        }}
+      />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<BreadcrumbList.Title
+  item={{
+    type: 'page-title',
+    label: 'Trace details',
+    pagination: {
+      previous: {
+        ariaLabel: 'Previous trace',
+        to: previousTraceUrl,
+        tooltip: tct('Go to the previous trace of the same session. [link:Learn More]', {
+          link: <ExternalLink href={TRACE_DOCS_URL} />,
+        }),
+      },
+      next: {ariaLabel: 'Next trace', to: nextTraceUrl},
+    },
+  }}
+/>
 ```
 
 ## Trailing actions

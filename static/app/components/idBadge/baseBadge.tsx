@@ -8,7 +8,7 @@ import {
   TeamAvatar,
   UserAvatar,
 } from '@sentry/scraps/avatar';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import type {Actor} from 'sentry/types/core';
 import type {OrganizationSummary, Team} from 'sentry/types/organization';
@@ -16,7 +16,7 @@ import type {AvatarProject} from 'sentry/types/project';
 import type {AvatarUser} from 'sentry/types/user';
 import type {SpaceSize} from 'sentry/utils/theme';
 
-export interface BaseBadgeProps {
+export interface BaseBadgeProps extends FlexProps {
   avatarProps?: Record<string, any>;
   avatarSize?: number;
   className?: string;
@@ -51,6 +51,7 @@ export const BaseBadge = memo(
     project,
     actor,
     className,
+    ...flexProps
   }: AllBaseBadgeProps) => {
     // Space items appropriately depending on avatar size
     const wrapperGap: SpaceSize =
@@ -58,6 +59,7 @@ export const BaseBadge = memo(
 
     return (
       <Flex
+        {...flexProps}
         align="center"
         gap={wrapperGap}
         flexShrink={0}

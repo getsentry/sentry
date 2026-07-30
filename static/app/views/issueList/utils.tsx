@@ -90,9 +90,6 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
 
 export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
 
-export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
-  'issue-stream-saved-searches-sidebar-open';
-
 const ISSUE_STREAM_SORT_LOCALSTORAGE_KEY = 'issue-stream-sort';
 
 function makeSortStorageKey(orgSlug: string): string {

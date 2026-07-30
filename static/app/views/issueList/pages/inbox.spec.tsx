@@ -3,7 +3,6 @@ import {
   ExplorerAutofixResponseFixture,
   ExplorerAutofixStateFixture,
 } from 'sentry-fixture/autofix';
-import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -202,10 +201,6 @@ describe('InboxPage', () => {
         billing: {hasAutofixQuota: false},
         seerReposLinked: false,
       },
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/events/recommended/`,
-      body: EventFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/attachments/`,
@@ -540,31 +535,24 @@ describe('InboxPage', () => {
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
       body: fixProposedGroup,
     });
-    const eventRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/events/recommended/`,
-      body: EventFixture(),
-    });
 
     render(<InboxPage />, {organization, initialRouterConfig});
 
     const issueLink = await within(
       screen.getByRole('region', {name: 'Fix Proposed'})
     ).findByRole('link', {name: /Fix proposed issue/});
-
     await userEvent.hover(issueLink);
 
     await waitFor(() => expect(groupRequest).toHaveBeenCalledTimes(1));
-    expect(eventRequest).toHaveBeenCalledTimes(1);
 
     // Reads the warmed cache, which only holds if the query keys match.
     await userEvent.click(issueLink);
 
     const preview = screen.getByRole('complementary', {name: 'Issue preview'});
     expect(
-      await within(preview).findByRole('heading', {name: 'External Links'})
+      await within(preview).findByRole('heading', {name: 'Activity'})
     ).toBeInTheDocument();
     expect(groupRequest).toHaveBeenCalledTimes(1);
-    expect(eventRequest).toHaveBeenCalledTimes(1);
   });
 
   it('stores selection in the URL, renders the embedded preview, and clears it', async () => {
@@ -626,10 +614,7 @@ describe('InboxPage', () => {
     });
     await userEvent.click(seerButton);
 
-    expect(within(preview).getByRole('tab', {name: 'Autofix'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
     expect(within(preview).getByRole('button', {name: 'Find Root Cause'})).toBeDisabled();
     await waitFor(() =>
       expect(startAutofixRequest).toHaveBeenCalledWith(
@@ -681,10 +666,7 @@ describe('InboxPage', () => {
 
     await userEvent.click(seerButton);
 
-    expect(within(preview).getByRole('tab', {name: 'Autofix'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
     await waitFor(() =>
       expect(within(preview).getByRole('button', {name: 'Make a Plan'})).toBeDisabled()
     );
@@ -785,10 +767,7 @@ describe('InboxPage', () => {
 
     await userEvent.click(retryButton);
 
-    expect(within(preview).getByRole('tab', {name: 'Autofix'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
     await waitFor(() => expect(retryButton).toBeDisabled());
     await waitFor(() =>
       expect(retryPullRequest).toHaveBeenCalledWith(

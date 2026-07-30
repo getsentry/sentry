@@ -66,6 +66,7 @@ from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.integration_feature import (
@@ -2087,6 +2088,19 @@ class Factories:
         organization_integration.update(**(oi_params or {}))
 
         return integration
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_gcp_service_account(
+        organization: Organization,
+        service_account_email: str,
+        **kwargs: Any,
+    ) -> GcpServiceAccount:
+        return GcpServiceAccount.objects.create(
+            organization_id=organization.id,
+            service_account_email=service_account_email,
+            **kwargs,
+        )
 
     @staticmethod
     def create_organization_contributor(

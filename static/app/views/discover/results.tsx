@@ -107,6 +107,7 @@ import {
 import Table from 'sentry/views/discover/table';
 import {
   generateTitle,
+  getDiscoverDeprecation,
   getDiscoverDeprecationEnabled,
   getTransactionsDeprecation,
   handleAddQueryToDashboard,
@@ -371,11 +372,25 @@ export class Results extends Component<Props, State> {
     this.setState({needConfirmation: false, confirmedQuery: false});
   };
 
+  // Transactions are no longer supported in Discover once the deprecation is
+  // fully enabled. A bookmarked saved transactions query can still land directly
+  // on this results page, so hard-block every transactions query (table, chart,
+  // total count, and tags) and point users to their migrated queries instead.
+  isTransactionsUnsupported() {
+    const {organization, location} = this.props;
+    const {savedQueryDataset} = this.state;
+    return (
+      getDiscoverDeprecation(organization) &&
+      getDatasetFromLocationOrSavedQueryDataset(location, savedQueryDataset) ===
+        DiscoverDatasets.TRANSACTIONS
+    );
+  }
+
   async fetchTotalCount() {
     const {api, organization, location, getAiQueryRunId} = this.props;
     const {eventView, confirmedQuery} = this.state;
 
-    if (!confirmedQuery || !eventView.isValid()) {
+    if (!confirmedQuery || !eventView.isValid() || this.isTransactionsUnsupported()) {
       return;
     }
 
@@ -651,6 +666,8 @@ export class Results extends Component<Props, State> {
     } = this.state;
     const hasDatasetSelectorFeature = hasDatasetSelector(organization);
 
+    const transactionsUnsupported = this.isTransactionsUnsupported();
+
     const query = eventView.query;
     const title = this.getDocumentTitle();
     const yAxisArray = getYAxis(location, eventView, savedQuery);
@@ -730,52 +747,69 @@ export class Results extends Component<Props, State> {
                     />
                   )}
                 </CustomMeasurementsContext.Consumer>
-                <MetricsCardinalityProvider
-                  organization={organization}
-                  location={location}
-                >
-                  <ResultsChart
-                    api={api}
+                {!transactionsUnsupported && (
+                  <MetricsCardinalityProvider
+                    organization={organization}
+                    location={location}
+                  >
+                    <ResultsChart
+                      api={api}
+                      organization={organization}
+                      eventView={eventView}
+                      location={location}
+                      onAxisChange={this.handleYAxisChange}
+                      onDisplayChange={this.handleDisplayChange}
+                      onTopEventsChange={this.handleTopEventsChange}
+                      onIntervalChange={this.handleIntervalChange}
+                      total={totalValues}
+                      confirmedQuery={confirmedQuery}
+                      yAxis={yAxisArray}
+                    />
+                  </MetricsCardinalityProvider>
+                )}
+              </Top>
+              <Layout.Main
+                width={showTags && !transactionsUnsupported ? 'twothirds' : 'full'}
+              >
+                {transactionsUnsupported ? (
+                  <Alert.Container>
+                    <Alert variant="info">
+                      {tct(
+                        'Your saved transactions queries are no longer available in this UI. Try them out in the [exploreLink:Explore Queries] page instead.',
+                        {
+                          exploreLink: <Link to="/explore/saved-queries/" />,
+                        }
+                      )}
+                    </Alert>
+                  </Alert.Container>
+                ) : (
+                  <Table
                     organization={organization}
                     eventView={eventView}
                     location={location}
-                    onAxisChange={this.handleYAxisChange}
-                    onDisplayChange={this.handleDisplayChange}
-                    onTopEventsChange={this.handleTopEventsChange}
-                    onIntervalChange={this.handleIntervalChange}
-                    total={totalValues}
+                    title={title}
+                    setError={this.setError}
+                    onChangeShowTags={this.handleChangeShowTags}
+                    showTags={showTags}
                     confirmedQuery={confirmedQuery}
-                    yAxis={yAxisArray}
+                    onCursor={this.handleCursor}
+                    isHomepage={isHomepage}
+                    setTips={this.setTips}
+                    queryDataset={savedQueryDataset}
+                    setSplitDecision={(value?: SavedQueryDatasets) => {
+                      if (
+                        hasDatasetSelectorFeature &&
+                        value !== SavedQueryDatasets.DISCOVER &&
+                        value !== savedQuery?.dataset
+                      ) {
+                        this.setSplitDecision(value);
+                      }
+                    }}
+                    dataset={hasDatasetSelectorFeature ? eventView.dataset : undefined}
                   />
-                </MetricsCardinalityProvider>
-              </Top>
-              <Layout.Main width={showTags ? 'twothirds' : 'full'}>
-                <Table
-                  organization={organization}
-                  eventView={eventView}
-                  location={location}
-                  title={title}
-                  setError={this.setError}
-                  onChangeShowTags={this.handleChangeShowTags}
-                  showTags={showTags}
-                  confirmedQuery={confirmedQuery}
-                  onCursor={this.handleCursor}
-                  isHomepage={isHomepage}
-                  setTips={this.setTips}
-                  queryDataset={savedQueryDataset}
-                  setSplitDecision={(value?: SavedQueryDatasets) => {
-                    if (
-                      hasDatasetSelectorFeature &&
-                      value !== SavedQueryDatasets.DISCOVER &&
-                      value !== savedQuery?.dataset
-                    ) {
-                      this.setSplitDecision(value);
-                    }
-                  }}
-                  dataset={hasDatasetSelectorFeature ? eventView.dataset : undefined}
-                />
+                )}
               </Layout.Main>
-              {showTags ? (
+              {showTags && !transactionsUnsupported ? (
                 <TagsTable
                   confirmedQuery={confirmedQuery}
                   eventView={eventView}

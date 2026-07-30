@@ -6,7 +6,7 @@ import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {DateTime} from 'sentry/components/dateTime';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {IconCopy, IconDelete, IconEdit} from 'sentry/icons';
+import {IconCopyId, IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Relay} from 'sentry/types/relay';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -53,7 +53,7 @@ export function CardHeader({
       <StyledButtonBar>
         <Button
           size="sm"
-          icon={<IconCopy />}
+          icon={<IconCopyId />}
           onClick={() => copy(publicKey, {successMessage: t('Copied key to clipboard')})}
         >
           {t('Copy Key')}

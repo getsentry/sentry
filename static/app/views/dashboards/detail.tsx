@@ -42,7 +42,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {EventView} from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -80,7 +79,6 @@ import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
-import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
@@ -1140,12 +1138,7 @@ class DashboardDetail extends Component<Props, State> {
                   organization={organization}
                   location={location}
                 >
-                  <MetricsDataSwitcher
-                    organization={organization}
-                    eventView={EventView.fromLocation(location)}
-                    location={location}
-                    hideLoadingIndicator
-                  >
+                  <MetricsDataSwitcher location={location}>
                     {metricsDataSide => (
                       <MEPSettingProvider
                         location={location}
@@ -1188,7 +1181,6 @@ class DashboardDetail extends Component<Props, State> {
       location,
       onDashboardUpdate,
       pageAlerts,
-      projects,
       queryClient,
     } = this.props;
     const {
@@ -1202,8 +1194,6 @@ class DashboardDetail extends Component<Props, State> {
     const hasUnsavedFilters =
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
-
-    const eventView = generatePerformanceEventView(location, projects, {});
 
     const pageContent = (
       <Stack flex={1}>
@@ -1289,12 +1279,7 @@ class DashboardDetail extends Component<Props, State> {
                     organization={organization}
                     location={location}
                   >
-                    <MetricsDataSwitcher
-                      organization={organization}
-                      eventView={eventView}
-                      location={location}
-                      hideLoadingIndicator
-                    >
+                    <MetricsDataSwitcher location={location}>
                       {metricsDataSide => (
                         <MEPSettingProvider
                           location={location}
