@@ -78,24 +78,28 @@ function requiresQuotes(value: string): boolean {
 
 function generateFilterValue(token: Token, operator: string): string {
   const key = token.key ? quoteFilterKey(token.key) : token.key;
+  const value =
+    token.key === 'has' || token.key === '!has'
+      ? quoteFilterKey(token.value)
+      : token.value;
 
-  if (token.value === '' || token.value === null) {
+  if (value === '' || value === null) {
     return `${key}${operator}""`;
   }
 
   if (
     // Don't quote if it's already a properly formatted bracket expression
-    isProperlyBracketed(token.value) ||
+    isProperlyBracketed(value) ||
     // Don't quote if it's already properly quoted
-    isProperlyQuoted(token.value)
+    isProperlyQuoted(value)
   ) {
-    return `${key}${operator}${token.value}`;
+    return `${key}${operator}${value}`;
   }
 
-  if (requiresQuotes(token.value)) {
-    return `${key}${operator}"${escapeDoubleQuotes(token.value)}"`;
+  if (requiresQuotes(value)) {
+    return `${key}${operator}"${escapeDoubleQuotes(value)}"`;
   }
-  return `${key}${operator}${token.value}`;
+  return `${key}${operator}${value}`;
 }
 
 // TODO(epurkhiser): This is legacy from before the existence of

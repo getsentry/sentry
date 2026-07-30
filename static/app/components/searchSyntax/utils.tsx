@@ -332,19 +332,19 @@ export function stringifyToken(token: TokenResult<Token>): string {
     case Token.KEY_AGGREGATE_PARAMS:
       return token.text;
     case Token.KEY_EXPLICIT_TAG:
-      return `${token.prefix}[${token.key.value}]`;
+      return `${token.prefix}[${stringifyToken(token.key)}]`;
     case Token.KEY_EXPLICIT_BOOLEAN_TAG:
-      return `${token.prefix}[${token.key.value},boolean]`;
+      return `${token.prefix}[${stringifyToken(token.key)},boolean]`;
     case Token.KEY_EXPLICIT_NUMBER_TAG:
-      return `${token.prefix}[${token.key.value},number]`;
+      return `${token.prefix}[${stringifyToken(token.key)},number]`;
     case Token.KEY_EXPLICIT_STRING_TAG:
-      return `${token.prefix}[${token.key.value},string]`;
+      return `${token.prefix}[${stringifyToken(token.key)},string]`;
     case Token.KEY_EXPLICIT_FLAG:
-      return `flags[${token.key.value}]`;
+      return `flags[${stringifyToken(token.key)}]`;
     case Token.KEY_EXPLICIT_NUMBER_FLAG:
-      return `flags[${token.key.value},number]`;
+      return `flags[${stringifyToken(token.key)},number]`;
     case Token.KEY_EXPLICIT_STRING_FLAG:
-      return `flags[${token.key.value},string]`;
+      return `flags[${stringifyToken(token.key)},string]`;
     case Token.VALUE_TEXT:
       return token.quoted ? `"${token.value}"` : token.value;
     case Token.VALUE_RELATIVE_DATE:

@@ -334,9 +334,14 @@ describe('utils/tokenizeSearch', () => {
 
       results.addFilterValue('imaginary.attribute:made_up_key', 'asdf');
       results.addFilterValue('!imaginary.attribute:made_up_key', 'fdsa');
+      results.addFilterValue('has', 'imaginary.attribute:made_up_key');
+      results.addFilterValue('!has', 'imaginary.attribute:made_up_key');
 
       expect(results.formatString()).toBe(
-        '"imaginary.attribute:made_up_key":asdf !"imaginary.attribute:made_up_key":fdsa'
+        '"imaginary.attribute:made_up_key":asdf ' +
+          '!"imaginary.attribute:made_up_key":fdsa ' +
+          'has:"imaginary.attribute:made_up_key" ' +
+          '!has:"imaginary.attribute:made_up_key"'
       );
     });
 
