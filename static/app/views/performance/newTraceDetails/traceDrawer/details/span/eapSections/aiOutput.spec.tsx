@@ -47,6 +47,30 @@ describe('AIOutputSection', () => {
     expect(screen.getByText('The answer is 42')).toBeVisible();
   });
 
+  it('renders reasoning from a realistic payload with braces and code', () => {
+    const reasoning =
+      'Let me analyze this error. The issue is ALTITUDE-69 with title "Error: {" which is a bit cryptic.\n\nThe actual error is an `AbortError` serialized as `{"name": "AbortError", "message": "Aborted"}`.';
+    const response =
+      'This is an **`AbortError`** being incorrectly captured by the logger.';
+
+    render(
+      <AIOutputSection
+        node={makeAiNode([
+          {
+            role: 'assistant',
+            parts: [
+              {type: 'reasoning', content: reasoning},
+              {type: 'text', content: response},
+            ],
+          },
+        ])}
+      />
+    );
+
+    expect(screen.getByText('Thinking')).toBeInTheDocument();
+    expect(screen.getByText(/Let me analyze this error/)).toBeVisible();
+  });
+
   it('renders reasoning even when there is no response text', () => {
     render(
       <AIOutputSection
