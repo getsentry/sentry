@@ -82,35 +82,40 @@ export function FirstEventFooter({
           {t('Skip Onboarding')}
         </SkipOnboardingLink>
       )}
-      <StatusWrapper
-        align="center"
-        justify="center"
-        display={{zero: 'none', xl: 'flex'}}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        variants={{
-          initial: {opacity: 0, y: -10},
-          animate: {
-            opacity: 1,
-            y: 0,
-            transition: {
-              when: 'beforeChildren',
-              staggerChildren: 0.35,
-            },
-          },
-          exit: {opacity: 0, y: 10},
-        }}
-      >
-        {project.firstEvent ? (
-          <IconCheckmark variant="success" />
-        ) : (
-          <WaitingIndicator variants={indicatorAnimation} />
+      <Flex align="center" justify="center" display={{zero: 'none', xl: 'flex'}}>
+        {({className}) => (
+          <motion.div
+            className={className}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={{
+              initial: {opacity: 0, y: -10},
+              animate: {
+                opacity: 1,
+                y: 0,
+                transition: {
+                  when: 'beforeChildren',
+                  staggerChildren: 0.35,
+                },
+              },
+              exit: {opacity: 0, y: 10},
+            }}
+          >
+            {project.firstEvent ? (
+              <IconCheckmark variant="success" />
+            ) : (
+              <WaitingIndicator variants={indicatorAnimation} />
+            )}
+            <AnimatedText
+              errorReceived={!!project.firstEvent}
+              variants={indicatorAnimation}
+            >
+              {project.firstEvent ? t('Error Received') : t('Waiting for error')}
+            </AnimatedText>
+          </motion.div>
         )}
-        <AnimatedText errorReceived={!!project.firstEvent} variants={indicatorAnimation}>
-          {project.firstEvent ? t('Error Received') : t('Waiting for error')}
-        </AnimatedText>
-      </StatusWrapper>
+      </Flex>
       <OnboardingButtonBar>
         {/* if hasn't sent first event, allow skipping. if last, no secondary cta */}
         {!project.firstEvent && !isLast ? (
@@ -181,8 +186,6 @@ const WaitingIndicator = styled(motion.div)`
   ${pulsingIndicatorStyles};
   background-color: ${p => p.theme.colors.pink400};
 `;
-
-const StatusWrapper = motion.create(Flex);
 
 const LeadingSlot = styled('div')`
   display: flex;

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {LogoSentry} from 'sentry/components/logoSentry';
@@ -441,12 +441,17 @@ export function OnboardingWithoutContext() {
         hasScmOnboarding={hasScmOnboarding}
       >
         {hasScmOnboarding ? null : (
-          <PageCornersQueryContainer>
+          <Container
+            position="absolute"
+            inset={0}
+            pointerEvents="none"
+            containerType="inline-size"
+          >
             <AdaptivePageCorners
               // Controls the current corner variant
               animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
             />
-          </PageCornersQueryContainer>
+          </Container>
         )}
         {stepIndex > 0 && !hasScmOnboarding && (
           <BackMotionDiv
@@ -573,13 +578,6 @@ const OnboardingStepNewUi = styled(motion.div)`
   display: flex;
   flex-direction: column;
   justify-content: center;
-`;
-
-const PageCornersQueryContainer = styled('div')`
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  container-type: inline-size;
 `;
 
 const AdaptivePageCorners = styled(PageCorners)`
