@@ -5,6 +5,8 @@ import uuid
 from collections.abc import Generator
 from unittest.mock import MagicMock, Mock, patch
 
+import pytest
+
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.replays.tasks import run_bulk_replay_delete_job
 from sentry.replays.testutils import mock_replay
@@ -14,6 +16,7 @@ from sentry.replays.usecases.delete import (
 )
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
+from sentry.utils.snuba import RateLimitExceeded, SnubaError
 
 
 class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
@@ -306,6 +309,102 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             "organization_id": self.job.organization_id,
             "project_id": self.job.project_id,
         }
+
+    @patch("sentry.replays.tasks.current_task")
+    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
+    def test_run_bulk_replay_delete_job_error_with_retries_remaining(
+        self, mock_fetch_rows: MagicMock, mock_current_task: MagicMock
+    ) -> None:
+        """An error on a non-terminal attempt re-raises without failing the job."""
+        mock_fetch_rows.side_effect = SnubaError("read timed out")
+        mock_current_task.return_value = Mock(retries_remaining=True)
+
+        with pytest.raises(SnubaError):
+            run_bulk_replay_delete_job(self.job.id, offset=0)
+
+        # The job is still runnable so the worker's retry is not a no-op.
+        self.job.refresh_from_db()
+        assert self.job.status == DeletionJobStatus.IN_PROGRESS
+
+    @patch("sentry.replays.tasks.current_task")
+    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
+    def test_run_bulk_replay_delete_job_error_on_final_attempt(
+        self, mock_fetch_rows: MagicMock, mock_current_task: MagicMock
+    ) -> None:
+        """An error on the terminal attempt marks the job failed."""
+        mock_fetch_rows.side_effect = SnubaError("read timed out")
+        mock_current_task.return_value = Mock(retries_remaining=False)
+
+        with pytest.raises(SnubaError):
+            run_bulk_replay_delete_job(self.job.id, offset=0)
+
+        self.job.refresh_from_db()
+        assert self.job.status == DeletionJobStatus.FAILED
+
+    @patch("sentry.replays.tasks.current_task")
+    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
+    def test_run_bulk_replay_delete_job_error_without_task_context(
+        self, mock_fetch_rows: MagicMock, mock_current_task: MagicMock
+    ) -> None:
+        """An error with no task context (direct call) marks the job failed."""
+        mock_fetch_rows.side_effect = SnubaError("read timed out")
+        mock_current_task.return_value = None
+
+        with pytest.raises(SnubaError):
+            run_bulk_replay_delete_job(self.job.id, offset=0)
+
+        self.job.refresh_from_db()
+        assert self.job.status == DeletionJobStatus.FAILED
+
+    @patch("sentry.utils.retries.time.sleep")
+    @patch("sentry.replays.usecases.delete.execute_query")
+    def test_fetch_rows_matching_pattern_retries_snuba_errors(
+        self, mock_execute_query: MagicMock, mock_sleep: MagicMock
+    ) -> None:
+        """Transient Snuba errors are retried; the query succeeds on a later attempt."""
+        mock_execute_query.side_effect = [
+            SnubaError("read timed out"),
+            RateLimitExceeded("rate limited"),
+            {"data": []},
+        ]
+
+        result = fetch_rows_matching_pattern(
+            self.project.id,
+            self.range_start,
+            self.range_end,
+            query="",
+            environment=["prod"],
+            limit=50,
+            offset=0,
+        )
+
+        assert result == {"has_more": False, "rows": []}
+        assert mock_execute_query.call_count == 3
+
+        # Snuba allocation policies key quotas on organization_id.
+        tenant_ids = mock_execute_query.call_args[0][1]
+        assert tenant_ids == {"organization_id": self.project.organization.id}
+
+    @patch("sentry.utils.retries.time.sleep")
+    @patch("sentry.replays.usecases.delete.execute_query")
+    def test_fetch_rows_matching_pattern_retries_exhausted(
+        self, mock_execute_query: MagicMock, mock_sleep: MagicMock
+    ) -> None:
+        """After the maximum number of attempts the error is raised to the caller."""
+        mock_execute_query.side_effect = SnubaError("read timed out")
+
+        with pytest.raises(SnubaError):
+            fetch_rows_matching_pattern(
+                self.project.id,
+                self.range_start,
+                self.range_end,
+                query="",
+                environment=["prod"],
+                limit=50,
+                offset=0,
+            )
+
+        assert mock_execute_query.call_count == 5
 
     @patch("requests.post")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
