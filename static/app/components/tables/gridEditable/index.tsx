@@ -3,15 +3,15 @@ import {Fragment, useMemo} from 'react';
 
 import {EmptyState} from '@sentry/scraps/emptyState';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {getAriaSort} from 'sentry/components/tables/sortableHeaderCell';
 import {
   COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
   Table,
   type TableColumnConfig,
-} from 'sentry/components/tables/table';
+} from '@sentry/scraps/table';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {getAriaSort} from 'sentry/components/tables/sortableHeaderCell';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';

@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/types';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import type {TableColumnConfig} from 'sentry/components/tables/table';
 import {t} from 'sentry/locale';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';

@@ -6,11 +6,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {
-  COL_WIDTH_UNDEFINED,
-  Table,
-  type TableColumnConfig,
-} from 'sentry/components/tables/table';
+import {COL_WIDTH_UNDEFINED, Table, type TableColumnConfig} from '@sentry/scraps/table';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: 200},

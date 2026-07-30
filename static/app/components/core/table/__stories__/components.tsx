@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Table, type TableColumnConfig} from 'sentry/components/tables/table';
-import * as Storybook from 'sentry/stories';
+import {Table, type TableColumnConfig} from '@sentry/scraps/table';
 
 const columns: TableColumnConfig[] = [
   {key: 'transaction', width: 260},
@@ -14,25 +13,8 @@ const data = [
   {transaction: '/issues/', browser: 'Safari', count: 388},
 ];
 
-const StyledTable = styled(Table)`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-
-  th,
-  td {
-    display: flex;
-    align-items: center;
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  }
-
-  thead {
-    background: ${p => p.theme.tokens.background.secondary};
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;
-
-export default Storybook.story('Table', story => {
-  story('Overview', () => (
+export function OverviewDemo() {
+  return (
     <StyledTable columns={columns}>
       <Table.Head>
         <Table.Row>
@@ -55,5 +37,22 @@ export default Storybook.story('Table', story => {
         ))}
       </Table.Body>
     </StyledTable>
-  ));
-});
+  );
+}
+
+const StyledTable = styled(Table)`
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+
+  th,
+  td {
+    display: flex;
+    align-items: center;
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
+  }
+
+  thead {
+    background: ${p => p.theme.tokens.background.secondary};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  }
+`;

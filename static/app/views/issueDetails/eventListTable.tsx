@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
+import {TableResizer} from '@sentry/scraps/table';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {
@@ -11,7 +12,6 @@ import {
   GridHeadCell,
   GridRow,
 } from 'sentry/components/tables/gridEditable/styles';
-import {TableResizer} from 'sentry/components/tables/table/styles';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {parseCursor} from 'sentry/utils/cursor';

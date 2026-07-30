@@ -6,13 +6,17 @@ import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
+import {
+  emptyCellStyle,
+  fullWidthCellStyle,
+  Table,
+  type TableColumnConfig,
+} from '@sentry/scraps/table';
 
 import {
   HeaderCellContent,
   type SortDirection,
 } from 'sentry/components/tables/sortableHeaderCell';
-import {Table, type TableColumnConfig} from 'sentry/components/tables/table';
-import {emptyCellStyle, fullWidthCellStyle} from 'sentry/components/tables/table/styles';
 import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 

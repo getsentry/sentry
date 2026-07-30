@@ -2,11 +2,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Table, TableStatusCell} from '@sentry/scraps/table';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {Table} from 'sentry/components/tables/table';
-import {TableStatusCell} from 'sentry/components/tables/table/styles';
 
 const GRID_HEAD_ROW_HEIGHT = 45;
 export const GRID_BODY_ROW_HEIGHT = 42;

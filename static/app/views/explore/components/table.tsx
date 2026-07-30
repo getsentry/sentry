@@ -3,6 +3,8 @@ import {useMemo, type CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Table as SharedTable, type TableColumnConfig} from '@sentry/scraps/table';
+
 import {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
 import type {ColumnAlign} from 'sentry/components/tables/gridEditable';
 import {
@@ -12,10 +14,6 @@ import {
   GridHeadCell,
   GridRow,
 } from 'sentry/components/tables/gridEditable/styles';
-import {
-  Table as SharedTable,
-  type TableColumnConfig,
-} from 'sentry/components/tables/table';
 import {defined} from 'sentry/utils/defined';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 
@@ -68,7 +66,7 @@ interface TableProps
 }
 
 /**
- * @deprecated Migration shim over `sentry/components/tables/table`. New tables
+ * @deprecated Migration shim over `@sentry/scraps/table`. New tables
  * should render that `Table` directly and declare their own `columns`.
  */
 export function Table({
@@ -109,24 +107,24 @@ export const ALLOWED_CELL_ACTIONS: Actions[] = [
 ];
 
 /**
- * @deprecated Use `Table.Body` from `sentry/components/tables/table`.
+ * @deprecated Use `Table.Body` from `@sentry/scraps/table`.
  */
 export const TableBody = SharedTable.Body;
 /**
- * @deprecated Use `Table.Row` from `sentry/components/tables/table`.
+ * @deprecated Use `Table.Row` from `@sentry/scraps/table`.
  */
 export const TableRow = GridRow;
 /**
- * @deprecated Use `Table.Cell` from `sentry/components/tables/table`.
+ * @deprecated Use `Table.Cell` from `@sentry/scraps/table`.
  */
 export const TableBodyCell = GridBodyCell;
 
 /**
- * @deprecated Use `Table.Head` from `sentry/components/tables/table`.
+ * @deprecated Use `Table.Head` from `@sentry/scraps/table`.
  */
 export const TableHead = GridHead;
 /**
- * @deprecated Use `Table.HeadCell` from `sentry/components/tables/table`.
+ * @deprecated Use `Table.HeadCell` from `@sentry/scraps/table`.
  */
 export const TableHeadCell = styled(GridHeadCell)<{align?: ColumnAlign}>`
   ${p =>

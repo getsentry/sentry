@@ -6,6 +6,7 @@ import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
@@ -15,7 +16,6 @@ import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgentDropdownMenu';
 import {StoppingPointDropdownMenu} from 'sentry/components/seer/stoppingPointDropdownMenu';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import type {TableColumnConfig} from 'sentry/components/tables/table';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';

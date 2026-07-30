@@ -3,14 +3,16 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {UseInfiniteQueryResult} from '@tanstack/react-query';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {Table as TableShell, useTableElement} from 'sentry/components/tables/table';
 import {
   emptyCellStyle,
   fullWidthCellStyle,
   statusCellStyle,
-} from 'sentry/components/tables/table/styles';
+  Table as TableShell,
+  useTableElement,
+} from '@sentry/scraps/table';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 
 function Body<TData = unknown, TSelect = unknown>({
