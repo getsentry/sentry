@@ -14,6 +14,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from slack_sdk.errors import SlackApiError
 
+from sentry import options
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.integrations.messaging import commands
@@ -361,7 +362,9 @@ class SlackRequestParser(BaseRequestParser):
             sample_rate=1.0,
         )
 
-        if elapsed > SLACK_RESPONSE_TIMEOUT_SECONDS:
+        if elapsed > SLACK_RESPONSE_TIMEOUT_SECONDS and options.get(
+            "slack.log-webhook-retry-diagnostics"
+        ):
             slack_event_id = self.slack_request.data.get("event_id") if self.slack_request else None
             logger.info(
                 "slack.control.response_time_exceeded",
@@ -376,6 +379,9 @@ class SlackRequestParser(BaseRequestParser):
             )
 
     def _log_seer_agent_retry_headers(self, status_code: int | str) -> None:
+        if not options.get("slack.log-webhook-retry-diagnostics"):
+            return
+
         if not self._is_seer_agent_request(self.slack_request):
             return
 
