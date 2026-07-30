@@ -2298,14 +2298,22 @@ function buildRoutes(): RouteObject[] {
       path: 'saved-queries/',
       component: make(() => import('sentry/views/explore/savedQueries')),
     },
-    // These two routes have to be placed at the end of the exploreChildren
-    // array to avoid being overridden by the other routes.
+    // Unknown /explore/ subpaths redirect to the default explore view, rather
+    // than falling through to the `/:orgId/:projectId/` legacy redirect and
+    // rendering "The project you were looking for was not found".
+    //
+    // Real routes outrank these on specificity, so they win regardless of
+    // where they sit in this array. Keep these last anyway: order is the
+    // tiebreaker if a sibling ever scores the same.
     {
       path: ':catchAll/',
       component: make(() => import('sentry/views/explore/indexRedirect')),
     },
     {
-      path: ':catchAll/*',
+      // Same, for deeper paths. Not `:catchAll/*` — our SDK matches relative
+      // route paths against the full pathname, so that pattern would rename
+      // every transaction in the app to `/:catchAll/...`.
+      path: '*',
       component: make(() => import('sentry/views/explore/indexRedirect')),
     },
   ];

@@ -649,6 +649,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/**/issues/**                                        @getsentry/issue-detection-frontend @getsentry/issue-workflow
 /static/**/group/**                                         @getsentry/issue-detection-frontend @getsentry/issue-workflow
 /static/app/components/activity/                            @getsentry/issue-detection-frontend @getsentry/issue-workflow
+/static/app/utils/issueTypeConfig/                          @getsentry/issue-detection-frontend @getsentry/issue-workflow
 /tests/sentry/issues/**                                     @getsentry/issue-detection-backend @getsentry/issue-workflow
 # Overrides
 /src/sentry/api/helpers/actionable_items_helper.py          @getsentry/issue-workflow
