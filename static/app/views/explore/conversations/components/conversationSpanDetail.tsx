@@ -331,15 +331,38 @@ function OutputTab({
   attributes: SpanAttributes;
   node: AITraceSpanNode;
 }) {
-  const {responseText, responseObject, toolCalls} = getAIOutputData(node, attributes);
+  const {reasoningText, responseText, responseObject, toolCalls} = getAIOutputData(
+    node,
+    attributes
+  );
   const toolOutput = getAIToolOutput(node, attributes);
 
-  if (!responseText && !responseObject && !toolCalls && !toolOutput) {
+  // Reasoning is supplementary to the actual output, so clip it when there is
+  // other content; when it is the only output, show it in full.
+  const clipReasoning = Boolean(
+    responseText || responseObject || toolCalls || toolOutput
+  );
+
+  if (!reasoningText && !responseText && !responseObject && !toolCalls && !toolOutput) {
     return <EmptyTab message={t('No output for this span')} />;
   }
 
   return (
     <Fragment>
+      {reasoningText ? (
+        <Fragment>
+          <TraceDrawerComponents.MultilineTextLabel>
+            {t('Thinking')}
+          </TraceDrawerComponents.MultilineTextLabel>
+          <AIContentRenderer
+            key={`${node.id}:reasoning-text`}
+            text={reasoningText}
+            maxJsonDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
+            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            clip={clipReasoning}
+          />
+        </Fragment>
+      ) : null}
       {responseText ? (
         <Fragment>
           <TraceDrawerComponents.MultilineTextLabel>
