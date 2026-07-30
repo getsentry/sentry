@@ -8,6 +8,7 @@ from urllib.parse import parse_qs
 
 import orjson
 import sentry_sdk
+from django.core.cache import cache
 from django.http import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
 from rest_framework import status
@@ -59,6 +60,9 @@ ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS = UNFURL_ACTION_OPTIONS + NOTIFICATION_SETTIN
 SLACK_WEBHOOK_METRIC_EVENT_TYPES = frozenset(
     ["app_mention", "assistant_thread_started", "link_shared", "message", "reaction_added"]
 )
+
+# Slack retries for ~5 minutes after http_timeout; keep keys long enough to cover that window.
+SEER_SLACK_EVENT_DEDUP_TTL = 60 * 60
 
 
 class SlackRequestParser(BaseRequestParser):
@@ -313,6 +317,45 @@ class SlackRequestParser(BaseRequestParser):
             and slack_request.is_seer_agent_request
         )
 
+    def _claim_seer_slack_event(self, slack_request: SlackEventRequest) -> bool:
+        """Atomically claim a Slack event_id so Seer routing runs at most once.
+
+        Uses ``cache.add`` (Redis ``SET key NX EX`` / test-and-set). Concurrent
+        redeliveries of the same event_id race here: exactly one caller gets
+        True and schedules routing; the rest get False and ACK without work.
+        A get-then-set would race — do not replace this with ``cache.get`` /
+        ``cache.set``.
+
+        Returns True if this delivery should schedule routing. Missing event_ids
+        cannot be deduped, so they always proceed (and are logged — Slack's
+        ``event_callback`` envelope always includes ``event_id``; only
+        ``url_verification`` omits it, and that is handled earlier).
+        """
+        event_id = slack_request.data.get("event_id")
+        log_extra = {
+            "integration_id": slack_request.integration.id,
+            "event_type": slack_request.type,
+            "event_id": event_id,
+        }
+
+        if not event_id:
+            logger.info("slack.control.seer_event.missing_event_id", extra=log_extra)
+            return True
+
+        if not cache.add(
+            f"slack.control.seer_event:{event_id}",
+            1,
+            timeout=SEER_SLACK_EVENT_DEDUP_TTL,
+        ):
+            logger.info("slack.control.seer_event.duplicate_skipped", extra=log_extra)
+            metrics.incr(
+                "hybrid_cloud.integration_control.slack.seer_event.duplicate_skipped",
+                sample_rate=1.0,
+            )
+            return False
+
+        return True
+
     def _get_metric_event_type(self) -> str:
         """Slack event type behind this request, or "none" when it carries no type.
 
@@ -398,6 +441,12 @@ class SlackRequestParser(BaseRequestParser):
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
         if self._is_seer_agent_request(self.slack_request):
+            # Claim late — after validation/cell resolution, immediately before the
+            # side-effect of scheduling — so Slack http_timeout redeliveries of the
+            # same event_id don't trigger duplicate Seer replies.
+            if not self._claim_seer_slack_event(self.slack_request):
+                return HttpResponse(status=status.HTTP_200_OK)
+
             route_slack_seer_event.apply_async(
                 kwargs={
                     "payload": create_async_request_payload(self.request),
@@ -415,6 +464,7 @@ class SlackRequestParser(BaseRequestParser):
                 extra={
                     "integration_id": self.slack_request.integration.id,
                     "event_type": self.slack_request.type,
+                    "event_id": self.slack_request.data.get("event_id"),
                 },
             )
             return HttpResponse(status=status.HTTP_200_OK)

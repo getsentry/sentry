@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 import orjson
 import pytest
 import responses
+from django.core.cache import cache
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
@@ -49,16 +50,17 @@ class SlackRequestParserTest(TestCase):
         )
         patcher.start()
         self.addCleanup(patcher.stop)
+        cache.clear()
 
     def get_response(self, request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
 
-    def _make_parser_with_seer_event(self, event_type: str = "app_mention"):
+    def _make_parser_with_seer_event(self, event_type: str = "app_mention", event_id: str = "E1"):
         data = {
             "type": "event_callback",
             "team_id": self.integration.external_id,
             "api_app_id": "AXXXXXXXX1",
-            "event_id": "E1",
+            "event_id": event_id,
             "event": {
                 "type": event_type,
                 "channel": "C1234567890",
@@ -423,6 +425,47 @@ class SlackRequestParserTest(TestCase):
         assert kwargs["message_text"] == "hello"
         assert kwargs["payload"]["method"] == "POST"
         assert kwargs["payload"]["path"].startswith("/extensions/slack/event")
+
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_seer_event_dedupes_by_event_id(self, mock_apply):
+        event_id = "EvDEDUP1"
+
+        first = self._make_parser_with_seer_event(
+            event_type="app_mention", event_id=event_id
+        ).get_response()
+        second = self._make_parser_with_seer_event(
+            event_type="app_mention", event_id=event_id
+        ).get_response()
+
+        assert isinstance(first, HttpResponse)
+        assert isinstance(second, HttpResponse)
+        assert first.status_code == status.HTTP_200_OK
+        assert second.status_code == status.HTTP_200_OK
+        mock_apply.assert_called_once()
+
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_seer_event_different_event_ids_are_not_deduped(self, mock_apply):
+        self._make_parser_with_seer_event(event_type="app_mention", event_id="EvA").get_response()
+        self._make_parser_with_seer_event(event_type="app_mention", event_id="EvB").get_response()
+
+        assert mock_apply.call_count == 2
+
+    @patch("sentry.middleware.integrations.parsers.slack.logger")
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_seer_event_missing_event_id_logs_and_schedules(
+        self, mock_apply: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        self._make_parser_with_seer_event(event_type="app_mention", event_id="").get_response()
+
+        mock_apply.assert_called_once()
+        mock_logger.info.assert_any_call(
+            "slack.control.seer_event.missing_event_id",
+            extra={
+                "integration_id": self.integration.id,
+                "event_type": "app_mention",
+                "event_id": "",
+            },
+        )
 
     @responses.activate
     @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
