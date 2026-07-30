@@ -42,7 +42,7 @@ type VisitorFn<T> = (opts: {
 }) => null | TokenResultFoundError | typeof skipTokenMarker;
 
 function isRawFilterKeyWithColon(key: string): boolean {
-  return key.includes(':') && /^[\w.:@-]+$/.test(key);
+  return key.includes(':') && /^[\w.:-]+$/.test(key);
 }
 
 export function quoteFilterKey(key: string): string {
