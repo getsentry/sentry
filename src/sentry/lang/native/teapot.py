@@ -12,7 +12,6 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Sequence
-from datetime import timedelta
 from typing import Any, Protocol
 
 import orjson
@@ -21,7 +20,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry import options
-from sentry.objectstore import get_attachments_session, maybe_rewrite_url_for_symbolicator
+from sentry.objectstore import get_attachments_session, get_internal_download_url
 from sentry.utils.retries import ConditionalRetryPolicy
 
 logger = logging.getLogger(__name__)
@@ -52,9 +51,6 @@ class TeapotAttachment(Protocol):
     name: str
     stored_id: str | None
 
-
-# Presigned URLs live just long enough to cover the request window, then expire.
-_PRESIGNED_URL_TTL = timedelta(seconds=60)
 
 # Fallbacks for the `teapot.timeout-seconds` / `teapot.max-attempts` options.
 # The timeout is tight on purpose: decode is sub-second, so a slow teapot should
@@ -151,12 +147,11 @@ class TeapotClient:
         return self._send(url, headers=headers, data=orjson.dumps(body))
 
     def _storage_url(self, session: Any, att: TeapotAttachment) -> str:
-        """Short-lived self-authenticating (presigned) GET URL for the attachment."""
+        """Short-lived self-authenticating (presigned) GET URL for the attachment —
+        the shared internal objectstore helper (direct link, no auth header)."""
         if not att.stored_id:
             raise TeapotRequestError(f"attachment {att.name!r} is not in objectstore")
-        return maybe_rewrite_url_for_symbolicator(
-            session.object_url(att.stored_id, token_validity=_PRESIGNED_URL_TTL)
-        )
+        return get_internal_download_url(session, att.stored_id)
 
     def _send(self, url: str, headers: dict[str, str], data: bytes) -> dict[str, Any]:
         def attempt() -> dict[str, Any]:
