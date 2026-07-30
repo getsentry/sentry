@@ -12,6 +12,7 @@ import {
   type SortDirection,
 } from 'sentry/components/tables/sortableHeaderCell';
 import {Table, type TableColumnConfig} from 'sentry/components/tables/table';
+import {emptyCellStyle, fullWidthCellStyle} from 'sentry/components/tables/table/styles';
 import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 
@@ -188,10 +189,16 @@ const rowLinkStyle = (p: {theme: Theme}) => css`
 
 const FullWidthCell = styled(RowCell)`
   grid-column: 1 / -1;
-  padding: 0;
-  align-items: stretch;
-  flex-direction: column;
+  ${fullWidthCellStyle}
 `;
+
+function FullWidthRow({children, ...props}: RowProps) {
+  return (
+    <Row {...props}>
+      <FullWidthCell>{children}</FullWidthCell>
+    </Row>
+  );
+}
 
 const HeaderCellFirst = styled(HeaderCell)`
   grid-column: 1;
@@ -207,10 +214,7 @@ const FullWidthHeaderCell = styled(HeaderCell)`
 `;
 
 const Empty = styled(Table.Status)`
-  min-height: 200px;
-  padding: ${p => p.theme.space.xl};
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.md};
+  ${emptyCellStyle}
 `;
 
 SimpleTable.Header = Header;
@@ -220,6 +224,7 @@ SimpleTable.RowCell = RowCell;
 SimpleTable.rowLinkStyle = rowLinkStyle;
 SimpleTable.Empty = Empty;
 SimpleTable.FullWidthCell = FullWidthCell;
+SimpleTable.FullWidthRow = FullWidthRow;
 SimpleTable.FullWidthHeaderCell = FullWidthHeaderCell;
 SimpleTable.HeaderCellFirst = HeaderCellFirst;
 SimpleTable.HeaderCellRemaining = HeaderCellRemaining;

@@ -89,6 +89,27 @@ describe('Table', () => {
     expect(gridTemplate()).toBe(expected);
   });
 
+  it('pins the last column to its declared width when the last column is not flexible', () => {
+    render(<TestTable flexibleLastColumn={false} />);
+
+    expect(gridTemplate()).toBe('200px 150px minmax(90px, auto)');
+  });
+
+  it('restores the auto width of a non-flexible column when its handle is double-clicked', async () => {
+    render(
+      <TestTable
+        columns={[{key: 'a', width: 200}, {key: 'b'}]}
+        flexibleLastColumn={false}
+      />
+    );
+
+    await userEvent.dblClick(resizers()[0]!);
+
+    await waitFor(() =>
+      expect(gridTemplate()).toBe('minmax(90px, auto) minmax(90px, auto)')
+    );
+  });
+
   it('prepends fixed tracks when given prependColumnWidths', () => {
     render(<TestTable prependColumnWidths={['40px', 'min-content']} />);
 

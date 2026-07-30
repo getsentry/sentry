@@ -204,32 +204,30 @@ export function DetectorsTableActions({
         </SimpleTable.FullWidthHeaderCell>
       </SimpleTable.Header>
       {pageSelected && !allResultsVisible && (
-        <SimpleTable.Row>
-          <SimpleTable.FullWidthCell>
-            <Alert variant="warning" system showIcon={false}>
-              <Flex justify="center" wrap="wrap" gap="md">
-                {allInQuerySelected ? (
-                  tct('Selected all [count] monitors that match this search query.', {
-                    count: queryCount,
-                  })
-                ) : (
-                  <Fragment>
-                    {tn(
-                      '%s monitor on this page selected.',
-                      '%s monitors on this page selected.',
-                      selected.size
-                    )}
-                    <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
-                      {tct('Select all [count] monitors that match this search query.', {
-                        count: queryCount,
-                      })}
-                    </Button>
-                  </Fragment>
-                )}
-              </Flex>
-            </Alert>
-          </SimpleTable.FullWidthCell>
-        </SimpleTable.Row>
+        <SimpleTable.FullWidthRow>
+          <Alert variant="warning" system showIcon={false}>
+            <Flex justify="center" wrap="wrap" gap="md">
+              {allInQuerySelected ? (
+                tct('Selected all [count] monitors that match this search query.', {
+                  count: queryCount,
+                })
+              ) : (
+                <Fragment>
+                  {tn(
+                    '%s monitor on this page selected.',
+                    '%s monitors on this page selected.',
+                    selected.size
+                  )}
+                  <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
+                    {tct('Select all [count] monitors that match this search query.', {
+                      count: queryCount,
+                    })}
+                  </Button>
+                </Fragment>
+              )}
+            </Flex>
+          </Alert>
+        </SimpleTable.FullWidthRow>
       )}
     </Fragment>
   );

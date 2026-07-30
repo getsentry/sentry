@@ -1,6 +1,6 @@
 import type {CSSProperties} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 const TABLE_HEAD_ROW_HEIGHT = 45;
@@ -107,6 +107,23 @@ export const TableStatusCell = styled('td')`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+export const fullWidthCellStyle = css`
+  align-items: stretch;
+  flex-direction: column;
+  padding: 0;
+`;
+
+export const statusCellStyle = (p: {theme: Theme}) => css`
+  min-height: 200px;
+  padding: ${p.theme.space.xl};
+`;
+
+export const emptyCellStyle = (p: {theme: Theme}) => css`
+  ${statusCellStyle(p)}
+  color: ${p.theme.tokens.content.secondary};
+  font-size: ${p.theme.font.size.md};
 `;
 
 export const TableResizer = styled('div')`

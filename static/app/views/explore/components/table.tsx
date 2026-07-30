@@ -1,5 +1,5 @@
 import type React from 'react';
-import {useCallback, useMemo, type CSSProperties} from 'react';
+import {useMemo, type CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -51,21 +51,10 @@ function useExploreTableProps({
     [prefixColumnWidth]
   );
 
-  const getColumnTrack = useCallback(
-    (width: number | string | undefined) => {
-      if (!defined(width)) {
-        return `minmax(${minimumColumnWidth}px, auto)`;
-      }
-
-      return typeof width === 'number' ? `${width}px` : width;
-    },
-    [minimumColumnWidth]
-  );
-
   return {
     columns,
-    getColumnTrack,
     definiteHeadRow: true,
+    flexibleLastColumn: false,
     minimumColumnWidth,
     prependColumnWidths,
   };
@@ -79,8 +68,6 @@ interface TableProps
   ref?: React.RefObject<HTMLTableElement | null>;
   scrollable?: boolean;
   showVerticalScrollbar?: boolean;
-  // Size of the loading element in order to match the height of the row.
-  size?: number;
 }
 
 export function Table({

@@ -150,19 +150,17 @@ export function ReplayTable({
         </RowWithScrollIntoView>
       ))}
       {pageLinks ? (
-        <SimpleTable.Row>
-          <SimpleTable.FullWidthCell>
-            <StyledPagination
-              pageLinks={pageLinks}
-              onCursor={(cursor, path, searchQuery) => {
-                navigate({
-                  pathname: path,
-                  query: {...searchQuery, cursor},
-                });
-              }}
-            />
-          </SimpleTable.FullWidthCell>
-        </SimpleTable.Row>
+        <SimpleTable.FullWidthRow>
+          <StyledPagination
+            pageLinks={pageLinks}
+            onCursor={(cursor, path, searchQuery) => {
+              navigate({
+                pathname: path,
+                query: {...searchQuery, cursor},
+              });
+            }}
+          />
+        </SimpleTable.FullWidthRow>
       ) : null}
     </StyledSimpleTable>
   );

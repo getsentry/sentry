@@ -100,11 +100,7 @@ export interface TableProps extends Omit<
   columns?: TableColumnConfig[];
   definiteHeadRow?: boolean;
   fit?: 'max-content';
-  getColumnTrack?: (
-    width: ResolvedWidth,
-    column: TableColumnConfig,
-    index: number
-  ) => string;
+  flexibleLastColumn?: boolean;
   height?: CSSProperties['height'];
   minimumColumnWidth?: number;
   onColumnResize?: (index: number, width: number) => void;
@@ -118,7 +114,7 @@ export function Table({
   columns = EMPTY_COLUMNS,
   definiteHeadRow,
   fit,
-  getColumnTrack,
+  flexibleLastColumn = true,
   height,
   minimumColumnWidth = COL_WIDTH_MINIMUM,
   onColumnResize,
@@ -141,16 +137,15 @@ export function Table({
 
   const buildTemplate = useCallback(
     (overrideIndex?: number, overrideWidth?: number) => {
-      const tracks = columns.map((column, index) => {
-        const width = index === overrideIndex ? overrideWidth : resolveWidth(column);
-
-        return getColumnTrack
-          ? getColumnTrack(width, column, index)
-          : getDefaultColumnTrack(width, {
-              flexible: index === columns.length - 1,
-              minimumColumnWidth,
-            });
-      });
+      const tracks = columns.map((column, index) =>
+        getDefaultColumnTrack(
+          index === overrideIndex ? overrideWidth : resolveWidth(column),
+          {
+            flexible: flexibleLastColumn && index === columns.length - 1,
+            minimumColumnWidth,
+          }
+        )
+      );
 
       if (!tracks.length) {
         return '';
@@ -158,15 +153,11 @@ export function Table({
 
       return [...(prependColumnWidths ?? []), ...tracks].join(' ');
     },
-    [columns, getColumnTrack, minimumColumnWidth, prependColumnWidths, resolveWidth]
+    [columns, flexibleLastColumn, minimumColumnWidth, prependColumnWidths, resolveWidth]
   );
 
-  const {onResizeMouseDown, applyTemplate} = useColumnResize({
-    gridRef,
-    getResizeTemplate: (index, newWidth) =>
-      buildTemplate(index, Math.max(newWidth, minimumColumnWidth)),
-    onColumnResizeEnd: (index, newWidth) => {
-      const width = Math.max(newWidth, minimumColumnWidth);
+  const commitWidth = useCallback(
+    (index: number, width: number) => {
       const key = columns[index]?.key;
 
       if (onColumnResize) {
@@ -175,24 +166,35 @@ export function Table({
         setInternalWidths(current => ({...current, [key]: width}));
       }
     },
-    writeResizerHeightVar: true,
+    [columns, onColumnResize]
+  );
+
+  const getResizeTemplate = useCallback(
+    (index: number, newWidth: number) =>
+      buildTemplate(index, Math.max(newWidth, minimumColumnWidth)),
+    [buildTemplate, minimumColumnWidth]
+  );
+
+  const onColumnResizeEnd = useCallback(
+    (index: number, newWidth: number) =>
+      commitWidth(index, Math.max(newWidth, minimumColumnWidth)),
+    [commitWidth, minimumColumnWidth]
+  );
+
+  const {onResizeMouseDown, applyTemplate} = useColumnResize({
+    gridRef,
+    getResizeTemplate,
+    onColumnResizeEnd,
   });
 
   const onResetColumnSize = useCallback(
     (event: React.MouseEvent, index: number) => {
       event.stopPropagation();
 
-      const key = columns[index]?.key;
-
       applyTemplate(buildTemplate(index, COL_WIDTH_UNDEFINED));
-
-      if (onColumnResize) {
-        onColumnResize(index, COL_WIDTH_UNDEFINED);
-      } else if (key) {
-        setInternalWidths(current => ({...current, [key]: COL_WIDTH_UNDEFINED}));
-      }
+      commitWidth(index, COL_WIDTH_UNDEFINED);
     },
-    [applyTemplate, buildTemplate, columns, onColumnResize]
+    [applyTemplate, buildTemplate, commitWidth]
   );
 
   const template = buildTemplate();
@@ -213,6 +215,20 @@ export function Table({
     window.addEventListener('resize', redraw);
     return () => window.removeEventListener('resize', redraw);
   }, [redraw]);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) {
+      return () => {};
+    }
+
+    const observer = new ResizeObserver(() => {
+      grid.style.setProperty('--table-resizer-height', `${grid.offsetHeight}px`);
+    });
+    observer.observe(grid);
+
+    return () => observer.disconnect();
+  }, [gridRef]);
 
   const contextValue = useMemo<TableContextValue>(
     () => ({

@@ -9,9 +9,9 @@ import {
   GridBodyCell,
   GridHead,
   GridHeadCell,
-  GridResizer,
   GridRow,
 } from 'sentry/components/tables/gridEditable/styles';
+import {TableResizer} from 'sentry/components/tables/table/styles';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -175,7 +175,7 @@ const StyledGridEditable = styled('div')`
   ${GridHead} {
     min-height: unset;
     font-size: ${p => p.theme.font.size.md};
-    ${GridResizer} {
+    ${TableResizer} {
       height: 36px;
     }
   }

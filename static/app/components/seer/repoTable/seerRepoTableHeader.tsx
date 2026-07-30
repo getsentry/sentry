@@ -346,48 +346,40 @@ export function SeerRepoTableHeader({
       </ListItemSelectedState>
 
       <ListItemSelectedState selected="indeterminate">
-        <SimpleTable.Row>
-          <SimpleTable.FullWidthCell>
-            <Alert variant="info" system>
-              <Flex justify="start" width="100%" wrap="wrap" gap="md">
-                {tn(
-                  'Selected %s repository.',
-                  'Selected %s repositories.',
-                  countSelected
-                )}
-                <a onClick={selectAll}>
-                  {queryString
-                    ? tct('Select all [count] repositories that match: [queryString].', {
-                        count: listItemCheckboxState.hits,
-                        queryString: <var>{queryString}</var>,
-                      })
-                    : t('Select all %s repositories.', listItemCheckboxState.hits)}
-                </a>
-              </Flex>
-            </Alert>
-          </SimpleTable.FullWidthCell>
-        </SimpleTable.Row>
+        <SimpleTable.FullWidthRow>
+          <Alert variant="info" system>
+            <Flex justify="start" width="100%" wrap="wrap" gap="md">
+              {tn('Selected %s repository.', 'Selected %s repositories.', countSelected)}
+              <a onClick={selectAll}>
+                {queryString
+                  ? tct('Select all [count] repositories that match: [queryString].', {
+                      count: listItemCheckboxState.hits,
+                      queryString: <var>{queryString}</var>,
+                    })
+                  : t('Select all %s repositories.', listItemCheckboxState.hits)}
+              </a>
+            </Flex>
+          </Alert>
+        </SimpleTable.FullWidthRow>
       </ListItemSelectedState>
 
       <ListItemSelectedState selected="all">
-        <SimpleTable.Row>
-          <SimpleTable.FullWidthCell>
-            <Alert variant="info" system>
-              {queryString
-                ? tct('Selected all [count] repositories matching: [queryString].', {
-                    count: countSelected,
-                    queryString: <var>{queryString}</var>,
-                  })
-                : countSelected > knownIds.length
-                  ? t('Selected all %s+ repositories.', knownIds.length)
-                  : tn(
-                      'Selected %s repository.',
-                      'Selected all %s repositories.',
-                      countSelected
-                    )}
-            </Alert>
-          </SimpleTable.FullWidthCell>
-        </SimpleTable.Row>
+        <SimpleTable.FullWidthRow>
+          <Alert variant="info" system>
+            {queryString
+              ? tct('Selected all [count] repositories matching: [queryString].', {
+                  count: countSelected,
+                  queryString: <var>{queryString}</var>,
+                })
+              : countSelected > knownIds.length
+                ? t('Selected all %s+ repositories.', knownIds.length)
+                : tn(
+                    'Selected %s repository.',
+                    'Selected all %s repositories.',
+                    countSelected
+                  )}
+          </Alert>
+        </SimpleTable.FullWidthRow>
       </ListItemSelectedState>
     </Fragment>
   );

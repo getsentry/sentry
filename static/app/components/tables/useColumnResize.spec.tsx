@@ -7,20 +7,17 @@ import {useColumnResize} from 'sentry/components/tables/useColumnResize';
 interface TestTableProps {
   getResizeTemplate?: (columnIndex: number, newWidth: number) => string;
   onColumnResizeEnd?: (columnIndex: number, newWidth: number) => void;
-  writeResizerHeightVar?: boolean;
 }
 
 function TestTable({
   getResizeTemplate = (_index, newWidth) => `${Math.round(newWidth)}px`,
   onColumnResizeEnd,
-  writeResizerHeightVar,
 }: TestTableProps) {
   const gridRef = useRef<HTMLTableElement>(null);
   const {onResizeMouseDown} = useColumnResize({
     gridRef,
     getResizeTemplate,
     onColumnResizeEnd,
-    writeResizerHeightVar,
   });
 
   return (
@@ -109,28 +106,14 @@ describe('useColumnResize', () => {
     expect(onColumnResizeEnd).not.toHaveBeenCalled();
   });
 
-  it('sets the resizer-height CSS variable when writeResizerHeightVar is enabled', async () => {
-    render(<TestTable writeResizerHeightVar />);
+  it('writes the template onto the grid while resizing', async () => {
+    render(<TestTable getResizeTemplate={() => '50px'} />);
 
     await drag(100, {to: 150, release: 150});
 
     await waitFor(() =>
-      expect(
-        screen.getByTestId('grid').style.getPropertyValue('--table-resizer-height')
-      ).toBe('0px')
+      expect(screen.getByTestId('grid')).toHaveStyle({gridTemplateColumns: '50px'})
     );
-  });
-
-  it('does not set the resizer-height CSS variable by default', async () => {
-    const getResizeTemplate = jest.fn(() => '50px');
-    render(<TestTable getResizeTemplate={getResizeTemplate} />);
-
-    await drag(100, {to: 150, release: 150});
-    await waitFor(() => expect(getResizeTemplate).toHaveBeenCalled());
-
-    expect(
-      screen.getByTestId('grid').style.getPropertyValue('--table-resizer-height')
-    ).toBe('');
   });
 
   it('tears down a previous drag when a new one starts without a mouseup', async () => {

@@ -6,7 +6,7 @@ import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {Table} from 'sentry/components/tables/table';
-import {TableResizer, TableStatusCell} from 'sentry/components/tables/table/styles';
+import {TableStatusCell} from 'sentry/components/tables/table/styles';
 
 const GRID_HEAD_ROW_HEIGHT = 45;
 export const GRID_BODY_ROW_HEIGHT = 42;
@@ -195,5 +195,3 @@ export function GridStatus({children}: {children: React.ReactNode}) {
     </GridRow>
   );
 }
-
-export const GridResizer = TableResizer;

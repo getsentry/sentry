@@ -101,16 +101,14 @@ export function YourTeamsTable({
         <SimpleTable.HeaderCell data-column-name="actions" />
       </SimpleTable.Header>
       {hasOrgRoleOverwrite({orgRole, orgRoleList, teamRoleList}) && (
-        <SimpleTable.Row>
-          <SimpleTable.FullWidthCell>
-            <RoleOverwritePanelAlert
-              orgRole={orgRole}
-              orgRoleList={orgRoleList}
-              teamRoleList={teamRoleList}
-              isSelf
-            />
-          </SimpleTable.FullWidthCell>
-        </SimpleTable.Row>
+        <SimpleTable.FullWidthRow>
+          <RoleOverwritePanelAlert
+            orgRole={orgRole}
+            orgRoleList={orgRoleList}
+            teamRoleList={teamRoleList}
+            isSelf
+          />
+        </SimpleTable.FullWidthRow>
       )}
       {isLoading
         ? Array.from({length: 3}).map((_, i) => (

@@ -172,32 +172,30 @@ export function AutomationsTableActions({
         </SimpleTable.FullWidthHeaderCell>
       </SimpleTable.Header>
       {pageSelected && !allResultsVisible && (
-        <SimpleTable.Row>
-          <SimpleTable.FullWidthCell>
-            <Alert variant="warning" system showIcon={false}>
-              <Flex justify="center" wrap="wrap" gap="md">
-                {allInQuerySelected ? (
-                  tct('Selected all [count] alerts that match this search query.', {
-                    count: queryCount,
-                  })
-                ) : (
-                  <Fragment>
-                    {tn(
-                      '%s alert on this page selected.',
-                      '%s alerts on this page selected.',
-                      selected.size
-                    )}
-                    <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
-                      {tct('Select all [count] alerts that match this search query.', {
-                        count: queryCount,
-                      })}
-                    </Button>
-                  </Fragment>
-                )}
-              </Flex>
-            </Alert>
-          </SimpleTable.FullWidthCell>
-        </SimpleTable.Row>
+        <SimpleTable.FullWidthRow>
+          <Alert variant="warning" system showIcon={false}>
+            <Flex justify="center" wrap="wrap" gap="md">
+              {allInQuerySelected ? (
+                tct('Selected all [count] alerts that match this search query.', {
+                  count: queryCount,
+                })
+              ) : (
+                <Fragment>
+                  {tn(
+                    '%s alert on this page selected.',
+                    '%s alerts on this page selected.',
+                    selected.size
+                  )}
+                  <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
+                    {tct('Select all [count] alerts that match this search query.', {
+                      count: queryCount,
+                    })}
+                  </Button>
+                </Fragment>
+              )}
+            </Flex>
+          </Alert>
+        </SimpleTable.FullWidthRow>
       )}
     </Fragment>
   );

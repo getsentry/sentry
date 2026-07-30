@@ -91,46 +91,42 @@ export function ReplayTableHeader({
       </ListItemSelectedState>
 
       <ListItemSelectedState selected="indeterminate">
-        <SimpleTable.Row>
-          <SimpleTable.FullWidthCell>
-            <Alert variant="info" system>
-              <Flex justify="start" width="100%" wrap="wrap" gap="md">
-                {tn(
-                  'Selected %s visible replay.',
-                  'Selected %s visible replays.',
-                  countSelected
-                )}
-                <a onClick={selectAll}>
-                  {queryString
-                    ? tct('Select all replays that match: [queryString].', {
-                        queryString: <var>{queryString}</var>,
-                      })
-                    : t('Select all replays.')}
-                </a>
-              </Flex>
-            </Alert>
-          </SimpleTable.FullWidthCell>
-        </SimpleTable.Row>
+        <SimpleTable.FullWidthRow>
+          <Alert variant="info" system>
+            <Flex justify="start" width="100%" wrap="wrap" gap="md">
+              {tn(
+                'Selected %s visible replay.',
+                'Selected %s visible replays.',
+                countSelected
+              )}
+              <a onClick={selectAll}>
+                {queryString
+                  ? tct('Select all replays that match: [queryString].', {
+                      queryString: <var>{queryString}</var>,
+                    })
+                  : t('Select all replays.')}
+              </a>
+            </Flex>
+          </Alert>
+        </SimpleTable.FullWidthRow>
       </ListItemSelectedState>
 
       <ListItemSelectedState selected="all">
-        <SimpleTable.Row>
-          <SimpleTable.FullWidthCell>
-            <Alert variant="info" system>
-              {queryString
-                ? tct('Selected all replays matching: [queryString].', {
-                    queryString: <var>{queryString}</var>,
-                  })
-                : countSelected > replays.length
-                  ? t('Selected all %s+ replays.', replays.length)
-                  : tn(
-                      'Selected all %s replay.',
-                      'Selected all %s replays.',
-                      countSelected
-                    )}
-            </Alert>
-          </SimpleTable.FullWidthCell>
-        </SimpleTable.Row>
+        <SimpleTable.FullWidthRow>
+          <Alert variant="info" system>
+            {queryString
+              ? tct('Selected all replays matching: [queryString].', {
+                  queryString: <var>{queryString}</var>,
+                })
+              : countSelected > replays.length
+                ? t('Selected all %s+ replays.', replays.length)
+                : tn(
+                    'Selected all %s replay.',
+                    'Selected all %s replays.',
+                    countSelected
+                  )}
+          </Alert>
+        </SimpleTable.FullWidthRow>
       </ListItemSelectedState>
     </Fragment>
   );

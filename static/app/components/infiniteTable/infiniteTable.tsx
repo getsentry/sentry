@@ -6,6 +6,11 @@ import type {UseInfiniteQueryResult} from '@tanstack/react-query';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {Table as TableShell, useTableElement} from 'sentry/components/tables/table';
+import {
+  emptyCellStyle,
+  fullWidthCellStyle,
+  statusCellStyle,
+} from 'sentry/components/tables/table/styles';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 
 function Body<TData = unknown, TSelect = unknown>({
@@ -82,14 +87,16 @@ const VirtualRow = styled(TableShell.Row)`
   align-items: center;
 `;
 
-const Status = styled(TableShell.StatusBody)`
-  min-height: 200px;
-  padding: ${p => p.theme.space.xl};
+const HeaderBanner = styled(TableShell.Status)`
+  ${fullWidthCellStyle}
 `;
 
-const Empty = styled(Status)`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.md};
+const Status = styled(TableShell.StatusBody)`
+  ${statusCellStyle}
+`;
+
+const Empty = styled(TableShell.StatusBody)`
+  ${emptyCellStyle}
 `;
 
 const LoadingBody = styled(TableShell.StatusBody)`
@@ -104,7 +111,7 @@ export const InfiniteTable = {
   Table,
   Head: TableShell.Head,
   Header: SimpleTable.Header,
-  HeaderBanner: TableShell.Status,
+  HeaderBanner,
   HeaderCell: SimpleTable.HeaderCell,
   HeaderCellFirst: SimpleTable.HeaderCellFirst,
   HeaderCellRemaining,

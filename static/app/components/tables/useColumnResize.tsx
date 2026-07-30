@@ -15,11 +15,6 @@ interface UseColumnResizeOptions<T extends HTMLElement> {
    * Persist the finalized width once the drag ends (`mouseup`).
    */
   onColumnResizeEnd?: (columnIndex: number, newWidth: number) => void;
-
-  /**
-   * Whether to set the `--table-resizer-height` CSS var to the rendered height after writing.
-   */
-  writeResizerHeightVar?: boolean;
 }
 
 interface ColumnResizeState {
@@ -37,7 +32,6 @@ export function useColumnResize<T extends HTMLElement>({
   gridRef,
   getResizeTemplate,
   onColumnResizeEnd,
-  writeResizerHeightVar = false,
 }: UseColumnResizeOptions<T>) {
   const resizeStateRef = useRef<ColumnResizeState | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -50,12 +44,8 @@ export function useColumnResize<T extends HTMLElement>({
       }
 
       grid.style.gridTemplateColumns = template;
-
-      if (writeResizerHeightVar) {
-        grid.style.setProperty('--table-resizer-height', `${grid.offsetHeight}px`);
-      }
     },
-    [gridRef, writeResizerHeightVar]
+    [gridRef]
   );
 
   const onResizeMouseDown = useCallback(
