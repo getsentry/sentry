@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.eap import EAP_DEFAULT_STATS_PERIOD
 
 
 class OrganizationTraceItemsAttributesRankedEndpointTest(
@@ -28,6 +29,8 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
         if query:
             query.setdefault("sampling", "HIGHEST_ACCURACY")
+            if not query.keys() & {"statsPeriod", "start", "end"}:
+                query["statsPeriod"] = EAP_DEFAULT_STATS_PERIOD
 
         with self.feature(features):
             response = self.client.get(

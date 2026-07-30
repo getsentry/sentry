@@ -11,6 +11,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.eap import apply_eap_default_stats_period
 
 
 class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITestCase):
@@ -29,6 +30,7 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
         query["dataset"] = "spans"
         if "type" not in query:
             query["type"] = "string"
+        apply_eap_default_stats_period(query)
 
         with self.feature(features):
             return self.client.get(

@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.urls import reverse
 
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.eap import apply_eap_default_stats_period
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 from tests.snuba.api.endpoints.test_organization_events_timeseries_spans import (
     AnyConfidence,
@@ -30,6 +31,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
         )
 
     def _do_request(self, data, url=None, features=None):
+        apply_eap_default_stats_period(data)
         if features is None:
             features = {"organizations:ourlogs": True}
         features.update(self.features)

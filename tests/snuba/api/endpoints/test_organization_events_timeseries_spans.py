@@ -7,6 +7,7 @@ from django.urls import reverse
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.eap import apply_eap_default_stats_period
 from sentry.utils.snuba_rpc import _make_rpc_requests
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 from tests.snuba.api.endpoints.test_organization_events_span_indexed import KNOWN_PREFLIGHT_ID
@@ -83,6 +84,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
 
     def _do_request(self, data, url=None, features=None):
+        apply_eap_default_stats_period(data)
         if features is None:
             features = {"organizations:discover-basic": True}
         features.update(self.features)

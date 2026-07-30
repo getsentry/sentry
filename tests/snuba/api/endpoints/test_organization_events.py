@@ -42,6 +42,7 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.discover import user_misery_formula
+from sentry.testutils.helpers.eap import apply_eap_default_stats_period
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -89,6 +90,7 @@ class OrganizationEventsEndpointTestBase(
             features = {"organizations:discover-basic": True}
         features.update(self.features)
         self.login_as(user=self.user)
+        apply_eap_default_stats_period(query)
         with self.feature(features):
             return self.client_get(self.reverse_url(), query, format="json", **kwargs)
 
