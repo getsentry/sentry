@@ -11,7 +11,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -67,6 +67,7 @@ from sentry.workflow_engine.endpoints.validators.utils import (
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 detector_search_config = SearchConfig.create_from(
     default_config,
@@ -157,6 +158,13 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
     permission_classes = (OrganizationDetectorPermission,)
 
+    def _all_projects_detector_q(self, organization: Organization) -> Q:
+        return Q(
+            project__isnull=True,
+            type=IssueStreamGroupType.slug,
+            config__organization_id=organization.id,
+        )
+
     def filter_detectors(self, request: Request, organization: Any) -> QuerySet[Detector]:
         """
         Filter detectors based on the request parameters.
@@ -164,6 +172,10 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         if not request.user.is_authenticated:
             return Detector.objects.none()
+
+        include_all_projects = features.has(
+            "organizations:workflow-engine-all-projects-detector", organization
+        )
 
         if raw_idlist := request.GET.getlist("id"):
             ids = to_valid_int_id_list("id", raw_idlist)
@@ -173,19 +185,21 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                 organization,
                 include_all_accessible=True,
             )
-            return Detector.objects.with_type_filters().filter(
-                project_id__in=projects,
-                id__in=ids,
-            )
+            project_q = Q(project_id__in=projects)
+            if include_all_projects:
+                project_q |= self._all_projects_detector_q(organization)
+            return Detector.objects.with_type_filters().filter(project_q, id__in=ids)
 
         projects = self.get_projects(
             request,
             organization,
         )
 
-        queryset: QuerySet[Detector] = Detector.objects.with_type_filters().filter(
-            project_id__in=projects,
-        )
+        project_q = Q(project_id__in=projects)
+        if include_all_projects:
+            project_q |= self._all_projects_detector_q(organization)
+
+        queryset: QuerySet[Detector] = Detector.objects.with_type_filters().filter(project_q)
 
         if raw_query := request.GET.get("query"):
             try:

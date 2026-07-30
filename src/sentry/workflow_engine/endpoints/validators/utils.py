@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from typing import Any, Literal
 
 from django.db import router, transaction
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.forms import ValidationError
 from jsonschema import ValidationError as JsonValidationError
 from jsonschema import validate
@@ -116,6 +116,12 @@ def can_edit_detector_workflow_connections(detector: Detector, request: Request)
     Anyone with alert write access to the project can connect/disconnect detectors of any type,
     which is slightly different from full edit access which differs by detector type.
     """
+    # If this is the All Projects detector, skip the project check
+    if not detector.project:
+        return any(
+            request.access.has_scope(scope) for scope in USER_CREATED_DETECTOR_REQUIRED_SCOPES
+        )
+
     return request.access.has_any_project_scope(
         detector.linked_project, USER_CREATED_DETECTOR_REQUIRED_SCOPES
     )
@@ -125,7 +131,7 @@ def validate_detectors_exist_and_have_permissions(
     detector_ids: list[DetectorId], organization: Organization, request: Request
 ) -> QuerySet[Detector]:
     detectors = Detector.objects.filter(
-        project__organization=organization,
+        Q(project__organization=organization) | Q(project__isnull=True),
         id__in=detector_ids,
     )
     found_detector_ids = set(detectors.values_list("id", flat=True))
@@ -223,8 +229,9 @@ def connect_detectors_to_workflows(
         if update:
             existing_detector_workflows = list(
                 DetectorWorkflow.objects.filter(
+                    Q(detector__project__organization=organization)
+                    | Q(detector__project__isnull=True),
                     detector_id=detector_id,
-                    detector__project__organization=organization,
                 )
             )
             new_workflow_ids = set(workflow_ids) - {
