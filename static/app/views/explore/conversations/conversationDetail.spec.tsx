@@ -87,7 +87,9 @@ function detailPane() {
 
 describe('ConversationDetailPage span default selection', () => {
   beforeEach(() => {
+    // jsdom implements neither scroll API the view relies on.
     Element.prototype.scrollTo = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
     MockApiClient.clearMockResponses();
     act(() => {
       PageFiltersStore.reset();
@@ -128,7 +130,9 @@ describe('ConversationDetailPage span default selection', () => {
 
 describe('ConversationDetailPage breadcrumbs', () => {
   beforeEach(() => {
+    // jsdom implements neither scroll API the view relies on.
     Element.prototype.scrollTo = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
     MockApiClient.clearMockResponses();
     act(() => {
       PageFiltersStore.reset();
