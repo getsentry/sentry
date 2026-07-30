@@ -498,6 +498,7 @@ class Referrer(StrEnum):
     API_ORGANIZATION_ISSUES_COUNT = "api.organization-issues-count"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
+    API_ORGANIZATION_SPAN_REPLAY_COUNT = "api.organization-span-replay-count"
     API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_AI_CONVERSATIONS = "api.ai-conversations"
