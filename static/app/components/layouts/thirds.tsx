@@ -101,7 +101,7 @@ export function Body({noRowGap, ...props}: BodyProps) {
       flexGrow={1}
       columns={{zero: 'minmax(0, 1fr)', '4xl': 'minmax(100px, auto) 325px'}}
       alignContent="start"
-      gap={{zero: '0', '4xl': noRowGap ? '0 2xl' : '2xl'}}
+      gap={noRowGap ? '0 2xl' : '2xl'}
       background="primary"
       padding="lg xl"
       {...props}
