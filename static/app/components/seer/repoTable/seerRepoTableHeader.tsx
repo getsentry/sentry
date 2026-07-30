@@ -272,14 +272,14 @@ export function SeerRepoTableHeader({
 
       <ListItemSelectedState selected="indeterminate-or-all">
         <TableHeader gridColumns={gridColumns}>
-          <SimpleTable.HeaderCellFirst>
+          <SimpleTable.HeaderCell variant="first">
             <SelectAllCheckbox
               disabled={isPending || isFetchingNextPage}
               knownIds={knownIds}
               listItemCheckboxState={listItemCheckboxState}
             />
-          </SimpleTable.HeaderCellFirst>
-          <SimpleTable.HeaderCellRemaining divider={false}>
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell variant="remaining" divider={false}>
             <Flex align="center" gap="md">
               <CompactSelect
                 disabled={!canWrite}
@@ -341,7 +341,7 @@ export function SeerRepoTableHeader({
                 }}
               />
             </Flex>
-          </SimpleTable.HeaderCellRemaining>
+          </SimpleTable.HeaderCell>
         </TableHeader>
       </ListItemSelectedState>
 

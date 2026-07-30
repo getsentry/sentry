@@ -113,7 +113,6 @@ export const InfiniteTable = {
   Header: SimpleTable.Header,
   HeaderBanner,
   HeaderCell: SimpleTable.HeaderCell,
-  HeaderCellFirst: SimpleTable.HeaderCellFirst,
   HeaderCellRemaining,
   Body,
   Empty,

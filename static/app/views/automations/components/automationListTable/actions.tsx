@@ -133,7 +133,7 @@ export function AutomationsTableActions({
   return (
     <Fragment>
       <SimpleTable.Header>
-        <SimpleTable.FullWidthHeaderCell divider={false}>
+        <SimpleTable.HeaderCell variant="full-width" divider={false}>
           <Flex align="center" padding="0 xl" gap="md" width="100%">
             <Checkbox
               checked={pageSelected || (anySelected ? 'indeterminate' : false)}
@@ -169,7 +169,7 @@ export function AutomationsTableActions({
               {t('Delete')}
             </Button>
           </Flex>
-        </SimpleTable.FullWidthHeaderCell>
+        </SimpleTable.HeaderCell>
       </SimpleTable.Header>
       {pageSelected && !allResultsVisible && (
         <SimpleTable.FullWidthRow>

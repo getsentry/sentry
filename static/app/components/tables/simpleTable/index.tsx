@@ -27,6 +27,8 @@ interface RowProps extends HTMLAttributes<HTMLTableRowElement> {
   variant?: 'default' | 'faded';
 }
 
+type HeaderCellVariant = 'default' | 'first' | 'remaining' | 'full-width';
+
 export function SimpleTable({children, columns, ...props}: TableProps) {
   return (
     <StyledTable columns={columns} {...props}>
@@ -45,6 +47,7 @@ function HeaderCell({
   children,
   sort,
   handleSortClick,
+  variant = 'default',
   divider = defined(children) ? true : false,
   ...props
 }: HTMLAttributes<HTMLTableCellElement> & {
@@ -52,6 +55,7 @@ function HeaderCell({
   divider?: boolean;
   handleSortClick?: () => void;
   sort?: SortDirection;
+  variant?: HeaderCellVariant;
 }) {
   return (
     <ColumnHeaderCell
@@ -65,6 +69,7 @@ function HeaderCell({
       }
       scope="col"
       sort={sort}
+      variant={variant}
     >
       {children}
     </ColumnHeaderCell>
@@ -137,7 +142,9 @@ const HeaderDivider = styled('div')`
   height: 14px;
 `;
 
-const ColumnHeaderCell = styled(Table.HeadCell)`
+const ColumnHeaderCell = styled(Table.HeadCell, {
+  shouldForwardProp: prop => prop !== 'variant',
+})<{variant: HeaderCellVariant}>`
   outline: none;
   padding: 0 ${p => p.theme.space.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -170,6 +177,25 @@ const ColumnHeaderCell = styled(Table.HeadCell)`
   &[aria-sort] {
     color: ${p => p.theme.tokens.content.primary};
   }
+
+  ${p =>
+    p.variant === 'first' &&
+    css`
+      grid-column: 1;
+    `}
+
+  ${p =>
+    p.variant === 'remaining' &&
+    css`
+      grid-column: 2 / -1;
+    `}
+
+  ${p =>
+    p.variant === 'full-width' &&
+    css`
+      grid-column: 1 / -1;
+      padding: 0;
+    `}
 `;
 
 const rowLinkStyle = (p: {theme: Theme}) => css`
@@ -200,19 +226,6 @@ function FullWidthRow({children, ...props}: RowProps) {
   );
 }
 
-const HeaderCellFirst = styled(HeaderCell)`
-  grid-column: 1;
-`;
-
-const HeaderCellRemaining = styled(HeaderCell)`
-  grid-column: 2 / -1;
-`;
-
-const FullWidthHeaderCell = styled(HeaderCell)`
-  grid-column: 1 / -1;
-  padding: 0;
-`;
-
 const Empty = styled(Table.Status)`
   ${emptyCellStyle}
 `;
@@ -225,6 +238,3 @@ SimpleTable.rowLinkStyle = rowLinkStyle;
 SimpleTable.Empty = Empty;
 SimpleTable.FullWidthCell = FullWidthCell;
 SimpleTable.FullWidthRow = FullWidthRow;
-SimpleTable.FullWidthHeaderCell = FullWidthHeaderCell;
-SimpleTable.HeaderCellFirst = HeaderCellFirst;
-SimpleTable.HeaderCellRemaining = HeaderCellRemaining;

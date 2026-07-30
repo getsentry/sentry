@@ -63,14 +63,14 @@ export function ReplayTableHeader({
 
       <ListItemSelectedState selected="indeterminate-or-all">
         <TableHeader>
-          <SimpleTable.HeaderCellFirst>
+          <SimpleTable.HeaderCell variant="first">
             <ReplaySelectColumn.Header
               columnIndex={0}
               listItemCheckboxState={listItemCheckboxState}
               replays={replays}
             />
-          </SimpleTable.HeaderCellFirst>
-          <SimpleTable.HeaderCellRemaining divider={false}>
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell variant="remaining" divider={false}>
             <Flex align="center" flex="1" gap="md" justify="start" wrap="wrap">
               {selectedIds !== 'all' && (
                 <ReplayBulkViewedActions
@@ -86,7 +86,7 @@ export function ReplayTableHeader({
                 selectedIds={selectedIds}
               />
             </Flex>
-          </SimpleTable.HeaderCellRemaining>
+          </SimpleTable.HeaderCell>
         </TableHeader>
       </ListItemSelectedState>
 

@@ -145,12 +145,12 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
 
       <ListItemSelectedState selected="indeterminate-or-all">
         <InfiniteTable.Header>
-          <InfiniteTable.HeaderCellFirst>
+          <InfiniteTable.HeaderCell variant="first">
             <ListSelectAllCheckbox
               data={settings}
               listItemCheckboxState={listItemCheckboxState}
             />
-          </InfiniteTable.HeaderCellFirst>
+          </InfiniteTable.HeaderCell>
           <InfiniteTable.HeaderCellRemaining>
             <PreferredAgentDropdownMenu
               isDisabled={!canWrite}
