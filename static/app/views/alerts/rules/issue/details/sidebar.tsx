@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {ActorAvatar} from '@sentry/scraps/avatar';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {KeyValue} from 'sentry/components/keyValue';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -131,30 +131,30 @@ export function Sidebar({rule, teams, projectSlug}: Props) {
       <SectionHeading>{t('Alert Conditions')}</SectionHeading>
       <Conditions rule={rule} teams={teams} projectSlug={projectSlug} />
       <SectionHeading>{t('Alert Rule Details')}</SectionHeading>
-      <KeyValueTable>
-        <KeyValueTableRow
+      <KeyValue layout="list">
+        <KeyValue.Row
           keyName={t('Environment')}
           value={<OverflowTableValue>{rule.environment ?? '-'}</OverflowTableValue>}
         />
         {rule.dateCreated && (
-          <KeyValueTableRow
+          <KeyValue.Row
             keyName={t('Date created')}
             value={<TimeSince date={rule.dateCreated} suffix={t('ago')} />}
           />
         )}
         {rule.createdBy && (
-          <KeyValueTableRow
+          <KeyValue.Row
             keyName={t('Created by')}
             value={<OverflowTableValue>{rule.createdBy.name ?? '-'}</OverflowTableValue>}
           />
         )}
-        <KeyValueTableRow
+        <KeyValue.Row
           keyName={t('Team')}
           value={
             teamActor ? <ActorAvatar actor={teamActor} size={24} /> : t('Unassigned')
           }
         />
-      </KeyValueTable>
+      </KeyValue>
     </Fragment>
   );
 }

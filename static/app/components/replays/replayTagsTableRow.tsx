@@ -8,7 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {KeyValue} from 'sentry/components/keyValue';
 import {ReleaseDropdownFilter} from 'sentry/components/replays/releaseDropdownFilter';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
 import {Version} from 'sentry/components/version';
@@ -108,7 +108,7 @@ export function ReplayTagsTableRow({name, values, generateUrl}: Props) {
   }, [name, values, generateUrl, organization]);
 
   return (
-    <KeyValueTableRow
+    <KeyValue.Row
       keyName={
         <StyledTooltip title={name} showOnlyOnOverflow>
           {name}

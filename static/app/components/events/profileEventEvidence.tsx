@@ -1,6 +1,6 @@
 import {LinkButton} from '@sentry/scraps/button';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValue} from 'sentry/components/keyValue';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -24,7 +24,6 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
     ...(evidenceData.transactionId && evidenceData.transactionName
       ? [
           {
-            subject: 'Transaction Name',
             key: 'Transaction Name',
             value: evidenceData.transactionName,
             actionButton: traceSlug ? (
@@ -47,7 +46,6 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
     ...(evidenceData.profileId
       ? [
           {
-            subject: 'Profile ID',
             key: 'Profile ID',
             value: evidenceData.profileId,
             actionButton: (
@@ -72,7 +70,6 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
         ]
       : []),
     ...evidenceDisplay.map(item => ({
-      subject: item.name,
       key: item.name,
       value: item.value,
     })),
@@ -80,7 +77,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
 
   return (
     <FoldSection title={t('Function Evidence')} sectionKey={SectionKey.EVIDENCE}>
-      <KeyValueList data={keyValueListData} shouldSort={false} />
+      <KeyValue items={keyValueListData} layout="detail" />
     </FoldSection>
   );
 }

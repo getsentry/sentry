@@ -24,12 +24,12 @@ import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DataSection} from 'sentry/components/events/styles';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
-  CardPanel,
-  KeyValueData,
-  Subject,
-  ValueSection,
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
+  KeyValuePanel,
+  KeyValue,
+  type KeyValueEntry,
+  KeyValueTerm,
+  KeyValueDefinition,
+} from 'sentry/components/keyValue';
 import {type LazyRenderProps} from 'sentry/components/lazyRender';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -49,7 +49,6 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, EventTransaction} from 'sentry/types/event';
-import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -1034,7 +1033,7 @@ function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
   );
 }
 
-export type SectionCardKeyValueList = KeyValueListData;
+export type SectionCardKeyValueList = KeyValueEntry[];
 
 function SectionCard({
   items,
@@ -1046,17 +1045,19 @@ function SectionCard({
   items: SectionCardKeyValueList;
   title: React.ReactNode;
   disableTruncate?: boolean;
-  itemProps?: Partial<KeyValueDataContentProps>;
+  itemProps?: Partial<KeyValueEntry>;
   sortAlphabetically?: boolean;
 }) {
-  const contentItems = items.map(item => ({item, ...itemProps}));
+  const contentItems = items.map(item => ({...item, ...itemProps}));
 
   return (
     <CardWrapper>
-      <KeyValueData.Card
+      <KeyValue
+        items={contentItems}
+        card
+        layout="detail"
+        sort={sortAlphabetically ? 'subject' : undefined}
         title={title}
-        contentItems={contentItems}
-        sortAlphabetically={sortAlphabetically}
         truncateLength={disableTruncate ? Infinity : 5}
       />
     </CardWrapper>
@@ -1067,11 +1068,11 @@ function SectionCard({
 // with tests failing otherwise, since @container queries are not supported by the version of
 // jsdom currently used by jest.
 const CardWrapper = styled('div')`
-  ${CardPanel} {
+  ${KeyValuePanel} {
     container-type: inline-size;
   }
 
-  ${Subject} {
+  ${KeyValueTerm} {
     display: flex;
     align-items: center;
     @container (width < 350px) {
@@ -1079,13 +1080,13 @@ const CardWrapper = styled('div')`
     }
   }
 
-  ${ValueSection} {
+  ${KeyValueDefinition} {
     align-items: center;
   }
 `;
 
 function SectionCardGroup({children}: {children: React.ReactNode}) {
-  return <KeyValueData.Container>{children}</KeyValueData.Container>;
+  return <KeyValue.Container>{children}</KeyValue.Container>;
 }
 
 function CopyableCardValueWithLink({
@@ -1132,7 +1133,6 @@ function TraceDataSection({event}: {event: EventTransaction}) {
     <SectionCard
       items={Object.entries(traceData).map(([key, value]) => ({
         key,
-        subject: key,
         value,
       }))}
       title={t('Trace Data')}

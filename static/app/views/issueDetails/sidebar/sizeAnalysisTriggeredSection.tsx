@@ -1,7 +1,7 @@
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValue} from 'sentry/components/keyValue';
 import {t} from 'sentry/locale';
 import type {Event, EventOccurrence} from 'sentry/types/event';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
@@ -134,9 +134,8 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
         </Flex>
       }
     >
-      <KeyValueList
-        shouldSort={false}
-        data={[
+      <KeyValue
+        items={[
           {
             key: 'thresholdType',
             value: getMeasurementLabel(config.thresholdType),
@@ -179,6 +178,7 @@ export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSecti
             subject: t('Evaluated Value'),
           },
         ]}
+        layout="detail"
       />
     </FoldSection>
   );

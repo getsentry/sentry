@@ -7,7 +7,7 @@ import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {KeyValue} from 'sentry/components/keyValue';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
@@ -77,16 +77,16 @@ export function UptimeDetailsSidebar({
         </div>
       </Grid>
       <SectionHeading>{t('Configuration')}</SectionHeading>
-      <KeyValueTable>
-        <KeyValueTableRow
+      <KeyValue layout="list">
+        <KeyValue.Row
           keyName={t('Check Interval')}
           value={t('Every %s', getDuration(uptimeSub.intervalSeconds))}
         />
-        <KeyValueTableRow
+        <KeyValue.Row
           keyName={t('Timeout')}
           value={t('After %s', getDuration(uptimeSub.timeoutMs / 1000, 2))}
         />
-        <KeyValueTableRow
+        <KeyValue.Row
           keyName={t('Failure tolerance')}
           value={tn(
             '%s failure check',
@@ -94,7 +94,7 @@ export function UptimeDetailsSidebar({
             uptimeDetector.config.downtimeThreshold
           )}
         />
-        <KeyValueTableRow
+        <KeyValue.Row
           keyName={t('Recovery tolerance')}
           value={tn(
             '%s up check',
@@ -102,11 +102,11 @@ export function UptimeDetailsSidebar({
             uptimeDetector.config.recoveryThreshold
           )}
         />
-        <KeyValueTableRow
+        <KeyValue.Row
           keyName={t('Environment')}
           value={uptimeDetector.config.environment}
         />
-        <KeyValueTableRow
+        <KeyValue.Row
           keyName={t('Owner')}
           value={
             uptimeDetector.owner ? (
@@ -116,7 +116,7 @@ export function UptimeDetailsSidebar({
             )
           }
         />
-      </KeyValueTable>
+      </KeyValue>
     </Fragment>
   );
 }

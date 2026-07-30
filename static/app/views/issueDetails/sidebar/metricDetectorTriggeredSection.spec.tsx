@@ -3,6 +3,7 @@ import {SnubaQueryDataSourceFixture} from 'sentry-fixture/detectors';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 
+import {getKeyValueDefinition} from 'sentry-test/keyValue';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory, IssueType} from 'sentry/types/group';
@@ -179,17 +180,18 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(screen.getByText('Subtitle')).toBeInTheDocument();
 
     // Check key-value pairs
-    expect(screen.getByRole('cell', {name: 'Dataset'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Errors'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Aggregate'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'count()'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Query'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'is:unresolved'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Interval'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '1 minute'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Above 100'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Evaluated Value'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '150'})).toBeInTheDocument();
+    expect(screen.getByText('Dataset')).toBeInTheDocument();
+    expect(screen.getByText('Errors')).toBeInTheDocument();
+    expect(screen.getByText('Aggregate')).toBeInTheDocument();
+    expect(screen.getByText('count()')).toBeInTheDocument();
+    expect(screen.getByText('Query')).toBeInTheDocument();
+    // The query renders as separate tokens, so the colon is not part of any text node.
+    expect(getKeyValueDefinition('Query')).toHaveTextContent(/is\s*unresolved/);
+    expect(screen.getByText('Interval')).toBeInTheDocument();
+    expect(screen.getByText('1 minute')).toBeInTheDocument();
+    expect(screen.getByText('Above 100')).toBeInTheDocument();
+    expect(screen.getByText('Evaluated Value')).toBeInTheDocument();
+    expect(screen.getByText('150')).toBeInTheDocument();
   });
 
   it('renders evaluated value correctly when value is an object (anomaly detector)', async () => {
@@ -217,8 +219,8 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(
       await screen.findByRole('region', {name: 'Triggered Condition'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Evaluated Value'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '250'})).toBeInTheDocument();
+    expect(screen.getByText('Evaluated Value')).toBeInTheDocument();
+    expect(screen.getByText('250')).toBeInTheDocument();
   });
 
   it('renders contributing issues section for errors dataset', async () => {
@@ -338,8 +340,8 @@ describe('MetricDetectorTriggeredSection', () => {
       );
     });
 
-    expect(screen.getByRole('cell', {name: 'Environment'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'production'})).toBeInTheDocument();
+    expect(screen.getByText('Environment')).toBeInTheDocument();
+    expect(screen.getByText('production')).toBeInTheDocument();
   });
 
   it('renders contributing issues section for crash free rate (releases) dataset', async () => {
@@ -446,8 +448,8 @@ describe('MetricDetectorTriggeredSection', () => {
     render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
 
     // Should show the HIGH condition (Above 200), not LOW (Above 50)
-    expect(await screen.findByRole('cell', {name: 'Above 200'})).toBeInTheDocument();
-    expect(screen.queryByRole('cell', {name: 'Above 50'})).not.toBeInTheDocument();
+    expect(await screen.findByText('Above 200')).toBeInTheDocument();
+    expect(screen.queryByText('Above 50')).not.toBeInTheDocument();
   });
 
   it('renders boolean logic error when query contains OR', async () => {

@@ -1,4 +1,4 @@
-import type {KeyValueDataContentProps} from 'sentry/components/keyValueData';
+import type {KeyValueEntry} from 'sentry/components/keyValue';
 import {t} from 'sentry/locale';
 
 export enum OrderBy {
@@ -46,9 +46,9 @@ export const enum FlagControlOptions {
   SORT = 'sort',
 }
 
-const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
+const handleSortAlphabetical = (flags: KeyValueEntry[]) => {
   return [...flags].sort((a, b) => {
-    return a.item.key.localeCompare(b.item.key);
+    return a.key.localeCompare(b.key);
   });
 };
 
@@ -56,9 +56,9 @@ export const sortedFlags = ({
   flags,
   sort,
 }: {
-  flags: KeyValueDataContentProps[];
+  flags: KeyValueEntry[];
   sort: OrderBy;
-}): KeyValueDataContentProps[] => {
+}): KeyValueEntry[] => {
   switch (sort) {
     case OrderBy.A_TO_Z:
       return handleSortAlphabetical(flags);

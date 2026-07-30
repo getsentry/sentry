@@ -8,7 +8,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {KeyValue} from 'sentry/components/keyValue';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -186,20 +186,20 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
             </DetailSection>
             <DetailSection title={t('Details')}>
               <ErrorBoundary mini>
-                <KeyValueTable>
-                  <KeyValueTableRow
+                <KeyValue layout="list">
+                  <KeyValue.Row
                     keyName={t('Date created')}
                     value={<DateTime date={automation.dateCreated} dateOnly year />}
                   />
-                  <KeyValueTableRow
+                  <KeyValue.Row
                     keyName={t('Created by')}
                     value={<UserDisplayName id={automation.createdBy} />}
                   />
-                  <KeyValueTableRow
+                  <KeyValue.Row
                     keyName={t('Last modified')}
                     value={<TimeSince date={automation.dateUpdated} />}
                   />
-                </KeyValueTable>
+                </KeyValue>
               </ErrorBoundary>
             </DetailSection>
           </DetailLayout.Sidebar>

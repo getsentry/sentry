@@ -3,10 +3,7 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  KeyValueData,
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
+import {KeyValue, type KeyValueEntry} from 'sentry/components/keyValue';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -54,92 +51,68 @@ export function BuildVcsInfo({buildDetailsData}: BuildVcsInfoProps) {
     return <ExternalLink href={url}>{value}</ExternalLink>;
   };
 
-  const vcsInfoContentItems: KeyValueDataContentProps[] = [
+  const vcsInfoContentItems: KeyValueEntry[] = [
     {
-      item: {
-        key: 'SHA',
-        subject: 'SHA',
-        value: makeLinkableValue(vcsInfo.head_sha, getShaUrl(vcsInfo, vcsInfo.head_sha)),
-      },
+      key: 'SHA',
+      value: makeLinkableValue(vcsInfo.head_sha, getShaUrl(vcsInfo, vcsInfo.head_sha)),
     },
     {
-      item: {
-        key: 'Base SHA',
-        subject: 'Base SHA',
-        value: makeLinkableValue(
-          vcsInfo.base_sha,
-          getShaUrl(vcsInfo, vcsInfo.base_sha, true)
-        ),
-      },
+      key: 'Base SHA',
+      value: makeLinkableValue(
+        vcsInfo.base_sha,
+        getShaUrl(vcsInfo, vcsInfo.base_sha, true)
+      ),
     },
     ...(vcsInfo.base_sha
       ? [
           {
-            item: {
-              key: 'Base Build',
-              subject: 'Base Build',
-              value: (() => {
-                if (!buildDetailsData.base_build_info) {
-                  return '-';
-                }
-                const buildName = formatBuildName(
-                  buildDetailsData.base_build_info.version,
-                  getBuildNumber(buildDetailsData.base_build_info)
-                );
-                const baseBuildUrl = buildDetailsData.base_artifact_id
-                  ? getBaseBuildPath(
-                      {
-                        baseArtifactId: buildDetailsData.base_artifact_id,
-                        organizationSlug: organization.slug,
-                      },
-                      'size'
-                    )
-                  : null;
-                if (!baseBuildUrl || !buildName) {
-                  return '-';
-                }
-                return <Link to={baseBuildUrl}>{buildName}</Link>;
-              })(),
-            },
+            key: 'Base Build',
+            value: (() => {
+              if (!buildDetailsData.base_build_info) {
+                return '-';
+              }
+              const buildName = formatBuildName(
+                buildDetailsData.base_build_info.version,
+                getBuildNumber(buildDetailsData.base_build_info)
+              );
+              const baseBuildUrl = buildDetailsData.base_artifact_id
+                ? getBaseBuildPath(
+                    {
+                      baseArtifactId: buildDetailsData.base_artifact_id,
+                      organizationSlug: organization.slug,
+                    },
+                    'size'
+                  )
+                : null;
+              if (!baseBuildUrl || !buildName) {
+                return '-';
+              }
+              return <Link to={baseBuildUrl}>{buildName}</Link>;
+            })(),
           },
         ]
       : []),
     {
-      item: {
-        key: 'PR Number',
-        subject: 'PR Number',
-        value: makeLinkableValue(vcsInfo.pr_number, getPrUrl(vcsInfo)),
-      },
+      key: 'PR Number',
+      value: makeLinkableValue(vcsInfo.pr_number, getPrUrl(vcsInfo)),
     },
     {
-      item: {
-        key: 'Branch',
-        subject: 'Branch',
-        value: makeLinkableValue(
-          vcsInfo.head_ref,
-          getBranchUrl(vcsInfo, vcsInfo.head_ref)
-        ),
-      },
+      key: 'Branch',
+      value: makeLinkableValue(vcsInfo.head_ref, getBranchUrl(vcsInfo, vcsInfo.head_ref)),
     },
     {
-      item: {
-        key: 'Base Branch',
-        subject: 'Base Branch',
-        value: makeLinkableValue(
-          vcsInfo.base_ref,
-          getBranchUrl(vcsInfo, vcsInfo.base_ref, true)
-        ),
-      },
+      key: 'Base Branch',
+      value: makeLinkableValue(
+        vcsInfo.base_ref,
+        getBranchUrl(vcsInfo, vcsInfo.base_ref, true)
+      ),
     },
     {
-      item: {
-        key: 'Repo Name',
-        subject: 'Repo Name',
-        value: makeLinkableValue(
-          vcsInfo.head_repo_name,
-          getRepoUrl(vcsInfo, vcsInfo.head_repo_name)
-        ),
-      },
+      key: 'Repo Name',
+      value: makeLinkableValue(
+        vcsInfo.head_repo_name,
+        getRepoUrl(vcsInfo, vcsInfo.head_repo_name)
+      ),
     },
   ];
 
@@ -147,19 +120,16 @@ export function BuildVcsInfo({buildDetailsData}: BuildVcsInfoProps) {
   // Also hide it if it's the same as the head repo name
   if (vcsInfo.base_repo_name && vcsInfo.base_repo_name !== vcsInfo.head_repo_name) {
     vcsInfoContentItems.push({
-      item: {
-        key: 'Base Repo Name',
-        subject: 'Base Repo Name',
-        value: makeLinkableValue(
-          vcsInfo.base_repo_name,
-          getRepoUrl(vcsInfo, vcsInfo.base_repo_name)
-        ),
-      },
+      key: 'Base Repo Name',
+      value: makeLinkableValue(
+        vcsInfo.base_repo_name,
+        getRepoUrl(vcsInfo, vcsInfo.base_repo_name)
+      ),
     });
   }
 
   return hasVcsInfo ? (
-    <KeyValueData.Card title="Build Metadata" contentItems={vcsInfoContentItems} />
+    <KeyValue title="Build Metadata" items={vcsInfoContentItems} card layout="detail" />
   ) : (
     <Container
       border="primary"

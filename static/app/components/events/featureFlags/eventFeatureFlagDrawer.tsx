@@ -24,10 +24,7 @@ import {
   type OrderBy,
 } from 'sentry/components/events/featureFlags/utils';
 import {useFocusControl} from 'sentry/components/events/useFocusControl';
-import {
-  KeyValueData,
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
+import {KeyValue, type KeyValueEntry} from 'sentry/components/keyValue';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -40,7 +37,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 interface FlagDrawerProps {
   event: Event;
   group: Group;
-  hydratedFlags: KeyValueDataContentProps[];
+  hydratedFlags: KeyValueEntry[];
   initialOrderBy: OrderBy;
   project: Project;
   focusControl?: FlagControlOptions;
@@ -60,7 +57,7 @@ export function EventFeatureFlagDrawer({
   const {getFocusProps} = useFocusControl(initialFocusControl);
 
   const searchResults = sortedFlags({flags: hydratedFlags, sort: orderBy}).filter(f =>
-    f.item.key.includes(search)
+    f.key.includes(search)
   );
 
   const actions = (
@@ -117,7 +114,7 @@ export function EventFeatureFlagDrawer({
       </EventNavigator>
       <EventDrawerBody>
         <CardContainer numCols={1}>
-          <KeyValueData.Card expandLeft contentItems={searchResults} />
+          <KeyValue keyColumn="wide" items={searchResults} card layout="detail" />
         </CardContainer>
       </EventDrawerBody>
     </EventDrawerContainer>

@@ -2,7 +2,8 @@ import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRe
 import {EventFixture} from 'sentry-fixture/event';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {getKeyValueRow} from 'sentry-test/keyValue';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Request} from 'sentry/components/events/interfaces/request';
@@ -421,10 +422,11 @@ describe('Request entry', () => {
         render(<Request event={event} data={event.entries[0]!.data} />);
 
         expect(screen.getByText('query Test { test }')).toBeInTheDocument();
-        expect(screen.getByRole('row', {name: 'operationName Test'})).toBeInTheDocument();
-        expect(
-          screen.getByRole('row', {name: 'variables { foo : bar }'})
-        ).toBeInTheDocument();
+        const operationRow = getKeyValueRow('operationName');
+        expect(within(operationRow).getByText('Test')).toBeInTheDocument();
+
+        const variablesRow = getKeyValueRow('variables');
+        expect(within(variablesRow).getByText(/foo/)).toBeInTheDocument();
       });
 
       it('highlights graphql query lines with errors', async () => {

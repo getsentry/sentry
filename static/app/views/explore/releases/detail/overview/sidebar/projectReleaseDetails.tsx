@@ -8,7 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {KeyValue} from 'sentry/components/keyValue';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -45,12 +45,12 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
     <SidebarSection.Wrap>
       <SidebarSection.Title>{t('Project Release Details')}</SidebarSection.Title>
       <SidebarSection.Content>
-        <KeyValueTable>
-          <KeyValueTableRow
+        <KeyValue layout="list">
+          <KeyValue.Row
             keyName={t('Created')}
             value={<DateTime date={dateCreated} seconds={false} />}
           />
-          <KeyValueTableRow
+          <KeyValue.Row
             keyName={
               <Flex gap="sm" align="center">
                 {t('Finalized')}
@@ -109,7 +109,7 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
               )
             }
           />
-          <KeyValueTableRow
+          <KeyValue.Row
             keyName={t('Version')}
             value={
               <StyledTextOverflow ellipsisDirection="left">
@@ -117,7 +117,7 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
               </StyledTextOverflow>
             }
           />
-          <KeyValueTableRow
+          <KeyValue.Row
             keyName={
               <Flex gap="sm" align="center">
                 {t('Semver')}
@@ -142,7 +142,7 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
               versionInfo && isVersionInfoSemver(versionInfo.version) ? t('Yes') : t('No')
             }
           />
-          <KeyValueTableRow
+          <KeyValue.Row
             keyName={t('Package')}
             value={
               <StyledTextOverflow ellipsisDirection="left">
@@ -150,15 +150,15 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
               </StyledTextOverflow>
             }
           />
-          <KeyValueTableRow
+          <KeyValue.Row
             keyName={t('First Activity')}
             value={firstEvent ? <TimeSince date={firstEvent} /> : '\u2014'}
           />
-          <KeyValueTableRow
+          <KeyValue.Row
             keyName={t('Last Activity')}
             value={lastEvent ? <TimeSince date={lastEvent} /> : '\u2014'}
           />
-          <KeyValueTableRow
+          <KeyValue.Row
             keyName={t('Source Maps')}
             value={
               <Link
@@ -177,7 +177,7 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
               </Link>
             }
           />
-        </KeyValueTable>
+        </KeyValue>
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );

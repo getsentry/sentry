@@ -1,11 +1,11 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import {KeyValueData} from 'sentry/components/keyValueData';
+import {KeyValue} from 'sentry/components/keyValue';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {useColumnCount} from 'sentry/utils/useColumnCount';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -15,13 +15,12 @@ type Props = {
 
 export function EventPackageData({event}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef) + 1;
+  const columnCount = useColumnCount(containerRef) + 1;
   let title: string;
 
   const packages = Object.entries(event.packages || {}).map(([key, value]) => ({
     key,
     value,
-    subject: key,
     meta: event._meta?.packages?.[key]?.[''],
   }));
 
@@ -41,11 +40,7 @@ export function EventPackageData({event}: Props) {
   }
 
   const componentItems = packages.map((item, i) => (
-    <KeyValueData.Content
-      key={`content-card-${item.key}-${i}`}
-      item={item}
-      meta={item.meta}
-    />
+    <KeyValue.Row entry={item} key={`content-card-${item.key}-${i}`} />
   ));
 
   const columns: React.ReactNode[] = [];

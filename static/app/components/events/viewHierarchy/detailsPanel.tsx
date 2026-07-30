@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValue} from 'sentry/components/keyValue';
 import {defined} from 'sentry/utils/defined';
 
 import type {ViewHierarchyWindow} from '.';
@@ -15,13 +15,12 @@ function DetailsPanel({data, getTitle}: DetailsPanelProps) {
   const keyValueData = Object.entries(omit(data, 'children')).map(([key, value]) => ({
     key,
     value,
-    subject: key,
   }));
 
   return (
     <Container>
       {defined(getTitle) && <Title>{getTitle(data)}</Title>}
-      <KeyValueList data={keyValueData} />
+      <KeyValue items={keyValueData} layout="detail" sort="key" />
     </Container>
   );
 }

@@ -25,7 +25,7 @@ import {
 import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useLegacyEventSuspectFlags} from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
-import {KeyValueData} from 'sentry/components/keyValueData';
+import {KeyValue} from 'sentry/components/keyValue';
 import {IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
@@ -149,24 +149,19 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     // Reverse the flags to show newest at the top by default.
     return eventFlags.toReversed().map(f => {
       return {
-        item: {
-          key: f.flag,
-          subject: f.flag,
-          value: (
-            <ValueWrapper>
-              {f.result.toString()}
-              {suspectFlagNames.has(f.flag) && (
-                <SuspectLabel>{t('Suspect')}</SuspectLabel>
-              )}
-              <FlagActionDropdown
-                flag={f.flag}
-                result={f.result.toString()}
-                generateAction={generateAction}
-              />
-            </ValueWrapper>
-          ),
-        },
-        isSuspectFlag: suspectFlagNames.has(f.flag),
+        key: f.flag,
+        value: (
+          <ValueWrapper>
+            {f.result.toString()}
+            {suspectFlagNames.has(f.flag) && <SuspectLabel>{t('Suspect')}</SuspectLabel>}
+            <FlagActionDropdown
+              flag={f.flag}
+              result={f.result.toString()}
+              generateAction={generateAction}
+            />
+          </ValueWrapper>
+        ),
+        status: suspectFlagNames.has(f.flag) ? ('warning' as const) : undefined,
       };
     });
   }, [suspectFlagNames, eventFlags, generateAction]);
@@ -281,8 +276,8 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     >
       {hasFlags ? (
         <CardContainer numCols={shouldUseTwoColumns ? 2 : 1}>
-          <KeyValueData.Card expandLeft contentItems={columnOne} />
-          <KeyValueData.Card expandLeft contentItems={columnTwo} />
+          <KeyValue keyColumn="wide" items={columnOne} card layout="detail" />
+          <KeyValue keyColumn="wide" items={columnTwo} card layout="detail" />
         </CardContainer>
       ) : (
         <StyledEmptyStateWarning withIcon small>

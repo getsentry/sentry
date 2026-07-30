@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValue} from 'sentry/components/keyValue';
+import type {KeyValueEntry} from 'sentry/components/keyValue';
 import type {StructedEventDataConfig} from 'sentry/components/structuredEventData';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
-import type {KeyValueListData} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
 
 type Props = {
@@ -84,7 +84,7 @@ const getStructuredDataConfig = ({
 };
 
 export function FrameVariables({data, meta, platform}: Props) {
-  const transformedData = useMemo<KeyValueListData>(() => {
+  const transformedData = useMemo<KeyValueEntry[]>(() => {
     const config = getStructuredDataConfig({platform});
     if (!data) {
       return [];
@@ -92,9 +92,8 @@ export function FrameVariables({data, meta, platform}: Props) {
 
     return Object.keys(data)
       .reverse()
-      .map<KeyValueListData[number]>(key => ({
+      .map<KeyValueEntry>(key => ({
         key,
-        subject: key,
         value: (
           <StructuredEventData
             config={config}
@@ -106,5 +105,5 @@ export function FrameVariables({data, meta, platform}: Props) {
       }));
   }, [data, meta, platform]);
 
-  return <KeyValueList data={transformedData} />;
+  return <KeyValue items={transformedData} layout="detail" sort="key" />;
 }

@@ -26,7 +26,6 @@ export function Tags({node}: {node: SpanNode}) {
   }
 
   const items: SectionCardKeyValueList = keys.map(key => ({
-    subject: key,
     value: String(tags[key]) || '',
     key,
     actionButton: (

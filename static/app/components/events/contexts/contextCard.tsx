@@ -12,10 +12,7 @@ import {
   getContextType,
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
-import {
-  KeyValueData,
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
+import {KeyValue, type KeyValueEntry} from 'sentry/components/keyValue';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListDataItem} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -65,11 +62,14 @@ export function ContextCardContent({
     config?.includeAliasInSubject && alias ? `${startCase(alias)}: ${subject}` : subject;
 
   return (
-    <KeyValueData.Content
-      item={{...item, subject: contextSubject}}
-      meta={contextMeta}
-      errors={config?.disableErrors ? [] : contextErrors}
-      disableLink={config?.disableLink ?? false}
+    <KeyValue.Row
+      entry={{
+        ...item,
+        disableLink: config?.disableLink ?? false,
+        errors: config?.disableErrors ? [] : contextErrors,
+        meta: contextMeta,
+        subject: contextSubject,
+      }}
       {...props}
     />
   );
@@ -94,19 +94,19 @@ export function ContextCard({alias, event, type, project, value = {}}: ContextCa
     location,
   });
 
-  const contentItems = contextItems.map<KeyValueDataContentProps>(item => {
-    const itemMeta: KeyValueDataContentProps['meta'] = meta?.[item?.key];
-    const itemErrors: KeyValueDataContentProps['errors'] = itemMeta?.['']?.err ?? [];
+  const contentItems = contextItems.map<KeyValueEntry>(item => {
+    const itemMeta: KeyValueEntry['meta'] = meta?.[item?.key];
+    const itemErrors: KeyValueEntry['errors'] = itemMeta?.['']?.err ?? [];
     return {
-      item,
-      meta: itemMeta,
+      ...item,
       errors: itemErrors,
+      meta: itemMeta,
     };
   });
 
   return (
-    <KeyValueData.Card
-      contentItems={contentItems}
+    <KeyValue
+      items={contentItems}
       title={
         <Flex justify="between" align="center">
           <div>{getContextTitle({alias, type, value})}</div>
@@ -125,7 +125,9 @@ export function ContextCard({alias, event, type, project, value = {}}: ContextCa
           </div>
         </Flex>
       }
-      sortAlphabetically
+      sort="subject"
+      card
+      layout="detail"
     />
   );
 }

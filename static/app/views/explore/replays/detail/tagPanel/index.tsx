@@ -5,7 +5,7 @@ import type {LocationDescriptor} from 'history';
 import {Container, Stack} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {KeyValueTable} from 'sentry/components/keyValueTable';
+import {KeyValue} from 'sentry/components/keyValue';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ReplayTagsTableRow} from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
@@ -77,7 +77,7 @@ export function TagPanel() {
       <TabItemContainer>
         <Container as="section" flex="1 1 auto" overflow="auto">
           {filteredTags.length ? (
-            <KeyValueTable noMargin>
+            <KeyValue layout="list">
               {filteredTags.map(([key, values]) => (
                 <ReplayTagsTableRow
                   key={key}
@@ -86,7 +86,7 @@ export function TagPanel() {
                   generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
                 />
               ))}
-            </KeyValueTable>
+            </KeyValue>
           ) : (
             <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
           )}

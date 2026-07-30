@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
-import {Content} from 'sentry/components/keyValueData';
+import {KeyValue} from 'sentry/components/keyValue';
 import {t} from 'sentry/locale';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -93,18 +92,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
       title={t('General')}
       disableCollapsePersistence
     >
-      <ContentWrapper>
-        {items.map(item => (
-          <Content key={item.key} item={item} />
-        ))}
-      </ContentWrapper>
+      <KeyValue items={items} layout="detail" valueDisplay="formatted" />
     </FoldSection>
   );
 }
-
-const ContentWrapper = styled('div')`
-  display: grid;
-  column-gap: ${p => p.theme.space.lg};
-  grid-template-columns: fit-content(50%) 1fr;
-  font-size: ${p => p.theme.font.size.sm};
-`;

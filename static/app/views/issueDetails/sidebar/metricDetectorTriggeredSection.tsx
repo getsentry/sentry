@@ -9,10 +9,10 @@ import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {GroupList} from 'sentry/components/issues/groupList';
+import {KeyValue} from 'sentry/components/keyValue';
 import {Placeholder} from 'sentry/components/placeholder';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
@@ -440,9 +440,8 @@ function TriggeredConditionDetails({
           </Flex>
         }
       >
-        <KeyValueList
-          shouldSort={false}
-          data={[
+        <KeyValue
+          items={[
             {
               key: 'dataset',
               value: datasetConfig.name,
@@ -503,6 +502,7 @@ function TriggeredConditionDetails({
               subject: t('Evaluated Value'),
             },
           ]}
+          layout="detail"
         />
       </FoldSection>
       <OpenPeriodTimelineSection eventId={eventId} groupId={groupId} />

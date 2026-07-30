@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
 import {
   useDelayedLoadingState,
   usePreviewEvent,
 } from 'sentry/components/groupPreviewTooltip/utils';
+import {KeyValue} from 'sentry/components/keyValue';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 
@@ -62,13 +62,12 @@ function SpanEvidencePreviewBody({
   if (evidenceDisplay?.length) {
     return (
       <Container padding="lg lg 0 lg" width="700px" data-test-id="evidence-preview-body">
-        <KeyValueList
-          data={evidenceDisplay.map(item => ({
+        <KeyValue
+          items={evidenceDisplay.map(item => ({
             key: item.name,
-            subject: item.name,
             value: item.value,
           }))}
-          shouldSort={false}
+          layout="detail"
         />
       </Container>
     );

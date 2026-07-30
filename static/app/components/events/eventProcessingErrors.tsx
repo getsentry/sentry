@@ -7,7 +7,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import type {ErrorMessage} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
-import {KeyValueData} from 'sentry/components/keyValueData';
+import {KeyValue} from 'sentry/components/keyValue';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -40,9 +40,7 @@ function EventErrorCard({
   data: Array<{key: string; subject: any; value: any}>;
   title: string;
 }) {
-  const contentItems = data.map(datum => {
-    return {item: datum};
-  });
+  const contentItems = data;
 
   // Find the first item that has a corresponding documentation URL
   const docLink = data
@@ -68,7 +66,7 @@ function EventErrorCard({
     <div>{title}</div>
   );
 
-  return <KeyValueData.Card contentItems={contentItems} title={titleElement} />;
+  return <KeyValue items={contentItems} title={titleElement} card layout="detail" />;
 }
 
 function EventErrorDescription({error}: {error: ErrorMessage}) {
@@ -128,11 +126,11 @@ export function EventProcessingErrors({event, project, isShare}: Props) {
       sectionKey={SectionKey.PROCESSING_ERROR}
       title={t('Event Processing Errors')}
     >
-      <KeyValueData.Container>
+      <KeyValue.Container>
         {errors.map((error, idx) => {
           return <EventErrorDescription key={idx} error={error} />;
         })}
-      </KeyValueData.Container>
+      </KeyValue.Container>
     </FoldSection>
   );
 }
