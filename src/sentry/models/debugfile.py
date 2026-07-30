@@ -1023,13 +1023,12 @@ def create_debug_file_from_dif(
     """Create a ProjectDebugFile from a dif (Debug Information File) and
     return an array of created objects.
     """
-    exclusive = features.has(
-        "organizations:objectstore-debugfiles-exclusive-write", project.organization
-    )
     rv = []
     for meta in to_create:
         with open(meta.path, "rb") as f:
-            if exclusive:
+            if features.has(
+                "organizations:objectstore-debugfiles-exclusive-write", project.organization
+            ):
                 checksum, file_size = _checksum_and_size(f)
                 dif, created = create_objectstore_dif_from_id(project, meta, f, checksum, file_size)
             else:

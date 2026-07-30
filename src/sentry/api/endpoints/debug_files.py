@@ -841,19 +841,13 @@ def _clone_proguard_debug_file_for_reupload(
         }
 
     meta = build_proguard_reupload_dif_meta(debug_file, requested_debug_id)
-    exclusive = features.has(
-        "organizations:objectstore-debugfiles-exclusive-write", project.organization
-    )
 
-    if exclusive:
+    if features.has("organizations:objectstore-debugfiles-exclusive-write", project.organization):
         # Exclusive writes always produce an Objectstore-only clone, regardless
         # of whether the source is File-backed, dual-written, or Objectstore-only.
         checksum = debug_file.get_checksum()
         file_size = debug_file.get_file_size()
-        if debug_file.file is not None and not debug_file.uses_objectstore_for_read():
-            source_fileobj = debug_file.file.getfile()
-        else:
-            source_fileobj = debug_file.get_file()
+        source_fileobj = debug_file.get_file()
         try:
             with tempfile.TemporaryFile() as tmp:
                 shutil.copyfileobj(source_fileobj, tmp)
