@@ -5,6 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SelectorList} from 'sentry/components/replays/breadcrumbs/selectorList';
 import {hydrateBreadcrumbs} from 'sentry/utils/replays/hydrateBreadcrumbs';
+import type {ClickFrame} from 'sentry/utils/replays/types';
 
 describe('SelectorList', () => {
   it('renders malformed click breadcrumbs without attributes', () => {
@@ -17,14 +18,15 @@ describe('SelectorList', () => {
             id: 1,
             tagName: 'button',
             textContent: 'Save',
-            attributes: {},
-          },
+            // `attributes` is intentionally omitted to represent a malformed breadcrumb.
+          } as any,
         },
       }),
     ]);
-    Reflect.deleteProperty(frame.data.node, 'attributes');
-
-    render(<SelectorList frame={frame} />);
+    if (!frame) {
+      throw new Error('Expected click breadcrumb to hydrate');
+    }
+    render(<SelectorList frame={frame as ClickFrame} />);
 
     expect(screen.getByText('button#save')).toBeInTheDocument();
   });
