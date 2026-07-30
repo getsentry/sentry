@@ -27,20 +27,12 @@ def register_permanent_features(manager: FeatureManager) -> None:
     self-hosted and single-tenant are aligned with sentry.io.
     """
     permanent_organization_features = {
-        # Enable interface functionality to synchronize groups between sentry and
-        # issues on external services.
-        "organizations:integrations-issue-sync": True,
         # Enable stacktrace linking
         "organizations:integrations-stacktrace-link": True,
         # Enable metric alert charts in email/slack
         "organizations:metric-alert-chartcuterie": False,
-        # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
-        # must be installed to use this functionality.
-        "organizations:sso-saml2": True,
         # Enable the uptime monitoring features
         "organizations:uptime": True,
-        # Signals that the organization supports the on demand metrics prefill.
-        "organizations:on-demand-metrics-prefill": False,
         # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.
         "organizations:custom-metrics": False,
         # Prefix host with organization ID when giving users DSNs (can be
@@ -52,11 +44,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:integrations-vercel": True,
         # Display profile durations on the stats page
         "organizations:continuous-profiling-stats": False,
-    }
-
-    permanent_project_features = {
-        # Enable functionality to discard groups.
-        "projects:discard-groups": False,
     }
 
     # Permanent organization features that are controlled via flagpole
@@ -114,6 +101,9 @@ def register_permanent_features(manager: FeatureManager) -> None:
         # using services like GitHub / Google. This is *not* the same as the signup
         # and login with Github / Azure DevOps that sentry.io provides.
         "organizations:sso-basic": FlagpoleFeature(default=True, api_expose=True),
+        # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
+        # must be installed to use this functionality.
+        "organizations:sso-saml2": FlagpoleFeature(default=True, api_expose=True),
         # Denotes organizations on the AM3 billing tier
         "organizations:am3-tier": FlagpoleFeature(default=False, api_expose=True),
         # Measure usage by spans instead of transactions
@@ -147,6 +137,11 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:integrations-incident-management": FlagpoleFeature(
             default=True, api_expose=True
         ),
+        # Enable interface functionality to synchronize groups between sentry and
+        # issues on external services.
+        "organizations:integrations-issue-sync": FlagpoleFeature(default=True, api_expose=True),
+        # Signals that the organization supports the on demand metrics prefill.
+        "organizations:on-demand-metrics-prefill": FlagpoleFeature(default=False, api_expose=True),
     }
 
     # Permanent project features that are controlled via flagpole. These are
@@ -154,6 +149,8 @@ def register_permanent_features(manager: FeatureManager) -> None:
     # feature resolves its subscription from the project's organization — so their
     # flagpole segments key off subscription_plan-family just the same.
     permanent_flagpole_project_features: dict[str, FlagpoleFeature] = {
+        # Enable functionality to discard groups.
+        "projects:discard-groups": FlagpoleFeature(default=False, api_expose=True),
         # Enable functionality to specify custom inbound filters on events.
         "projects:custom-inbound-filters": FlagpoleFeature(default=False, api_expose=True),
         # Enable functionality for rate-limiting events on projects.
@@ -174,15 +171,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         manager.add(
             org_feature,
             OrganizationFeature,
-            FeatureHandlerStrategy.INTERNAL,
-            default=default,
-            api_expose=True,
-        )
-
-    for project_feature, default in permanent_project_features.items():
-        manager.add(
-            project_feature,
-            ProjectFeature,
             FeatureHandlerStrategy.INTERNAL,
             default=default,
             api_expose=True,
