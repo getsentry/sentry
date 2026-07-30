@@ -869,7 +869,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/gsAdmin/views/sentryAppDetails.spec.tsx        @getsentry/design-engineering
 ## End of Frontend Platform
 
-# Coding Workflows
+# Agent Interfaces
 /static/app/components/prevent/                           @getsentry/agent-interfaces-sentry-frontend
 /static/app/views/prevent/                                @getsentry/agent-interfaces-sentry-frontend
 /static/app/views/nav/secondary/sections/prevent/         @getsentry/agent-interfaces-sentry-frontend
@@ -908,7 +908,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/repositories                                   @getsentry/agent-interfaces-sentry-frontend @getsentry/scm
 ## End of SCM Frontend
 
-# End of Coding Workflows
+# End of Agent Interfaces
 
 # Conduit
 /src/sentry/conduit/                                  @getsentry/sre-infrastructure-engineering
