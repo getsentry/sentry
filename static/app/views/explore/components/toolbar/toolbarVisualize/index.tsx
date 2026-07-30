@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import type {KeyboardEvent, PointerEvent, ReactNode} from 'react';
 import {useCallback, useRef} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
@@ -7,7 +7,7 @@ import styled from '@emotion/styled';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
@@ -98,7 +98,13 @@ export function ToolbarVisualizeDropdown({
         <DragReorderButton iconSize="sm" {...listeners} />
       )}
       {label}
-      <VisualizeControls>
+      <Stack
+        flex="1"
+        minWidth="0"
+        gap="sm"
+        // Allow the filter to overflow the toolbar when expanded on focus.
+        overflow="visible"
+      >
         <Flex gap="md" align="center" width="100%">
           <AggregateCompactSelect
             search
@@ -155,7 +161,7 @@ export function ToolbarVisualizeDropdown({
         {filterSearchBar ? (
           <ExpandableFilterSearchBar>{filterSearchBar}</ExpandableFilterSearchBar>
         ) : null}
-      </VisualizeControls>
+      </Stack>
       {onDelete ? (
         <Button
           variant="transparent"
@@ -213,46 +219,145 @@ export function ToolbarVisualizeAddEquation({add, disabled}: ToolbarVisualizeAdd
   );
 }
 
-const VisualizeControls = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  gap: ${p => p.theme.space.sm};
-  /* Allow the filter to overflow the toolbar when expanded on focus. */
-  overflow: visible;
-`;
-
 const PAGE_EDGE_PADDING_PX = 16;
 
-function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
+function focusInputAtEnd(input: HTMLInputElement) {
+  input.focus();
+  const end = input.value.length;
+  input.setSelectionRange(end, end);
+}
+
+export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
   const ref = useRef<HTMLDivElement>(null);
 
   const expandToPageWidth = useCallback(() => {
     const el = ref.current;
-    if (!el) {
+    if (!el || el.dataset.expanded === 'true') {
       return;
     }
     const {left} = el.getBoundingClientRect();
+    // Expand instantly so focus/caret aren't racing the width animation.
+    el.style.transition = 'none';
     el.style.width = `${document.documentElement.clientWidth - left - PAGE_EDGE_PADDING_PX}px`;
+    el.dataset.expanded = 'true';
+    // Restore transition for collapse.
+    requestAnimationFrame(() => {
+      if (ref.current) {
+        ref.current.style.transition = '';
+      }
+    });
   }, []);
 
   const collapseToDefaultWidth = useCallback(() => {
-    // Defer so focus can settle on portaled menu items without collapsing mid-interaction.
+    const el = ref.current;
+    if (!el) {
+      return;
+    }
+    el.style.width = '';
+    delete el.dataset.expanded;
+  }, []);
+
+  const isSuggestionMenuOpen = useCallback(() => {
+    return Boolean(ref.current?.querySelector('[role="combobox"][aria-expanded="true"]'));
+  }, []);
+
+  const collapseAfterBlur = useCallback(() => {
+    // Defer past menu close / focus handoff. Suggestion menus may briefly keep
+    // aria-expanded while focus leaves; a second frame lets that settle.
     requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = ref.current;
+        if (!el || el.contains(document.activeElement)) {
+          return;
+        }
+        // Keep expanded while this bar's autocomplete is open (incl. portaled menus).
+        if (isSuggestionMenuOpen()) {
+          return;
+        }
+        collapseToDefaultWidth();
+      });
+    });
+  }, [collapseToDefaultWidth, isSuggestionMenuOpen]);
+
+  const focusTrailingInput = useCallback(() => {
+    const input = ref.current?.querySelector<HTMLInputElement>(
+      '[data-test-id="query-builder-input"]'
+    );
+    if (!input) {
+      return;
+    }
+
+    // Focus the grid row first so React Aria updates focusedKey, then the
+    // free-text input. Focusing the input alone can leave focusedKey on a
+    // filter chip, which steals focus back (no caret until a second click).
+    const row = input.closest<HTMLElement>('[role="row"]');
+    row?.focus();
+    focusInputAtEnd(input);
+  }, []);
+
+  const onPointerDownCapture = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
       const el = ref.current;
-      if (!el || el.contains(document.activeElement)) {
+      if (!el) {
         return;
       }
-      el.style.width = '';
-    });
-  }, []);
+
+      // Already expanded — only route empty chrome clicks to the trailing input.
+      if (el.dataset.expanded === 'true') {
+        const target = event.target;
+        if (
+          target instanceof Element &&
+          !target.closest('input, textarea, button, [role="button"]')
+        ) {
+          event.preventDefault();
+          focusTrailingInput();
+        }
+        return;
+      }
+
+      // Collapsed (often multi-row): expanding reflows tokens out from under the
+      // pointer, so the browser can't place focus/caret reliably. Intentionally
+      // take over the first click — expand and put the caret at the end of the
+      // trailing free-text input. Filter chips can be edited on a subsequent click.
+      event.preventDefault();
+      expandToPageWidth();
+      focusTrailingInput();
+      // Re-assert after layout in case the grid steals focus during reflow.
+      requestAnimationFrame(() => {
+        focusTrailingInput();
+      });
+    },
+    [expandToPageWidth, focusTrailingInput]
+  );
+
+  const dismissOnEnter = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => {
+      if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
+        return;
+      }
+
+      // Selecting an autocomplete option also uses Enter; keep the bar expanded
+      // while a suggestion menu is open.
+      if (isSuggestionMenuOpen()) {
+        return;
+      }
+
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && ref.current?.contains(active)) {
+        active.blur();
+      }
+      collapseToDefaultWidth();
+    },
+    [collapseToDefaultWidth, isSuggestionMenuOpen]
+  );
 
   return (
     <ExpandableFilterSearchBarWrapper
       ref={ref}
+      onPointerDownCapture={onPointerDownCapture}
       onFocusCapture={expandToPageWidth}
-      onBlurCapture={collapseToDefaultWidth}
+      onBlurCapture={collapseAfterBlur}
+      onKeyDownCapture={dismissOnEnter}
     >
       {children}
     </ExpandableFilterSearchBarWrapper>
@@ -263,22 +368,25 @@ const ExpandableFilterSearchBarWrapper = styled('div')`
   width: 100%;
   min-width: 0;
   position: relative;
-  z-index: 0;
-  /* Clip long tokens when collapsed; allow dropdown overlays to escape when focused. */
+  /* Clip long tokens when collapsed; allow dropdown overlays to escape when expanded. */
   overflow: hidden;
   transition: width ${p => p.theme.motion.smooth.moderate};
 
   [data-test-id='search-query-builder'] {
     max-width: 100%;
-    /* Input styles default to resize: vertical; disable the corner drag handle. */
     resize: none;
   }
 
+  /* Measuring overlay sits above the input and steals caret-placement clicks. */
+  [data-hidden-text] {
+    pointer-events: none;
+  }
+
+  &[data-expanded='true'],
   &:focus-within {
     overflow: visible;
     z-index: ${p => p.theme.zIndex.dropdown};
 
-    /* Override the semi-transparent Input background so content underneath doesn't show through. */
     [data-test-id='search-query-builder'] {
       background-color: ${p => p.theme.tokens.background.primary};
     }

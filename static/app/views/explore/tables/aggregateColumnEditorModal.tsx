@@ -7,7 +7,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -524,8 +524,8 @@ function AggregateSelector({
   );
 
   return (
-    <VisualizeColumn>
-      <SelectsRow>
+    <AggregateSelectorStack>
+      <SelectsRow align="center" gap="md" minWidth="0">
         <SingleWidthCompactSelect
           data-test-id="editor-visualize-function"
           options={aggregateOptions}
@@ -567,10 +567,15 @@ function AggregateSelector({
       </SelectsRow>
       {showFilterSearchBar ? (
         <FilterSearchBar>
-          <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+          <TraceItemSearchQueryBuilder
+            {...spanSearchQueryBuilderProps}
+            showSearchIcon={false}
+            // Modal overflow clips non-portaled SQB menus.
+            portalTarget={document.body}
+          />
         </FilterSearchBar>
       ) : null}
-    </VisualizeColumn>
+    </AggregateSelectorStack>
   );
 }
 
@@ -818,25 +823,31 @@ const StyledButton = styled(Button)`
   padding-right: 0;
 `;
 
-const VisualizeColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
+const AggregateSelectorStack = styled(Stack)`
   flex: 1;
   min-width: 0;
   gap: ${p => p.theme.space.sm};
+  position: relative;
+
+  /* CompactSelect menus are not portaled; raise this row above siblings while open. */
+  &:focus-within {
+    z-index: 1;
+  }
 `;
 
-const SelectsRow = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
+const SelectsRow = styled(Flex)`
+  position: relative;
   min-width: 0;
+
+  &:focus-within {
+    z-index: 1;
+  }
 `;
 
 const FilterSearchBar = styled('div')`
   width: 100%;
   min-width: 0;
+  position: relative;
   overflow: hidden;
 
   [data-test-id='search-query-builder'] {
@@ -846,6 +857,7 @@ const FilterSearchBar = styled('div')`
 
   &:focus-within {
     overflow: visible;
+    z-index: 1;
 
     [data-test-id='search-query-builder'] {
       background-color: ${p => p.theme.tokens.background.primary};

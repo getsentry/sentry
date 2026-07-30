@@ -1219,6 +1219,12 @@ export const PrimarySelectRow = styled('div')<{
   display: flex;
   width: 100%;
   min-width: 0;
+  position: relative;
+
+  /* Raise above a following filter bar while a CompactSelect menu is open. */
+  &:focus-within {
+    z-index: 1;
+  }
 
   & ${ColumnCompactSelect} button {
     border-top-left-radius: 0;

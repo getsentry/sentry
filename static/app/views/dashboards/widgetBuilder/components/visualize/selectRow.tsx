@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {SelectValue} from '@sentry/scraps/select';
 
@@ -427,7 +428,7 @@ export function SelectRow({
     supportsConditionalAggregateFilter(parsedFunction?.name ?? '');
 
   return (
-    <SelectRowColumn>
+    <SelectRowStack>
       <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
         <AggregateCompactSelect
           search
@@ -807,7 +808,7 @@ export function SelectRow({
           />
         </FilterSearchBar>
       ) : null}
-    </SelectRowColumn>
+    </SelectRowStack>
   );
 }
 
@@ -830,7 +831,14 @@ function SpansAggregateFilterBar({
     placeholder: t('Filter spans for this series'),
   });
 
-  return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
+  return (
+    <TraceItemSearchQueryBuilder
+      {...spanSearchQueryBuilderProps}
+      showSearchIcon={false}
+      // SlideOverPanel uses overflow:auto and clips non-portaled SQB menus.
+      portalTarget={document.body}
+    />
+  );
 }
 
 export const ColumnCompactSelect = styled(CompactSelect)`
@@ -846,15 +854,24 @@ const SelectWrapper = styled('div')`
   display: contents;
 `;
 
-const SelectRowColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
+const SelectRowStack = styled(Stack)`
   width: 100%;
   min-width: 0;
+  gap: ${p => p.theme.space.md};
+  position: relative;
+
+  /* CompactSelect menus are not portaled; raise this row above siblings while open. */
+  &:focus-within {
+    z-index: 1;
+  }
 `;
 
 const FilterSearchBar = styled('div')`
   width: 100%;
   min-width: 0;
+  position: relative;
+
+  &:focus-within {
+    z-index: 1;
+  }
 `;

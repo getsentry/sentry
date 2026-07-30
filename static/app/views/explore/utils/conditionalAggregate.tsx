@@ -166,6 +166,9 @@ export function withReadableConditionalFilter(yAxis: string): string {
  * plus score formulas that take a fixed measurement column.
  */
 export function supportsConditionalAggregateFilter(aggregateName: string): boolean {
+  if (!aggregateName) {
+    return false;
+  }
   if (NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregateName as AggregationKey)) {
     return false;
   }

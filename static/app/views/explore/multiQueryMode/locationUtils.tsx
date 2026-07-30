@@ -282,9 +282,9 @@ export function getFieldsForConstructedQuery(yAxes: string[]): string[] {
   const fields: string[] = ['id'];
 
   for (const yAxis of yAxes) {
-    const arg =
-      parseConditionalAggregate(yAxis)?.arguments[0] ??
-      parseFunction(yAxis)?.arguments[0];
+    // Use parseConditionalAggregate so parameterless `_if` aggregates
+    // (filter-only args) are not treated as fields via parseFunction.
+    const arg = parseConditionalAggregate(yAxis)?.arguments[0];
     if (!arg) {
       continue;
     }

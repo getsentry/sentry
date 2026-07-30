@@ -46,6 +46,7 @@ export type TraceItemSearchQueryBuilderProps = {
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
   replaceRawSearchKeys?: string[];
+  showSearchIcon?: SearchQueryBuilderProps['showSearchIcon'];
 } & Omit<SpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
 const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
@@ -303,6 +304,7 @@ export function TraceItemSearchQueryBuilder({
   allowedAttributeKeys,
   placeholder,
   invalidFilterKeys,
+  showSearchIcon,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -341,7 +343,13 @@ export function TraceItemSearchQueryBuilder({
     invalidFilterKeys,
   });
 
-  return <SearchQueryBuilder autoFocus={autoFocus} {...searchQueryBuilderProps} />;
+  return (
+    <SearchQueryBuilder
+      autoFocus={autoFocus}
+      showSearchIcon={showSearchIcon}
+      {...searchQueryBuilderProps}
+    />
+  );
 }
 
 function useFunctionTags(

@@ -25,7 +25,6 @@ export function SortableVisualizeFieldWrapper({
   let style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    zIndex: 'auto',
     display: 'flex',
     gap: theme.space.xs,
     width: '100%',
@@ -42,14 +41,22 @@ export function SortableVisualizeFieldWrapper({
   }
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <Wrapper ref={setNodeRef} style={style}>
       {canDrag && (
         <StyledDragReorderButton {...listeners} {...attributes} isDragging={isDragging} />
       )}
       {children}
-    </div>
+    </Wrapper>
   );
 }
+
+const Wrapper = styled('div')`
+  /* Raise above following visualize rows while a CompactSelect / filter is open.
+     Avoid a default inline z-index so focus-within can take effect. */
+  &:focus-within {
+    z-index: 1;
+  }
+`;
 
 const StyledDragReorderButton = styled(DragReorderButton)<{isDragging: boolean}>`
   height: ${p => p.theme.form.md.height};

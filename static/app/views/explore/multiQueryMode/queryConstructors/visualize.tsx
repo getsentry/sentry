@@ -164,7 +164,11 @@ export function VisualizeSection({query, index}: Props) {
       </Section>
       {showFilterSearchBar ? (
         <FilterSearchBar data-test-id={`section-visualize-filter-${index}`}>
-          <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+          <TraceItemSearchQueryBuilder
+            {...spanSearchQueryBuilderProps}
+            showSearchIcon={false}
+            portalTarget={document.body}
+          />
         </FilterSearchBar>
       ) : null}
     </Fragment>
@@ -178,6 +182,11 @@ const FilterSearchBar = styled('div')`
   grid-row: 2;
   min-width: 0;
   width: 100%;
+  position: relative;
+
+  &:focus-within {
+    z-index: 1;
+  }
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`

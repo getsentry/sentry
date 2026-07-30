@@ -138,6 +138,10 @@ describe('conditionalAggregate', () => {
       expect(supportsConditionalAggregateFilter('sum')).toBe(true);
     });
 
+    it('denies filters when no aggregate is selected', () => {
+      expect(supportsConditionalAggregateFilter('')).toBe(false);
+    });
+
     it('denies filters for no-argument and score formulas', () => {
       expect(supportsConditionalAggregateFilter('epm')).toBe(false);
       expect(supportsConditionalAggregateFilter('eps')).toBe(false);

@@ -317,7 +317,10 @@ function ToolbarVisualizeItem({
       onClose={() => setSearch(undefined)}
       filterSearchBar={
         showFilterSearchBar ? (
-          <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+          <TraceItemSearchQueryBuilder
+            {...spanSearchQueryBuilderProps}
+            showSearchIcon={false}
+          />
         ) : undefined
       }
     />
