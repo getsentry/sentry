@@ -60,6 +60,9 @@ SLACK_WEBHOOK_METRIC_EVENT_TYPES = frozenset(
     ["app_mention", "assistant_thread_started", "link_shared", "message", "reaction_added"]
 )
 
+# Slack gives us 3 seconds to respond before it considers the delivery failed.
+SLACK_RESPONSE_TIMEOUT_SECONDS = 3
+
 
 class SlackRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]  # "slack"
@@ -344,9 +347,10 @@ class SlackRequestParser(BaseRequestParser):
             )
             return
 
+        elapsed = time.time() - sent_at
         metrics.timing(
             "hybrid_cloud.integration_control.slack.response_time",
-            time.time() - sent_at,
+            elapsed,
             tags={
                 # SlackStagingRequestParser inherits this, so keep the two apart.
                 "provider": self.provider,
@@ -356,6 +360,20 @@ class SlackRequestParser(BaseRequestParser):
             },
             sample_rate=1.0,
         )
+
+        if elapsed > SLACK_RESPONSE_TIMEOUT_SECONDS:
+            slack_request_data = getattr(self.slack_request, "data", {})
+            logger.info(
+                "slack.control.response_time_exceeded",
+                extra={
+                    "path": self.request.path,
+                    "url_name": self.match.url_name,
+                    "status_code": status_code,
+                    "event_type": self._get_metric_event_type(),
+                    "slack_event_id": slack_request_data.get("event_id"),
+                    "elapsed": elapsed,
+                },
+            )
 
     def _log_seer_agent_retry_headers(self, status_code: int | str) -> None:
         if not self._is_seer_agent_request(self.slack_request):
