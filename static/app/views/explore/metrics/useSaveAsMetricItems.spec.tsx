@@ -79,13 +79,10 @@ describe('useSaveAsMetricItems', () => {
   });
 
   it('should open save query modal when save as new query is clicked', () => {
-    const {result} = renderHook(
-      () =>
-        useSaveAsMetricItems({
-          interval: '5m',
-        }),
-      {wrapper: createWrapper()}
-    );
+    const {result} = renderHook(useSaveAsMetricItems, {
+      wrapper: createWrapper(),
+      initialProps: {interval: '5m'},
+    });
 
     const saveAsItems = result.current;
     const saveAsQuery = saveAsItems.find(item => item.key === 'save-query') as {
@@ -130,13 +127,10 @@ describe('useSaveAsMetricItems', () => {
       })
     );
 
-    const {result} = renderHook(
-      () =>
-        useSaveAsMetricItems({
-          interval: '5m',
-        }),
-      {wrapper: createWrapper()}
-    );
+    const {result} = renderHook(useSaveAsMetricItems, {
+      wrapper: createWrapper(),
+      initialProps: {interval: '5m'},
+    });
 
     await waitFor(() => {
       expect(result.current.some(item => item.key === 'update-query')).toBe(true);
@@ -155,13 +149,10 @@ describe('useSaveAsMetricItems', () => {
       })
     );
 
-    const {result} = renderHook(
-      () =>
-        useSaveAsMetricItems({
-          interval: '5m',
-        }),
-      {wrapper: createWrapper()}
-    );
+    const {result} = renderHook(useSaveAsMetricItems, {
+      wrapper: createWrapper(),
+      initialProps: {interval: '5m'},
+    });
 
     const saveAsItems = result.current;
 

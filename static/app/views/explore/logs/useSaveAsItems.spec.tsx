@@ -105,18 +105,17 @@ describe('useSaveAsItems', () => {
   });
 
   it('should open save query modal when save as new query is clicked', () => {
-    const {result} = renderHookWithProviders(
-      () =>
-        useSaveAsItems({
-          visualizes: [new VisualizeFunction('count()')],
-          groupBys: ['message.template'],
-          interval: '5m',
-          mode: Mode.AGGREGATE,
-          search: new MutableSearch('message:"test error"'),
-          sortBys: [{field: 'timestamp', kind: 'desc'}],
-        }),
-      {additionalWrapper: createWrapper()}
-    );
+    const {result} = renderHookWithProviders(useSaveAsItems, {
+      additionalWrapper: createWrapper(),
+      initialProps: {
+        visualizes: [new VisualizeFunction('count()')],
+        groupBys: ['message.template'],
+        interval: '5m',
+        mode: Mode.AGGREGATE,
+        search: new MutableSearch('message:"test error"'),
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+      },
+    });
 
     const saveAsItems = result.current;
     const saveAsQuery = saveAsItems.find(item => item.key === 'save-query') as {
@@ -163,18 +162,17 @@ describe('useSaveAsItems', () => {
       })
     );
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useSaveAsItems({
-          visualizes: [new VisualizeFunction('count()')],
-          groupBys: ['message.template'],
-          interval: '5m',
-          mode: Mode.AGGREGATE,
-          search: new MutableSearch('message:"test"'),
-          sortBys: [{field: 'timestamp', kind: 'desc'}],
-        }),
-      {additionalWrapper: createWrapper()}
-    );
+    const {result} = renderHookWithProviders(useSaveAsItems, {
+      additionalWrapper: createWrapper(),
+      initialProps: {
+        visualizes: [new VisualizeFunction('count()')],
+        groupBys: ['message.template'],
+        interval: '5m',
+        mode: Mode.AGGREGATE,
+        search: new MutableSearch('message:"test"'),
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+      },
+    });
 
     await waitFor(() => {
       expect(result.current.some(item => item.key === 'update-query')).toBe(true);
@@ -195,18 +193,17 @@ describe('useSaveAsItems', () => {
       })
     );
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useSaveAsItems({
-          visualizes: [new VisualizeFunction('count()')],
-          groupBys: ['message.template'],
-          interval: '5m',
-          mode: Mode.AGGREGATE,
-          search: new MutableSearch('message:"test"'),
-          sortBys: [{field: 'timestamp', kind: 'desc'}],
-        }),
-      {additionalWrapper: createWrapper()}
-    );
+    const {result} = renderHookWithProviders(useSaveAsItems, {
+      additionalWrapper: createWrapper(),
+      initialProps: {
+        visualizes: [new VisualizeFunction('count()')],
+        groupBys: ['message.template'],
+        interval: '5m',
+        mode: Mode.AGGREGATE,
+        search: new MutableSearch('message:"test"'),
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+      },
+    });
 
     const saveAsItems = result.current;
 
@@ -215,18 +212,17 @@ describe('useSaveAsItems', () => {
   });
 
   it('disables the alert option with an upsell tooltip when metric alerts are unavailable', () => {
-    const {result} = renderHookWithProviders(
-      () =>
-        useSaveAsItems({
-          visualizes: [new VisualizeFunction('count()')],
-          groupBys: ['message.template'],
-          interval: '5m',
-          mode: Mode.AGGREGATE,
-          search: new MutableSearch('message:"test error"'),
-          sortBys: [{field: 'timestamp', kind: 'desc'}],
-        }),
-      {additionalWrapper: createWrapper()}
-    );
+    const {result} = renderHookWithProviders(useSaveAsItems, {
+      additionalWrapper: createWrapper(),
+      initialProps: {
+        visualizes: [new VisualizeFunction('count()')],
+        groupBys: ['message.template'],
+        interval: '5m',
+        mode: Mode.AGGREGATE,
+        search: new MutableSearch('message:"test error"'),
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+      },
+    });
 
     const alertItem = result.current.find(item => item.key === 'create-alert') as
       | {children: unknown[]; disabled: boolean; tooltip: string | undefined}
@@ -242,18 +238,17 @@ describe('useSaveAsItems', () => {
       features: ['ourlogs-enabled', 'incidents'],
     });
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useSaveAsItems({
-          visualizes: [new VisualizeFunction('count()')],
-          groupBys: ['message.template'],
-          interval: '5m',
-          mode: Mode.AGGREGATE,
-          search: new MutableSearch('message:"test error"'),
-          sortBys: [{field: 'timestamp', kind: 'desc'}],
-        }),
-      {additionalWrapper: createWrapper(orgWithAlerts)}
-    );
+    const {result} = renderHookWithProviders(useSaveAsItems, {
+      additionalWrapper: createWrapper(orgWithAlerts),
+      initialProps: {
+        visualizes: [new VisualizeFunction('count()')],
+        groupBys: ['message.template'],
+        interval: '5m',
+        mode: Mode.AGGREGATE,
+        search: new MutableSearch('message:"test error"'),
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+      },
+    });
 
     const alertItem = result.current.find(item => item.key === 'create-alert') as
       | {children: unknown[]; disabled: boolean; tooltip: string | undefined}
@@ -269,20 +264,19 @@ describe('useSaveAsItems', () => {
       .spyOn(discoverUtils, 'handleAddQueryToDashboard')
       .mockImplementation(() => {});
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useSaveAsItems({
-          visualizes: [
-            new VisualizeFunction('count(message)', {chartType: ChartType.LINE}),
-          ],
-          groupBys: ['message.template'],
-          interval: '5m',
-          mode: Mode.AGGREGATE,
-          search: new MutableSearch('message:"test error"'),
-          sortBys: [{field: 'timestamp', kind: 'desc'}],
-        }),
-      {additionalWrapper: createWrapper()}
-    );
+    const {result} = renderHookWithProviders(useSaveAsItems, {
+      additionalWrapper: createWrapper(),
+      initialProps: {
+        visualizes: [
+          new VisualizeFunction('count(message)', {chartType: ChartType.LINE}),
+        ],
+        groupBys: ['message.template'],
+        interval: '5m',
+        mode: Mode.AGGREGATE,
+        search: new MutableSearch('message:"test error"'),
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+      },
+    });
 
     const saveAsDashboard = result.current.find(
       item => item.key === 'add-to-dashboard'
@@ -298,20 +292,19 @@ describe('useSaveAsItems', () => {
   });
 
   it('should call saveQuery with correct parameters when modal saves', async () => {
-    const {result} = renderHookWithProviders(
-      () =>
-        useSaveAsItems({
-          visualizes: [new VisualizeFunction('count()')],
-          groupBys: ['message.template'],
-          // Note: useSaveQuery uses the value returned by useChartInterval()
-          // not the interval passed in as options.
-          interval: '5m',
-          mode: Mode.AGGREGATE,
-          search: new MutableSearch('message:"test error"'),
-          sortBys: [{field: 'timestamp', kind: 'desc'}],
-        }),
-      {additionalWrapper: createWrapper()}
-    );
+    const {result} = renderHookWithProviders(useSaveAsItems, {
+      additionalWrapper: createWrapper(),
+      initialProps: {
+        visualizes: [new VisualizeFunction('count()')],
+        groupBys: ['message.template'],
+        // Note: useSaveQuery uses the value returned by useChartInterval()
+        // not the interval passed in as options.
+        interval: '5m',
+        mode: Mode.AGGREGATE,
+        search: new MutableSearch('message:"test error"'),
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+      },
+    });
 
     const saveAsItems = result.current;
     const saveAsQuery = saveAsItems.find(item => item.key === 'save-query') as {
