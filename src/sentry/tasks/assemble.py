@@ -83,7 +83,7 @@ class AssembleResult(NamedTuple):
 
 
 class TemporaryAssembleResult(NamedTuple):
-    temp_file: IO[bytes]
+    file: IO[bytes]
     checksum: str
     file_size: int
 
@@ -344,51 +344,24 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         project = Project.objects.filter(id=project_id).get()
         set_assemble_status(AssembleTask.DIF, project_id, checksum, ChunkFileState.ASSEMBLING)
 
-        if features.has("organizations:objectstore-debugfiles-assemble", project.organization):
-            temporary_result = assemble_file_blobs_to_temp(
-                AssembleTask.DIF,
-                project,
-                name,
-                checksum,
-                chunks,
-                max_file_size=MAX_OBJECTSTORE_DEBUG_FILE_SIZE,
-            )
-            if temporary_result is None:
-                return
-
-            with temporary_result.temp_file:
-                try:
-                    meta = detect_single_dif_from_path(
-                        temporary_result.temp_file.name, name=name, debug_id=debug_id
-                    )
-                except BadDif as e:
-                    set_assemble_status(
-                        AssembleTask.DIF,
-                        project_id,
-                        checksum,
-                        ChunkFileState.ERROR,
-                        detail=e.args[0],
-                    )
-                    return
-
-                dif, created = create_objectstore_dif_from_id(
-                    project,
-                    meta,
-                    temporary_result.temp_file,
-                    temporary_result.checksum,
-                    temporary_result.file_size,
-                )
-        else:
-            assemble_result = assemble_file(
+        if not features.has("organizations:objectstore-debugfiles-assemble", project.organization):
+            # Assemble the chunks into a temporary file
+            rv = assemble_file(
                 AssembleTask.DIF, project, name, checksum, chunks, file_type="project.dif"
             )
-            if assemble_result is None:
+
+            # If not file has been created this means that the file failed to
+            # assemble because of bad input data. In this case, assemble_file
+            # has set the assemble status already.
+            if rv is None:
                 return
 
-            file, temp_file = assemble_result
+            file, temp_file = rv
             delete_file = True
 
             with temp_file:
+                # We only permit split difs to hit this endpoint.
+                # The client is required to split them up first or we error.
                 try:
                     dif, created = create_dif_from_file(
                         project, file, temp_file.name, name=name, debug_id=debug_id
@@ -403,8 +376,46 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                     )
                     return
 
-                # Keep the assembled File only when the new DIF references it.
+                # We can delete the temporary file when either the new DIF is objectstore-backed (i.e. `dif.file is None`),
+                # or when the new DIF references an already existing underlying `File` that's not this temporary one.
+                # Only if `dif.file is file` we want to avoid the deletion, given that the new DIF will be backed by `File` that up until now we considered temporary.
                 delete_file = dif.file is not file
+        else:
+            temporary_result = assemble_file_blobs_to_temp(
+                AssembleTask.DIF,
+                project,
+                name,
+                checksum,
+                chunks,
+                max_file_size=MAX_OBJECTSTORE_DEBUG_FILE_SIZE,
+            )
+            if temporary_result is None:
+                return
+
+            with temporary_result.file:
+                # We only permit split difs to hit this endpoint.
+                # The client is required to split them up first or we error.
+                try:
+                    meta = detect_single_dif_from_path(
+                        temporary_result.file.name, name=name, debug_id=debug_id
+                    )
+                except BadDif as e:
+                    set_assemble_status(
+                        AssembleTask.DIF,
+                        project_id,
+                        checksum,
+                        ChunkFileState.ERROR,
+                        detail=e.args[0],
+                    )
+                    return
+
+                dif, created = create_objectstore_dif_from_id(
+                    project,
+                    meta,
+                    temporary_result.file,
+                    temporary_result.checksum,
+                    temporary_result.file_size,
+                )
 
         if created:
             record_last_upload(project)
