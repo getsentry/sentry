@@ -1,4 +1,5 @@
 import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {quoteFilterKey} from 'sentry/components/searchSyntax/utils';
 import {escapeDoubleQuotes} from 'sentry/utils';
 
 const ALLOWED_WILDCARD_FIELDS = [
@@ -76,8 +77,10 @@ function requiresQuotes(value: string): boolean {
 }
 
 function generateFilterValue(token: Token, operator: string): string {
+  const key = token.key ? quoteFilterKey(token.key) : token.key;
+
   if (token.value === '' || token.value === null) {
-    return `${token.key}${operator}""`;
+    return `${key}${operator}""`;
   }
 
   if (
@@ -86,13 +89,13 @@ function generateFilterValue(token: Token, operator: string): string {
     // Don't quote if it's already properly quoted
     isProperlyQuoted(token.value)
   ) {
-    return `${token.key}${operator}${token.value}`;
+    return `${key}${operator}${token.value}`;
   }
 
   if (requiresQuotes(token.value)) {
-    return `${token.key}${operator}"${escapeDoubleQuotes(token.value)}"`;
+    return `${key}${operator}"${escapeDoubleQuotes(token.value)}"`;
   }
-  return `${token.key}${operator}${token.value}`;
+  return `${key}${operator}${token.value}`;
 }
 
 // TODO(epurkhiser): This is legacy from before the existence of
@@ -152,6 +155,8 @@ export class MutableSearch {
 
     for (let token of strTokens) {
       let tokenState = TokenType.FREE_TEXT;
+      let quoted = false;
+      let bracketDepth = 0;
 
       if (isBooleanOp(token)) {
         this.addOp(token.toUpperCase());
@@ -170,12 +175,23 @@ export class MutableSearch {
       for (let i = 0, len = token.length; i < len; i++) {
         const char = token[i];
 
-        if (i === 0 && (char === '"' || char === ':')) {
+        if (char === '"' && (i === 0 || token[i - 1] !== '\\')) {
+          quoted = !quoted;
+          continue;
+        }
+
+        if (!quoted && char === '[') {
+          bracketDepth++;
+        } else if (!quoted && char === ']') {
+          bracketDepth = Math.max(0, bracketDepth - 1);
+        }
+
+        if (i === 0 && char === ':') {
           break;
         }
 
         // We may have entered a filter condition
-        if (char === ':') {
+        if (char === ':' && !quoted && bracketDepth === 0) {
           const indexOffset = i + 1;
           const nextChar = token[indexOffset] || '';
 
@@ -635,6 +651,7 @@ function isSpace(s: string) {
 function parseFilter(filter: string) {
   let idx = 0;
   let quoted = false;
+  let bracketDepth = 0;
 
   // look for the first `:` that is not in quotes
   for (; idx < filter.length; idx++) {
@@ -645,8 +662,14 @@ function parseFilter(filter: string) {
       continue;
     }
 
-    if (c === ':' && !quoted) {
-      const key = removeSurroundingQuotes(filter.slice(0, idx));
+    if (!quoted && c === '[') {
+      bracketDepth++;
+    } else if (!quoted && c === ']') {
+      bracketDepth = Math.max(0, bracketDepth - 1);
+    }
+
+    if (c === ':' && !quoted && bracketDepth === 0) {
+      const key = removeSurroundingFilterKeyQuotes(filter.slice(0, idx));
       const foundValue = filter.slice(idx + 1);
 
       // This snippet here handles the case where we have a single value that uses quotes
@@ -660,7 +683,7 @@ function parseFilter(filter: string) {
 
   // something went wrong, fallback to the naive approach of spliting the filter
   idx = filter.indexOf(':');
-  const key = removeSurroundingQuotes(filter.slice(0, idx));
+  const key = removeSurroundingFilterKeyQuotes(filter.slice(0, idx));
   const foundValue = filter.slice(idx + 1);
 
   // This snippet here handles the case where we have a single value that uses quotes
@@ -669,6 +692,14 @@ function parseFilter(filter: string) {
   const value = isEscapingBrackets ? foundValue : removeSurroundingQuotes(foundValue);
 
   return [key, value];
+}
+
+function removeSurroundingFilterKeyQuotes(key: string) {
+  if (key.startsWith('!')) {
+    return `!${removeSurroundingQuotes(key.slice(1))}`;
+  }
+
+  return removeSurroundingQuotes(key);
 }
 
 function removeSurroundingQuotes(text: string) {

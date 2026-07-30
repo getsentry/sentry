@@ -41,6 +41,18 @@ type VisitorFn<T> = (opts: {
   token: TokenResult<Token>;
 }) => null | TokenResultFoundError | typeof skipTokenMarker;
 
+export function quoteFilterKey(key: string): string {
+  const negated = key.startsWith('!');
+  const keyWithoutNegation = negated ? key.slice(1) : key;
+  const isSimpleKey = /^[\w.:-]+$/.test(keyWithoutNegation);
+
+  if (isSimpleKey && keyWithoutNegation.includes(':')) {
+    return `${negated ? '!' : ''}"${keyWithoutNegation}"`;
+  }
+
+  return key;
+}
+
 type TreeResultLocatorOpts<T> = {
   /**
    * The value to return when returnValue was never called and all nodes of the
@@ -312,7 +324,7 @@ export function stringifyToken(token: TokenResult<Token>): string {
       return `[${numberListItems.join(',')}]`;
     }
     case Token.KEY_SIMPLE:
-      return token.value;
+      return token.quoted ? `"${token.value}"` : token.value;
     case Token.KEY_AGGREGATE:
       return token.text;
     case Token.KEY_AGGREGATE_ARGS:
