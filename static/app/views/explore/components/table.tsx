@@ -67,6 +67,10 @@ interface TableProps
   scrollable?: boolean;
 }
 
+/**
+ * @deprecated Migration shim over `sentry/components/tables/table`. New tables
+ * should render that `Table` directly and declare their own `columns`.
+ */
 export function Table({
   children,
   fields,
@@ -104,11 +108,26 @@ export const ALLOWED_CELL_ACTIONS: Actions[] = [
   Actions.OPEN_INTERNAL_LINK,
 ];
 
+/**
+ * @deprecated Use `Table.Body` from `sentry/components/tables/table`.
+ */
 export const TableBody = SharedTable.Body;
+/**
+ * @deprecated Use `Table.Row` from `sentry/components/tables/table`.
+ */
 export const TableRow = GridRow;
+/**
+ * @deprecated Use `Table.Cell` from `sentry/components/tables/table`.
+ */
 export const TableBodyCell = GridBodyCell;
 
+/**
+ * @deprecated Use `Table.Head` from `sentry/components/tables/table`.
+ */
 export const TableHead = GridHead;
+/**
+ * @deprecated Use `Table.HeadCell` from `sentry/components/tables/table`.
+ */
 export const TableHeadCell = styled(GridHeadCell)<{align?: ColumnAlign}>`
   ${p =>
     p.align &&
