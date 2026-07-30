@@ -57,6 +57,10 @@ import {
   AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
+  CLOUDFLARE_AGENT_INTEGRATIONS,
+  DEPLOYMENT_TARGET_ICONS,
+  DEPLOYMENT_TARGET_LABELS,
+  DeploymentTarget,
   NODE_AGENT_INTEGRATIONS,
   PHP_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
@@ -228,7 +232,8 @@ function ConversationOnboardingPanel({
 
 function getConversationIdStep(
   integration: string,
-  platform: 'javascript' | 'php' | 'python'
+  platform: 'javascript' | 'php' | 'python',
+  jsPackageName = '@sentry/node'
 ): OnboardingStep {
   const isOpenAI =
     integration === AgentIntegration.OPENAI ||
@@ -280,7 +285,7 @@ sentry_sdk.ai.set_conversation_id("my-conversation-123")`,
       : {
           type: 'code',
           language: 'javascript',
-          code: `import * as Sentry from "@sentry/node";
+          code: `import * as Sentry from "${jsPackageName}";
 
 // Call this at the start of each conversation
 Sentry.setConversationId("my-conversation-123");`,
@@ -313,7 +318,10 @@ Sentry.setConversationId("my-conversation-123");`,
   };
 }
 
-function getSetUserStep(isPython: boolean): OnboardingStep {
+function getSetUserStep(
+  isPython: boolean,
+  jsPackageName = '@sentry/node'
+): OnboardingStep {
   const content: ContentBlock[] = [
     {
       type: 'text',
@@ -333,7 +341,7 @@ sentry_sdk.set_user({"id": "user_123", "email": "jane@example.com", "username": 
       : {
           type: 'code' as const,
           language: 'javascript',
-          code: `import * as Sentry from "@sentry/node";
+          code: `import * as Sentry from "${jsPackageName}";
 
 // Call this once per request / session, before any AI calls
 Sentry.setUser({ id: "user_123", email: "jane@example.com", username: "jane" });`,
@@ -392,14 +400,54 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
 
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
   const isPhpPlatform = (project?.platform ?? '').startsWith('php');
+  // Node-based platforms can deploy to either the Node runtime or Cloudflare
+  // Workers, so we let the user pick a target that tailors the instructions.
+  const isNodePlatform = (project?.platform ?? '').startsWith('node');
+  const isCloudflarePlatform =
+    project?.platform === 'node-cloudflare-workers' ||
+    project?.platform === 'node-cloudflare-pages';
+  // Cloudflare projects always run on Cloudflare - there's no Node runtime to
+  // switch to - so we only offer the selector for other Node platforms.
+  const showDeploymentTarget = isNodePlatform && !isCloudflarePlatform;
+
+  const deploymentTargetOptions = showDeploymentTarget
+    ? {
+        deploymentTarget: {
+          label: t('Deployment'),
+          defaultValue: DeploymentTarget.NODE,
+          items: [DeploymentTarget.NODE, DeploymentTarget.CLOUDFLARE].map(target => ({
+            label: DEPLOYMENT_TARGET_LABELS[target],
+            value: target,
+            leadingItems: (
+              <PlatformIcon platform={DEPLOYMENT_TARGET_ICONS[target]} size={16} />
+            ),
+          })),
+        },
+      }
+    : {};
+
+  const selectedDeploymentTarget = (
+    useUrlPlatformOptions(deploymentTargetOptions) as {
+      deploymentTarget?: DeploymentTarget;
+    }
+  ).deploymentTarget;
+  // Cloudflare projects are pinned to the Cloudflare runtime; other Node projects
+  // follow the selector (defaulting to Node).
+  const deploymentTarget = isCloudflarePlatform
+    ? DeploymentTarget.CLOUDFLARE
+    : selectedDeploymentTarget;
+  const isCloudflareTarget =
+    isNodePlatform && deploymentTarget === DeploymentTarget.CLOUDFLARE;
 
   const integrations = isPythonPlatform
     ? PYTHON_AGENT_INTEGRATIONS
     : isPhpPlatform
       ? PHP_AGENT_INTEGRATIONS
-      : NODE_AGENT_INTEGRATIONS;
+      : isCloudflareTarget
+        ? CLOUDFLARE_AGENT_INTEGRATIONS
+        : NODE_AGENT_INTEGRATIONS;
 
-  const integrationOptions = {
+  const platformOptions = {
     integration: {
       label: t('Integration'),
       items: integrations.map(integration => ({
@@ -419,9 +467,10 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
         ),
       })),
     },
+    ...deploymentTargetOptions,
   };
 
-  const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
+  const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -466,22 +515,24 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
       isLoading: isLoadingRegistry,
       data: registryData,
     },
-    platformOptions: selectedPlatformOptions,
+    platformOptions: {...selectedPlatformOptions, deploymentTarget},
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     urlPrefix,
     isSelfHosted,
   };
 
   const selectedIntegration = selectedPlatformOptions.integration;
+  const jsPackageName = isCloudflareTarget ? '@sentry/cloudflare' : '@sentry/node';
 
   const steps: OnboardingStep[] = [
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
     getConversationIdStep(
       selectedIntegration,
-      isPythonPlatform ? 'python' : isPhpPlatform ? 'php' : 'javascript'
+      isPythonPlatform ? 'python' : isPhpPlatform ? 'php' : 'javascript',
+      jsPackageName
     ),
-    ...(isPhpPlatform ? [] : [getSetUserStep(isPythonPlatform)]),
+    ...(isPhpPlatform ? [] : [getSetUserStep(isPythonPlatform, jsPackageName)]),
     ...(isPhpPlatform
       ? [getPhpConversationVerifyStep()]
       : agentMonitoringDocs.verify?.(docParams) || []),
@@ -494,7 +545,10 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
       <SetupTitle project={project} />
       <Stack gap="md">
         <Flex gap="md" align="center" wrap="wrap">
-          <PlatformOptionDropdown platformOptions={integrationOptions} />
+          <PlatformOptionDropdown
+            platformOptions={platformOptions}
+            connectors={{deploymentTarget: t('on')}}
+          />
         </Flex>
         {introduction && <Prose>{introduction}</Prose>}
         <GuidedSteps

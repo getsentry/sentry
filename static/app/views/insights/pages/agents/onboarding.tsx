@@ -52,7 +52,11 @@ import {LLM_ONBOARDING_COPY_MARKDOWN} from 'sentry/views/insights/pages/agents/l
 import {
   AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
+  CLOUDFLARE_AGENT_INTEGRATIONS,
   DENO_AGENT_INTEGRATIONS,
+  DEPLOYMENT_TARGET_ICONS,
+  DEPLOYMENT_TARGET_LABELS,
+  DeploymentTarget,
   NODE_AGENT_INTEGRATIONS,
   PHP_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
@@ -242,6 +246,44 @@ export function Onboarding() {
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
   const isDenoPlatform = project?.platform === 'deno';
   const isPhpPlatform = (project?.platform ?? '').startsWith('php');
+  // Node-based platforms can deploy their agents to either the Node runtime or
+  // Cloudflare Workers, so we let the user pick a target that tailors the setup.
+  const isNodePlatform = (project?.platform ?? '').startsWith('node');
+  const isCloudflarePlatform =
+    project?.platform === 'node-cloudflare-workers' ||
+    project?.platform === 'node-cloudflare-pages';
+  // Cloudflare projects always run on Cloudflare - there's no Node runtime to
+  // switch to - so we only offer the selector for other Node platforms.
+  const showDeploymentTarget = isNodePlatform && !isCloudflarePlatform;
+
+  const deploymentTargetOptions = showDeploymentTarget
+    ? {
+        deploymentTarget: {
+          label: t('Deployment'),
+          defaultValue: DeploymentTarget.NODE,
+          items: [DeploymentTarget.NODE, DeploymentTarget.CLOUDFLARE].map(target => ({
+            label: DEPLOYMENT_TARGET_LABELS[target],
+            value: target,
+            leadingItems: (
+              <PlatformIcon platform={DEPLOYMENT_TARGET_ICONS[target]} size={16} />
+            ),
+          })),
+        },
+      }
+    : {};
+
+  const selectedDeploymentTarget = (
+    useUrlPlatformOptions(deploymentTargetOptions) as {
+      deploymentTarget?: DeploymentTarget;
+    }
+  ).deploymentTarget;
+  // Cloudflare projects are pinned to the Cloudflare runtime; other Node projects
+  // follow the selector (defaulting to Node).
+  const deploymentTarget = isCloudflarePlatform
+    ? DeploymentTarget.CLOUDFLARE
+    : selectedDeploymentTarget;
+  const isCloudflareTarget =
+    isNodePlatform && deploymentTarget === DeploymentTarget.CLOUDFLARE;
 
   const integrations = isPythonPlatform
     ? PYTHON_AGENT_INTEGRATIONS
@@ -249,9 +291,11 @@ export function Onboarding() {
       ? DENO_AGENT_INTEGRATIONS
       : isPhpPlatform
         ? PHP_AGENT_INTEGRATIONS
-        : NODE_AGENT_INTEGRATIONS;
+        : isCloudflareTarget
+          ? CLOUDFLARE_AGENT_INTEGRATIONS
+          : NODE_AGENT_INTEGRATIONS;
 
-  const integrationOptions = {
+  const platformOptions = {
     integration: {
       label: t('Integration'),
       items: integrations.map(integration => ({
@@ -271,9 +315,10 @@ export function Onboarding() {
         ),
       })),
     },
+    ...deploymentTargetOptions,
   };
 
-  const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
+  const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -318,7 +363,7 @@ export function Onboarding() {
       isLoading: isLoadingRegistry,
       data: registryData,
     },
-    platformOptions: selectedPlatformOptions,
+    platformOptions: {...selectedPlatformOptions, deploymentTarget},
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     urlPrefix,
     isSelfHosted,
@@ -336,7 +381,10 @@ export function Onboarding() {
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
       <OptionsWrapper>
-        <PlatformOptionDropdown platformOptions={integrationOptions} />
+        <PlatformOptionDropdown
+          platformOptions={platformOptions}
+          connectors={{deploymentTarget: t('on')}}
+        />
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <DescriptionWrapper>
