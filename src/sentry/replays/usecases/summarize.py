@@ -489,9 +489,9 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
             case EventType.NAVIGATION:
                 if is_mobile_replay:
                     to = event["data"]["payload"]["data"].get("to")
-                    if to is None:
-                        return None
-                    return f"User navigated to: {to} at {timestamp}"
+                    if to is not None:
+                        return f"User navigated to: {to} at {timestamp}"
+                    return f"User navigated at {timestamp}"
                 else:
                     return None
             case EventType.MULTI_CLICK:
