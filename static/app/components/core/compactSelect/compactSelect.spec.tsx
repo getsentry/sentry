@@ -7,7 +7,15 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DropdownButton} from 'sentry/components/dropdownButton';
 
-import {CompactSelect, type SelectOption} from './';
+import {CompactSelect, getEscapedKey, type SelectOption} from './';
+
+describe('getEscapedKey', () => {
+  it('only escapes values that need it', () => {
+    expect(getEscapedKey('environment-123')).toBe('environment-123');
+    expect(getEscapedKey('release.version')).toBe('release\\.version');
+    expect(getEscapedKey(123)).toBe('\\31 23');
+  });
+});
 
 describe('CompactSelect', () => {
   describe('types', () => {
