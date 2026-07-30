@@ -178,8 +178,8 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 | Input (bytes) | Output      |
 | ------------- | ----------- |
 | `500`         | `"500 B"`   |
-| `1000`        | `"1 KB"`    |
-| `1500`        | `"1.5 KB"`  |
+| `1000`        | `"1 kB"`    |
+| `1500`        | `"1.5 kB"`  |
 | `1000000`     | `"1 MB"`    |
 | `1234567`     | `"1.23 MB"` |
 | `1000000000`  | `"1 GB"`    |

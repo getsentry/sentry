@@ -10,12 +10,13 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Sequence
 from enum import Enum
+from hashlib import sha1
 from typing import Any, NamedTuple, cast
 
 from django.db.models import Count, Q
 from django.utils import timezone as dj_timezone
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.commit import Commit
 from sentry.models.organization import Organization
@@ -43,7 +44,7 @@ from sentry.pr_metrics.utils import (
     load_activity_document,
     resolved_group_ids,
 )
-from sentry.seer.models.run import SeerRun
+from sentry.seer.models.run import SeerRun, SeerRunPullRequest
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -459,6 +460,160 @@ def is_pr_tracked(pull_request: PullRequest) -> bool:
     return PullRequestAttribution.objects.filter(pull_request=pull_request, is_valid=True).exists()
 
 
+def _repo_external_identity(
+    pull_request: PullRequest,
+) -> tuple[str | None, str | None, int | None]:
+    """The PR repo's provider ``external_id`` (repo id), normalized provider slug, and
+    ``integration_id``. ``external_id``/``integration_id`` are None when the repo row
+    is gone or lacks them. ``integration_id`` (the shared installation) distinguishes
+    the same numeric ``external_id`` across different provider hosts.
+    """
+    repo = (
+        Repository.objects.filter(id=pull_request.repository_id)
+        .values_list("external_id", "provider", "integration_id")
+        .first()
+    )
+    if repo is None:
+        return None, None, None
+    external_id, provider, integration_id = repo
+    return external_id, normalize_scm_provider(provider), integration_id
+
+
+def _deduplication_key(
+    pull_request: PullRequest, external_id: str | None, integration_id: int | None
+) -> str:
+    """Opaque key identifying this row's provider-side PR, for deduping emitted rows.
+
+    A repo shared across orgs emits one row per org, all hashing to the same key, so
+    a consumer can collapse the duplicates by grouping on it. Keyed on the shared
+    ``integration_id`` (not provider) so a numeric ``external_id`` reused across
+    provider hosts -- e.g. two GitHub Enterprise instances -- can't collide. Opaque by
+    contract -- dedupe by equality only, never parse -- so the identity composition
+    can change without a schema change. When the repo has no external id or
+    integration, the key falls back to the row's own identity (its own group).
+    """
+    if external_id is not None and integration_id is not None:
+        identity = f"pr:{integration_id}:{external_id}:{pull_request.key}"
+    else:
+        identity = f"row:{pull_request.organization_id}:{pull_request.id}"
+    return sha1(identity.encode()).hexdigest()
+
+
+def is_canonical_github_pr_row(pull_request: PullRequest) -> bool:
+    """Whether this row is the one that should emit for its provider-side PR.
+
+    A repo shared across orgs fans a PR out to one row per org, each passing the
+    tracking gate — so one PR would emit one ``scm.pr.closed`` per org. Pick a
+    single canonical row: the Seer run's-org row (its ``SeerRunPullRequest`` link)
+    if any, else the lowest-id sibling. True also when there are no resolvable
+    siblings — the common single-org case.
+    """
+    external_id, _, integration_id = _repo_external_identity(pull_request)
+    if external_id is None or integration_id is None:
+        return True
+    siblings = PullRequest.objects.for_provider_pr(
+        external_id=external_id, integration_id=integration_id, key=pull_request.key
+    )
+    # Canonical is the winner among only the rows that would actually emit (see
+    # _emitting_rows); comparing its id to this row's — rather than short-circuiting
+    # on a count — means a row that can't emit (e.g. it lost the emit flag after the
+    # cooldown was claimed) defers instead of emitting a duplicate alongside the real
+    # one. Emit when nothing would qualify, so the PR is never dropped entirely.
+    emitting = _emitting_rows(siblings)
+    if not emitting:
+        return True
+    return _canonical_sibling(emitting).id == pull_request.id
+
+
+def _emitting_rows(pull_requests: list[PullRequest]) -> list[PullRequest]:
+    """The subset that would actually emit: a valid attribution *and* the row's org
+    with ``pr-metrics-emit`` on — the two gates every emission path applies.
+
+    Canonical selection runs over these so a row that can't emit — untracked (e.g. a
+    run-less MCP PR whose attribution feature is on in only one org), or emit-gated
+    off for its org mid-rollout — never wins canonical and drops the PR by
+    suppressing a sibling that would emit.
+    """
+    tracked_ids = set(
+        PullRequestAttribution.objects.filter(pull_request__in=pull_requests, is_valid=True)
+        .values_list("pull_request_id", flat=True)
+        .distinct()
+    )
+    tracked = [pr for pr in pull_requests if pr.id in tracked_ids]
+    if not tracked:
+        return []
+    orgs = {
+        org.id: org
+        for org in Organization.objects.filter(id__in={pr.organization_id for pr in tracked})
+    }
+    return [
+        pr
+        for pr in tracked
+        if (org := orgs.get(pr.organization_id)) is not None
+        and features.has("organizations:pr-metrics-emit", org)
+    ]
+
+
+def _attribution_completeness(siblings: list[PullRequest]) -> dict[int, tuple[bool, bool, int]]:
+    """Per-sibling completeness of the emitted event, from valid attributions in one
+    query: whether any carries a run id, whether any carries group ids, and how many
+    there are. The fallback prefers the fullest of these — the org whose issues the PR
+    resolves stamps run id / group ids into its attribution signal_details, while
+    shadow rows carry only the bare author signal.
+    """
+    by_pr: dict[int, tuple[bool, bool, int]] = {}
+    for pr_id, details in PullRequestAttribution.objects.filter(
+        pull_request__in=siblings, is_valid=True
+    ).values_list("pull_request_id", "signal_details"):
+        has_run_id, has_group_ids, count = by_pr.get(pr_id, (False, False, 0))
+        details = details or {}
+        by_pr[pr_id] = (
+            has_run_id or details.get("run_id") is not None,
+            has_group_ids or bool(details.get("group_ids")),
+            count + 1,
+        )
+    return by_pr
+
+
+def _canonical_sibling(siblings: list[PullRequest]) -> PullRequest:
+    """The single row that emits for a provider PR fanned out across orgs.
+
+    Prefer the row whose org owns the Seer run linked to it (the run's-org row). With
+    no such link, pick the row whose emitted event would be most complete — the org
+    whose issues the PR resolves carries the run id / group ids / richer attributions,
+    while shadow rows have only the bare author signal. Ties (and the common
+    single-row case) break on lowest id, so concurrent per-org emissions all agree.
+    """
+    run_org_by_pr = dict(
+        SeerRunPullRequest.objects.filter(pull_request__in=siblings).values_list(
+            "pull_request_id", "seer_run__organization_id"
+        )
+    )
+    for pull_request in sorted(siblings, key=lambda pr: pr.id):
+        if run_org_by_pr.get(pull_request.id) == pull_request.organization_id:
+            return pull_request
+
+    completeness = _attribution_completeness(siblings)
+    # Fullest event wins; lowest id is the deterministic final tiebreak.
+    canonical = max(siblings, key=lambda pr: (*completeness.get(pr.id, (False, False, 0)), -pr.id))
+    if len(siblings) > 1:
+        # ≥2 orgs' rows emit for one provider PR but none is linked to a run in its
+        # own org — an app-authored PR that fanned out with no run link anywhere
+        # (e.g. a delegated coding-agent PR whose handoff link dropped). Surface it so
+        # the link loss is visible rather than silent.
+        logger.warning(
+            "pr_metrics.emit.dedup_no_run_org_row",
+            extra={
+                "pr_key": canonical.key,
+                "canonical_pull_request_id": canonical.id,
+                "sibling_pull_request_ids": sorted(pr.id for pr in siblings),
+                "organization_ids": sorted({pr.organization_id for pr in siblings}),
+            },
+        )
+        metrics.incr("pr_metrics.emit.dedup_no_run_org_row")
+    return canonical
+
+
 def active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
     """The PR's valid attribution signals — all of them, unranked.
 
@@ -588,17 +743,6 @@ def _repo_is_public(pull_request: PullRequest) -> bool | None:
     return None if is_private is None else not is_private
 
 
-def _repo_provider(pull_request: PullRequest) -> str | None:
-    """Normalized SCM slug for the PR's repo (e.g. "github"), or ``None`` if the
-    ``Repository`` row is gone or its provider is unset."""
-    provider = (
-        Repository.objects.filter(id=pull_request.repository_id)
-        .values_list("provider", flat=True)
-        .first()
-    )
-    return normalize_scm_provider(provider)
-
-
 def build_pr_metrics_row(
     *,
     pull_request: PullRequest,
@@ -646,10 +790,14 @@ def build_pr_metrics_row(
     # same activity snapshot rather than two separate reads.
     review = review_activity(pull_request)
 
+    # One repo read serves both the provider slug and the dedup key's identity.
+    repo_external_id, repo_provider, integration_id = _repo_external_identity(pull_request)
+
     return PrCloseMetricsEvent(
         organization_id=pull_request.organization_id,
         repository_id=pull_request.repository_id,
-        repository_provider=_repo_provider(pull_request),
+        deduplication_key=_deduplication_key(pull_request, repo_external_id, integration_id),
+        repository_provider=repo_provider,
         repository_is_public=_repo_is_public(pull_request),
         pull_request_id=pull_request.id,
         pr_key=pull_request.key,
@@ -876,6 +1024,13 @@ def emit_pr_metrics_row(
     attributions = active_attributions(pull_request)
     if not attributions:
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
+        return False
+
+    # A provider PR shared across orgs fans out to one row per org, each tracked
+    # and each otherwise emitting — dedupe to a single canonical row so counts
+    # aren't inflated by sibling-org duplicates.
+    if not is_canonical_github_pr_row(pull_request):
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "duplicate_github_pr"})
         return False
 
     # Derive the activity-sourced counters at the terminal event — before the

@@ -479,4 +479,90 @@ describe('ColumnEditorModal', () => {
     expect(column).toHaveTextContent('sentry.duration');
     expect(column).toHaveTextContent('number');
   });
+
+  it('keeps user-sent attributes that collide with a hidden field selectable', async () => {
+    const onColumnsChange = jest.fn();
+
+    renderGlobalModal();
+
+    const stringTagsWithCollision: TagCollection = {
+      ...stringTags,
+      'organization.id': {
+        key: 'organization.id',
+        name: 'organization.id',
+        kind: FieldKind.TAG,
+        attributeSource: 'user',
+      },
+      'sentry.organization.id': {
+        key: 'sentry.organization.id',
+        name: 'organization.id',
+        kind: FieldKind.TAG,
+        attributeSource: 'sentry',
+      },
+    };
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['id']}
+            onColumnsChange={onColumnsChange}
+            stringTags={stringTagsWithCollision}
+            numberTags={{}}
+            booleanTags={{}}
+            hiddenKeys={['organization.id']}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
+
+    const addedColumn = screen.getAllByTestId('editor-column')[1]!;
+    await userEvent.click(within(addedColumn).getByRole('button', {name: 'Column —'}));
+
+    // Only the user-sent attribute survives the hidden list; the Sentry-sourced
+    // field of the same display name is dropped.
+    const orgIdOptions = (await screen.findAllByRole('option')).filter(option =>
+      option.textContent?.includes('organization.id')
+    );
+    expect(orgIdOptions).toHaveLength(1);
+
+    await userEvent.click(orgIdOptions[0]!);
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    expect(onColumnsChange).toHaveBeenCalledWith(['id', 'organization.id']);
+  });
+
+  it('does not offer a hidden field as an option when it is a selected column', async () => {
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['id', 'sentry.organization_id']}
+            onColumnsChange={jest.fn()}
+            stringTags={stringTags}
+            numberTags={{}}
+            booleanTags={{}}
+            hiddenKeys={['sentry.organization_id']}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
+
+    const addedColumn = screen.getAllByTestId('editor-column')[2]!;
+    await userEvent.click(within(addedColumn).getByRole('button', {name: 'Column —'}));
+
+    const hiddenOptions = (await screen.findAllByRole('option')).filter(option =>
+      option.textContent?.includes('sentry.organization_id')
+    );
+    expect(hiddenOptions).toHaveLength(0);
+  });
 });

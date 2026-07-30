@@ -16,6 +16,12 @@ class PrCloseMetricsEvent(analytics.Event):
 
     organization_id: int
     repository_id: int
+    # Opaque key identifying the provider-side PR. A repo shared across orgs emits one
+    # scm.pr.closed per org, all with the same key, so a consumer can collapse the
+    # duplicates by grouping on it. Opaque by contract -- dedupe by equality only,
+    # never parse -- so the identity composition can change in code without a schema
+    # change. "" is only the dataclass default; an emitted row always carries a key.
+    deduplication_key: str = ""
     # Normalized SCM slug (e.g. "github", "gitlab"), read off Repository.provider
     # at emit time. Null when the Repository row is gone or its provider is unset.
     repository_provider: str | None = None

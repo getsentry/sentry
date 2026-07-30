@@ -443,7 +443,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group_event.group,
             subscription=self.subscription,
         )
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
 
     def test_send_alert_not_implemented(self) -> None:
@@ -529,7 +529,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group,
             subscription=self.subscription,
         )
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
 
     @mock.patch.object(TestHandler, "send_alert")
@@ -605,7 +605,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group,
             subscription=self.subscription,
         )
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
 
     def test_invoke_legacy_registry_activity_missing_data(self) -> None:

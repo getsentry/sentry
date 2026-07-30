@@ -629,7 +629,9 @@ def do_process_view_hierarchy(project, task_runner, use_objectstore=False):
     with attachment.getfile() as file:
         assert file.read() == expected_response
     if stored_id:
-        assert session.get(stored_id).payload.read() == expected_response
+        stored = session.get(stored_id)
+        assert stored is not None
+        assert stored.payload.read() == expected_response
 
 
 @django_db_all

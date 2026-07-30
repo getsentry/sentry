@@ -244,7 +244,7 @@ export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsPr
   }
 
   if (isPending && activityPullRequestIds.size > 0) {
-    return <Placeholder height="40px" />;
+    return <Placeholder height="52px" />;
   }
 
   if (data?.pullRequests.length === 0) {

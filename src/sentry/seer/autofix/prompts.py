@@ -51,6 +51,7 @@ def root_cause_prompt(
         - five_whys: Chain of brief "why" statements leading to the root cause. (do not write the questions, only the answers; e.g. prefer "x -> y -> z", NOT "x -> why x? y -> why y? z")
         - reproduction_steps: Steps that would reproduce this issue, each under 15 words.
         - relevant_repo: The full repository name (e.g. "owner/repo") where the fix should be made. Pick the one repo most directly responsible for the root cause.
+        - fixability: Assess whether this root cause is fixable through code changes. Use "fixable" if a code fix can address it, "needs_more_context" if the analysis is plausible but too vague to act on, or "not_actionable" if it cannot be fixed through code (e.g. infrastructure, third-party outage, user misconfiguration). Include a brief reason.
         """
     )
 

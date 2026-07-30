@@ -60,6 +60,7 @@ function Issue(props: IssueProps) {
       groupId: String(props.issue.issue_id),
       organizationSlug: props.organization.slug,
       environments: [],
+      expandDerivedData: props.organization.features.includes('issue-stream-progress-ui'),
     }),
     staleTime: 10 * 60 * 1000,
   });

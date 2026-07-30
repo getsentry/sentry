@@ -28,7 +28,7 @@ export function UptimeIssues({project, uptimeDetector}: Props) {
     <GroupList
       withChart={false}
       withPagination={false}
-      withColumns={['assignee']}
+      withColumns={['assignee', 'firstSeen', 'lastSeen']}
       queryParams={{
         query: `detector:${uptimeDetector.id}`,
         project: project.id,

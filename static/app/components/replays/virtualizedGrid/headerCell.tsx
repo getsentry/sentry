@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconArrow, IconInfo} from 'sentry/icons';
+import {SortableHeaderCell} from 'sentry/components/tables/sortableHeaderCell';
+import {IconInfo} from 'sentry/icons';
 
 type BaseRecord = Record<string, unknown>;
 export interface SortConfig<RecordType extends BaseRecord> {
@@ -19,11 +20,12 @@ type Props<SortableRecord extends BaseRecord> = {
   sortConfig: SortConfig<SortableRecord>;
   style: CSSProperties;
   tooltipTitle: undefined | ReactNode;
-  ref?: React.Ref<HTMLButtonElement>;
 };
 
 const StyledIconInfo = styled(IconInfo)`
-  display: block;
+  margin-left: ${p => p.theme.space.xs};
+  margin-top: 1px;
+  vertical-align: text-top;
 `;
 
 function CatchClicks({children}: {children: ReactNode}) {
@@ -37,28 +39,24 @@ export function HeaderCell<T extends BaseRecord>({
   sortConfig,
   style,
   tooltipTitle,
-  ref,
 }: Props<T>) {
   return (
-    <HeaderButton style={style} onClick={() => handleSort(field)} ref={ref}>
+    <HeaderButton
+      direction={sortConfig.by === field ? (sortConfig.asc ? 'asc' : 'desc') : undefined}
+      onSort={() => handleSort(field)}
+      style={style}
+    >
       {label}
       {tooltipTitle ? (
         <Tooltip isHoverable title={<CatchClicks>{tooltipTitle}</CatchClicks>}>
           <StyledIconInfo size="xs" />
         </Tooltip>
       ) : null}
-      <IconArrow
-        variant="muted"
-        size="xs"
-        direction={sortConfig.by === field && !sortConfig.asc ? 'down' : 'up'}
-        style={{visibility: sortConfig.by === field ? 'visible' : 'hidden'}}
-      />
     </HeaderButton>
   );
 }
 
-const HeaderButton = styled('button')`
-  border: 0;
+const HeaderButton = styled(SortableHeaderCell)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
@@ -66,18 +64,9 @@ const HeaderButton = styled('button')`
   font-size: ${p => p.theme.font.size.sm};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 16px;
-  text-align: unset;
   text-transform: uppercase;
-  white-space: nowrap;
 
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md} ${p => p.theme.space.xs}
     ${p => p.theme.space.lg};
-
-  svg {
-    margin-left: ${p => p.theme.space['2xs']};
-  }
 `;

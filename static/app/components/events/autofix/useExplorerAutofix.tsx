@@ -34,6 +34,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {
   isArtifact,
   isExplorerCodingAgentState,
@@ -154,14 +155,26 @@ interface GithubPrCommentFeedbackSource {
 interface GithubPrReviewCommentFeedbackSource {
   type: 'github-pr-review-comment';
   comment?: {html_url?: string; user?: {login: string}};
+  // The review this inline comment was submitted as part of. Shared with the
+  // review body's `review_id` so the UI can group a review's body and its inline
+  // comments under one parent. Optional: absent on feedback serialized before
+  // the backend began emitting it, and on comments left outside a review.
+  review_id?: number;
 }
 
 interface GithubPrReviewBodyFeedbackSource {
   type: 'github-pr-review-body';
+  // The review's summary body is its own feedback item, keyed by `review_id` and
+  // labelled by `review_state` (approved / changes_requested / commented / …).
   author_is_bot?: boolean;
   body?: string;
   html_url?: string;
   review_id?: number;
+  review_state?: string;
+  // The review author, carried the same way an inline comment carries its author
+  // on `comment.user`, so the UI can render the reviewer's avatar on the review
+  // header. Absent on feedback serialized before the backend began emitting it.
+  user?: {login?: string};
 }
 
 interface CheckSuiteFeedbackSource {
@@ -211,7 +224,7 @@ export interface ExplorerAutofixState {
 /**
  * Response from the autofix endpoint.
  */
-interface ExplorerAutofixResponse {
+export interface ExplorerAutofixResponse {
   autofix: ExplorerAutofixState | null;
 }
 
@@ -655,6 +668,9 @@ export function useExplorerAutofix(
         // Invalidate to fetch fresh data
         const invalidation = queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
+        });
+        queryClient.invalidateQueries({
+          queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
         });
 
         if (step === 'pr_iteration') {

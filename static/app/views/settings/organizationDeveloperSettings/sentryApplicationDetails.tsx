@@ -63,9 +63,8 @@ import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler'
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import type {WebhookSubscription} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {
-  EVENT_CHOICES,
   granularWebhookEvents,
-  WEBHOOK_GRANULAR_EVENT_CHOICES,
+  WEBHOOK_SUBSCRIPTION_CHOICES,
 } from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {
   getSentryAppTemplates,
@@ -119,9 +118,7 @@ const sentryAppBaseSchema = z.object({
   organization: z.string(),
   isInternal: z.boolean(),
   scopes: z.array(z.enum(ALLOWED_SCOPES)),
-  events: z.array(
-    z.union([z.enum(EVENT_CHOICES), z.enum(WEBHOOK_GRANULAR_EVENT_CHOICES)])
-  ),
+  events: z.array(z.enum(WEBHOOK_SUBSCRIPTION_CHOICES)),
 });
 
 type SentryAppFormValues = z.infer<typeof sentryAppBaseSchema>;
@@ -836,10 +833,7 @@ function SentryAppEditForm({
       }),
   });
 
-  // Older API responses only send the consolidated resource list
-  const initialEvents: WebhookSubscription[] = granularWebhookEvents(
-    app.webhookEvents ?? app.events
-  );
+  const initialEvents = granularWebhookEvents(app.webhookEvents);
 
   const hasTokenAccess = () => {
     return organization.access.includes('org:write');

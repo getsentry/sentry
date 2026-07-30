@@ -324,6 +324,14 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Aggregate rows/sec ceiling for MonitorCheckIn deletions across all concurrent
+# deletion tasks. 0 disables rate limiting.
+register(
+    "deletions.monitor-check-in.rate-limit",
+    default=1000,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "unmerge.killswitch-projects",
@@ -503,6 +511,13 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Chunk size for bulk delete job
+register(
+    "replay.bulk_delete_job.chunk_size_days",
+    default=7,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -600,6 +615,8 @@ register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Log unfurl payloads for debugging
 register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Log Slack webhook retry headers and slow (>3s) responses for debugging
+register("slack.log-webhook-retry-diagnostics", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Frequency of slack nudge blocks on issue alerts (0.0 to 1.0, where 0.3 = 30%)
 register(
     "slack.nudge-frequency",
@@ -1224,6 +1241,16 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Deterministic % of gen_ai conversations that get Seer title generation, keyed
+# on conversation id. Requires organizations:gen-ai-conversation-title-generation.
+# 0.0 disables generation; 1.0 enables it for every conversation in flagged orgs.
+register(
+    "ai-monitoring.conversation-title-generation.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "seer.night_shift.enable",
     type=Bool,
@@ -1289,6 +1316,24 @@ register(
 )
 register(
     "issues.backfill_group_action_log.inter_batch_delay_s",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_action_log.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_action_log.batch_size",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_action_log.inter_batch_delay_s",
     type=Int,
     default=1,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2199,6 +2244,17 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Applies the implicit sample rate floor in the per-org pipeline. The transaction rebalancing
+# model can return an implicit (tail) rate below the project's overall rate; the floor lifts it
+# back to that rate and pays for it by lowering the explicit rates. The legacy pipeline has no
+# such step, so with this enabled the two pipelines write different per-transaction rates for
+# identical input. Set to False to compare them like for like.
+register(
+    "dynamic-sampling.per_org.apply-implicit-sample-rate-floor",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Stops dynamic sampling rules from being emitted in relay config.
 # This is required for ST instances that have flakey flags as we want to be able kill DS ruining customer data if necessary.
 # It is only a killswitch for behaviour, it may actually increase infra load if flipped for a user currently being sampled.
@@ -2223,18 +2279,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout, keyed on organization id, of the per-project EAP
-# transaction volume query: the top N transactions of every root project via
-# LIMIT BY (N from dynamic-sampling.prioritise_transactions.num_explicit_large_transactions)
-# instead of a single org-wide query capped at 100 rows. 0.0 keeps the org-wide
-# query for every org; 1.0 uses the per-project query for every org.
-register(
-    "dynamic-sampling.per_org.transaction-volumes-per-project-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Sample rate for metrics emitted by the per-org dynamic sampling pipeline
 # (status counters, org_status counters, duration timer). 1.0 emits every
 # event; lower values drop events proportionally. Use this to reduce metric
@@ -2251,6 +2295,20 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "dynamic-sampling.per_org.transaction-volume-debug-project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window
@@ -3731,16 +3789,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Which issue categories should we send issue.created webhooks for
+# Which issue categories should we not send issue.created webhooks for
 register(
-    "sentry-apps.expanded-webhook-categories",
+    "sentry-apps.unsupported-webhook-categories",
     type=Sequence,
     default=[
-        1,  # ERROR
-        4,  # CRON
-        6,  # FEEDBACK
-        7,  # UPTIME
-        10,  # OUTAGE
+        9,  # TEST_NOTIFICATION
     ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3943,6 +3997,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rolls out FutureTrackingProducer to spans process-segments tasks
+register(
+    "tasks.producer.process-segments.rollout",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # If False, TaskWorkers will wait for a task's producer futures to complete
 # before marking a task as complete
 register(
@@ -3958,6 +4020,14 @@ register(
     "arroyo.producer.record_poll_metrics",
     type=Sequence,
     default=None,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# If True, FutureTrackingProducer will backpressure on produce futures
+register(
+    "arroyo.ftp.backpressure",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

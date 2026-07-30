@@ -6,7 +6,7 @@ import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -15,10 +15,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
   TabSelectionScope,
@@ -71,6 +68,8 @@ const AI_SETUP_PROMPT =
   'Please instrument Sentry logging. Include some examples following best practices.';
 
 const INSTALL_PLUGIN_COMMAND = `npx @sentry/ai install "${AI_SETUP_PROMPT}"`;
+
+const AGENT_PLUGIN_DOCS_URL = 'https://docs.sentry.io/ai/agent-plugin/';
 
 const LOG_DRAIN_PLATFORM_DOCS: Record<string, {name: string; url: string}> = {
   'node-cloudflare-pages': {
@@ -143,9 +142,10 @@ function OnboardingPanel({
   });
 
   const trackPromptCopied = (source: 'install_command' | 'prompt') => {
-    trackAnalytics('logs.onboarding_ai_prompt_copied', {
+    trackAnalytics('onboarding.ai_prompt_copied', {
       organization,
       platform: project.platform ?? 'unknown',
+      product: 'logs',
       source,
     });
   };
@@ -200,25 +200,28 @@ function OnboardingPanel({
                         </Flex>
                       </BodyTitle>
                       <SubTitle>
-                        {t('First, run this command to install the Sentry plugin')}
+                        {tct(
+                          'First, run this command to install the [pluginLink:Sentry plugin]:',
+                          {pluginLink: <ExternalLink href={AGENT_PLUGIN_DOCS_URL} />}
+                        )}
                       </SubTitle>
-                      <PromptSnippet>
+                      <Container marginTop="md" marginBottom="2xl">
                         <OnboardingCodeSnippet
                           language="bash"
                           onCopy={() => trackPromptCopied('install_command')}
                         >
                           {INSTALL_PLUGIN_COMMAND}
                         </OnboardingCodeSnippet>
-                      </PromptSnippet>
-                      <SubTitle>{t('Then paste this in your agent of choice')}</SubTitle>
-                      <PromptSnippet>
+                      </Container>
+                      <SubTitle>{t('Then paste this in your agent of choice:')}</SubTitle>
+                      <Container marginTop="md" marginBottom="2xl">
                         <OnboardingCodeSnippet
                           language="text"
                           onCopy={() => trackPromptCopied('prompt')}
                         >
                           {AI_SETUP_PROMPT}
                         </OnboardingCodeSnippet>
-                      </PromptSnippet>
+                      </Container>
                       {receivedFirstLog ? (
                         <EventReceivedIndicator />
                       ) : (
@@ -251,7 +254,6 @@ function Onboarding({organization, project}: OnboardingProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const copyEnabled = useCopySetupInstructionsEnabled();
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
     : undefined;
@@ -408,7 +410,7 @@ function Onboarding({organization, project}: OnboardingProps) {
               stepKey={title}
               title={title}
               trailingItems={
-                index === 0 && copyEnabled ? (
+                index === 0 ? (
                   <OnboardingCopyMarkdownButton
                     borderless
                     steps={steps}
@@ -579,13 +581,6 @@ const Divider = styled('hr')`
   border: none;
   margin-top: 0;
   margin-bottom: 0;
-`;
-
-// Wrapper keeps the code block sized to its content instead of stretching to
-// fill the (tall) preview column.
-const PromptSnippet = styled('div')`
-  margin-top: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const OnboardingContainer = styled('div')`
