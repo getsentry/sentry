@@ -195,7 +195,6 @@ type ComponentOverrides = {
   'component:data-consent-banner': () => React.ComponentType<{
     source: string;
   }> | null;
-  'component:data-consent-org-creation-checkbox': () => React.ComponentType | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType | null;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType;
