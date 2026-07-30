@@ -298,8 +298,7 @@ def run_bulk_replay_delete_job(
     if window_end < job.range_end:
         # Advance to the next 7-day window by incrementing the cursor in the task args.
         # job.range_start is never mutated so the API always returns the original range.
-        job.offset = new_total
-        job.save()
+        _advance_offset(job.id, new_total)
         run_bulk_replay_delete_job.delay(
             job.id,
             0,
