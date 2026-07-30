@@ -219,9 +219,7 @@ class RecordGroundTruthTest(ScoringTestBase):
         assert "actual_assignee_user_id" not in run.extras
         assert "ground_truth_source" not in run.extras
 
-    def test_integration_resolution_is_noop(self) -> None:
-        # An integration resolving through the API (a Linear ticket moving to Done)
-        # acts as the Sentry App's proxy user, which owns nothing.
+    def test_resolution_by_sentry_app_proxy_user_is_noop(self) -> None:
         run = self._run()
         proxy_user = self.create_user(is_sentry_app=True)
         record_ground_truth(
