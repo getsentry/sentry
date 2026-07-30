@@ -42,7 +42,7 @@ describe('Onboarding', () => {
     jest.clearAllMocks();
   });
 
-  it('renders the welcome page', () => {
+  it('renders the welcome UI', () => {
     render(
       <OnboardingContextProvider>
         <OnboardingWithoutContext />
@@ -57,29 +57,6 @@ describe('Onboarding', () => {
       }
     );
 
-    expect(screen.getByTestId('onboarding-welcome-start')).toBeInTheDocument();
-  });
-
-  it('renders the new welcome UI when feature flag is enabled', () => {
-    const organization = OrganizationFixture({
-      features: ['onboarding-new-welcome-ui'],
-    });
-
-    render(
-      <OnboardingContextProvider>
-        <OnboardingWithoutContext />
-      </OnboardingContextProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: `/onboarding/${organization.slug}/welcome/`,
-          },
-          route: '/onboarding/:orgId/:step/',
-        },
-      }
-    );
-
     expect(screen.getByText('Welcome to Sentry')).toBeInTheDocument();
     expect(screen.getByText('Error monitoring')).toBeInTheDocument();
     expect(screen.getByText('Tracing')).toBeInTheDocument();
@@ -87,7 +64,7 @@ describe('Onboarding', () => {
     expect(screen.getByTestId('onboarding-welcome-start')).toBeInTheDocument();
   });
 
-  describe('legacy welcome screen analytics', () => {
+  describe('welcome screen analytics', () => {
     it('calls trackAnalytics on mount', () => {
       render(
         <OnboardingContextProvider>
@@ -111,7 +88,7 @@ describe('Onboarding', () => {
       );
     });
 
-    it('calls trackAnalytics and onComplete on start button click', async () => {
+    it('calls trackAnalytics and onComplete on next button click', async () => {
       const {router} = render(
         <OnboardingContextProvider>
           <OnboardingWithoutContext />
@@ -153,116 +130,6 @@ describe('Onboarding', () => {
             initialRouterConfig: {
               location: {
                 pathname: '/onboarding/org-slug/welcome/',
-              },
-              route: '/onboarding/:orgId/:step/',
-            },
-          }
-        );
-
-        await userEvent.click(screen.getByRole('link', {name: 'Skip onboarding.'}), {
-          delay: null,
-        });
-
-        expect(trackAnalytics).toHaveBeenCalledWith(
-          'growth.onboarding_clicked_skip',
-          expect.objectContaining({
-            source: 'targeted_onboarding',
-          })
-        );
-
-        jest.runAllTimers();
-
-        expect(openSpy).toHaveBeenCalled();
-      } finally {
-        jest.useRealTimers();
-        openSpy.mockRestore();
-      }
-    });
-  });
-
-  describe('new welcome screen analytics', () => {
-    it('calls trackAnalytics on mount', () => {
-      const organization = OrganizationFixture({
-        features: ['onboarding-new-welcome-ui'],
-      });
-
-      render(
-        <OnboardingContextProvider>
-          <OnboardingWithoutContext />
-        </OnboardingContextProvider>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {
-              pathname: `/onboarding/${organization.slug}/welcome/`,
-            },
-            route: '/onboarding/:orgId/:step/',
-          },
-        }
-      );
-
-      expect(trackAnalytics).toHaveBeenCalledWith(
-        'growth.onboarding_start_onboarding',
-        expect.objectContaining({
-          source: 'targeted_onboarding',
-        })
-      );
-    });
-
-    it('calls trackAnalytics and onComplete on next button click', async () => {
-      const organization = OrganizationFixture({
-        features: ['onboarding-new-welcome-ui'],
-      });
-
-      const {router} = render(
-        <OnboardingContextProvider>
-          <OnboardingWithoutContext />
-        </OnboardingContextProvider>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {
-              pathname: `/onboarding/${organization.slug}/welcome/`,
-            },
-            route: '/onboarding/:orgId/:step/',
-          },
-        }
-      );
-
-      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
-
-      expect(trackAnalytics).toHaveBeenCalledWith(
-        'growth.onboarding_clicked_instrument_app',
-        expect.objectContaining({
-          source: 'targeted_onboarding',
-        })
-      );
-
-      await waitFor(() => {
-        expect(router.location.pathname).toBe(
-          `/onboarding/${organization.slug}/select-platform/`
-        );
-      });
-    });
-
-    it('calls trackAnalytics and activateSidebar on skip click', async () => {
-      jest.useFakeTimers();
-      const openSpy = jest.spyOn(OnboardingDrawerStore, 'open');
-
-      const organization = OrganizationFixture({
-        features: ['onboarding-new-welcome-ui'],
-      });
-
-      try {
-        render(
-          <OnboardingContextProvider>
-            <OnboardingWithoutContext />
-          </OnboardingContextProvider>,
-          {
-            organization,
-            initialRouterConfig: {
-              location: {
-                pathname: `/onboarding/${organization.slug}/welcome/`,
               },
               route: '/onboarding/:orgId/:step/',
             },
@@ -630,10 +497,7 @@ describe('Onboarding', () => {
 
   describe('SCM onboarding flow', () => {
     const scmOrganization = OrganizationFixture({
-      features: [
-        'onboarding-scm-experiment',
-        'onboarding-scm-project-details-experiment',
-      ],
+      features: ['onboarding-scm-experiment'],
     });
 
     const githubProvider = GitHubIntegrationProviderFixture({
@@ -816,33 +680,7 @@ describe('Onboarding', () => {
       expect(buttons).toHaveLength(1);
     });
 
-    it('renders scm-platform-features step and advances to scm-project-details', async () => {
-      const {router} = renderOnboarding('scm-platform-features', {
-        initialContext: {
-          selectedPlatform: {
-            key: 'javascript',
-            name: 'JavaScript',
-            language: 'javascript',
-            link: 'https://docs.sentry.io/platforms/javascript/',
-            type: 'language',
-            category: 'popular',
-          },
-          selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        },
-      });
-
-      expect(screen.getByText('Create your first project')).toBeInTheDocument();
-
-      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-
-      await waitFor(() => {
-        expect(router.location.pathname).toBe(
-          `/onboarding/${scmOrganization.slug}/scm-project-details/`
-        );
-      });
-    });
-
-    it('skips scm-project-details and auto-creates the project when experiment is off', async () => {
+    it('auto-creates the project on Continue and advances to setup-docs', async () => {
       ProjectsStore.loadInitialData([]);
       const controlOrganization = OrganizationFixture({
         features: ['onboarding-scm-experiment'],
@@ -936,32 +774,6 @@ describe('Onboarding', () => {
           `/onboarding/${controlOrganization.slug}/setup-docs/`
         );
       });
-    });
-
-    it('renders scm-project-details step with project details form', () => {
-      render(
-        <OnboardingContextProvider initialValue={{selectedPlatform: nextJsPlatform}}>
-          <OnboardingWithoutContext />
-        </OnboardingContextProvider>,
-        {
-          organization: scmOrganization,
-          initialRouterConfig: {
-            location: {
-              pathname: `/onboarding/${scmOrganization.slug}/scm-project-details/`,
-            },
-            route: '/onboarding/:orgId/:step/',
-          },
-        }
-      );
-
-      expect(screen.getByText('Project details')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Create project'})).toBeInTheDocument();
-    });
-
-    it('create project button is disabled without a platform selected', () => {
-      renderOnboarding('scm-project-details');
-
-      expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
     });
 
     it('preserves SCM context when going back from setup-docs', async () => {
@@ -1163,7 +975,7 @@ describe('Onboarding', () => {
       });
     });
 
-    it('redirects invalid step to welcome', () => {
+    it('redirects the retired Project Details route to welcome', () => {
       const {router} = render(
         <OnboardingContextProvider>
           <OnboardingWithoutContext />
@@ -1172,14 +984,14 @@ describe('Onboarding', () => {
           organization: scmOrganization,
           initialRouterConfig: {
             location: {
-              pathname: `/onboarding/${scmOrganization.slug}/select-platform/`,
+              pathname: `/onboarding/${scmOrganization.slug}/scm-project-details/`,
             },
             route: '/onboarding/:orgId/:step/',
           },
         }
       );
 
-      // select-platform doesn't exist in SCM flow, should redirect to welcome
+      // The retired step must not render or strand a stale direct navigation.
       expect(router.location.pathname).toBe(
         `/onboarding/${scmOrganization.slug}/welcome/`
       );

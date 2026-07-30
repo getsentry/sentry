@@ -1,6 +1,7 @@
 import type {LocationDescriptor} from 'history';
 
 import type {TooltipProps} from '@sentry/scraps/tooltip';
+import type {AnalyticsProps} from '@sentry/scraps/trackingContext';
 
 export type ButtonVariant =
   | 'secondary'
@@ -11,20 +12,7 @@ export type ButtonVariant =
   | 'transparent';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
-export interface DO_NOT_USE_CommonButtonProps {
-  /**
-   * Used when you want to overwrite the default Reload event key for analytics
-   */
-  analyticsEventKey?: string;
-  /**
-   * Used when you want to send an Amplitude Event. By default, Amplitude events are not sent so
-   * you must pass in a eventName to send an Amplitude event.
-   */
-  analyticsEventName?: string;
-  /**
-   * Adds extra parameters to the analytics tracking
-   */
-  analyticsParams?: Record<string, any>;
+export interface DO_NOT_USE_CommonButtonProps extends AnalyticsProps {
   /**
    * Indicates that the button is "doing" something.
    */

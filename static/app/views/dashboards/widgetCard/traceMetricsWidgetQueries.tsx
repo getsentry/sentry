@@ -3,7 +3,6 @@ import {useCallback, useState} from 'react';
 import type {PageFilters} from 'sentry/types/core';
 import type {Confidence} from 'sentry/types/organization';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
-import {EQUATION_PREFIX, isEquation, parseFunction} from 'sentry/utils/discover/fields';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -109,27 +108,6 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
     });
   };
 
-  // Trace metric aggregates encode the metric name and type in the function
-  // arguments: fn(value, metricName, metricType, unit). We must wait for
-  // the metric selector to load and populate these before firing the query.
-  const disabled = widget.queries.some(
-    q =>
-      q.aggregates.length === 0 ||
-      q.aggregates.some(agg => {
-        if (isEquation(agg)) {
-          // Disable if the aggregate is empty, i.e. just the equation prefix
-          return agg === EQUATION_PREFIX;
-        }
-        const parsed = parseFunction(agg);
-        if (!parsed) {
-          return true;
-        }
-        const metricName = parsed.arguments[1];
-        const metricType = parsed.arguments[2];
-        return !metricName || !metricType;
-      })
-  );
-
   const props = useGenericWidgetQueries<SeriesResult, TableResult>({
     config,
     widget,
@@ -140,8 +118,6 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
     onDataFetchStart,
     afterFetchSeriesData,
     samplingMode: SAMPLING_MODE.NORMAL,
-    disabled,
-    loading: disabled,
     selection,
     widgetInterval,
     yBuckets,

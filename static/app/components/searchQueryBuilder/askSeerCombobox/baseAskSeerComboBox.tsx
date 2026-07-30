@@ -1,4 +1,4 @@
-import {useLayoutEffect, useMemo, useRef} from 'react';
+import {useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {mergeRefs} from '@react-aria/utils';
@@ -12,6 +12,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {AskSeerFeedback} from 'sentry/components/searchQueryBuilder/askSeer/askSeerFeedback';
 import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
 import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
 import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
@@ -95,12 +96,14 @@ export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> extends Om
   queries: T[];
   searchQuery: string;
   submitQuery: (query: string) => void;
+  className?: string;
   onReset?: () => void;
   unsupportedReason?: string | null;
 }
 
 export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   applySeerSearchQuery,
+  className,
   emptyTitle,
   errorTitle,
   isError,
@@ -128,6 +131,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   const openForm = useFeedbackForm();
 
   const {
+    displayAskSeerFeedback,
     setDisplayAskSeer,
     setDisplayAskSeerFeedback,
     askSeerNLQueryRef,
@@ -184,7 +188,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
     skipNextSearchQueryBuilderAutoFocusRef.current = true;
     inputRef.current?.blur();
     applySeerSearchQuery(item);
-    setDisplayAskSeerFeedback(true);
+    setDisplayAskSeerFeedback(!hasAskSeerUxRework);
     setDisplayAskSeer(false);
     onReset?.();
   };
@@ -416,15 +420,31 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
     state.selectionManager.setFocusedKey(null);
   };
 
+  const hasResults = queries.length > 0;
+  const isDisplayingResults = !isPending && !isError && hasResults;
+
+  useEffect(() => {
+    if (enableAISearch && hasAskSeerUxRework && isDisplayingResults) {
+      setDisplayAskSeerFeedback(true);
+    }
+  }, [
+    enableAISearch,
+    hasAskSeerUxRework,
+    isDisplayingResults,
+    setDisplayAskSeerFeedback,
+  ]);
+
   if (!enableAISearch) {
     return null;
   }
 
-  const hasResults = queries.length > 0;
-  const isDisplayingResults = !isPending && !isError && hasResults;
+  const showLeftFooterAction = hasAskSeerUxRework;
+  const showFooter = hasAskSeerUxRework
+    ? isDisplayingResults || isError
+    : Boolean(openForm);
 
   return (
-    <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
+    <Wrapper className={className} ref={containerRef} isDropdownOpen={state.isOpen}>
       <PositionedSearchIconContainer>
         <SearchIcon size="sm" />
       </PositionedSearchIconContainer>
@@ -470,7 +490,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
             loadingContent
           ) : isError ? (
             <Stack flex="1">
-              <AskSeerSearchHeader title={errorTitle} />
+              <AskSeerSearchHeader title={errorTitle} isError={hasAskSeerUxRework} />
             </Stack>
           ) : hasResults ? (
             <Stack flex="1" onMouseLeave={onMouseLeave}>
@@ -495,42 +515,49 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
               <AskSeerSearchHeader title={emptyTitle} />
             </Stack>
           )}
-          {(hasAskSeerUxRework ? isDisplayingResults : openForm) ? (
+          {showFooter ? (
             <Flex
-              justify={hasAskSeerUxRework ? 'between' : 'end'}
+              justify={showLeftFooterAction ? 'between' : 'end'}
               borderTop="primary"
               paddingTop="sm"
               paddingBottom="sm"
               paddingLeft="md"
               paddingRight="md"
-              background={hasAskSeerUxRework ? 'secondary' : 'primary'}
+              background={showLeftFooterAction ? 'secondary' : 'primary'}
               onMouseDown={e => e.preventDefault()}
             >
-              {hasAskSeerUxRework ? (
-                <Button
-                  icon={<IconSync />}
-                  size="zero"
-                  onClick={() => {
-                    const query = searchQuery.trim() || askSeerNLQueryRef.current?.trim();
-                    if (!query) {
-                      return;
-                    }
+              <Flex gap="sm">
+                {showLeftFooterAction ? (
+                  <Button
+                    icon={<IconSync />}
+                    size="zero"
+                    onClick={() => {
+                      const query =
+                        searchQuery.trim() || askSeerNLQueryRef.current?.trim();
+                      if (!query) {
+                        return;
+                      }
 
-                    trackAnalytics('ai_query.regenerated', {
-                      organization,
-                      area: analyticsArea,
-                      natural_language_query: query,
-                    });
-                    onReset?.();
-                    submitQuery(query);
-                  }}
-                >
-                  {t('Generate again')}
-                </Button>
-              ) : null}
+                      trackAnalytics('ai_query.regenerated', {
+                        organization,
+                        area: analyticsArea,
+                        natural_language_query: query,
+                      });
+                      setDisplayAskSeerFeedback(false);
+                      onReset?.();
+                      submitQuery(query);
+                    }}
+                  >
+                    {isError ? t('Try again') : t('Generate again')}
+                  </Button>
+                ) : null}
+                {showLeftFooterAction && displayAskSeerFeedback && isDisplayingResults ? (
+                  <AskSeerFeedback />
+                ) : null}
+              </Flex>
               {openForm ? (
                 <Button
-                  size={hasAskSeerUxRework ? 'zero' : 'xs'}
+                  size={showLeftFooterAction ? 'zero' : 'xs'}
                   icon={<IconMegaphone />}
                   onClick={() =>
                     openForm({

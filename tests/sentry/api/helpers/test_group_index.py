@@ -5,12 +5,16 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.http import QueryDict
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 
 from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
+from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.helpers.group_index import (
+    build_query_params_from_request,
     get_group_list,
+    get_search_referrer,
     update_groups,
     validate_search_filter_permissions,
 )
@@ -46,6 +50,7 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.release import ReleaseStatus
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.skips import requires_snuba
@@ -122,6 +127,62 @@ def _wrap_request(http_request: Any, data: dict[str, Any] | None = None) -> Requ
     if data is not None:
         setattr(drf_request, "_full_data", data)
     return drf_request
+
+
+class GetSearchReferrerTest(TestCase):
+    feature_name = "organizations:search-group-index-api-referrer"
+
+    def _request(self, authenticator: Any, query_string: str = "") -> Request:
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=query_string)
+        request = _wrap_request(http_request)
+        # DRF exposes `successful_authenticator` as a read-only property backed by
+        # `_authenticator`, which it sets during authentication; set it directly here.
+        setattr(request, "_authenticator", authenticator)
+        return request
+
+    def test_feature_disabled_always_uses_ui_referrer(self) -> None:
+        with self.feature({self.feature_name: False}):
+            for authenticator in (SessionAuthentication(), UserAuthTokenAuthentication(), None):
+                request = self._request(authenticator)
+                assert (
+                    get_search_referrer(request, self.organization) == Referrer.SEARCH_GROUP_INDEX
+                )
+
+    def test_session_auth_uses_ui_referrer(self) -> None:
+        request = self._request(SessionAuthentication())
+        with self.feature(self.feature_name):
+            assert get_search_referrer(request, self.organization) == Referrer.SEARCH_GROUP_INDEX
+
+    def test_token_auth_uses_api_referrer(self) -> None:
+        request = self._request(UserAuthTokenAuthentication())
+        with self.feature(self.feature_name):
+            assert (
+                get_search_referrer(request, self.organization) == Referrer.SEARCH_GROUP_INDEX_API
+            )
+
+    def test_missing_authenticator_uses_api_referrer(self) -> None:
+        request = self._request(None)
+        with self.feature(self.feature_name):
+            assert (
+                get_search_referrer(request, self.organization) == Referrer.SEARCH_GROUP_INDEX_API
+            )
+
+    def test_build_query_params_ui_referrer(self) -> None:
+        request = self._request(SessionAuthentication(), query_string="query=is:unresolved")
+        with self.feature(self.feature_name):
+            query_kwargs = build_query_params_from_request(
+                request, self.organization, [self.project], None
+            )
+        assert query_kwargs["referrer"] == Referrer.SEARCH_GROUP_INDEX
+
+    def test_build_query_params_api_referrer(self) -> None:
+        request = self._request(UserAuthTokenAuthentication(), query_string="query=is:unresolved")
+        with self.feature(self.feature_name):
+            query_kwargs = build_query_params_from_request(
+                request, self.organization, [self.project], None
+            )
+        assert query_kwargs["referrer"] == Referrer.SEARCH_GROUP_INDEX_API
 
 
 class UpdateGroupsTest(TestCase):

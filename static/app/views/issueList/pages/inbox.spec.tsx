@@ -3,7 +3,6 @@ import {
   ExplorerAutofixResponseFixture,
   ExplorerAutofixStateFixture,
 } from 'sentry-fixture/autofix';
-import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -172,10 +171,28 @@ describe('InboxPage', () => {
     ];
   }
 
-  function mockIssuePreview() {
+  function mockIssuePreview({
+    markSeenResponse = {...fixProposedGroup, hasSeen: true},
+    markSeenStatusCode = 200,
+  }: {
+    markSeenResponse?: typeof fixProposedGroup;
+    markSeenStatusCode?: number;
+  } = {}) {
+    let previewHasSeen = fixProposedGroup.hasSeen;
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
-      body: fixProposedGroup,
+      body: () => ({...fixProposedGroup, hasSeen: previewHasSeen}),
+    });
+    const markSeenRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
+      method: 'PUT',
+      body: () => {
+        if (markSeenStatusCode < 400) {
+          previewHasSeen = markSeenResponse.hasSeen;
+        }
+        return markSeenResponse;
+      },
+      statusCode: markSeenStatusCode,
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/setup/`,
@@ -184,10 +201,6 @@ describe('InboxPage', () => {
         billing: {hasAutofixQuota: false},
         seerReposLinked: false,
       },
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/events/recommended/`,
-      body: EventFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/attachments/`,
@@ -217,6 +230,8 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/users/',
       body: [],
     });
+
+    return markSeenRequest;
   }
 
   function mockAutofixResponse(body: ReturnType<typeof ExplorerAutofixResponseFixture>) {
@@ -398,6 +413,62 @@ describe('InboxPage', () => {
     }
   });
 
+  it('marks an issue as seen and clears its unread indicator when previewed', async () => {
+    const sectionRequests = mockSuccessfulSections();
+    const markSeenRequest = mockIssuePreview();
+
+    render(<InboxPage />, {organization, initialRouterConfig});
+
+    const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
+    expect(await within(fixSection).findByLabelText('Unread issue')).toBeInTheDocument();
+
+    await openFixProposedPreview();
+
+    await waitFor(() =>
+      expect(markSeenRequest).toHaveBeenCalledWith(
+        `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
+        expect.objectContaining({method: 'PUT', data: {hasSeen: true}})
+      )
+    );
+
+    await waitFor(() =>
+      expect(within(fixSection).queryByLabelText('Unread issue')).not.toBeInTheDocument()
+    );
+    expect(sectionRequests[0]).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps an issue unread when marking it seen fails', async () => {
+    mockSuccessfulSections();
+    const markSeenRequest = mockIssuePreview({markSeenStatusCode: 500});
+
+    render(<InboxPage />, {organization, initialRouterConfig});
+
+    const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
+    expect(await within(fixSection).findByLabelText('Unread issue')).toBeInTheDocument();
+
+    await openFixProposedPreview();
+
+    await waitFor(() => expect(markSeenRequest).toHaveBeenCalledTimes(1));
+    expect(within(fixSection).getByLabelText('Unread issue')).toBeInTheDocument();
+  });
+
+  it('keeps an issue unread when the server does not mark it seen', async () => {
+    mockSuccessfulSections();
+    const markSeenRequest = mockIssuePreview({
+      markSeenResponse: {...fixProposedGroup, hasSeen: false},
+    });
+
+    render(<InboxPage />, {organization, initialRouterConfig});
+
+    const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
+    expect(await within(fixSection).findByLabelText('Unread issue')).toBeInTheDocument();
+
+    await openFixProposedPreview();
+
+    await waitFor(() => expect(markSeenRequest).toHaveBeenCalledTimes(1));
+    expect(within(fixSection).getByLabelText('Unread issue')).toBeInTheDocument();
+  });
+
   it('loads and appends the next page of a section', async () => {
     const nextFixProposedGroup = GroupFixture({
       id: '104',
@@ -455,6 +526,33 @@ describe('InboxPage', () => {
     expect(
       within(fixSection).queryByRole('button', {name: 'Show 5 more'})
     ).not.toBeInTheDocument();
+  });
+
+  it('prefetches the preview on hover so opening it needs no new request', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    const groupRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
+      body: fixProposedGroup,
+    });
+
+    render(<InboxPage />, {organization, initialRouterConfig});
+
+    const issueLink = await within(
+      screen.getByRole('region', {name: 'Fix Proposed'})
+    ).findByRole('link', {name: /Fix proposed issue/});
+    await userEvent.hover(issueLink);
+
+    await waitFor(() => expect(groupRequest).toHaveBeenCalledTimes(1));
+
+    // Reads the warmed cache, which only holds if the query keys match.
+    await userEvent.click(issueLink);
+
+    const preview = screen.getByRole('complementary', {name: 'Issue preview'});
+    expect(
+      await within(preview).findByRole('heading', {name: 'Activity'})
+    ).toBeInTheDocument();
+    expect(groupRequest).toHaveBeenCalledTimes(1);
   });
 
   it('stores selection in the URL, renders the embedded preview, and clears it', async () => {
@@ -516,10 +614,7 @@ describe('InboxPage', () => {
     });
     await userEvent.click(seerButton);
 
-    expect(within(preview).getByRole('tab', {name: 'Autofix'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
     expect(within(preview).getByRole('button', {name: 'Find Root Cause'})).toBeDisabled();
     await waitFor(() =>
       expect(startAutofixRequest).toHaveBeenCalledWith(
@@ -571,10 +666,7 @@ describe('InboxPage', () => {
 
     await userEvent.click(seerButton);
 
-    expect(within(preview).getByRole('tab', {name: 'Autofix'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
     await waitFor(() =>
       expect(within(preview).getByRole('button', {name: 'Make a Plan'})).toBeDisabled()
     );
@@ -675,10 +767,7 @@ describe('InboxPage', () => {
 
     await userEvent.click(retryButton);
 
-    expect(within(preview).getByRole('tab', {name: 'Autofix'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
     await waitFor(() => expect(retryButton).toBeDisabled());
     await waitFor(() =>
       expect(retryPullRequest).toHaveBeenCalledWith(

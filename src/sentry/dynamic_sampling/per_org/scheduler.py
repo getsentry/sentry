@@ -17,6 +17,7 @@ from sentry.dynamic_sampling.per_org.calculations import (
     get_cached_organization_sample_rate,
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
+    log_transaction_volume_debug,
     run_project_balancing,
     run_transaction_balancing,
 )
@@ -30,6 +31,7 @@ from sentry.dynamic_sampling.per_org.gate import (
     is_org_in_rollout,
     is_org_in_sample_rates_summary_log_rollout,
     sliding_window_comparison_org_ids,
+    transaction_volume_debug_project_ids,
 )
 from sentry.dynamic_sampling.per_org.queries import (
     get_eap_organization_volume,
@@ -129,6 +131,12 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     transaction_volumes = get_eap_transaction_volumes(config, root_projects=projects_to_balance)
     if not transaction_volumes:
         return DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
+
+    debug_project_ids = transaction_volume_debug_project_ids() & {
+        project.id for project in projects_to_balance
+    }
+    if debug_project_ids:
+        log_transaction_volume_debug(config, transaction_volumes, debug_project_ids)
 
     rebalanced_transactions = run_transaction_balancing(
         config, project_volumes, transaction_volumes

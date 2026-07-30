@@ -8,7 +8,7 @@ import {mergeRefs} from '@react-aria/utils';
  * reattach callback refs on every render. Cleanup functions returned by either
  * ref are preserved by `mergeRefs`.
  */
-export function useStableMergeRef<T>(stableRef: React.Ref<T>) {
+export function useStableMergeRef<T>(stableRef: React.Ref<T> | undefined) {
   return useMemo(() => {
     const cache = new WeakMap<NonNullable<React.Ref<T>>, React.Ref<T>>();
 

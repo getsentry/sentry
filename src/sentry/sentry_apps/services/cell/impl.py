@@ -10,6 +10,7 @@ from sentry.issues.action_log import (
     SYSTEM_ACTOR,
     ActionSource,
     GroupActionActor,
+    action_context_scope,
     publish_action,
 )
 from sentry.issues.action_log.types import (
@@ -159,15 +160,17 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 )
             )
 
+        actor = GroupActionActor.user(user.id)
         try:
-            external_issue = IssueLinkCreator(
-                install=installation,
-                group=group,
-                action=action,
-                fields=fields,
-                uri=uri,
-                user=user,
-            ).run()
+            with action_context_scope(source=ActionSource.API, actor=actor):
+                external_issue = IssueLinkCreator(
+                    install=installation,
+                    group=group,
+                    action=action,
+                    fields=fields,
+                    uri=uri,
+                    user=user,
+                ).run()
         except (SentryAppIntegratorError, SentryAppSentryError) as e:
             return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
 
@@ -185,7 +188,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             source=ActionSource.API,
             group_id=group.id,
             project=group.project,
-            actor=GroupActionActor.user(user.id),
+            actor=actor,
         )
 
         return RpcPlatformExternalIssueResult(
@@ -241,6 +244,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                     )
                 )
 
+        actor = GroupActionActor.user(user.id) if user is not None else SYSTEM_ACTOR
         try:
             external_issue_creator = ExternalIssueCreator(
                 install=installation,
@@ -255,7 +259,8 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
 
         if created:
-            external_issue_creator.create_issue_activity(external_issue)
+            with action_context_scope(source=ActionSource.API, actor=actor):
+                external_issue_creator.create_issue_activity(external_issue)
 
         publish_action(
             CreatePlatformExternalIssueAction(
@@ -266,7 +271,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             source=ActionSource.API,
             group_id=group.id,
             project=group.project,
-            actor=GroupActionActor.user(user.id) if user is not None else SYSTEM_ACTOR,
+            actor=actor,
         )
 
         return RpcPlatformExternalIssueResult(

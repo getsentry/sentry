@@ -42,7 +42,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {EventView} from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -79,7 +78,7 @@ import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getD
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {generatePerformanceEventView} from 'sentry/views/performance/data';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
@@ -135,6 +134,7 @@ type RouteParams = {
 type Props = {
   api: Client;
   dashboard: DashboardDetails;
+  hasNewBreadcrumbs: boolean;
   initialState: DashboardState;
   location: Location;
   navigate: ReactRouter3Navigate;
@@ -1138,12 +1138,7 @@ class DashboardDetail extends Component<Props, State> {
                   organization={organization}
                   location={location}
                 >
-                  <MetricsDataSwitcher
-                    organization={organization}
-                    eventView={EventView.fromLocation(location)}
-                    location={location}
-                    hideLoadingIndicator
-                  >
+                  <MetricsDataSwitcher location={location}>
                     {metricsDataSide => (
                       <MEPSettingProvider
                         location={location}
@@ -1182,10 +1177,10 @@ class DashboardDetail extends Component<Props, State> {
       navigate,
       organization,
       dashboard,
+      hasNewBreadcrumbs,
       location,
       onDashboardUpdate,
       pageAlerts,
-      projects,
       queryClient,
     } = this.props;
     const {
@@ -1199,9 +1194,6 @@ class DashboardDetail extends Component<Props, State> {
     const hasUnsavedFilters =
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
-
-    const eventView = generatePerformanceEventView(location, projects, {});
-    const hasNewBreadcrumbs = organization.features.includes('ui-migration-breadcrumbs');
 
     const pageContent = (
       <Stack flex={1}>
@@ -1287,12 +1279,7 @@ class DashboardDetail extends Component<Props, State> {
                     organization={organization}
                     location={location}
                   >
-                    <MetricsDataSwitcher
-                      organization={organization}
-                      eventView={eventView}
-                      location={location}
-                      hideLoadingIndicator
-                    >
+                    <MetricsDataSwitcher location={location}>
                       {metricsDataSide => (
                         <MEPSettingProvider
                           location={location}
@@ -1444,15 +1431,12 @@ class DashboardDetail extends Component<Props, State> {
                               dashboard={modifiedDashboard ?? dashboard}
                               onSave={this.handleSaveWidget}
                             />
-                            {dashboardState === DashboardState.EDIT &&
-                              organization.features.includes(
-                                'dashboards-ai-generate-edit'
-                              ) && (
-                                <DashboardEditSeerChat
-                                  dashboard={modifiedDashboard ?? dashboard}
-                                  onDashboardUpdate={this.handleSeerDashboardUpdate}
-                                />
-                              )}
+                            {dashboardState === DashboardState.EDIT && (
+                              <DashboardEditSeerChat
+                                dashboard={modifiedDashboard ?? dashboard}
+                                onDashboardUpdate={this.handleSeerDashboardUpdate}
+                              />
+                            )}
                           </Fragment>
                         </MEPSettingProvider>
                       )}
@@ -1560,6 +1544,7 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'location'
   | 'params'
   | 'queryClient'
+  | 'hasNewBreadcrumbs'
 > {}
 
 export function DashboardDetailWithInjectedProps(
@@ -1574,6 +1559,7 @@ export function DashboardDetailWithInjectedProps(
   const params = useParams<RouteParams>();
   const [chartInterval] = useDashboardChartInterval();
   const queryClient = useQueryClient();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
   // filter period (e.g. won't return 1m for a 30d range) and always has a value.
@@ -1591,6 +1577,7 @@ export function DashboardDetailWithInjectedProps(
       params={params}
       widgetInterval={widgetInterval}
       queryClient={queryClient}
+      hasNewBreadcrumbs={hasNewBreadcrumbs}
     />
   );
 }

@@ -12,7 +12,8 @@ import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
-  TraceViewLogsDataProvider,
+  TraceViewLogsPageDataProvider,
+  TraceViewLogsQueryParamsProvider,
   TraceViewLogsSection,
 } from 'sentry/views/performance/newTraceDetails/traceOurlogs';
 
@@ -20,9 +21,11 @@ const TRACE_SLUG = '00000000000000000000000000000000';
 
 function Component({traceSlug}: {traceSlug: string}) {
   return (
-    <TraceViewLogsDataProvider traceSlug={traceSlug}>
-      <TraceViewLogsSection />
-    </TraceViewLogsDataProvider>
+    <TraceViewLogsQueryParamsProvider traceSlug={traceSlug}>
+      <TraceViewLogsPageDataProvider>
+        <TraceViewLogsSection />
+      </TraceViewLogsPageDataProvider>
+    </TraceViewLogsQueryParamsProvider>
   );
 }
 

@@ -17,6 +17,7 @@ import {useMembers} from 'sentry/utils/members/useMembers';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 import {
+  ActorAvatar,
   AvatarList,
   DocIntegrationAvatar,
   OrganizationAvatar,
@@ -43,6 +44,7 @@ There are multiple avatar components which represent users, teams, organizations
 <Storybook.Demo>
   <UserAvatar size={PREVIEW_SIZE} user={USER} />
   <TeamAvatar size={PREVIEW_SIZE} team={TEAM} />
+  <ActorAvatar size={PREVIEW_SIZE} actor={{id: '1', type: 'user', name: 'John Doe'}} />
   <ProjectAvatar size={PREVIEW_SIZE} project={PROJECT} />
   <OrganizationAvatar size={PREVIEW_SIZE} organization={ORGANIZATION} />
   <SentryAppAvatar size={PREVIEW_SIZE} sentryApp={SENTRY_APP} />
@@ -73,6 +75,21 @@ The `<TeamAvatar />` component displays an avatar for a team.
 </Storybook.Demo>
 ```jsx
 <TeamAvatar team={team} />
+```
+
+### Actor
+
+The `<ActorAvatar />` component displays an avatar for an "actor" — either a user or a team — when all you have is an actor reference (`{id, type, name}`) rather than a fully-loaded user or team object.
+
+Based on `actor.type`, it dispatches to `<UserAvatar />` or `<TeamAvatar />`, and asynchronously loads the full member/team by `id` (via `useMembers`/`useTeamsById`) to render their real avatar. If the record can't be found, it falls back to a letter avatar derived from the actor's `name`. This makes it the right choice when rendering references from data that only carries an id and type (e.g. assignees, ownership rules, or Seer markdown embeds).
+
+<Storybook.Demo>
+  <ActorAvatar size={PREVIEW_SIZE} actor={{id: '1', type: 'user', name: 'John Doe'}} />
+  <ActorAvatar size={PREVIEW_SIZE} actor={{id: '1', type: 'team', name: 'Test Team'}} />
+</Storybook.Demo>
+```jsx
+<ActorAvatar actor={{id: user.id, type: 'user', name: user.name}} />
+<ActorAvatar actor={{id: team.id, type: 'team', name: team.slug}} />
 ```
 
 ### Project

@@ -33,7 +33,16 @@ import {
 } from './formContext';
 
 export const defaultFormOptions = formOptions({
-  onSubmitInvalid({formApi}: {formApi: {formId: string}}) {
+  onSubmitInvalid({
+    formApi,
+  }: {
+    formApi: {formId: string; validateSync: (cause: 'submit') => unknown};
+  }) {
+    // TanStack bails out of submission as soon as a field-level validator fails,
+    // before it ever runs the form-level (schema) validators. Fields validated
+    // only by the schema would then show no error at all, so run them here.
+    formApi.validateSync('submit');
+
     // https://github.com/typescript-eslint/typescript-eslint/issues/10722
     // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const InvalidInput = document.querySelector(

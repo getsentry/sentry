@@ -115,6 +115,7 @@ export const SENTRY_PREPROD_STRING_TAGS: string[] = [
   'git_base_sha',
   'git_head_ref',
   'git_head_sha',
+  'install_groups',
   'platform_name',
   'snapshot_status',
 ];
@@ -158,6 +159,8 @@ export const HIDDEN_PREPROD_ATTRIBUTES = [
   'tags[metrics_artifact_type,number]',
   'tags[artifact_type,number]',
   ...PREPROD_IMAGE_FIELDS,
+  // Distribution-only; explicitly allowlisted by the Mobile Builds distribution views.
+  'install_groups',
   'snapshot_status',
 ];
 

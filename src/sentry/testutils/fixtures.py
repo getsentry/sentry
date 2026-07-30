@@ -17,6 +17,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule
+from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import RpcIntegration
@@ -227,6 +228,11 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_project_bookmark(project, *args, **kwargs)
+
+    def create_ai_conversation_metadata(self, project=None, *args, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_ai_conversation_metadata(project, *args, **kwargs)
 
     def create_project_key(self, project=None, *args, **kwargs):
         if project is None:
@@ -660,6 +666,9 @@ class Fixtures:
     ) -> Integration:
         """Create an integration and add an organization."""
         return Factories.create_integration(organization, external_id, oi_params, **kwargs)
+
+    def create_gcp_service_account(self, *args: Any, **kwargs: Any) -> GcpServiceAccount:
+        return Factories.create_gcp_service_account(*args, **kwargs)
 
     def create_organization_contributor(
         self,
