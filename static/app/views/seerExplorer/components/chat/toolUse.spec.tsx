@@ -187,9 +187,37 @@ describe('ToolUseBlock', () => {
 
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-    // The row link renders (from the positional channel); no duplicate labeled link below.
+    // The row link renders (from the positional channel) and is the only link: a failed dedupe
+    // would add a second one below labeled with the raw kind (telemetry_live_search has no
+    // NAV_LINK_LABELS entry), so assert on the link count rather than an unrelated label.
     expect(screen.getByText(/Queried spans/)).toBeInTheDocument();
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(screen.queryByText('telemetry_live_search')).not.toBeInTheDocument();
+  });
+
+  it('does not render bus links for errored results', () => {
+    // getValidToolLinks drops errored links from the positional channel; the bus applies the same
+    // rule, so a failed tool never surfaces a labeled nav link.
+    const block = createBlock({
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'telemetry_live_search',
+          content: '{}',
+          structuredContent: {
+            links: [
+              {kind: 'get_issue_details', params: {issue_id: '123', is_error: true}},
+              {kind: 'get_trace_waterfall', params: {trace_id: 'abc'}},
+            ],
+          },
+        },
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
     expect(screen.queryByText('View issue')).not.toBeInTheDocument();
+    expect(screen.getByText('View trace')).toBeInTheDocument();
   });
 
   it('renders per-row channels in a mixed block (classic positional + Code Mode bus)', () => {

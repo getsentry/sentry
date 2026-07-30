@@ -25,6 +25,18 @@ import {
 import type {ToolUseBlockProps} from './shared';
 import {MessagePlaceholder, getBlockStatus, hasValidContent} from './shared';
 
+// Identity for deduping a bus link against the positional row link. Params are sorted so the key
+// does not depend on object key order — today both channels derive params from the same object, but
+// this keeps the dedupe correct if that ever stops being true.
+function linkKey(link: ToolLink) {
+  const params = link.params ?? {};
+  const sorted = Object.keys(params)
+    .sort()
+    .map(k => `${k}=${JSON.stringify(params[k])}`)
+    .join(',');
+  return `${link.kind}:${sorted}`;
+}
+
 export function ToolUseBlock({
   block,
   showThinking,
@@ -146,15 +158,19 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           ? buildToolLinkUrl(positionalLink, organization, projects)
           : null;
 
+        // Both channels' links stop propagation (so the click doesn't reach the blocks
+        // container's handler) and report the same navigation analytics.
+        const trackLinkClick = (kind: string) => (e: React.MouseEvent) => {
+          e.stopPropagation();
+          trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
+            referrer: getPageReferrer?.() ?? '',
+            organization,
+            tool_kind: kind,
+          });
+        };
+
         const handleLinkClick = positionalLink
-          ? (e: React.MouseEvent) => {
-              e.stopPropagation();
-              trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
-                referrer: getPageReferrer?.() ?? '',
-                organization,
-                tool_kind: positionalLink.kind,
-              });
-            }
+          ? trackLinkClick(positionalLink.kind)
           : undefined;
 
         // Render the checklist once per block (on the last tool-call row), regardless of
@@ -177,10 +193,11 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         // Links bus: render the result's own links (structuredContent.links) as labeled links
         // below the row. Dedupe the one already shown as the positional row link (classic tools
         // populate both channels during migration), so a Code Mode execute's many links surface
-        // while classic single-link rendering is unchanged.
-        const linkKey = (link: ToolLink) => `${link.kind}:${JSON.stringify(link.params)}`;
+        // while classic single-link rendering is unchanged. Errored links are dropped here for
+        // the same reason getValidToolLinks drops them from the positional channel.
         const positionalKey = positionalLink ? linkKey(positionalLink) : null;
         const navItems = (toolCall.id ? (busLinksByCallId.get(toolCall.id) ?? []) : [])
+          .filter(link => link.params?.is_error !== true)
           .filter(link => linkKey(link) !== positionalKey)
           .map(link => ({
             kind: link.kind,
@@ -201,6 +218,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
             onLinkClick={handleLinkClick}
             todos={todos}
             navItems={navItems}
+            onNavLinkClick={trackLinkClick}
           />
         );
       })}
@@ -221,6 +239,7 @@ function ToolCallRow({
   onLinkClick,
   todos,
   navItems,
+  onNavLinkClick,
 }: {
   blockStatus: ToolCallStatus | undefined;
   failureTooltip: string | null;
@@ -229,6 +248,7 @@ function ToolCallRow({
   toolString: string;
   toolUrl: ReturnType<typeof buildToolLinkUrl>;
   onLinkClick?: (e: React.MouseEvent) => void;
+  onNavLinkClick?: (kind: string) => (e: React.MouseEvent) => void;
 }) {
   const hasLink = toolUrl !== null;
 
@@ -265,7 +285,9 @@ function ToolCallRow({
           <ToolCallPlainRow>{toolCallText}</ToolCallPlainRow>
         )}
       </Flex>
-      {navItems.length > 0 && <NavLinks navItems={navItems} />}
+      {navItems.length > 0 && (
+        <NavLinks navItems={navItems} onNavLinkClick={onNavLinkClick} />
+      )}
       {todos && <TodoList todos={todos} />}
     </Stack>
   );
@@ -278,15 +300,23 @@ const NAV_LINK_LABELS: Record<string, string> = {
   get_profile_flamegraph: t('View profile'),
 };
 
-function NavLinks({navItems}: {navItems: NavItem[]}) {
+function NavLinks({
+  navItems,
+  onNavLinkClick,
+}: {
+  navItems: NavItem[];
+  onNavLinkClick?: (kind: string) => (e: React.MouseEvent) => void;
+}) {
   return (
     <Stack as="ul" gap="xs" padding="0">
       {navItems.map((item, idx) => (
         <Flex key={`${item.kind}-${idx}`} as="li" gap="sm" align="center">
-          <ToolCallLink to={item.url}>
-            <Text size="xs" monospace>
+          {/* ToolCallText (not plain Text) so ToolCallLink's hover rule, which targets it by
+              class, colors the label the same way it does the positional row link. */}
+          <ToolCallLink to={item.url} onClick={onNavLinkClick?.(item.kind)}>
+            <ToolCallText size="xs" monospace>
               {NAV_LINK_LABELS[item.kind] ?? item.kind}
-            </Text>
+            </ToolCallText>
             <ToolCallLinkIconWrapper>
               <ToolCallLinkIcon size="xs" />
             </ToolCallLinkIconWrapper>
