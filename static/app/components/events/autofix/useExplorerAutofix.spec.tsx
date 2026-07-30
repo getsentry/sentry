@@ -756,6 +756,31 @@ describe('useExplorerAutofix - createPR', () => {
     );
   });
 
+  it('sends sentry_run_id instead of run_id when given a UUID', async () => {
+    const mockPost = MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await act(() => result.current.createPR('f00dcafe-0000-0000-0000-000000000000'));
+
+    expect(mockPost).toHaveBeenCalledWith(
+      AUTOFIX_URL,
+      expect.objectContaining({
+        method: 'POST',
+        query: {mode: 'explorer'},
+        data: {
+          step: 'open_pr',
+          sentry_run_id: 'f00dcafe-0000-0000-0000-000000000000',
+          referrer: 'api.web',
+        },
+      })
+    );
+  });
+
   it('calls addErrorMessage and throws on API error', async () => {
     MockApiClient.addMockResponse({
       url: AUTOFIX_URL,
@@ -813,6 +838,37 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
         data: {
           step: 'pr_iteration',
           run_id: 42,
+          user_context: 'make it blue',
+          referrer: 'api.web',
+        },
+      })
+    );
+  });
+
+  it('continues via sentry_run_id when given a UUID', async () => {
+    const mockPost = MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {run_id: 42},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await act(() =>
+      result.current.startStep('pr_iteration', {
+        runId: 'f00dcafe-0000-0000-0000-000000000000',
+        userContext: 'make it blue',
+      })
+    );
+
+    expect(mockPost).toHaveBeenCalledWith(
+      AUTOFIX_URL,
+      expect.objectContaining({
+        method: 'POST',
+        query: {mode: 'explorer'},
+        data: {
+          step: 'pr_iteration',
+          sentry_run_id: 'f00dcafe-0000-0000-0000-000000000000',
           user_context: 'make it blue',
           referrer: 'api.web',
         },
@@ -924,6 +980,59 @@ describe('useExplorerAutofix - codingAgentErrors', () => {
     await waitFor(() => {
       expect(result.current.codingAgentErrors.map(e => e.message)).toEqual(['boom']);
     });
+  });
+
+  it('sends the legacy run_id for an integer run', async () => {
+    const mockPost = MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {successes: [], failures: []},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await act(() => result.current.triggerCodingAgentHandoff(1, integration));
+
+    expect(mockPost).toHaveBeenCalledWith(
+      AUTOFIX_URL,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          step: 'coding_agent_handoff',
+          run_id: 1,
+          integration_id: 42,
+        }),
+      })
+    );
+    expect(mockPost.mock.calls[0][1].data.sentry_run_id).toBeUndefined();
+  });
+
+  it('sends sentry_run_id for a UUID run', async () => {
+    const mockPost = MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {successes: [], failures: []},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await act(() =>
+      result.current.triggerCodingAgentHandoff(
+        'f00dcafe-0000-0000-0000-000000000000',
+        integration
+      )
+    );
+
+    expect(mockPost).toHaveBeenCalledWith(
+      AUTOFIX_URL,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          step: 'coding_agent_handoff',
+          sentry_run_id: 'f00dcafe-0000-0000-0000-000000000000',
+          integration_id: 42,
+        }),
+      })
+    );
+    expect(mockPost.mock.calls[0][1].data.run_id).toBeUndefined();
   });
 
   it('dismissCodingAgentError removes the error with the given id', async () => {

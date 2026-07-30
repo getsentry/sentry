@@ -18,7 +18,23 @@
       },
       "required": ["value", "format"],
       "additionalProperties": false
-    }
+    },
+    "examples": [
+      {
+        "label": "Absolute",
+        "data": {
+          "value": "2025-07-15T14:30:00Z",
+          "format": "absolute"
+        }
+      },
+      {
+        "label": "Relative",
+        "data": {
+          "value": "2025-07-15T14:30:00Z",
+          "format": "relative"
+        }
+      }
+    ]
   },
   {
     "name": "docs",
@@ -37,6 +53,39 @@
       },
       "required": ["href", "title"],
       "additionalProperties": false
-    }
+    },
+    "examples": [
+      {
+        "label": "Doc link",
+        "data": {
+          "href": "https://docs.sentry.io/product/issues/",
+          "title": "Issues"
+        }
+      }
+    ]
+  },
+  {
+    "name": "dsn",
+    "description": "Display a copyable Sentry DSN (Data Source Name) string. Use this whenever presenting a DSN to the user — never output it as bare text.",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": ["value"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "DSN",
+        "data": {
+          "value": "https://examplePublicKey@o0.ingest.sentry.io/0"
+        }
+      }
+    ]
   }
 ]

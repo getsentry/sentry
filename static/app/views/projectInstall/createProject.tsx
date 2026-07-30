@@ -32,6 +32,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {slugify} from 'sentry/utils/slugify';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -52,7 +53,9 @@ import type {
 import {
   getRequestDataFragment,
   IssueAlertOptions,
+  RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
 import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
@@ -274,6 +277,11 @@ export function CreateProject() {
     'project_creation_page.viewed',
     'Project Create: Creation page viewed'
   );
+  // Journey origin is sticky (sessionStorage seeded by
+  // ?projectCreationOrigin=org_creation from org-create). Orthogonal to
+  // `variant` and to `referrer=getting-started` autofill — back-from-docs
+  // must not reclassify an org-activation visit as existing_org.
+  useRouteAnalyticsParams({variant: 'legacy', origin: useProjectCreationPageOrigin()});
 
   const configurePlatform = useCallback(
     async ({
@@ -308,6 +316,7 @@ export function CreateProject() {
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
           notification_rule_created: !!notificationRule,
+          variant: 'legacy',
         });
 
         addSuccessMessage(
@@ -326,14 +335,15 @@ export function CreateProject() {
           wasNameManuallyModified: hasUserModifiedProjectName.current,
         });
 
-        navigate(
-          normalizeUrl(
+        navigate({
+          pathname: normalizeUrl(
             makeProjectsPathname({
               path: `/${project.slug}/getting-started/`,
               organization,
             })
-          )
-        );
+          ),
+          query: {projectCreationVariant: 'legacy'},
+        });
       } catch (error: any) {
         addErrorMessage(t('Failed to create project %s', projectName));
 
@@ -413,6 +423,7 @@ export function CreateProject() {
               {
                 platform: platform.key,
                 organization,
+                variant: 'legacy',
               }
             );
           },
@@ -497,6 +508,8 @@ export function CreateProject() {
             defaultCategory={defaultCategory}
             setPlatform={handlePlatformChange}
             organization={organization}
+            source="project-creation"
+            variant="legacy"
             showOther
             noAutoFilter
           />
@@ -512,6 +525,27 @@ export function CreateProject() {
                 ...formData.alertRule,
                 [field]: value,
               });
+              if (field === 'alertSetting') {
+                const optionMap: Record<number, string> = {
+                  [RuleAction.DEFAULT_ALERT]: 'high_priority',
+                  [RuleAction.CUSTOMIZED_ALERTS]: 'custom',
+                  [RuleAction.CREATE_ALERT_LATER]: 'create_later',
+                };
+                trackAnalytics('project_creation.project_details_alert_selected', {
+                  organization,
+                  option: optionMap[value as number] ?? String(value),
+                  variant: 'legacy',
+                });
+              } else if (
+                (field === 'threshold' || field === 'metric' || field === 'interval') &&
+                formData.alertRule?.alertSetting === RuleAction.CUSTOMIZED_ALERTS
+              ) {
+                trackAnalytics('project_creation.alert_threshold_edited', {
+                  organization,
+                  field,
+                  variant: 'legacy',
+                });
+              }
             }}
           />
           <StyledListItem>

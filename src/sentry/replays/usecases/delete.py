@@ -60,9 +60,7 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
     if not rows:
         return None
 
-    for row in rows:
-        delete_replay_recordings(project_id, row)
-
+    delete_replay_recordings(project_id, rows)
     delete_replays(project_id, [row["replay_id"] for row in rows])
     return None
 
@@ -73,9 +71,12 @@ def delete_replays(project_id: int, replay_ids: list[str]) -> None:
         publish_replay_event(archive_event(project_id, replay_id))
 
 
-def delete_replay_recordings(project_id: int, row: MatchedRow) -> None:
+def delete_replay_recordings(project_id: int, rows: list[MatchedRow]) -> None:
+    filenames = [
+        filename for row in rows for filename in _make_recording_filenames(project_id, row)
+    ]
     with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
-        pool.map(_delete_if_exists, _make_recording_filenames(project_id, row))
+        pool.map(_delete_if_exists, filenames)
 
 
 def _delete_if_exists(filename: str) -> None:

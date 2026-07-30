@@ -86,6 +86,21 @@ export enum DocsPageLocation {
   PROFILING_PAGE = 1,
 }
 
+/**
+ * Which flow is rendering the setup docs. Drives which analytics event names the
+ * shared docs components fire (dsn copied, next step, source maps, js loader),
+ * the copy-as-markdown `source`, and the gaming-SDK-access `origin`.
+ *
+ * Replaces the old `newOrg` + `hasScmOnboarding` boolean pair, which could not
+ * express the four flows that reach these components. When absent, consumers
+ * fall back to the pre-enum default (the plain project-creation/legacy names).
+ */
+export type DocsFlow =
+  | 'onboarding'
+  | 'onboarding-scm'
+  | 'project-creation'
+  | 'project-creation-scm';
+
 export enum ProductSolution {
   ERROR_MONITORING = 'error-monitoring',
   PERFORMANCE_MONITORING = 'performance-monitoring',
@@ -114,6 +129,7 @@ export interface DocsParams<
   projectKeyId: ProjectKey['id'];
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
   urlPrefix: string;
+  docsFlow?: DocsFlow;
   /**
    * The page where the docs are being displayed
    */
@@ -126,8 +142,6 @@ export interface DocsParams<
     name?: boolean;
     screenshot?: boolean;
   };
-  hasScmOnboarding?: boolean;
-  newOrg?: boolean;
   profilingOptions?: {
     defaultProfilingMode?: 'transaction' | 'continuous';
   };

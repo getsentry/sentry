@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest.mock import patch
 
-import pytest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.dynamic_sampling.per_org.configuration import (
@@ -430,7 +430,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                     project=project,
                     start_ts=timestamp + timedelta(seconds=5),
                 ),
-                # missing dsc.transaction — excluded by the has:sentry.dsc.transaction filter
+                # missing dsc.transaction — counted as the unnamed transaction ""
                 self.create_span(
                     {
                         "is_segment": True,
@@ -460,16 +460,13 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ]
         )
 
-        volumes = get_eap_transaction_volumes(
-            self.get_config(organization),
-            order_by_volume="desc",
-        )
+        volumes = get_eap_transaction_volumes(self.get_config(organization))
 
-        assert volumes == [
+        expected = [
             ProjectTransactionCounts(
                 org_id=organization.id,
                 project_id=project.id,
-                transaction_counts=[("checkout", 3), ("product", 1)],
+                transaction_counts=[("checkout", 3), ("", 1), ("product", 1)],
             ),
             ProjectTransactionCounts(
                 org_id=organization.id,
@@ -477,6 +474,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                 transaction_counts=[("checkout", 1)],
             ),
         ]
+        assert volumes == expected
 
     def test_get_eap_transaction_volumes_filters_by_root_projects(self) -> None:
         organization = self.create_organization()
@@ -518,12 +516,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ]
         )
 
-        volumes = get_eap_transaction_volumes(
-            self.get_config(organization),
-            root_projects=[project],
-        )
-
-        assert volumes == [
+        expected = [
             ProjectTransactionCounts(
                 org_id=organization.id,
                 project_id=project.id,
@@ -531,11 +524,16 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             )
         ]
 
+        volumes = get_eap_transaction_volumes(
+            self.get_config(organization),
+            root_projects=[project],
+        )
+        assert volumes == expected
+
     def test_get_eap_transaction_volumes_without_projects(self) -> None:
         organization = self.create_organization()
 
         volumes = get_eap_transaction_volumes(self.get_config(organization))
-
         assert volumes == []
 
     def test_get_eap_transaction_volumes_attributes_to_originating_project(self) -> None:
@@ -563,9 +561,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ]
         )
 
-        volumes = get_eap_transaction_volumes(self.get_config(organization))
-
-        assert volumes == [
+        expected = [
             ProjectTransactionCounts(
                 org_id=organization.id,
                 project_id=originating_project.id,
@@ -573,7 +569,10 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             )
         ]
 
-    def test_get_eap_transaction_volumes_with_max_transactions_caps_total_rows(self) -> None:
+        volumes = get_eap_transaction_volumes(self.get_config(organization))
+        assert volumes == expected
+
+    def test_get_eap_transaction_volumes_caps_transactions_per_project(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         other_project = self.create_project(organization=organization)
@@ -600,43 +599,127 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                 segment("alpha", project.id, project, 0),
                 segment("alpha", project.id, project, 1),
                 segment("alpha", project.id, project, 2),
-                # other_project/beta → count = 2
-                segment("beta", other_project.id, other_project, 3),
-                segment("beta", other_project.id, other_project, 4),
-                # project/gamma → count = 1 (excluded by the global cap)
+                # project/beta → count = 2
+                segment("beta", project.id, project, 3),
+                segment("beta", project.id, project, 4),
+                # project/gamma → count = 1 (excluded by the per-project cap)
                 segment("gamma", project.id, project, 5),
+                # other_project/delta → count = 1 (kept: the cap applies per project)
+                segment("delta", other_project.id, other_project, 6),
             ]
         )
 
         volumes = get_eap_transaction_volumes(
             self.get_config(organization),
-            order_by_volume="desc",
-            max_transactions=2,
+            max_transactions_per_project=2,
         )
 
-        # Top 2 rows globally: project/alpha (3) and other_project/beta (2);
-        # project/gamma is excluded by the cap.
         assert volumes == [
             ProjectTransactionCounts(
                 org_id=organization.id,
                 project_id=project.id,
-                transaction_counts=[("alpha", 3)],
+                transaction_counts=[("alpha", 3), ("beta", 2)],
             ),
             ProjectTransactionCounts(
                 org_id=organization.id,
                 project_id=other_project.id,
-                transaction_counts=[("beta", 2)],
+                transaction_counts=[("delta", 1)],
             ),
         ]
 
-    @pytest.mark.xfail(
-        reason="max_transactions is a global row limit rather than a per-project one: a "
-        "project with more distinct transactions than the limit consumes every row, so "
-        "other projects' transactions are missing from the result and are never "
-        "rebalanced within their project by run_transaction_balancing",
-        strict=True,
-    )
-    def test_get_eap_transaction_volumes_project_over_cap_starves_other_projects(self) -> None:
+    def test_get_eap_transaction_volumes_reads_cap_from_legacy_option(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
+
+        def segment(transaction, offset):
+            return self.create_span(
+                {
+                    "is_segment": True,
+                    "sentry_tags": {
+                        "transaction": transaction,
+                        "dsc.transaction": transaction,
+                        "dsc.project_id": str(project.id),
+                    },
+                },
+                organization=organization,
+                project=project,
+                start_ts=timestamp + timedelta(seconds=offset),
+            )
+
+        self.store_spans(
+            [
+                segment("alpha", 0),
+                segment("alpha", 1),
+                segment("beta", 2),
+            ]
+        )
+
+        with self.options(
+            {
+                "dynamic-sampling.prioritise_transactions.num_explicit_large_transactions": 1,
+            }
+        ):
+            volumes = get_eap_transaction_volumes(self.get_config(organization))
+
+        assert volumes == [
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=project.id,
+                transaction_counts=[("alpha", 2)],
+            )
+        ]
+
+    def test_get_eap_transaction_volumes_coalesces_empty_dsc_transaction(self) -> None:
+        """
+        A root span with an empty ``sentry.dsc.transaction`` and one with the attribute
+        absent are the same unnamed transaction, but EAP returns them as two groups. Both
+        reach the rebalancing model as a single ``""`` class holding their summed count.
+        """
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
+
+        def segment(transaction: str | None, offset: int) -> dict[str, Any]:
+            dsc_tags = {} if transaction is None else {"dsc.transaction": transaction}
+            return self.create_span(
+                {
+                    "is_segment": True,
+                    "sentry_tags": {
+                        "transaction": str(transaction),
+                        "dsc.project_id": str(project.id),
+                        **dsc_tags,
+                    },
+                },
+                organization=organization,
+                project=project,
+                start_ts=timestamp + timedelta(seconds=offset),
+            )
+
+        self.store_spans(
+            [
+                segment("checkout", 0),
+                segment("checkout", 1),
+                # Root transaction name set to the empty string.
+                segment("", 2),
+                # Root transaction name absent entirely.
+                segment(None, 3),
+            ]
+        )
+
+        volumes = get_eap_transaction_volumes(self.get_config(organization))
+
+        assert volumes == [
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=project.id,
+                transaction_counts=[("", 2), ("checkout", 2)],
+            )
+        ]
+
+    def test_get_eap_transaction_volumes_project_over_cap_does_not_starve_other_projects(
+        self,
+    ) -> None:
         organization = self.create_organization()
         busy_project = self.create_project(organization=organization)
         quiet_project = self.create_project(organization=organization)
@@ -658,12 +741,11 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             )
 
         spans = []
-        # busy_project has more distinct transactions than max_transactions, each with
-        # count 1 — with the default ascending order they fill the entire global limit.
+        # busy_project has more distinct transactions than the per-project cap; with
+        # the previous global row limit its rows consumed the entire result and
+        # quiet_project never reached the balancing step.
         for i in range(4):
             spans.append(segment(f"busy-{i}", busy_project, i))
-        # quiet_project's transactions have higher counts, so they sort after
-        # busy_project's rows and fall outside the limit.
         for i in range(2):
             spans.append(segment("quiet-low", quiet_project, 10 + i))
         for i in range(3):
@@ -672,11 +754,12 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
 
         volumes = get_eap_transaction_volumes(
             self.get_config(organization),
-            max_transactions=3,
+            max_transactions_per_project=3,
         )
 
-        # quiet-low (count 2) still needs to be boosted against quiet-high (count 3)
-        # inside quiet_project, but it never reaches the balancing step.
         volumes_by_project = {volume.project_id: volume for volume in volumes}
-        assert quiet_project.id in volumes_by_project
-        assert ("quiet-low", 2) in volumes_by_project[quiet_project.id].transaction_counts
+        assert len(volumes_by_project[busy_project.id].transaction_counts) == 3
+        assert volumes_by_project[quiet_project.id].transaction_counts == [
+            ("quiet-high", 3),
+            ("quiet-low", 2),
+        ]

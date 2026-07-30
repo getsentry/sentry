@@ -118,6 +118,7 @@ def test_segment_deserialized_correctly(mock_process_segment: mock.MagicMock) ->
         assert headers["project_id"] == b"1"
 
 
+@override_options({"tasks.producer.process-segments.rollout": False})
 @mock.patch(
     "sentry.spans.consumers.process_segments.factory._check_span_duplicates",
     side_effect=lambda spans: spans,
@@ -172,6 +173,31 @@ def test_process_segment_task_matches_consumer_output(
     assert headers["project_id"] == b"1"
 
 
+@override_options({"tasks.producer.process-segments.rollout": True})
+@mock.patch("sentry.spans.consumers.process_segments.tasks._snuba_items_task_producer")
+@mock.patch("sentry.spans.consumers.process_segments.tasks._snuba_items_future_tracking_producer")
+@mock.patch(
+    "sentry.spans.consumers.process_segments.tasks._process_segment_bytes",
+    return_value=[mock.sentinel.payload],
+)
+def test_process_segment_task_uses_future_tracking_producer(
+    mock_process_segment_bytes: mock.MagicMock,
+    mock_future_tracking_producer: mock.MagicMock,
+    mock_task_producer: mock.MagicMock,
+) -> None:
+    segment_bytes = b"segment"
+
+    process_segment_task(segment_bytes)
+
+    mock_process_segment_bytes.assert_called_once_with(segment_bytes, start_new_transaction=False)
+    mock_task_producer.produce.assert_not_called()
+    mock_future_tracking_producer.produce.assert_called_once_with(
+        ArroyoTopic("snuba-items"),
+        mock.sentinel.payload,
+    )
+
+
+@override_options({"tasks.producer.process-segments.rollout": False})
 @mock.patch("sentry.spans.consumers.process_segments.tasks._process_segment_bytes", return_value=[])
 def test_process_segment_task_does_not_start_new_transaction(
     mock_process_segment_bytes: mock.MagicMock,

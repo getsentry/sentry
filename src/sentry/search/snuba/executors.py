@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from abc import ABCMeta, abstractmethod
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass
 from dataclasses import field as dataclass_field
 from datetime import datetime, timedelta
@@ -25,15 +25,16 @@ from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import registry as group_type_registry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
-from sentry.issues.progress import IssueProgressState, get_group_progress_states
+from sentry.issues.progress_state import IssueProgressState
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
     IntermediateSearchQueryPartial,
     MergeableRow,
     SearchQueryPartial,
     UnsupportedSearchQuery,
-    get_search_strategies,
+    get_search_strategy,
     group_categories_from,
     group_types_from,
 )
@@ -64,6 +65,12 @@ from sentry.utils.tracing import set_span_data, start_span
 logger = logging.getLogger(__name__)
 
 FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
+DEFAULT_GROUP_SEARCH_CATEGORY_IDS = frozenset(
+    category.value
+    for category in GroupCategory
+    # Hide certain categories from the default issue stream
+    if category not in {GroupCategory.FEEDBACK, GroupCategory.CONFIGURATION}
+)
 
 
 class TrendsSortWeights(TypedDict):
@@ -194,14 +201,9 @@ def get_search_filter(
 
 def group_categories_from_search_filters(search_filters: Sequence[SearchFilter]) -> set[int]:
     group_categories = group_categories_from(search_filters)
-
-    if not group_categories:
-        group_categories = set(get_search_strategies().keys())
-        # Hide certain categories from the default issue stream
-        group_categories.discard(GroupCategory.FEEDBACK.value)
-        group_categories.discard(GroupCategory.CONFIGURATION.value)
-
-    return group_categories
+    if group_categories:
+        return group_categories
+    return set(DEFAULT_GROUP_SEARCH_CATEGORY_IDS)
 
 
 class AbstractQueryExecutor(metaclass=ABCMeta):
@@ -344,6 +346,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
     def _prepare_params_for_category(
         self,
         group_category: int,
+        visible_group_type_ids: Collection[int],
         query_partial: IntermediateSearchQueryPartial,
         organization: Organization,
         project_ids: Sequence[int],
@@ -411,8 +414,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        strategy = get_search_strategies()[group_category]
-        snuba_query_params = strategy(
+        query_builder = get_search_strategy(GroupCategory(group_category), visible_group_type_ids)
+        snuba_query_params = query_builder(
             pinned_query_partial,
             selected_columns,
             aggregations,
@@ -491,13 +494,21 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         )
 
         group_categories = group_categories_from_search_filters(search_filters or ())
-
+        visible_group_type_ids = (
+            {
+                group_type.type_id
+                for group_type in group_type_registry.get_visible(organization, actor)
+            }
+            if group_categories - {GroupCategory.ERROR.value}
+            else set()
+        )
         query_params_for_categories = {}
 
         for gc in group_categories:
             try:
                 query_params = self._prepare_params_for_category(
                     gc,
+                    visible_group_type_ids,
                     query_partial,
                     organization,
                     project_ids,
@@ -1057,8 +1068,8 @@ def recommended_v2_strategy() -> PostgresSortStrategy:
 
 
 # Numeric rank for the "progress" sort: higher means further along the fix cycle, so it
-# sorts towards the top. Every state has a rank so issues without seer activity (the
-# identified/assigned base states) still order correctly relative to progressed issues.
+# sorts towards the top. Every state has a rank so identified and assigned issues still
+# order correctly relative to progressed issues.
 PROGRESS_STATE_SORT_RANK: dict[IssueProgressState, int] = {
     IssueProgressState.IDENTIFIED: 1,
     IssueProgressState.ASSIGNED: 2,
@@ -1074,10 +1085,10 @@ LAST_SEEN_TIEBREAK_DIVISOR = 10**13
 
 
 def _get_group_progress_states_from_derived_data(group_ids: list[int]) -> dict[int, str]:
-    """Read progress from the materialized GroupDerivedData.progress column, mirroring
-    _get_derived_progress: the column stores the IssueProgressState value verbatim, a null
-    column (closed issues) counts as fix_applied, and a group without a derived row counts
-    as identified, so every group still gets a rank."""
+    """Read progress from the materialized GroupDerivedData.progress column. The column
+    stores the IssueProgressState value verbatim, a null column (closed issues) counts as
+    fix_applied, and a group without a derived row counts as identified, so every group
+    still gets a rank."""
     stored = dict(
         GroupDerivedData.objects.filter(group_id__in=group_ids).values_list("group_id", "progress")
     )
@@ -1097,14 +1108,9 @@ def _get_group_progress_states_from_derived_data(group_ids: list[int]) -> dict[i
 def resolve_progress_signal(
     actor: Any | None, organization: Organization, projects: Sequence[Project], group_ids: list[int]
 ) -> dict[int, int]:
-    """Progress-cycle rank per group (identified=1 .. fix_applied=5). When every project in
-    scope has the ``projects:issue-stream-derived-progress`` flag enabled, progress is read
-    from the materialized GroupDerivedData.progress column; otherwise it's derived from the
-    same Activity records as the ``issue.progress`` filter. Every group gets a rank."""
-    if _has_derived_progress(actor, projects):
-        states = _get_group_progress_states_from_derived_data(group_ids)
-    else:
-        states = get_group_progress_states(group_ids)
+    """Progress-cycle rank per group (identified=1 .. fix_applied=5), read from the
+    materialized GroupDerivedData.progress column. Every group gets a rank."""
+    states = _get_group_progress_states_from_derived_data(group_ids)
     return {
         group_id: PROGRESS_STATE_SORT_RANK[IssueProgressState(state)]
         for group_id, state in states.items()
@@ -1117,23 +1123,10 @@ def _resolve_last_progressed_at(
     """Epoch-millisecond timestamp of the last progress change per group, read from
     GroupDerivedData.last_progressed_at. Groups without a value are omitted; score_fn
     falls through to last_seen for them."""
-    if not _has_derived_progress(actor, projects):
-        return {}
     rows = GroupDerivedData.objects.filter(
         group_id__in=group_ids, last_progressed_at__isnull=False
     ).values_list("group_id", "last_progressed_at")
     return {group_id: ts.timestamp() * 1000 for group_id, ts in rows if ts is not None}
-
-
-def _has_derived_progress(actor: Any | None, projects: Sequence[Project]) -> bool:
-    """Whether every project in scope reads progress from the materialized GroupDerivedData
-    columns rather than the Activity derivation. The native ORDER BY and both signal resolvers
-    gate on this: the SQL score only matches the in-memory score when the columns are the
-    source of truth."""
-    return bool(projects) and all(
-        features.has("projects:issue-stream-derived-progress", project, actor=actor)
-        for project in projects
-    )
 
 
 def _progress_native_order_by(queryset: BaseQuerySet) -> tuple[BaseQuerySet, str]:
@@ -1318,7 +1311,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             and not has_snuba_filters
             and not environments
             and native_upper_bound_ok
-            and _has_derived_progress(actor, projects)
         ):
             with start_span(
                 op="search.postgres_sort.native_order_by",
@@ -1347,7 +1339,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # (Postgres is the sort authority) and use Snuba only as a membership filter per
             # chunk. This keeps the correct ranking past the cap even with Snuba-side filters
             # / env scoping / an upper time bound, instead of degrading to a last_seen sort.
-            if strategy.native_order_by is not None and _has_derived_progress(actor, projects):
+            if strategy.native_order_by is not None:
                 return self._execute_inverted_chunk_sort(
                     strategy=strategy,
                     group_queryset=group_queryset,

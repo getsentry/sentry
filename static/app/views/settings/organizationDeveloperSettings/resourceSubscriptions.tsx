@@ -7,11 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {tct} from 'sentry/locale';
 import type {Permissions} from 'sentry/types/integrations';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import type {
-  WebhookGranularEvent,
-  WebhookSubscription,
-} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import type {WebhookSubscription} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,
@@ -28,9 +24,6 @@ type Props = {
 };
 
 export function Subscriptions({events, onChange, permissions}: Props) {
-  const organization = useOrganization();
-  const granular = organization.features.includes('sentry-apps-granular-events');
-
   // Every event needs its backing permission.
   useEffect(() => {
     const permitted = new Set<string>(
@@ -52,10 +45,10 @@ export function Subscriptions({events, onChange, permissions}: Props) {
       onChange(others);
       return;
     }
-    onChange([...others, ...(granular ? RESOURCE_EVENTS[resource] : [resource])]);
+    onChange([...others, ...RESOURCE_EVENTS[resource]]);
   };
 
-  const handleEventChange = (event: WebhookGranularEvent, checked: boolean) => {
+  const handleEventChange = (event: WebhookSubscription, checked: boolean) => {
     const newEvents = new Set(events);
     if (checked) {
       newEvents.add(event);
@@ -73,9 +66,7 @@ export function Subscriptions({events, onChange, permissions}: Props) {
 
     let checked: boolean | 'indeterminate' = false;
     if (!disabledFromPermissions) {
-      if (!granular) {
-        checked = events.includes(choice);
-      } else if (selectedEvents.length === RESOURCE_EVENTS[choice].length) {
+      if (selectedEvents.length === RESOURCE_EVENTS[choice].length) {
         checked = true;
       } else if (selectedEvents.length > 0) {
         checked = 'indeterminate';
@@ -96,10 +87,6 @@ export function Subscriptions({events, onChange, permissions}: Props) {
     );
   });
 
-  if (!granular) {
-    return <SubscriptionGrid>{boxes}</SubscriptionGrid>;
-  }
-
   return (
     <SubscriptionList>
       <Container padding="lg md" maxWidth="80ch">
@@ -118,14 +105,6 @@ export function Subscriptions({events, onChange, permissions}: Props) {
     </SubscriptionList>
   );
 }
-
-const SubscriptionGrid = styled('div')`
-  display: grid;
-  grid-template: auto / 1fr 1fr 1fr;
-  @media (max-width: ${props => props.theme.breakpoints.lg}) {
-    grid-template: 1fr 1fr 1fr / auto;
-  }
-`;
 
 const SubscriptionList = styled('div')`
   display: flex;

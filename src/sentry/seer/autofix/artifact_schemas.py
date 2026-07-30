@@ -1,15 +1,8 @@
-from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, root_validator
 
-
-class RootCauseClassification(StrEnum):
-    """How the root cause should be acted on."""
-
-    RCA_ONLY = "rca_only"
-    ACTION_RECOMMENDED = "action_recommended"
-    CODE_FIX = "code_fix"
+RootCauseClassification = Literal["rca_only", "action_recommended", "code_fix"]
 
 
 class AnalyzedWindow(BaseModel):
@@ -33,6 +26,13 @@ class SolutionStep(BaseModel):
     )
 
 
+class FixabilityAssessment(BaseModel):
+    assessment: Literal["fixable", "needs_more_context", "not_actionable"] = Field(
+        description="Whether the root cause is fixable through code changes"
+    )
+    reason: str = Field(description="Brief explanation for the assessment")
+
+
 # Artifact schemas for each step
 
 
@@ -51,6 +51,9 @@ class RootCauseArtifact(BaseModel):
     relevant_repo: str | None = Field(
         default=None,
         description="The full repository name (e.g. 'owner/repo') where the fix should be made. Pick the one repo most directly responsible for the root cause.",
+    )
+    fixability: FixabilityAssessment = Field(
+        description="Assessment of whether this root cause is fixable through code changes"
     )
     classification: RootCauseClassification | None = Field(
         default=None,
@@ -78,7 +81,7 @@ class RootCauseArtifact(BaseModel):
         classification = values.get("classification")
         if (
             classification is not None
-            and classification != RootCauseClassification.CODE_FIX
+            and classification != "code_fix"
             and not (values.get("no_code_fix_reason") or "").strip()
         ):
             raise ValueError("no_code_fix_reason is required when classification is not 'code_fix'")

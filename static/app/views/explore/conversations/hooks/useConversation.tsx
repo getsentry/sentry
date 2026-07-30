@@ -9,15 +9,12 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import {AiSpanDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/aiSpanDetails';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 
 export interface UseConversationsOptions {
   conversationId: string;
@@ -65,6 +62,12 @@ interface ConversationApiSpan {
   'user.username'?: string;
 }
 
+interface ConversationApiResponse {
+  conversationId: string;
+  spans: ConversationApiSpan[];
+  title: string | null;
+}
+
 function isGenAiSpan(span: ConversationApiSpan): boolean {
   if (span['gen_ai.operation.type']) {
     return true;
@@ -77,11 +80,12 @@ interface UseConversationResult {
   isLoading: boolean;
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
+  title: string | null;
 }
 
 /**
  * Creates a node-like object from a flat API span response so existing UI
- * components (AISpanList, MessagesPanel) work without full trace fetches.
+ * components (AiSpanTimeline, MessagesPanel) work without full trace fetches.
  */
 function createNodeFromApiSpan(
   apiSpan: ConversationApiSpan,
@@ -198,10 +202,7 @@ function createNodeFromApiSpan(
     findParentEapTransaction: () => null,
 
     renderDetails(props: TraceTreeNodeDetailsProps<AITraceSpanNode>) {
-      if (hasGenAiConversationsRedesignFeature(props.organization)) {
-        return <AiSpanDetails node={props.node} traceId={props.traceId} />;
-      }
-      return <EAPSpanNodeDetails {...props} node={this as unknown as EapSpanNode} />;
+      return <AiSpanDetails node={props.node} traceId={props.traceId} />;
     },
   };
 
@@ -240,6 +241,7 @@ export function useConversation(
   const queryParams = {
     project,
     per_page: 1000,
+    apiVersion: 2,
     ...datetimeParams,
   };
 
@@ -252,7 +254,7 @@ export function useConversation(
     isLoading,
     isError,
   } = useInfiniteQuery(
-    apiOptions.asInfinite<ConversationApiSpan[]>()(
+    apiOptions.asInfinite<ConversationApiResponse>()(
       '/organizations/$organizationIdOrSlug/ai-conversations/$conversationId/',
       {
         path: conversation.conversationId
@@ -275,7 +277,14 @@ export function useConversation(
     }
   }, [isFetching, hasNextPage, fetchNextPage, currentNumberPages]);
 
-  const allSpans = useMemo(() => data?.pages.flatMap(page => page.json) ?? [], [data]);
+  const allSpans = useMemo(
+    () => data?.pages.flatMap(page => page.json.spans ?? []) ?? [],
+    [data]
+  );
+
+  // The title is conversation-level, so it is identical across pages; read it
+  // off the first page.
+  const title = data?.pages[0]?.json.title ?? null;
 
   const {nodes, nodeTraceMap} = useMemo(() => {
     if (allSpans.length === 0) {
@@ -304,6 +313,7 @@ export function useConversation(
       nodeTraceMap: new Map(),
       isLoading: false,
       error: false,
+      title: null,
     };
   }
 
@@ -312,5 +322,6 @@ export function useConversation(
     nodeTraceMap,
     isLoading: isLoading || isFetchingNextPage || hasNextPage,
     error: isError,
+    title,
   };
 }

@@ -15,7 +15,6 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.autofix.artifact_schemas import (
     AnalyzedWindow,
     RootCauseArtifact,
-    RootCauseClassification,
 )
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
@@ -429,7 +428,6 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=12345)
-        mock_client.continue_run.return_value = 12345
 
         step_to_action = {
             AutofixStep.ROOT_CAUSE: SeerActionType.ROOT_CAUSE_STARTED,
@@ -460,10 +458,10 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.continue_run.return_value = 67890
         seer_run = self.create_seer_run(
             organization=self.group.organization, seer_run_state_id=67890
         )
+        mock_client.continue_run.return_value = seer_run
 
         result = trigger_autofix_agent(
             group=self.group,
@@ -472,7 +470,7 @@ class TestTriggerAutofixAgent(TestCase):
             run_id=67890,
         )
 
-        assert result == 67890
+        assert result == seer_run
         # Verify started webhook was sent with the existing run_id and uuid
         mock_broadcast.assert_called_once()
         call_kwargs = mock_broadcast.call_args.kwargs
@@ -549,19 +547,22 @@ class TestTriggerAutofixAgent(TestCase):
                 )
             },
         )
-        mock_client.continue_run.return_value = 67890
+        mock_client.continue_run.return_value = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
 
         with self.feature("organizations:autofix-pr-iteration"):
             trigger_autofix_agent(
                 group=self.group,
                 step=AutofixStep.PR_ITERATION,
-                referrer=AutofixReferrer.UNKNOWN,
+                referrer=AutofixReferrer.GITHUB_PR_COMMENT,
                 run_id=67890,
             )
 
         call_kwargs = mock_broadcast.call_args.kwargs
         assert call_kwargs["event_name"] == SeerActionType.ITERATION_STARTED.value
         assert call_kwargs["payload"]["iteration_index"] == 2
+        assert "referrer" not in call_kwargs["payload"]
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
@@ -632,7 +633,9 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.continue_run.return_value = 67890
+        mock_client.continue_run.return_value = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
 
         trigger_autofix_agent(
             group=self.group,
@@ -653,19 +656,19 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.continue_run.return_value = 67890
+        seer_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
+        mock_client.continue_run.return_value = seer_run
 
-        run_id = trigger_autofix_agent(
+        run = trigger_autofix_agent(
             group=self.group,
             step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.UNKNOWN,
             run_id=67890,
         )
 
-        assert run_id == 67890
-        mock_client.continue_run.assert_called_once()
-        mock_check_quota.assert_not_called()
-        mock_record_run.assert_not_called()
+        assert run == seer_run
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
@@ -744,7 +747,9 @@ class TestTriggerAutofixAgent(TestCase):
                 )
             },
         )
-        mock_client.continue_run.return_value = 67890
+        mock_client.continue_run.return_value = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
 
         with self.feature("organizations:autofix-pr-iteration"):
             trigger_autofix_agent(
@@ -1425,6 +1430,35 @@ class TestTriggerPushChanges(TestCase):
         issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})
         expected = f"Fixes [{self.group.qualified_short_id}]({issue_url})"
         assert body["payload"]["pr_description_suffix"] == expected
+        assert body["payload"]["ready_for_review"] is True
+
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_opens_as_draft_when_review_request_enabled(self, mock_post):
+        mock_post.return_value = MagicMock(status=200)
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+            metadata={"group_id": self.group.id},
+        )
+
+        with self.feature(
+            {
+                "organizations:gen-ai-features": True,
+                "organizations:autofix-pr-iteration-review-request": True,
+            }
+        ):
+            trigger_push_changes(
+                group=self.group,
+                run_id=123,
+                referrer=AutofixReferrer.UNKNOWN,
+                state=state,
+            )
+
+        body = mock_post.call_args[0][0]
+        assert body["payload"]["ready_for_review"] is False
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_pr_description_suffix_includes_linear_issue(self, mock_post):
@@ -1502,6 +1536,10 @@ class TestRootCauseArtifactSchema:
     _BASE_PAYLOAD = {
         "one_line_description": "Memory leak in cache handler",
         "five_whys": ["Cache not cleared", "No TTL set"],
+        "fixability": {
+            "assessment": "fixable",
+            "reason": "The cache implementation can be changed",
+        },
     }
     _WINDOW = {
         "open_period_id": "42",
@@ -1519,13 +1557,17 @@ class TestRootCauseArtifactSchema:
     def test_code_fix_classification_does_not_require_reason(self) -> None:
         artifact = RootCauseArtifact.parse_obj({**self._BASE_PAYLOAD, "classification": "code_fix"})
 
-        assert artifact.classification == RootCauseClassification.CODE_FIX
+        assert artifact.classification == "code_fix"
 
     @pytest.mark.parametrize("classification", ["rca_only", "action_recommended"])
     def test_non_code_fix_classification_with_reason_parses(self, classification: str) -> None:
         artifact = RootCauseArtifact.parse_obj(
             {
                 **self._BASE_PAYLOAD,
+                "fixability": {
+                    "assessment": "not_actionable",
+                    "reason": "The cause is outside the application code",
+                },
                 "classification": classification,
                 "no_code_fix_reason": "Expected traffic increase from a marketing campaign",
             }
@@ -1541,6 +1583,10 @@ class TestRootCauseArtifactSchema:
     ) -> None:
         payload = {
             **self._BASE_PAYLOAD,
+            "fixability": {
+                "assessment": "not_actionable",
+                "reason": "The cause is outside the application code",
+            },
             "classification": classification,
             "no_code_fix_reason": reason,
         }
@@ -1550,7 +1596,16 @@ class TestRootCauseArtifactSchema:
 
     def test_non_code_fix_classification_with_reason_key_absent_raises(self) -> None:
         with pytest.raises(ValidationError):
-            RootCauseArtifact.parse_obj({**self._BASE_PAYLOAD, "classification": "rca_only"})
+            RootCauseArtifact.parse_obj(
+                {
+                    **self._BASE_PAYLOAD,
+                    "fixability": {
+                        "assessment": "not_actionable",
+                        "reason": "The cause is outside the application code",
+                    },
+                    "classification": "rca_only",
+                }
+            )
 
     def test_analyzed_window_round_trip(self) -> None:
         artifact = RootCauseArtifact.parse_obj(
@@ -1577,7 +1632,11 @@ class TestRootCauseArtifactSchema:
         assert {"classification", "no_code_fix_reason", "analyzed_window"} <= set(
             schema["properties"]
         )
-        assert set(schema["required"]) == {"one_line_description", "five_whys"}
+        assert set(schema["required"]) == {
+            "one_line_description",
+            "five_whys",
+            "fixability",
+        }
         assert schema["definitions"]["AnalyzedWindow"]["required"] == [
             "open_period_id",
             "start",
@@ -1587,7 +1646,7 @@ class TestRootCauseArtifactSchema:
     def test_generated_schema_carries_llm_guidance(self) -> None:
         schema = RootCauseArtifact.schema()
 
-        assert schema["definitions"]["RootCauseClassification"]["enum"] == [
+        assert schema["properties"]["classification"]["enum"] == [
             "rca_only",
             "action_recommended",
             "code_fix",

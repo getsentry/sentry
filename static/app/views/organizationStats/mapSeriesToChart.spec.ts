@@ -220,7 +220,7 @@ describe('mapSeriesToChart func', () => {
     expect(mappedSeries.cardStats.rateLimited).toBe('11');
   });
 
-  it('should correctly format client discard data', () => {
+  it('excludes no_parent_span from client discard data', () => {
     const mappedSeries = mapSeriesToChart({
       orgStats: {
         start: '2021-01-01T00:00:00Z',
@@ -240,6 +240,19 @@ describe('mapSeriesToChart func', () => {
               'sum(quantity)': [750, 750],
             },
           },
+          {
+            by: {
+              outcome: 'client_discard',
+              reason: 'no_parent_span',
+              category: 'span',
+            },
+            totals: {
+              'sum(quantity)': 1000,
+            },
+            series: {
+              'sum(quantity)': [400, 600],
+            },
+          },
         ],
       },
       chartDateInterval: '1h',
@@ -248,7 +261,20 @@ describe('mapSeriesToChart func', () => {
       endpointQuery: {},
     });
 
-    // should format client discard data correctly
     expect(mappedSeries.cardStats.clientDiscard).toBe('1.5K');
+    expect(mappedSeries.chartStats.clientDiscard).toEqual([
+      {value: [expect.any(String), 750]},
+      {value: [expect.any(String), 750]},
+    ]);
+    expect(mappedSeries.chartSubLabels).toEqual([
+      {
+        parentLabel: 'Client Discard',
+        label: 'Queue Overflow',
+        data: [
+          {name: '2021-01-01T00:00:00Z', value: 750},
+          {name: '2021-01-02T00:00:00Z', value: 750},
+        ],
+      },
+    ]);
   });
 });

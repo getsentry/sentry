@@ -12,7 +12,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {getTrialDaysLeft} from 'getsentry/utils/billing';
+import {getTrialDaysLeft, isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = {
@@ -37,7 +37,7 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
 
   // if trial is active, show info on that
   // otherwise show help button
-  const cta = subscription.isTrial ? (
+  const cta = isTrial(subscription) ? (
     <ActiveTrialWrapper
       onClick={() => openUpsellModal({organization, source: 'targeted-onboarding'})}
     >

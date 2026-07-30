@@ -49,7 +49,12 @@ from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
     extract_hook_definition,
 )
-from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
+from sentry.seer.models import (
+    UNKNOWN_RUN_ID_FOR_GROUP,
+    SeerApiError,
+    SeerPermissionError,
+    SeerRepoDefinition,
+)
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
@@ -316,6 +321,7 @@ class SeerAgentClient:
         intelligence_level: Literal["low", "medium", "high"] = "medium",
         reasoning_effort: Literal["low", "medium", "high"] | None = None,
         is_interactive: bool = False,
+        enable_bash_tools: bool = False,
         enable_coding: bool = False,
         enable_pr_context_tools: bool = False,
         enable_code_mode_tools: str = "off",
@@ -334,6 +340,9 @@ class SeerAgentClient:
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
+        self.enable_bash_tools = enable_bash_tools and features.has(
+            "organizations:seer-explorer-allow-bash-mode", organization, actor=user
+        )
         self.enable_code_mode_tools = enable_code_mode_tools
         self.code_review_enabled = code_review_enabled
         self.max_iterations = max_iterations
@@ -380,7 +389,6 @@ class SeerAgentClient:
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
         request: Request | None = None,
-        override_bash_mode_enabled: bool = False,
         override_ce_enable: bool = True,
         ui_tools: str | None = None,
     ) -> SeerRun:
@@ -414,6 +422,7 @@ class SeerAgentClient:
             "enable_code_mode_tools": self.enable_code_mode_tools,
             "code_review_enabled": self.code_review_enabled,
             "enable_pr_context_tools": self.enable_pr_context_tools,
+            "enable_bash_mode": self.enable_bash_tools,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -474,7 +483,6 @@ class SeerAgentClient:
 
         agent_run_options.update(
             self._build_agent_run_options(
-                override_bash_mode_enabled=override_bash_mode_enabled,
                 override_ce_enable=override_ce_enable,
             )
         )
@@ -574,25 +582,13 @@ class SeerAgentClient:
             flush=flush,
         )
 
-    def _build_agent_run_options(
-        self,
-        *,
-        override_bash_mode_enabled: bool = False,
-        override_ce_enable: bool = True,
-    ) -> dict[str, Any]:
+    def _build_agent_run_options(self, *, override_ce_enable: bool = True) -> dict[str, Any]:
         """Resolve org-flag-driven agent run options, shared by start_run and start_feature_run."""
         opts: dict[str, Any] = {}
 
         if _has_context_engine(self.organization, self.user):
             if random.random() < options.get("seer.explorer.context-engine-rollout"):
                 opts["is_context_engine_enabled"] = True
-
-        if features.has(
-            "organizations:seer-explorer-allow-bash-mode",
-            self.organization,
-            actor=self.user,
-        ):
-            opts["enable_bash_mode"] = override_bash_mode_enabled
 
         if features.has(
             "organizations:seer-explorer-context-engine-allow-fe-override",
@@ -636,6 +632,13 @@ class SeerAgentClient:
         ):
             opts["enable_streaming"] = True
 
+        if features.has(
+            "organizations:agentic-triage-sort",
+            self.organization,
+            actor=self.user,
+        ):
+            opts["is_agentic_triage_sort"] = True
+
         return opts
 
     def continue_run(
@@ -650,7 +653,7 @@ class SeerAgentClient:
         artifact_schema: type[BaseModel] | None = None,
         ui_tools: str | None = None,
         request: Request | None = None,
-    ) -> int:
+    ) -> SeerRun:
         """
         Continue an existing Seer Agent session. This allows you to add follow-up queries to an ongoing conversation.
 
@@ -663,14 +666,23 @@ class SeerAgentClient:
             artifact_schema: Optional Pydantic model for the new artifact (required if artifact_key is provided)
 
         Returns:
-            int: The run ID (same as input)
+            SeerRun: The run's mirror row.
 
         Raises:
             SeerApiError: If the Seer API request fails
+            SeerPermissionError: If no SeerRun mirror exists for run_id
             ValueError: If artifact_schema is provided without artifact_key
         """
         if bool(artifact_schema) != bool(artifact_key):
             raise ValueError("artifact_key and artifact_schema must be provided together")
+
+        # Resolve the mirror before calling Seer so a missing run never advances
+        # the remote run (fail closed).
+        run = SeerRun.objects.filter(
+            organization_id=self.organization.id, seer_run_state_id=run_id
+        ).first()
+        if run is None:
+            raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
 
         agent_run_options: dict[str, Any] = {
             "enable_coding": self.enable_coding,
@@ -767,11 +779,10 @@ class SeerAgentClient:
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
-        result = response.json()
 
-        SeerRun.objects.filter(seer_run_state_id=run_id).update(last_triggered_at=now())
+        run.update(last_triggered_at=now())
 
-        return result["run_id"]
+        return run
 
     def get_run(
         self,

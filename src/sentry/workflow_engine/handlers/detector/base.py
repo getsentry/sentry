@@ -13,9 +13,8 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.types.actor import Actor
 from sentry.utils import metrics
 from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
     DetectorGroupKey,
     DetectorId,
     DetectorPriorityLevel,
@@ -83,7 +82,7 @@ class DetectorOccurrence:
 
 @dataclass(frozen=True)
 class GroupedDetectorEvaluationResult:
-    result: dict[DetectorGroupKey, DetectorEvaluationResult]
+    result: dict[DetectorGroupKey, DetectorEvaluation]
     tainted: bool
 
 
@@ -98,7 +97,7 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType]):
     @abc.abstractmethod
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
-    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+    ) -> dict[DetectorGroupKey, DetectorEvaluation]:
         pass
 
 
@@ -142,7 +141,7 @@ class BaseDetectorHandler(
 
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
-    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+    ) -> dict[DetectorGroupKey, DetectorEvaluation]:
         tags = {
             "detector_type": self.detector.type,
             "result": "unknown",

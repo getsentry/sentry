@@ -53,6 +53,7 @@ import {
   hasPerformance,
   isBizPlanFamily,
   isNewPayingCustomer,
+  isTrial,
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
@@ -175,11 +176,12 @@ function AMCheckout(props: Props) {
    * 2. The subscription is free
    * 3. Or, the subscription is on a free trial
    */
+  const subscriptionIsTrial = isTrial(subscription);
   const shouldDefaultToBusiness = useCallback(() => {
     const hasUpsell = referrer?.startsWith('upgrade') || referrer?.startsWith('upsell');
 
-    return hasUpsell || subscription.isFree || subscription.isTrial;
-  }, [referrer, subscription.isFree, subscription.isTrial]);
+    return hasUpsell || subscription.isFree || subscriptionIsTrial;
+  }, [referrer, subscription.isFree, subscriptionIsTrial]);
 
   const getBusinessPlan = useCallback(
     (config: BillingConfig) => {

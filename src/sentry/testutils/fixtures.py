@@ -17,6 +17,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule
+from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import RpcIntegration
@@ -228,6 +229,11 @@ class Fixtures:
             project = self.project
         return Factories.create_project_bookmark(project, *args, **kwargs)
 
+    def create_ai_conversation_metadata(self, project=None, *args, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_ai_conversation_metadata(project, *args, **kwargs)
+
     def create_project_key(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project
@@ -371,6 +377,21 @@ class Fixtures:
         if group is None:
             group = self.group
         return Factories.create_group_activity(group, *args, **kwargs)
+
+    def create_group_link(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_link(group, **kwargs)
+
+    def create_group_resolution(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_resolution(group, **kwargs)
+
+    def create_group_subscription(self, group=None, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_subscription(group, **kwargs)
 
     def create_group_owner(self, group=None, **kwargs):
         if group is None:
@@ -535,6 +556,9 @@ class Fixtures:
             organization=organization, projects=projects, **kwargs
         )
 
+    def create_notification_setting_option(self, *args, **kwargs):
+        return Factories.create_notification_setting_option(*args, **kwargs)
+
     def create_notification_settings_provider(self, *args, **kwargs):
         return Factories.create_notification_settings_provider(*args, **kwargs)
 
@@ -642,6 +666,9 @@ class Fixtures:
     ) -> Integration:
         """Create an integration and add an organization."""
         return Factories.create_integration(organization, external_id, oi_params, **kwargs)
+
+    def create_gcp_service_account(self, *args: Any, **kwargs: Any) -> GcpServiceAccount:
+        return Factories.create_gcp_service_account(*args, **kwargs)
 
     def create_organization_contributor(
         self,
@@ -1259,6 +1286,13 @@ class Fixtures:
         if organization is None:
             organization = self.organization
         return Factories.create_seer_run(organization=organization, **kwargs)
+
+    def create_seer_agent_write_grant(self, organization=None, user=None, **kwargs):
+        return Factories.create_seer_agent_write_grant(
+            organization=organization or self.organization,
+            user=user or self.user,
+            **kwargs,
+        )
 
     def create_seer_agent_run(self, run, **kwargs):
         return Factories.create_seer_agent_run(run=run, **kwargs)

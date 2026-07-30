@@ -11,9 +11,7 @@ describe('SamplingWarning', () => {
 
     expect(
       await screen.findByText(
-        textWithMarkupMatcher(
-          'Due to the estimation being applied, count_unique is likely to return unreliable results. Treat count_unique for estimation purposes only.'
-        )
+        textWithMarkupMatcher('count_unique is unreliable due to sampling')
       )
     ).toBeInTheDocument();
   });

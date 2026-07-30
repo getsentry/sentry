@@ -75,7 +75,6 @@ const AM1_TEAM_FEATURES = [
   'integrations-chat-unfurl',
   'integrations-incident-management',
   'sso-basic',
-  'weekly-reports',
   'on-demand-metrics-prefill',
   'seer-billing',
 ];
