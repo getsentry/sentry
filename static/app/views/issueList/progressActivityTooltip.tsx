@@ -14,13 +14,15 @@ import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getActivityItem} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityItem';
+import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+import {getActivityNoteAuthor} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityItem';
 import {
   ActivityLineContent,
   ActivityLineHeadline,
   ActivityLineList,
   ActivityLineRow,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
+import {isActivityNote} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
 import {ActivityLineMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/progressMarker';
 
 // Only include activity items that describe issue progress changes. Other
@@ -65,28 +67,37 @@ function getProgressActivities(activities: GroupActivity[]): GroupActivity[] {
 }
 
 function ProgressActivityItem({group, item}: {group: Group; item: GroupActivity}) {
+  if (isActivityNote(item)) {
+    return <ProgressActivityNote item={item} />;
+  }
+
+  return (
+    <ActivityLine
+      group={group}
+      item={{type: 'activity', activity: item}}
+      timestampUnitStyle="extraShort"
+    />
+  );
+}
+
+function ProgressActivityNote({
+  item,
+}: {
+  item: Extract<GroupActivity, {type: GroupActivityType.NOTE}>;
+}) {
   const organization = useOrganization();
   const showProgress = organization.features.includes('issue-activity-progress');
-  const {title, details} = getActivityItem({
-    item: {type: 'activity', activity: item},
-    organization,
-    project: group.project,
-    issueCategory: group.issueCategory,
-  });
 
   return (
     <ActivityLineRow>
       <ActivityLineMarker item={item} showProgress={showProgress} />
       <ActivityLineHeadline
-        title={title}
-        details={details}
-        timestamp={<Timestamp date={item.dateCreated} unitStyle="extraShort" />}
+        title={getActivityNoteAuthor(item)}
+        timestamp={<TimeSince date={item.dateCreated} unitStyle="extraShort" />}
       />
-      {item.type === GroupActivityType.NOTE ? (
-        <ActivityLineContent>
-          <NoteBody text={item.data.text} />
-        </ActivityLineContent>
-      ) : null}
+      <ActivityLineContent>
+        <NoteBody text={item.data.text} />
+      </ActivityLineContent>
     </ActivityLineRow>
   );
 }
@@ -175,11 +186,6 @@ export function ProgressActivityTooltip({children, group}: ProgressActivityToolt
     </ClassNames>
   );
 }
-
-const Timestamp = styled(TimeSince)`
-  font-size: ${p => p.theme.font.size.sm};
-  white-space: nowrap;
-`;
 
 const ActivityListContainer = styled('div')`
   width: 300px;

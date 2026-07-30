@@ -30,19 +30,15 @@ import {ActivityRelease} from './chips/releaseChip';
 import type {ActivityFeedItem, CollapsedSeerActivity} from './activityFeedItem';
 import {getArchiveDetails} from './archiveDetails';
 
-export interface ActivityItem {
+interface ActivityItem {
   title: React.ReactNode;
   details?: React.ReactNode;
 }
 
-function getNoteAuthorName(item: GroupActivity) {
-  if (item.sentry_app) {
-    return item.sentry_app.name;
-  }
-  if (item.user) {
-    return item.user.name;
-  }
-  return 'Sentry';
+export function getActivityNoteAuthor(
+  activity: Extract<GroupActivity, {type: GroupActivityType.NOTE}>
+) {
+  return activity.sentry_app?.name ?? activity.user?.name ?? 'Sentry';
 }
 
 function getPullRequestProvider(pullRequest: PullRequest) {
@@ -181,7 +177,7 @@ export function getActivityItem({
   switch (activity.type) {
     case GroupActivityType.NOTE:
       return {
-        title: getNoteAuthorName(activity),
+        title: getActivityNoteAuthor(activity),
       };
     case GroupActivityType.SET_RESOLVED: {
       const integrationChip = getIntegrationChip({data: activity.data, organization});

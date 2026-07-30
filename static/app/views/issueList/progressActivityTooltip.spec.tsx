@@ -119,5 +119,6 @@ describe('ProgressActivityTooltip', () => {
     expect(
       await screen.findByText('This is the useful part of the comment.')
     ).toBeInTheDocument();
+    expect(screen.getByText('Sentry')).toBeInTheDocument();
   });
 });

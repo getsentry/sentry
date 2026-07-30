@@ -20,7 +20,7 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
   const showProgress = organization.features.includes('issue-activity-progress');
   const {issueCategory, project} = group;
   const {activity} = item;
-  const compactItem = useMemo(
+  const activityItem = useMemo(
     () =>
       getActivityItem({
         item,
@@ -46,8 +46,8 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
         showProgress={showProgress}
       />
       <ActivityLineHeadline
-        title={compactItem.title}
-        details={compactItem.details}
+        title={activityItem.title}
+        details={activityItem.details}
         timestamp={timestamp}
       />
     </ActivityLineRow>
