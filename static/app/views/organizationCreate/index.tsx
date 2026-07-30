@@ -47,6 +47,16 @@ type CreateOrganizationPayload = {
   dataStorageLocation?: string;
 };
 
+// Conditionally rendered fields are permissive here and carry their own
+// validators, so they are only enforced when their control is displayed.
+const schema = z.object({
+  name: z.string().min(1, t('Please enter an organization name')),
+  defaultTeam: z.boolean(),
+  agreeTerms: z.boolean(),
+  dataStorageLocation: z.string().nullable(),
+  aggregatedDataConsent: z.boolean(),
+});
+
 function OrganizationCreate() {
   const {termsUrl, privacyUrl, isSelfHosted, features, links} =
     useLegacyStore(ConfigStore);
@@ -58,31 +68,6 @@ function OrganizationCreate() {
   const hasDataConsent = !isSelfHosted;
   const showTerms = Boolean(termsUrl && privacyUrl);
   const showLocality = localityOptions.length > 1;
-
-  const schema = z
-    .object({
-      name: z.string().min(1, t('Please enter an organization name')),
-      defaultTeam: z.boolean(),
-      agreeTerms: z.boolean(),
-      dataStorageLocation: z.string().nullable(),
-      aggregatedDataConsent: z.boolean(),
-    })
-    .superRefine((value, ctx) => {
-      if (showTerms && !value.agreeTerms) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['agreeTerms'],
-          message: t('Please agree to the Terms of Service and the Privacy Policy'),
-        });
-      }
-      if (showLocality && value.dataStorageLocation === null) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['dataStorageLocation'],
-          message: t('Please select a data storage location'),
-        });
-      }
-    });
 
   const mutation = useMutation({
     mutationFn: (data: CreateOrganizationPayload) =>
@@ -186,7 +171,12 @@ function OrganizationCreate() {
               </form.AppField>
 
               {showLocality && (
-                <form.AppField name="dataStorageLocation">
+                <form.AppField
+                  name="dataStorageLocation"
+                  validators={{
+                    onDynamic: z.string(t('Please select a data storage location')),
+                  }}
+                >
                   {field => (
                     <field.Layout.Stack
                       label={t('Data Storage Location')}
@@ -207,7 +197,15 @@ function OrganizationCreate() {
               )}
 
               {termsUrl && privacyUrl && (
-                <form.AppField name="agreeTerms">
+                <form.AppField
+                  name="agreeTerms"
+                  validators={{
+                    onDynamic: z.literal(
+                      true,
+                      t('Please agree to the Terms of Service and the Privacy Policy')
+                    ),
+                  }}
+                >
                   {field => (
                     <field.Layout.Stack
                       label={tct(
