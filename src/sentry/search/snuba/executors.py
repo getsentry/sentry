@@ -69,7 +69,12 @@ DEFAULT_GROUP_SEARCH_CATEGORY_IDS = frozenset(
     category.value
     for category in GroupCategory
     # Hide certain categories from the default issue stream
-    if category not in {GroupCategory.FEEDBACK, GroupCategory.CONFIGURATION}
+    if category
+    not in {
+        GroupCategory.FEEDBACK,
+        GroupCategory.TEST_NOTIFICATION,
+        GroupCategory.CONFIGURATION,
+    }
 )
 
 
