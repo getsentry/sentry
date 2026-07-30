@@ -2,18 +2,24 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
+from django.utils import timezone
 from snuba_sdk import Column, Condition, Op
 
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
-from sentry.models.group import Group
+from sentry.issues.grouptype import (
+    FeedbackGroup,
+    PerformanceNPlusOneGroupType,
+    ProfileFileIOGroupType,
+)
+from sentry.models.group import Group, bulk_get_latest_event_ids
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
-from tests.sentry.issues.test_utils import OccurrenceTestMixin
+from sentry.utils.snuba import bulk_snuba_queries
+from tests.sentry.issues.test_utils import OccurrenceTestMixin, SearchIssueTestMixin
 
 
 def _get_recommended_non_null(g: Group) -> GroupEvent:
@@ -34,7 +40,108 @@ def _get_oldest_non_null(g: Group, environments: Sequence[str] = ()) -> GroupEve
     return ret
 
 
-class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
+class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, SearchIssueTestMixin):
+    def test_bulk_get_latest_event_ids(self) -> None:
+        project = self.create_project()
+        error_timestamp = before_now(minutes=1)
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": error_timestamp.isoformat(),
+                "fingerprint": ["error-group"],
+            },
+            project_id=project.id,
+        )
+        latest_error_event = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": error_timestamp.isoformat(),
+                "fingerprint": ["error-group"],
+            },
+            project_id=project.id,
+        )
+
+        feedback_event, _, feedback_group_info = self.store_search_issue(
+            project_id=project.id,
+            user_id=self.user.id,
+            fingerprints=["feedback-group"],
+            insert_time=before_now(seconds=30),
+            override_occurrence_data={"type": FeedbackGroup.type_id},
+        )
+        assert latest_error_event.group is not None
+        assert feedback_group_info is not None
+
+        with patch("sentry.utils.snuba.bulk_snuba_queries", wraps=bulk_snuba_queries) as bulk_query:
+            result = bulk_get_latest_event_ids(
+                [latest_error_event.group, feedback_group_info.group]
+            )
+
+        assert bulk_query.call_count == 1
+        assert result == {
+            latest_error_event.group.id: (project.id, latest_error_event.event_id),
+            feedback_group_info.group.id: (project.id, feedback_event.event_id),
+        }
+
+    def test_bulk_get_latest_event_ids_with_stale_last_seen(self) -> None:
+        project = self.create_project()
+        initial_event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": before_now(minutes=10).isoformat(),
+                "fingerprint": ["stale-group"],
+            },
+            project_id=project.id,
+        )
+        assert initial_event.group is not None
+        stale_group = Group.objects.get(id=initial_event.group.id)
+
+        latest_event = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": before_now(minutes=1).isoformat(),
+                "fingerprint": ["stale-group"],
+            },
+            project_id=project.id,
+        )
+
+        assert bulk_get_latest_event_ids([stale_group]) == {
+            stale_group.id: (project.id, latest_event.event_id)
+        }
+
+    def test_bulk_get_latest_event_ids_includes_accepted_future_event(self) -> None:
+        project = self.create_project()
+        initial_event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": before_now(minutes=1).isoformat(),
+                "fingerprint": ["future-group"],
+            },
+            project_id=project.id,
+        )
+        latest_event = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": (timezone.now() + timedelta(seconds=30)).isoformat(),
+                "fingerprint": ["future-group"],
+            },
+            project_id=project.id,
+        )
+        assert initial_event.group is not None
+
+        assert bulk_get_latest_event_ids([initial_event.group]) == {
+            initial_event.group.id: (project.id, latest_event.event_id)
+        }
+
+    @patch("sentry.utils.snuba.bulk_snuba_queries")
+    def test_bulk_get_latest_event_ids_casts_group_id(self, bulk_snuba_queries: MagicMock) -> None:
+        group = self.create_group()
+        event_id = "a" * 32
+        bulk_snuba_queries.return_value = [
+            {"data": [{"group_id": str(group.id), "event_id": event_id}]}
+        ]
+
+        assert bulk_get_latest_event_ids([group]) == {group.id: (group.project_id, event_id)}
+
     def test_get_oldest_latest_for_environments(self) -> None:
         project = self.create_project()
         self.store_event(

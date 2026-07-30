@@ -113,6 +113,25 @@ describe('AskSeerComboBox', () => {
     expect(input).toHaveValue('test ');
   });
 
+  it('applies a class name to the combobox wrapper', async () => {
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          className="search-grid-item"
+          initialQuery="test"
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
+      </SearchQueryBuilderProvider>,
+      {organization}
+    );
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    expect(input.closest('.search-grid-item')).toBeInTheDocument();
+  });
+
   it('sets the passed initial query as the input value', async () => {
     render(
       <SearchQueryBuilderProvider {...defaultProps}>

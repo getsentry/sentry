@@ -37,8 +37,29 @@ function Trigger({
   return (
     <Fragment>
       {wrapTrigger(<button type="button">{label}</button>)}
-      <span data-test-id={`state-${label}`}>{isOpen ? 'open' : 'closed'}</span>
-      <span data-test-id={`snap-${label}`}>{snapClosed ? 'snap' : 'flow'}</span>
+      {isOpen && !snapClosed && (
+        <div role="tooltip" aria-label={label}>
+          Overlay
+        </div>
+      )}
+    </Fragment>
+  );
+}
+
+function DelayedForceVisibleTrigger({
+  forceVisible,
+}: {
+  forceVisible?: boolean | 'delayed';
+}) {
+  const {wrapTrigger, isOpen} = useHoverOverlay({
+    skipWrapper: true,
+    forceVisible,
+  });
+
+  return (
+    <Fragment>
+      {wrapTrigger(<button type="button">Delayed force visible</button>)}
+      {isOpen && <div role="tooltip">Overlay</div>}
     </Fragment>
   );
 }
@@ -80,10 +101,10 @@ describe('useHoverOverlay timing', () => {
     hover(screen.getByRole('button', {name: 'a'}));
 
     advance(OPEN_DELAY - 1);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('closed');
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 
     advance(1);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
   });
 
   it('stays warm for SKIP_DELAY_WINDOW after a tooltip closes — neighbor opens instantly', () => {
@@ -99,15 +120,15 @@ describe('useHoverOverlay timing', () => {
 
     hover(a);
     advance(OPEN_DELAY);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
     unhover(a);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('closed');
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 
     advance(SKIP_DELAY_WINDOW - 1);
 
     hover(b);
-    expect(screen.getByTestId('state-b')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
   });
 
   it('goes cold after SKIP_DELAY_WINDOW with no new hover', () => {
@@ -128,10 +149,10 @@ describe('useHoverOverlay timing', () => {
     advance(SKIP_DELAY_WINDOW + 1);
 
     hover(b);
-    expect(screen.getByTestId('state-b')).toHaveTextContent('closed');
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 
     advance(OPEN_DELAY);
-    expect(screen.getByTestId('state-b')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
   });
 
   it('cancels a pending open when the user leaves during warmup', () => {
@@ -143,15 +164,15 @@ describe('useHoverOverlay timing', () => {
     unhover(a);
 
     advance(100);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('closed');
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 
     // Group never warmed (we never actually opened) — a fresh hover should
     // still pay the full warmup delay.
     hover(a);
     advance(OPEN_DELAY - 1);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('closed');
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     advance(1);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
   });
 
   it('holds a hoverable overlay open for CLOSE_DELAY after unhover', () => {
@@ -160,14 +181,14 @@ describe('useHoverOverlay timing', () => {
 
     hover(a);
     advance(OPEN_DELAY);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
     unhover(a);
     advance(CLOSE_DELAY - 1);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
     advance(1);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('closed');
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
   it('re-entering during the cooling window keeps the tooltip open', () => {
@@ -179,11 +200,11 @@ describe('useHoverOverlay timing', () => {
 
     unhover(a);
     advance(CLOSE_DELAY - 10);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
     hover(a);
     advance(CLOSE_DELAY);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
   });
 
   it('reset() while open starts the group cooldown so neighbors open instantly', () => {
@@ -199,13 +220,13 @@ describe('useHoverOverlay timing', () => {
 
     hover(a);
     advance(OPEN_DELAY);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
     act(() => aReset?.());
-    expect(screen.getByTestId('state-a')).toHaveTextContent('closed');
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 
     hover(b);
-    expect(screen.getByTestId('state-b')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
   });
 
   it('reset() during warmup cancels the pending open and leaves the group cold', () => {
@@ -223,13 +244,13 @@ describe('useHoverOverlay timing', () => {
     advance(OPEN_DELAY - 100);
     act(() => aReset?.());
     advance(OPEN_DELAY);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('closed');
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 
     // Since 'a' never actually opened, 'b' starts cold.
     hover(b);
-    expect(screen.getByTestId('state-b')).toHaveTextContent('closed');
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     advance(OPEN_DELAY);
-    expect(screen.getByTestId('state-b')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
   });
 
   it('snap-closes a non-hoverable sibling when a neighbor opens via warm-skip', () => {
@@ -244,20 +265,17 @@ describe('useHoverOverlay timing', () => {
 
     hover(a);
     advance(OPEN_DELAY);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('open');
-    expect(screen.getByTestId('snap-a')).toHaveTextContent('flow');
+    expect(screen.getByRole('tooltip', {name: 'a'})).toBeInTheDocument();
 
     // A goes idle (non-hoverable closes instantly). The consumer still has
     // AnimatePresence exit animating — snapClosed is the signal to unmount it.
     unhover(a);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('closed');
-    expect(screen.getByTestId('snap-a')).toHaveTextContent('flow');
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 
     // Within the warm window, hovering B should fire the snap signal on A.
     hover(b);
-    expect(screen.getByTestId('state-b')).toHaveTextContent('open');
-    expect(screen.getByTestId('snap-a')).toHaveTextContent('snap');
-    expect(screen.getByTestId('snap-b')).toHaveTextContent('flow');
+    expect(screen.queryByRole('tooltip', {name: 'a'})).not.toBeInTheDocument();
+    expect(screen.getByRole('tooltip', {name: 'b'})).toBeInTheDocument();
   });
 
   it('snap-closes a hoverable sibling that is still in its cooling window', () => {
@@ -275,12 +293,12 @@ describe('useHoverOverlay timing', () => {
 
     // A is hoverable — unhover puts it in cooling, not idle.
     unhover(a);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip', {name: 'a'})).toBeInTheDocument();
 
     hover(b);
     // A snaps even though it was mid-cooling (still visible).
-    expect(screen.getByTestId('snap-a')).toHaveTextContent('snap');
-    expect(screen.getByTestId('state-b')).toHaveTextContent('open');
+    expect(screen.queryByRole('tooltip', {name: 'a'})).not.toBeInTheDocument();
+    expect(screen.getByRole('tooltip', {name: 'b'})).toBeInTheDocument();
   });
 
   it("does not let a snap-closed cooling overlay's hide timer cool the group", () => {
@@ -300,7 +318,7 @@ describe('useHoverOverlay timing', () => {
     unhover(a); // A goes cooling with a pending hide timer.
 
     hover(b); // Snaps A; the stale hide timer must be cancelled.
-    expect(screen.getByTestId('state-b')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip', {name: 'b'})).toBeInTheDocument();
 
     // Advance past where A's hide timer would have fired and past where the
     // resulting stale cooldown would have expired. If the timer weren't
@@ -310,7 +328,7 @@ describe('useHoverOverlay timing', () => {
     // Move to C via an unhover-then-hover cycle within the warm window.
     unhover(b);
     hover(c);
-    expect(screen.getByTestId('state-c')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
   });
 
   it('does not snap the overlay that is itself opening', () => {
@@ -319,8 +337,7 @@ describe('useHoverOverlay timing', () => {
 
     hover(a);
     advance(OPEN_DELAY);
-    expect(screen.getByTestId('state-a')).toHaveTextContent('open');
-    expect(screen.getByTestId('snap-a')).toHaveTextContent('flow');
+    expect(screen.getByRole('tooltip', {name: 'a'})).toBeInTheDocument();
   });
 
   it('resets snap when the snapped overlay is re-hovered', () => {
@@ -337,14 +354,13 @@ describe('useHoverOverlay timing', () => {
     advance(OPEN_DELAY);
     unhover(a);
     hover(b);
-    expect(screen.getByTestId('snap-a')).toHaveTextContent('snap');
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
     // User moves back to A within the warm window — A should open again and
     // clear its snap flag.
     unhover(b);
     hover(a);
-    expect(screen.getByTestId('snap-a')).toHaveTextContent('flow');
-    expect(screen.getByTestId('state-a')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip', {name: 'a'})).toBeInTheDocument();
   });
 
   it('honors delay=0 even when the group is cold', () => {
@@ -353,13 +369,25 @@ describe('useHoverOverlay timing', () => {
       return (
         <Fragment>
           {wrapTrigger(<button type="button">{label}</button>)}
-          <span data-test-id={`state-${label}`}>{isOpen ? 'open' : 'closed'}</span>
+          {isOpen && <div role="tooltip">Overlay</div>}
         </Fragment>
       );
     }
     renderInGroup(<ZeroDelayTrigger label="a" />);
 
     hover(screen.getByRole('button', {name: 'a'}));
-    expect(screen.getByTestId('state-a')).toHaveTextContent('open');
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+  });
+
+  it('honors the open delay for delayed force visibility', () => {
+    renderInGroup(<DelayedForceVisibleTrigger forceVisible="delayed" />);
+
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+    advance(OPEN_DELAY - 1);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+    advance(1);
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
   });
 });

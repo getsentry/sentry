@@ -760,13 +760,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if step != AutofixStep.ROOT_CAUSE:
             return None
 
-        if not features.has("organizations:seer-autofix-introspection", organization=organization):
-            return None
-
         try:
             artifact = state.get_artifact("root_cause", RootCauseArtifact)
         except ValidationError:
-            # This should only happen during the transition
+            # The agent may produce artifacts that dont follow the schema
             return None
 
         if artifact is None:
