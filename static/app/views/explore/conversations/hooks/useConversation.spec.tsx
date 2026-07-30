@@ -21,6 +21,17 @@ const BASE_SPAN = {
   'gen_ai.operation.type': 'ai_client',
 };
 
+function envelope(
+  spans: Array<Record<string, unknown>>,
+  title: string | null = null
+): Record<string, unknown> {
+  return {
+    conversationId: (spans[0]?.['gen_ai.conversation.id'] as string) ?? '',
+    title,
+    spans,
+  };
+}
+
 describe('useConversation', () => {
   const organization = OrganizationFixture();
 
@@ -40,6 +51,42 @@ describe('useConversation', () => {
 
     expect(result.current.nodes).toEqual([]);
     expect(result.current.isLoading).toBe(false);
+    expect(result.current.title).toBeNull();
+  });
+
+  it('returns the conversation title from the envelope', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-title/`,
+      body: envelope(
+        [{...BASE_SPAN, 'gen_ai.conversation.id': 'conv-title', span_id: 'span-title'}],
+        'My great conversation'
+      ),
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-title'}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.title).toBe('My great conversation');
+  });
+
+  it('returns a null title when the envelope has none', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
+      body: envelope([BASE_SPAN]),
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-123'}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.title).toBeNull();
   });
 
   it('maps gen_ai.input.messages to node attributes', async () => {
@@ -47,7 +94,7 @@ describe('useConversation', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
-      body: [
+      body: envelope([
         {
           'gen_ai.conversation.id': 'conv-123',
           parent_span: 'parent-1',
@@ -65,7 +112,7 @@ describe('useConversation', () => {
             {role: 'user', content: 'Fallback message'},
           ]),
         },
-      ],
+      ]),
     });
 
     const {result} = renderHookWithProviders(
@@ -91,7 +138,7 @@ describe('useConversation', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-output/`,
-      body: [
+      body: envelope([
         {
           'gen_ai.conversation.id': 'conv-output',
           parent_span: 'parent-1',
@@ -106,7 +153,7 @@ describe('useConversation', () => {
           'gen_ai.operation.type': 'ai_client',
           'gen_ai.output.messages': outputMessages,
         },
-      ],
+      ]),
     });
 
     const {result} = renderHookWithProviders(
@@ -132,7 +179,7 @@ describe('useConversation', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-456/`,
-      body: [
+      body: envelope([
         {
           'gen_ai.conversation.id': 'conv-456',
           parent_span: 'parent-1',
@@ -147,7 +194,7 @@ describe('useConversation', () => {
           'gen_ai.operation.type': 'ai_client',
           'gen_ai.request.messages': requestMessages,
         },
-      ],
+      ]),
     });
 
     const {result} = renderHookWithProviders(
@@ -169,7 +216,7 @@ describe('useConversation', () => {
   it('uses empty string for missing optional fields', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-789/`,
-      body: [
+      body: envelope([
         {
           'gen_ai.conversation.id': 'conv-789',
           parent_span: 'parent-1',
@@ -184,7 +231,7 @@ describe('useConversation', () => {
           'gen_ai.operation.type': 'ai_client',
           // No input or request messages provided
         },
-      ],
+      ]),
     });
 
     const {result} = renderHookWithProviders(
@@ -208,7 +255,7 @@ describe('useConversation', () => {
   it('uses conversation timestamps when provided', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-timestamps/`,
-      body: [
+      body: envelope([
         {
           'gen_ai.conversation.id': 'conv-timestamps',
           parent_span: 'parent-1',
@@ -222,7 +269,7 @@ describe('useConversation', () => {
           trace: 'trace-ts',
           'gen_ai.operation.type': 'ai_client',
         },
-      ],
+      ]),
     });
 
     const startTimestamp = 1700000000000; // Nov 14, 2023
@@ -263,7 +310,7 @@ describe('useConversation', () => {
   it('uses span.name for description and name fields', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-name/`,
-      body: [
+      body: envelope([
         {
           'gen_ai.conversation.id': 'conv-name',
           parent_span: 'parent-1',
@@ -277,7 +324,7 @@ describe('useConversation', () => {
           trace: 'trace-name',
           'gen_ai.operation.type': 'ai_client',
         },
-      ],
+      ]),
     });
 
     const {result} = renderHookWithProviders(
@@ -299,7 +346,7 @@ describe('useConversation', () => {
   it('sorts nodes by start timestamp for AI spans list', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-sort/`,
-      body: [
+      body: envelope([
         {
           'gen_ai.conversation.id': 'conv-sort',
           parent_span: 'parent-1',
@@ -326,7 +373,7 @@ describe('useConversation', () => {
           trace: 'trace-sort',
           'gen_ai.operation.type': 'ai_client',
         },
-      ],
+      ]),
     });
 
     const {result} = renderHookWithProviders(
@@ -349,7 +396,7 @@ describe('useConversation', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
-      body: [BASE_SPAN],
+      body: envelope([BASE_SPAN]),
     });
 
     const {result} = renderHookWithProviders(
@@ -379,7 +426,7 @@ describe('useConversation', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
-      body: [BASE_SPAN],
+      body: envelope([BASE_SPAN]),
     });
 
     const {result} = renderHookWithProviders(
@@ -406,7 +453,7 @@ describe('useConversation', () => {
   it('falls back to ALL_ACCESS_PROJECTS with no time params when no filters are set', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
-      body: [BASE_SPAN],
+      body: envelope([BASE_SPAN]),
     });
 
     const {result} = renderHookWithProviders(
@@ -443,7 +490,7 @@ describe('useConversation', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
-      body: [BASE_SPAN],
+      body: envelope([BASE_SPAN]),
     });
 
     const {result} = renderHookWithProviders(
@@ -469,7 +516,7 @@ describe('useConversation', () => {
   it('filters to only gen_ai spans', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-filter/`,
-      body: [
+      body: envelope([
         {
           'gen_ai.conversation.id': 'conv-filter',
           parent_span: 'parent-1',
@@ -496,7 +543,7 @@ describe('useConversation', () => {
           trace: 'trace-1',
           // No gen_ai.operation.type - should be filtered out
         },
-      ],
+      ]),
     });
 
     const {result} = renderHookWithProviders(
@@ -516,7 +563,7 @@ describe('useConversation', () => {
   it('maps errors and occurrences from the response onto the node', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-issues/`,
-      body: [
+      body: envelope([
         {
           ...BASE_SPAN,
           'gen_ai.conversation.id': 'conv-issues',
@@ -549,7 +596,7 @@ describe('useConversation', () => {
             },
           ],
         },
-      ],
+      ]),
     });
 
     const {result} = renderHookWithProviders(
@@ -570,9 +617,9 @@ describe('useConversation', () => {
   it('defaults to no issues when the response omits errors and occurrences', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-no-issues/`,
-      body: [
+      body: envelope([
         {...BASE_SPAN, 'gen_ai.conversation.id': 'conv-no-issues', span_id: 'span-x'},
-      ],
+      ]),
     });
 
     const {result} = renderHookWithProviders(
