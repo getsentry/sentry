@@ -127,22 +127,22 @@ describe('UserContext', () => {
   });
 
   it('keeps scrubbed null fields that have direct meta annotations', () => {
-    const scrubbedUserContext: UserContext = {
-      id: null as any,
-      email: null as any,
-      username: null as any,
-      name: null as any,
-      ip_address: null as any,
+    const scrubbedUserContext = {
+      id: null,
+      email: null,
+      username: null,
+      name: null,
+      ip_address: null,
       geo: {
-        country_code: null as any,
-        city: null as any,
-        subdivision: null as any,
-        region: null as any,
+        country_code: null,
+        city: null,
+        subdivision: null,
+        region: null,
       },
     };
 
     const result = getUserContextData({
-      data: scrubbedUserContext,
+      data: scrubbedUserContext as unknown as UserContext,
       meta: MOCK_SCRUBBED_REDACTION,
     });
 

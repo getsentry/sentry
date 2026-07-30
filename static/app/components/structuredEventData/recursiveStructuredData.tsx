@@ -59,11 +59,12 @@ export function RecursiveStructuredData({
 
   if (config?.isNull?.(value) || value === null) {
     const nullValue = config?.renderNull?.(value) ?? String(value);
-    const metaEntry = meta?.[''] ?? meta;
-    const isRedacted =
+    const metaEntry: Record<string, any> | undefined = meta?.[''] ?? meta;
+    const isRedacted = !!(
       withAnnotatedText &&
       metaEntry &&
-      (metaEntry.rem?.length || metaEntry.err?.length || metaEntry.chunks?.length);
+      (metaEntry.rem?.length || metaEntry.err?.length || metaEntry.chunks?.length)
+    );
 
     return (
       <Fragment>
