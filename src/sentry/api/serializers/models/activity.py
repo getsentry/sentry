@@ -59,22 +59,22 @@ PULL_REQUEST_ACTIVITY_TYPES = {
 }
 
 
-def _resolve_mentioned_users(item_list: list[Activity]) -> dict[int, list[dict[str, str]]]:
+def _resolve_mentioned_users(activities: list[Activity]) -> dict[int, list[dict[str, str]]]:
     """The Sentry users each activity @mentions, as ``{"name", "email"}`` keyed by activity
     id, resolved in one batch.
 
     Mentions are stored as ``{"id", "actor_type"}`` refs; a team ref, or a row that embedded
     a whole serialized user instead of a ref, is skipped.
     """
-    user_ids_by_activity = {
-        item.id: [
+    activity_to_user_ids = {
+        activity.id: [
             mention["id"]
-            for mention in (item.data or {}).get("mentions") or []
+            for mention in (activity.data or {}).get("mentions") or []
             if isinstance(mention, dict) and mention.get("actor_type") == "User"
         ]
-        for item in item_list
+        for activity in activities
     }
-    all_user_ids = {user_id for ids in user_ids_by_activity.values() for user_id in ids}
+    all_user_ids = {user_id for ids in activity_to_user_ids.values() for user_id in ids}
     if not all_user_ids:
         return {}
 
@@ -85,18 +85,13 @@ def _resolve_mentioned_users(item_list: list[Activity]) -> dict[int, list[dict[s
             for user_id in user_ids
             if (user := users.get(user_id))
         ]
-        for activity_id, user_ids in user_ids_by_activity.items()
+        for activity_id, user_ids in activity_to_user_ids.items()
     }
 
 
 @register(Activity)
 class ActivitySerializer(Serializer):
     def __init__(self, environment_func=None, resolve_mentions: bool = False):
-        """
-        Args:
-            environment_func: A function that returns the environment for the activity.
-            resolve_mentions: Whether to resolve the mentions to the users' ``{"name", "email"}``.
-        """
         self.environment_func = environment_func
         self.resolve_mentions = resolve_mentions
 
@@ -229,6 +224,8 @@ class ActivitySerializer(Serializer):
             # While group_note update has been fixed there are still many skunky comments
             # in the database.
             data.pop("mentions", None)
+
+            # Unrelated to the above, if we resolved mentions, add them to the data.
             if attrs["mentions"]:
                 data["mentions"] = attrs["mentions"]
 
