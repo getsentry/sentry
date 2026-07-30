@@ -46,7 +46,6 @@ from sentry.notifications.utils.links import (
     get_integration_link,
     get_issue_replay_link,
     get_rules,
-    get_snooze_url,
 )
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
@@ -270,20 +269,9 @@ class AlertRuleNotification(ProjectNotification):
                 },
             )
 
-        # We don't show the snooze alert if the organization has not enabled the workflow engine UI because in the new UI/system a user can't individually disable a workflow
-        if not features.has("organizations:workflow-engine-ui", self.organization):
-            if len(self.rules) > 0:
-                context["snooze_alert"] = True
-                context["snooze_alert_url"] = get_snooze_url(
-                    self.rules[0],
-                    self.organization,
-                    self.project,
-                    sentry_query_params,
-                    self.group.type,
-                )
-        else:
-            context["snooze_alert"] = False
-            context["snooze_alert_url"] = None
+        # We don't show the snooze alert because in the new UI/system a user can't individually disable a workflow
+        context["snooze_alert"] = False
+        context["snooze_alert_url"] = None
 
         if isinstance(self.event, GroupEvent) and self.event.occurrence:
             context["issue_title"] = self.event.occurrence.issue_title
