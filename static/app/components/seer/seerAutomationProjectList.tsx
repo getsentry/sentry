@@ -5,6 +5,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {
@@ -14,7 +15,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -364,9 +364,10 @@ export function SeerAutomationProjectList() {
         </PanelHeader>
         <PanelBody>
           {filteredProjects.length === 0 && search && (
-            <EmptyMessage>
-              {t('No projects found matching "%(search)s"', {search})}
-            </EmptyMessage>
+            <EmptyState
+              padding="3xl"
+              title={t('No projects found matching "%(search)s"', {search})}
+            />
           )}
           {paginatedProjects.map(project => (
             <ClickablePanelItem key={project.id} onClick={() => handleRowClick(project)}>

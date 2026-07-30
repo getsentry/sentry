@@ -1,9 +1,9 @@
 import type {CSSProperties, ReactNode} from 'react';
 import {Fragment, useMemo} from 'react';
 
+import {EmptyState} from '@sentry/scraps/emptyState';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {getAriaSort} from 'sentry/components/tables/sortableHeaderCell';
 import {
@@ -191,9 +191,7 @@ export function GridEditable<
       return (
         <GridStatus>
           {props.emptyMessage ?? (
-            <EmptyStateWarning>
-              <p>{t('No results found for your query')}</p>
-            </EmptyStateWarning>
+            <EmptyState title={t('No results found for your query')} />
           )}
         </GridStatus>
       );
