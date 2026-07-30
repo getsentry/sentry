@@ -26,10 +26,12 @@ import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DisplayType,
+  WidgetType,
   type DashboardDetails,
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
+import {getWidgetConfigError} from 'sentry/views/dashboards/utils/getWidgetConfigError';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import {
   DEFAULT_WIDGET_DRAG_POSITIONING,
@@ -43,13 +45,21 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
 import {WidgetBuilderFilterBar} from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
-import {WidgetPreview} from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
+import {
+  WidgetPreview,
+  type WidgetPreviewStatus,
+} from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
 import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import {hasUnresolvedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/hasUnresolvedTraceMetric';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -248,6 +258,58 @@ export function WidgetPreviewContainer({
   openWidgetTemplates?: boolean;
 }) {
   const {state} = useWidgetBuilderContext();
+
+  const widget = convertBuilderStateToWidget(state);
+
+  // `MetricSelector` loads available metrics, and if the current widget doesn't
+  // have a selected metric, `MetricSelect` might _force_ one, in a `useEffect`.
+  // To prevent showing an error state while it's fetching, fetch data here, if
+  // needed. Show a loading screen while it's fetching. NOTE: the default
+  // aggregate for trace metrics is `sum(value)` because we don't know available
+  // metrics at render time, so a default metrics widget is invalid, which is
+  // why we need to wait for the load.
+  const needsMetric =
+    widget.widgetType === WidgetType.TRACEMETRICS && hasUnresolvedTraceMetric(widget);
+  const {data: metricOptions, isFetching: isFetchingMetricOptions} = useMetricOptions({
+    enabled: needsMetric,
+  });
+  const hasMetricOptions = (metricOptions?.data?.length ?? 0) > 0;
+
+  const isResolving = needsMetric && isFetchingMetricOptions;
+  const hasNoMetrics = needsMetric && !isFetchingMetricOptions && !hasMetricOptions;
+
+  // `convertBuilderStateToWidget` strips blank equations, so one only matters when it's
+  // the *only* thing entered — otherwise the widget renders from its other aggregates.
+  // In that lone-equation case, nudge the user to finish it rather than showing the
+  // generic "add a field" error.
+  const hasOnlyBlankEquation =
+    widget.widgetType === WidgetType.TRACEMETRICS &&
+    widget.queries.every(query => query.aggregates.length === 0) &&
+    Boolean(
+      getTraceMetricAggregateSource(state.displayType, state.yAxis, state.fields)?.some(
+        aggregate =>
+          aggregate.kind === FieldValueKind.EQUATION && aggregate.field.trim() === ''
+      )
+    );
+
+  const message =
+    (hasOnlyBlankEquation ? t('Enter an equation to preview results') : undefined) ??
+    getWidgetConfigError(widget) ??
+    (isQueryConditionInvalid ? t("This widget's query filter is invalid.") : undefined);
+
+  let previewStatus: WidgetPreviewStatus;
+  if (isResolving) {
+    previewStatus = {status: 'loading'};
+  } else if (hasNoMetrics) {
+    previewStatus = {
+      status: 'invalid',
+      message: t('No metrics found for the selected projects.'),
+    };
+  } else if (message) {
+    previewStatus = {status: 'invalid', message};
+  } else {
+    previewStatus = {status: 'ready'};
+  }
   const organization = useOrganization();
   const location = useLocation();
   const theme = useTheme();
@@ -359,7 +421,7 @@ export function WidgetPreviewContainer({
                     <WidgetPreview
                       dashboardFilters={dashboardFilters}
                       dashboard={dashboard}
-                      isQueryConditionInvalid={isQueryConditionInvalid}
+                      previewStatus={previewStatus}
                       onDataFetched={onDataFetched}
                       shouldForceDescriptionTooltip={!isSmallScreen}
                     />

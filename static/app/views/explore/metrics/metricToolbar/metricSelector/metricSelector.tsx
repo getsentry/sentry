@@ -268,6 +268,12 @@ export function MetricSelector({
   // param. Skip options the caller disables (e.g. counters for heat maps) so we
   // don't default into an invalid selection. If every option is disabled, leave
   // the slot empty rather than selecting a metric the caller marked invalid.
+  //
+  // TODO: This runs after paint, so when options are already cached the widget
+  // builder preview renders one frame with no metric selected — briefly flashing
+  // the "missing a metric" error before this fills it in. Worth resolving the
+  // default synchronously (or otherwise closing that gap) so the preview never
+  // flashes. See newWidgetBuilder's `isResolving`.
   useEffect(() => {
     if (traceMetric.name) {
       return;
