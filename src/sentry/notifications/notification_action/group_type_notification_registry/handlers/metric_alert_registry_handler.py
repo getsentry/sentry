@@ -53,6 +53,7 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
         result: dict[int, OrganizationMember | Team | str | None] = {}
 
         user_actions: list[Action] = []
+        team_actions: list[Action] = []
         team_ids: list[int] = []
         team_action_ids: dict[int, list[int]] = {}
 
@@ -67,6 +68,7 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
                 user_actions.append(action)
             elif target_type == ActionTarget.TEAM.value:
                 tid = int(target_identifier)
+                team_actions.append(action)
                 team_ids.append(tid)
                 team_action_ids.setdefault(tid, []).append(action.id)
             elif target_type == ActionTarget.SPECIFIC.value:
@@ -74,14 +76,17 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
             else:
                 result[action.id] = None
 
-        if user_actions:
+        org_by_action_id: dict[int, int] = {}
+        organization_scoped_actions = [*user_actions, *team_actions]
+        if organization_scoped_actions:
             dcgas = DataConditionGroupAction.objects.filter(
-                action__in=[a.id for a in user_actions]
+                action__in=[action.id for action in organization_scoped_actions]
             ).select_related("condition_group")
             org_by_action_id = {
                 dcga.action_id: dcga.condition_group.organization_id for dcga in dcgas
             }
 
+        if user_actions:
             org_members = OrganizationMember.objects.filter(
                 user_id__in=[int(a.config["target_identifier"]) for a in user_actions],
                 organization_id__in=set(org_by_action_id.values()),
@@ -97,9 +102,16 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
                     result[action.id] = None
 
         if team_ids:
-            teams = {t.id: t for t in Team.objects.filter(id__in=team_ids)}
+            teams = {
+                (team.id, team.organization_id): team
+                for team in Team.objects.filter(
+                    id__in=team_ids,
+                    organization_id__in=set(org_by_action_id.values()),
+                )
+            }
             for tid, action_ids in team_action_ids.items():
                 for action_id in action_ids:
-                    result[action_id] = teams.get(tid)
+                    organization_id = org_by_action_id.get(action_id)
+                    result[action_id] = teams.get((tid, organization_id))
 
         return result
