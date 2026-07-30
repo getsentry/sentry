@@ -1032,7 +1032,7 @@ class TestEventDetectorsAllProject(TestCase):
 
     def test_only_all_project_detector_raises_on_preferred(self) -> None:
         ed = EventDetectors(all_project_detector=self.all_project_detector)
-        with pytest.raises(Detector.DoesNotExist):
+        with pytest.raises(AssertionError, match="At least one detector must exist"):
             ed.preferred_detector
 
     def test_only_all_project_has_detectors(self) -> None:
