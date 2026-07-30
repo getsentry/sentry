@@ -166,6 +166,7 @@ const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
 })<{errorReceived: boolean}>`
   margin-left: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p =>
     p.errorReceived ? p.theme.tokens.content.success : p.theme.colors.pink500};
 `;
@@ -181,9 +182,7 @@ const WaitingIndicator = styled(motion.div)`
   background-color: ${p => p.theme.colors.pink400};
 `;
 
-const StatusWrapper = styled(motion.create(Flex))`
-  font-size: ${p => p.theme.font.size.md};
-`;
+const StatusWrapper = motion.create(Flex);
 
 const LeadingSlot = styled('div')`
   display: flex;

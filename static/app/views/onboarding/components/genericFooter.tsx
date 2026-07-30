@@ -1,9 +1,15 @@
-import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Flex, type FlexProps, Grid, type GridProps} from '@sentry/scraps/layout';
+import {
+  Container,
+  type ContainerProps,
+  Flex,
+  type FlexProps,
+  Grid,
+  type GridProps,
+} from '@sentry/scraps/layout';
 
 const motionProps = {
   initial: 'initial',
@@ -15,26 +21,35 @@ const motionProps = {
 
 export const FOOTER_HEIGHT = '72px';
 
-const footerChromeStyles = (theme: Theme) => css`
-  width: 100%;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  height: ${FOOTER_HEIGHT};
+const footerChromeProps = {
+  position: 'fixed',
+  bottom: 0,
+  left: 0,
+  width: '100%',
+  height: FOOTER_HEIGHT,
+  background: 'primary',
+  borderTop: 'secondary',
+} as const satisfies ContainerProps;
+
+// z-index is the only chrome property with no layout prop.
+const zIndexStyles = css`
   z-index: 100;
-  background-color: ${theme.tokens.background.primary};
-  border-top: 1px solid ${theme.tokens.border.secondary};
 `;
 
 export function GenericFooter(
   props: React.ComponentProps<typeof motion.div> & FlexProps
 ) {
-  return <MotionFlex {...motionProps} {...props} />;
+  return (
+    <MotionFlex {...footerChromeProps} justify="between" {...motionProps} {...props} />
+  );
 }
 
 export function GridFooter(props: React.ComponentProps<typeof motion.div> & GridProps) {
   return (
-    <FooterChrome>
+    // A separate element from the grid below: an element can't query itself, and
+    // this is the outermost node the footer owns, so its containment can't
+    // re-anchor a `position: fixed` ancestor.
+    <FooterChrome {...footerChromeProps} containerType="inline-size">
       <MotionGrid
         height="100%"
         columns={{zero: '1fr', xl: 'repeat(3, 1fr)'}}
@@ -46,13 +61,11 @@ export function GridFooter(props: React.ComponentProps<typeof motion.div> & Grid
 }
 
 const StyledFlex = styled(Flex)`
-  ${p => footerChromeStyles(p.theme)};
-  justify-content: space-between;
+  ${zIndexStyles};
 `;
 
-const FooterChrome = styled('div')`
-  ${p => footerChromeStyles(p.theme)};
-  container-type: inline-size;
+const FooterChrome = styled(Container)`
+  ${zIndexStyles};
 `;
 
 const MotionFlex = motion.create(StyledFlex);
