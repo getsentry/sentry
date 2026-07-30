@@ -18,7 +18,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {AutoRefreshLabel, AutoRefreshText} from 'sentry/views/explore/logs/styles';
+import {TableToggleLabel, TableToggleText} from 'sentry/views/explore/logs/styles';
 import {useLogsAutoRefreshInterval} from 'sentry/views/explore/logs/useLogsAutoRefreshInterval';
 import {checkSortIsTimeBasedDescending} from 'sentry/views/explore/logs/utils';
 import {
@@ -109,7 +109,7 @@ export function AutorefreshToggle({averageLogsPerSecond = 0}: AutorefreshToggleP
 
   return (
     <Fragment>
-      <AutoRefreshLabel>
+      <TableToggleLabel>
         <Tooltip
           title={getTooltipMessage(tooltipReason)}
           disabled={!tooltipReason}
@@ -136,8 +136,8 @@ export function AutorefreshToggle({averageLogsPerSecond = 0}: AutorefreshToggleP
             }}
           />
         </Tooltip>
-        <AutoRefreshText>{t('Auto-refresh')}</AutoRefreshText>
-      </AutoRefreshLabel>
+        <TableToggleText>{t('Auto-refresh')}</TableToggleText>
+      </TableToggleLabel>
     </Fragment>
   );
 }

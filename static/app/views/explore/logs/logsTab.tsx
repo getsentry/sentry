@@ -58,6 +58,7 @@ import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext';
 import {LogsTabSeerComboBox} from 'sentry/views/explore/logs/logsTabSeerComboBox';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
+import {StoredReplaysOnlyToggle} from 'sentry/views/explore/logs/storedReplaysOnlyToggle';
 import {
   LogsFilterSection,
   LogsGraphContainer,
@@ -72,6 +73,7 @@ import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTa
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
+import {useLogsStoredReplaysOnlyAvailable} from 'sentry/views/explore/logs/useLogsStoredReplaysOnly';
 import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
@@ -227,6 +229,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const searchQuery = useQueryParamsSearch().formatString();
+  const showStoredReplaysOnlyToggle = useLogsStoredReplaysOnlyAvailable();
   const visualizes = useQueryParamsVisualizes();
 
   useLLMContext({
@@ -464,6 +467,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
               </Tabs>
               {tableTab === 'logs' && (
                 <TableActionsContainer>
+                  {showStoredReplaysOnlyToggle && <StoredReplaysOnlyToggle />}
                   <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
                   <Tooltip
                     title={manualRefreshDisabledReason}

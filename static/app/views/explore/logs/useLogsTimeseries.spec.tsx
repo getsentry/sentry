@@ -103,6 +103,7 @@ describe('useLogsTimeseries', () => {
             dataScanned: undefined,
             canResumeAutoFetch: false,
             resumeAutoFetch: () => {},
+            hiddenMissingReplayCount: 0,
           },
         }),
       {additionalWrapper: Wrapper}

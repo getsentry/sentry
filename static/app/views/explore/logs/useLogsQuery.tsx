@@ -25,6 +25,7 @@ import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetail
 import {
   AlwaysPresentLogFields,
   LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES,
+  LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
   LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS,
   LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS,
   MAX_LOG_INGEST_DELAY,
@@ -44,11 +45,16 @@ import {
   type EventsLogsResult,
 } from 'sentry/views/explore/logs/types';
 import {useLogsQueryTruncate} from 'sentry/views/explore/logs/useLogsQueryTruncate';
+import {useLogsStoredReplaysOnly} from 'sentry/views/explore/logs/useLogsStoredReplaysOnly';
+import {useStoredReplayFilter} from 'sentry/views/explore/logs/useStoredReplayFilter';
 import {
   isRowVisibleInVirtualStream,
   useVirtualStreaming,
 } from 'sentry/views/explore/logs/useVirtualStreaming';
-import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
+import {
+  getQuantizedLogTimeRange,
+  getTimeBasedSortBy,
+} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsCursor,
   useQueryParamsFields,
@@ -102,13 +108,19 @@ function useLogsApiOptions({
   const groupBys = useQueryParamsGroupBys();
   const [caseInsensitive] = useCaseInsensitivity();
   const truncate = useLogsQueryTruncate();
+  const storedReplaysOnly = useLogsStoredReplaysOnly();
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
     search.tokens.push(...baseSearch.tokens);
   }
   const fields = Array.from(
-    new Set([...AlwaysPresentLogFields, ..._fields, ...groupBys.filter(Boolean)])
+    new Set([
+      ...AlwaysPresentLogFields,
+      ..._fields,
+      ...groupBys.filter(Boolean),
+      ...(storedReplaysOnly ? [OurLogKnownFieldKey.REPLAY_ID] : []),
+    ])
   );
   const sorts = sortBys ?? [];
   const pageFilters = selection;
@@ -450,6 +462,8 @@ export function useInfiniteLogsQuery({
   const queryKeyWithInfinite = infiniteApiOptions.queryKey;
   const queryClient = useQueryClient();
 
+  const storedReplaysOnly = useLogsStoredReplaysOnly();
+
   const sortBys = useQueryParamsSortBys();
 
   const getPreviousPageParam = useCallback(
@@ -632,7 +646,7 @@ export function useInfiniteLogsQuery({
     setTotalBytesScanned(previousBytesScanned => previousBytesScanned + bytesScanned);
   }, [lastPage]);
 
-  const _data = useMemo(() => {
+  const visibleData = useMemo(() => {
     const usedRowIds = new Set();
     return (
       data?.pages.flatMap(page =>
@@ -651,6 +665,19 @@ export function useInfiniteLogsQuery({
       ) ?? []
     );
   }, [data, virtualStreamedTimestamp]);
+
+  const replayTimeRange = getQuantizedLogTimeRange(visibleData);
+
+  const {
+    items: _data,
+    hiddenCount: hiddenMissingReplayCount,
+    isResolving: isResolvingReplays,
+  } = useStoredReplayFilter({
+    items: visibleData,
+    start: replayTimeRange.start,
+    end: replayTimeRange.end,
+    enabled: storedReplaysOnly,
+  });
 
   const pageCount = data?.pages?.length;
   const _meta = useMemo<EventsMetaType>(() => {
@@ -713,6 +740,18 @@ export function useInfiniteLogsQuery({
     fetchNextPage: _fetchNextPage,
   });
 
+  const shouldFillFilteredPage = useFillFilteredPages({
+    queryKey: queryKeyWithInfinite,
+    canFill:
+      storedReplaysOnly &&
+      !isResolvingReplays &&
+      hasNextPage &&
+      nextPageHasData &&
+      !isFetching &&
+      _data.length < LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
+    fetchNextPage: _fetchNextPage,
+  });
+
   return {
     error,
     isError,
@@ -721,7 +760,11 @@ export function useInfiniteLogsQuery({
       // query is still pending
       queryResult.isPending ||
       // started auto fetching the next page
-      (_data.length === 0 && (isFetchingNextPage || shouldAutoFetchNextPage)),
+      (_data.length === 0 &&
+        (isFetchingNextPage ||
+          shouldAutoFetchNextPage ||
+          shouldFillFilteredPage ||
+          isResolvingReplays)),
     data: _data,
     meta: _meta,
     isRefetching: queryResult.isRefetching,
@@ -731,7 +774,9 @@ export function useInfiniteLogsQuery({
       !isFetchingNextPage &&
       !isError &&
       _data.length === 0 &&
-      !shouldAutoFetchNextPage,
+      !shouldAutoFetchNextPage &&
+      !shouldFillFilteredPage &&
+      !isResolvingReplays,
     fetchNextPage: _fetchNextPage,
     fetchPreviousPage: _fetchPreviousPage,
     refetch,
@@ -745,6 +790,7 @@ export function useInfiniteLogsQuery({
     resumeAutoFetch,
     dataScanned,
     bytesScanned: totalBytesScanned,
+    hiddenMissingReplayCount,
   };
 }
 
@@ -848,6 +894,50 @@ function useAutoFetchWindow({
     canAutoFetchNextPage && (!deadlineMs || Date.now() < deadlineMs);
 
   return {shouldAutoFetchNextPage, resumeAutoFetch};
+}
+
+const MAX_STORED_REPLAY_FILL_FETCHES = 10;
+
+/**
+ * Hiding missing-replay rows can leave a page too short to scroll, which stalls the
+ * table's scroll-driven paging. Fetches a bounded number of extra pages until there are
+ * enough rows to scroll with.
+ *
+ * The cap matters: once the query hits `maxPages` React Query evicts old pages, so a
+ * query whose replays are nearly all missing would otherwise never reach the threshold
+ * and would page forever. Kept separate from the high fidelity auto-fetch, which is
+ * time-bounded and reports its own metrics.
+ */
+function useFillFilteredPages({
+  queryKey,
+  canFill,
+  fetchNextPage,
+}: {
+  canFill: boolean;
+  fetchNextPage: () => unknown;
+  queryKey: QueryKey;
+}) {
+  const timesFetched = useRef(0);
+
+  const queryKeyHash = useMemo(() => {
+    const {url, options} = parseQueryKey(queryKey);
+    return JSON.stringify([url, options?.query]);
+  }, [queryKey]);
+
+  useEffect(() => {
+    timesFetched.current = 0;
+  }, [queryKeyHash]);
+
+  const shouldFill = canFill && timesFetched.current < MAX_STORED_REPLAY_FILL_FETCHES;
+
+  useEffect(() => {
+    if (shouldFill) {
+      timesFetched.current += 1;
+      fetchNextPage();
+    }
+  }, [fetchNextPage, shouldFill]);
+
+  return shouldFill;
 }
 
 export function useLogsQueryHighFidelity() {

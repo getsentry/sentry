@@ -51,10 +51,7 @@ import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logs
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LOGS_ROW_ID_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
-import {
-  MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
-  QUANTIZE_MINUTES,
-} from 'sentry/views/explore/logs/constants';
+import {MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS} from 'sentry/views/explore/logs/constants';
 import {getDisplayTotalPayloadBytes} from 'sentry/views/explore/logs/getDisplayTotalPayloadBytes';
 import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
 import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
@@ -84,12 +81,12 @@ import {
   getDynamicLogsNextFetchThreshold,
   getLogBodySearchTerms,
   getLogRowTimestampMillis,
+  getQuantizedLogTimeRange,
   getTableHeaderLabel,
   isErrorLogRow,
   isRegularLogResponseItem,
   logsFieldAlignment,
   mergeRowsByTimestampDescending,
-  quantizeTimestampToMinutes,
   type ErrorLogRowItem,
   type LogTableRowItem,
 } from 'sentry/views/explore/logs/utils';
@@ -257,31 +254,10 @@ export function LogsInfiniteTable({
 
   const isEmptyWithoutInjectedErrors = isEmpty && !hasInjectedErrorRows;
 
-  // Calculate quantized start and end times for replay links
-  const {logStart, logEnd} = useMemo(() => {
-    if (!baseData || baseData.length === 0) {
-      return {logStart: undefined, logEnd: undefined};
-    }
-
-    const timestamps = baseData.map(row => getLogRowTimestampMillis(row)).filter(Boolean);
-    if (timestamps.length === 0) {
-      return {logStart: undefined, logEnd: undefined};
-    }
-
-    const firstTimestamp = Math.min(...timestamps);
-    const lastTimestamp = Math.max(...timestamps);
-
-    const quantizedStart = quantizeTimestampToMinutes(firstTimestamp, QUANTIZE_MINUTES);
-    const quantizedEnd = quantizeTimestampToMinutes(
-      lastTimestamp + QUANTIZE_MINUTES * 60 * 1000,
-      QUANTIZE_MINUTES
-    );
-
-    return {
-      logStart: new Date(quantizedStart).toISOString(),
-      logEnd: new Date(quantizedEnd).toISOString(),
-    };
-  }, [baseData]);
+  const {start: logStart, end: logEnd} = useMemo(
+    () => getQuantizedLogTimeRange(baseData),
+    [baseData]
+  );
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
