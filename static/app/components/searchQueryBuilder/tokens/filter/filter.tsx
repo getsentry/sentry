@@ -58,6 +58,7 @@ interface FilterValueProps extends SearchQueryTokenProps {
 const FILTER_VALUE_ELLIPSIS_DELIMITER = /[\s\-:/]/;
 const FILTER_VALUE_MAX_LENGTH = 40;
 const FILTER_MULTI_VALUE_MAX_LENGTH = 20;
+const ELLIPSIS = '\u2026';
 
 /**
  * Fit middle-ellipsis to the element's available width.
@@ -85,24 +86,27 @@ function fitMiddleEllipsisToElement(
     element.textContent = capped;
     element.style.width = '';
 
-    if (element.clientWidth <= 0 || element.scrollWidth <= element.clientWidth + 1) {
+    if (element.clientWidth <= 0 || element.scrollWidth <= element.clientWidth) {
       return capped;
     }
 
-    // Lock the constrained width so shrinking candidates don't collapse the
-    // content-sized parent mid-search.
+    // Lock and reuse the constrained width so temporary candidate text cannot
+    // collapse a flex item during the search. Since these dimensions are
+    // integer-rounded, the styled end padding keeps glyphs away from the
+    // trailing clipping edge.
     const availableWidth = element.clientWidth;
     element.style.width = `${availableWidth}px`;
 
     let low = 1;
     let high = maxLength;
-    let best = middleEllipsis(value, 1, FILTER_VALUE_ELLIPSIS_DELIMITER);
+    element.textContent = ELLIPSIS;
+    let best = element.scrollWidth <= availableWidth ? ELLIPSIS : '';
 
     while (low <= high) {
       const mid = Math.floor((low + high) / 2);
       const candidate = middleEllipsis(value, mid, FILTER_VALUE_ELLIPSIS_DELIMITER);
       element.textContent = candidate;
-      if (element.scrollWidth <= availableWidth + 1) {
+      if (element.scrollWidth <= availableWidth) {
         best = candidate;
         low = mid + 1;
       } else {
@@ -488,8 +492,10 @@ const FilterValueJoiner = styled('span')`
 
 const FilterMultiValueTruncated = styled('div')`
   display: block;
+  box-sizing: border-box;
   white-space: nowrap;
   overflow: hidden;
+  padding-inline-end: 2px;
   max-width: 110px;
   width: 100%;
   min-width: 0;
@@ -497,8 +503,10 @@ const FilterMultiValueTruncated = styled('div')`
 
 const FilterValueSingleTruncatedValue = styled('div')`
   display: block;
+  box-sizing: border-box;
   white-space: nowrap;
   overflow: hidden;
+  padding-inline-end: 2px;
   max-width: 100%;
   width: 100%;
   min-width: 0;

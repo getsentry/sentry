@@ -1,5 +1,5 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
+import {getEmotionRules, textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   FormattedQuery,
@@ -126,6 +126,76 @@ describe('FormattedQuery', () => {
     expect(screen.queryByText(path)).not.toBeInTheDocument();
   });
 
+  it('preserves a short filter value that exactly fits its natural width', () => {
+    const clientWidthSpy = jest
+      .spyOn(Element.prototype, 'clientWidth', 'get')
+      .mockReturnValue(102);
+    const scrollWidthSpy = jest
+      .spyOn(Element.prototype, 'scrollWidth', 'get')
+      .mockImplementation(function (this: Element) {
+        // Approximate: treat each character as 10px wide, plus 2px end padding.
+        return (this.textContent?.length ?? 0) * 10 + 2;
+      });
+
+    try {
+      render(<FormattedQuery {...defaultProps} query="is:unresolved" />);
+
+      expect(screen.getByText('unresolved')).toBeInTheDocument();
+    } finally {
+      clientWidthSpy.mockRestore();
+      scrollWidthSpy.mockRestore();
+    }
+  });
+
+  it('leaves room after a middle-ellipsis candidate for glyph rendering', () => {
+    const clientWidthSpy = jest
+      .spyOn(Element.prototype, 'clientWidth', 'get')
+      .mockReturnValue(50);
+    const scrollWidthSpy = jest
+      .spyOn(Element.prototype, 'scrollWidth', 'get')
+      .mockImplementation(function (this: Element) {
+        // Approximate: treat each character as 10px wide, plus 2px end padding.
+        return (this.textContent?.length ?? 0) * 10 + 2;
+      });
+
+    try {
+      render(<FormattedQuery {...defaultProps} query="transaction:foo/bar" />);
+
+      const value = screen.getByText('…');
+      expect(value).toHaveAttribute('data-overflowing', 'true');
+      expect(value.scrollWidth).toBeLessThan(value.clientWidth);
+      expect(getEmotionRules(value).join(' ')).toContain('padding-inline-end: 2px');
+      expect(getEmotionRules(value).join(' ')).toContain('box-sizing: border-box');
+    } finally {
+      clientWidthSpy.mockRestore();
+      scrollWidthSpy.mockRestore();
+    }
+  });
+
+  it('does not let the temporary width lock collapse multi-value filters', () => {
+    const clientWidthSpy = jest
+      .spyOn(Element.prototype, 'clientWidth', 'get')
+      .mockImplementation(function (this: Element) {
+        return this instanceof HTMLElement && this.style.width ? 49 : 69;
+      });
+    const scrollWidthSpy = jest
+      .spyOn(Element.prototype, 'scrollWidth', 'get')
+      .mockImplementation(function (this: Element) {
+        // Approximate: treat each character as 10px wide, plus 2px end padding.
+        return (this.textContent?.length ?? 0) * 10 + 2;
+      });
+
+    try {
+      render(<FormattedQuery {...defaultProps} query="browser.name:[foo/bar,baz/qux]" />);
+
+      expect(screen.getByText('foo…ar').scrollWidth).toBeLessThan(69);
+      expect(screen.getByText('baz…ux').scrollWidth).toBeLessThan(69);
+    } finally {
+      clientWidthSpy.mockRestore();
+      scrollWidthSpy.mockRestore();
+    }
+  });
+
   it('tightens and restores middle-ellipsis as available width changes', () => {
     const path = '/api/0/organizations/{organization_id_or_slug}/events/';
     const capped = '/api/0…{organization_id_or_slug}/events/';
@@ -151,8 +221,8 @@ describe('FormattedQuery', () => {
     Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
       configurable: true,
       get() {
-        // Approximate: treat each character as 10px wide.
-        return (this.textContent?.length ?? 0) * 10;
+        // Approximate: treat each character as 10px wide, plus 2px end padding.
+        return (this.textContent?.length ?? 0) * 10 + 2;
       },
     });
     window.ResizeObserver = class {
@@ -175,7 +245,7 @@ describe('FormattedQuery', () => {
         resizeCallback?.([], {} as ResizeObserver);
       });
 
-      expect(screen.getByText('/api…events/')).toBeInTheDocument();
+      expect(screen.getByText('…events/')).toBeInTheDocument();
       expect(screen.queryByText(capped)).not.toBeInTheDocument();
 
       clientWidth = 500;
