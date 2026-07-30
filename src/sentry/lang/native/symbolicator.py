@@ -236,6 +236,7 @@ class Symbolicator:
         scraping_config = get_scraping_config(self.project)
 
         if minidump.stored_id:
+            stored_id = minidump.stored_id
             session = get_attachments_session(self.project.organization_id, self.project.id)
             json: dict[str, Any] = {
                 "platform": platform,
@@ -250,7 +251,7 @@ class Symbolicator:
 
             def cb() -> dict[str, Any]:
                 json["symbolicate"]["storage_url"] = get_internal_download_url(
-                    session, minidump.stored_id, token_validity=TOKEN_VALIDITY
+                    session, stored_id, token_validity=TOKEN_VALIDITY
                 )
                 return {"json": json}
 
@@ -274,6 +275,7 @@ class Symbolicator:
         scraping_config = get_scraping_config(self.project)
 
         if report.stored_id:
+            stored_id = report.stored_id
             session = get_attachments_session(self.project.organization_id, self.project.id)
             json: dict[str, Any] = {
                 "platform": platform,
@@ -287,7 +289,7 @@ class Symbolicator:
 
             def cb() -> dict[str, Any]:
                 json["symbolicate"]["storage_url"] = get_internal_download_url(
-                    session, report.stored_id, token_validity=TOKEN_VALIDITY
+                    session, stored_id, token_validity=TOKEN_VALIDITY
                 )
                 return {"json": json}
 
