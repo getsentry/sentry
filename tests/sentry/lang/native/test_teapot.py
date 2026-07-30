@@ -242,6 +242,17 @@ def test_apply_appends_markers_to_existing_breadcrumbs() -> None:
     assert values[-1]["category"] == "gpu.draw"  # GPU marker appended last
 
 
+def test_apply_marker_without_data_omits_none_from_message() -> None:
+    """A label-only marker (no data) renders just the label, not 'label: None'."""
+    data = _relay_gpu_event()
+    apply_gpu_crash_symbolication(
+        data, _completed_response(markers=[{"kind": "barrier", "label": "PipelineBarrier"}])
+    )
+    bc = data["breadcrumbs"]["values"][0]
+    assert bc["message"] == "PipelineBarrier"
+    assert bc["data"] is None
+
+
 # ---------------------------------------------------------------------------
 # TeapotClient — request wire format
 # ---------------------------------------------------------------------------
