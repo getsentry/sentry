@@ -60,6 +60,8 @@ export function GridFooter(props: React.ComponentProps<typeof motion.div> & Grid
   );
 }
 
+// Styled rather than composed: the render-prop form replaces the element instead
+// of wrapping it, so it can't host arbitrary children.
 const StyledFlex = styled(Flex)`
   ${zIndexStyles};
 `;
