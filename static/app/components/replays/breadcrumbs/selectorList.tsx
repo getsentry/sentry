@@ -15,7 +15,7 @@ export function SelectorList({frame}: {frame: ClickFrame}) {
 
   // There's a rare case where `frame.data` is undefined, either SDK error or
   // user creating bad breadcrumbs
-  const componentName = frame.data?.node?.attributes['data-sentry-component'];
+  const componentName = frame.data?.node?.attributes?.['data-sentry-component'];
   const indexOfArrow = frame.message?.lastIndexOf('>') ?? -1;
   const lastComponentIndex = indexOfArrow === -1 ? 0 : indexOfArrow + 2;
 
