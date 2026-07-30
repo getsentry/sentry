@@ -3,13 +3,7 @@ import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {
-  Container,
-  Flex,
-  type FlexProps,
-  Grid,
-  type GridProps,
-} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 
 import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
@@ -91,7 +85,7 @@ export function FirstEventFooter({
       <StatusWrapper
         align="center"
         justify="center"
-        display={{zero: 'none', xl: 'flex'}}
+        display={{'screen:2xs': 'none', 'screen:sm': 'flex'}}
         initial="initial"
         animate="animate"
         exit="exit"
@@ -192,16 +186,19 @@ const StatusWrapper = styled(motion.create(Flex))`
   font-size: ${p => p.theme.font.size.md};
 `;
 
-function LeadingSlot(props: FlexProps) {
-  return <Flex align="center" margin="auto 3xl" {...props} />;
-}
+const LeadingSlot = styled('div')`
+  display: flex;
+  align-items: center;
+  margin: auto ${p => p.theme.space['3xl']};
+`;
 
 // Container's render-prop form styles the Link's own anchor rather than wrapping
 // it, so the responsive display lands on the element that has to disappear.
+// Viewport-driven to match the fixed footer bar it sits in — see GridFooter.
 function SkipOnboardingLink(props: LinkProps) {
   return (
     <Container
-      display={{zero: 'none', xl: 'block'}}
+      display={{'screen:2xs': 'none', 'screen:sm': 'block'}}
       margin="auto 3xl"
       whiteSpace="nowrap"
     >

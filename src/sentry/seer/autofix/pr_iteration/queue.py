@@ -20,6 +20,7 @@ class QueuedAutofixFeedback(BaseModel):
     group_id: int
     feedback: Feedback
     referrer: AutofixReferrer
+    actor_user_id: int | None = None
 
 
 def _feedback_queue_key(run_id: int) -> str:
@@ -34,6 +35,7 @@ def try_enqueue_autofix_feedback(
     feedback: Feedback,
     referrer: AutofixReferrer,
     run_state: SeerRunState,
+    actor_user_id: int | None = None,
 ) -> bool:
     if not feedback.source.should_queue(run_state):
         logger.info(
@@ -55,6 +57,7 @@ def try_enqueue_autofix_feedback(
             group_id=group_id,
             feedback=feedback,
             referrer=referrer,
+            actor_user_id=actor_user_id,
         ).json(),
     )
     redis.expire(key, _QUEUE_TTL_SECONDS)

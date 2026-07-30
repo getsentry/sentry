@@ -1,15 +1,9 @@
+import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {
-  Container,
-  type ContainerProps,
-  Flex,
-  type FlexProps,
-  Grid,
-  type GridProps,
-} from '@sentry/scraps/layout';
+import {Flex, type FlexProps, Grid, type GridProps} from '@sentry/scraps/layout';
 
 const motionProps = {
   initial: 'initial',
@@ -20,63 +14,51 @@ const motionProps = {
 };
 
 /**
- * Height of the fixed footer bar. Exported so steps can reserve space for it —
- * it overlays their content, so they need matching bottom clearance. Too large
- * for the space scale, which stops at 3xl.
+ * Height of the fixed footer bar. Exported so steps can reserve matching bottom
+ * clearance — the bar overlays their content. Too large for the space scale.
  */
 export const FOOTER_HEIGHT = '72px';
 
-// The bar both footers pin to the bottom of the viewport. Every property is a
-// Container prop except the stacking order, which has none.
-const footerChromeProps = {
-  position: 'fixed',
-  bottom: 0,
-  left: 0,
-  width: '100%',
-  height: FOOTER_HEIGHT,
-  background: 'primary',
-  borderTop: 'secondary',
-} as const satisfies ContainerProps;
-
-const zIndexStyles = css`
+const footerChromeStyles = (theme: Theme) => css`
+  width: 100%;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  height: ${FOOTER_HEIGHT};
   z-index: 100;
+  background-color: ${theme.tokens.background.primary};
+  border-top: 1px solid ${theme.tokens.border.secondary};
 `;
 
 export function GenericFooter(
   props: React.ComponentProps<typeof motion.div> & FlexProps
 ) {
-  return (
-    <MotionFlex {...footerChromeProps} justify="between" {...motionProps} {...props} />
-  );
+  return <MotionFlex {...motionProps} {...props} />;
 }
 
 export function GridFooter(props: React.ComponentProps<typeof motion.div> & GridProps) {
   return (
-    <FooterChrome {...footerChromeProps} containerType="inline-size">
-      <MotionGrid
-        height="100%"
-        // Below xl the leading and status slots hide themselves, which takes
-        // them out of grid flow entirely — so a single track leaves the one
-        // remaining slot spanning the full width, flush to the trailing edge.
-        columns={{zero: '1fr', xl: 'repeat(3, 1fr)'}}
-        {...motionProps}
-        {...props}
-      />
-    </FooterChrome>
+    <MotionGrid
+      // Viewport-driven (`screen:`) rather than container-driven: the bar is
+      // `position: fixed` at `width: 100%`, so its own width is the viewport's.
+      // Below sm the leading and status slots hide themselves, which takes them
+      // out of grid flow — so a single track leaves the one remaining slot
+      // spanning the full width, flush to the trailing edge.
+      columns={{'screen:2xs': '1fr', 'screen:sm': 'repeat(3, 1fr)'}}
+      {...motionProps}
+      {...props}
+    />
   );
 }
 
 const StyledFlex = styled(Flex)`
-  ${zIndexStyles};
+  ${p => footerChromeStyles(p.theme)};
+  justify-content: space-between;
 `;
 
-// The chrome is the query container for the footer's contents. It has to be a
-// separate element from the layout below because an element can't query itself,
-// and it's the outermost node the footer owns, so containment can't re-anchor
-// any `position: fixed` ancestor.
-const FooterChrome = styled(Container)`
-  ${zIndexStyles};
+const StyledGrid = styled(Grid)`
+  ${p => footerChromeStyles(p.theme)};
 `;
 
 const MotionFlex = motion.create(StyledFlex);
-const MotionGrid = motion.create(Grid);
+const MotionGrid = motion.create(StyledGrid);

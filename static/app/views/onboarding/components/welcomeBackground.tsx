@@ -6,20 +6,7 @@ import BugAImage from 'sentry-images/spot/broken-code-light.svg';
 import BugBImage from 'sentry-images/spot/seer-config-bug-1.svg';
 
 import {Image} from '@sentry/scraps/image';
-
-export function WelcomeBackground() {
-  return (
-    <Container
-      variants={{
-        animate: {},
-        exit: {},
-      }}
-      transition={{staggerChildren: 0.1}}
-    >
-      <WelcomeBackgroundImages />
-    </Container>
-  );
-}
+import {Container} from '@sentry/scraps/layout';
 
 function WelcomeBackgroundImages() {
   return (
@@ -67,6 +54,14 @@ function WelcomeBackgroundImages() {
 export function WelcomeBackgroundNewUi() {
   return (
     <ContainerNewUi
+      pointerEvents="none"
+      position="absolute"
+      height="100%"
+      width="100%"
+      // Viewport-driven (`screen:`) rather than container-driven: the wrapper
+      // fills the onboarding container, so its own width just tracks the
+      // window — there is no narrower box for it to respond to.
+      display={{'screen:2xs': 'none', 'screen:sm': 'block'}}
       variants={{
         animate: {},
         exit: {},
@@ -78,16 +73,9 @@ export function WelcomeBackgroundNewUi() {
   );
 }
 
-// Hidden per-illustration rather than on the wrapper, because the wrapper is
-// the query container and an element can't query itself. The wrapper draws
-// nothing on its own, so an empty one is invisible either way.
 const Illustration = styled(motion.div)`
   position: absolute;
   height: auto;
-
-  @container (max-width: ${p => p.theme.container.xl}) {
-    display: none;
-  }
 `;
 
 const BugA = styled(Illustration)`
@@ -102,20 +90,4 @@ const BugB = styled(Illustration)`
   width: 12rem;
 `;
 
-const Container = styled(motion.div)`
-  pointer-events: none;
-  position: absolute;
-  height: 150%;
-  max-width: 100vw;
-  width: 300%;
-  top: -25%;
-  container-type: inline-size;
-`;
-
-const ContainerNewUi = styled(motion.div)`
-  pointer-events: none;
-  position: absolute;
-  height: 100%;
-  width: 100%;
-  container-type: inline-size;
-`;
+const ContainerNewUi = motion.create(Container);

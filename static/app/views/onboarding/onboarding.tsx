@@ -1,10 +1,10 @@
-import {Fragment, useCallback, useEffect, useState, type PropsWithChildren} from 'react';
+import {useCallback, useEffect, useState, type PropsWithChildren} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, type GridProps, Stack} from '@sentry/scraps/layout';
-import {Link, type LinkProps} from '@sentry/scraps/link';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {LogoSentry} from 'sentry/components/logoSentry';
 import {
@@ -34,7 +34,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
-import {useHasNewWelcomeUI} from 'sentry/views/onboarding/useHasNewWelcomeUI';
 
 import {FOOTER_HEIGHT} from './components/genericFooter';
 import {NewWelcomeUI} from './components/newWelcome';
@@ -42,10 +41,8 @@ import {OnboardingSkipButton} from './components/onboardingSkipButton';
 import {PlatformSelection} from './platformSelection';
 import {ScmConnect} from './scmConnect';
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
-import {ScmProjectDetails} from './scmProjectDetails';
 import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
-import {TargetedOnboardingWelcome} from './welcome';
 
 // Genuine new-org onboarding happens shortly after org creation. Existing orgs
 // only reach /onboarding via stale links + login replay and are far older than
@@ -56,7 +53,7 @@ const legacyOnboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
     title: t('Welcome'),
-    Component: WelcomeVariable,
+    Component: NewWelcomeUI,
     cornerVariant: 'top-right',
   },
   {
@@ -109,7 +106,6 @@ function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
     setSelectedPlatform,
     selectedFeatures,
     setSelectedFeatures,
-    setProjectDetailsForm,
     createdProjectSlug,
     setCreatedProjectSlug,
   } = useOnboardingContext();
@@ -122,34 +118,7 @@ function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
       createdProjectSlug={createdProjectSlug}
       onPlatformChange={setSelectedPlatform}
       onFeaturesChange={setSelectedFeatures}
-      onClearProjectDetailsForm={() => setProjectDetailsForm(undefined)}
       onProjectCreated={setCreatedProjectSlug}
-      onComplete={onComplete}
-      genBackButton={genBackButton}
-    />
-  );
-}
-
-function ScmProjectDetailsAdapter({onComplete, genBackButton}: StepProps) {
-  const {
-    selectedPlatform,
-    selectedFeatures,
-    selectedRepository,
-    createdProjectSlug,
-    setCreatedProjectSlug,
-    projectDetailsForm,
-    setProjectDetailsForm,
-  } = useOnboardingContext();
-
-  return (
-    <ScmProjectDetails
-      selectedPlatform={selectedPlatform}
-      selectedFeatures={selectedFeatures}
-      selectedRepository={selectedRepository}
-      createdProjectSlug={createdProjectSlug}
-      projectDetailsForm={projectDetailsForm}
-      onProjectCreated={setCreatedProjectSlug}
-      onProjectDetailsFormChange={setProjectDetailsForm}
       onComplete={onComplete}
       genBackButton={genBackButton}
     />
@@ -160,7 +129,7 @@ const scmOnboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
     title: t('Welcome'),
-    Component: WelcomeVariable,
+    Component: NewWelcomeUI,
     cornerVariant: 'top-right',
   },
   {
@@ -176,13 +145,6 @@ const scmOnboardingSteps: StepDescriptor[] = [
     cornerVariant: 'top-left',
   },
   {
-    id: OnboardingStepId.SCM_PROJECT_DETAILS,
-    title: t('Project details'),
-    Component: ScmProjectDetailsAdapter,
-    hasFooter: true,
-    cornerVariant: 'top-left',
-  },
-  {
     id: OnboardingStepId.SETUP_DOCS,
     title: t('Install the Sentry SDK'),
     Component: SetupDocs,
@@ -191,63 +153,25 @@ const scmOnboardingSteps: StepDescriptor[] = [
   },
 ];
 
-function WelcomeVariable(props: StepProps) {
-  const hasNewWelcomeUI = useHasNewWelcomeUI();
-
-  if (hasNewWelcomeUI) {
-    return <NewWelcomeUI {...props} />;
-  }
-
-  return <TargetedOnboardingWelcome {...props} />;
-}
-
 interface ContainerVariableProps {
   hasFooter: boolean;
-  hasNewWelcomeUI: boolean;
   hasScmOnboarding: boolean;
   id: OnboardingStepId;
 }
 
 function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
-  const newWelcomeUIStep = props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME;
+  const newWelcomeUIStep = props.id === OnboardingStepId.WELCOME;
 
   if (newWelcomeUIStep && !props.hasScmOnboarding) {
     return (
-      <Fragment>
-        {/*
-          Padding follows the viewport, not a container: this box holds the
-          step's `position: fixed` footer, so making it a query container would
-          re-anchor that footer to it instead of the viewport.
-        */}
-        <Stack
-          flexGrow={1}
-          justify="center"
-          position="relative"
-          background="primary"
-          overflow="hidden"
-          padding={{'screen:2xs': '3xl 2xl', 'screen:md': '2xl'}}
-          width="100%"
-          marginLeft="auto"
-          marginRight="auto"
-        >
-          {props.children}
-        </Stack>
-        {/*
-          Reserves the space the fixed footer overlays. A sibling with a height,
-          rather than bottom spacing on the box above: the spacing props only
-          take space-scale tokens, which stop well short of the footer.
-        */}
-        <Container flexShrink={0} height={FOOTER_HEIGHT} />
-      </Fragment>
+      <OnboardingContainerNewWelcomeUI hasFooter>
+        {props.children}
+      </OnboardingContainerNewWelcomeUI>
     );
   }
 
   return (
     <OnboardingContainer
-      flexGrow={1}
-      width="100%"
-      marginLeft="auto"
-      marginRight="auto"
       hasFooter={props.hasFooter}
       hasScmOnboarding={props.hasScmOnboarding}
     >
@@ -257,21 +181,18 @@ function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
 }
 
 interface OnboardingStepVariableProps {
-  hasNewWelcomeUI: boolean;
   hasScmOnboarding: boolean;
   id: OnboardingStepId;
 }
 
 function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableProps>) {
-  const centered =
-    props.hasNewWelcomeUI &&
-    props.id === OnboardingStepId.WELCOME &&
-    !props.hasScmOnboarding;
+  const Component =
+    props.id === OnboardingStepId.WELCOME && !props.hasScmOnboarding
+      ? OnboardingStepNewUi
+      : OnboardingStep;
 
   return (
-    <OnboardingStep
-      flexGrow={1}
-      justify={centered ? 'center' : undefined}
+    <Component
       initial="initial"
       animate="animate"
       exit="exit"
@@ -282,7 +203,7 @@ function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableP
       data-test-id={`onboarding-step-${props.id}`}
     >
       {props.children}
-    </OnboardingStep>
+    </Component>
   );
 }
 
@@ -294,8 +215,6 @@ export function OnboardingWithoutContext() {
   const onboardingContext = useOnboardingContext();
   const selectedProjectSlug =
     onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
-
-  const hasNewWelcomeUI = useHasNewWelcomeUI();
 
   // Only report experiment exposure for genuine new-org onboarding. Existing
   // orgs can land on /onboarding via stale links, which would
@@ -311,18 +230,7 @@ export function OnboardingWithoutContext() {
     reportExposure: isNewOrgOnboarding,
   });
 
-  // Only report exposure for users who are actually in SCM onboarding —
-  // the assignment is irrelevant for legacy onboarding.
-  const {inExperiment: hasProjectDetailsStep} = useExperiment({
-    feature: 'onboarding-scm-project-details-experiment',
-    reportExposure: hasScmOnboarding && isNewOrgOnboarding,
-  });
-
-  const scmSteps = hasProjectDetailsStep
-    ? scmOnboardingSteps
-    : scmOnboardingSteps.filter(s => s.id !== OnboardingStepId.SCM_PROJECT_DETAILS);
-
-  const onboardingSteps = hasScmOnboarding ? scmSteps : legacyOnboardingSteps;
+  const onboardingSteps = hasScmOnboarding ? scmOnboardingSteps : legacyOnboardingSteps;
 
   useReplayForCriticalFlow({
     flowName: 'scm_onboarding',
@@ -490,7 +398,10 @@ export function OnboardingWithoutContext() {
   return (
     <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
-      <Header columns={{'screen:2xs': 'repeat(2, 1fr)', 'screen:md': 'repeat(3, 1fr)'}}>
+      <Header
+        columns={{'screen:2xs': 'repeat(2, 1fr)', 'screen:md': 'repeat(3, 1fr)'}}
+        as="header"
+      >
         <LogoSvg showWordmark={!hasScmOnboarding} />
         {stepIndex !== -1 && (
           <Flex
@@ -527,30 +438,16 @@ export function OnboardingWithoutContext() {
       <ContainerVariable
         hasFooter={containerHasFooter}
         id={stepObj.id}
-        hasNewWelcomeUI={hasNewWelcomeUI}
         hasScmOnboarding={hasScmOnboarding}
       >
         {hasScmOnboarding ? null : (
-          // Query container for the corner scale below. It wraps only the
-          // decorations, so its containment can't re-anchor the `position:
-          // fixed` step footers that also live in OnboardingContainer.
-          <Container
-            position="absolute"
-            inset={0}
-            pointerEvents="none"
-            containerType="inline-size"
-          >
-            <AdaptivePageCorners
-              // Controls the current corner variant
-              animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
-            />
-          </Container>
+          <AdaptivePageCorners
+            // Controls the current corner variant
+            animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
+          />
         )}
         {stepIndex > 0 && !hasScmOnboarding && (
           <BackMotionDiv
-            position="absolute"
-            top="40px"
-            left="20px"
             initial="initial"
             animate="visible"
             variants={{
@@ -577,7 +474,6 @@ export function OnboardingWithoutContext() {
           <OnboardingStepVariable
             key={stepObj.id}
             id={stepObj.id}
-            hasNewWelcomeUI={hasNewWelcomeUI}
             hasScmOnboarding={hasScmOnboarding}
           >
             {stepObj.Component && (
@@ -609,38 +505,57 @@ function Onboarding() {
   );
 }
 
-// Stays a styled component: its vertical padding (60/120px) and footer
-// clearance are all off the space scale, so converting the handful of
-// remaining declarations to props would split one rule across two mechanisms
-// for no gain.
-const OnboardingContainer = styled(Stack)<{
+// Stays a viewport `@media`: this box holds the step's `position: fixed` footer,
+// so making it a query container would re-anchor that footer to it instead of
+// the viewport.
+const OnboardingContainerNewWelcomeUI = styled('div')<{
+  hasFooter: boolean;
+}>`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  background: ${p => p.theme.tokens.background.primary};
+  padding: ${p => p.theme.space['2xl']};
+  overflow: hidden;
+
+  width: 100%;
+  margin: 0 auto;
+  margin-bottom: ${p => p.hasFooter && FOOTER_HEIGHT};
+
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    padding: ${p => p.theme.space['3xl']} ${p => p.theme.space['2xl']};
+  }
+`;
+
+const OnboardingContainer = styled('div')<{
   hasFooter: boolean;
   hasScmOnboarding: boolean;
 }>`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
   position: relative;
   overflow-x: hidden;
   background: ${p => p.theme.tokens.background.primary};
   padding: ${p => (p.hasScmOnboarding ? '60px' : '120px')} ${p => p.theme.space['2xl']};
+  width: 100%;
+  margin: 0 auto;
   padding-bottom: ${p => p.hasFooter && FOOTER_HEIGHT};
   margin-bottom: ${p => p.hasFooter && FOOTER_HEIGHT};
 `;
 
-// Only the stacking order isn't a Grid prop.
-const Header = styled((props: GridProps<'header'>) => (
-  <Grid
-    as="header"
-    background="primary"
-    paddingLeft="3xl"
-    paddingRight="3xl"
-    position="sticky"
-    height="80px"
-    align="center"
-    top={0}
-    borderBottom="secondary"
-    {...props}
-  />
-))`
+const Header = styled(Grid)`
+  background: ${p => p.theme.tokens.background.primary};
+  padding-left: ${p => p.theme.space['3xl']};
+  padding-right: ${p => p.theme.space['3xl']};
+  position: sticky;
+  height: 80px;
+  align-items: center;
+  top: 0;
   z-index: 100;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const LogoSvg = styled(LogoSentry)`
@@ -648,30 +563,41 @@ const LogoSvg = styled(LogoSentry)`
   color: ${p => p.theme.tokens.content.primary};
 `;
 
-const OnboardingStep = motion.create(Stack);
+const OnboardingStep = styled(motion.div)`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+`;
 
+const OnboardingStepNewUi = styled(motion.div)`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+`;
+
+// Stays a viewport `@media`: the corners span the full onboarding container,
+// which itself just tracks the window, so there is no narrower box to query.
 const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;
   overflow: hidden;
-  @container (max-width: ${p => p.theme.container.xl}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     --corner-scale: 0.5;
   }
 `;
 
-// Sizes the button it wraps, which a descendant selector can do and a prop
-// can't — the Button is supplied by the caller.
-const BackMotionDiv = styled(motion.create(Container))`
+const BackMotionDiv = styled(motion.div)`
+  position: absolute;
+  top: 40px;
+  left: 20px;
+
   button {
     font-size: ${p => p.theme.font.size.sm};
   }
 `;
 
-function SkipOnboardingLink(props: LinkProps) {
-  return (
-    <Container margin="auto 3xl">
-      {({className}) => <Link className={className} {...props} />}
-    </Container>
-  );
-}
+const SkipOnboardingLink = styled(Link)`
+  margin: auto ${p => p.theme.space['3xl']};
+`;
 
 export default Onboarding;

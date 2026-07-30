@@ -10,6 +10,8 @@ from uuid import UUID
 import sentry_sdk
 
 from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT, ObjectStatus
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.types import FeatureRunStatus
@@ -32,6 +34,7 @@ from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.seer.night_shift.models import TriageResponse, TriageVerdict
 from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
+from sentry.types.activity import ActivityType
 
 logger = logging.getLogger(__name__)
 
@@ -219,7 +222,7 @@ def _process_verdicts(
                 else None
             )
             try:
-                run_by_group[group.id] = trigger_autofix_agent(
+                triggered_run = trigger_autofix_agent(
                     group=group,
                     step=AutofixStep.ROOT_CAUSE,
                     referrer=referrer,
@@ -230,6 +233,16 @@ def _process_verdicts(
                 logger.exception(
                     "night_shift.autofix_trigger_failed",
                     extra={**log_extra, "group_id": group.id},
+                )
+                continue
+
+            run_by_group[group.id] = triggered_run
+            with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
+                Activity.objects.create_group_activity(
+                    group,
+                    ActivityType.TRIGGER_AUTOFIX,
+                    data={"referrer": referrer.value},
+                    send_notification=False,
                 )
 
         sentry_sdk.metrics.count("night_shift.autofix_triggered", len(run_by_group))

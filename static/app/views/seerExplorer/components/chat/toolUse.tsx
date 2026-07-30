@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {ToolCallIndicator, type ToolCallStatus} from '@sentry/scraps/chat';
+import {MessageRow, ToolCallIndicator, type ToolCallStatus} from '@sentry/scraps/chat';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -36,23 +36,25 @@ export function ToolUseBlock({
   }
 
   return (
-    <Stack padding="md xl" gap="md" minWidth={0} overflow="hidden">
-      {showThinking && hasValidContent(block.message.thinking_content) && (
-        <Disclosure size="sm">
-          <Disclosure.Title>
-            <Text size="sm" variant="muted" monospace>
-              {t('Thinking')}
-            </Text>
-          </Disclosure.Title>
-          <Disclosure.Content>
-            <SeerMarkdown raw={block.message.thinking_content} />
-          </Disclosure.Content>
-        </Disclosure>
-      )}
-      {block.message.tool_calls ? (
-        <ToolCallList block={block} blocks={blocks} getPageReferrer={getPageReferrer} />
-      ) : null}
-    </Stack>
+    <MessageRow from="assistant" density="compact">
+      <Stack gap="md" width="100%" minWidth={0} overflow="hidden">
+        {showThinking && hasValidContent(block.message.thinking_content) && (
+          <Disclosure size="sm">
+            <Disclosure.Title>
+              <Text size="sm" variant="muted" monospace>
+                {t('Thinking')}
+              </Text>
+            </Disclosure.Title>
+            <Disclosure.Content>
+              <SeerMarkdown raw={block.message.thinking_content} />
+            </Disclosure.Content>
+          </Disclosure>
+        )}
+        {block.message.tool_calls ? (
+          <ToolCallList block={block} blocks={blocks} getPageReferrer={getPageReferrer} />
+        ) : null}
+      </Stack>
+    </MessageRow>
   );
 }
 

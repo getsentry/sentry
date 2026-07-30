@@ -1,12 +1,14 @@
-import {useMemo} from 'react';
+import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderConfig,
 } from 'sentry/components/searchQueryBuilder/context';
+import {FormattedQueryConfigContext} from 'sentry/components/searchQueryBuilder/formattedQueryContext';
 import {AggregateKeyVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filter';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
@@ -31,6 +33,7 @@ export type FormattedQueryProps = {
   filterKeyAliases?: TagCollection;
   filterKeys?: TagCollection;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
+  wrapTokens?: boolean;
 };
 
 type TokenProps = {
@@ -57,6 +60,7 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
 
 function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
+  const {wrapTokens} = useContext(FormattedQueryConfigContext);
   const label = useMemo(
     () =>
       getOperatorInfo({
@@ -67,9 +71,9 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   );
 
   return (
-    <FilterWrapper aria-label={token.text}>
+    <FilterWrapper aria-label={token.text} $wrapTokens={wrapTokens}>
       <FilterKey token={token} /> {label}{' '}
-      <FilterValue>
+      <FilterValue $wrapTokens={wrapTokens}>
         <FilterValueText token={token} />
       </FilterValue>
     </FilterWrapper>
@@ -77,21 +81,28 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
 }
 
 function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
+  const {wrapTokens} = useContext(FormattedQueryConfigContext);
   const label = token.text.toUpperCase();
   return (
-    <FilterWrapper aria-label={label}>
+    <FilterWrapper aria-label={label} $wrapTokens={wrapTokens}>
       <Text variant="muted">{label}</Text>
     </FilterWrapper>
   );
 }
 
 function QueryToken({token}: TokenProps) {
+  const {wrapTokens} = useContext(FormattedQueryConfigContext);
+
   switch (token.type) {
     case Token.FILTER:
       return <Filter token={token} />;
     case Token.FREE_TEXT:
       if (token.value.trim()) {
-        return <span>{token.value.trim()}</span>;
+        return (
+          <Text as="span" wordBreak={wrapTokens ? 'break-word' : undefined}>
+            {token.value.trim()}
+          </Text>
+        );
       }
       return null;
     case Token.L_PAREN:
@@ -121,6 +132,7 @@ export function FormattedQuery({
   fieldDefinitionGetter = defaultFieldDefinitionGetter,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
+  wrapTokens = false,
 }: FormattedQueryProps) {
   const parsedQuery = useMemo(() => {
     return parseQueryBuilderValue(query, fieldDefinitionGetter, {
@@ -128,17 +140,20 @@ export function FormattedQuery({
       filterKeyAliases,
     });
   }, [fieldDefinitionGetter, filterKeys, query, filterKeyAliases]);
+  const formattedQueryConfig = useMemo(() => ({wrapTokens}), [wrapTokens]);
 
   if (!parsedQuery) {
     return <QueryWrapper className={className} />;
   }
 
   return (
-    <QueryWrapper aria-label={query} className={className}>
-      {parsedQuery.map((token: any, index: any) => {
-        return <QueryToken key={index} token={token} />;
-      })}
-    </QueryWrapper>
+    <FormattedQueryConfigContext.Provider value={formattedQueryConfig}>
+      <QueryWrapper aria-label={query} className={className}>
+        {parsedQuery.map((token: any, index: any) => {
+          return <QueryToken key={index} token={token} />;
+        })}
+      </QueryWrapper>
+    </FormattedQueryConfigContext.Provider>
   );
 }
 
@@ -158,6 +173,7 @@ export function ProvidedFormattedQuery({
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
   getFilterTokenWarning,
+  wrapTokens,
 }: FormattedQueryProps) {
   return (
     <SearchQueryBuilderProvider
@@ -174,44 +190,59 @@ export function ProvidedFormattedQuery({
         fieldDefinitionGetter={fieldDefinitionGetter}
         filterKeys={filterKeys}
         filterKeyAliases={filterKeyAliases}
+        wrapTokens={wrapTokens}
       />
     </SearchQueryBuilderProvider>
   );
 }
 
-const QueryWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  row-gap: ${p => p.theme.space.xs};
-  column-gap: ${p => p.theme.space.md};
-`;
+function QueryWrapper(props: FlexProps) {
+  return <Flex {...props} align="center" wrap="wrap" gap="xs md" />;
+}
 
-export const FilterWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  background: ${p => p.theme.tokens.background.primary};
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
-  border: 1px solid ${p => p.theme.tokens.border.secondary};
-  border-radius: ${p => p.theme.radius.md};
-  height: 24px;
-  white-space: nowrap;
-  overflow: hidden;
-`;
+type FilterWrapperProps = FlexProps & {
+  $wrapTokens?: boolean;
+};
 
-const FilterValue = styled('div')`
+export function FilterWrapper({$wrapTokens = false, ...props}: FilterWrapperProps) {
+  return (
+    <Flex
+      {...props}
+      align="center"
+      gap="xs"
+      background="primary"
+      padding="2xs xs"
+      border="secondary"
+      radius="md"
+      minHeight="24px"
+      height={$wrapTokens ? 'auto' : '24px'}
+      maxWidth="100%"
+      whiteSpace="nowrap"
+      overflow={$wrapTokens ? 'visible' : 'hidden'}
+    />
+  );
+}
+
+const FilterValue = styled('div')<{$wrapTokens?: boolean}>`
   max-width: 300px;
+  min-width: 0;
   color: ${p => p.theme.tokens.content.accent};
   display: block;
   width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: ${p => (p.$wrapTokens ? 'normal' : 'nowrap')};
+  overflow: ${p => (p.$wrapTokens ? 'visible' : 'hidden')};
+  text-overflow: ${p => (p.$wrapTokens ? 'clip' : 'ellipsis')};
+  overflow-wrap: ${p => (p.$wrapTokens ? 'anywhere' : undefined)};
 `;
 
-const Paren = styled('div')`
-  display: flex;
-  align-items: center;
-  color: ${p => p.theme.tokens.content.secondary};
-`;
+function Paren({children}: {children: React.ReactNode}) {
+  return (
+    <Text variant="muted">
+      {props => (
+        <Flex {...props} align="center">
+          {children}
+        </Flex>
+      )}
+    </Text>
+  );
+}
