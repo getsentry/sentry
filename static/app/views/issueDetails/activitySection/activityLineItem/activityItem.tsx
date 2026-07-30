@@ -21,7 +21,6 @@ import {getAssignedActivityItem} from './activityItem/assignment';
 import {getResolvedInCommitDetails} from './activityItem/commitDetails';
 import {getProviderName} from './activityItem/provider';
 import {getResolvedInReleaseDetails} from './activityItem/releaseDetails';
-import type {ActivityItem} from './activityItem/types';
 import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
 import {getIntegrationChip} from './chips/integrationChip';
@@ -31,7 +30,10 @@ import {ActivityRelease} from './chips/releaseChip';
 import type {ActivityFeedItem, CollapsedSeerActivity} from './activityFeedItem';
 import {getArchiveDetails} from './archiveDetails';
 
-export type {ActivityItem} from './activityItem/types';
+export interface ActivityItem {
+  title: React.ReactNode;
+  details?: React.ReactNode;
+}
 
 function getNoteAuthorName(item: GroupActivity) {
   if (item.sentry_app) {

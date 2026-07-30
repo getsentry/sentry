@@ -24,6 +24,7 @@ import {
   collapseSeerActivityPairs,
   type ActivityFeedItem,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
+import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {
   ActivityLineNote,
   isActivityNote,
@@ -36,7 +37,7 @@ import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-interface TimelineItemProps {
+interface ActivityFeedRowProps {
   group: Group;
   handleDelete: (item: GroupActivity) => Promise<void>;
   inputVariant: 'compact' | 'full';
@@ -45,14 +46,14 @@ interface TimelineItemProps {
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
-function TimelineItem({
+function ActivityFeedRow({
   item,
   handleDelete,
   onCommentEdited,
   group,
   inputVariant,
   timestampUnitStyle,
-}: TimelineItemProps) {
+}: ActivityFeedRowProps) {
   const {activity} = item;
 
   if (!isActivityNote(activity)) {
@@ -210,7 +211,7 @@ export function ActivitySection({
   const timestampUnitStyle = variant === 'sidebar' ? 'short' : undefined;
 
   const renderActivityItem = (item: ActivityFeedItem) => (
-    <TimelineItem
+    <ActivityFeedRow
       item={item}
       handleDelete={handleDelete}
       onCommentEdited={onCommentEdited}
@@ -220,10 +221,6 @@ export function ActivitySection({
       timestampUnitStyle={timestampUnitStyle}
     />
   );
-  const renderActivityList = (children: React.ReactNode) => (
-    <ActivityLineList data-test-id="activity-timeline">{children}</ActivityLineList>
-  );
-
   const noteInput = (
     <ActivityNoteInput
       key={inputId}
@@ -238,7 +235,11 @@ export function ActivitySection({
     />
   );
 
-  const timeline = renderActivityList(displayedActivities.map(renderActivityItem));
+  const timeline = (
+    <ActivityLineList data-test-id="activity-timeline">
+      {displayedActivities.map(renderActivityItem)}
+    </ActivityLineList>
+  );
   const hiddenActivityCount =
     displayedActivities.length >= 5 ? displayedActivities.length - 3 : 0;
   const sidebarVisibleActivities =
@@ -292,30 +293,13 @@ export function ActivitySection({
     >
       <Grid gap="lg">
         {noteInput}
-        {renderActivityList(sidebarActivityItems)}
+        <ActivityLineList data-test-id="activity-timeline">
+          {sidebarActivityItems}
+        </ActivityLineList>
       </Grid>
     </SidebarFoldSection>
   );
 }
-
-const ActivityLineList = styled('div')`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  container-name: activity-list;
-  container-type: inline-size;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    top: 11px;
-    bottom: 11px;
-    width: 0;
-    border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
-  }
-`;
 
 const RotatedEllipsisIcon = styled(IconEllipsis)`
   position: relative;
