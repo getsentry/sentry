@@ -362,7 +362,7 @@ class SlackRequestParser(BaseRequestParser):
         )
 
         if elapsed > SLACK_RESPONSE_TIMEOUT_SECONDS:
-            slack_request_data = getattr(self.slack_request, "data", {})
+            slack_event_id = self.slack_request.data.get("event_id") if self.slack_request else None
             logger.info(
                 "slack.control.response_time_exceeded",
                 extra={
@@ -370,7 +370,7 @@ class SlackRequestParser(BaseRequestParser):
                     "url_name": self.match.url_name,
                     "status_code": status_code,
                     "event_type": self._get_metric_event_type(),
-                    "slack_event_id": slack_request_data.get("event_id"),
+                    "slack_event_id": slack_event_id,
                     "elapsed": elapsed,
                 },
             )
