@@ -56,7 +56,7 @@ describe('FileInsightItemDiffTable', () => {
 
     // Check sizes
     expect(screen.getByText('+2.5 MB')).toBeInTheDocument();
-    expect(screen.getByText('-150 KB')).toBeInTheDocument();
+    expect(screen.getByText('-150 kB')).toBeInTheDocument();
     expect(screen.getByText('-1 MB')).toBeInTheDocument();
   });
 
@@ -140,7 +140,7 @@ describe('FileInsightItemDiffTable', () => {
 
     // Should render without crashing and show empty string for path
     expect(screen.getByText('Added')).toBeInTheDocument();
-    expect(screen.getByText('+1 KB')).toBeInTheDocument();
+    expect(screen.getByText('+1 kB')).toBeInTheDocument();
   });
 
   it('displays tooltips with copy functionality for paths', async () => {
