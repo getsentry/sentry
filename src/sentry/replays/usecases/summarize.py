@@ -442,14 +442,14 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
                 return f"Device battery event occurred at {timestamp}"
             case EventType.DEVICE_ORIENTATION:
                 position = event["data"]["payload"]["data"].get("position")
-                if position is None:
-                    return None
-                return f"Device orientation was changed to {position} at {timestamp}"
+                if position is not None:
+                    return f"Device orientation was changed to {position} at {timestamp}"
+                return f"Device orientation was changed at {timestamp}"
             case EventType.DEVICE_CONNECTIVITY:
                 state = event["data"]["payload"]["data"].get("state")
-                if state is None:
-                    return None
-                return f"Device connectivity was changed to {state} at {timestamp}"
+                if state is not None:
+                    return f"Device connectivity was changed to {state} at {timestamp}"
+                return f"Device connectivity was changed at {timestamp}"
             case EventType.SCROLL:
                 view_id = event["data"]["payload"]["data"].get("view.id", "")
                 direction = event["data"]["payload"]["data"].get("direction", "")
