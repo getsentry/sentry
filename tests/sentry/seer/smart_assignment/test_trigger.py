@@ -107,7 +107,7 @@ class TriggerSmartAssignmentTest(TestCase):
         )
         with self.feature("organizations:seer-smart-assignment-run"):
             trigger_smart_assignment(
-                self.group, ActivityType.ASSIGNED, self._activity(ActivityType.ASSIGNED)
+                self.group, ActivityType.ASSIGNED, self._assigned_activity(assignee.id)
             )
 
         mirrors = self._mirrors()
@@ -125,7 +125,7 @@ class TriggerSmartAssignmentTest(TestCase):
         GroupAssignee.objects.create(group=self.group, project=self.group.project, team=team)
         with self.feature("organizations:seer-smart-assignment-run"):
             trigger_smart_assignment(
-                self.group, ActivityType.ASSIGNED, self._activity(ActivityType.ASSIGNED)
+                self.group, ActivityType.ASSIGNED, self._assigned_activity(team.id, "team")
             )
 
         extras = self._mirrors()[0].extras
@@ -211,7 +211,7 @@ class TriggerSmartAssignmentTest(TestCase):
             ),
         ):
             trigger_smart_assignment(
-                self.group, ActivityType.ASSIGNED, self._activity(ActivityType.ASSIGNED)
+                self.group, ActivityType.ASSIGNED, self._assigned_activity(assignee.id)
             )
 
         extras = self._mirrors()[0].extras
