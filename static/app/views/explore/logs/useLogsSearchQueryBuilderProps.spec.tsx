@@ -1,11 +1,12 @@
 import type {ReactNode} from 'react';
 import {PageFilterStateFixture, PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {FieldKind} from 'sentry/utils/fields';
+import {LOGS_FIELDS_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
@@ -106,6 +107,67 @@ describe('useLogsSearchQueryBuilderProps', () => {
     );
     expect(result.current.tracesItemSearchQueryBuilderProps.invalidFilterKeys).toEqual([
       'missing.key',
+    ]);
+  });
+
+  it('preserves quoted attribute keys containing colons', () => {
+    const {result, router} = renderHookWithProviders(
+      () =>
+        useLogsSearchQueryBuilderProps({
+          booleanAttributes: {},
+          booleanSecondaryAliases: {},
+          numberAttributes: {},
+          numberSecondaryAliases: {},
+          stringAttributes: {},
+          stringSecondaryAliases: {},
+        }),
+      {additionalWrapper: Wrapper}
+    );
+
+    act(() => {
+      result.current.tracesItemSearchQueryBuilderProps.onSearch?.(
+        '"imaginary.attribute:made_up_key":asdf',
+        {parsedQuery: null, queryIsValid: true}
+      );
+    });
+
+    expect(router.location.query.logsQuery).toBe(
+      '"imaginary.attribute:made_up_key":asdf'
+    );
+  });
+
+  it('adds a field for an explicit numeric attribute containing colons', () => {
+    const filterKey = 'imaginary.attribute:made_up_key';
+    const {result, router} = renderHookWithProviders(
+      () =>
+        useLogsSearchQueryBuilderProps({
+          booleanAttributes: {},
+          booleanSecondaryAliases: {},
+          numberAttributes: {
+            [filterKey]: {
+              key: filterKey,
+              name: filterKey,
+              kind: FieldKind.MEASUREMENT,
+            },
+          },
+          numberSecondaryAliases: {},
+          stringAttributes: {},
+          stringSecondaryAliases: {},
+        }),
+      {additionalWrapper: Wrapper}
+    );
+
+    act(() => {
+      result.current.tracesItemSearchQueryBuilderProps.onSearch?.(
+        `tags[${filterKey},number]:>100`,
+        {parsedQuery: null, queryIsValid: true}
+      );
+    });
+
+    expect(router.location.query[LOGS_FIELDS_KEY]).toEqual([
+      'timestamp',
+      'message',
+      filterKey,
     ]);
   });
 });

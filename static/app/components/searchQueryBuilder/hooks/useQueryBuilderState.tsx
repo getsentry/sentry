@@ -9,7 +9,10 @@ import {
   getArgsToken,
   unescapeAsteriskSearchValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/tokens/utils';
+import {
+  formatFilterKeyForSearch,
+  getDefaultValueForValueType,
+} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {
   type FieldDefinitionGetter,
   type FocusOverride,
@@ -27,6 +30,7 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {defined} from 'sentry/utils/defined';
+import type {FieldDefinition} from 'sentry/utils/fields';
 
 type QueryBuilderState = {
   /**
@@ -357,25 +361,32 @@ function termOperatorToInternal(op: TermOperator): {
 export function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: TermOperator
+  newOperator: TermOperator,
+  fieldDefinition: FieldDefinition | null = null
 ): string {
   if (isDateToken(token)) {
     return modifyFilterOperatorDate(query, token, newOperator);
   }
 
   const {negated, internalOp} = termOperatorToInternal(newOperator);
-  const newToken: TokenResult<Token.FILTER> = {...token};
-  newToken.negated = negated;
-  newToken.operator = internalOp;
+  const key = formatFilterKeyForSearch(getKeyName(token.key), fieldDefinition);
+  const prefix = negated ? '!' : '';
+  const replacement = `${prefix}${key}:${internalOp}${stringifyToken(token.value)}`;
 
-  return replaceQueryToken(query, token, stringifyToken(newToken));
+  return replaceQueryToken(query, token, replacement);
 }
 
 function modifyFilterOperator(
   state: QueryBuilderState,
-  action: UpdateFilterOpAction
+  action: UpdateFilterOpAction,
+  fieldDefinition: FieldDefinition | null
 ): QueryBuilderState {
-  const newQuery = modifyFilterOperatorQuery(state.query, action.token, action.op);
+  const newQuery = modifyFilterOperatorQuery(
+    state.query,
+    action.token,
+    action.op,
+    fieldDefinition
+  );
 
   if (newQuery === state.query && !action.focusOverride) {
     return state;
@@ -667,7 +678,8 @@ export function modifyFilterValue(
   query: string,
   token: TokenResult<Token.FILTER>,
   newValue: string,
-  newOp?: TermOperator
+  newOp?: TermOperator,
+  fieldDefinition: FieldDefinition | null = null
 ): string {
   if (isDateToken(token)) {
     return modifyFilterValueDate(query, token, newValue);
@@ -676,24 +688,30 @@ export function modifyFilterValue(
   // stop the user from entering multiple wildcards by themselves
   newValue = newValue.replace(/\*\*+/g, '*');
 
-  // No operator change — just replace the value (existing behavior)
-  if (newOp === undefined) {
+  const currentKey = stringifyToken(token.key);
+  const key = formatFilterKeyForSearch(getKeyName(token.key), fieldDefinition);
+
+  // No operator or key change — just replace the value.
+  if (newOp === undefined && key === currentKey) {
     return replaceQueryToken(query, token.value, newValue);
   }
 
-  // Operator change — replace the entire filter token atomically
-  const {negated, internalOp} = termOperatorToInternal(newOp);
+  // Key or operator change — replace the entire filter token atomically.
+  const {negated, internalOp} =
+    newOp === undefined
+      ? {negated: token.negated, internalOp: token.operator}
+      : termOperatorToInternal(newOp);
 
   const prefix = negated ? '!' : '';
-  const keyStr = stringifyToken(token.key);
-  const replacement = `${prefix}${keyStr}:${internalOp}${newValue}`;
+  const replacement = `${prefix}${key}:${internalOp}${newValue}`;
   return replaceQueryToken(query, token, replacement);
 }
 
 function updateFilterMultipleValues(
   state: QueryBuilderState,
   token: TokenResult<Token.FILTER>,
-  values: string[]
+  values: string[],
+  fieldDefinition: FieldDefinition | null
 ) {
   // Deduplicate by canonical form while preserving the original text of the
   // first occurrence (so the query string keeps the user's original formatting)
@@ -712,7 +730,7 @@ function updateFilterMultipleValues(
     return true;
   });
   if (uniqNonEmptyValues.length === 0) {
-    return {...state, query: replaceQueryToken(state.query, token.value, '""')};
+    return replaceFilterValueAndFormatKey(state, token, '""', fieldDefinition);
   }
 
   const newValue =
@@ -720,7 +738,24 @@ function updateFilterMultipleValues(
       ? `[${uniqNonEmptyValues.join(',')}]`
       : uniqNonEmptyValues[0]!;
 
-  return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
+  return replaceFilterValueAndFormatKey(state, token, newValue, fieldDefinition);
+}
+
+function replaceFilterValueAndFormatKey(
+  state: QueryBuilderState,
+  token: TokenResult<Token.FILTER>,
+  value: string,
+  fieldDefinition: FieldDefinition | null
+): QueryBuilderState {
+  const key = formatFilterKeyForSearch(getKeyName(token.key), fieldDefinition);
+  const replacements: Array<{replacement: string; token: TokenResult<Token>}> = [
+    {token: token.value, replacement: value},
+  ];
+  if (key !== stringifyToken(token.key)) {
+    replacements.push({token: token.key, replacement: key});
+  }
+
+  return {...state, query: multipleReplaceQueryToken(state.query, replacements)};
 }
 
 // Normalizes a filter value so that different surface representations of the
@@ -779,7 +814,8 @@ export function getMultiSelectValueState(
 
 export function multiSelectTokenValue(
   state: QueryBuilderState,
-  action: MultiSelectFilterValueAction
+  action: MultiSelectFilterValueAction,
+  fieldDefinition: FieldDefinition | null = null
 ) {
   const tokenValue = action.token.value;
 
@@ -803,10 +839,12 @@ export function multiSelectTokenValue(
       );
 
       if (!containsValue) {
-        return updateFilterMultipleValues(state, action.token, [
-          ...values.map(({text}) => text),
-          action.value,
-        ]);
+        return updateFilterMultipleValues(
+          state,
+          action.token,
+          [...values.map(({text}) => text), action.value],
+          fieldDefinition
+        );
       }
 
       // The selected value was already present, so this is a deselect. Filter it
@@ -820,18 +858,18 @@ export function multiSelectTokenValue(
         }
       }
 
-      return updateFilterMultipleValues(state, action.token, newValues);
+      return updateFilterMultipleValues(state, action.token, newValues, fieldDefinition);
     }
     default: {
       // Single values use the same toggle semantics as lists: if the canonical
       // value is already selected, clear it; otherwise expand it into a list.
       if (canonicalizeSearchValue(tokenValue.value ?? '') === normalizedActionValue) {
-        return updateFilterMultipleValues(state, action.token, ['']);
+        return updateFilterMultipleValues(state, action.token, [''], fieldDefinition);
       }
       const newValue = tokenValue.value
         ? [tokenValue.text, action.value]
         : [action.value];
-      return updateFilterMultipleValues(state, action.token, newValue);
+      return updateFilterMultipleValues(state, action.token, newValue, fieldDefinition);
     }
   }
 }
@@ -884,9 +922,14 @@ function updateAggregateArgs(
 
 function updateFilterKey(
   state: QueryBuilderState,
-  action: UpdateFilterKeyAction
+  action: UpdateFilterKeyAction,
+  fieldDefinition: FieldDefinition | null
 ): QueryBuilderState {
-  const newQuery = replaceQueryToken(state.query, action.token.key, action.key);
+  const newQuery = replaceQueryToken(
+    state.query,
+    action.token.key,
+    formatFilterKeyForSearch(action.key, fieldDefinition)
+  );
 
   if (newQuery === state.query) {
     return state;
@@ -1255,20 +1298,34 @@ export function useQueryBuilderState({
           });
         }
         case 'UPDATE_FILTER_KEY':
-          return updateFilterKey(state, action);
+          return updateFilterKey(state, action, getFieldDefinition(action.key));
         case 'UPDATE_FILTER_OP':
-          return modifyFilterOperator(state, action);
+          return modifyFilterOperator(
+            state,
+            action,
+            getFieldDefinition(getKeyName(action.token.key))
+          );
         case 'UPDATE_TOKEN_VALUE':
           return {
             ...state,
-            query: modifyFilterValue(state.query, action.token, action.value, action.op),
+            query: modifyFilterValue(
+              state.query,
+              action.token,
+              action.value,
+              action.op,
+              getFieldDefinition(getKeyName(action.token.key))
+            ),
           };
         case 'UPDATE_LOGIC_OPERATOR':
           return updateLogicOperator(state, action);
         case 'UPDATE_AGGREGATE_ARGS':
           return updateAggregateArgs(state, action, {getFieldDefinition});
         case 'TOGGLE_FILTER_VALUE':
-          return multiSelectTokenValue(state, action);
+          return multiSelectTokenValue(
+            state,
+            action,
+            getFieldDefinition(getKeyName(action.token.key))
+          );
         case 'WRAP_TOKENS_WITH_PARENTHESES':
           return wrapTokensWithParentheses(state, action, parseQuery);
         case 'RESET_CLEAR_ASK_SEER_FEEDBACK':

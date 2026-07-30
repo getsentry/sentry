@@ -14,6 +14,7 @@ import {
   WildcardOperators,
   type ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
+import {quoteFilterKey} from 'sentry/components/searchSyntax/utils';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -226,7 +227,39 @@ function getInitialFilterKeyText(key: string, fieldDefinition: FieldDefinition |
     return `${key}()`;
   }
 
-  return key;
+  return formatFilterKeyForSearch(key, fieldDefinition);
+}
+
+export function formatFilterKeyForSearch(
+  key: string,
+  fieldDefinition: FieldDefinition | null
+): string {
+  const canUseExplicitTagSyntax = key.includes(':') && /^[\w.:@-]+$/.test(key);
+  if (!canUseExplicitTagSyntax) {
+    return key;
+  }
+
+  let tagType: 'boolean' | 'number' | 'string' | null = null;
+  if (
+    fieldDefinition?.kind === FieldKind.MEASUREMENT ||
+    fieldDefinition?.kind === FieldKind.NUMERIC_METRICS ||
+    fieldDefinition?.valueType === FieldValueType.INTEGER ||
+    fieldDefinition?.valueType === FieldValueType.NUMBER
+  ) {
+    tagType = 'number';
+  } else if (
+    fieldDefinition?.kind === FieldKind.BOOLEAN ||
+    fieldDefinition?.valueType === FieldValueType.BOOLEAN
+  ) {
+    tagType = 'boolean';
+  } else if (
+    fieldDefinition?.kind === FieldKind.TAG ||
+    fieldDefinition?.valueType === FieldValueType.STRING
+  ) {
+    tagType = 'string';
+  }
+
+  return tagType ? `tags[${key},${tagType}]` : quoteFilterKey(key);
 }
 
 function getInitialValueType(fieldDefinition: FieldDefinition | null) {
