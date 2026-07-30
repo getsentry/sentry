@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import MutableMapping
 from typing import Any
 
-from sentry.search.eap.constants import EAP_FULL_FIDELITY_QUERY_DAYS
+from sentry.search.eap.constants import EAP_FULL_FIDELITY_QUERY_DAYS, FULL_RETENTION_ITEM_TYPES
 
 __all__ = [
     "EAP_DEFAULT_STATS_PERIOD",
@@ -38,11 +38,12 @@ _WINDOW_KEYS = frozenset(
 )
 
 
-# Item types Snuba keeps at full retention on tier 1, so their queries are never
-# downsampled no matter how far back the window starts. Mirrors
-# ``ITEM_TYPE_FULL_RETENTION`` in
-# snuba/web/rpc/storage_routing/routing_strategies/common.py.
-_FULL_RETENTION_DATASETS = frozenset({"uptime_results", "preprodSize"})
+# ``dataset`` query param labels for the item types Snuba keeps at full retention, whose
+# queries are never downsampled no matter how far back the window starts. ``preprod`` is
+# spelled ``preprodSize`` as a dataset label.
+_FULL_RETENTION_DATASETS = frozenset(
+    {item_type.value for item_type in FULL_RETENTION_ITEM_TYPES} | {"preprodSize"}
+)
 
 
 def _eap_dataset_labels() -> frozenset[str]:

@@ -42,7 +42,7 @@ from sentry.api.endpoints.organization_trace_item_attributes_types import (
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.utils import default_start_end_dates, handle_query_errors
+from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, handle_query_errors
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
@@ -1268,22 +1268,29 @@ def adjust_start_end_window(start_date: datetime, end_date: datetime) -> tuple[d
     return start_date, end_date
 
 
-def full_retention_window() -> tuple[datetime, datetime]:
+def full_retention_window(item_type: SupportedTraceItemType) -> tuple[datetime, datetime]:
     """
     The widest window we can query at full fidelity, used by context existence
     checks that must always look at all of an org's data regardless of any
     `statsPeriod`/`start`/`end` filters passed on the request, so a narrow
     user-supplied range can't cause a false negative.
 
-    Anchored to EAP's full-fidelity (tier 1) retention rather than the 90 day
-    API default. Tier 1 only holds ~30 days, so a wider window can't surface
-    anything extra -- it only pushes the query past Snuba's downsampling
-    boundary, which routes it to a sampled tier that holds a fraction of the
-    items and would make existence checks return false negatives.
+    For downsampled item types this is anchored to EAP's full-fidelity (tier 1)
+    retention rather than the 90 day API default. Tier 1 only holds ~30 days, so
+    a wider window can't surface anything extra -- it only pushes the query past
+    Snuba's downsampling boundary, which routes it to a sampled tier that holds a
+    fraction of the items and would make existence checks return false negatives.
+
+    Item types in `FULL_RETENTION_ITEM_TYPES` are never downsampled, so they keep
+    the full API window; capping them at tier 1 retention would hide older data
+    that is still stored at full fidelity.
     """
-    start_date, end_date = default_start_end_dates(
-        default_stats_period=timedelta(days=constants.EAP_FULL_FIDELITY_QUERY_DAYS)
+    default_stats_period = (
+        MAX_STATS_PERIOD
+        if item_type in constants.FULL_RETENTION_ITEM_TYPES
+        else timedelta(days=constants.EAP_FULL_FIDELITY_QUERY_DAYS)
     )
+    start_date, end_date = default_start_end_dates(default_stats_period=default_stats_period)
     return adjust_start_end_window(start_date, end_date)
 
 
