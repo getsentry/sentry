@@ -8,6 +8,7 @@ interface UseVirtualRowsOptions {
   estimateKey?: unknown;
   getItemKey?: (index: number) => string | number;
   overscan?: number;
+  scrollMargin?: number;
 }
 
 export function useVirtualRows({
@@ -17,6 +18,7 @@ export function useVirtualRows({
   getItemKey,
   getScrollElement,
   overscan = 5,
+  scrollMargin = 0,
 }: UseVirtualRowsOptions) {
   const virtualizer = useVirtualizer<HTMLElement, Element>({
     count,
@@ -24,6 +26,7 @@ export function useVirtualRows({
     getItemKey,
     getScrollElement,
     overscan,
+    scrollMargin,
   });
 
   // @tanstack/react-virtual does not rebuild its measurements cache when
@@ -40,7 +43,9 @@ export function useVirtualRows({
   return {
     virtualizer,
     virtualItems,
-    paddingTop: first ? Math.max(0, first.start) : 0,
-    paddingBottom: last ? Math.max(0, virtualizer.getTotalSize() - last.end) : 0,
+    paddingTop: first ? Math.max(0, first.start - scrollMargin) : 0,
+    paddingBottom: last
+      ? Math.max(0, virtualizer.getTotalSize() - (last.end - scrollMargin))
+      : 0,
   };
 }
