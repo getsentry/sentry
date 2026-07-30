@@ -94,10 +94,13 @@ export function ConversationViewContent({
   }, [selectedNode, isTimeline, timelineDefaultDismissed, defaultTimelineNode]);
 
   // Each tab keeps its own scroll position in the shared content container; a
-  // selected span is scrolled into view instead when switching tabs.
+  // selected span is scrolled into view instead when switching tabs. This keys
+  // off the sticky (URL) selection, not `displayedNode`: the timeline's
+  // view-local default span is not a real selection, so entering the timeline
+  // restores its saved offset rather than snapping to that default.
   const contentRef = useConversationScrollRestoration({
     activeTab,
-    selectedNodeId: displayedNode?.id ?? null,
+    selectedNodeId: selectedNode?.id ?? null,
   });
 
   const handleSelectAndOpenDetail = useCallback(

@@ -148,13 +148,34 @@ describe('ConversationViewContent', () => {
     );
   });
 
+  it('does not snap to the timeline default when no span is selected', async () => {
+    // The timeline opens on a default span, but that view-local default is not a
+    // real selection: entering the timeline must restore its saved offset rather
+    // than scroll the default span into view.
+    const {rerender} = renderView({activeTab: 'transcript'});
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+
+    jest.mocked(Element.prototype.scrollIntoView).mockClear();
+
+    rerender(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="timeline"
+      />
+    );
+
+    // The default span still opens the detail pane...
+    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
+    // ...but nothing is scrolled into view, so the saved offset is restored.
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+  });
+
   it('does not scroll into view when returning to a tab with no selection', async () => {
     const {rerender} = renderView({activeTab: 'transcript'});
     expect(await screen.findByText('First answer')).toBeInTheDocument();
 
-    // The timeline opens its default span, so leaving the transcript is fine to
-    // scroll; returning to the transcript (nothing selected) must restore the
-    // saved offset instead of scrolling.
+    // Neither switch has a sticky selection, so both restore the saved offset
+    // rather than scroll a row into view.
     rerender(
       <ConversationViewContent
         conversation={{conversationId: CONVERSATION_ID}}
