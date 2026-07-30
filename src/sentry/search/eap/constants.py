@@ -146,9 +146,10 @@ EAP_FULL_FIDELITY_RETENTION_DAYS = 30
 
 # Snuba downsamples EAP queries starting more than 31 days ago, so a 30 day lookback that
 # then gets floored to midnight (see `adjust_start_end_window`) leaves as little as a
-# second of headroom just before midnight UTC. Stay a day inside the boundary so callers
-# that widen the window to whole days can't cross it.
-EAP_FULL_FIDELITY_QUERY_DAYS = EAP_FULL_FIDELITY_RETENTION_DAYS - 1
+# second of headroom just before midnight UTC. We accept that risk to keep the full 30 day
+# window: a query issued in that last second (or with enough clock skew between here and
+# Snuba) gets routed to a sampled tier instead.
+EAP_FULL_FIDELITY_QUERY_DAYS = EAP_FULL_FIDELITY_RETENTION_DAYS
 
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py
 # The RPC limits us to 10100 points per timeseries
