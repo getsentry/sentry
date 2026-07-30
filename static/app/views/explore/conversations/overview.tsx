@@ -25,7 +25,7 @@ import {
 } from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {ConversationsChart} from 'sentry/views/explore/conversations/components/conversationsChart';
-import {ConversationsTableRedesign} from 'sentry/views/explore/conversations/components/conversationsTableRedesign';
+import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
@@ -163,7 +163,7 @@ function ConversationsOverviewPage() {
           ) : (
             <Fragment>
               <ConversationsChart />
-              <ConversationsTableRedesign />
+              <ConversationsTable />
             </Fragment>
           )}
         </Stack>

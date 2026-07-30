@@ -125,7 +125,7 @@ export function UserNotInstrumentedTooltip() {
   );
 }
 
-export function ConversationsTableRedesign() {
+export function ConversationsTable() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();

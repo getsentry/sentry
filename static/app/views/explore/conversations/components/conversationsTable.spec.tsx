@@ -4,10 +4,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 
-import {
-  ConversationsTableRedesign,
-  getVisibleToolCount,
-} from './conversationsTableRedesign';
+import {ConversationsTable, getVisibleToolCount} from './conversationsTable';
 
 const BASE_CONVERSATION = {
   conversationId: 'conv-1',
@@ -44,10 +41,10 @@ function mockConversations(body: Array<Record<string, unknown>>) {
 }
 
 function renderTable() {
-  return render(<ConversationsTableRedesign />, {organization});
+  return render(<ConversationsTable />, {organization});
 }
 
-describe('ConversationsTableRedesign', () => {
+describe('ConversationsTable', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     act(() => {

@@ -25,7 +25,7 @@ import {
   getUserDisplayName,
   normalizeUserField,
   UserNotInstrumentedTooltip,
-} from 'sentry/views/explore/conversations/components/conversationsTableRedesign';
+} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getExploreUrl} from 'sentry/views/explore/utils';
