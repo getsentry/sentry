@@ -519,7 +519,8 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     isSelfHosted,
   };
 
-  const selectedIntegration = selectedPlatformOptions.integration;
+  const selectedIntegration =
+    selectedPlatformOptions.integration ?? AgentIntegration.VERCEL_AI;
   const jsPackageName = isCloudflareTarget ? '@sentry/cloudflare' : '@sentry/node';
 
   const steps: OnboardingStep[] = [
