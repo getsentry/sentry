@@ -33,7 +33,7 @@ const BASE_CONVERSATION = {
 };
 
 const organization = OrganizationFixture({
-  features: ['gen-ai-conversations', 'gen-ai-conversations-redesign'],
+  features: ['gen-ai-conversations'],
 });
 
 function mockConversations(body: Array<Record<string, unknown>>) {
