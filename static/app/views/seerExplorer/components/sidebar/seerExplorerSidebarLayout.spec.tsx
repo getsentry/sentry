@@ -380,6 +380,72 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(localStorage.getItem('seer-explorer-sidebar-seer-size:right')).toBe('510');
   });
 
+  it('keeps a mid-drag resize from discarding the dragged Seer width', async () => {
+    // Reproduces the "jumps back to default" report: the app re-renders *during*
+    // a drag (its ResizeObserver measures the resizing panes via useDimensions)
+    // while an animation frame is still pending. sizeRef must stay the drag's
+    // authoritative accumulator across that render, or the delta is lost and
+    // nothing is persisted — so a later resize falls back to the default size.
+    mockWideScreen(true);
+    const dims = jest
+      .spyOn(useDimensionsModule, 'useDimensions')
+      .mockReturnValue({width: 1200, height: 800});
+
+    // Hold animation frames pending so the mid-drag re-render happens before the
+    // move is committed to React state — the crux of the race.
+    const pendingFrames: FrameRequestCallback[] = [];
+    jest.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
+      pendingFrames.push(callback);
+      return pendingFrames.length;
+    });
+    jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+    const flushFrames = () =>
+      act(() => {
+        pendingFrames.splice(0, pendingFrames.length).forEach(callback => callback(0));
+      });
+
+    const {rerender} = render(sidebarTree(), {organization: orgWithSidebar});
+    await userEvent.click(screen.getByText('open-seer'));
+    const input = await screen.findByTestId('seer-explorer-input');
+    await waitFor(() => expect(input).toHaveFocus());
+
+    const separator = screen.getByRole('separator');
+    // Available 1200 − default Seer 420 = content 780.
+    expect(separator).toHaveAttribute('aria-valuenow', '780');
+
+    // Drag the content pane left to 600 (Seer grows to 600). Raw pointer events
+    // because the drag disables body pointer-events, which blocks userEvent.
+    await userEvent.pointer([
+      {keys: '[MouseLeft>]', target: separator, coords: {x: 780, y: 0}},
+    ]);
+    act(() => {
+      document.dispatchEvent(
+        new MouseEvent('pointermove', {bubbles: true, clientX: 600, clientY: 0})
+      );
+    });
+
+    // A foreign re-render lands mid-drag, before the pending frame commits.
+    dims.mockReturnValue({width: 1200, height: 801});
+    rerender(sidebarTree());
+
+    act(() => {
+      document.dispatchEvent(new MouseEvent('pointerup', {bubbles: true}));
+    });
+    flushFrames();
+
+    // The dragged size survives and is persisted.
+    expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '600');
+    expect(localStorage.getItem('seer-explorer-sidebar-seer-size:right')).toBe('600');
+
+    // A later window/nav resize keeps Seer at its persisted 600 (content flexes
+    // to 1000 − 600 − divider), rather than snapping back to the default.
+    dims.mockReturnValue({width: 1000, height: 800});
+    rerender(sidebarTree());
+
+    expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '480');
+    expect(localStorage.getItem('seer-explorer-sidebar-seer-size:right')).toBe('600');
+  });
+
   it('switches to the run when opened with a runId (deep link / session picker)', async () => {
     mockWideScreen(true);
     MockApiClient.addMockResponse({
