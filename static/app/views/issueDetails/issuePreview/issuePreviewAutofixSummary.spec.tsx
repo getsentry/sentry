@@ -1,38 +1,14 @@
 import {
   AutofixRepoPRStateFixture,
+  ExplorerAutofixBlockFixture,
   ExplorerAutofixStateFixture,
 } from 'sentry-fixture/autofix';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import type {Artifact, Block, ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+import type {Artifact, ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 import {IssuePreviewAutofixSummary} from './issuePreviewAutofixSummary';
-
-function makeBlock({
-  artifacts,
-  content = 'Step complete',
-  mergedFilePatches,
-  step,
-}: {
-  step: string;
-  artifacts?: Artifact[];
-  content?: string;
-  mergedFilePatches?: ExplorerFilePatch[];
-}): Block {
-  return {
-    id: step,
-    artifacts,
-    loading: false,
-    merged_file_patches: mergedFilePatches,
-    message: {
-      content,
-      metadata: {step},
-      role: 'assistant',
-    },
-    timestamp: '2026-07-28T00:00:00Z',
-  };
-}
 
 function makePatch(repoName: string, path: string): ExplorerFilePatch {
   return {
@@ -85,14 +61,28 @@ describe('IssuePreviewAutofixSummary', () => {
   it('renders collapsed summaries in the requested order and expands full details', async () => {
     const runState = ExplorerAutofixStateFixture({
       blocks: [
-        makeBlock({step: 'root_cause', artifacts: [rootCauseArtifact]}),
-        makeBlock({step: 'solution', artifacts: [solutionArtifact]}),
-        makeBlock({
-          step: 'code_changes',
-          mergedFilePatches: [
+        ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]}),
+        ExplorerAutofixBlockFixture({
+          id: 'solution',
+          artifacts: [solutionArtifact],
+          message: {
+            content: 'Step complete',
+            metadata: {step: 'solution'},
+            role: 'assistant',
+          },
+        }),
+        ExplorerAutofixBlockFixture({
+          id: 'code_changes',
+          artifacts: undefined,
+          merged_file_patches: [
             makePatch('org/frontend', 'src/user.ts'),
             makePatch('org/backend', 'tests/test_user.py'),
           ],
+          message: {
+            content: 'Step complete',
+            metadata: {step: 'code_changes'},
+            role: 'assistant',
+          },
         }),
       ],
       repo_pr_states: {
@@ -181,7 +171,7 @@ describe('IssuePreviewAutofixSummary', () => {
     render(
       <IssuePreviewAutofixSummary
         runState={ExplorerAutofixStateFixture({
-          blocks: [makeBlock({step: 'root_cause', artifacts: [rootCauseArtifact]})],
+          blocks: [ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]})],
         })}
       />
     );
@@ -197,7 +187,16 @@ describe('IssuePreviewAutofixSummary', () => {
     render(
       <IssuePreviewAutofixSummary
         runState={ExplorerAutofixStateFixture({
-          blocks: [makeBlock({step: 'root_cause', content: 'Thinking...'})],
+          blocks: [
+            ExplorerAutofixBlockFixture({
+              artifacts: undefined,
+              message: {
+                content: 'Thinking...',
+                metadata: {step: 'root_cause'},
+                role: 'assistant',
+              },
+            }),
+          ],
           status: 'processing',
         })}
       />
@@ -216,7 +215,7 @@ describe('IssuePreviewAutofixSummary', () => {
     [
       'errored step',
       ExplorerAutofixStateFixture({
-        blocks: [makeBlock({step: 'root_cause', artifacts: [rootCauseArtifact]})],
+        blocks: [ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]})],
         status: 'error',
       }),
     ],
@@ -224,8 +223,7 @@ describe('IssuePreviewAutofixSummary', () => {
       'invalid artifact',
       ExplorerAutofixStateFixture({
         blocks: [
-          makeBlock({
-            step: 'root_cause',
+          ExplorerAutofixBlockFixture({
             artifacts: [
               {
                 key: 'root-cause',
