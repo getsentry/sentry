@@ -101,7 +101,11 @@ export function ChartVisualization({
     // This happens when the `/events-stats/` endpoint returns a blank
     // response. This is a rare error condition that happens when
     // proxying to RPC. Adding explicit handling with a "better" message
-    return <TimeSeriesWidgetVisualization.NoData />;
+    return (
+      <Container position="absolute" inset={0}>
+        <TimeSeriesWidgetVisualization.NoData />
+      </Container>
+    );
   }
 
   return (
