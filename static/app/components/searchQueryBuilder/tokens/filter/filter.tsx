@@ -1,4 +1,4 @@
-import {Fragment, useContext, useLayoutEffect, useRef, useState} from 'react';
+import {Fragment, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -14,7 +14,6 @@ import {
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
-import {FormattedQueryConfigContext} from 'sentry/components/searchQueryBuilder/formattedQueryContext';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {
   BaseGridCell,
@@ -120,26 +119,19 @@ function fitMiddleEllipsisToElement(
 
 function TruncatedFilterDisplayValue({
   value,
-  wrap,
   maxLengthCap,
   multi,
 }: {
   maxLengthCap: number;
   value: string;
   multi?: boolean;
-  wrap?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [displayValue, setDisplayValue] = useState(() =>
-    wrap ? value : middleEllipsis(value, maxLengthCap, FILTER_VALUE_ELLIPSIS_DELIMITER)
+    middleEllipsis(value, maxLengthCap, FILTER_VALUE_ELLIPSIS_DELIMITER)
   );
 
   useLayoutEffect(() => {
-    if (wrap) {
-      setDisplayValue(value);
-      return;
-    }
-
     const element = ref.current;
     if (!element) {
       return;
@@ -175,21 +167,16 @@ function TruncatedFilterDisplayValue({
     const observer = new ResizeObserver(update);
     observer.observe(observed);
     return () => observer.disconnect();
-  }, [value, wrap, maxLengthCap]);
+  }, [value, maxLengthCap]);
 
   const Truncated = multi ? FilterMultiValueTruncated : FilterValueSingleTruncatedValue;
 
-  return (
-    <Truncated ref={ref} $wrap={wrap}>
-      {displayValue}
-    </Truncated>
-  );
+  return <Truncated ref={ref}>{displayValue}</Truncated>;
 }
 
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const {size} = useSearchQueryBuilderLayout();
-  const {wrapTokens} = useContext(FormattedQueryConfigContext);
   const valueType = getFilterValueType(token, getFieldDefinition(getKeyName(token.key)));
 
   if (token.filter === FilterType.HAS) {
@@ -197,7 +184,6 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       <TruncatedFilterDisplayValue
         value={prettifyTagKey(token.value.text)}
         maxLengthCap={FILTER_VALUE_MAX_LENGTH}
-        wrap={wrapTokens}
       />
     );
   }
@@ -213,7 +199,6 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           <TruncatedFilterDisplayValue
             value={formatFilterValue({token: items[0]!.value, valueType})}
             maxLengthCap={FILTER_VALUE_MAX_LENGTH}
-            wrap={wrapTokens}
           />
         );
       }
@@ -221,18 +206,12 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       const maxItems = size === 'small' ? 1 : 3;
 
       return (
-        <Flex
-          align="center"
-          wrap={wrapTokens ? 'wrap' : 'nowrap'}
-          gap="xs"
-          maxWidth="400px"
-        >
+        <Flex align="center" wrap="nowrap" gap="xs" maxWidth="400px">
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <TruncatedFilterDisplayValue
                 value={formatFilterValue({token: item.value!, valueType})}
                 maxLengthCap={FILTER_MULTI_VALUE_MAX_LENGTH}
-                wrap={wrapTokens}
                 multi
               />
               {index !== items.length - 1 && index < maxItems - 1 ? (
@@ -256,7 +235,6 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
         <TruncatedFilterDisplayValue
           value={formatFilterValue({token: token.value, valueType})}
           maxLengthCap={FILTER_VALUE_MAX_LENGTH}
-          wrap={wrapTokens}
         />
       );
     }
@@ -504,22 +482,20 @@ const FilterValueJoiner = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-const FilterMultiValueTruncated = styled('div')<{$wrap?: boolean}>`
+const FilterMultiValueTruncated = styled('div')`
   display: block;
-  white-space: ${p => (p.$wrap ? 'normal' : 'nowrap')};
-  overflow: ${p => (p.$wrap ? 'visible' : 'hidden')};
-  overflow-wrap: ${p => (p.$wrap ? 'anywhere' : undefined)};
-  max-width: ${p => (p.$wrap ? '100%' : '110px')};
-  width: ${p => (p.$wrap ? 'auto' : '100%')};
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 110px;
+  width: 100%;
   min-width: 0;
 `;
 
-const FilterValueSingleTruncatedValue = styled('div')<{$wrap?: boolean}>`
+const FilterValueSingleTruncatedValue = styled('div')`
   display: block;
-  white-space: ${p => (p.$wrap ? 'normal' : 'nowrap')};
-  overflow: ${p => (p.$wrap ? 'visible' : 'hidden')};
-  overflow-wrap: ${p => (p.$wrap ? 'anywhere' : undefined)};
+  white-space: nowrap;
+  overflow: hidden;
   max-width: 100%;
-  width: ${p => (p.$wrap ? 'auto' : '100%')};
+  width: 100%;
   min-width: 0;
 `;
