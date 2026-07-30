@@ -29,7 +29,7 @@ from sentry.models.project import Project
 from sentry.net.http import Session
 from sentry.objectstore import (
     get_attachments_session,
-    get_download_redirect_url,
+    get_internal_download_url,
 )
 from sentry.utils import metrics
 
@@ -249,7 +249,7 @@ class Symbolicator:
             }
 
             def cb() -> dict[str, Any]:
-                json["symbolicate"]["storage_url"] = get_download_redirect_url(
+                json["symbolicate"]["storage_url"] = get_internal_download_url(
                     session, minidump.stored_id, token_validity=TOKEN_VALIDITY
                 )
                 return {"json": json}
@@ -286,7 +286,7 @@ class Symbolicator:
             }
 
             def cb() -> dict[str, Any]:
-                json["symbolicate"]["storage_url"] = get_download_redirect_url(
+                json["symbolicate"]["storage_url"] = get_internal_download_url(
                     session, report.stored_id, token_validity=TOKEN_VALIDITY
                 )
                 return {"json": json}

@@ -195,6 +195,21 @@ def maybe_rewrite_url_for_symbolicator(url: str) -> str:
     return urlunparse(updated)
 
 
+def get_internal_download_url(
+    session: Session, key: str, token_validity: timedelta | None = None
+) -> str:
+    """
+    Pre-signed URL to `key` for an INTERNAL service (e.g. Symbolicator, teapot): a direct link to
+    Objectstore that bypasses the cell proxy.
+    """
+    if token_validity is None:
+        token_validity = REDIRECT_VALIDITY
+
+    return maybe_rewrite_url_for_symbolicator(
+        session.object_url(key, token_validity=token_validity)
+    )
+
+
 def get_download_redirect_url(
     request: HttpRequest,
     session: Session,
@@ -212,17 +227,13 @@ def get_download_redirect_url(
     from sentry.api.utils import generate_locality_url
     from sentry.auth import system
 
+    if system.is_internal_ip(request):
+        return get_internal_download_url(session, key, token_validity)
+
     if token_validity is None:
         token_validity = REDIRECT_VALIDITY
-    presigned_url = session.object_url(key, token_validity=token_validity)
 
-    if system.is_internal_ip(request):
-        # Redirect to a URL pointing to the internal Objectstore ip/hostname.
-        # In dev/test, we potentially need to rewrite this URL to point to the hostname in the docker network
-        # instead, so we need to additionally wrap this with `maybe_rewrite_url_for_symbolicator`.
-        # TODO(lcian): Find a more robust way to do this. Here we assume that the caller is Symbolicator,
-        # which is currently the case in practice, but in theory it could be any other service.
-        return maybe_rewrite_url_for_symbolicator(presigned_url)
+    presigned_url = session.object_url(key, token_validity=token_validity)
 
     parts = urlsplit(presigned_url)
     proxy_path = reverse(
