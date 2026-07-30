@@ -120,8 +120,10 @@ export function ConversationContentLayout({
   left,
   right,
   leftPadding = 'md',
+  contentRef,
 }: {
   left: React.ReactNode;
+  contentRef?: React.Ref<HTMLDivElement>;
   leftPadding?: React.ComponentProps<typeof Container>['padding'];
   right?: React.ReactNode;
 }) {
@@ -140,6 +142,7 @@ export function ConversationContentLayout({
               detail={right}
               content={
                 <Container
+                  ref={contentRef}
                   flex="1"
                   minWidth="0"
                   minHeight="0"

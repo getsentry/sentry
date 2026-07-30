@@ -48,10 +48,10 @@ const CONVERSATION_BODY = [
   }),
 ];
 
-function mockApis() {
+function mockApis(title: string | null = null) {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/ai-conversations/${CONVERSATION_ID}/`,
-    body: CONVERSATION_BODY,
+    body: {conversationId: CONVERSATION_ID, title, spans: CONVERSATION_BODY},
   });
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/trace-items/attributes/',
@@ -87,7 +87,9 @@ function detailPane() {
 
 describe('ConversationDetailPage span default selection', () => {
   beforeEach(() => {
+    // jsdom implements neither scroll API the view relies on.
     Element.prototype.scrollTo = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
     MockApiClient.clearMockResponses();
     act(() => {
       PageFiltersStore.reset();
@@ -128,7 +130,9 @@ describe('ConversationDetailPage span default selection', () => {
 
 describe('ConversationDetailPage breadcrumbs', () => {
   beforeEach(() => {
+    // jsdom implements neither scroll API the view relies on.
     Element.prototype.scrollTo = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
     MockApiClient.clearMockResponses();
     act(() => {
       PageFiltersStore.reset();
@@ -145,12 +149,43 @@ describe('ConversationDetailPage breadcrumbs', () => {
     expect(
       await within(topBar).findByRole('link', {name: 'Conversations'})
     ).toBeInTheDocument();
-    // The conversation id is the page heading, owned by the TopBar title slot.
+    // The conversation id is the top-bar identifier, owned by the TopBar title
+    // slot, alongside the copy affordance.
     expect(
       within(topBar).getByRole('heading', {name: new RegExp(CONVERSATION_ID)})
     ).toBeInTheDocument();
     expect(
       within(topBar).getByRole('button', {name: 'Copy conversation ID'})
+    ).toBeInTheDocument();
+  });
+});
+
+describe('ConversationDetailPage title', () => {
+  beforeEach(() => {
+    Element.prototype.scrollTo = jest.fn();
+    MockApiClient.clearMockResponses();
+    act(() => {
+      PageFiltersStore.reset();
+      PageFiltersStore.init();
+    });
+  });
+
+  it('shows the conversation title as the heading when present', async () => {
+    mockApis('Trip planning assistant');
+    renderPage();
+
+    expect(
+      await screen.findByRole('heading', {name: 'Trip planning assistant'})
+    ).toBeInTheDocument();
+  });
+
+  it('falls back to the conversation id heading when there is no title', async () => {
+    mockApis(null);
+    renderPage();
+
+    // Once loaded, the summary heading shows the id (no title available).
+    expect(
+      await screen.findByRole('heading', {name: new RegExp(CONVERSATION_ID)})
     ).toBeInTheDocument();
   });
 });

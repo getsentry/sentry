@@ -22,6 +22,10 @@ export function isIssueAlert(data: CombinedAlerts) {
   return data.type === CombinedAlertType.ISSUE;
 }
 
+export function hasMetricAlerts(organization: Organization): boolean {
+  return organization.features.includes('incidents');
+}
+
 export const DATA_SOURCE_LABELS = {
   [Dataset.ERRORS]: t('Errors'),
   [Dataset.TRANSACTIONS]: t('Transactions'),

@@ -55,6 +55,7 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import SnubaTSResult
 from sentry.utils.tracing import set_span_data, start_span
 
@@ -282,6 +283,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
         include_other = request.GET.get("excludeOther") != "1"
         referrer = request.GET.get("referrer")
+        sentry_sdk.set_attribute("query.raw_referrer", referrer or "")
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
             referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
@@ -289,7 +291,35 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
         elif not is_valid_referrer(referrer):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
+
+        sentry_sdk.set_tag("query.referrer", referrer)
+        sentry_sdk.set_attribute("query.referrer", referrer)
+
         query_source = self.get_request_querysource(request, referrer)
+        sentry_sdk.set_tag("query.query_source", query_source.value)
+        sentry_sdk.set_attribute("query.query_source", query_source.value)
+
+        # We are going to start ratcheting usage of this endpoint for legacy
+        # datasets. For now, log usage from blocked orgs but still permit the
+        # request.
+        is_external_api_request = request.auth and referrer == Referrer.API_AUTH_TOKEN_EVENTS
+        is_legacy_dataset = dataset in {transactions, discover, metrics_enhanced_performance}
+        is_blocked = features.has(
+            "organizations:events-endpoint-transactions-discover-blocked",
+            organization,
+            actor=request.user,
+        )
+        if is_external_api_request and is_legacy_dataset and is_blocked:
+            sdk_logger.warning(
+                "events endpoint called by blocked org",
+                attributes={
+                    "org_id": organization.id,
+                    "org_slug": organization.slug,
+                    "effective_dataset": DATASET_LABELS.get(dataset, ""),
+                    "requested_dataset": request.GET.get("dataset", ""),
+                    "endpoint_name": "organization-events-timeseries",
+                },
+            )
 
         self._emit_analytics_event(organization, referrer)
 

@@ -45,7 +45,7 @@ class ProjectBaseEventsChart extends Component<Props> {
       selection,
       onTotalValuesChange,
       query,
-      dataset = DiscoverDatasets.METRICS_ENHANCED,
+      dataset = DiscoverDatasets.SPANS,
     } = this.props;
     const {projects, environments, datetime} = selection;
 
@@ -76,7 +76,7 @@ class ProjectBaseEventsChart extends Component<Props> {
       field,
       title,
       help,
-      dataset = DiscoverDatasets.METRICS_ENHANCED,
+      dataset = DiscoverDatasets.SPANS,
       ...eventsChartProps
     } = this.props;
     const {projects, environments, datetime} = selection;

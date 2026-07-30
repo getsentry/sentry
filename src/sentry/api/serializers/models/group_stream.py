@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 from abc import abstractmethod
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, NamedTuple, NotRequired, Protocol, TypedDict
@@ -40,6 +41,7 @@ from sentry.models.groupowner import OwnersSerialized, get_owner_details
 from sentry.notifications.helpers import SubscriptionDetails
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer,
+    PlatformExternalIssueSerializerResponse,
 )
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.snuba.dataset import Dataset
@@ -432,24 +434,48 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 attrs[item]["owners"] = owner_details.get(item.id)
 
         if self._expand("integrationIssues"):
+            group_ids_by_external_issue_id: dict[int, list[int]] = defaultdict(list)
+            for group_id, linked_id in GroupLink.objects.filter(
+                group_id__in=[item.id for item in item_list],
+                linked_type=GroupLink.LinkedType.issue,
+            ).values_list("group_id", "linked_id"):
+                group_ids_by_external_issue_id[linked_id].append(group_id)
+
+            external_issues = list(
+                ExternalIssue.objects.filter(id__in=group_ids_by_external_issue_id)
+            )
+            serialized_external_issues = serialize(
+                external_issues, serializer=ExternalIssueSerializer()
+            )
+            integration_issues_by_group_id: dict[int, list[dict[str, Any]]] = defaultdict(list)
+            for external_issue, serialized_external_issue in zip(
+                external_issues, serialized_external_issues
+            ):
+                for group_id in group_ids_by_external_issue_id[external_issue.id]:
+                    integration_issues_by_group_id[group_id].append(serialized_external_issue)
+
             for item in item_list:
-                external_issues = ExternalIssue.objects.filter(
-                    id__in=GroupLink.objects.filter(group_id__in=[item.id]).values_list(
-                        "linked_id", flat=True
-                    ),
-                )
-                integration_issues = serialize(
-                    list(external_issues), serializer=ExternalIssueSerializer()
-                )
-                attrs[item]["integrationIssues"] = integration_issues
+                attrs[item]["integrationIssues"] = integration_issues_by_group_id[item.id]
 
         if self._expand("sentryAppIssues"):
-            for item in item_list:
-                platform_external_issues = PlatformExternalIssue.objects.filter(group_id=item.id)
-                sentry_app_issues = serialize(
-                    list(platform_external_issues), serializer=PlatformExternalIssueSerializer()
+            platform_external_issues = list(
+                PlatformExternalIssue.objects.filter(group_id__in=[item.id for item in item_list])
+            )
+            serialized_sentry_app_issues = serialize(
+                platform_external_issues, serializer=PlatformExternalIssueSerializer()
+            )
+            sentry_app_issues_by_group_id: dict[
+                int, list[PlatformExternalIssueSerializerResponse]
+            ] = defaultdict(list)
+            for platform_external_issue, serialized_sentry_app_issue in zip(
+                platform_external_issues, serialized_sentry_app_issues
+            ):
+                sentry_app_issues_by_group_id[platform_external_issue.group_id].append(
+                    serialized_sentry_app_issue
                 )
-                attrs[item]["sentryAppIssues"] = sentry_app_issues
+
+            for item in item_list:
+                attrs[item]["sentryAppIssues"] = sentry_app_issues_by_group_id[item.id]
 
         if (
             self._expand("latestEventHasAttachments")
