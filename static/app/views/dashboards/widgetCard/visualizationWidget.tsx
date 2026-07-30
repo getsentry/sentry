@@ -421,11 +421,7 @@ function VisualizationWidgetContent({
   const hasNoPlottableData = !plottablesCanBeVisualized(plottables);
 
   if (hasNoPlottableData) {
-    return (
-      <Container position="absolute" inset={0}>
-        <TimeSeriesWidgetVisualization.NoData />
-      </Container>
-    );
+    return <TimeSeriesWidgetVisualization.NoData />;
   }
 
   const confidenceFooter = showConfidenceWarning ? (

@@ -5,8 +5,6 @@ import type {LegendComponentOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {Container} from '@sentry/scraps/layout';
-
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
@@ -446,11 +444,7 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
   const plottables = categoricalSeriesData.map(series => new Bars(series));
 
   if (!plottablesCanBeVisualized(plottables)) {
-    return (
-      <Container position="absolute" inset={0}>
-        <CategoricalSeriesWidgetVisualization.NoData />
-      </Container>
-    );
+    return <CategoricalSeriesWidgetVisualization.NoData />;
   }
 
   return (
@@ -470,11 +464,7 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
   const plottables: [HeatMap] = [new HeatMap(heatmapResults)];
 
   if (!plottablesCanBeVisualized(plottables)) {
-    return (
-      <Container position="absolute" inset={0}>
-        <HeatMapWidgetVisualization.NoData />
-      </Container>
-    );
+    return <HeatMapWidgetVisualization.NoData />;
   }
 
   return (
