@@ -22,6 +22,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
+  BasePlatformOptions,
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -256,7 +257,7 @@ export function Onboarding() {
   // switch to - so we only offer the selector for other Node platforms.
   const showDeploymentTarget = isNodePlatform && !isCloudflarePlatform;
 
-  const deploymentTargetOptions = showDeploymentTarget
+  const deploymentTargetOptions: BasePlatformOptions = showDeploymentTarget
     ? {
         deploymentTarget: {
           label: t('Deployment'),
@@ -272,11 +273,8 @@ export function Onboarding() {
       }
     : {};
 
-  const selectedDeploymentTarget = (
-    useUrlPlatformOptions(deploymentTargetOptions) as {
-      deploymentTarget?: DeploymentTarget;
-    }
-  ).deploymentTarget;
+  const selectedDeploymentTarget = useUrlPlatformOptions(deploymentTargetOptions)
+    .deploymentTarget as DeploymentTarget | undefined;
   // Cloudflare projects are pinned to the Cloudflare runtime; other Node projects
   // follow the selector (defaulting to Node).
   const deploymentTarget = isCloudflarePlatform
@@ -295,7 +293,7 @@ export function Onboarding() {
           ? CLOUDFLARE_AGENT_INTEGRATIONS
           : NODE_AGENT_INTEGRATIONS;
 
-  const platformOptions = {
+  const platformOptions: BasePlatformOptions = {
     integration: {
       label: t('Integration'),
       items: integrations.map(integration => ({

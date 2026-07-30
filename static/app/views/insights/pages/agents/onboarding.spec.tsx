@@ -8,6 +8,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {PlatformKey} from 'sentry/types/platform';
 
 import {NoDocsOnboarding, Onboarding, UnsupportedPlatformOnboarding} from './onboarding';
 
@@ -56,7 +57,7 @@ describe('UnsupportedPlatformOnboarding', () => {
 });
 
 describe('Onboarding deployment target', () => {
-  function setupProject(platform: string) {
+  function setupProject(platform: PlatformKey) {
     const organization = OrganizationFixture();
     const project = ProjectFixture({platform, firstTransactionEvent: false});
 

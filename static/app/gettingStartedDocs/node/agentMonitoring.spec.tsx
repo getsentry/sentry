@@ -1,5 +1,4 @@
 import type {
-  ContentBlock,
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -21,13 +20,20 @@ function makeParams(platformOptions: Record<string, string> = {}): DocsParams {
 }
 
 function collectCode(steps: OnboardingStep[]): string {
-  return steps
-    .flatMap(step => step.content ?? [])
-    .filter((block): block is Extract<ContentBlock, {type: 'code'}> => {
-      return block.type === 'code';
-    })
-    .flatMap(block => block.tabs?.map(tab => tab.code) ?? [])
-    .join('\n\n');
+  const codes: string[] = [];
+  for (const step of steps) {
+    for (const block of step.content ?? []) {
+      if (block.type !== 'code') {
+        continue;
+      }
+      if ('tabs' in block) {
+        block.tabs.forEach(tab => codes.push(tab.code));
+      } else {
+        codes.push(block.code);
+      }
+    }
+  }
+  return codes.join('\n\n');
 }
 
 describe('node agentMonitoring onboarding', () => {
