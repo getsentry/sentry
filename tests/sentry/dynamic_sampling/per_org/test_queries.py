@@ -430,7 +430,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                     project=project,
                     start_ts=timestamp + timedelta(seconds=5),
                 ),
-                # missing dsc.transaction — counted under the name "None"
+                # missing dsc.transaction — counted as the unnamed transaction ""
                 self.create_span(
                     {
                         "is_segment": True,
@@ -466,7 +466,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ProjectTransactionCounts(
                 org_id=organization.id,
                 project_id=project.id,
-                transaction_counts=[("checkout", 3), ("product", 1), ("None", 1)],
+                transaction_counts=[("checkout", 3), ("", 1), ("product", 1)],
             ),
             ProjectTransactionCounts(
                 org_id=organization.id,
@@ -670,12 +670,11 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             )
         ]
 
-    def test_get_eap_transaction_volumes_includes_empty_dsc_transaction(self) -> None:
+    def test_get_eap_transaction_volumes_coalesces_empty_dsc_transaction(self) -> None:
         """
-        Root spans can carry an empty ``sentry.dsc.transaction``, and EAP returns it as a
-        real group next to the missing-attribute group. The query does not filter either
-        one out, so both reach the rebalancing model — as ``""`` and ``"None"`` — and each
-        takes a slot in the per-project top-N.
+        A root span with an empty ``sentry.dsc.transaction`` and one with the attribute
+        absent are the same unnamed transaction, but EAP returns them as two groups. Both
+        reach the rebalancing model as a single ``""`` class holding their summed count.
         """
         organization = self.create_organization()
         project = self.create_project(organization=organization)
@@ -714,7 +713,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ProjectTransactionCounts(
                 org_id=organization.id,
                 project_id=project.id,
-                transaction_counts=[("checkout", 2), ("", 1), ("None", 1)],
+                transaction_counts=[("", 2), ("checkout", 2)],
             )
         ]
 
