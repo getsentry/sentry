@@ -17,7 +17,10 @@ import {
   DEFAULT_VISUALIZATION,
   DEFAULT_VISUALIZATION_FIELD,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
+import {
+  parseConditionalAggregate,
+  foldConditionalAggregateIntoQuery,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
@@ -89,8 +92,8 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
       return DEFAULT_QUERY;
     }
 
-    const yAxes = parsed.yAxes;
-    const parsedFunctions = yAxes.map(parseFunction).filter(defined);
+    const rawYAxes: string[] = parsed.yAxes;
+    const parsedFunctions = rawYAxes.map(parseFunction).filter(defined);
     if (parsedFunctions.length <= 0) {
       return DEFAULT_QUERY;
     }
@@ -101,9 +104,26 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
     }
 
     const groupBys: string[] = parsed.groupBys ?? [];
+
+    // Compare mode has no per-series filter bars. Fold any leftover Explore-style
+    // `_if` filters into the row query so they stay applied and editable via search.
+    let query = parsed.query ?? '';
+    const yAxisRemap = new Map<string, string>();
+    const yAxes = rawYAxes.map(yAxis => {
+      const folded = foldConditionalAggregateIntoQuery({query, yAxis});
+      if (folded.yAxis !== yAxis) {
+        yAxisRemap.set(yAxis, folded.yAxis);
+      }
+      query = folded.query;
+      return folded.yAxis;
+    });
+
     const fields = getFieldsForConstructedQuery(yAxes);
 
-    const parsedSortBys = decodeSorts(parsed.sortBys);
+    const parsedSortBys = decodeSorts(parsed.sortBys).map(sort => ({
+      ...sort,
+      field: yAxisRemap.get(sort.field) ?? sort.field,
+    }));
     const sortBys = validateSortBys(parsedSortBys, groupBys, fields, yAxes);
 
     const caseInsensitive = parsed.caseInsensitive ?? undefined;
@@ -112,7 +132,7 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
       yAxes,
       chartType,
       sortBys,
-      query: parsed.query ?? '',
+      query,
       groupBys,
       fields,
       caseInsensitive,

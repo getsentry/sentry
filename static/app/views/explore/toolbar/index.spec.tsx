@@ -1065,6 +1065,53 @@ describe('ExploreToolbar', () => {
     );
   });
 
+  it('folds top-level and per-series filters into compare queries', async () => {
+    function Component() {
+      return <ExploreToolbar />;
+    }
+    const {router} = render(
+      <Wrapper>
+        <Component />
+      </Wrapper>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/traces/',
+            query: {
+              query: 'span.op:http',
+              aggregateField: [
+                JSON.stringify({
+                  chartType: 1,
+                  yAxes: ['avg_if(`span.status:error`,span.duration)'],
+                }),
+                JSON.stringify({
+                  chartType: 1,
+                  yAxes: ['count_if(`span.op:db`,span.duration)'],
+                }),
+              ],
+            },
+          },
+        },
+      }
+    );
+
+    const section = screen.getByTestId('section-save-as');
+    await userEvent.click(within(section).getByText(/Compare Queries/));
+
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/explore/traces/compare/'
+    );
+    expect(router.location.query).toEqual(
+      expect.objectContaining({
+        queries: [
+          '{"chartType":1,"groupBys":[],"query":"(span.op:http) (span.status:error)","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
+          '{"chartType":1,"groupBys":[],"query":"(span.op:http) (span.op:db)","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
+        ],
+      })
+    );
+  });
+
   it('opens the right alert', async () => {
     function Component() {
       return <ExploreToolbar />;
