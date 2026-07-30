@@ -184,7 +184,10 @@ const getVerifySnippetBlock = (params: Params): ContentBlock[] => [
 ];
 
 export const getAiSetupConfig = (): OnboardingStep =>
-  getAISetupStep({sdkName: 'JavaScript'});
+  getAISetupStep({
+    sdkName: 'JavaScript',
+    docsUrl: 'https://docs.sentry.io/platforms/javascript.md',
+  });
 
 const getVerifyConfig = (params: Params) => [
   {

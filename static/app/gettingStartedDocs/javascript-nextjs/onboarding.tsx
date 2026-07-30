@@ -55,7 +55,10 @@ export const onboarding: OnboardingConfig = {
         copyDsnFieldBlock(params),
       ],
     },
-    getAISetupStep({sdkName: 'Next.js'}),
+    getAISetupStep({
+      sdkName: 'Next.js',
+      docsUrl: 'https://docs.sentry.io/platforms/javascript/guides/nextjs.md',
+    }),
   ],
   verify: () => [
     {

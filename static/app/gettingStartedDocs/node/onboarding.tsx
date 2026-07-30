@@ -105,7 +105,10 @@ export const onboarding: OnboardingConfig = {
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/node/sourcemaps/',
       ...params,
     }),
-    getAISetupStep({sdkName: 'Node.js'}),
+    getAISetupStep({
+      sdkName: 'Node.js',
+      docsUrl: 'https://docs.sentry.io/platforms/javascript/guides/node.md',
+    }),
   ],
   verify: (params: DocsParams) => [
     {

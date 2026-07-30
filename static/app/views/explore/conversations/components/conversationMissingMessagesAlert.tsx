@@ -20,12 +20,13 @@ const CAPTURE_MESSAGES_PROMPT = `
 
 # Capture Sentry AI Agent Conversation Messages
 
-Use these skills as the source of truth:
+Use these docs as the source of truth:
 
-## Skill References
+## Docs References
 
-- Source repository: https://github.com/getsentry/sentry-for-ai
-- Agent-monitoring skill: https://skills.sentry.dev/sentry-setup-ai-monitoring/SKILL.md
+- Getting started: https://docs.sentry.io/product/agents/getting-started.md
+- JavaScript/Node instrumentation: https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module.md
+- Python instrumentation: https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module.md
 `;
 
 function CopyCaptureMessagesPromptButton() {
