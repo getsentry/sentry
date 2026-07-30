@@ -1,5 +1,6 @@
 from typing import Literal
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -34,6 +35,8 @@ class EventOwnersEndpoint(ProjectEndpoint):
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
+
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         owners, rules = ProjectOwnership.get_owners(project.id, event.data)
 
