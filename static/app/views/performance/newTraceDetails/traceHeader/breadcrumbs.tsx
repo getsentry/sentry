@@ -407,21 +407,23 @@ const Wrapper = styled('div')`
   }
 `;
 
-/**
- * The crumbs leading up to the trace, derived from the `source` query param.
- * Excludes the trace itself — that is the page title.
- */
-export function getTraceViewParentCrumbs({
-  organization,
-  location,
-  moduleURLBuilder,
-  view,
-}: {
+interface TraceParentCrumbsOptions {
   location: Location;
   moduleURLBuilder: URLBuilder;
   organization: Organization;
   view?: DomainView;
-}): TraceParentCrumb[] {
+}
+
+/**
+ * Parent crumbs for a recognized `source`, or undefined when it is missing or
+ * unknown — callers pick their own fallback.
+ */
+function getKnownSourceParentCrumbs({
+  organization,
+  location,
+  moduleURLBuilder,
+  view,
+}: TraceParentCrumbsOptions): TraceParentCrumb[] | undefined {
   if (
     typeof location.query.source === 'string' &&
     TRACE_SOURCE_TO_INSIGHTS_MODULE[
@@ -498,19 +500,32 @@ export function getTraceViewParentCrumbs({
           ),
         },
       ];
-    // Without a `source` we can't know where the user came from, so fall back
-    // to the traces list — every trace is reachable from there.
     default:
-      return [
-        {
-          label: t('Traces'),
-          to: getBreadCrumbTarget(
-            makeTracesPathname({path: '/', organization}),
-            location.query
-          ),
-        },
-      ];
+      return undefined;
   }
+}
+
+/**
+ * The crumbs leading up to the trace, derived from the `source` query param.
+ * Excludes the trace itself — that is the page title. Sources we don't
+ * recognize fall back to the traces list, which every trace is reachable from.
+ */
+export function getTraceViewParentCrumbs(
+  options: TraceParentCrumbsOptions
+): TraceParentCrumb[] {
+  const {organization, location} = options;
+
+  return (
+    getKnownSourceParentCrumbs(options) ?? [
+      {
+        label: t('Traces'),
+        to: getBreadCrumbTarget(
+          makeTracesPathname({path: '/', organization}),
+          location.query
+        ),
+      },
+    ]
+  );
 }
 
 export function getTraceViewBreadcrumbs({
@@ -528,8 +543,17 @@ export function getTraceViewBreadcrumbs({
   project?: Project;
   view?: DomainView;
 }): Crumb[] {
+  // Legacy breadcrumbs keep the pre-BreadcrumbList fallback: an unlinked
+  // "Trace" label rather than a link to the traces list.
+  const parentCrumbs = getKnownSourceParentCrumbs({
+    organization,
+    location,
+    moduleURLBuilder,
+    view,
+  }) ?? [{label: t('Trace')}];
+
   return [
-    ...getTraceViewParentCrumbs({organization, location, moduleURLBuilder, view}),
+    ...parentCrumbs,
     {label: <LeafBreadCrumbLabel traceSlug={traceSlug} project={project} />},
   ];
 }
