@@ -195,7 +195,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
 
         max_file_size = (
             MAX_OBJECTSTORE_DEBUG_FILE_SIZE
-            if features.has("organizations:objectstore-debugfiles-assemble", organization)
+            if features.has("organizations:objectstore-debugfiles-exclusive-write", organization)
             else MAX_FILE_SIZE
         )
 

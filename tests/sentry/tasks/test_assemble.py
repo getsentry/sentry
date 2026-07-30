@@ -194,7 +194,7 @@ class AssembleDifTest(BaseAssembleTest):
 
         with self.feature(
             {
-                "organizations:objectstore-debugfiles-assemble": True,
+                "organizations:objectstore-debugfiles-exclusive-write": True,
                 "organizations:objectstore-debugfiles-write": False,
             }
         ):
@@ -224,7 +224,7 @@ class AssembleDifTest(BaseAssembleTest):
         blob = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
         checksum = sha1(sym_file).hexdigest()
 
-        with self.feature("organizations:objectstore-debugfiles-assemble"):
+        with self.feature("organizations:objectstore-debugfiles-exclusive-write"):
             assemble_dif(
                 project_id=self.project.id,
                 name="crash.sym",

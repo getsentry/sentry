@@ -327,7 +327,7 @@ class DifAssembleEndpoint(APITestCase):
 
         with self.feature(
             {
-                "organizations:objectstore-debugfiles-assemble": True,
+                "organizations:objectstore-debugfiles-exclusive-write": True,
                 "organizations:objectstore-debugfiles-write": False,
                 "organizations:objectstore-debugfiles-read": True,
             }

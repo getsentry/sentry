@@ -344,7 +344,9 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         project = Project.objects.filter(id=project_id).get()
         set_assemble_status(AssembleTask.DIF, project_id, checksum, ChunkFileState.ASSEMBLING)
 
-        if not features.has("organizations:objectstore-debugfiles-assemble", project.organization):
+        if not features.has(
+            "organizations:objectstore-debugfiles-exclusive-write", project.organization
+        ):
             # Assemble the chunks into a temporary file
             rv = assemble_file(
                 AssembleTask.DIF, project, name, checksum, chunks, file_type="project.dif"
