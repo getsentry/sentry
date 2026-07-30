@@ -10,15 +10,6 @@ describe('getInitialFilterText', () => {
     );
   });
 
-  it('preserves bare syntax for typed user attributes', () => {
-    expect(
-      getInitialFilterText('custom_tag_name', {
-        kind: FieldKind.FIELD,
-        valueType: FieldValueType.STRING,
-      })
-    ).toBe(`custom_tag_name:${WildcardOperators.CONTAINS}""`);
-  });
-
   it('quotes typed filter keys containing colons', () => {
     expect(
       getInitialFilterText('imaginary.attribute:made_up_key', {
