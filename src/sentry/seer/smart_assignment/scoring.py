@@ -103,6 +103,7 @@ def _ground_truth_updates(
     if activity_type in RESOLUTION_ACTIVITIES:
         resolver_id = resolver_user_id(activity)
         if resolver_id is None:
+            # If we don't have a resolver user ID, we can't score the prediction.
             return None
         extras = run.extras or {}
         if (
