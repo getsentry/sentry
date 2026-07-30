@@ -331,7 +331,7 @@ export function getActivityItem({
       return {
         title:
           issueCategory === IssueCategoryEnum.FEEDBACK
-            ? t('Marked as spam')
+            ? t('Marked as Spam')
             : t('Archived'),
         details: getArchiveDetails(activity.data, issueCategory),
       };
