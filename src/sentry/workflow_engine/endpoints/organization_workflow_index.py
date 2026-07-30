@@ -22,7 +22,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -67,6 +67,7 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation impo
 from sentry.workflow_engine.models import DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.types import DetectorId
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
 # to our field naming scheme for consistency.
@@ -208,13 +209,18 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
 
         # Use include_all_accessible=True to get all projects the user can access,
         # not just those explicitly requested. This filter is ALWAYS applied to ensure
-        # users with no project access only see org-level workflows (those with no
-        # detector connections). When projects is empty, only workflows with
-        # detectorworkflow__isnull=True are returned.
+        # users with no project access only see org-level workflows.
         projects = self.get_projects(request, organization, include_all_accessible=True)
-        queryset = queryset.filter(
-            Q(detectorworkflow__detector__project__in=projects) | Q(detectorworkflow__isnull=True)
-        ).distinct()
+        accessible_workflows = Q(detectorworkflow__detector__project__in=projects) | Q(
+            detectorworkflow__isnull=True
+        )
+        if features.has("organizations:workflow-engine-all-projects-detector", organization):
+            accessible_workflows |= Q(
+                detectorworkflow__detector__project__isnull=True,
+                detectorworkflow__detector__type=IssueStreamGroupType.slug,
+                detectorworkflow__detector__config__organization_id=organization.id,
+            )
+        queryset = queryset.filter(accessible_workflows).distinct()
 
         return queryset
 

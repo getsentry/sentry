@@ -13,8 +13,10 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import cell_silo_test
+from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -383,6 +385,20 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         assert not self.get_success_response(
             self.organization.slug, qs_params=[("project", empty_project.id)]
         ).data
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_filter_by_project_includes_workflow_attached_to_all_projects_detector(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(
+            workflow=self.workflow,
+            detector=all_projects_detector,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params=[("project", self.project.id)]
+        )
+
+        assert str(self.workflow.id) in {workflow["id"] for workflow in response.data}
 
     def test_query_filter_by_action(self) -> None:
         self._create_action_for_workflow(self.workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
