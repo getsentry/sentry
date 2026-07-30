@@ -17,7 +17,7 @@ export const bigNumFormatter = (
   if (num >= 1000 && num < MILLION) {
     return (
       fixDecimals(num / 1000, decimals || 1) +
-      (units === BigNumUnits.KILO_BYTES ? 'KB' : 'K')
+      (units === BigNumUnits.KILO_BYTES ? 'kB' : 'K')
     );
   }
   if (MILLION <= num && num < BILLION) {

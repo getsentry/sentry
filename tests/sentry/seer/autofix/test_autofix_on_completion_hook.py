@@ -229,12 +229,18 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
 
     def test_determine_fixability_returns_none_for_non_root_cause(self) -> None:
         organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        group = self.create_group(project=project)
         state = run_state(blocks=[pr_iteration_memory_block()])
 
         result = AutofixOnCompletionHook.determine_fixability(
-            organization,
-            state,
-            AutofixStep.PR_ITERATION,
+            organization=organization,
+            group=group,
+            run_id=1,
+            state=state,
+            step=AutofixStep.PR_ITERATION,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            reached_stopping_point=False,
         )
 
         assert result is None

@@ -57,7 +57,7 @@ describe('tooltipFormatterUsingAggregateOutputType()', () => {
       tooltipFormatterUsingAggregateOutputType(50 * 1000 * 1000, 'size', SizeUnit.BYTE)
     ).toBe('50 MB');
     expect(tooltipFormatterUsingAggregateOutputType(1000, 'size', SizeUnit.BYTE)).toBe(
-      '1 KB'
+      '1 kB'
     );
   });
 
@@ -174,7 +174,7 @@ describe('axisLabelFormatterUsingAggregateOutputType()', () => {
         0,
         SizeUnit.BYTE
       )
-    ).toBe('1 KB');
+    ).toBe('1 kB');
   });
 
   it.each([

@@ -57,6 +57,21 @@ export const SEER_EMBED_SCHEMAS = {
       },
     ],
   },
+  user: {
+    description:
+      'Mention a Sentry user or team inline. Renders an avatar and display name. ' +
+      'Use the actor type ("user" or "team") and the actor\'s ID and name.',
+    level: ['inline'],
+    schema: z.object({
+      id: z.string(),
+      type: z.enum(['user', 'team']),
+      name: z.string(),
+    }),
+    examples: [
+      {label: 'User', data: {id: '1', type: 'user', name: 'Jane Doe'}},
+      {label: 'Team', data: {id: '2', type: 'team', name: 'platform'}},
+    ],
+  },
 } as const satisfies Record<string, SeerEmbedSchema>;
 
 export type SeerEmbedName = keyof typeof SEER_EMBED_SCHEMAS;

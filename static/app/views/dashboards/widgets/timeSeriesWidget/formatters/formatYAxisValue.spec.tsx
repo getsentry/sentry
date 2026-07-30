@@ -54,7 +54,7 @@ describe('formatYAxisValue', () => {
   describe('size', () => {
     it.each([
       [0, 'byte', '0'],
-      [0.712, 'megabyte', '712 KB'],
+      [0.712, 'megabyte', '712 kB'],
       [1231, 'kibibyte', '1.2 MiB'],
     ])('Formats %s as %s', (value, unit, formattedValue) => {
       expect(formatYAxisValue(value, 'size', unit)).toEqual(formattedValue);
