@@ -250,12 +250,13 @@ export function Onboarding() {
   // Node-based platforms can deploy their agents to either the Node runtime or
   // Cloudflare Workers, so we let the user pick a target that tailors the setup.
   const isNodePlatform = (project?.platform ?? '').startsWith('node');
-  const isCloudflarePlatform =
-    project?.platform === 'node-cloudflare-workers' ||
-    project?.platform === 'node-cloudflare-pages';
-  // Cloudflare projects always run on Cloudflare - there's no Node runtime to
-  // switch to - so we only offer the selector for other Node platforms.
-  const showDeploymentTarget = isNodePlatform && !isCloudflarePlatform;
+  // Cloudflare Workers projects are pinned to the Cloudflare (withSentry) setup.
+  // Cloudflare Pages bootstraps via `sentryPagesPlugin` instead, so it's left out
+  // of this selector for now and keeps its existing onboarding.
+  const isCloudflareWorkers = project?.platform === 'node-cloudflare-workers';
+  const isCloudflarePages = project?.platform === 'node-cloudflare-pages';
+  const showDeploymentTarget =
+    isNodePlatform && !isCloudflareWorkers && !isCloudflarePages;
 
   const deploymentTargetOptions: BasePlatformOptions = showDeploymentTarget
     ? {
@@ -275,9 +276,9 @@ export function Onboarding() {
 
   const selectedDeploymentTarget = useUrlPlatformOptions(deploymentTargetOptions)
     .deploymentTarget as DeploymentTarget | undefined;
-  // Cloudflare projects are pinned to the Cloudflare runtime; other Node projects
-  // follow the selector (defaulting to Node).
-  const deploymentTarget = isCloudflarePlatform
+  // Cloudflare Workers projects are pinned to the Cloudflare runtime; other Node
+  // projects follow the selector (defaulting to Node).
+  const deploymentTarget = isCloudflareWorkers
     ? DeploymentTarget.CLOUDFLARE
     : selectedDeploymentTarget;
   const isCloudflareTarget =

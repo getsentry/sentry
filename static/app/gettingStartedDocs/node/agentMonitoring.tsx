@@ -17,7 +17,9 @@ import {
   DeploymentTarget,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
-export const MIN_REQUIRED_VERSION = '10.61.0';
+// Bumped to 10.67.0 so the install step also satisfies Workers AI, which
+// auto-instruments the `env.AI` binding only from that version.
+export const MIN_REQUIRED_VERSION = '10.67.0';
 
 const CLOUDFLARE_AGENT_TRACING_DOCS =
   'https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/';
@@ -83,7 +85,6 @@ export default Sentry.withSentry(
 
 const WORKERS_AI_DOCS =
   'https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/workers-ai/';
-const WORKERS_AI_MIN_VERSION = '10.67.0';
 
 /**
  * `instrumentDurableObjectWithSentry` is the Durable-Object / Agents-SDK
@@ -114,11 +115,10 @@ function getWorkersAiNote(): ContentBlock {
   return {
     type: 'text',
     text: tct(
-      "Sentry automatically instruments the [link:Workers AI binding] ([code:env.AI]) once your Worker is wrapped - there's no extra setup. Requires SDK [version] or later.",
+      "Sentry automatically instruments the [link:Workers AI binding] ([code:env.AI]) once your Worker is wrapped - there's no extra setup.",
       {
         code: <code />,
         link: <ExternalLink href={WORKERS_AI_DOCS} />,
-        version: <code>{WORKERS_AI_MIN_VERSION}</code>,
       }
     ),
   };

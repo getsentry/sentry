@@ -107,7 +107,7 @@ describe('Onboarding deployment target', () => {
     ).toBeGreaterThan(0);
   });
 
-  it('pins Cloudflare projects to the Cloudflare runtime with no Node toggle', async () => {
+  it('pins Cloudflare Workers projects to the Cloudflare runtime with no Node toggle', async () => {
     const {organization} = setupProject('node-cloudflare-workers');
 
     render(<Onboarding />, {organization});
@@ -121,6 +121,19 @@ describe('Onboarding deployment target', () => {
       ).length
     ).toBeGreaterThan(0);
     // ...but there is no Node/Cloudflare deployment selector (it's always Cloudflare)
+    expect(screen.queryByRole('button', {name: 'Node'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
+  });
+
+  it('does not show the deployment selector for Cloudflare Pages', async () => {
+    const {organization} = setupProject('node-cloudflare-pages');
+
+    render(<Onboarding />, {organization});
+
+    // Pages keeps its existing onboarding and is left out of the runtime selector
+    expect(
+      await screen.findByRole('button', {name: 'Vercel AI SDK'})
+    ).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Node'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
   });
