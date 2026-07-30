@@ -881,4 +881,5 @@ export type StrictCSSObject = {
   [key: `&${string}`]: StrictCSSObject; // Allow nested selectors
   [key: `> ${string}:last-child`]: StrictCSSObject; // Allow some nested selectors
   [key: `> ${string}:first-child`]: StrictCSSObject; // Allow some nested selectors
+  [key: `--${string}`]: string; // Allow CSS custom properties
 }>;
