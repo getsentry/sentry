@@ -20,10 +20,7 @@ export function SamplingWarning({yAxis, reason}: SamplingWarningProps) {
   );
   const title =
     reason === 'partialData'
-      ? tct(
-          'Due to the estimation being applied, [name] is likely to return unreliable results. Treat [name] for estimation purposes only.',
-          {name: nameNode}
-        )
+      ? tct('[name] is unreliable due to sampling', {name: nameNode})
       : tct(
           'Due to your configured sample rate, [name] is likely to return unreliable results. Increase your sample rate, or treat [name] for estimation purposes only.',
           {name: nameNode}

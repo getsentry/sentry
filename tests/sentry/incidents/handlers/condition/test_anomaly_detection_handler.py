@@ -96,7 +96,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         }
 
     def assert_seer_call(self, deserialized_body: dict[str, Any]) -> None:
-        assert deserialized_body["organization_id"] == self.detector.project.organization.id
+        assert deserialized_body["organization_id"] == self.detector.linked_project.organization.id
         assert deserialized_body["project_id"] == self.detector.project_id
         assert deserialized_body["config"]["time_period"] == self.snuba_query.time_window / 60
         assert (

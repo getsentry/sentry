@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.http import HttpResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
@@ -30,6 +31,8 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             raise ResourceDoesNotExist
+
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         if event.platform not in ("cocoa", "native"):
             return HttpResponse(

@@ -1886,7 +1886,11 @@ describe('ActivitySection', () => {
           type: GroupActivityType.SEER_ITERATION_STARTED,
           id: 'seer-iteration-1',
           dateCreated: '2020-01-01T00:00:00',
-          data: {run_id: 456, iteration_index: 1},
+          data: {
+            run_id: 456,
+            iteration_index: 1,
+            referrer: 'github.check_suite',
+          },
           user: null,
         },
       ],
@@ -1894,7 +1898,7 @@ describe('ActivitySection', () => {
     });
 
     const org = OrganizationFixture({
-      features: ['display-seer-actions-as-issue-activities'],
+      features: ['display-seer-actions-as-issue-activities', 'issue-activity-feed-v2'],
     });
 
     render(
@@ -1906,11 +1910,9 @@ describe('ActivitySection', () => {
       </GroupDataContextProvider>,
       {organization: org}
     );
-    expect(await screen.findAllByText('PR Iteration')).toHaveLength(2);
-    expect(
-      screen.getByText('Seer started iterating on the pull request')
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'pull request'})).toHaveAttribute(
+    expect(await screen.findByText('Pull request iteration started')).toBeInTheDocument();
+    expect(screen.getByText('after CI failed')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '#42'})).toHaveAttribute(
       'href',
       'https://github.com/org/repo/pull/42'
     );
