@@ -841,36 +841,31 @@ def _clone_proguard_debug_file_for_reupload(
         }
 
     meta = build_proguard_reupload_dif_meta(debug_file, requested_debug_id)
-    if debug_file.file is None:
-        # Objectstore-only source: clone exclusively to Objectstore (no File row).
-        assert debug_file.storage_path is not None
-        assert debug_file.checksum is not None
-        assert debug_file.file_size is not None
-        source_fileobj = debug_file.get_file()
-        try:
-            # Spool into a temporary file to get a seekable stream.
-            with tempfile.TemporaryFile() as tmp:
-                shutil.copyfileobj(source_fileobj, tmp)
-                tmp.seek(0)
-                dif, created = create_objectstore_dif_from_id(
-                    project,
-                    meta,
-                    tmp,
-                    debug_file.checksum,
-                    debug_file.file_size,
-                )
-        finally:
-            source_fileobj.close()
-    elif not debug_file.uses_objectstore_for_read():
+    if debug_file.file is not None and not debug_file.uses_objectstore_for_read():
+        # Legacy File-backed source (and dual-written source when Objectstore
+        # reads are disabled): reuse the existing File row under a new debug ID.
         dif, created = create_dif_from_id(project, meta, file=debug_file.file)
     else:
+        # Source content lives in Objectstore (exclusively, or dual-written with
+        # reads enabled). Spool once, then write via the matching create path.
+        assert debug_file.checksum is not None
         source_fileobj = debug_file.get_file()
         try:
-            # Spool into a temporary file to get a seekable stream.
             with tempfile.TemporaryFile() as tmp:
                 shutil.copyfileobj(source_fileobj, tmp)
                 tmp.seek(0)
-                dif, created = create_dif_from_id(project, meta, fileobj=tmp)
+                if debug_file.file is None:
+                    # Objectstore-only: stay exclusive (no File row).
+                    assert debug_file.file_size is not None
+                    dif, created = create_objectstore_dif_from_id(
+                        project,
+                        meta,
+                        tmp,
+                        debug_file.checksum,
+                        debug_file.file_size,
+                    )
+                else:
+                    dif, created = create_dif_from_id(project, meta, fileobj=tmp)
         finally:
             source_fileobj.close()
 
