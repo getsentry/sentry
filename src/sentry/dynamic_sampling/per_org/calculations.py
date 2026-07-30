@@ -32,6 +32,7 @@ from sentry.dynamic_sampling.per_org.queries import (
     ProjectVolume,
     get_eap_organization_volume,
     get_generic_metrics_organization_volume,
+    get_generic_metrics_transaction_volumes,
     get_outcomes_organization_volume,
 )
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
@@ -516,3 +517,47 @@ def compare_rebalanced_transactions_with_cache(
                     ),
                 },
             )
+
+
+def log_transaction_volume_debug(
+    config: BaseDynamicSamplingConfiguration,
+    transaction_volumes: list[ProjectTransactionCounts],
+    debug_project_ids: set[int],
+) -> None:
+    """
+    Logs the raw per-transaction volumes EAP fed into balancing next to the legacy
+    generic-metrics volumes for the same window, for every transaction on either side —
+    not just the ones that survived the top-N cutoff and rebalancing model. Used to debug
+    discrepancies between the two pipelines' transaction counts directly, since
+    ``compare_rebalanced_transactions_with_cache`` only ever sees post-rebalancing sample
+    rates for the transactions EAP kept.
+    """
+    eap_counts_by_project = {
+        project_data.project_id: dict(project_data.transaction_counts)
+        for project_data in transaction_volumes
+        if project_data.project_id in debug_project_ids
+    }
+    generic_metrics_counts_by_project = get_generic_metrics_transaction_volumes(
+        config.organization.id, debug_project_ids
+    )
+
+    for project_id in sorted(debug_project_ids):
+        eap_counts = eap_counts_by_project.get(project_id, {})
+        generic_metrics_counts = dict(generic_metrics_counts_by_project.get(project_id, []))
+
+        transactions = {
+            transaction: {
+                "eap_volume": eap_counts.get(transaction),
+                "generic_metrics_volume": generic_metrics_counts.get(transaction),
+            }
+            for transaction in eap_counts.keys() | generic_metrics_counts.keys()
+        }
+
+        logger.info(
+            "dynamic_sampling.per_org.transaction_volume_debug",
+            extra={
+                "org_id": config.organization.id,
+                "ds_proj_id": project_id,
+                "transactions": transactions,
+            },
+        )

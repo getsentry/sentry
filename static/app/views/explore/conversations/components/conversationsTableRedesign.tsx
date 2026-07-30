@@ -161,27 +161,34 @@ export function ConversationsTableRedesign() {
   return (
     <Fragment>
       {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
-      <FixedRowHeightGrid>
-        <GridEditable
-          isLoading={isFetching}
-          error={error}
-          data={data}
-          columnOrder={columnOrder}
-          columnSortBy={[]}
-          stickyHeader
-          grid={{
-            renderHeadCell,
-            renderBodyCell,
-            onResizeColumn: handleResizeColumn,
-          }}
-          onRowClick={handleRowClick}
-          isRowClickable={() => true}
-          onRowMouseOver={(_dataRow, key) => setHighlightedRowKey(key)}
-          onRowMouseOut={() => setHighlightedRowKey(undefined)}
-          highlightedRowKey={highlightedRowKey}
-        />
-      </FixedRowHeightGrid>
-      <Pagination pageLinks={pageLinks} onCursor={handlePaginate} />
+      <Stack gap="lg">
+        <FixedRowHeightGrid>
+          <GridEditable
+            isLoading={isFetching}
+            error={error}
+            data={data}
+            columnOrder={columnOrder}
+            columnSortBy={[]}
+            stickyHeader
+            // GridEditable's Panel body has a default bottom margin; drop it so
+            // the Stack's `lg` gap is the only spacing before the pagination.
+            bodyStyle={{marginBottom: 0}}
+            grid={{
+              renderHeadCell,
+              renderBodyCell,
+              onResizeColumn: handleResizeColumn,
+            }}
+            onRowClick={handleRowClick}
+            isRowClickable={() => true}
+            onRowMouseOver={(_dataRow, key) => setHighlightedRowKey(key)}
+            onRowMouseOut={() => setHighlightedRowKey(undefined)}
+            highlightedRowKey={highlightedRowKey}
+          />
+        </FixedRowHeightGrid>
+        {/* Zero Pagination's built-in top margin so the Stack's `lg` gap is the
+            only spacing between the table and the controls. */}
+        <TablePagination pageLinks={pageLinks} onCursor={handlePaginate} />
+      </Stack>
     </Fragment>
   );
 }
@@ -279,7 +286,14 @@ function ConversationCell({conversation}: {conversation: Conversation}) {
       </Text>
       <Flex align="center" gap="sm" minWidth={0}>
         <Flex align="center" gap="xs" minWidth={0}>
-          {project && <ProjectAvatar project={project} size={14} />}
+          {project && (
+            <ProjectAvatar
+              project={project}
+              size={14}
+              hasTooltip
+              tooltip={project.slug}
+            />
+          )}
           <Text size="sm" variant="muted" ellipsis>
             {getConversationIdLabel(conversation.conversationId)}
           </Text>
@@ -297,7 +311,7 @@ function ConversationUserLabel({user}: {user: Conversation['user']}) {
   if (displayName) {
     return (
       <Flex align="center" gap="xs" minWidth={0}>
-        <IconUser size="xs" />
+        <UserIcon size="xs" />
         <Text size="sm" variant="muted" ellipsis>
           {displayName}
         </Text>
@@ -308,7 +322,7 @@ function ConversationUserLabel({user}: {user: Conversation['user']}) {
   return (
     <Tooltip title={<UserNotInstrumentedTooltip />} isHoverable skipWrapper>
       <Flex align="center" gap="xs">
-        <IconUser size="xs" />
+        <UserIcon size="xs" />
         <Text size="sm" variant="muted">
           &mdash;
         </Text>
@@ -528,6 +542,10 @@ function ToolsCell({toolNames}: {toolNames: string[]}) {
   );
 }
 
+const TablePagination = styled(Pagination)`
+  margin: 0;
+`;
+
 const FixedRowHeightGrid = styled('div')`
   /* Pin data rows to a fixed height by sizing their body cells. Head cells are
      <th> (unaffected), and the empty/loading/error status cell keeps its own
@@ -541,6 +559,11 @@ const FixedRowHeightGrid = styled('div')`
 // reads as a small inline divider between the id and the user. Override its
 // `align-self: stretch` so the fixed height stays centered in the row instead
 // of pinning to the top.
+// Keep the user icon from shrinking when the display name is long.
+const UserIcon = styled(IconUser)`
+  flex-shrink: 0;
+`;
+
 const CellDivider = styled(Separator)`
   align-self: center;
   height: 12px;

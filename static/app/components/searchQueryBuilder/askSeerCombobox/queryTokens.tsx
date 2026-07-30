@@ -57,14 +57,14 @@ function NewQueryTokens({
     : null;
   if (displayQuery && parsedQuery?.length) {
     tokens.push(
-      <Stack key="filter">
+      <Stack key="filter" minWidth="0" maxWidth="100%">
         <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
         <Stack gap="xs" overflow="hidden">
           {parsedQuery
             .filter(({text}) => text.trim() !== '')
             .map(({text}) => (
               <FormattedQueryWrapper key={text}>
-                <ProvidedFormattedQuery query={text} />
+                <ProvidedFormattedQuery query={text} wrapTokens />
               </FormattedQueryWrapper>
             ))}
         </Stack>
@@ -179,21 +179,21 @@ function NewQueryTokens({
     tokens.push(
       <Stack overflow="hidden" key={`${crossEvent.type}-${idx}`}>
         <ExploreParamTitle>{t('Cross Event Filter:')}</ExploreParamTitle>
-        <Flex gap="md">
-          <Stack gap="xs">
+        <Flex gap="md" wrap="wrap">
+          <Stack gap="xs" minWidth="0" maxWidth="100%">
             <ExploreParamTitle>{t('Dataset')}</ExploreParamTitle>
             <Container>
               <ExploreGroupBys>{crossEvent.type}</ExploreGroupBys>
             </Container>
           </Stack>
-          <Stack gap="xs">
+          <Stack gap="xs" minWidth="0" maxWidth="100%">
             <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
             <Stack gap="xs">
               {parsedCrossEvent
                 ?.filter(({text}) => text.trim() !== '')
                 .map(({text}) => (
                   <FormattedQueryWrapper key={text}>
-                    <ProvidedFormattedQuery query={text} />
+                    <ProvidedFormattedQuery query={text} wrapTokens />
                   </FormattedQueryWrapper>
                 ))}
             </Stack>
@@ -228,10 +228,11 @@ const ExploreVisualizes = styled('span')`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
   border: 1px solid ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md};
-  height: 24px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  min-height: 24px;
+  width: fit-content;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
   display: inline-flex;
   align-items: center;
 `;
@@ -239,5 +240,8 @@ const ExploreVisualizes = styled('span')`
 const ExploreGroupBys = ExploreVisualizes;
 
 const FormattedQueryWrapper = styled('span')`
-  display: inline-block;
+  display: block;
+  width: fit-content;
+  min-width: 0;
+  max-width: 100%;
 `;

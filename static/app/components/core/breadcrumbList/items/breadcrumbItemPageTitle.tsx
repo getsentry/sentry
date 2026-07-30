@@ -81,10 +81,10 @@ interface BreadcrumbPaginationItem {
   onClick?: () => void;
   /** Destination for the chevron. When omitted the chevron renders disabled. */
   to?: LinkProps['to'];
-  /** Optional tooltip — useful for rich tooltips like "Learn More" links. */
+  /** Optional tooltip — the title accepts rich content, not just a string. */
   tooltip?: {
     title: React.ReactNode;
-    /** Keeps the tooltip open while hovered. */
+    /** Keeps the tooltip open while hovered, so interactive content stays reachable. */
     isHoverable?: boolean;
   };
 }

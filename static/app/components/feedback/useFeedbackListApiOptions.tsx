@@ -57,9 +57,7 @@ function buildQuery(params: {
 }) {
   return {
     ...params.fixedQueryView,
-    expand: params.prefetch
-      ? []
-      : ['integrationIssues', 'sentryAppIssues', 'latestEventHasAttachments'],
+    expand: params.prefetch ? [] : ['integrationIssues', 'sentryAppIssues'],
     shortIdLookup: 0,
     query: `issue.category:feedback status:${params.mailbox} ${params.fixedQueryView.query}`,
   };

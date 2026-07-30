@@ -231,6 +231,39 @@ def get_generic_metrics_organization_volume(
     return OrganizationDataVolume(org_id=org_id, total=total, indexed=None)
 
 
+def get_generic_metrics_transaction_volumes(
+    org_id: int,
+    project_ids: set[int],
+    max_transactions: int | None = None,
+) -> dict[int, list[tuple[str, float]]]:
+    """
+    Per-transaction volumes of a set of projects from the legacy generic-metrics pipeline,
+    for side-by-side debugging against ``get_eap_transaction_volumes``. Reuses
+    ``FetchProjectTransactionVolumes`` (the same query the legacy pipeline runs) rather
+    than issuing a new one, scanning the org once for every requested project instead of
+    once per project.
+    """
+    from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
+        FetchProjectTransactionVolumes,
+    )
+
+    if max_transactions is None:
+        max_transactions = int(
+            options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
+        )
+
+    remaining = set(project_ids)
+    result: dict[int, list[tuple[str, float]]] = {}
+    for project_transactions in FetchProjectTransactionVolumes([org_id], max_transactions):
+        if not remaining:
+            break
+        project_id = project_transactions["project_id"]
+        if project_id in remaining:
+            result[project_id] = project_transactions["transaction_counts"]
+            remaining.discard(project_id)
+    return result
+
+
 def get_eap_project_volumes(
     config: OrganizationVolumeConfig,
     time_interval: timedelta = timedelta(hours=1),
