@@ -43,7 +43,11 @@ export function getWidgetConfigError(
     }
     const aggregate = getSelectedAggregate(widget);
     const traceMetric = aggregate && extractTraceMetricFromColumn(aggregate);
-    if (traceMetric && !doesMetricSupportHeatMapVisualization(traceMetric)) {
+    if (!traceMetric) {
+      // No aggregate at all — a present-but-unresolved one is already caught above.
+      return t('This widget is missing a metric to visualize.');
+    }
+    if (!doesMetricSupportHeatMapVisualization(traceMetric)) {
       return t('Heatmaps can only visualize distribution metrics.');
     }
   }

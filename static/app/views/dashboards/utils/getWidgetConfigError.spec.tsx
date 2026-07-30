@@ -79,6 +79,18 @@ describe('getWidgetConfigError', () => {
     expect(getWidgetConfigError(widget)).toBeDefined();
   });
 
+  it('returns an error for heat map widgets with no aggregates', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.HEATMAP,
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [WidgetQueryFixture({aggregates: []})],
+    });
+
+    expect(getWidgetConfigError(widget)).toBe(
+      'This widget is missing a metric to visualize.'
+    );
+  });
+
   it('returns undefined for heat map widgets with a resolvable metric', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.HEATMAP,
