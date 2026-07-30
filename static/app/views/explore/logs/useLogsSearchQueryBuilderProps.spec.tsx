@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {PageFilterStateFixture, PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -107,31 +107,5 @@ describe('useLogsSearchQueryBuilderProps', () => {
     expect(result.current.tracesItemSearchQueryBuilderProps.invalidFilterKeys).toEqual([
       'missing.key',
     ]);
-  });
-
-  it('preserves quoted attribute keys containing colons', () => {
-    const {result, router} = renderHookWithProviders(
-      () =>
-        useLogsSearchQueryBuilderProps({
-          booleanAttributes: {},
-          booleanSecondaryAliases: {},
-          numberAttributes: {},
-          numberSecondaryAliases: {},
-          stringAttributes: {},
-          stringSecondaryAliases: {},
-        }),
-      {additionalWrapper: Wrapper}
-    );
-
-    act(() => {
-      result.current.tracesItemSearchQueryBuilderProps.onSearch?.(
-        '"imaginary.attribute:made_up_key":asdf',
-        {parsedQuery: null, queryIsValid: true}
-      );
-    });
-
-    expect(router.location.query.logsQuery).toBe(
-      '"imaginary.attribute:made_up_key":asdf'
-    );
   });
 });

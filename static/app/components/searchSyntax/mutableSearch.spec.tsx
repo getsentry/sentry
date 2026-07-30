@@ -10,14 +10,6 @@ describe('MutableSearch', () => {
       [{'span.domain': '*hello*'}, 'span.domain:*hello*'],
       [{'span.description': '*hello*'}, 'span.description:*hello*'],
       [{'span.duration': ['>0', '<100']}, 'span.duration:>0 span.duration:<100'],
-      [
-        {'imaginary.attribute:made_up_key': 'asdf'},
-        '"imaginary.attribute:made_up_key":asdf',
-      ],
-      [
-        {'imaginary.attribute:made_up_key': ['asdf', 'fdsa']},
-        '"imaginary.attribute:made_up_key":asdf "imaginary.attribute:made_up_key":fdsa',
-      ],
       [{transaction: '(empty)'}, '!has:transaction'],
       [
         {'imaginary.attribute:made_up_key': '(empty)'},

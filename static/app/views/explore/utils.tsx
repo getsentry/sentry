@@ -509,10 +509,15 @@ export function findSuggestedColumns(
       continue;
     }
 
-    const normalizedKey = normalizeKey(key);
-    const isStringAttribute = normalizedKey in attributes.stringAttributes;
-    const isNumberAttribute = normalizedKey in attributes.numberAttributes;
-    const isBooleanAttribute = normalizedKey in attributes.booleanAttributes;
+    const isStringAttribute = key.startsWith('!')
+      ? key.slice(1) in attributes.stringAttributes
+      : key in attributes.stringAttributes;
+    const isNumberAttribute = key.startsWith('!')
+      ? key.slice(1) in attributes.numberAttributes
+      : key in attributes.numberAttributes;
+    const isBooleanAttribute = key.startsWith('!')
+      ? key.slice(1) in attributes.booleanAttributes
+      : key in attributes.booleanAttributes;
 
     // guard against unknown keys and aggregate keys
     if (!isStringAttribute && !isNumberAttribute && !isBooleanAttribute) {
@@ -573,15 +578,13 @@ function isSimpleFilter(
 
   // all number attributes are considered non trivial because they
   // almost always match on a range of values
-  const normalizedKey = normalizeKey(key);
-
-  if (normalizedKey in attributes.numberAttributes) {
+  if (key in attributes.numberAttributes) {
     return false;
   }
 
   // boolean attributes are always considered trivial because they almost match on a
   // single value, so there's no value in adding a column
-  if (normalizedKey in attributes.booleanAttributes) {
+  if (key in attributes.booleanAttributes) {
     return true;
   }
 
