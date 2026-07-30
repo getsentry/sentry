@@ -23,9 +23,6 @@ describe('SelectorList', () => {
         },
       }),
     ]);
-    if (!frame) {
-      throw new Error('Expected click breadcrumb to hydrate');
-    }
     render(<SelectorList frame={frame as ClickFrame} />);
 
     expect(screen.getByText('button#save')).toBeInTheDocument();
