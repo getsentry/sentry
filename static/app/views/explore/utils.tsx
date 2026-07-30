@@ -23,7 +23,6 @@ import {
   prettifyParsedFunction,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {prettifyTagKey} from 'sentry/utils/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -612,7 +611,7 @@ function isSimpleFilter(
 }
 
 function normalizeKey(key: string): string {
-  return prettifyTagKey(key.startsWith('!') ? key.slice(1) : key);
+  return key.startsWith('!') ? key.slice(1) : key;
 }
 
 export function prettifyAggregation(aggregation: string): string | null {
