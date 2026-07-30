@@ -111,7 +111,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
       {
         query: {
           // Other events
-          dataset: DiscoverDatasets.DISCOVER,
+          dataset: DiscoverDatasets.ERRORS,
           field: [
             'title',
             'project',
