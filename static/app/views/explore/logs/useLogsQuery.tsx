@@ -354,7 +354,9 @@ function getParamBasedQuery(
   }
 
   const comparison =
-    (pageParam.querySortDirection ?? pageParam.sortByDirection === 'asc') ? '>=' : '<=';
+    (pageParam.querySortDirection?.kind ?? pageParam.sortByDirection) === 'asc'
+      ? '>='
+      : '<=';
 
   const filter = pageParam.timestampPrecise
     ? `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:${comparison}${pageParam.timestampPrecise}`

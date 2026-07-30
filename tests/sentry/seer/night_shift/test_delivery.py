@@ -2,6 +2,8 @@ from typing import Any
 from unittest.mock import patch
 from uuid import UUID
 
+from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, TriggerAutofixAction
+from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.autofix.utils import AutofixStoppingPoint
@@ -15,7 +17,9 @@ from sentry.seer.night_shift.delivery import REASON_MAX_CHARS, deliver_night_shi
 from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.types.activity import ActivityType
 from sentry.utils.redis import redis_clusters
 
 
@@ -212,6 +216,43 @@ class TestDeliverNightShiftResult(TestCase):
         assert results[0].seer_run_id == "42"
         assert results[0].extras["action"] == TriageAction.AUTOFIX.value
         assert results[0].extras["reason"] == "looks good"
+
+    def test_autofix_verdict_creates_system_activity(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        group = self.create_group(project=project)
+        run = self._create_night_shift_run(organization=org)
+        result = {
+            "verdicts": [
+                {"group_id": group.id, "action": TriageAction.AUTOFIX.value, "reason": "fixable"}
+            ]
+        }
+
+        with (
+            patch(
+                "sentry.seer.night_shift.delivery.trigger_autofix_agent",
+                return_value=self._triggered_run(42, org),
+            ),
+            capture_action_log() as action_log,
+        ):
+            deliver_night_shift_result(
+                organization_id=org.id,
+                run_uuid=self._run_uuid(run),
+                status="completed",
+                result=result,
+                error=None,
+            )
+
+        activity = Activity.objects.get(group=group, type=ActivityType.TRIGGER_AUTOFIX.value)
+        assert activity.user_id is None
+        assert activity.data == {"referrer": "night_shift"}
+        action_log.assert_logged(
+            TriggerAutofixAction,
+            group_id=group.id,
+            source=ActionSource.SYSTEM,
+            actor=SYSTEM_ACTOR,
+            referrer="night_shift",
+        )
 
     def test_root_cause_only_verdict_marks_group_skipped(self) -> None:
         """ROOT_CAUSE_ONLY verdicts are treated like SKIP: marked in the skip

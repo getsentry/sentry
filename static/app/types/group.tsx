@@ -459,6 +459,12 @@ export type Tag = {
   name: string;
   alias?: string;
 
+  /**
+   * For trace-item attributes, whether the attribute was defined by Sentry
+   * ('sentry') or sent by the user ('user').
+   */
+  attributeSource?: 'sentry' | 'user';
+
   isInput?: boolean;
 
   kind?: FieldKind;
@@ -1033,6 +1039,7 @@ interface GroupActivitySeerPrCreated extends GroupActivityBase {
 interface GroupActivitySeerIterationStarted extends GroupActivityBase {
   data: {
     iteration_index?: number;
+    referrer?: AutofixReferrer;
     run_id?: number;
   };
   type: GroupActivityType.SEER_ITERATION_STARTED;

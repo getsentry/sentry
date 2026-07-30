@@ -104,6 +104,7 @@ class RepoPRState(BaseModel):
     """PR state for a single repository."""
 
     repo_name: str
+    provider: str | None = None
     branch_name: str | None = None
     pr_number: int | None = None
     pr_url: str | None = None

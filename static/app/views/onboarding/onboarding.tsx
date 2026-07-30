@@ -34,17 +34,14 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
-import {useHasNewWelcomeUI} from 'sentry/views/onboarding/useHasNewWelcomeUI';
 
 import {NewWelcomeUI} from './components/newWelcome';
 import {OnboardingSkipButton} from './components/onboardingSkipButton';
 import {PlatformSelection} from './platformSelection';
 import {ScmConnect} from './scmConnect';
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
-import {ScmProjectDetails} from './scmProjectDetails';
 import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
-import {TargetedOnboardingWelcome} from './welcome';
 
 // Genuine new-org onboarding happens shortly after org creation. Existing orgs
 // only reach /onboarding via stale links + login replay and are far older than
@@ -55,7 +52,7 @@ const legacyOnboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
     title: t('Welcome'),
-    Component: WelcomeVariable,
+    Component: NewWelcomeUI,
     cornerVariant: 'top-right',
   },
   {
@@ -108,7 +105,6 @@ function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
     setSelectedPlatform,
     selectedFeatures,
     setSelectedFeatures,
-    setProjectDetailsForm,
     createdProjectSlug,
     setCreatedProjectSlug,
   } = useOnboardingContext();
@@ -121,34 +117,7 @@ function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
       createdProjectSlug={createdProjectSlug}
       onPlatformChange={setSelectedPlatform}
       onFeaturesChange={setSelectedFeatures}
-      onClearProjectDetailsForm={() => setProjectDetailsForm(undefined)}
       onProjectCreated={setCreatedProjectSlug}
-      onComplete={onComplete}
-      genBackButton={genBackButton}
-    />
-  );
-}
-
-function ScmProjectDetailsAdapter({onComplete, genBackButton}: StepProps) {
-  const {
-    selectedPlatform,
-    selectedFeatures,
-    selectedRepository,
-    createdProjectSlug,
-    setCreatedProjectSlug,
-    projectDetailsForm,
-    setProjectDetailsForm,
-  } = useOnboardingContext();
-
-  return (
-    <ScmProjectDetails
-      selectedPlatform={selectedPlatform}
-      selectedFeatures={selectedFeatures}
-      selectedRepository={selectedRepository}
-      createdProjectSlug={createdProjectSlug}
-      projectDetailsForm={projectDetailsForm}
-      onProjectCreated={setCreatedProjectSlug}
-      onProjectDetailsFormChange={setProjectDetailsForm}
       onComplete={onComplete}
       genBackButton={genBackButton}
     />
@@ -159,7 +128,7 @@ const scmOnboardingSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
     title: t('Welcome'),
-    Component: WelcomeVariable,
+    Component: NewWelcomeUI,
     cornerVariant: 'top-right',
   },
   {
@@ -175,13 +144,6 @@ const scmOnboardingSteps: StepDescriptor[] = [
     cornerVariant: 'top-left',
   },
   {
-    id: OnboardingStepId.SCM_PROJECT_DETAILS,
-    title: t('Project details'),
-    Component: ScmProjectDetailsAdapter,
-    hasFooter: true,
-    cornerVariant: 'top-left',
-  },
-  {
     id: OnboardingStepId.SETUP_DOCS,
     title: t('Install the Sentry SDK'),
     Component: SetupDocs,
@@ -190,25 +152,14 @@ const scmOnboardingSteps: StepDescriptor[] = [
   },
 ];
 
-function WelcomeVariable(props: StepProps) {
-  const hasNewWelcomeUI = useHasNewWelcomeUI();
-
-  if (hasNewWelcomeUI) {
-    return <NewWelcomeUI {...props} />;
-  }
-
-  return <TargetedOnboardingWelcome {...props} />;
-}
-
 interface ContainerVariableProps {
   hasFooter: boolean;
-  hasNewWelcomeUI: boolean;
   hasScmOnboarding: boolean;
   id: OnboardingStepId;
 }
 
 function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
-  const newWelcomeUIStep = props.hasNewWelcomeUI && props.id === OnboardingStepId.WELCOME;
+  const newWelcomeUIStep = props.id === OnboardingStepId.WELCOME;
 
   if (newWelcomeUIStep && !props.hasScmOnboarding) {
     return (
@@ -229,16 +180,13 @@ function ContainerVariable(props: PropsWithChildren<ContainerVariableProps>) {
 }
 
 interface OnboardingStepVariableProps {
-  hasNewWelcomeUI: boolean;
   hasScmOnboarding: boolean;
   id: OnboardingStepId;
 }
 
 function OnboardingStepVariable(props: PropsWithChildren<OnboardingStepVariableProps>) {
   const Component =
-    props.hasNewWelcomeUI &&
-    props.id === OnboardingStepId.WELCOME &&
-    !props.hasScmOnboarding
+    props.id === OnboardingStepId.WELCOME && !props.hasScmOnboarding
       ? OnboardingStepNewUi
       : OnboardingStep;
 
@@ -267,8 +215,6 @@ export function OnboardingWithoutContext() {
   const selectedProjectSlug =
     onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
 
-  const hasNewWelcomeUI = useHasNewWelcomeUI();
-
   // Only report experiment exposure for genuine new-org onboarding. Existing
   // orgs can land on /onboarding via stale links, which would
   // otherwise contaminate the experiment population. reportExposure does not
@@ -283,18 +229,7 @@ export function OnboardingWithoutContext() {
     reportExposure: isNewOrgOnboarding,
   });
 
-  // Only report exposure for users who are actually in SCM onboarding —
-  // the assignment is irrelevant for legacy onboarding.
-  const {inExperiment: hasProjectDetailsStep} = useExperiment({
-    feature: 'onboarding-scm-project-details-experiment',
-    reportExposure: hasScmOnboarding && isNewOrgOnboarding,
-  });
-
-  const scmSteps = hasProjectDetailsStep
-    ? scmOnboardingSteps
-    : scmOnboardingSteps.filter(s => s.id !== OnboardingStepId.SCM_PROJECT_DETAILS);
-
-  const onboardingSteps = hasScmOnboarding ? scmSteps : legacyOnboardingSteps;
+  const onboardingSteps = hasScmOnboarding ? scmOnboardingSteps : legacyOnboardingSteps;
 
   useReplayForCriticalFlow({
     flowName: 'scm_onboarding',
@@ -502,7 +437,6 @@ export function OnboardingWithoutContext() {
       <ContainerVariable
         hasFooter={containerHasFooter}
         id={stepObj.id}
-        hasNewWelcomeUI={hasNewWelcomeUI}
         hasScmOnboarding={hasScmOnboarding}
       >
         {hasScmOnboarding ? null : (
@@ -539,7 +473,6 @@ export function OnboardingWithoutContext() {
           <OnboardingStepVariable
             key={stepObj.id}
             id={stepObj.id}
-            hasNewWelcomeUI={hasNewWelcomeUI}
             hasScmOnboarding={hasScmOnboarding}
           >
             {stepObj.Component && (

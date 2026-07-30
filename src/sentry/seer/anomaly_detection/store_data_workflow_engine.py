@@ -123,7 +123,7 @@ def update_detector_data(
             data_source,
             data_condition,
             snuba_query,
-            detector.project,
+            detector.linked_project,
             SeerMethod.UPDATE,
             event_types,
         )
@@ -147,7 +147,12 @@ def send_new_detector_data(detector: Detector) -> None:
 
     try:
         handle_send_historical_data_to_seer(
-            detector, data_source, data_condition, snuba_query, detector.project, SeerMethod.CREATE
+            detector,
+            data_source,
+            data_condition,
+            snuba_query,
+            detector.linked_project,
+            SeerMethod.CREATE,
         )
     except (TimeoutError, MaxRetryError, ParseError, ValidationError):
         raise ValidationError("Couldn't send data to Seer, unable to create detector")

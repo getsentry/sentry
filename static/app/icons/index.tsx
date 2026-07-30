@@ -32,6 +32,7 @@ export {IconCompass} from './iconCompass';
 export {IconContract} from './iconContract';
 export {IconControl} from './iconControl';
 export {IconCopy} from './iconCopy';
+export {IconCopyId} from './iconCopyId';
 export {IconCreditCard} from './iconCreditCard';
 export {IconCursorArrow} from './iconCursorArrow';
 export {IconDashboard} from './iconDashboard';

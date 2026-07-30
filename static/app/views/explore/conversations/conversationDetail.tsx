@@ -24,7 +24,6 @@ import {
   extractMessagesFromNodes,
   messagesToMarkdown,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
-import {TopBar} from 'sentry/views/navigation/topBar';
 
 function useConversationDetailQueryState() {
   return useQueryStates(
@@ -44,7 +43,7 @@ function ConversationDetailPage() {
 
   const conversation = useMemo(() => ({conversationId}), [conversationId]);
 
-  const {nodes, nodeTraceMap, isLoading} = useConversation(conversation);
+  const {nodes, nodeTraceMap, isLoading, title} = useConversation(conversation);
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
 
@@ -80,14 +79,13 @@ function ConversationDetailPage() {
 
   return (
     <ViewportConstrainedPage background="secondary">
-      <TopBar.Slot name="title">
-        <ConversationsBreadcrumbs conversationId={conversationId} project={project} />
-      </TopBar.Slot>
+      <ConversationsBreadcrumbs conversationId={conversationId} project={project} />
       <Container flexShrink={0} background="primary" borderBottom="primary" padding="xl">
         <ConversationSummary
           nodes={nodes}
           nodeTraceMap={nodeTraceMap}
           conversationId={conversationId}
+          title={title}
           isLoading={isLoading}
         />
       </Container>

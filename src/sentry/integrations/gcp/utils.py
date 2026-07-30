@@ -19,8 +19,3 @@ def validate_gcp_project_id(project_id: str) -> None:
             "Invalid GCP project ID. Must be 6-30 characters: lowercase letters, "
             "digits, and hyphens. Must start with a letter and cannot end with a hyphen."
         )
-
-
-def generate_sentry_sa(org_id: int) -> str:
-    # TODO(CW-1667): Create per-customer SA in sentry-connectors via GCP IAM API. For now, return a deterministic placeholder based on org ID.
-    return f"sentry-org-{org_id}@sentry-connectors.iam.gserviceaccount.com"

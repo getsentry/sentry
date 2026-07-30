@@ -63,7 +63,10 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
         return None
 
     with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
-        pool.map(_delete_if_exists, _make_recording_filenames(project_id, rows))
+        filenames = [
+            filename for row in rows for filename in _make_recording_filenames(project_id, row)
+        ]
+        pool.map(_delete_if_exists, filenames)
 
     delete_replays(project_id, [row["replay_id"] for row in rows])
     return None
