@@ -1532,6 +1532,35 @@ describe('CompactSelect', () => {
       expect(screen.getByRole('row', {name: 'Option Three'})).toBeInTheDocument();
     });
 
+    it('preserves selected values outside the size limit', async () => {
+      const onChange = jest.fn();
+      render(
+        <CompactSelect
+          mode="grid"
+          multiple
+          search
+          sizeLimit={2}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+            {value: 'opt_three', label: 'Option Three'},
+          ]}
+          value={['opt_one', 'opt_two', 'opt_three']}
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      expect(screen.queryByRole('row', {name: 'Option Three'})).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+
+      expect(onChange).toHaveBeenCalledWith([
+        {value: 'opt_two', label: 'Option Two'},
+        {value: 'opt_three', label: 'Option Three'},
+      ]);
+    });
+
     it('can toggle sections', async () => {
       const mock = jest.fn();
 
