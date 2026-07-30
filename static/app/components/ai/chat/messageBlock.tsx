@@ -90,6 +90,7 @@ export function AssistantMessageBlock({
           padding="md"
           radius="xs"
           css={bubbleCss}
+          data-selected={isSelected}
           onClick={onClick}
           role={onClick ? 'button' : undefined}
           tabIndex={onClick ? 0 : undefined}
