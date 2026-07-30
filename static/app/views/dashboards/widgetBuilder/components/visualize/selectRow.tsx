@@ -699,10 +699,12 @@ export function SelectRow({
               const nextAggregateName =
                 selectedAggregate?.value.meta.name ??
                 parseAggregateFromValueKey(dropdownSelection.value as string);
-              newFields[index] = applySpansConditionalFilter(
-                nextField,
-                nextAggregateName
-              );
+              if (nextAggregateName) {
+                newFields[index] = applySpansConditionalFilter(
+                  nextField,
+                  nextAggregateName
+                );
+              }
             }
             dispatch({
               type: updateAction,

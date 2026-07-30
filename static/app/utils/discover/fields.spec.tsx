@@ -1,6 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {ColumnValueType} from 'sentry/utils/discover/fields';
+import type {
+  ColumnValueType,
+  AggregationKeyWithAlias,
+} from 'sentry/utils/discover/fields';
 import {
   aggregateMultiPlotType,
   aggregateOutputType,
@@ -138,7 +141,12 @@ describe('generateFieldAsString', () => {
     expect(
       generateFieldAsString({
         kind: 'function',
-        function: ['avg_if', '`span.op:[db,http]`', 'span.duration', undefined],
+        function: [
+          'avg_if' as AggregationKeyWithAlias,
+          '`span.op:[db,http]`',
+          'span.duration',
+          undefined,
+        ],
       })
     ).toBe('avg_if(`span.op:[db,http]`,span.duration)');
   });
