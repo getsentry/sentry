@@ -52,7 +52,11 @@ export function GridFooter(props: React.ComponentProps<typeof motion.div> & Grid
     <FooterChrome {...footerChromeProps} containerType="inline-size">
       <MotionGrid
         height="100%"
-        columns={{zero: '1fr', xl: 'repeat(3, 1fr)'}}
+        // Below xl the hidden slots leave a single visible child. Flowing in
+        // one column-direction row keeps it on the footer's baseline; explicit
+        // equal tracks would put each child on its own row instead.
+        flow={{zero: 'column', xl: 'row'}}
+        columns={{zero: 'none', xl: 'repeat(3, 1fr)'}}
         {...motionProps}
         {...props}
       />
