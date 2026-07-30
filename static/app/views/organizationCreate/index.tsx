@@ -207,26 +207,29 @@ function OrganizationCreate() {
                   }}
                 >
                   {field => (
-                    <field.Layout.Stack
-                      label={tct(
-                        'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
-                        {
-                          termsLink: <ExternalLink href={termsUrl} />,
-                          privacyLink: <ExternalLink href={privacyUrl} />,
-                        }
-                      )}
-                      required
-                    >
-                      <field.Base<HTMLInputElement>>
-                        {baseProps => (
+                    // Label lives inside field.Base so the validation icon it
+                    // appends renders after the label rather than between the
+                    // checkbox and its text.
+                    <field.Base<HTMLInputElement>>
+                      {baseProps => (
+                        <Flex gap="md" align="center">
                           <Checkbox
                             {...baseProps}
                             checked={field.state.value}
                             onChange={e => field.handleChange(e.target.checked)}
                           />
-                        )}
-                      </field.Base>
-                    </field.Layout.Stack>
+                          <field.Meta.Label required>
+                            {tct(
+                              'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
+                              {
+                                termsLink: <ExternalLink href={termsUrl} />,
+                                privacyLink: <ExternalLink href={privacyUrl} />,
+                              }
+                            )}
+                          </field.Meta.Label>
+                        </Flex>
+                      )}
+                    </field.Base>
                   )}
                 </form.AppField>
               )}
@@ -234,24 +237,27 @@ function OrganizationCreate() {
               {hasDataConsent && (
                 <form.AppField name="aggregatedDataConsent">
                   {field => (
-                    <field.Layout.Stack
-                      label={tct(
-                        'I agree to let Sentry use my service data for product improvements. [dataConsentLink: Learn more].',
-                        {
-                          dataConsentLink: <ExternalLink href={DATA_CONSENT_DOCS_LINK} />,
-                        }
-                      )}
-                    >
-                      <field.Base<HTMLInputElement>>
-                        {baseProps => (
+                    <field.Base<HTMLInputElement>>
+                      {baseProps => (
+                        <Flex gap="md" align="center">
                           <Checkbox
                             {...baseProps}
                             checked={field.state.value}
                             onChange={e => field.handleChange(e.target.checked)}
                           />
-                        )}
-                      </field.Base>
-                    </field.Layout.Stack>
+                          <field.Meta.Label>
+                            {tct(
+                              'I agree to let Sentry use my service data for product improvements. [dataConsentLink: Learn more].',
+                              {
+                                dataConsentLink: (
+                                  <ExternalLink href={DATA_CONSENT_DOCS_LINK} />
+                                ),
+                              }
+                            )}
+                          </field.Meta.Label>
+                        </Flex>
+                      )}
+                    </field.Base>
                   )}
                 </form.AppField>
               )}
