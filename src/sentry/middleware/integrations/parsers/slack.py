@@ -357,15 +357,34 @@ class SlackRequestParser(BaseRequestParser):
             sample_rate=1.0,
         )
 
+    def _log_seer_agent_retry_headers(self, status_code: int | str) -> None:
+        if not self._is_seer_agent_request(self.slack_request):
+            return
+
+        logger.info(
+            "slack.control.webhook_retry_headers",
+            extra={
+                "path": self.request.path,
+                "url_name": self.match.url_name,
+                "status_code": status_code,
+                "event_type": self.slack_request.type,
+                "retry_num": self.request.META.get("HTTP_X_SLACK_RETRY_NUM"),
+                "retry_reason": self.request.META.get("HTTP_X_SLACK_RETRY_REASON"),
+            },
+        )
+
     def get_response(self) -> HttpResponseBase:
         try:
             response = self._get_response()
         except Exception:
             # The final status code is decided further up the stack.
             self._record_response_time("error")
+            self._log_seer_agent_retry_headers("error")
             raise
 
         self._record_response_time(response.status_code)
+        self._log_seer_agent_retry_headers(response.status_code)
+
         return response
 
     def _get_response(self) -> HttpResponseBase:
