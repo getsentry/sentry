@@ -68,12 +68,17 @@ def apply_gpu_crash_symbolication(
         contexts = {}
     contexts["gpu_crash"] = _build_flat_gpu_context(response)
     if gpu_state.get("device_name"):
-        contexts["gpu"] = {
-            "name": gpu_state["device_name"],
-            "driver_version": gpu_state.get("driver_version"),
-            "vendor_name": "NVIDIA",
-            "api": gpu_state.get("api"),
-        }
+        # Overlay teapot's crash-dump fields onto any SDK-provided `gpu` context so
+        # SDK-only fields (memory_size, vendor_id, ...) aren't wiped. `api_type` is
+        # the Sentry GPU-context schema field (not `api`).
+        gpu_ctx = dict(contexts.get("gpu") or {})
+        gpu_ctx["name"] = gpu_state["device_name"]
+        gpu_ctx["vendor_name"] = "NVIDIA"
+        if gpu_state.get("driver_version"):
+            gpu_ctx["driver_version"] = gpu_state["driver_version"]
+        if gpu_state.get("api"):
+            gpu_ctx["api_type"] = gpu_state["api"]
+        contexts["gpu"] = gpu_ctx
     # Only fill os/app if the copied SDK scope didn't (teapot's are thinner).
     # `os_version` is a combined string ("Windows 10 (19H1)"), so it's the raw
     # description — not `name` (which drives OS filtering and wants the identity).
