@@ -223,7 +223,7 @@ const ChartTableRow = styled('label')<{
       }
     `}
 
-    ${p =>
+  ${p =>
     p.role === 'children' &&
     css`
       ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {

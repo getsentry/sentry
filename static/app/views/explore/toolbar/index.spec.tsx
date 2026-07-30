@@ -36,7 +36,7 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('ExploreToolbar', () => {
   const organization = OrganizationFixture({
-    features: ['dashboards-edit'],
+    features: ['dashboards-edit', 'incidents'],
   });
 
   beforeEach(() => {
@@ -84,6 +84,29 @@ describe('ExploreToolbar', () => {
         },
       ],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      body: {
+        dataset: [],
+        environment: [],
+        field: [
+          {
+            attrType: 'number',
+            error: null,
+            name: 'custom.measurement',
+            valid: true,
+          },
+        ],
+        orderby: [],
+        projects: [],
+        query: {
+          error: null,
+          fields: [],
+          valid: true,
+        },
+        valid: true,
+      },
+    });
   });
 
   it('disables changing visualize fields for count', async () => {
@@ -93,11 +116,7 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
 
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-visualizes');
 
@@ -114,11 +133,7 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
 
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-visualizes');
 
@@ -148,11 +163,7 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
 
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-visualizes');
 
@@ -173,11 +184,7 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
 
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-visualizes');
 
@@ -213,11 +220,7 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
 
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-visualizes');
 
@@ -256,11 +259,7 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
 
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-visualizes');
 
@@ -318,11 +317,7 @@ describe('ExploreToolbar', () => {
       groupBys = useQueryParamsGroupBys();
       return <ExploreToolbar />;
     }
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     let options: HTMLElement[];
     const section = screen.getByTestId('section-group-by');
@@ -365,6 +360,259 @@ describe('ExploreToolbar', () => {
     expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
   });
 
+  it('uses validated field type for the selected group by', async () => {
+    render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/traces/`,
+          query: {
+            groupBy: 'custom.measurement',
+          },
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-group-by');
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+
+    await userEvent.click(
+      await within(editorColumn).findByRole('button', {name: 'custom.measurement'})
+    );
+
+    const option = await within(section).findByRole('option', {
+      name: 'custom.measurement',
+    });
+    await waitFor(() => expect(option).toHaveTextContent('number'));
+  });
+
+  it('does not render unvalidated selected group bys while validation loads', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      asyncDelay: 100000,
+      body: {
+        dataset: [],
+        environment: [],
+        field: [
+          {
+            attrType: null,
+            error: 'Invalid attribute',
+            name: 'invalid.attribute',
+            valid: false,
+          },
+        ],
+        orderby: [],
+        projects: [],
+        query: {
+          error: null,
+          fields: [],
+          valid: true,
+        },
+        valid: false,
+      },
+    });
+
+    render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/traces/`,
+          query: {
+            aggregateField: [
+              JSON.stringify({groupBy: 'invalid.attribute'}),
+              JSON.stringify({yAxes: ['count(span.duration)'], chartType: 0}),
+            ],
+          },
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-group-by');
+
+    await waitFor(() =>
+      expect(
+        within(section).queryByRole('button', {name: 'invalid.attribute'})
+      ).not.toBeInTheDocument()
+    );
+
+    await waitFor(() =>
+      expect(within(section).getAllByRole('button', {name: '—'}).length).toBeGreaterThan(
+        0
+      )
+    );
+  });
+
+  it('does not remove selected group bys using placeholder validation data', async () => {
+    const delayedValidateMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      asyncDelay: 100000,
+      body: {
+        dataset: [],
+        environment: [],
+        field: [
+          {
+            attrType: null,
+            error: 'Invalid attribute',
+            name: 'invalid.attribute',
+            valid: false,
+          },
+        ],
+        orderby: [],
+        projects: [],
+        query: {
+          error: null,
+          fields: [],
+          valid: true,
+        },
+        valid: false,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      match: [
+        (_url, options) => JSON.stringify(options.query?.field).includes('valid.first'),
+      ],
+      body: {
+        dataset: [],
+        environment: [],
+        field: [
+          {
+            attrType: 'string',
+            error: null,
+            name: 'valid.first',
+            valid: true,
+          },
+          {
+            attrType: null,
+            error: 'Invalid attribute',
+            name: 'invalid.attribute',
+            valid: false,
+          },
+        ],
+        orderby: [],
+        projects: [],
+        query: {
+          error: null,
+          fields: [],
+          valid: true,
+        },
+        valid: false,
+      },
+    });
+
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/traces/`,
+          query: {
+            aggregateField: [
+              JSON.stringify({groupBy: 'valid.first'}),
+              JSON.stringify({yAxes: ['count(span.duration)'], chartType: 0}),
+            ],
+          },
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-group-by');
+    await within(section).findAllByRole('button', {name: 'valid.first'});
+
+    const nextParams = new URLSearchParams();
+    nextParams.append('aggregateField', JSON.stringify({groupBy: 'invalid.attribute'}));
+    nextParams.append(
+      'aggregateField',
+      JSON.stringify({yAxes: ['count(span.duration)'], chartType: 0})
+    );
+
+    act(() => {
+      router.navigate(
+        `/organizations/${organization.slug}/explore/traces/?${nextParams}`
+      );
+    });
+
+    await waitFor(() => expect(delayedValidateMock).toHaveBeenCalled());
+    expect(router.location.query.aggregateField).toEqual([
+      JSON.stringify({groupBy: 'invalid.attribute'}),
+      JSON.stringify({yAxes: ['count(span.duration)'], chartType: 0}),
+    ]);
+  });
+
+  it('removes invalid selected group bys and preserves empty values', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      body: {
+        dataset: [],
+        environment: [],
+        field: [
+          {
+            attrType: null,
+            error: 'Invalid attribute',
+            name: 'invalid.attribute',
+            valid: false,
+          },
+          {
+            attrType: 'string',
+            error: null,
+            name: 'span.op',
+            valid: true,
+          },
+        ],
+        orderby: [],
+        projects: [],
+        query: {
+          error: null,
+          fields: [],
+          valid: true,
+        },
+        valid: false,
+      },
+    });
+
+    let groupBys: readonly string[] = [];
+
+    function Component() {
+      groupBys = useQueryParamsGroupBys();
+      return <ExploreToolbar />;
+    }
+
+    const {router} = render(<Component />, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/traces/`,
+          query: {
+            aggregateField: [
+              JSON.stringify({groupBy: 'invalid.attribute'}),
+              JSON.stringify({groupBy: ''}),
+              JSON.stringify({groupBy: 'span.op'}),
+              JSON.stringify({yAxes: ['count(span.duration)'], chartType: 0}),
+            ],
+          },
+        },
+      },
+    });
+
+    await waitFor(() => expect(groupBys).toEqual(['', 'span.op']));
+
+    const aggregateFieldQuery = router.location.query.aggregateField;
+    const aggregateFields = (
+      Array.isArray(aggregateFieldQuery) ? aggregateFieldQuery : [aggregateFieldQuery]
+    )
+      .filter((field): field is string => typeof field === 'string')
+      .map(field => JSON.parse(field));
+
+    expect(aggregateFields).toEqual([
+      {groupBy: ''},
+      {groupBy: 'span.op'},
+      {yAxes: ['count(span.duration)'], chartType: 0},
+    ]);
+
+    expect(
+      screen.queryByRole('button', {name: 'invalid.attribute'})
+    ).not.toBeInTheDocument();
+  });
+
   it('clears the last selected group by', async () => {
     let groupBys: readonly string[] = [];
     let mode: Mode | undefined;
@@ -403,11 +651,7 @@ describe('ExploreToolbar', () => {
       mode = useQueryParamsMode();
       return <ExploreToolbar />;
     }
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     expect(mode).toEqual(Mode.SAMPLES);
     expect(groupBys).toEqual(['']);
@@ -431,11 +675,7 @@ describe('ExploreToolbar', () => {
       mode = useQueryParamsMode();
       return <ExploreToolbar />;
     }
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     expect(mode).toEqual(Mode.SAMPLES);
     expect(groupBys).toEqual(['']);
@@ -455,11 +695,7 @@ describe('ExploreToolbar', () => {
       aggregateFields = useQueryParamsAggregateFields();
       return <ExploreToolbar />;
     }
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     expect(aggregateFields).toEqual([
       {groupBy: ''},
@@ -483,11 +719,7 @@ describe('ExploreToolbar', () => {
       sortBys = useQueryParamsSortBys();
       return <ExploreToolbar />;
     }
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-sort-by');
 
@@ -540,11 +772,7 @@ describe('ExploreToolbar', () => {
       sortBys = useQueryParamsAggregateSortBys();
       return <ExploreToolbar />;
     }
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     act(() => setMode(Mode.AGGREGATE));
 
@@ -617,11 +845,7 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
 
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>
-    );
+    render(<Component />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-sort-by');
 
@@ -653,24 +877,20 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
     act(() => {
-      render(
-        <Wrapper>
-          <Component />
-        </Wrapper>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {
-              pathname: '/traces/',
-              query: {
-                visualize: encodeURIComponent(
-                  '{"chartType":1,"yAxes":["p95(span.duration)"]}'
-                ),
-              },
+      render(<Component />, {
+        additionalWrapper: Wrapper,
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/traces/',
+            query: {
+              visualize: encodeURIComponent(
+                '{"chartType":1,"yAxes":["p95(span.duration)"]}'
+              ),
             },
           },
-        }
-      );
+        },
+      });
     });
 
     const section = screen.getByTestId('section-save-as');
@@ -684,24 +904,20 @@ describe('ExploreToolbar', () => {
     function Component() {
       return <ExploreToolbar />;
     }
-    const {router} = render(
-      <Wrapper>
-        <Component />
-      </Wrapper>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/traces/',
-            query: {
-              visualize: encodeURIComponent(
-                '{"chartType":1,"yAxes":["p95(span.duration)"]}'
-              ),
-            },
+    const {router} = render(<Component />, {
+      additionalWrapper: Wrapper,
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            visualize: encodeURIComponent(
+              '{"chartType":1,"yAxes":["p95(span.duration)"]}'
+            ),
           },
         },
-      }
-    );
+      },
+    });
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Chart'}));
 
@@ -725,24 +941,20 @@ describe('ExploreToolbar', () => {
     function Component() {
       return <ExploreToolbar />;
     }
-    const {router} = render(
-      <Wrapper>
-        <Component />
-      </Wrapper>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/traces/',
-            query: {
-              visualize: encodeURIComponent(
-                '{"chartType":1,"yAxes":["avg(span.duration)"]}'
-              ),
-            },
+    const {router} = render(<Component />, {
+      additionalWrapper: Wrapper,
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            visualize: encodeURIComponent(
+              '{"chartType":1,"yAxes":["avg(span.duration)"]}'
+            ),
           },
         },
-      }
-    );
+      },
+    });
 
     const section = screen.getByTestId('section-save-as');
 
@@ -766,34 +978,59 @@ describe('ExploreToolbar', () => {
     });
   });
 
+  it('disables the alert option when the org lacks metric alerts', async () => {
+    const orgWithoutAlerts = OrganizationFixture({features: ['dashboards-edit']});
+    function Component() {
+      return <ExploreToolbar />;
+    }
+    render(<Component />, {
+      additionalWrapper: Wrapper,
+      organization: orgWithoutAlerts,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            visualize: encodeURIComponent(
+              '{"chartType":1,"yAxes":["avg(span.duration)"]}'
+            ),
+          },
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-save-as');
+
+    await userEvent.click(within(section).getByRole('button', {name: /save as/i}));
+
+    expect(
+      within(section).getByRole('menuitemradio', {name: 'Alert for'})
+    ).toHaveAttribute('aria-disabled', 'true');
+  });
+
   it('add to dashboard options correctly', async () => {
     function Component() {
       return <ExploreToolbar />;
     }
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/traces/',
-            query: {
-              visualize: encodeURIComponent(
-                '{"chartType":1,"yAxes":["count(span.duration)"]}'
-              ),
-            },
+    render(<Component />, {
+      additionalWrapper: Wrapper,
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            visualize: encodeURIComponent(
+              '{"chartType":1,"yAxes":["count(span.duration)"]}'
+            ),
           },
         },
-      }
-    );
+      },
+    });
 
     const section = screen.getByTestId('section-save-as');
 
     await userEvent.click(within(section).getByRole('button', {name: /save as/i}));
     await userEvent.click(within(section).getByText('Dashboard widget'));
-    await waitFor(() => {
+    await waitFor(() =>
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
           widgets: [
@@ -814,8 +1051,8 @@ describe('ExploreToolbar', () => {
             },
           ],
         })
-      );
-    });
+      )
+    );
   });
 
   it('highlights save button when saved query is changed', async () => {
@@ -848,28 +1085,24 @@ describe('ExploreToolbar', () => {
       return <ExploreToolbar />;
     }
 
-    const {router} = render(
-      <Wrapper>
-        <Component />
-      </Wrapper>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/traces/',
-            query: {
-              query: '',
-              visualize: '{"chartType":1,"yAxes":["count(span.duration)"]}',
-              groupBy: 'span.op',
-              sort: '-count(span.duration)',
-              field: 'count(span.duration)',
-              id: '123',
-              mode: 'aggregate',
-            },
+    const {router} = render(<Component />, {
+      additionalWrapper: Wrapper,
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            query: '',
+            visualize: '{"chartType":1,"yAxes":["count(span.duration)"]}',
+            groupBy: 'span.op',
+            sort: '-count(span.duration)',
+            field: 'count(span.duration)',
+            id: '123',
+            mode: 'aggregate',
           },
         },
-      }
-    );
+      },
+    });
     screen.getByRole('button', {name: /save as/i});
     const section = screen.getByTestId('section-sort-by');
     await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
@@ -881,9 +1114,7 @@ describe('ExploreToolbar', () => {
     );
 
     // After navigation, the save action should switch to the update state.
-    await waitFor(() => {
-      expect(screen.getByText(/^save$/i)).toBeInTheDocument();
-    });
+    expect(await screen.findByText(/^save$/i)).toBeInTheDocument();
   });
 
   it('allows save as when cross events are present', async () => {

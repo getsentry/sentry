@@ -19,11 +19,14 @@ import {
   IconGlobe,
   IconGraph,
   IconJira,
+  IconLinkBroken,
   IconLock,
+  IconMerge,
   IconMute,
   IconNext,
   IconPlay,
   IconPrevious,
+  IconPullRequest,
   IconPullRequestClosed,
   IconRefresh,
   IconSeer,
@@ -85,6 +88,18 @@ export const groupActivityTypeIconMapping: Record<
   },
   [GroupActivityType.PULL_REQUEST_CLOSED]: {
     Component: IconPullRequestClosed,
+    defaultProps: {},
+  },
+  [GroupActivityType.PULL_REQUEST_REOPENED]: {
+    Component: IconPullRequest,
+    defaultProps: {},
+  },
+  [GroupActivityType.PULL_REQUEST_MERGED]: {
+    Component: IconMerge,
+    defaultProps: {},
+  },
+  [GroupActivityType.PULL_REQUEST_UNLINKED]: {
+    Component: IconLinkBroken,
     defaultProps: {},
   },
   [GroupActivityType.SET_UNRESOLVED]: {Component: IconClose, defaultProps: {}},
@@ -188,6 +203,11 @@ export const groupActivityTypeIconMapping: Record<
     Component: IconSeer,
     defaultProps: {},
     propsFunction: () => ({variant: 'success'}),
+  },
+  [GroupActivityType.TRIGGER_AUTOFIX]: {
+    Component: IconSeer,
+    defaultProps: {},
+    propsFunction: () => ({}),
   },
 };
 

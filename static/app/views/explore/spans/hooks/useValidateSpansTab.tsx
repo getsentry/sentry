@@ -3,13 +3,13 @@ import {useQuery, skipToken} from '@tanstack/react-query';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  useQueryParamsAggregateFields,
   useQueryParamsFields,
-  useQueryParamsGroupBys,
   useQueryParamsQuery,
   useQueryParamsSortBys,
-  useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {getColumnFieldsForValidation} from 'sentry/views/explore/utils/columnValidation';
 import {validateEventParamsOptions} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 type UseValidateSpansTabArgs = {
@@ -21,24 +21,17 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
   const organization = useOrganization();
 
   const query = useQueryParamsQuery();
+  const aggregateFields = useQueryParamsAggregateFields();
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
-  const groupBys = useQueryParamsGroupBys();
-  const visualizes = useQueryParamsVisualizes();
 
-  const {data, isLoading} = useQuery({
+  const {data, isFetching, isLoading, isPlaceholderData} = useQuery({
     ...validateEventParamsOptions({
       organization,
       selection,
       traceItemType: TraceItemDataset.SPANS,
       environments: selection.environments,
-      field: Array.from(
-        new Set([
-          ...fields,
-          ...groupBys.filter(g => g !== ''),
-          ...visualizes.map(v => v.yAxis),
-        ])
-      ),
+      field: getColumnFieldsForValidation({aggregateFields, fields}),
       orderBy: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
       query,
       projectIds: selection.projects,
@@ -49,6 +42,8 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
 
   return {
     data,
+    isFetching,
+    isPlaceholderData,
     isLoading,
   };
 }

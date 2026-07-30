@@ -43,6 +43,7 @@ from sentry.integrations.project_management.metrics import (
 )
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.issues.action_log import (
+    action_context_scope,
     publish_action,
     resolve_action_actor,
     resolve_action_source,
@@ -148,7 +149,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         },
         examples=IntegrationExamples.GROUP_INTEGRATION_ISSUE_CONFIG,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-integration-details",
+        url_names=["sentry-api-0-group-integration-details"],
+    )
     def get(
         self, request: Request, group: Group, integration_id: str
     ) -> Response[IntegrationIssueConfigResponse] | Response[DetailResponse]:
@@ -238,7 +243,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         },
         examples=IntegrationExamples.EXTERNAL_ISSUE_LINK,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-integration-details",
+        url_names=["sentry-api-0-group-integration-details"],
+    )
     def post(
         self, request: Request, group: Group, integration_id: str
     ) -> (
@@ -337,17 +346,21 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             )
         installation.store_issue_last_defaults(group.project, request.user, request.data)
 
-        self.create_issue_activity(request, group, installation, external_issue, new=True)
+        source = resolve_action_source(request)
+        actor = resolve_action_actor(request)
+
+        with action_context_scope(source=source, actor=actor):
+            self.create_issue_activity(request, group, installation, external_issue, new=True)
 
         publish_action(
             CreateExternalIssueAction(
                 provider=integration.provider,
                 external_issue_key=external_issue.key,
             ),
-            source=resolve_action_source(request),
+            source=source,
             group_id=group.id,
             project=group.project,
-            actor=resolve_action_actor(request),
+            actor=actor,
         )
 
         # TODO(jess): return serialized issue
@@ -388,7 +401,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         },
         examples=IntegrationExamples.EXTERNAL_ISSUE_LINK,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-integration-details",
+        url_names=["sentry-api-0-group-integration-details"],
+    )
     def put(
         self, request: Request, group: Group, integration_id: str
     ) -> (
@@ -487,17 +504,21 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 lifecycle.record_halt(exc)
                 return Response({"non_field_errors": ["That issue is already linked"]}, status=400)
 
-        self.create_issue_activity(request, group, installation, external_issue, new=False)
+        source = resolve_action_source(request)
+        actor = resolve_action_actor(request)
+
+        with action_context_scope(source=source, actor=actor):
+            self.create_issue_activity(request, group, installation, external_issue, new=False)
 
         publish_action(
             LinkExternalIssueAction(
                 provider=integration.provider,
                 external_issue_key=external_issue.key,
             ),
-            source=resolve_action_source(request),
+            source=source,
             group_id=group.id,
             project=group.project,
-            actor=resolve_action_actor(request),
+            actor=actor,
         )
 
         # TODO(jess): would be helpful to return serialized external issue
@@ -534,7 +555,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-integration-details",
+        url_names=["sentry-api-0-group-integration-details"],
+    )
     def delete(
         self, request: Request, group: Group, integration_id: str
     ) -> Response[None] | Response[DetailResponse]:

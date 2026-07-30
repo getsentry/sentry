@@ -145,7 +145,6 @@ export function WidgetPreview({
           : widget
       }
       dashboardFilters={dashboardFilters}
-      isEditingDashboard={false}
       widgetLimitReached={false}
       showContextMenu={false}
       widgetInterval={chartInterval}

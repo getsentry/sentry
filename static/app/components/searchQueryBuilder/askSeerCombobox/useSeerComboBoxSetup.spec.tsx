@@ -278,13 +278,124 @@ describe('mapSeerResponseItem', () => {
       visualizations: [{yAxes: ['count()']}],
     });
   });
+
+  it('attaches span and log cross-events from Seer sibling queries', () => {
+    expect(
+      mapSeerResponseItem(
+        {
+          query: 'span.op:db',
+          sort: '',
+          group_by: [],
+          stats_period: '24h',
+          start: null,
+          end: null,
+          mode: 'samples',
+          span_query: 'span.description:*pool*',
+          log_query: 'severity:error',
+        },
+        'spans'
+      )
+    ).toEqual(
+      expect.objectContaining({
+        crossEvents: [
+          {type: 'spans', query: 'span.description:*pool*'},
+          {type: 'logs', query: 'severity:error'},
+        ],
+      })
+    );
+  });
+
+  it('parses a metric cross-event from metric_query', () => {
+    expect(
+      mapSeerResponseItem(
+        {
+          query: 'span.op:db',
+          sort: '',
+          group_by: [],
+          stats_period: '24h',
+          start: null,
+          end: null,
+          mode: 'samples',
+          metric_query:
+            'metric.name:foo.duration metric.type:distribution metric.unit:millisecond value:>100',
+        },
+        'spans'
+      )
+    ).toEqual(
+      expect.objectContaining({
+        crossEvents: [
+          {
+            type: 'metrics',
+            query: 'value:>100',
+            metric: {name: 'foo.duration', type: 'distribution', unit: 'millisecond'},
+          },
+        ],
+      })
+    );
+  });
+
+  it('drops an aggregate-mode metric cross-event with no parseable identity', () => {
+    expect(
+      mapSeerResponseItem(
+        {
+          query: 'span.op:db',
+          sort: '',
+          group_by: [],
+          stats_period: '24h',
+          start: null,
+          end: null,
+          mode: 'samples',
+          metric_query: 'value:>100',
+        },
+        'spans'
+      )
+    ).not.toHaveProperty('crossEvents');
+  });
+
+  it('omits crossEvents when there are no sibling queries', () => {
+    expect(
+      mapSeerResponseItem(
+        {
+          query: 'span.op:db',
+          sort: '',
+          group_by: [],
+          stats_period: '24h',
+          start: null,
+          end: null,
+          mode: 'samples',
+        },
+        'spans'
+      )
+    ).not.toHaveProperty('crossEvents');
+  });
+
+  it('does not build cross-events outside the spans tab', () => {
+    expect(
+      mapSeerResponseItem({
+        query: 'is:unresolved',
+        sort: '',
+        group_by: [],
+        stats_period: '24h',
+        start: null,
+        end: null,
+        mode: 'samples',
+        log_query: 'severity:error',
+      })
+    ).not.toHaveProperty('crossEvents');
+  });
 });
 
 describe('buildSeerDateTimeSelection', () => {
-  const pageFiltersDatetime = {
+  const relativePageFiltersDatetime = {
+    start: null,
+    end: null,
+    period: '24h',
+    utc: null,
+  };
+  const absolutePageFiltersDatetime = {
     start: '2024-01-01T00:00:00',
     end: '2024-01-02T00:00:00',
-    period: '24h',
+    period: null,
     utc: false,
   };
 
@@ -293,7 +404,7 @@ describe('buildSeerDateTimeSelection', () => {
       '2024-06-01T00:00:00Z',
       '2024-06-02T00:00:00Z',
       '',
-      pageFiltersDatetime
+      relativePageFiltersDatetime
     );
 
     expect(result.start).toBe('2024-06-01T00:00:00');
@@ -304,33 +415,53 @@ describe('buildSeerDateTimeSelection', () => {
     expect(result.utc).toBe(true);
   });
 
-  it('falls back to pageFilters datetime when no start/end', () => {
-    const result = buildSeerDateTimeSelection(null, null, '', pageFiltersDatetime);
+  it('falls back to the current relative datetime when Seer omits datetime', () => {
+    const result = buildSeerDateTimeSelection(
+      null,
+      null,
+      '',
+      relativePageFiltersDatetime
+    );
 
-    expect(result.start).toBe('2024-01-01T00:00:00');
-    expect(result.end).toBe('2024-01-02T00:00:00');
-    expect(result.period).toBe('24h');
-    // Inherits the page filter's utc flag when falling back.
-    expect(result.utc).toBe(false);
+    expect(result).toEqual(relativePageFiltersDatetime);
   });
 
-  it('uses statsPeriod when no start/end', () => {
-    const result = buildSeerDateTimeSelection(null, null, '7d', pageFiltersDatetime);
+  it('falls back to the current absolute datetime when Seer omits datetime', () => {
+    const result = buildSeerDateTimeSelection(
+      null,
+      null,
+      '',
+      absolutePageFiltersDatetime
+    );
 
-    expect(result.start).toBe('2024-01-01T00:00:00');
-    expect(result.end).toBe('2024-01-02T00:00:00');
-    expect(result.period).toBe('7d');
+    expect(result).toEqual(absolutePageFiltersDatetime);
   });
 
-  it('sets period to null when start and end are provided', () => {
+  it('uses a Seer statsPeriod instead of the current absolute datetime', () => {
+    const result = buildSeerDateTimeSelection(
+      null,
+      null,
+      '7d',
+      absolutePageFiltersDatetime
+    );
+
+    expect(result).toEqual({start: null, end: null, period: '7d', utc: null});
+  });
+
+  it('uses statsPeriod when relative and absolute values are provided', () => {
     const result = buildSeerDateTimeSelection(
       '2024-06-01T00:00:00',
       '2024-06-02T00:00:00',
       '7d',
-      pageFiltersDatetime
+      absolutePageFiltersDatetime
     );
 
-    expect(result.period).toBeNull();
+    expect(result).toEqual({
+      start: null,
+      end: null,
+      period: '7d',
+      utc: null,
+    });
   });
 
   it('does not shift dates without a Z suffix', () => {
@@ -338,7 +469,7 @@ describe('buildSeerDateTimeSelection', () => {
       '2024-06-01T12:00:00',
       '2024-06-02T12:00:00',
       '',
-      pageFiltersDatetime
+      relativePageFiltersDatetime
     );
 
     expect(result.start).toBe('2024-06-01T12:00:00');

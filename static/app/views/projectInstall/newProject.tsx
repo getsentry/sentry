@@ -3,16 +3,16 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {useExperiment} from 'sentry/utils/useExperiment';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {CreateProject} from './createProject';
 import {ScmCreateProject} from './scmCreateProject';
 
 function NewProject() {
-  const {inExperiment: hasScmProjectCreation} = useExperiment({
-    feature: 'onboarding-scm-project-creation-experiment',
-    reportExposure: true,
-  });
+  const organization = useOrganization();
+  const hasScmProjectCreation = organization.features.includes(
+    'onboarding-scm-project-creation'
+  );
 
   if (hasScmProjectCreation) {
     return <ScmCreateProject />;

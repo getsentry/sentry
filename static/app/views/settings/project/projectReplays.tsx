@@ -62,12 +62,14 @@ export default function ProjectReplaySettings() {
       <SentryDocumentTitle title={t('Replays')} projectSlug={project.slug}>
         <SettingsPageHeader title={t('Replays')} />
         <TabsWithGap
-          value={tab}
+          value={hasAccess ? tab : 'replay-issues'}
           onChange={value => setTab(value as 'replay-issues' | 'bulk-delete')}
         >
           <TabList>
             <TabList.Item key="replay-issues">{t('Replay Issues')}</TabList.Item>
-            <TabList.Item key="bulk-delete">{t('Bulk Delete')}</TabList.Item>
+            {hasAccess ? (
+              <TabList.Item key="bulk-delete">{t('Bulk Delete')}</TabList.Item>
+            ) : null}
           </TabList>
           <TabPanels>
             <TabPanels.Item key="replay-issues">
@@ -129,14 +131,16 @@ export default function ProjectReplaySettings() {
                 </AutoSaveForm>
               </FieldGroup>
             </TabPanels.Item>
-            <TabPanels.Item key="bulk-delete">
-              <p>
-                {t(
-                  'Deleting replays requires us to remove data from multiple storage locations which can take some time. You can monitor progress and audit requests here.'
-                )}
-              </p>
-              <ReplayBulkDeleteAuditLog projectSlug={project.slug} />
-            </TabPanels.Item>
+            {hasAccess ? (
+              <TabPanels.Item key="bulk-delete">
+                <p>
+                  {t(
+                    'Deleting replays requires us to remove data from multiple storage locations which can take some time. You can monitor progress and audit requests here.'
+                  )}
+                </p>
+                <ReplayBulkDeleteAuditLog projectSlug={project.slug} />
+              </TabPanels.Item>
+            ) : null}
           </TabPanels>
         </TabsWithGap>
       </SentryDocumentTitle>

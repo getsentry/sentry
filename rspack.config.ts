@@ -22,6 +22,8 @@ import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
+// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
+import {StoryManifestPlugin} from './build-utils/story-manifest.ts';
 import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
@@ -79,7 +81,8 @@ const HAS_WEBPACK_DEV_SERVER_CONFIG =
 
 // User/tooling configurable environment variables
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
-const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
+// Type checking is resource intensive, enable it explicitly with ENABLE_TS_CHECKER=1.
+const SHOULD_CHECK_TYPES = DEV_MODE && Boolean(env.ENABLE_TS_CHECKER);
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 // Only entry points are eagerly built, lazy build routes. Saves memory and startup time.
@@ -195,7 +198,7 @@ const DEFINED_ENV_VARS = {
   'process.env.ENABLE_SENTRY_TOOLBAR': JSON.stringify(ENABLE_SENTRY_TOOLBAR),
 };
 
-const swcReactLoaderConfig: SwcLoaderOptions = {
+const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptions => ({
   env: {
     mode: 'usage',
     // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
@@ -219,11 +222,10 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
           Object.assign(
             {},
             {
-              'annotate-fragments': false,
               'component-attr': 'data-sentry-component',
               'element-attr': 'data-sentry-element',
               'source-file-attr': 'data-sentry-source-file',
-              experimental_rewrite_emotion_styled: process.env.NODE_ENV === 'development',
+              'transparent-components': ['Flex', 'Grid', 'Container', 'Stack'],
             },
             // We don't want to add source path attributes in production
             // as it will unnecessarily bloat the bundle size
@@ -241,6 +243,10 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
       tsx: true,
     },
     transform: {
+      // TODO: Enable in production
+      reactCompiler:
+        options.reactCompiler &&
+        (IS_DEPLOY_PREVIEW || IS_ACCEPTANCE_TEST || IS_UI_DEV_ONLY),
       react: {
         runtime: 'automatic',
         development: DEV_MODE,
@@ -250,7 +256,7 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
     },
   },
   isModule: 'unknown',
-};
+});
 
 /**
  * Main Webpack config for Sentry React SPA.
@@ -269,10 +275,10 @@ const appConfig: Configuration = {
      *
      * The order here matters for `getsentry`
      */
-    app: ['sentry/utils/statics-setup', 'sentry'],
+    app: ['sentry/utils/setupStatics', 'sentry'],
 
     // admin interface
-    gsAdmin: ['sentry/utils/statics-setup', path.join(staticPrefix, 'gsAdmin')],
+    gsAdmin: ['sentry/utils/setupStatics', path.join(staticPrefix, 'gsAdmin')],
 
     /**
      * Legacy CSS Webpack appConfig for Django-powered views.
@@ -283,6 +289,11 @@ const appConfig: Configuration = {
   },
   context: staticPrefix,
   incremental: DEV_MODE,
+  watchOptions: {
+    // StoryManifestPlugin owns these watches so it can update the virtual
+    // manifest before invalidating changed and removed story dependencies.
+    ignored: ['**/*.stories.tsx', '**/*.mdx'],
+  },
   experiments: {
     futureDefaults: true,
     // https://rspack.rs/config/experiments#experimentsnativewatcher
@@ -310,33 +321,32 @@ const appConfig: Configuration = {
      */
     rules: [
       {
-        test: /stories[/\\]storyFrontmatterIndex\.ts$/,
-        enforce: 'pre',
-        use: [
+        test: /\.(?:tsx?|jsx?)$/,
+        oneOf: [
           {
-            loader: path.resolve(
-              import.meta.dirname,
-              './build-utils/frontmatter-index-loader.ts'
-            ),
+            include: /node_modules/,
+            // core-js: Avoids recompiling core-js based on usage imports
+            // react-select: Ships pre-compiled ESM with emotion's keyframes already
+            // compiled via swc. Re-processing with @swc/plugin-emotion causes
+            // "illegal escape sequence" warnings in dev mode.
+            exclude: /node_modules[\\/](core-js|react-select)/,
+            loader: 'builtin:swc-loader',
+            options: swcReactLoaderConfig({reactCompiler: false}),
+          },
+          {
+            // Application code only.
+            exclude: /node_modules/,
+            loader: 'builtin:swc-loader',
+            options: swcReactLoaderConfig({reactCompiler: true}),
           },
         ],
-      },
-      {
-        test: /\.(?:tsx?|jsx?)$/,
-        // core-js: Avoids recompiling core-js based on usage imports
-        // react-select: Ships pre-compiled ESM with emotion's keyframes already
-        // compiled via swc. Re-processing with @swc/plugin-emotion causes
-        // "illegal escape sequence" warnings in dev mode.
-        exclude: /node_modules[\\/](core-js|react-select)/,
-        loader: 'builtin:swc-loader',
-        options: swcReactLoaderConfig,
       },
       {
         test: /\.mdx?$/,
         use: [
           {
             loader: 'builtin:swc-loader',
-            options: swcReactLoaderConfig,
+            options: swcReactLoaderConfig({reactCompiler: false}),
           },
           {
             loader: '@mdx-js/loader',
@@ -349,13 +359,8 @@ const appConfig: Configuration = {
       },
       {
         test: /\.po$/,
-        use: {
-          loader: 'po-catalog-loader',
-          options: {
-            referenceExtensions: ['.js', '.jsx', '.tsx'],
-            domain: 'sentry',
-          },
-        },
+        loader: path.resolve(import.meta.dirname, './build-utils/po-catalog-loader.ts'),
+        type: 'javascript/dynamic',
       },
       {
         test: /\.pegjs$/,
@@ -425,14 +430,6 @@ const appConfig: Configuration = {
     new rspack.ContextReplacementPlugin(/platformicons/, /\.svg$/),
 
     /**
-     * TODO(epurkhiser): Figure out if we still need these
-     */
-    new rspack.ProvidePlugin({
-      process: 'process/browser',
-      Buffer: ['buffer', 'Buffer'],
-    }),
-
-    /**
      * Extract CSS into separate files.
      * https://rspack.rs/plugins/rspack/css-extract-rspack-plugin
      */
@@ -447,32 +444,19 @@ const appConfig: Configuration = {
      */
     new rspack.DefinePlugin(DEFINED_ENV_VARS),
 
-    ...(SHOULD_FORK_TS
+    ...(SHOULD_CHECK_TYPES
       ? [
           new TsCheckerRspackPlugin({
             typescript: {
-              tsgo: true,
               configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
-              configOverwrite: {
-                compilerOptions: {
-                  allowJs: false,
-                  checkJs: false,
-                },
-                exclude: [
-                  'node_modules/**/*',
-                  'tests/**/*',
-                  '**/*.spec.*',
-                  '**/*.snapshots.*',
-                  'static/eslint/**/*',
-                  'static/app/serviceWorker/worker/**/*',
-                  'scripts/**/*',
-                ],
-              },
+              typescriptPath: require.resolve('typescript-7/package.json'),
             },
             devServer: false,
           }),
         ]
       : []),
+
+    new StoryManifestPlugin(),
 
     ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorRspackPlugin({})] : []),
 
@@ -506,7 +490,7 @@ const appConfig: Configuration = {
     alias: {
       'type-loader': path.resolve(
         import.meta.dirname,
-        'static/app/stories/type-loader.ts'
+        'static/app/stories/typeLoader.ts'
       ),
     },
   },
@@ -542,12 +526,8 @@ const appConfig: Configuration = {
     fallback: {
       vm: false,
       stream: false,
-      // Node crypto is imported in @sentry-internal/global-search but not used here
-      crypto: false,
       // `pnpm why` says this is only needed in dev deps
       string_decoder: false,
-      // For framer motion v6, might be able to remove on v11
-      'process/browser': require.resolve('process/browser'),
     },
 
     // Prefers local modules over node_modules
@@ -589,7 +569,7 @@ const appConfig: Configuration = {
       new rspack.SwcJsMinimizerRspackPlugin(),
     ],
   },
-  devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
+  devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-source-map',
 };
 
 /**
@@ -606,8 +586,43 @@ const workerConfig: Configuration = {
   context: staticPrefix,
   experiments: appConfig.experiments,
   lazyCompilation: appConfig.lazyCompilation,
-  module: appConfig.module,
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        // core-js: Avoids recompiling core-js based on usage imports
+        // compiled via swc.
+        exclude: /node_modules[\\/](core-js)/,
+        loader: 'builtin:swc-loader',
+        options: {
+          env: {
+            mode: 'usage',
+            // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
+            coreJs: '3.45.0',
+            targets: packageJson.browserslist.production,
+            shippedProposals: true,
+          },
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+              tsx: true,
+            },
+            transform: {
+              react: {
+                runtime: 'automatic',
+                development: DEV_MODE,
+                refresh: false,
+              },
+            },
+          },
+          isModule: 'unknown',
+        },
+      },
+    ],
+  },
   plugins: [
+    // Disable progress bar
+    new rspack.ProgressPlugin(() => {}),
     /**
      * Without this, webpack will chunk the locales but attempt to load them all
      * eagerly.
@@ -626,7 +641,7 @@ const workerConfig: Configuration = {
   resolve: appConfig.resolve,
   // Don't clean: app's compiler owns cleaning `dist` (see its `clean.keep`).
   output: {...appConfig.output, clean: false},
-  optimization: appConfig.optimization,
+  optimization: {...appConfig.optimization, runtimeChunk: false},
   devtool: appConfig.devtool,
 };
 

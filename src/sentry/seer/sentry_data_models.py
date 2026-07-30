@@ -5,7 +5,7 @@ These should be kept in sync with the models in Seer.
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, Field
 
@@ -116,15 +116,6 @@ class OrganizationSlugResponse(BaseModel):
     slug: str
 
 
-class OrganizationProject(BaseModel):
-    id: int
-    slug: str
-
-
-class OrganizationProjectIdsResponse(BaseModel):
-    projects: list[OrganizationProject]
-
-
 class OrganizationProjectDetail(BaseModel):
     id: int
     slug: str
@@ -164,23 +155,24 @@ class SendSeerWebhookErrorResponse(BaseModel):
     error: str
 
 
-class RepositoryIntegrationsStatusResponse(BaseModel):
-    integration_ids: list[int | None]
+class NotifySeerPrCreatedSuccessResponse(BaseModel):
+    """`notify_seer_pr_created` success: `{"success": true}`. The `success` literal
+    is the discriminator against the error shape below."""
+
+    success: Literal[True] = True
+
+
+class NotifySeerPrCreatedErrorResponse(BaseModel):
+    """`notify_seer_pr_created` error: `{"success": false, "error": <message>}`.
+    Only returned when the organization can't be resolved."""
+
+    success: Literal[False] = False
+    error: str
 
 
 class HasRepoCodeMappingsResponse(BaseModel):
     has_code_mappings: bool
     project_slug_to_id: dict[str, int]
-
-
-class ValidateRepoSuccessResponse(BaseModel):
-    valid: Literal[True] = True
-    integration_id: int | None
-
-
-class ValidateRepoErrorResponse(BaseModel):
-    valid: Literal[False] = False
-    reason: str
 
 
 class GetRepoInstallationIdSuccessResponse(BaseModel):
@@ -244,6 +236,10 @@ class MetricMetadataRow(BaseModel):
     type: str
     unit: str
     count: int
+    # Authored context (brief, details) for the metric, populated only when the
+    # caller passes include_context=True (and the metric has context); otherwise
+    # None. Mirrors the attributes context shape (see BuiltInField.context).
+    context: dict[str, Any] | None = None
 
 
 class MetricMetadataSuccessResponse(BaseModel):
@@ -401,15 +397,6 @@ class AttributeValuesResponse(BaseModel):
         return id(self)
 
 
-class TraceItemAttributesResponse(BaseModel):
-    """`get_trace_item_attributes` returns `{"attributes": [...]}` for a single trace item.
-
-    Items in `attributes` are the raw attribute dicts from the trace-items API —
-    passed through verbatim to preserve the upstream wire shape."""
-
-    attributes: list[dict[str, Any]]
-
-
 class TraceItemEventsResponse(BaseModel):
     """`get_log_attributes_for_trace` and `get_metric_attributes_for_trace` return
     `{"data": [{"id", "timestamp", "attributes"}, ...]}` — the EAP GetTrace output."""
@@ -531,55 +518,56 @@ class IssueCommittersResponse(_DictProxyMixin):
     project_slug: str
 
 
+class IssueOwner(BaseModel):
+    """A resolved code owner of an issue's failing files. Exactly one of the identity
+    fields is set: `email` for a `user`, `slug` for a `team`. `name` is the display
+    name when known. Kept fully typed (not a dict passthrough) so the same model can be
+    reused for RPC request/response validation on both sides of the wire."""
+
+    type: Literal["user", "team"]
+    name: str | None = None
+    email: str | None = None
+    slug: str | None = None
+
+
+class IssueOwnershipResponse(_DictProxyMixin):
+    """`get_issue_ownership` returns the *configured* code owners (Ownership Rules /
+    CODEOWNERS) for the files in an issue's stacktrace — who is RESPONSIBLE for the
+    area, independent of who authored any commit. Useful when there's no suspect commit
+    (e.g. infra/transient errors) but the area still has a clear owner.
+
+    `owners` is the ordered list of resolved users/teams; `matched_rules` are the rule
+    patterns that matched the failing files. `auto_assignment` reports whether Sentry is
+    already auto-assigning issues from these rules — when False, the configured owners
+    exist but nothing acts on them, which is precisely where a suggested assignee adds
+    value. Empty `owners` means no rule covered the failing files."""
+
+    owners: list[IssueOwner]
+    matched_rules: list[str]
+    auto_assignment: bool
+    project_id: int
+    project_slug: str
+
+
+class TeamMembersResponse(_DictProxyMixin):
+    """`get_team_members` returns the active users on a team, letting the agent drill from
+    a team-level owner (e.g. one returned by `get_issue_ownership`) down to individual
+    users — the eventual target when suggesting an assignee. `members` reuses `IssueOwner`
+    (always `type="user"`, with `email`/`name`); it is empty when the team has no active
+    members. Returns `None` (not this model) when the team can't be found."""
+
+    team_id: int
+    team_slug: str
+    team_name: str
+    members: list[IssueOwner]
+
+
 class TransactionsForProjectResponse(BaseModel):
     """`get_transactions_for_project` returns `{"transactions": [...]}` over the
     project-scoped registry. Wraps the existing `Transaction` model so the SDK
     consumer sees the inner shape."""
 
     transactions: list[Transaction]
-
-
-class BulkProjectPreferencesResponse(BaseModel):
-    """`bulk_get_project_preferences` returns `{stringified_project_id: pref_dict}`.
-    The inner pref dicts are `SeerProjectPreference.dict()` output, passed through
-    verbatim since `SeerProjectPreference` lives outside `sentry_data_models`."""
-
-    __root__: dict[str, dict[str, Any]]
-
-    def dict(self, **kwargs: Any) -> Any:
-        # Forward kwargs through `super().dict()` (so options like
-        # `exclude_unset` apply to any future nested-model arms) and unwrap
-        # the `__root__` envelope to the bare map seer expects on the wire.
-        return super().dict(**kwargs)["__root__"]
-
-    # Dict-like proxy so callers can treat the response like the bare map it
-    # serializes to.
-    def __iter__(self) -> Any:
-        return iter(self.__root__)
-
-    def __contains__(self, key: object) -> bool:
-        return key in self.__root__
-
-    def __getitem__(self, key: str) -> Any:
-        return self.__root__[key]
-
-    def __len__(self) -> int:
-        return len(self.__root__)
-
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, dict):
-            return self.dict() == other
-        return super().__eq__(other)
-
-    def __hash__(self) -> int:
-        return id(self)
-
-
-class PrAttributionResponse(BaseModel):
-    """`record_pr_attribution` returns `{"attribution_id": <id or null>}`. None
-    is emitted when the pr-metrics-attribution feature is disabled for the org."""
-
-    attribution_id: int | None
 
 
 class UpdatePrMetricsSuccessResponse(BaseModel):
@@ -617,25 +605,6 @@ class BaselineTagDistributionResponse(BaseModel):
     `{"baseline_tag_distribution": [{tag_key, tag_value, count}, ...]}`."""
 
     baseline_tag_distribution: list[BaselineTagDistributionEntry]
-
-    def __getitem__(self, key: str) -> Any:
-        return self.dict()[key]
-
-    def __contains__(self, key: object) -> bool:
-        return key in self.dict()
-
-
-class ComparativeAttributeDistributionsResponse(BaseModel):
-    """`get_comparative_attribute_distributions` returns a baseline vs outliers
-    pair of attribute-value distributions. Each distribution is a list of
-    `(attribute_name, label, value)` triples passed through from the spans
-    frequency-stats endpoint (`query_attribute_distributions`)."""
-
-    baseline_distribution: list[tuple[str, str, float]]
-    total_baseline: int
-    outliers_distribution: list[tuple[str, str, float]]
-    total_outliers: int
-    outliers_function_value: float | None
 
     def __getitem__(self, key: str) -> Any:
         return self.dict()[key]
@@ -902,21 +871,52 @@ class ExecuteTimeseriesQueryErrorResponse(BaseModel):
         return id(self)
 
 
-class MonitoringProviderConnectionData(BaseModel):
+class HeaderAuthConnectionData(BaseModel):
+    """Connection authenticated via encrypted HTTP headers."""
+
+    type: Literal["header_auth"] = "header_auth"
     provider_key: str
     url: str
-    encrypted_access_token: str
-    identity_id: int
+    encrypted_auth_headers: dict[str, str] | None = None
+    identity_id: int | None = None
     auth_method: str
+    refreshable: bool = True
 
     def __getitem__(self, key: str) -> Any:
         return self.dict()[key]
 
 
+class GcpSaImpersonationConnectionData(BaseModel):
+    """
+    Connection authenticated via GCP two-hop SA impersonation chain.
+
+    Seer uses ``sentry_sa_email`` and ``customer_sa_email`` to construct
+    ``GcpMcpCredentials`` for the ADC -> per-customer SA -> customer SA chain.
+    """
+
+    type: Literal["gcp_sa_impersonation"] = "gcp_sa_impersonation"
+    provider_key: str
+    url: str
+    sentry_sa_email: str
+    customer_sa_email: str
+    auth_method: Literal["gcp_sa_impersonation"] = "gcp_sa_impersonation"
+    refreshable: bool = False
+    gcp_project_ids: list[str] | None = None
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+
+MonitoringProviderConnectionData = Annotated[
+    Union[HeaderAuthConnectionData, GcpSaImpersonationConnectionData],
+    Field(discriminator="type"),
+]
+
+
 class MonitoringProviderConnectionsResponse(BaseModel):
     """`get_monitoring_provider_connections` success: the caller's connected
-    monitoring provider identities, each carrying a freshly-encrypted access
-    token."""
+    monitoring provider identities, each carrying freshly-encrypted auth
+    headers."""
 
     connections: list[MonitoringProviderConnectionData]
 
@@ -925,11 +925,7 @@ class MonitoringProviderConnectionsResponse(BaseModel):
 
 
 class RefreshMonitoringProviderTokenSuccessResponse(BaseModel):
-    """`refresh_monitoring_provider_token` success: the freshly-encrypted access
-    token plus the Unix-second expiry the OAuth2 base helper stamps onto
-    `identity.data["expires"]` (`int(time()) + int(payload["expires_in"])`)."""
-
-    encrypted_access_token: str
+    encrypted_auth_headers: dict[str, str]
     expires: int | None
 
     def __getitem__(self, key: str) -> Any:

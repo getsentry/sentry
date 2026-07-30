@@ -678,6 +678,40 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
 
+    it('drops non-distribution metrics when switching to heat map', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['sum(value,test_metric,counter,none)'],
+            dataset: WidgetType.TRACEMETRICS,
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.HEATMAP,
+        });
+      });
+
+      // Counters can't be heat-mapped, so the metric is dropped and the slot
+      // falls back to the metric-less default (the picker then auto-selects a
+      // distribution metric). The fallback aggregate is count(), not the
+      // default sum() — heat maps always count() the metric.
+      expect(result.current.state.fields).toEqual([
+        {
+          kind: 'function',
+          function: ['count', 'value', undefined, undefined],
+          alias: undefined,
+        },
+      ]);
+    });
+
     it('selects the first filter when switching to heat map', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({

@@ -6,7 +6,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconClock, IconContract, IconEllipsis, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -35,8 +35,8 @@ import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
+import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
-import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
@@ -59,8 +59,10 @@ import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
+  getSamplingWarningReason,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
+import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -128,7 +130,6 @@ function Graph({
   visualize,
 }: GraphProps) {
   const isShortViewport = useIsShortViewport();
-  const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const {isEmpty: tableIsEmpty, isPending: tableIsPending} = useLogsPageDataQueryResult();
 
   const aggregate = visualize.yAxis;
@@ -181,7 +182,6 @@ function Graph({
         !visualize.visible && plottablesCanBeVisualized(plottables) ? (
           <TimeSeriesWidgetVisualization
             plottables={plottables}
-            notMerge={false}
             showLegend="never"
             showXAxis="never"
             showYAxis="never"
@@ -191,6 +191,15 @@ function Graph({
       title={prettifyAggregation(aggregate) ?? aggregate}
     />
   );
+
+  const samplingWarningReason = getSamplingWarningReason(
+    aggregate,
+    chartInfo.series,
+    chartInfo.dataScanned
+  );
+  const TitleBadges = samplingWarningReason ? (
+    <SamplingWarning yAxis={aggregate} reason={samplingWarningReason} />
+  ) : null;
 
   const chartIcon =
     visualize.chartType === ChartType.LINE
@@ -260,14 +269,11 @@ function Graph({
   return (
     <Widget
       Title={Title}
+      TitleBadges={TitleBadges}
       Actions={Actions}
       Visualization={
         visualize.visible && (
-          <ChartVisualization
-            key={chartRemountKey}
-            chartInfo={chartInfo}
-            notMerge={!autorefreshEnabled}
-          />
+          <ChartVisualization key={chartRemountKey} chartInfo={chartInfo} />
         )
       }
       Footer={
@@ -299,7 +305,7 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
   const aggregateFields = useQueryParamsAggregateFields();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 
-  const items: MenuItemProps[] = useMemo(() => {
+  const items = useMemo(() => {
     const project =
       projects.length === 1
         ? projects[0]
@@ -308,10 +314,8 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
     const disableAddToDashboard = !organization.features.includes('dashboards-edit');
 
     return [
-      {
-        key: 'create-alert',
-        textValue: t('Create an Alert'),
-        label: t('Create an Alert'),
+      getSaveAsAlertMenuItem({
+        organization,
         to: getAlertsUrl({
           project,
           query: search.formatString(),
@@ -330,7 +334,7 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
           });
           return;
         },
-      },
+      }),
       {
         key: 'add-to-dashboard',
         textValue: t('Add to Dashboard'),

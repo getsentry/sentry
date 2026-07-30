@@ -2,7 +2,7 @@ from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     BlockQuoteSection,
     BoldTextBlock,
-    CodeBlock,
+    CodeSection,
     CodeTextBlock,
     ItalicTextBlock,
     LinkTextBlock,
@@ -15,7 +15,7 @@ from sentry.notifications.platform.types import (
     NotificationStrategy,
     NotificationTarget,
     NotificationTemplate,
-    ParagraphBlock,
+    ParagraphSection,
     PlainTextBlock,
 )
 
@@ -37,7 +37,7 @@ class MockNotificationTemplate(NotificationTemplate[MockNotification]):
                 ItalicTextBlock(text="Mock Notification"),
             ],
             body=[
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(text=data.message),
                         BoldTextBlock(text="important"),
@@ -45,7 +45,7 @@ class MockNotificationTemplate(NotificationTemplate[MockNotification]):
                         LinkTextBlock(text="View Issue", url="https://sentry.io/issue/1"),
                     ]
                 ),
-                CodeBlock(blocks=[PlainTextBlock(text="raise Exception('test')")]),
+                CodeSection(blocks=[PlainTextBlock(text="raise Exception('test')")]),
                 BlockQuoteSection(blocks=[PlainTextBlock(text="This is a quoted message")]),
             ],
             actions=[

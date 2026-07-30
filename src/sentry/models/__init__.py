@@ -77,7 +77,6 @@ from .organizationmember import *  # NOQA
 from .organizationmemberinvite import *  # NOQA
 from .organizationmembermapping import *  # NOQA
 from .organizationmemberteam import *  # NOQA
-from .organizationmemberteamreplica import *  # NOQA
 from .organizationonboardingtask import *  # NOQA
 from .organizationslugreservation import *  # NOQA
 from .orgauthtoken import *  # NOQA
@@ -120,7 +119,6 @@ from .sentryshot import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA
 from .statistical_detectors import *  # NOQA
 from .team import *  # NOQA
-from .teamreplica import *  # NOQA
 from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
 from .userreport import *  # NOQA

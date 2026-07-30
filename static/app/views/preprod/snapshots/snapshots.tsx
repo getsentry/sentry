@@ -178,11 +178,15 @@ export default function SnapshotsPage() {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
     'snapshot-overlay-color',
-    palette.at(-5) ?? palette[0]
+    palette.at(-3) ?? palette[0]
   );
   const [diffMode, setDiffMode] = useLocalStorageState<DiffMode>(
     'snapshot-diff-mode',
     'split'
+  );
+  const [overlayOpacity, setOverlayOpacity] = useLocalStorageState(
+    'snapshot-overlay-opacity',
+    50
   );
   const breakpoints = useBreakpoints();
   const effectiveDiffMode = !breakpoints.sm && diffMode === 'split' ? 'wipe' : diffMode;
@@ -814,6 +818,8 @@ export default function SnapshotsPage() {
             diffImageBaseUrl={diffImageBaseUrl}
             overlayColor={overlayColor}
             onOverlayColorChange={setOverlayColor}
+            overlayOpacity={overlayOpacity}
+            onOverlayOpacityChange={setOverlayOpacity}
             diffMode={effectiveDiffMode}
             onDiffModeChange={setDiffMode}
             viewMode={viewMode}

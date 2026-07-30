@@ -14,6 +14,9 @@ type Props = ModalRenderProps & {
   providers: IntegrationProvider[];
   bodyContent?: React.ReactNode;
   onAddIntegration?: () => void;
+  // `analyticsView` identifies the install flow; `variant` identifies the SCM or
+  // legacy project-creation experience.
+  variant?: 'scm' | 'legacy';
 };
 
 export function MessagingIntegrationModal({
@@ -25,6 +28,7 @@ export function MessagingIntegrationModal({
   providers,
   onAddIntegration,
   analyticsView,
+  variant,
 }: Props) {
   return (
     <Fragment>
@@ -45,6 +49,7 @@ export function MessagingIntegrationModal({
                   analyticsParams: {
                     already_installed: false,
                     view: analyticsView,
+                    ...(variant ? {variant} : {}),
                   },
                   onAddIntegration,
                 }}

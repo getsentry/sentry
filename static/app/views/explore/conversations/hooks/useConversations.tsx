@@ -21,11 +21,19 @@ export interface Conversation {
   endTimestamp: number;
   errors: number;
   firstInput: string | null;
+  // Summed duration (ms) of the conversation's generation (ai_client) spans.
+  generationDuration: number;
   inputTokens: number;
   lastOutput: string | null;
   llmCalls: number;
   outputTokens: number;
+  // Project the conversation's first span belongs to (null when unknown).
+  projectId: number | null;
   startTimestamp: number;
+  // AI-generated summary of the conversation. Not always available (title
+  // generation is gated and asynchronous), so consumers must fall back to the
+  // first input message.
+  title: string | null;
   toolCalls: number;
   toolErrors: number;
   toolNames: string[];
@@ -44,6 +52,8 @@ interface ConversationApiResponse extends Omit<
   lastOutput?: Array<{text: string; type: string}> | string | null;
 }
 
+const CONVERSATION_LIST_PER_PAGE = 50;
+
 export function useConversations() {
   const organization = useOrganization();
   const {cursor, setCursor} = useTableCursor();
@@ -52,7 +62,7 @@ export function useConversations() {
 
   const {
     data: response,
-    isLoading,
+    isFetching,
     error,
   } = useQuery({
     ...apiOptions.as<ConversationApiResponse[]>()(
@@ -64,6 +74,7 @@ export function useConversations() {
           query: combinedQuery,
           project: pageFilters.selection.projects,
           environment: pageFilters.selection.environments,
+          per_page: CONVERSATION_LIST_PER_PAGE,
           ...normalizeDateTimeParams(pageFilters.selection.datetime),
         },
         staleTime: 0,
@@ -73,6 +84,7 @@ export function useConversations() {
   });
 
   const pageLinks = response?.headers.Link;
+  const isDirectHit = response?.headers['X-Sentry-Direct-Hit'] === '1';
 
   const data = useMemo(() => {
     return (response?.json ?? [])
@@ -98,9 +110,10 @@ export function useConversations() {
 
   return {
     data,
-    isLoading,
+    isFetching,
     error,
     pageLinks,
     setCursor,
+    isDirectHit,
   };
 }

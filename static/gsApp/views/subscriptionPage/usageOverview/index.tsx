@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {tct} from 'sentry/locale';
@@ -116,13 +116,13 @@ export function UsageOverview({
           gap="xl"
           height={USAGE_OVERVIEW_PANEL_HEADER_HEIGHT}
         >
-          <Flex direction="column" gap="sm">
+          <Stack gap="sm">
             <Heading as="h3" size="lg">
               {tct('Usage: [period]', {
                 period: `${startDate.format(startsAndEndsSameYear ? 'MMM D' : 'MMM D, YYYY')} - ${endDate.format('MMM D, YYYY')}`,
               })}
             </Heading>
-          </Flex>
+          </Stack>
           <UsageOverviewActions organization={organization} />
         </Flex>
         <UsageOverviewTable

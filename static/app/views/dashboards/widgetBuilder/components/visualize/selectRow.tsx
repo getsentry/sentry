@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -17,6 +17,7 @@ import {
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {AggregationKey, prettifyTagKey} from 'sentry/utils/fields';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -29,12 +30,17 @@ import {
   parseAggregateFromValueKey,
   PrimarySelectRow,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize';
+import {buildTraceItemColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceItemColumnOptions';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 type AggregateFunction = [
   AggregationKeyWithAlias,
@@ -84,6 +90,28 @@ function validateParameter(
     return true;
   }
   return false;
+}
+
+type AttributeKind = 'string' | 'number' | 'boolean';
+
+const ALL_ATTRIBUTE_KINDS: readonly AttributeKind[] = ['string', 'number', 'boolean'];
+
+// Determines which attribute types are valid for the field's column selector so
+// we only fetch (and merge) those while searching. A plain column (FIELD)
+// accepts any type; an aggregate (FUNCTION) is constrained by its parameter —
+// count_unique accepts anything, while the numeric aggregates (p50, avg, sum,
+// ...) only accept numbers. Mirrors Explore's getSupportedAttributeKinds.
+function getSearchableAttributeKinds(
+  field: QueryFieldValue,
+  functionName: string | undefined
+): readonly AttributeKind[] {
+  if (field.kind !== FieldValueKind.FUNCTION) {
+    return ALL_ATTRIBUTE_KINDS;
+  }
+  if (functionName === AggregationKey.COUNT_UNIQUE) {
+    return ALL_ATTRIBUTE_KINDS;
+  }
+  return ['number'];
 }
 
 export function sortSelectedFirst(
@@ -192,22 +220,125 @@ export function SelectRow({
       ? (parsedFunction?.arguments[0] ?? '')
       : field.field;
 
+  // The column options for spans and logs are sourced from the `/attributes`
+  // endpoint, which only returns a capped initial page. Wire the dropdown's
+  // search input to a debounced server-side fetch (matching Explore) so
+  // attributes that weren't in the initial response can still be found by typing.
+  const isTraceItemColumnSelect =
+    (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) &&
+    !lockOptions;
+
+  const {
+    traceItemType,
+    enabled: traceItemEnabled,
+    ...traceItemOptions
+  } = useWidgetBuilderTraceItemConfig();
+
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
+  // Require both the immediate and debounced values: the debounced value gates
+  // fetching while typing, and the immediate value tears the merge down the
+  // moment the search is cleared (e.g. on close) instead of lingering for the
+  // debounce window.
+  const hasSearch = search.length > 0 && debouncedSearch.length > 0;
+
+  const supportedKinds = useMemo(
+    () => getSearchableAttributeKinds(field, parsedFunction?.name),
+    [field, parsedFunction?.name]
+  );
+
+  const searchEnabled = traceItemEnabled && isTraceItemColumnSelect && hasSearch;
+
+  const {attributes: searchedStringTags, isLoading: stringLoading} =
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {
+        ...traceItemOptions,
+        search: debouncedSearch,
+        enabled: searchEnabled && supportedKinds.includes('string'),
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'string'
+    );
+  const {attributes: searchedNumberTags, isLoading: numberLoading} =
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {
+        ...traceItemOptions,
+        search: debouncedSearch,
+        enabled: searchEnabled && supportedKinds.includes('number'),
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'number'
+    );
+  const {attributes: searchedBooleanTags, isLoading: booleanLoading} =
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {
+        ...traceItemOptions,
+        search: debouncedSearch,
+        enabled: searchEnabled && supportedKinds.includes('boolean'),
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'boolean'
+    );
+
+  const isSearchLoading =
+    searchEnabled &&
+    ((supportedKinds.includes('string') && stringLoading) ||
+      (supportedKinds.includes('number') && numberLoading) ||
+      (supportedKinds.includes('boolean') && booleanLoading));
+
+  // Always feed the base options to CompactSelect so its matcher can filter
+  // synchronously while typing. Once the debounced search returns, merge in any
+  // attributes the base list doesn't already cover. Only the kinds valid for
+  // this field are included so we never offer, e.g., a string column to p75().
+  const columnOptionsWithSearched = useMemo(() => {
+    if (!searchEnabled) {
+      return columnOptions;
+    }
+    const searched = buildTraceItemColumnOptions({
+      booleanTags: supportedKinds.includes('boolean') ? searchedBooleanTags : {},
+      stringTags: supportedKinds.includes('string') ? searchedStringTags : {},
+      numberTags: supportedKinds.includes('number') ? searchedNumberTags : {},
+    });
+    if (searched.length === 0) {
+      return columnOptions;
+    }
+    const baseValues = new Set(columnOptions.map(option => option.value));
+    const additions = searched.filter(option => !baseValues.has(option.value));
+    if (additions.length === 0) {
+      return columnOptions;
+    }
+    return [...columnOptions, ...additions];
+  }, [
+    searchEnabled,
+    columnOptions,
+    supportedKinds,
+    searchedBooleanTags,
+    searchedStringTags,
+    searchedNumberTags,
+  ]);
+
   // Ensure the currently selected column is always present in the options so the
   // dropdown reflects the saved state instead of showing "None" when the field is
   // missing from the fetched attributes (e.g. a saved field no longer returned by
   // the /attributes call).
   const columnOptionsWithSelected = useMemo(() => {
-    if (columnValue && !columnOptions.some(option => option.value === columnValue)) {
+    if (
+      columnValue &&
+      !columnOptionsWithSearched.some(option => option.value === columnValue)
+    ) {
       return [
-        ...columnOptions,
+        ...columnOptionsWithSearched,
         {
           label: prettifyTagKey(columnValue),
           value: columnValue,
         },
       ];
     }
-    return columnOptions;
-  }, [columnValue, columnOptions]);
+    return columnOptionsWithSearched;
+  }, [columnValue, columnOptionsWithSearched]);
 
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
@@ -470,7 +601,36 @@ export function SelectRow({
       {hasColumnParameter && (
         <SelectWrapper ref={columnSelectRef}>
           <ColumnCompactSelect
-            search
+            search={
+              isTraceItemColumnSelect
+                ? {
+                    onChange: setSearch,
+                    filter: (option, searchText) =>
+                      sortSearchedAttributes({
+                        fieldDefinitionType: traceItemType,
+                        option,
+                        searchText,
+                      }),
+                  }
+                : true
+            }
+            // CompactSelect clears its own search input on close but doesn't
+            // notify us, so reset our search state too. Otherwise the stale term
+            // keeps the previously fetched attributes merged into the options on
+            // reopen, even though the (cleared) input shows no query.
+            onOpenChange={isOpen => {
+              if (!isOpen) {
+                setSearch('');
+              }
+            }}
+            loading={isSearchLoading}
+            emptyMessage={
+              isSearchLoading
+                ? t('Loading…')
+                : isTraceItemColumnSelect
+                  ? t('No matching attributes')
+                  : undefined
+            }
             options={sortSelectedFirst(columnValue, columnOptionsWithSelected)}
             value={columnValue}
             onChange={newField => {

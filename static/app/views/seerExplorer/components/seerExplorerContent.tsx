@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, type ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -9,7 +10,10 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {integrationRequiresUpgrade} from 'sentry/utils/integrationUtil';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -18,7 +22,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  NAVIGATION_MOBILE_CONTENT_HEIGHT,
   PRIMARY_HEADER_HEIGHT,
 } from 'sentry/views/navigation/constants';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
@@ -30,6 +34,7 @@ import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {ReauthMonitoringProviderBlock} from 'sentry/views/seerExplorer/components/reauthMonitoringProviderBlock';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
+import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block, SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
@@ -37,8 +42,10 @@ import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
   getLangfuseUrl,
+  getRelativeExplorerUrl,
   useCopySessionDataToClipboard,
   useSeerExplorerDeepLink,
+  useSeerExplorerResumeDeepLink,
 } from 'sentry/views/seerExplorer/utils';
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
@@ -68,7 +75,7 @@ function SidebarHeaderShell({
       align="center"
       gap="md"
       height={{
-        'screen:sm': `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
+        'screen:sm': `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`,
         'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
       }}
       padding="0 lg"
@@ -184,6 +191,7 @@ export function SeerExplorerContent({
     hasSentInterrupt,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
+    setOverrideBashModeEnabled,
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
 
@@ -207,6 +215,27 @@ export function SeerExplorerContent({
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input ?? null;
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
+
+  // Whether the org has an active Slack integration installed. Slack is an
+  // org-level integration, so this reflects the organization, not the user.
+  const {data: slackIntegrations = []} = useQuery({
+    ...apiOptions.as<OrganizationIntegration[]>()(
+      '/organizations/$organizationIdOrSlug/integrations/',
+      {
+        path: organization ? {organizationIdOrSlug: organization.slug} : skipToken,
+        query: {providerKey: 'slack', includeConfig: 0},
+        staleTime: 0,
+      }
+    ),
+    refetchOnWindowFocus: true,
+  });
+  const activeSlackIntegrations = slackIntegrations.filter(
+    integration =>
+      integration.status === 'active' &&
+      integration.organizationIntegrationStatus === 'active'
+  );
+  const hasSlackIntegration = activeSlackIntegrations.length > 0;
+  const needsSlackUpgrade = activeSlackIntegrations.some(integrationRequiresUpgrade);
 
   // Auto-submit the initial query forwarded from the command palette, but only
   // if the session is still empty (don't clobber an active run). The ref dedupes
@@ -305,6 +334,7 @@ export function SeerExplorerContent({
       start: minTs === Infinity ? undefined : new Date(minTs).toISOString(),
       end: maxTs === -Infinity ? undefined : new Date(maxTs).toISOString(),
       project: SEER_AGENTS_PROJECT_ID,
+      referrer: 'seer.agent.in-chat-link',
     });
   }, [runId, blocks]);
 
@@ -357,6 +387,9 @@ export function SeerExplorerContent({
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onLangfuse: langfuseUrl ? handleOpenLangfuse : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
+      onBashMode: organization?.features.includes('seer-explorer-allow-bash-mode')
+        ? setOverrideBashModeEnabled
+        : undefined,
       onCodeMode: organization?.features.includes('seer-explorer-code-mode-tools')
         ? setOverrideCodeModeEnable
         : undefined,
@@ -461,6 +494,12 @@ export function SeerExplorerContent({
   // Deep link effect
   useSeerExplorerDeepLink({callback: switchToRun});
 
+  // Resume the run after we return from an OAuth reconnect.
+  useSeerExplorerResumeDeepLink({
+    onResume: handleReauthComplete,
+    ready: !readOnly && isReauthPending && !!reauthData,
+  });
+
   // Track when a session times out
   const prevIsTimedOutRef = useRef(false);
   useEffect(() => {
@@ -492,16 +531,8 @@ export function SeerExplorerContent({
       onCopyLinkClick={runId === null ? undefined : handleCopyLink}
       overrideCtxEngEnable={overrideCtxEngEnable}
       onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
-      showContextEngineToggle={
-        !!organization?.features.includes(
-          'seer-explorer-context-engine-fe-override-ui-flag'
-        )
-      }
       showThinking={showThinking}
       onShowThinkingToggle={() => setShowThinking(v => !v)}
-      showThinkingToggle={
-        !!organization?.features.includes('seer-explorer-thinking-blocks')
-      }
       isPipSupported={isPipSupported}
       isPoppedOut={isPoppedOut}
       onTogglePictureInPicture={handleTogglePictureInPicture}
@@ -511,15 +542,15 @@ export function SeerExplorerContent({
   );
 
   return (
-    <ContentContainer
+    <Stack
       ref={rootRef}
       data-seer-explorer-root=""
-      direction="column"
       width="100%"
       height="100%"
+      position="relative"
       background="primary"
       overflow="hidden"
-      contain="inline-size"
+      containerType="inline-size"
     >
       {renderHeader ? (
         renderHeader({children: headerContent, isPoppedOut, onClose: handleClose})
@@ -527,6 +558,9 @@ export function SeerExplorerContent({
         <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
       )}
       {menu}
+      {needsSlackUpgrade && (
+        <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
+      )}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
         {isEmptyState ? (
           <EmptyState
@@ -534,6 +568,7 @@ export function SeerExplorerContent({
             isError={isError}
             errorStatusCode={errorStatusCode}
             runId={runId}
+            displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
             onSuggestionClick={readOnly ? undefined : sendMessage}
           />
         ) : (
@@ -584,6 +619,11 @@ export function SeerExplorerContent({
               <ReauthMonitoringProviderBlock
                 data={reauthData}
                 onComplete={handleReauthComplete}
+                returnUrl={
+                  runId === null
+                    ? undefined
+                    : getRelativeExplorerUrl(runId, {resume: true})
+                }
               />
             )}
           </Fragment>
@@ -596,7 +636,6 @@ export function SeerExplorerContent({
         canSendMessage={canSendMessage}
         interruptState={interruptState}
         isTimedOut={isTimedOut}
-        onClear={clearInput}
         onCreatePR={createPR}
         onInputChange={handleInputChange}
         onInputClick={handleInputClick}
@@ -631,7 +670,7 @@ export function SeerExplorerContent({
             : undefined
         }
       />
-    </ContentContainer>
+    </Stack>
   );
 }
 
@@ -640,13 +679,4 @@ const BlocksContainer = styled(Stack)`
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-`;
-
-// Establishes the container query context used by the header's responsive
-// controls (`@container seer-explorer-root`). The query-container CSS has no
-// layout-primitive prop, so it stays in `styled`; everything else is passed as
-// `Flex` props.
-const ContentContainer = styled(Flex)`
-  container-type: inline-size;
-  container-name: seer-explorer-root;
 `;

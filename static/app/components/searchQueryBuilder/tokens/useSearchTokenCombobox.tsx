@@ -1,11 +1,19 @@
-import type {FocusEvent, KeyboardEvent} from 'react';
-import {useMemo, useRef} from 'react';
+import type {FocusEvent, KeyboardEvent, RefObject} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import type {useComboBox} from '@react-aria/combobox';
 import {getItemId, listData} from '@react-aria/listbox';
 import {useMenuTrigger} from '@react-aria/menu';
+import {ariaHideOutside} from '@react-aria/overlays';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {useTextField} from '@react-aria/textfield';
-import {chain, mergeProps, useLabels} from '@react-aria/utils';
+import {
+  chain,
+  mergeProps,
+  nodeContains,
+  useEvent,
+  useFormReset,
+  useLabels,
+} from '@react-aria/utils';
 import {privateValidationStateProp} from '@react-stately/form';
 import type {BaseEvent} from '@react-types/shared';
 
@@ -24,7 +32,13 @@ import {t} from 'sentry/locale';
  * [1]: https://github.com/adobe/react-spectrum/pull/7829/files#diff-71a31c1ead10f8d488699920aeb3a0f81abcde0e849b8c36dbf10cf32f5881a6R346-R352
  */
 export function useSearchTokenCombobox<T>(
-  props: Parameters<typeof useComboBox<T>>[0],
+  props: Parameters<typeof useComboBox<T>>[0] & {
+    /** Keep this element's subtree exposed while the combobox is open. */
+    ariaHideOutsideRef?: RefObject<Element | null>;
+    /** Disable the default ariaHideOutside call when a consumer needs a custom allowlist. */
+    shouldHideOutside?: boolean;
+    tabTargetRef?: RefObject<HTMLElement | null>;
+  },
   state: Parameters<typeof useComboBox<T>>[1]
 ): Pick<ReturnType<typeof useComboBox<T>>, 'inputProps' | 'listBoxProps' | 'labelProps'> {
   const {
@@ -36,6 +50,9 @@ export function useSearchTokenCombobox<T>(
     shouldFocusWrap,
     isReadOnly,
     isDisabled,
+    ariaHideOutsideRef,
+    shouldHideOutside = true,
+    tabTargetRef,
   } = props;
   const backupBtnRef = useRef(null);
   const buttonRef = props.buttonRef ?? backupBtnRef;
@@ -86,17 +103,25 @@ export function useSearchTokenCombobox<T>(
     }
     switch (e.key) {
       case 'Enter':
-      case 'Tab':
         // Prevent form submission if menu is open since we may be selecting a option
-        if (state.isOpen && e.key === 'Enter') {
+        if (state.isOpen) {
           e.preventDefault();
         }
 
         state.commit();
         break;
+      case 'Tab':
+        if (e.shiftKey || !tabTargetRef?.current) {
+          state.commit();
+          break;
+        }
+
+        e.preventDefault();
+        tabTargetRef.current.focus();
+        break;
       case 'Escape':
         if (
-          state.selectedKey !== null ||
+          !state.selectionManager.isEmpty ||
           state.inputValue === '' ||
           props.allowsCustomValue
         ) {
@@ -119,7 +144,7 @@ export function useSearchTokenCombobox<T>(
 
   const onBlur = (e: FocusEvent<HTMLInputElement>) => {
     const blurFromButton = buttonRef?.current && buttonRef.current === e.relatedTarget;
-    const blurIntoPopover = popoverRef.current?.contains(e.relatedTarget);
+    const blurIntoPopover = nodeContains(popoverRef.current, e.relatedTarget);
     // Ignore blur if focused moved to the button(if exists) or into the popover.
     if (blurFromButton || blurIntoPopover) {
       return;
@@ -153,6 +178,7 @@ export function useSearchTokenCombobox<T>(
         : chain(state.isOpen && collectionProps.onKeyDown, onKeyDown, props.onKeyDown),
       onBlur: onBlur as (e: FocusEvent) => void,
       value: state.inputValue,
+      defaultValue: state.defaultInputValue,
       onFocus: onFocus as (e: FocusEvent) => void,
       autoComplete: 'off',
       validate: undefined,
@@ -160,6 +186,10 @@ export function useSearchTokenCombobox<T>(
     },
     inputRef
   );
+
+  // useTextField resets the input text on a native form reset. Reset the ComboBox
+  // selection too so React Stately does not retain the previous value.
+  useFormReset(inputRef, state.defaultValue, state.setValue);
 
   const listBoxProps = useLabels({
     id: menuProps.id,
@@ -171,6 +201,27 @@ export function useSearchTokenCombobox<T>(
     state.selectionManager.focusedKey !== null && state.isOpen
       ? state.collection.getItem(state.selectionManager.focusedKey)
       : undefined;
+
+  // Keep virtual cursor navigation inside the open ComboBox. ariaHideOutside returns
+  // cleanup that restores the page when it closes; callers can expose a larger wrapper
+  // or disable this when they manage their own allowlist.
+  useEffect(() => {
+    if (state.isOpen && shouldHideOutside) {
+      return ariaHideOutside(
+        [ariaHideOutsideRef?.current ?? inputRef.current, popoverRef.current].filter(
+          element => element !== null
+        )
+      );
+    }
+
+    return;
+  }, [state.isOpen, inputRef, popoverRef, ariaHideOutsideRef, shouldHideOutside]);
+
+  useEvent(
+    listBoxRef,
+    'react-aria-item-action',
+    state.isOpen ? () => state.close() : undefined
+  );
 
   return {
     labelProps,
@@ -186,11 +237,13 @@ export function useSearchTokenCombobox<T>(
       spellCheck: 'false',
     }),
     listBoxProps: mergeProps(menuProps, listBoxProps, {
+      onAction: undefined,
       autoFocus: state.focusStrategy || true,
       shouldUseVirtualFocus: true,
       shouldSelectOnPressUp: true,
       shouldFocusOnHover: true,
       linkBehavior: 'selection' as const,
+      ['UNSTABLE_itemBehavior']: 'action',
     }),
   };
 }

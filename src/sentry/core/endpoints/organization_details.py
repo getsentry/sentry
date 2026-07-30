@@ -465,16 +465,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_relayDsnEndpoint(self, value: str | None) -> str | None:
-        organization = self.context["organization"]
-        request = self.context["request"]
-
-        if not features.has(
-            "organizations:relay-dsn-endpoint-override", organization, actor=request.user
-        ):
-            raise serializers.ValidationError(
-                "Organization does not have the Relay DSN endpoint override feature enabled."
-            )
-
         if value is None:
             return None
 

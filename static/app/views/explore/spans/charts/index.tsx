@@ -9,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconClock, IconContract, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
@@ -25,6 +24,7 @@ import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
+import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -37,6 +37,7 @@ import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFoot
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
+  getSamplingWarningReason,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
 import {
@@ -46,7 +47,6 @@ import {
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface ExploreChartsProps {
-  confidences: Confidence[];
   extrapolate: boolean;
   query: string;
   rawSpanCounts: RawCounts;
@@ -217,7 +217,6 @@ function Chart({
         !visualize.visible && plottablesCanBeVisualized(plottables) ? (
           <TimeSeriesWidgetVisualization
             plottables={plottables}
-            notMerge={false}
             showLegend="never"
             showXAxis="never"
             showYAxis="never"
@@ -227,6 +226,15 @@ function Chart({
       title={prettifyAggregation(visualize.yAxis) ?? visualize.yAxis}
     />
   );
+
+  const samplingWarningReason = getSamplingWarningReason(
+    visualize.yAxis,
+    chartInfo.series,
+    chartInfo.dataScanned
+  );
+  const TitleBadges = samplingWarningReason ? (
+    <SamplingWarning yAxis={visualize.yAxis} reason={samplingWarningReason} />
+  ) : null;
 
   const Actions = visualize.visible ? (
     <Fragment>
@@ -294,6 +302,7 @@ function Chart({
     <ChartWrapper ref={chartWrapperRef}>
       <Widget
         Title={Title}
+        TitleBadges={TitleBadges}
         Actions={Actions}
         Visualization={
           visualize.visible && (

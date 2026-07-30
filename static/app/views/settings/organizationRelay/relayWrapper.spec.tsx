@@ -194,17 +194,8 @@ describe('RelayWrapper', () => {
   });
 
   describe('relayDsnEndpoint input', () => {
-    it('is hidden without the feature flag', () => {
-      renderComponent();
-
-      expect(
-        screen.queryByRole('textbox', {name: 'DSN Endpoint Override'})
-      ).not.toBeInTheDocument();
-    });
-
-    it('renders the persisted value when the feature flag is on', () => {
+    it('renders the persisted value', () => {
       renderComponent({
-        features: ['relay-dsn-endpoint-override'],
         relayDsnEndpoint: 'https://relay.example.com',
       });
 
@@ -221,7 +212,6 @@ describe('RelayWrapper', () => {
       });
 
       renderComponent({
-        features: ['relay-dsn-endpoint-override'],
         relayDsnEndpoint: 'https://old-relay.example.com',
       });
 
@@ -249,7 +239,6 @@ describe('RelayWrapper', () => {
       });
 
       renderComponent({
-        features: ['relay-dsn-endpoint-override'],
         relayDsnEndpoint: 'https://relay.example.com',
       });
 
@@ -270,7 +259,6 @@ describe('RelayWrapper', () => {
 
     it('is disabled when user lacks org:write permission', () => {
       renderComponent({
-        features: ['relay-dsn-endpoint-override'],
         access: [],
       });
 
@@ -289,7 +277,7 @@ describe('RelayWrapper', () => {
         method: 'PUT',
       });
 
-      renderComponent({features: ['relay-dsn-endpoint-override']});
+      renderComponent();
 
       const input = screen.getByRole('textbox', {name: 'DSN Endpoint Override'});
       await userEvent.clear(input);

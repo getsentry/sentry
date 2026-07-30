@@ -7,6 +7,7 @@ import logging
 import time
 from abc import ABC
 from collections.abc import Mapping, MutableMapping, Sequence
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from typing import Any, Protocol
 
@@ -28,6 +29,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.github.client import GitHubApiClient, GitHubBaseClient
 from sentry.integrations.github.webhook_types import (
     GITHUB_WEBHOOK_TYPE_HEADER_KEY,
     GithubWebhookType,
@@ -48,9 +50,16 @@ from sentry.integrations.types import (
     IntegrationProviderSlug,
 )
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
+from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.integrations.utils.scope import clear_organization_info
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
+from sentry.issues.action_log import (
+    ActionSource,
+    GroupActionActor,
+    action_context_scope,
+    resolve_action_actor,
+)
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
@@ -74,9 +83,7 @@ from sentry.pr_metrics.webhooks import handle_review_comment as pr_metrics_handl
 from sentry.pr_metrics.webhooks import handle_review_thread as pr_metrics_handle_review_thread
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
-from sentry.seer.autofix.pr_iteration_webhook import (
-    handle_issue_comment_for_autofix_iteration,
-)
+from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.seer.code_review.contributor_seats import (
     record_contributor_action,
@@ -122,6 +129,17 @@ def get_github_external_id(event: Mapping[str, Any], host: str | None = None) ->
     return f"{host}:{external_id}" if host else external_id
 
 
+def get_scm_stream_extra(
+    event: Mapping[str, Any],
+) -> dict[str, str | None | bool | int | float]:
+    """Identifiers an SCM-stream listener needs to resolve org/integration/repo context,
+    surfaced so listeners don't have to re-parse the raw event body."""
+    return {
+        "installation_id": event.get("installation", {}).get("id"),
+        "repository_id": event.get("repository", {}).get("id"),
+    }
+
+
 def get_file_language(filename: str) -> str | None:
     extension = filename.split(".")[-1]
     language = None
@@ -155,7 +173,7 @@ def _handle_pr_webhook_for_autofix_processor(
     if organization and action and user:
         # Because we require that the sentry github integration be installed for autofix, we can piggyback
         # on this webhook for autofix for now. We may move to a separate autofix github integration in the future
-        handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
+        handle_github_pr_webhook_for_autofix(organization, action, pull_request, user, repo.id)
 
 
 def _track_contributor_action_processor(
@@ -183,12 +201,11 @@ def _track_contributor_action_processor(
     record_contributor_action(
         organization=organization,
         repo=repo,
-        integration_id=integration.id,
+        integration=integration,
         user_id=author_id,
         user_username=(pull_request.get("user") or {}).get("login"),
         pr_number=pull_request["number"],
         is_opened=event.get("action") == "opened",
-        provider="github",
         logs_extra={"github_event_action": event.get("action")},
         tags={"is_private": is_private},
     )
@@ -466,6 +483,10 @@ class InstallationEventWebhook(GitHubWebhook):
             data = GitHubIntegrationProvider().build_integration(state)
             ensure_integration(IntegrationProviderSlug.GITHUB.value, data)
 
+        if event["action"] == "new_permissions_accepted":
+            self._handle_new_permissions_accepted(event, **kwargs)
+            return
+
         if event["action"] == "deleted":
             external_id = event["installation"]["id"]
             if host := kwargs.get("host"):
@@ -494,6 +515,66 @@ class InstallationEventWebhook(GitHubWebhook):
                         "external_id": str(external_id),
                     },
                 )
+
+    def _handle_new_permissions_accepted(self, event: Mapping[str, Any], **kwargs: Any) -> None:
+        external_id = event["installation"]["id"]
+        if host := kwargs.get("host"):
+            external_id = "{}:{}".format(host, event["installation"]["id"])
+
+        result = integration_service.organization_contexts(
+            provider=self.provider,
+            external_id=external_id,
+        )
+        integration = result.integration
+        if integration is None:
+            logger.warning(
+                "github.new-permissions-missing-integration",
+                extra={
+                    "action": event["action"],
+                    "installation_name": event["installation"]["account"]["login"],
+                    "external_id": str(external_id),
+                },
+            )
+            return
+
+        # Expire the stored access token so the refresh below persists the
+        # permissions GitHub returns with the newly scoped token.
+        metadata = {
+            **integration.metadata,
+            "access_token": None,
+            "expires_at": None,
+        }
+        updated = integration_service.update_integration(
+            integration_id=integration.id, metadata=metadata
+        )
+        if updated is None:
+            logger.warning(
+                "github.new-permissions-integration-update-failed",
+                extra={"integration_id": integration.id, "external_id": str(external_id)},
+            )
+            return
+
+        logger.info(
+            "InstallationEventWebhook._handle_new_permissions_accepted",
+            extra={
+                "external_id": str(external_id),
+                "integration_id": integration.id,
+            },
+        )
+
+        # Eagerly refresh the token so it's valid immediately and the stored
+        # permissions are confirmed against GitHub. Non-fatal: the token also
+        # refreshes lazily on the next request if this fails.
+        try:
+            self._get_token_refresh_client(updated).get_access_token()
+        except Exception:
+            logger.exception(
+                "github.new-permissions-token-refresh-failed",
+                extra={"integration_id": integration.id, "external_id": str(external_id)},
+            )
+
+    def _get_token_refresh_client(self, integration: RpcIntegration) -> GitHubBaseClient:
+        return GitHubApiClient(integration=integration)
 
     def _handle_organization_deletion(
         self,
@@ -1027,6 +1108,7 @@ class PullRequestEventWebhook(GitHubWebhook):
         # Activity must be written before emission so the verdict check in
         # handle_activity sees no verdict yet on the open/sync events, and so the
         # SYNCHRONIZED rows are present when select_verdict runs on the close event.
+        # This ordering is pinned by test_pull_request_processor_order_contract.
         pr_metrics_handle_activity,
         pr_metrics_handle_emission,
     )
@@ -1121,25 +1203,49 @@ class PullRequestEventWebhook(GitHubWebhook):
                     )
 
         author.preload_users()
-        try:
-            _, created = PullRequest.objects.update_or_create(
+        activity_actor = None
+        if state == PullRequestLifecycleState.MERGED:
+            activity_actor = pull_request.get("merged_by") or event.get("sender")
+        elif event.get("action") in ("closed", "reopened"):
+            activity_actor = event.get("sender")
+        activity_user = (
+            find_user_for_scm_actor(
                 organization_id=organization.id,
-                repository_id=repo.id,
-                key=number,
-                defaults={
-                    "organization_id": organization.id,
-                    "title": title,
-                    "author": author,
-                    "message": body,
-                    "merge_commit_sha": merge_commit_sha,
-                    "head_commit_sha": head_commit_sha,
-                    "opened_at": opened_at,
-                    "closed_at": closed_at,
-                    "merged_at": merged_at,
-                    "state": state,
-                    "draft": draft,
-                },
+                integration_id=integration.id,
+                username=activity_actor["login"],
+                external_id=activity_actor.get("id"),
             )
+            if activity_actor and activity_actor.get("login")
+            else None
+        )
+        activity_context = (
+            action_context_scope(
+                source=self.provider,
+                actor=GroupActionActor.user(activity_user.id),
+            )
+            if activity_user is not None
+            else nullcontext()
+        )
+        try:
+            with activity_context:
+                _, created = PullRequest.objects.update_or_create(
+                    organization_id=organization.id,
+                    repository_id=repo.id,
+                    key=number,
+                    defaults={
+                        "organization_id": organization.id,
+                        "title": title,
+                        "author": author,
+                        "message": body,
+                        "merge_commit_sha": merge_commit_sha,
+                        "head_commit_sha": head_commit_sha,
+                        "opened_at": opened_at,
+                        "closed_at": closed_at,
+                        "merged_at": merged_at,
+                        "state": state,
+                        "draft": draft,
+                    },
+                )
 
             if created:
                 try:
@@ -1158,10 +1264,9 @@ class PullRequestEventWebhook(GitHubWebhook):
                 track_contributor_seat(
                     organization=organization,
                     repo=repo,
-                    integration_id=integration.id,
+                    integration=integration,
                     user_id=user["id"],
                     user_username=user["login"],
-                    provider="github",
                     logs_extra={
                         "pr_number": str(number),
                         "github_event_action": event.get("action"),
@@ -1298,7 +1403,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         return options.get("github-app.webhook-secret")
 
     def post(self, request: HttpRequest) -> HttpResponse:
-        return self.handle(request)
+        with action_context_scope(ActionSource.GITHUB, resolve_action_actor(request)):
+            return self.handle(request)
 
     def handle(self, request: HttpRequest) -> HttpResponse:
         clear_organization_info()
@@ -1396,7 +1502,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             {
                 "event_type_hint": request.headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY),
                 "event": request.body.decode("utf-8"),
-                "extra": {},
+                "extra": get_scm_stream_extra(event),
                 "received_at": int(time.time()),
                 "sentry_meta": None,
                 "type": IntegrationProviderSlug.GITHUB.value,

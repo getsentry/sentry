@@ -18,7 +18,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
-import {EventView} from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -323,12 +322,7 @@ export function WidgetPreviewContainer({
   return (
     <DashboardsMEPProvider>
       <MetricsCardinalityProvider organization={organization} location={location}>
-        <MetricsDataSwitcher
-          organization={organization}
-          location={location}
-          hideLoadingIndicator
-          eventView={EventView.fromLocation(location)}
-        >
+        <MetricsDataSwitcher location={location}>
           {metricsDataSide => (
             <MEPSettingProvider
               location={location}
@@ -423,7 +417,7 @@ const SampleWidgetCard = styled(motion.div)`
   }
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) and (min-width: ${p =>
-      p.theme.breakpoints.md}) {
+    p.theme.breakpoints.md}) {
     width: 30vw;
     min-width: 100px;
   }
@@ -512,7 +506,7 @@ const FilterBarContainer = styled(motion.div)`
   }
 
   @media (max-width: ${p => p.theme.breakpoints.lg}) and (min-width: ${p =>
-      p.theme.breakpoints.md}) {
+    p.theme.breakpoints.md}) {
     width: 30vw;
     min-width: 100px;
   }

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from collections import defaultdict
 from typing import Any
 
@@ -15,6 +16,7 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
+from sentry.utils import json
 from sentry.utils.tracing import start_span
 
 from ..base import DetectorType, PerformanceDetector
@@ -25,6 +27,8 @@ from ..detectors.utils import (
 )
 from ..performance_problem import PerformanceProblem
 from ..types import Span
+
+logger = logging.getLogger(__name__)
 
 
 class BaseIOMainThreadDetector(PerformanceDetector):
@@ -178,14 +182,30 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
             data = span.get("data")
             if data is None:
                 continue
-            for item in data.get("call_stack", []):
-                module = self._deobfuscate_module(item.get("module", ""))
-                function = self._deobfuscate_function(item)
-                call_stack_strings.append(f"{module}.{function}")
-            # Use set to remove dupes, and list index to preserve order
-            overall_stack.append(
-                ".".join(sorted(set(call_stack_strings), key=lambda c: call_stack_strings.index(c)))
-            )
+
+            callstack = data.get("call_stack", [])
+            # Spans from the new span buffer (which can land here via the shim in `process_segment`)
+            # contain stringified callstacks, so if we need to reinflate the callstack value, do
+            # that now
+            if isinstance(callstack, str):
+                try:
+                    callstack = json.loads(callstack)
+                except Exception:
+                    logger.exception(
+                        "issue_detectors.io_main_thread_detector.callstack_json_parse_error"
+                    )
+                    callstack = []
+            if isinstance(callstack, list):  # Insurance - by this point should always be true
+                for item in callstack:
+                    module = self._deobfuscate_module(item.get("module", ""))
+                    function = self._deobfuscate_function(item)
+                    call_stack_strings.append(f"{module}.{function}")
+                # Use set to remove dupes, and list index to preserve order
+                overall_stack.append(
+                    ".".join(
+                        sorted(set(call_stack_strings), key=lambda c: call_stack_strings.index(c))
+                    )
+                )
         call_stack = "-".join(sorted(set(overall_stack), key=lambda s: overall_stack.index(s)))
         hashed_stack = hashlib.sha1(call_stack.encode("utf8")).hexdigest()
         return f"1-{PerformanceFileIOMainThreadGroupType.type_id}-{hashed_stack}"

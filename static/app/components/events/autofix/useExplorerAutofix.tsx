@@ -11,11 +11,17 @@ import {
 import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {AutofixGithubCopilotPurchaseModal} from 'sentry/components/events/autofix/autofixGithubCopilotPurchaseModal';
+import {
+  continueRunData,
+  getAutofixRunId,
+} from 'sentry/components/events/autofix/autofixRunId';
 import {CodingAgentStatus} from 'sentry/components/events/autofix/types';
 import {
   needsGitHubAuth,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
+import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
+import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {isArrayOf, isString} from 'sentry/types/utils';
@@ -23,9 +29,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
+import {getGithubPermissionsUpdateUrl} from 'sentry/utils/integrationUtil';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {
   isArtifact,
   isExplorerCodingAgentState,
@@ -36,6 +45,7 @@ import {
   type ExplorerCodingAgentState,
   type ExplorerFilePatch,
   type RepoPRState,
+  type SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 
 /**
@@ -125,14 +135,69 @@ export function isCodingAgentsArtifact(
  * State returned from the Explorer autofix endpoint.
  * This extends the SeerExplorer types with autofix-specific data.
  */
+/**
+ * Feedback source wire types, mirroring the pydantic discriminated union in
+ * `src/sentry/seer/autofix/pr_iteration/types.py` (`FeedbackSource`). Each
+ * member is keyed by `type`; narrow on it before reading member fields.
+ */
+interface UserUiFeedbackSource {
+  type: 'user-ui';
+  user?: User;
+  user_feedback?: string;
+  user_id?: number;
+}
+
+interface GithubPrCommentFeedbackSource {
+  type: 'github-pr-comment';
+  comment?: {html_url?: string; user?: {login: string}};
+}
+
+interface GithubPrReviewCommentFeedbackSource {
+  type: 'github-pr-review-comment';
+  comment?: {html_url?: string; user?: {login: string}};
+  // The review this inline comment was submitted as part of. Shared with the
+  // review body's `review_id` so the UI can group a review's body and its inline
+  // comments under one parent. Optional: absent on feedback serialized before
+  // the backend began emitting it, and on comments left outside a review.
+  review_id?: number;
+}
+
+interface GithubPrReviewBodyFeedbackSource {
+  type: 'github-pr-review-body';
+  // The review's summary body is its own feedback item, keyed by `review_id` and
+  // labelled by `review_state` (approved / changes_requested / commented / …).
+  author_is_bot?: boolean;
+  body?: string;
+  html_url?: string;
+  review_id?: number;
+  review_state?: string;
+  // The review author, carried the same way an inline comment carries its author
+  // on `comment.user`, so the UI can render the reviewer's avatar on the review
+  // header. Absent on feedback serialized before the backend began emitting it.
+  user?: {login?: string};
+}
+
+interface CheckSuiteFeedbackSource {
+  app_name: string;
+  event: {
+    check_suite: {head_sha: string; id: number};
+    repository: {html_url: string};
+  };
+  type: 'check-suite';
+}
+
+type RawFeedbackSource =
+  | UserUiFeedbackSource
+  | GithubPrCommentFeedbackSource
+  | GithubPrReviewCommentFeedbackSource
+  | GithubPrReviewBodyFeedbackSource
+  | CheckSuiteFeedbackSource;
 export interface RawFeedback {
   text: string;
-  source?: {
-    type: string;
-    comment?: {html_url?: string; user?: {login: string}};
-    user?: User;
-  };
+  source?: RawFeedbackSource;
   timestamp?: string;
+  // Short display label derived from the source, serialized on `Feedback`.
+  ui_text?: string;
 }
 
 export interface ExplorerAutofixState {
@@ -148,12 +213,18 @@ export interface ExplorerAutofixState {
   } | null;
   queued_feedback?: RawFeedback[];
   repo_pr_states?: Record<string, RepoPRState>;
+  sentry_run_id?: string | null;
+  warnings?: Array<{
+    warning_type: string;
+    installation_id?: string;
+    repo_name?: string;
+  }>;
 }
 
 /**
  * Response from the autofix endpoint.
  */
-interface ExplorerAutofixResponse {
+export interface ExplorerAutofixResponse {
   autofix: ExplorerAutofixState | null;
 }
 
@@ -256,7 +327,7 @@ export const getPollInterval = ({
 export interface AutofixSection {
   artifacts: AutofixArtifact[];
   blocks: Block[];
-  status: 'processing' | 'completed';
+  status: 'processing' | 'completed' | 'error';
   step: string;
   index?: number;
 }
@@ -284,6 +355,7 @@ function mergeFilePatches(blocks: Block[]): ExplorerFilePatch[] {
  */
 function buildSection(
   step: string,
+  currentStep: boolean,
   index: number,
   blocks: Block[],
   runState: ExplorerAutofixState | null
@@ -298,8 +370,10 @@ function buildSection(
     status: 'processing',
   };
 
-  if (
-    runState?.status !== 'processing' ||
+  if (currentStep && runState?.status === 'error') {
+    section.status = 'error';
+  } else if (
+    (!currentStep && runState?.status !== 'processing') ||
     isLastBlockOfSection(blocks[blocks.length - 1]) ||
     artifacts.length > 0
   ) {
@@ -341,6 +415,7 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
   // The section a step-less block belongs to. The first block always carries a
   // step, so this is set before any block is bucketed.
   let currentStep = '';
+  let lastStepIndex = -1;
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i]!;
@@ -353,13 +428,14 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     if (bucket) {
       bucket.blocks.push(block);
     } else {
+      lastStepIndex = i;
       buckets.set(currentStep, {blocks: [block], index: i});
     }
   }
 
   const sections: AutofixSection[] = Array.from(buckets.entries()).map(
     ([step, {blocks: sectionBlocks, index}]) =>
-      buildSection(step, index, sectionBlocks, runState)
+      buildSection(step, index === lastStepIndex, index, sectionBlocks, runState)
   );
 
   // If there are any PR states, append a synthetic "pull_request" section.
@@ -495,9 +571,10 @@ interface UseExplorerAutofixOptions {
  * - Creating pull requests from code changes
  */
 export function useExplorerAutofix(
-  groupId: string,
+  group: Group,
   options: UseExplorerAutofixOptions = {}
 ) {
+  const groupId = group.id;
   const {openModal} = useModal();
 
   const {enabled = true, pollPR = false} = options;
@@ -506,6 +583,7 @@ export function useExplorerAutofix(
   const organization = useOrganization();
   const user = useUser();
   const orgSlug = organization.slug;
+  const serviceWorker = useServiceWorker();
 
   const [waitingForResponse, setWaitingForResponse] = useState(false);
 
@@ -552,7 +630,7 @@ export function useExplorerAutofix(
         /**
          * The run id where we want to start the step. If not specified, a new run is created
          */
-        runId?: number;
+        runId?: SeerExplorerRunId;
         /**
          * Additional context from the user. If specified, it is added to the builtin prompt
          */
@@ -569,7 +647,7 @@ export function useExplorerAutofix(
         }
 
         if (defined(startStepOptions?.runId)) {
-          data.run_id = startStepOptions.runId;
+          Object.assign(data, continueRunData(startStepOptions.runId));
         }
 
         if (startStepOptions?.userContext) {
@@ -591,12 +669,56 @@ export function useExplorerAutofix(
         const invalidation = queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
+        queryClient.invalidateQueries({
+          queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
+        });
 
         if (step === 'pr_iteration') {
           await invalidation;
         }
 
-        return response.run_id as number;
+        if (
+          organization.features.includes('autofix-browser-notifications') &&
+          serviceWorker.isServiceWorkerSupported
+        ) {
+          serviceWorker.controller
+            .postMessage({
+              type: 'event',
+              name: 'autofix.startStep',
+              data: {
+                issueId: groupId,
+                notification: {
+                  navigateTo: {
+                    pathname: normalizeUrl(
+                      `/organizations/${orgSlug}/issues/${groupId}/`
+                    ),
+                    query: {
+                      seerDrawer: 'true',
+                    },
+                  },
+                  project: {
+                    avatar: 'https://sentry.io/favicon.ico', // TODO(ryan953): Use the project avatar url or base64 encoded bytes
+                  },
+                  title: {
+                    success: `${group.shortId} - ${step.replace('_', ' ')} completed`,
+                    error: `${group.shortId} - ${step.replace('_', ' ')} had a problem`,
+                  },
+                  body: {
+                    success: `Click to see the ${step.replace('_', ' ')} results.`,
+                    error: 'The autofix run ended with an error.',
+                  },
+                },
+                organizationIdOrSlug: orgSlug,
+                step,
+                stepOptions: startStepOptions ?? {},
+              },
+            })
+            .catch(error => {
+              addErrorMessage(error instanceof Error ? error.message : String(error));
+            });
+        }
+
+        return getAutofixRunId(response)!;
       } catch (e: any) {
         setWaitingForResponse(false);
         queryClient.setQueryData(
@@ -611,7 +733,15 @@ export function useExplorerAutofix(
         throw e;
       }
     },
-    [api, orgSlug, groupId, queryClient]
+    [
+      api,
+      group.shortId,
+      groupId,
+      orgSlug,
+      organization.features,
+      queryClient,
+      serviceWorker,
+    ]
   );
 
   /**
@@ -621,12 +751,12 @@ export function useExplorerAutofix(
    * @param repoName - Optional specific repo to create PR for
    */
   const createPR = useCallback(
-    async (runId: number, repoName?: string) => {
+    async (runId: SeerExplorerRunId, repoName?: string) => {
       try {
         const data: Record<string, any> = {
           step: 'open_pr',
-          run_id: runId,
           referrer: 'api.web',
+          ...continueRunData(runId),
         };
         if (repoName) {
           data.repo_name = repoName;
@@ -670,7 +800,7 @@ export function useExplorerAutofix(
    * Trigger coding agent handoff for an existing run.
    */
   const triggerCodingAgentHandoff = useCallback(
-    async (runId: number, integration: CodingAgentIntegration) => {
+    async (runId: SeerExplorerRunId, integration: CodingAgentIntegration) => {
       setWaitingForCodingAgent(true);
 
       trackAnalytics('coding_integration.send_to_agent_clicked', {
@@ -685,8 +815,8 @@ export function useExplorerAutofix(
 
       const data: Record<string, string | number> = {
         step: 'coding_agent_handoff',
-        run_id: runId,
         referrer: 'api.web',
+        ...continueRunData(runId),
       };
 
       if (integration.id === null) {
@@ -736,7 +866,7 @@ export function useExplorerAutofix(
           if (permissionFailures.length > 0) {
             const installationId = permissionFailures[0]?.github_installation_id;
             const installationUrl = installationId
-              ? `https://github.com/settings/installations/${installationId}`
+              ? getGithubPermissionsUpdateUrl(installationId)
               : undefined;
             openModal(deps => (
               <AutofixGithubAppPermissionsModal
@@ -839,6 +969,7 @@ export function useExplorerAutofix(
      */
     dismissCodingAgentError: (id: number) =>
       setCodingAgentErrors(prev => prev.filter(e => e.id !== id)),
+    warnings: runState?.warnings ?? [],
   };
 }
 

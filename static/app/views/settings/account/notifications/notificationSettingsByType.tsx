@@ -36,6 +36,7 @@ import {NotificationSettingsByEntity} from './notificationSettingsByEntity';
 import type {Identity} from './types';
 import {UnlinkedAlert} from './unlinkedAlert';
 import {isGroupedByProject} from './utils';
+import {WeeklyReportProjectExclusions} from './weeklyReportProjectExclusions';
 
 type Props = {
   notificationType: string; // TODO(steve)? type better
@@ -423,15 +424,17 @@ export function NotificationSettingsByType({notificationType}: Props) {
       <SentryDocumentTitle title={title} />
       <SettingsPageHeader title={title} />
       {description && <TextBlock>{description}</TextBlock>}
-      <FieldGroup
-        title={
-          isGroupedByProject(notificationType)
-            ? t('All Projects')
-            : t('All Organizations')
-        }
-      >
-        {notificationType === 'quota' ? renderQuotaFields() : renderDefaultField()}
-      </FieldGroup>
+      {notificationType !== 'reports' && (
+        <FieldGroup
+          title={
+            isGroupedByProject(notificationType)
+              ? t('All Projects')
+              : t('All Organizations')
+          }
+        >
+          {notificationType === 'quota' ? renderQuotaFields() : renderDefaultField()}
+        </FieldGroup>
+      )}
       {notificationType !== 'reports' && notificationType !== 'brokenMonitors' ? (
         <FieldGroup title={t('Delivery Method')}>
           <AutoSaveForm
@@ -466,15 +469,29 @@ export function NotificationSettingsByType({notificationType}: Props) {
           </AutoSaveForm>
         </FieldGroup>
       ) : null}
-      <NotificationSettingsByEntity
-        notificationType={notificationType}
-        notificationOptions={notificationOptions}
-        organizations={organizations}
-        handleRemoveNotificationOption={id => removeNotificationMutation.mutate(id)}
-        handleAddNotificationOption={option => addNotificationMutation.mutate(option)}
-        handleEditNotificationOption={option => deleteNotificationMutation.mutate(option)}
-        entityType={entityType}
-      />
+      {notificationType === 'reports' ? (
+        <WeeklyReportProjectExclusions
+          organizations={organizations}
+          notificationOptions={notificationOptions}
+          handleRemoveNotificationOption={id => removeNotificationMutation.mutate(id)}
+          handleAddNotificationOption={option => addNotificationMutation.mutate(option)}
+          handleEditNotificationOption={option =>
+            deleteNotificationMutation.mutate(option)
+          }
+        />
+      ) : (
+        <NotificationSettingsByEntity
+          notificationType={notificationType}
+          notificationOptions={notificationOptions}
+          organizations={organizations}
+          handleRemoveNotificationOption={id => removeNotificationMutation.mutate(id)}
+          handleAddNotificationOption={option => addNotificationMutation.mutate(option)}
+          handleEditNotificationOption={option =>
+            deleteNotificationMutation.mutate(option)
+          }
+          entityType={entityType}
+        />
+      )}
     </Fragment>
   );
 }

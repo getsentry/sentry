@@ -443,19 +443,11 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         self.setup_webhooks()
         self.setup_email()
 
-        @self.registry.register(Action.Type.PLUGIN)
-        @dataclass(frozen=True)
-        class PluginActionHandler(ActionHandler):
-            group = ActionHandler.Group.OTHER
-
-            config_schema = {}
-            data_schema = {}
-
         response = self.get_success_response(
             self.organization.slug,
             status_code=200,
         )
-        assert len(response.data) == 8
+        assert len(response.data) == 7
         assert response.data == [
             # notification actions, sorted alphabetically with email first
             {
@@ -474,12 +466,6 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 ],
             },
             # other actions, non sentry app actions first then sentry apps sorted alphabetically by name
-            {
-                "type": Action.Type.PLUGIN,
-                "handlerGroup": ActionHandler.Group.OTHER.value,
-                "configSchema": {},
-                "dataSchema": {},
-            },
             # webhook action should include sentry apps without components
             {
                 "type": Action.Type.WEBHOOK,
@@ -563,3 +549,17 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 ],
             },
         ]
+
+    def test_plugin_not_in_available_actions(self) -> None:
+        @self.registry.register(Action.Type.PLUGIN)
+        @dataclass(frozen=True)
+        class PluginActionHandler(ActionHandler):
+            group = ActionHandler.Group.OTHER
+            config_schema = {}
+            data_schema = {}
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=200,
+        )
+        assert len(response.data) == 0

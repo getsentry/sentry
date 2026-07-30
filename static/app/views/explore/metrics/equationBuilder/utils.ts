@@ -44,6 +44,7 @@ export function unresolveExpression(
       }
       return token.text;
     })
+    .filter(text => text.length > 0)
     .join(' ');
 }
 
@@ -90,11 +91,10 @@ export function syncEquationMetricQueries(
       return metricQuery;
     }
 
-    const internalExpression = unresolveExpression(
-      visualize.expression.text,
-      previousReferenceMap
-    );
-    const expression = new Expression(internalExpression, previousReferences);
+    const internalExpressionText =
+      visualize.internalExpression ??
+      unresolveExpression(visualize.expression.text, previousReferenceMap);
+    const expression = new Expression(internalExpressionText, previousReferences);
 
     if (!expression.isValid) {
       return metricQuery;
@@ -118,6 +118,7 @@ export function syncEquationMetricQueries(
 
           return field.replace({
             yAxis: `${EQUATION_PREFIX}${resolvedExpression.text}`,
+            internalExpression: visualize.internalExpression,
           });
         }),
       }),

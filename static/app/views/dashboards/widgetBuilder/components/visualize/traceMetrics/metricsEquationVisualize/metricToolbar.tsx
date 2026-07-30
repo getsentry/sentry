@@ -7,7 +7,10 @@ import {Radio} from '@sentry/scraps/radio';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
-import {RATE_AGGREGATES} from 'sentry/views/explore/metrics/constants';
+import {
+  DEFAULT_EQUATION_LABEL,
+  RATE_AGGREGATES,
+} from 'sentry/views/explore/metrics/constants';
 import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
 import {extractReferenceLabels} from 'sentry/views/explore/metrics/equationBuilder/utils';
 import {
@@ -21,7 +24,6 @@ import {DeleteMetricButton} from 'sentry/views/explore/metrics/metricToolbar/del
 import {Filter} from 'sentry/views/explore/metrics/metricToolbar/filter';
 import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
 import {VisualizeLabel} from 'sentry/views/explore/metrics/metricToolbar/visualizeLabel';
-import {EQUATION_LABEL} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
@@ -64,7 +66,10 @@ export function MetricToolbar({
   ) => {
     if (isVisualizeEquation(visualize)) {
       setVisualize(
-        visualize.replace({yAxis: `${EQUATION_PREFIX}${resolvedExpression.text}`})
+        visualize.replace({
+          yAxis: `${EQUATION_PREFIX}${resolvedExpression.text}`,
+          internalExpression: internalText,
+        })
       );
       const labelSet = new Set(Object.keys(referenceMap));
       const expr = new Expression(internalText, labelSet);
@@ -81,7 +86,7 @@ export function MetricToolbar({
         <Radio
           name="metricAggregateRow"
           checked={isSelected}
-          onChange={() => onRowSelection(isEquation ? EQUATION_LABEL : label)}
+          onChange={() => onRowSelection(isEquation ? DEFAULT_EQUATION_LABEL : label)}
           aria-label={t('Use row %s as the widget aggregate', label)}
           disabled={isFunction && traceMetric.name === ''}
         />
@@ -118,6 +123,7 @@ export function MetricToolbar({
             referenceMap={referenceMap}
             handleExpressionChange={handleExpressionChange}
             disabled={disabled}
+            storedInternalExpression={visualize.internalExpression}
           />
         ) : null}
         <Flex flex="1 1 100%" minWidth="0">
@@ -126,6 +132,7 @@ export function MetricToolbar({
             skipTraceMetricFilter={isEquation}
             portalTarget={document.body}
             disabled={disabled}
+            disableValidation
           />
         </Flex>
       </Flex>

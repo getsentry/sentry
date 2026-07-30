@@ -1,6 +1,8 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.integrations.utils.hostname import InstanceHostnameError
 from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
     OrganizationContributorAction,
@@ -222,10 +224,9 @@ class TrackContributorSeatTest(TestCase):
         track_contributor_seat(
             organization=self.organization,
             repo=self.repo,
-            integration_id=self.integration.id,
+            integration=serialize_integration(self.integration),
             user_id=user_id,
             user_username=user_username,
-            provider="github",
         )
 
     @patch("sentry.seer.code_review.contributor_seats.logger")
@@ -244,6 +245,8 @@ class TrackContributorSeatTest(TestCase):
             external_identifier="999",
         )
         assert contributor.alias == "newuser"
+        assert contributor.provider == "github"
+        assert contributor.hostname == "github.com"
         assert contributor.num_actions == 0
         mock_logger.info.assert_not_called()
 
@@ -259,10 +262,11 @@ class TrackContributorSeatTest(TestCase):
         mock_logger: MagicMock,
         mock_assign_seat: MagicMock,
     ) -> None:
-        OrganizationContributors.objects.create(
+        self.create_organization_contributor(
             organization=self.organization,
-            integration_id=self.integration.id,
+            integration=self.integration,
             external_identifier="12345",
+            provider=self.integration.provider,
             alias="testuser",
             num_actions=5,
         )
@@ -281,6 +285,23 @@ class TrackContributorSeatTest(TestCase):
             mock_logger.info.call_args.args[0]
             == "scm.webhook.organization_contributor.num_actions_should_increment"
         )
+
+    @patch("sentry.seer.code_review.contributor_seats.sentry_sdk.capture_exception")
+    @patch(
+        "sentry.seer.code_review.contributor_seats.instance_hostname",
+        side_effect=InstanceHostnameError("missing"),
+    )
+    def test_missing_hostname_captures_and_skips_seeding(
+        self, mock_hostname: MagicMock, mock_capture: MagicMock
+    ) -> None:
+        self._call(user_id="999")
+
+        assert not OrganizationContributors.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier="999",
+        ).exists()
+        mock_capture.assert_called_once()
 
 
 class RecordContributorActionTest(TestCase):
@@ -313,10 +334,9 @@ class RecordContributorActionTest(TestCase):
         record_contributor_action(
             organization=self.organization,
             repo=self.repo,
-            integration_id=self.integration.id,
+            integration=serialize_integration(self.integration),
             user_id="123",
             user_username="alice",
-            provider="github",
             pr_number=pr_number,
             is_opened=is_opened,
         )
@@ -330,6 +350,8 @@ class RecordContributorActionTest(TestCase):
 
         contributor = self._contributor()
         assert contributor.alias == "alice"
+        assert contributor.provider == "github"
+        assert contributor.hostname == "github.com"
         assert contributor.num_actions == 0
         assert self._action_count() == 0
 
@@ -391,10 +413,11 @@ class RecordContributorActionTest(TestCase):
     def test_increments_and_assigns_at_threshold(
         self, mock_should: MagicMock, mock_assign: MagicMock
     ) -> None:
-        OrganizationContributors.objects.create(
+        self.create_organization_contributor(
             organization=self.organization,
-            integration_id=self.integration.id,
+            integration=self.integration,
             external_identifier="123",
+            provider=self.integration.provider,
             alias="alice",
             num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD - 1,
         )
@@ -413,10 +436,11 @@ class RecordContributorActionTest(TestCase):
     def test_increments_and_assigns_above_threshold(
         self, mock_should: MagicMock, mock_assign: MagicMock
     ) -> None:
-        OrganizationContributors.objects.create(
+        self.create_organization_contributor(
             organization=self.organization,
-            integration_id=self.integration.id,
+            integration=self.integration,
             external_identifier="123",
+            provider=self.integration.provider,
             alias="alice",
             num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
         )
@@ -426,3 +450,21 @@ class RecordContributorActionTest(TestCase):
         contributor = self._contributor()
         assert contributor.num_actions == ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD + 1
         mock_assign.delay.assert_called_once_with(contributor.id)
+
+    @patch("sentry.seer.code_review.contributor_seats.sentry_sdk.capture_exception")
+    @patch(
+        "sentry.seer.code_review.contributor_seats.instance_hostname",
+        side_effect=InstanceHostnameError("missing"),
+    )
+    def test_missing_hostname_captures_and_skips_seeding(
+        self, mock_hostname: MagicMock, mock_capture: MagicMock
+    ) -> None:
+        self._call()
+
+        assert not OrganizationContributors.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier="123",
+        ).exists()
+        assert self._action_count() == 0
+        mock_capture.assert_called_once()

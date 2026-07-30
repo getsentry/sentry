@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import orjson
@@ -15,10 +16,13 @@ from sentry.identity.oauth2 import (
 )
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.gcp.utils import GCP_MCP_URLS
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.pipeline.views.base import PipelineView
 from sentry.users.models.identity import Identity
 from sentry.utils.signing import urlsafe_b64decode
+
+logger = logging.getLogger(__name__)
 
 
 class GCPOAuth2LoginView(OAuth2LoginView):
@@ -33,16 +37,10 @@ class GCPOAuth2LoginView(OAuth2LoginView):
         return params
 
 
-GCP_MCP_URLS: tuple[str, ...] = (
-    "https://logging.googleapis.com/mcp",
-    "https://monitoring.googleapis.com/mcp",
-    "https://cloudtrace.googleapis.com/mcp",
-)
-
-
 class GCPIdentityProvider(McpIdentityProvider, OAuth2Provider):
     key = IntegrationProviderSlug.GCP
     name = "Google Cloud Platform"
+    monitoring_family = IntegrationProviderSlug.GCP.value
     create_organization_identity = True
 
     oauth_access_token_url = "https://oauth2.googleapis.com/token"
@@ -125,9 +123,20 @@ class GCPIdentityProvider(McpIdentityProvider, OAuth2Provider):
     def get_refresh_token_params(
         self, refresh_token: str, identity: Identity | RpcIdentity, **kwargs: Any
     ) -> dict[str, str | None]:
+        client_id = self.get_oauth_client_id()
+        client_secret = self.get_oauth_client_secret()
+        if not client_id or not client_secret:
+            logger.error(
+                "gcp.refresh.missing_client_credentials",
+                extra={
+                    "has_client_id": bool(client_id),
+                    "has_client_secret": bool(client_secret),
+                    "identity_id": identity.id,
+                },
+            )
         return {
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
-            "client_id": self.get_oauth_client_id(),
-            "client_secret": self.get_oauth_client_secret(),
+            "client_id": client_id,
+            "client_secret": client_secret,
         }

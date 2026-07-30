@@ -40,6 +40,8 @@
 
 /tests/js/sentry-test/                                  @getsentry/app-frontend
 /static/app/utils/                                      @getsentry/app-frontend
+# This file is auto-generated on endpoint changes
+/static/app/utils/api/knownSentryApiUrls.generated.ts
 /src/sentry/web/frontend/                               @getsentry/app-frontend
 /.agents/skills/sentry-javascript-bugs/                 @getsentry/app-frontend
 /.agents/skills/generate-snapshot-tests/                @getsentry/app-frontend
@@ -374,6 +376,12 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/utils/timeSeries/                                             @getsentry/data-browsing
 ## Endof Visibility
 
+## Data Browsing Migration Tests
+/tests/sentry/migrations/test_1125_transactions_to_spans_alerts_self_hosted.py @getsentry/data-browsing
+/tests/sentry/migrations/test_1126_transactions_to_spans_widgets_self_hosted.py @getsentry/data-browsing
+/tests/sentry/migrations/test_1127_discover_to_explore_queries_self_hosted.py @getsentry/data-browsing
+## End of Data Browsing Migration Tests
+
 
 ## Profiling
 /static/app/components/profiling/                                     @getsentry/profiling
@@ -571,6 +579,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 ## SDK
 /src/sentry/utils/sdk.py                                             @getsentry/team-web-sdk-backend
+/src/sentry/utils/tracing.py                                         @getsentry/team-web-sdk-backend
 /src/sentry/build/                                                   @getsentry/team-web-sdk-backend
 /src/sentry/api/endpoints/source_map_debug.py                        @getsentry/team-javascript-sdks
 /src/sentry/web/frontend/setup_wizard.py                             @getsentry/team-javascript-sdks
@@ -595,6 +604,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/relay/config/ai_model_costs.py                                       @getsentry/telemetry-experience
 /src/sentry/tasks/ai_agent_monitoring.py                                         @getsentry/telemetry-experience
 /tests/sentry/tasks/test_ai_agent_monitoring.py                                  @getsentry/telemetry-experience
+/src/sentry/ai_monitoring/                                                       @getsentry/telemetry-experience
+/tests/sentry/ai_monitoring/                                                     @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
 /static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/insights/pages/agents/                                         @getsentry/telemetry-experience
@@ -638,6 +649,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/**/issues/**                                        @getsentry/issue-detection-frontend @getsentry/issue-workflow
 /static/**/group/**                                         @getsentry/issue-detection-frontend @getsentry/issue-workflow
 /static/app/components/activity/                            @getsentry/issue-detection-frontend @getsentry/issue-workflow
+/static/app/utils/issueTypeConfig/                          @getsentry/issue-detection-frontend @getsentry/issue-workflow
 /tests/sentry/issues/**                                     @getsentry/issue-detection-backend @getsentry/issue-workflow
 # Overrides
 /src/sentry/api/helpers/actionable_items_helper.py          @getsentry/issue-workflow

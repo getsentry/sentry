@@ -128,8 +128,8 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
           pointer-events: none;
         `}
 
-  li[role="rowgroup"]:hover &,
-  li[role="presentation"]:hover & {
+  li[role='rowgroup']:hover &,
+  li[role='presentation']:hover & {
     opacity: 1;
     pointer-events: all;
   }

@@ -237,7 +237,7 @@ function InternalInput({
   const gridCellRef = useRef<HTMLDivElement>(null);
   const {rowProps, gridCellProps} = useGridListItem({
     item: argumentItem,
-    ref: inputRef,
+    ref: gridCellRef,
     state: argumentsListState,
     focusable: true,
   });
@@ -587,86 +587,85 @@ function InternalInput({
     (!defined(parameterDefinition.options) || !parameterDefinition.options.length)
   ) {
     return (
-      <ArgumentGridCell {...rowProps} {...gridCellProps} tabIndex={-1} ref={gridCellRef}>
-        <InputBox
-          tabIndex={-1}
+      <ArgumentGridRow {...rowProps} tabIndex={-1} ref={gridCellRef}>
+        <ArgumentGridCell {...gridCellProps}>
+          <InputBox
+            tabIndex={-1}
+            ref={inputRef}
+            inputLabel={t('Add a value')}
+            inputValue={displayValue}
+            onClick={onClick}
+            onInputBlur={onTextInputBlur}
+            onInputChange={onInputChange}
+            onInputCommit={onInputCommit}
+            onInputEscape={onInputEscape}
+            onInputFocus={onInputFocus}
+            onKeyDown={onKeyDown}
+            onKeyDownCapture={onKeyDownCapture}
+          />
+          {argumentIndex < functionToken.attributes.length - 1 && ','}
+        </ArgumentGridCell>
+      </ArgumentGridRow>
+    );
+  }
+
+  return (
+    <ArgumentGridRow {...rowProps} tabIndex={isFocused ? 0 : -1} ref={gridCellRef}>
+      <ArgumentGridCell {...gridCellProps}>
+        <ComboBox
+          items={items}
           ref={inputRef}
-          inputLabel={t('Add a value')}
+          placeholder={
+            parameterDefinition?.kind === 'value' && 'placeholder' in parameterDefinition
+              ? (argument.label ?? parameterDefinition.placeholder)
+              : argument.label
+          }
+          inputLabel={
+            parameterDefinition?.kind === 'column'
+              ? t('Select an attribute')
+              : t('Select an option')
+          }
           inputValue={displayValue}
+          filterValue={filterValue}
+          tabIndex={
+            argumentItem.key === argumentsListState.selectionManager.focusedKey ? 0 : -1
+          }
+          shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
           onClick={onClick}
-          onInputBlur={onTextInputBlur}
+          onInputBlur={onInputBlur}
           onInputChange={onInputChange}
           onInputCommit={onInputCommit}
           onInputEscape={onInputEscape}
           onInputFocus={onInputFocus}
           onKeyDown={onKeyDown}
           onKeyDownCapture={onKeyDownCapture}
-        />
-        {argumentIndex < functionToken.attributes.length - 1 && ','}
+          onOpenChange={setIsOpen}
+          onOptionSelected={onOptionSelected}
+          onPaste={onPaste}
+          data-test-id={
+            functionListState.collection.getLastKey() === functionItem.key
+              ? 'arithmetic-builder-argument-input'
+              : undefined
+          }
+        >
+          {keyItem =>
+            itemIsSection(keyItem) ? (
+              <Section title={keyItem.label} key={keyItem.key}>
+                {keyItem.options.map(child => (
+                  <Item {...child} key={child.key}>
+                    {child.label}
+                  </Item>
+                ))}
+              </Section>
+            ) : (
+              <Item {...keyItem} key={keyItem.key}>
+                {keyItem.label}
+              </Item>
+            )
+          }
+        </ComboBox>
       </ArgumentGridCell>
-    );
-  }
-
-  return (
-    <ArgumentGridCell
-      {...rowProps}
-      {...gridCellProps}
-      tabIndex={isFocused ? 0 : -1}
-      ref={gridCellRef}
-    >
-      <ComboBox
-        items={items}
-        ref={inputRef}
-        placeholder={
-          parameterDefinition?.kind === 'value' && 'placeholder' in parameterDefinition
-            ? (argument.label ?? parameterDefinition.placeholder)
-            : argument.label
-        }
-        inputLabel={
-          parameterDefinition?.kind === 'column'
-            ? t('Select an attribute')
-            : t('Select an option')
-        }
-        inputValue={displayValue}
-        filterValue={filterValue}
-        tabIndex={
-          argumentItem.key === argumentsListState.selectionManager.focusedKey ? 0 : -1
-        }
-        shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
-        onClick={onClick}
-        onInputBlur={onInputBlur}
-        onInputChange={onInputChange}
-        onInputCommit={onInputCommit}
-        onInputEscape={onInputEscape}
-        onInputFocus={onInputFocus}
-        onKeyDown={onKeyDown}
-        onKeyDownCapture={onKeyDownCapture}
-        onOpenChange={setIsOpen}
-        onOptionSelected={onOptionSelected}
-        onPaste={onPaste}
-        data-test-id={
-          functionListState.collection.getLastKey() === functionItem.key
-            ? 'arithmetic-builder-argument-input'
-            : undefined
-        }
-      >
-        {keyItem =>
-          itemIsSection(keyItem) ? (
-            <Section title={keyItem.label} key={keyItem.key}>
-              {keyItem.options.map(child => (
-                <Item {...child} key={child.key}>
-                  {child.label}
-                </Item>
-              ))}
-            </Section>
-          ) : (
-            <Item {...keyItem} key={keyItem.key}>
-              {keyItem.label}
-            </Item>
-          )
-        }
-      </ComboBox>
-    </ArgumentGridCell>
+    </ArgumentGridRow>
   );
 }
 
@@ -729,13 +728,19 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   }
 `;
 
-const ArgumentGridCell = styled('div')`
+const ArgumentGridRow = styled('div')`
   display: flex;
   align-items: center;
   position: relative;
   height: 100%;
   flex: 0 1 auto;
   max-width: fit-content;
+`;
+
+const ArgumentGridCell = styled('div')`
+  display: flex;
+  align-items: center;
+  height: 100%;
 
   > div input {
     max-width: 130px !important;

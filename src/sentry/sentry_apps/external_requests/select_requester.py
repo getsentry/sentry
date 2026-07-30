@@ -13,6 +13,7 @@ from sentry.sentry_apps.external_requests.utils import (
     integrator_error_message,
     send_and_save_sentry_app_request,
     validate,
+    validate_outbound_url,
 )
 from sentry.sentry_apps.metrics import (
     SentryAppExternalRequestFailureReason,
@@ -97,6 +98,20 @@ class SelectRequester:
                     status_code=e.response.status_code if e.response is not None else 502,
                 ) from e
 
+            # Must come after RequestException: several of its subclasses
+            # (InvalidURL, MissingSchema, ...) also subclass ValueError.
+            except (json.JSONDecodeError, TypeError) as e:
+                halt_reason = FAILURE_REASON_BASE.format(
+                    SentryAppExternalRequestHaltReason.BAD_RESPONSE
+                )
+                lifecycle.record_halt(halt_reason=e, extra={"reason": halt_reason, **extras})
+
+                raise SentryAppIntegratorError(
+                    message=f"Something went wrong while getting options for Select FormField from {self.sentry_app.slug}: invalid JSON response",
+                    webhook_context={"error_type": halt_reason, **extras},
+                    status_code=502,
+                ) from e
+
             except SentryAppIntegratorError as e:
                 lifecycle.record_halt(halt_reason=e, extra={**extras})
                 raise
@@ -158,6 +173,7 @@ class SelectRequester:
             )
 
         urlparts: list[str] = [url_part for url_part in urlparse(self.sentry_app.webhook_url)]
+        expected_netloc = urlparts[1]
         urlparts[2] = self.uri
 
         query = {"installationId": self.install.uuid}
@@ -172,7 +188,9 @@ class SelectRequester:
             query["dependentData"] = self.dependent_data
 
         urlparts[4] = urlencode(query)
-        return str(urlunparse(urlparts))
+        url = str(urlunparse(urlparts))
+        validate_outbound_url(url, expected_netloc, self.uri)
+        return url
 
     # response format must be:
     # https://docs.sentry.io/organization/integrations/integration-platform/ui-components/formfield/#uri-response-format

@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
@@ -93,12 +93,12 @@ export function PreprodBuildsSnapshotTable({
         <FullRowLink to={linkUrl} onClick={() => onRowClick?.(build)}>
           <InteractionStateLayer />
           <SimpleTable.RowCell justify="start">
-            <Flex direction="column" gap="2xs">
+            <Stack gap="2xs">
               <Text bold>{appId || t('Snapshot')}</Text>
               <Text size="sm" variant="muted">
                 {t('%s images', info?.image_count ?? 0)}
               </Text>
-            </Flex>
+            </Stack>
           </SimpleTable.RowCell>
           {showProjectColumn && (
             <SimpleTable.RowCell justify="start">
@@ -123,7 +123,7 @@ export function PreprodBuildsSnapshotTable({
             />
           </SimpleTable.RowCell>
           <SimpleTable.RowCell justify="start">
-            <Flex direction="column" gap="2xs">
+            <Stack gap="2xs">
               {build.vcs_info?.head_ref && (
                 <Flex align="center" gap="xs">
                   <Text size="sm" bold>
@@ -142,7 +142,7 @@ export function PreprodBuildsSnapshotTable({
                   {(build.vcs_info?.head_sha?.slice(0, 7) || '–').toUpperCase()}
                 </Text>
               </Flex>
-            </Flex>
+            </Stack>
           </SimpleTable.RowCell>
           <SimpleTable.RowCell>
             {build.app_info?.date_added ? (

@@ -42,7 +42,7 @@ from sentry.api.endpoints.organization_trace_item_attributes_types import (
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.utils import handle_query_errors
+from sentry.api.utils import default_start_end_dates, handle_query_errors
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
@@ -74,8 +74,10 @@ from sentry.search.eap.types import (
     SupportedTraceItemType,
 )
 from sentry.search.eap.utils import (
+    can_expose_attribute,
     can_expose_attribute_to_api,
     get_secondary_aliases,
+    is_internal_sentry_convention_attribute,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
 )
@@ -310,6 +312,22 @@ _CONVENTION_TYPE_TO_SEARCH_TYPE: dict[str, str] = {
 }
 
 
+SENTRY_ALWAYS_INCLUDED_ATTRIBUTES: dict[SupportedTraceItemType, frozenset[str]] = {
+    SupportedTraceItemType.SPANS: frozenset({"span.description"}),
+    SupportedTraceItemType.LOGS: frozenset({"message"}),
+    SupportedTraceItemType.TRACEMETRICS: frozenset(),
+}
+
+
+def _search_type_to_context_type(search_type: str) -> Literal["string", "number", "boolean"]:
+    """Collapse an EAP search type to the coarse type used for context matching."""
+    if search_type == "string":
+        return "string"
+    if search_type == "boolean":
+        return "boolean"
+    return "number"
+
+
 def build_sentry_convention_context(
     public_name: str,
     internal_name: str,
@@ -374,6 +392,60 @@ def build_sentry_convention_context(
     return context
 
 
+def build_sentry_attribute_context(
+    public_name: str,
+    attribute_type: Literal["string", "number", "boolean"] | None,
+    item_type: SupportedTraceItemType,
+) -> TraceItemAttributeContext | None:
+    """
+    Build context for a Sentry-defined (non-convention) attribute from its
+    definition's ``context``. Falls back to virtual column definitions (e.g.
+    ``project``) so their briefs surface too. When ``attribute_type`` is given,
+    context only attaches if it matches, so a user tag sharing a public alias
+    isn't mislabeled.
+    """
+    definitions = get_column_definitions(item_type)
+    column = definitions.columns.get(public_name) or definitions.contexts.get(public_name)
+    context = getattr(column, "context", None)
+    if column is None or context is None or column.secondary_alias:
+        return None
+
+    if (
+        attribute_type is not None
+        and _search_type_to_context_type(column.search_type) != attribute_type
+    ):
+        return None
+
+    # Virtual column definitions don't carry deprecation metadata.
+    replacement = getattr(column, "replacement", None)
+    deprecation_status = getattr(column, "deprecation_status", None)
+
+    result: TraceItemAttributeContext = {
+        "isConvention": False,
+        "brief": context.brief,
+        "isDeprecated": bool(deprecation_status or replacement),
+    }
+    if context.examples:
+        result["examples"] = list(context.examples)
+    if replacement:
+        result["replacementAttribute"] = replacement
+    return result
+
+
+def is_known_attribute(name: str, definitions: ColumnDefinitions) -> bool:
+    """
+    Whether ``name`` is an attribute Sentry defines — a column public/secondary
+    alias, a virtual context, a column internal name, or a sentry-conventions
+    entry (keyed by either public or internal name). Custom names resolve to
+    none of these and return False.
+    """
+    if name in definitions.columns or name in definitions.contexts:
+        return True
+    if name in {column.internal_name for column in definitions.columns.values()}:
+        return True
+    return ATTRIBUTE_METADATA.get(name) is not None
+
+
 def as_attribute_key(
     name: str,
     attr_type: Literal["string", "number", "boolean"],
@@ -432,10 +504,13 @@ def as_attribute_key(
         # need an alias (a public name distinct from their internal name), so a
         # convention whose name is already the same internally -- e.g.
         # `http.route` -- is missing from it and resolves as a `user` source
-        # attribute. Anything without a matching convention gets an empty context
-        # for now; serving custom attribute context is planned.
-        context = build_sentry_convention_context(public_name, name, attr_type) or {}
-        attribute_key["context"] = context
+        # attribute. A Sentry-defined attribute that isn't a convention (e.g.
+        # `span.description`) instead carries its context on the definition. User
+        # attributes with no match get an empty context.
+        context = build_sentry_convention_context(
+            public_name, name, attr_type
+        ) or build_sentry_attribute_context(public_name, attr_type, item_type)
+        attribute_key["context"] = context or {}
 
     return attribute_key
 
@@ -453,6 +528,34 @@ def can_expose_trace_item_attribute_to_api(
         attribute_key["name"],
         item_type,
         include_internal=include_internal,
+    )
+
+
+def _can_expose_data_attribute_to_api(
+    name: str,
+    attribute_key: TraceItemAttributeKey,
+    item_type: SupportedTraceItemType,
+    include_internal: bool = False,
+) -> bool:
+    """Whether an attribute found in a customer's data may be exposed.
+
+    A user-sent attribute whose name collides with a reserved public alias is
+    surfaced under an explicit ``tags[...]`` key that references only the user's
+    column. Its exposure is gated on the attribute's own name, so a private
+    reserved *column* it merely shadows doesn't suppress it (e.g. a customer's
+    ``organization.id``, which shadows the private ``sentry.organization_id``).
+    Internal sentry *conventions* are still hidden unless ``include_internal``.
+    """
+    if attribute_key["attributeSource"]["source_type"] == AttributeSourceType.USER.value:
+        if not can_expose_attribute(name, item_type, include_internal=include_internal):
+            return False
+        if include_internal:
+            return True
+        return not is_internal_sentry_convention_attribute(name, item_type)
+    return can_expose_attribute_to_api(
+        name, item_type, include_internal=include_internal
+    ) and can_expose_trace_item_attribute_to_api(
+        attribute_key, item_type, include_internal=include_internal
     )
 
 
@@ -651,6 +754,21 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                                 )
                             )
                 else:
+                    # Always include curated Sentry-defined attributes (e.g.
+                    # span.description) so they aren't paged out past the RPC's
+                    # attribute-name limit. They carry context and
+                    # source_type=sentry.
+                    for public_alias in SENTRY_ALWAYS_INCLUDED_ATTRIBUTES.get(
+                        trace_item_type, frozenset()
+                    ):
+                        always_include_column = column_definitions.columns.get(public_alias)
+                        if (
+                            always_include_column is not None
+                            and always_include_column.proto_type == attr_type
+                            and not always_include_column.secondary_alias
+                            and not always_include_column.private
+                        ):
+                            all_aliased_attributes.append(always_include_column)
                     for (
                         public_label,
                         virtual_context,
@@ -724,30 +842,30 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
     ) -> list[TraceItemAttributeKey]:
         attribute_keys = {}
         for attribute in rpc_response.attributes:
-            if attribute.name and can_expose_attribute_to_api(
+            if not attribute.name:
+                continue
+            attr_key = as_attribute_key(
                 attribute.name,
+                attribute_type,
                 trace_item_type,
-                include_internal=include_internal,
-            ):
-                attr_key = as_attribute_key(
+                include_context=include_context,
+            )
+            if (
+                _can_expose_data_attribute_to_api(
                     attribute.name,
-                    attribute_type,
+                    attr_key,
                     trace_item_type,
-                    include_context=include_context,
+                    include_internal=include_internal,
                 )
-                if (
-                    not is_sentry_convention_replacement_attribute(
-                        attr_key["name"], trace_item_type
-                    )
-                    # Remove anything where the public alias doesn't match the substring
-                    # This can happen when the public alias is different, but that's handled by
-                    # aliased_attributes
-                    and (substring_match in attr_key["name"] if substring_match else True)
-                    and can_expose_trace_item_attribute_to_api(
-                        attr_key, trace_item_type, include_internal=include_internal
-                    )
-                ):
-                    attribute_keys[attr_key["key"]] = attr_key
+                and not is_sentry_convention_replacement_attribute(
+                    attr_key["name"], trace_item_type
+                )
+                # Remove anything where the public alias doesn't match the substring
+                # This can happen when the public alias is different, but that's handled by
+                # aliased_attributes
+                and (substring_match in attr_key["name"] if substring_match else True)
+            ):
+                attribute_keys[attr_key["key"]] = attr_key
         # We need to exclude any aliased attributes here since because of pagination they might have already been seen
         # earlier
         for aliased_attr in exclude_attributes:
@@ -1148,6 +1266,17 @@ def adjust_start_end_window(start_date: datetime, end_date: datetime) -> tuple[d
     start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
     end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
     return start_date, end_date
+
+
+def full_retention_window() -> tuple[datetime, datetime]:
+    """
+    The widest window we can query, used by context existence checks that must
+    always look at all of an org's data regardless of any `statsPeriod`/`start`/
+    `end` filters passed on the request. Anchored to the default (max) stats
+    period so a narrow user-supplied range can't cause a false negative.
+    """
+    start_date, end_date = default_start_end_dates()
+    return adjust_start_end_window(start_date, end_date)
 
 
 class OrganizationTraceItemAttributeValidateQuerySerializer(serializers.Serializer):

@@ -58,16 +58,34 @@ export function getMetricsChartTypeOptions(
   metric?: TraceMetric
 ) {
   if (canUseMetricsHeatMap(organization)) {
+    const disabledReason = getVisualizationTypeDisabledReason(isEquation, metric);
     return [
       ...EXPLORE_CHART_TYPE_OPTIONS,
       {
         value: ChartType.HEATMAP,
-        label: t('Heat Map'),
-        disabled: isEquation || !metric || !doesMetricSupportHeatMapVisualization(metric),
+        label: t('Heatmap'),
+        disabled: defined(disabledReason),
+        tooltip: disabledReason,
       },
     ];
   }
   return EXPLORE_CHART_TYPE_OPTIONS;
+}
+
+function getVisualizationTypeDisabledReason(
+  isEquation: boolean,
+  metric?: TraceMetric
+): string | undefined {
+  if (isEquation) {
+    return t('Heatmaps are not available for equations.');
+  }
+  if (!metric) {
+    return t('Select a metric to visualize it as a heatmap.');
+  }
+  if (!doesMetricSupportHeatMapVisualization(metric)) {
+    return t('Heatmaps can only visualize distribution metrics.');
+  }
+  return undefined;
 }
 
 interface MetricsGraphProps {
@@ -219,7 +237,7 @@ function Graph({
               )}
             />
           ) : showChart ? (
-            <ChartVisualization chartInfo={chartInfo} notMerge={false} />
+            <ChartVisualization chartInfo={chartInfo} />
           ) : undefined
         }
         Footer={

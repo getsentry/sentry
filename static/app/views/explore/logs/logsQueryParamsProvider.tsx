@@ -51,7 +51,8 @@ export function LogsQueryParamsProvider({
     throw new Error(`Unknown source for LogsQueryParamsProvider: ${source}`);
   }
 
-  const isTableFrozen = source === 'state';
+  const isTableFrozen =
+    source === 'state' || (!!freeze && Object.keys(freeze).length > 0);
 
   return (
     <LogsAnalyticsPageSourceContext value={analyticsPageSource}>

@@ -1,11 +1,17 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import {useInfiniteQuery, useQuery, type InfiniteData} from '@tanstack/react-query';
 import {z} from 'zod';
 
+import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormOptions,
+  setFieldErrors,
+  useScrapsForm,
+  useStore,
+} from '@sentry/scraps/form';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -27,9 +33,11 @@ import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {useCompactSelectRepositoryOptions} from 'sentry/utils/repositories/useCompactSelectRepositoryOptions';
 import {useRepositoriesById} from 'sentry/utils/repositories/useRepositoriesById';
 import {
+  NON_GITHUB_HANDOFF_WARNING,
   orgDefaultAgentQueryOptions,
   seerAgentIntegrationsSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
+import {isGitHubProvider} from 'sentry/utils/seer/seerProjectRepos';
 import {getInfiniteSeerProjectsSettingsQueryOptions} from 'sentry/utils/seer/seerProjectSettings';
 import {
   PROJECT_STOPPING_POINT_OPTIONS,
@@ -147,6 +155,23 @@ export function ProjectAddRepoModal({
         });
     },
   });
+
+  // Only GitHub repos can hand off to an external coding agent. When any other
+  // repo is attached, hard-reset the agent to Seer (rather than just overriding
+  // the display) so the user isn't left re-selecting an agent they can't use,
+  // and the saved value is correct. Unresolved repos (still loading) are ignored
+  // so the dropdown isn't disabled mid-fetch.
+  const repoEntries = useStore(form.store, state => state.values.repoEntries);
+  const isOnlyGithubRepos = repoEntries.every(entry => {
+    const providerId = repositoriesById.get(entry.repoId)?.provider.id;
+    // Ignore unresolved repos (still loading) so we don't disable mid-fetch.
+    return providerId === undefined || isGitHubProvider(providerId);
+  });
+  useEffect(() => {
+    if (!isOnlyGithubRepos && form.state.values.agentOption !== 'seer') {
+      form.setFieldValue('agentOption', 'seer');
+    }
+  }, [isOnlyGithubRepos, form]);
 
   return (
     <Fragment>
@@ -327,29 +352,35 @@ export function ProjectAddRepoModal({
 
             <Separator orientation="horizontal" />
 
-            <form.AppField name="agentOption">
-              {field => (
-                <field.Layout.Row
-                  label={t('Handoff to Agent')}
-                  hintText={tct(
-                    'Seer will always triage and perform Root Cause Analysis for you, but after that you can hand the results to an agent to create a plan, code a fix, and draft a PR. [manage:Manage Coding Agents]',
-                    {
-                      manage: (
-                        <ExternalLink
-                          href={`/settings/${organization.slug}/integrations/?category=coding+agent`}
-                        />
-                      ),
-                    }
-                  )}
-                >
-                  <field.Select
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    options={agentOptions}
-                  />
-                </field.Layout.Row>
+            <Stack gap="md">
+              {!isOnlyGithubRepos && (
+                <Alert variant="info">{NON_GITHUB_HANDOFF_WARNING}</Alert>
               )}
-            </form.AppField>
+              <form.AppField name="agentOption">
+                {field => (
+                  <field.Layout.Row
+                    label={t('Handoff to Agent')}
+                    hintText={tct(
+                      'Seer will always triage and perform Root Cause Analysis for you, but after that you can hand the results to an agent to create a plan, code a fix, and draft a PR. [manage:Manage Coding Agents]',
+                      {
+                        manage: (
+                          <ExternalLink
+                            href={`/settings/${organization.slug}/integrations/?category=coding+agent`}
+                          />
+                        ),
+                      }
+                    )}
+                  >
+                    <field.Select
+                      value={isOnlyGithubRepos ? field.state.value : 'seer'}
+                      onChange={field.handleChange}
+                      options={agentOptions}
+                      disabled={!isOnlyGithubRepos}
+                    />
+                  </field.Layout.Row>
+                )}
+              </form.AppField>
+            </Stack>
 
             <Separator orientation="horizontal" />
 

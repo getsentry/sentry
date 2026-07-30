@@ -239,7 +239,8 @@ export type SentryAppSchemaElement =
   | SentryAppSchemaStacktraceLink;
 
 export type SentryApp = {
-  author: string;
+  // Null for internal integrations, which have no author.
+  author: string | null;
   events: WebhookEvent[];
   featureData: IntegrationFeature[];
   isAlertable: boolean;
@@ -256,6 +257,9 @@ export type SentryApp = {
   status: SentryAppStatus;
   uuid: string;
   verifyInstall: boolean;
+  // The stored subscriptions as exact event tokens, where `events` consolidates
+  // them to resource names.
+  webhookEvents: string[];
   webhookUrl: string | null;
   allowedOrigins?: string[];
   avatars?: SentryAppAvatar[];
@@ -422,6 +426,7 @@ interface CommonIntegration {
   organizationIntegrationStatus: ObjectStatus;
   provider: OrganizationIntegrationProvider;
   status: ObjectStatus;
+  outOfDate?: boolean | null;
 }
 
 export interface Integration extends CommonIntegration {
@@ -433,6 +438,8 @@ export interface Integration extends CommonIntegration {
       uninstallationUrl?: string;
     };
   };
+  // Present on OrganizationIntegration; for GitHub this is the App installation id.
+  externalId?: string;
   scopes?: string[];
 }
 
