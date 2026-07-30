@@ -15,7 +15,7 @@ from sentry.seer.smart_assignment.models import (
     SEER_FEATURE_ID,
     SmartAssignmentPayload,
 )
-from sentry.seer.smart_assignment.scoring import record_ground_truth
+from sentry.seer.smart_assignment.scoring import record_ground_truth, resolver_user_id
 from sentry.seer.utils import runs_for_group
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
@@ -56,7 +56,7 @@ def trigger_smart_assignment(
     if not features.has(FEATURE_FLAG, organization):
         return
 
-    if activity_type in RESOLUTION_ACTIVITIES and (activity is None or activity.user_id is None):
+    if activity_type in RESOLUTION_ACTIVITIES and resolver_user_id(activity) is None:
         metrics.incr(
             "smart_assignment.trigger.skipped",
             tags={"reason": "automatic_resolution"},

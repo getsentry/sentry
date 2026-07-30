@@ -169,9 +169,13 @@ class RecordPredictionScoringTest(ScoringTestBase):
 
 
 class RecordGroundTruthTest(ScoringTestBase):
-    def _resolved_activity(self, user_id: int | None = None) -> Activity:
+    def _resolved_activity(
+        self,
+        user_id: int | None = None,
+        activity_type: ActivityType = ActivityType.SET_RESOLVED,
+    ) -> Activity:
         return self.create_group_activity(
-            group=self.group, type=ActivityType.SET_RESOLVED.value, user_id=user_id
+            group=self.group, type=activity_type.value, user_id=user_id
         )
 
     def test_noop_without_run(self) -> None:
@@ -210,6 +214,21 @@ class RecordGroundTruthTest(ScoringTestBase):
     def test_automatic_resolution_is_noop(self) -> None:
         run = self._run()
         record_ground_truth(self.group, ActivityType.SET_RESOLVED, self._resolved_activity(None))
+
+        run.refresh_from_db()
+        assert "actual_assignee_user_id" not in run.extras
+        assert "ground_truth_source" not in run.extras
+
+    def test_integration_resolution_is_noop(self) -> None:
+        # An integration resolving through the API (a Linear ticket moving to Done)
+        # acts as the Sentry App's proxy user, which owns nothing.
+        run = self._run()
+        proxy_user = self.create_user(is_sentry_app=True)
+        record_ground_truth(
+            self.group,
+            ActivityType.SET_RESOLVED_IN_RELEASE,
+            self._resolved_activity(proxy_user.id, ActivityType.SET_RESOLVED_IN_RELEASE),
+        )
 
         run.refresh_from_db()
         assert "actual_assignee_user_id" not in run.extras

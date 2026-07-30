@@ -207,3 +207,21 @@ class TriggerSmartAssignmentTest(TestCase):
         # No acting user -> not a signal, so we don't even dispatch a prediction.
         assert self._mirrors() == []
         mock_client_cls.return_value.start_feature_run.assert_not_called()
+
+    @patch(CLIENT_PATH)
+    def test_integration_resolution_is_skipped(self, mock_client_cls: MagicMock) -> None:
+        self._wire_client(mock_client_cls)
+        proxy_user = self.create_user(is_sentry_app=True)
+        with self.feature("organizations:seer-smart-assignment-run"):
+            trigger_smart_assignment(
+                self.group,
+                ActivityType.SET_RESOLVED_IN_RELEASE,
+                self.create_group_activity(
+                    group=self.group,
+                    type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+                    user_id=proxy_user.id,
+                ),
+            )
+
+        assert self._mirrors() == []
+        mock_client_cls.return_value.start_feature_run.assert_not_called()

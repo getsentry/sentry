@@ -17,6 +17,7 @@ from sentry.seer.smart_assignment.models import (
 )
 from sentry.seer.utils import latest_run_for_group
 from sentry.types.activity import ActivityType
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -65,6 +66,23 @@ def record_ground_truth(
         )
 
 
+def resolver_user_id(activity: Activity | None) -> int | None:
+    """The user a resolution can be credited to, or ``None`` when it names no one who
+    could have owned the issue.
+
+    Automatic resolutions (auto-resolve, resolve-in-next-release) have no acting user.
+    A resolution driven through an integration -- a Linear ticket moving to Done, say --
+    acts as the Sentry App's proxy user (``is_sentry_app``), which identifies the app
+    rather than a person.
+    """
+    if activity is None or activity.user_id is None:
+        return None
+    user = user_service.get_user(user_id=activity.user_id)
+    if user is None or user.is_sentry_app:
+        return None
+    return user.id
+
+
 def _ground_truth_updates(
     run: SeerAgentRun,
     group: Group,
@@ -83,7 +101,8 @@ def _ground_truth_updates(
     if activity_type == ActivityType.ASSIGNED:
         return _assignment_updates(group)
     if activity_type in RESOLUTION_ACTIVITIES:
-        if activity is None or activity.user_id is None:
+        resolver_id = resolver_user_id(activity)
+        if resolver_id is None:
             return None
         extras = run.extras or {}
         if (
@@ -99,7 +118,7 @@ def _ground_truth_updates(
         if assignment is not None:
             return assignment
         return {
-            "actual_assignee_user_id": activity.user_id,
+            "actual_assignee_user_id": resolver_id,
             "ground_truth_source": activity_type.name,
         }
     return None
