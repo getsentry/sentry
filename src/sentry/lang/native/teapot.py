@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import logging
 import re
-import time
 from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any, Protocol
@@ -23,6 +22,7 @@ from django.conf import settings
 
 from sentry import options
 from sentry.objectstore import get_attachments_session, maybe_rewrite_url_for_symbolicator
+from sentry.utils.retries import ConditionalRetryPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -69,13 +69,6 @@ RETRY_BACKOFF_SECONDS = 0.5
 RETRY_BACKOFF_MAX_SECONDS = 4.0
 
 
-def _sleep_before_retry(attempt: int, attempts: int) -> None:
-    """Back off before the next attempt; no-op after the final one."""
-    if attempt + 1 >= attempts:
-        return
-    time.sleep(min(RETRY_BACKOFF_SECONDS * (2**attempt), RETRY_BACKOFF_MAX_SECONDS))
-
-
 def _timeout() -> int:
     try:
         return int(options.get("teapot.timeout-seconds")) or DEFAULT_TIMEOUT
@@ -99,6 +92,12 @@ class TeapotRequestError(Exception):
     """This request can't succeed regardless of teapot's health: the URL isn't
     configured, an attachment is missing from objectstore, or teapot rejected the
     request (4xx). NOT an outage — the caller skips without tripping the breaker."""
+
+
+class _RetryableTeapotError(TeapotUnavailable):
+    """Internal marker for a transient failure (network error or retryable 5xx).
+    The retry policy retries on it; once attempts are exhausted it surfaces to the
+    caller as its ``TeapotUnavailable`` base — an outage that trips the breaker."""
 
 
 def _resolve_url() -> str | None:
@@ -160,32 +159,14 @@ class TeapotClient:
         )
 
     def _send(self, url: str, headers: dict[str, str], data: bytes) -> dict[str, Any]:
-        last_exc: Exception | None = None
-        timeout = _timeout()
-        attempts = _max_attempts()
-        for attempt in range(attempts):
+        def attempt() -> dict[str, Any]:
             try:
-                resp = requests.post(url, data=data, headers=headers, timeout=timeout)
+                resp = requests.post(url, data=data, headers=headers, timeout=_timeout())
             except requests.RequestException as e:
-                last_exc = e
-                logger.info(
-                    "teapot.request_exception",
-                    extra={"attempt": attempt, "event_id": self.event_id, "error": str(e)},
-                )
-                _sleep_before_retry(attempt, attempts)
-                continue
+                raise _RetryableTeapotError(f"teapot request failed: {e}") from e
 
             if resp.status_code in RETRYABLE_STATUS:
-                logger.info(
-                    "teapot.retryable_status",
-                    extra={
-                        "attempt": attempt,
-                        "event_id": self.event_id,
-                        "status": resp.status_code,
-                    },
-                )
-                _sleep_before_retry(attempt, attempts)
-                continue
+                raise _RetryableTeapotError(f"teapot returned {resp.status_code}")
 
             if resp.status_code >= 400:
                 logger.warning(
@@ -197,7 +178,7 @@ class TeapotClient:
                     },
                 )
                 # A 4xx means teapot rejected this request but is itself healthy;
-                # only a 5xx (retryable ones already exhausted above) is an outage.
+                # only a 5xx (retryable ones are handled above) is an outage.
                 detail = f"teapot returned {resp.status_code}: {resp.text[:256]}"
                 if resp.status_code < 500:
                     raise TeapotRequestError(detail)
@@ -208,10 +189,18 @@ class TeapotClient:
             except ValueError as e:
                 raise TeapotUnavailable(f"teapot returned non-JSON body: {e}") from e
 
-        msg = "teapot exhausted retries"
-        if last_exc is not None:
-            raise TeapotUnavailable(msg) from last_exc
-        raise TeapotUnavailable(msg)
+        attempts = _max_attempts()
+
+        def should_retry(i: int, exc: Exception) -> bool:
+            return i < attempts and isinstance(exc, _RetryableTeapotError)
+
+        def backoff(i: int) -> float:
+            return min(RETRY_BACKOFF_SECONDS * 2 ** (i - 1), RETRY_BACKOFF_MAX_SECONDS)
+
+        try:
+            return ConditionalRetryPolicy(should_retry, backoff)(attempt)
+        except _RetryableTeapotError as e:
+            raise TeapotUnavailable("teapot exhausted retries") from e
 
 
 def submit_to_teapot(
