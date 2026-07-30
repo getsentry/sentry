@@ -138,7 +138,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return detector
 
     @classmethod
-    def get_all_project_detector_for_org(cls, organization_id: int) -> Detector:
+    def get_all_projects_detector_for_org(cls, organization_id: int) -> Detector:
         from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
         cache_key = get_all_projects_detector_cache_key(organization_id)

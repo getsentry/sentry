@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 class EventDetectors:
     issue_stream_detector: Detector | None = None
     event_detector: Detector | None = None
-    all_project_detector: Detector | None = None
+    all_projects_detector: Detector | None = None
 
     def __post_init__(self) -> None:
         if not self.has_detectors:
@@ -49,7 +49,7 @@ class EventDetectors:
         return (
             self.issue_stream_detector is not None
             or self.event_detector is not None
-            or self.all_project_detector is not None
+            or self.all_projects_detector is not None
         )
 
     @property
@@ -58,11 +58,8 @@ class EventDetectors:
         The preferred detector is the one that should be used for the event,
         if we need to use a singular detector (for example, in logging).
         The class will not initialize if no detectors are found.
-
-        The all_project_detector is deliberately excluded — it has no project,
-        so downstream code that calls detector.linked_project would break.
         """
-        detector = self.event_detector or self.issue_stream_detector
+        detector = self.event_detector or self.issue_stream_detector or self.all_projects_detector
         assert detector is not None, "At least one detector must exist"
         return detector
 
@@ -70,7 +67,7 @@ class EventDetectors:
     def detectors(self) -> set[Detector]:
         return {
             d
-            for d in [self.issue_stream_detector, self.event_detector, self.all_project_detector]
+            for d in [self.issue_stream_detector, self.event_detector, self.all_projects_detector]
             if d is not None
         }
 
@@ -114,7 +111,7 @@ def get_detectors_for_event_data(
     We expect a detector to be passed in for Activity updates.
     """
     issue_stream_detector: Detector | None = None
-    all_project_detector: Detector | None = None
+    all_projects_detector: Detector | None = None
 
     try:
         if _is_issue_stream_detector_enabled(event_data):
@@ -131,7 +128,7 @@ def get_detectors_for_event_data(
     organization = event_data.event.project.organization
     if features.has("organizations:workflow-engine-all-projects-detector", organization):
         try:
-            all_project_detector = Detector.get_all_project_detector_for_org(organization.id)
+            all_projects_detector = Detector.get_all_projects_detector_for_org(organization.id)
         except Detector.DoesNotExist:
             metrics.incr("workflow_engine.detectors.error", tags={"detector_type": "all_projects"})
             logger.exception(
@@ -145,7 +142,7 @@ def get_detectors_for_event_data(
         return EventDetectors(
             issue_stream_detector=issue_stream_detector,
             event_detector=detector,
-            all_project_detector=all_project_detector,
+            all_projects_detector=all_projects_detector,
         )
     except ValueError:
         return None
