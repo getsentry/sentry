@@ -2,11 +2,11 @@ export const AI_INSTRUMENTATION_DOCS_LINKS = {
   python:
     'https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/',
   javascript:
-    'https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module/',
+    'https://docs.sentry.io/platforms/javascript/guides/node/agent-tracing/',
 } as const;
 
 export const AI_AGENTS_GETTING_STARTED_DOCS_LINK =
-  'https://docs.sentry.io/product/insights/ai/agents/getting-started/';
+  'https://docs.sentry.io/product/agents/getting-started/';
 
 /**
  * Resolves the AI agents instrumentation docs link, which document how to

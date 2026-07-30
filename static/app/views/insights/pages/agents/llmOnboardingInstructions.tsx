@@ -55,6 +55,6 @@ export const LLM_ONBOARDING_COPY_MARKDOWN = `
 Read and follow https://docs.sentry.io/product/agents/getting-started.md to set up Sentry AI agent monitoring for this app.
 
 Platform-specific instrumentation:
-- JavaScript/Node: https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module.md
+- JavaScript/Node: https://docs.sentry.io/platforms/javascript/guides/node/agent-tracing.md
 - Python: https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module.md
 `;
