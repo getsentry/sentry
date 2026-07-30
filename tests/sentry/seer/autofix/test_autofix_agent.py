@@ -236,6 +236,8 @@ class TestBuildStepPrompt(TestCase):
         assert "app.views.handler" in prompt
         assert "ROOT CAUSE" in prompt
         assert "root_cause artifact" in prompt
+        assert '"needs_more_context"' in prompt
+        assert "include any useful non-code action" in prompt
 
     def test_solution_prompt_contains_issue_details(self) -> None:
         prompt = build_step_prompt(AutofixStep.SOLUTION, self.group)
@@ -1547,63 +1549,38 @@ class TestRootCauseArtifactSchema:
         "end": "2024-01-02T00:00:00Z",
     }
 
-    def test_parses_legacy_payload_without_new_fields(self) -> None:
+    def test_parses_without_analyzed_window(self) -> None:
         artifact = RootCauseArtifact.parse_obj(self._BASE_PAYLOAD)
 
-        assert artifact.classification is None
-        assert artifact.no_code_fix_reason is None
+        assert artifact.fixability.assessment == "fixable"
+        assert artifact.fixability.reason == "The cache implementation can be changed"
         assert artifact.analyzed_window is None
 
-    def test_code_fix_classification_does_not_require_reason(self) -> None:
-        artifact = RootCauseArtifact.parse_obj({**self._BASE_PAYLOAD, "classification": "code_fix"})
-
-        assert artifact.classification == "code_fix"
-
-    @pytest.mark.parametrize("classification", ["rca_only", "action_recommended"])
-    def test_non_code_fix_classification_with_reason_parses(self, classification: str) -> None:
+    def test_not_actionable_uses_fixability_reason(self) -> None:
         artifact = RootCauseArtifact.parse_obj(
             {
                 **self._BASE_PAYLOAD,
                 "fixability": {
                     "assessment": "not_actionable",
-                    "reason": "The cause is outside the application code",
+                    "reason": "Increase database capacity; no application code change applies",
                 },
-                "classification": classification,
-                "no_code_fix_reason": "Expected traffic increase from a marketing campaign",
             }
         )
 
-        assert artifact.classification == classification
-        assert artifact.no_code_fix_reason == "Expected traffic increase from a marketing campaign"
+        assert artifact.fixability.assessment == "not_actionable"
+        assert (
+            artifact.fixability.reason
+            == "Increase database capacity; no application code change applies"
+        )
 
-    @pytest.mark.parametrize("classification", ["rca_only", "action_recommended"])
-    @pytest.mark.parametrize("reason", [None, "", "   "])
-    def test_non_code_fix_classification_requires_reason(
-        self, classification: str, reason: str | None
-    ) -> None:
-        payload = {
-            **self._BASE_PAYLOAD,
-            "fixability": {
-                "assessment": "not_actionable",
-                "reason": "The cause is outside the application code",
-            },
-            "classification": classification,
-            "no_code_fix_reason": reason,
-        }
-
-        with pytest.raises(ValidationError):
-            RootCauseArtifact.parse_obj(payload)
-
-    def test_non_code_fix_classification_with_reason_key_absent_raises(self) -> None:
+    def test_fixability_reason_is_required(self) -> None:
         with pytest.raises(ValidationError):
             RootCauseArtifact.parse_obj(
                 {
                     **self._BASE_PAYLOAD,
                     "fixability": {
                         "assessment": "not_actionable",
-                        "reason": "The cause is outside the application code",
                     },
-                    "classification": "rca_only",
                 }
             )
 
@@ -1626,12 +1603,12 @@ class TestRootCauseArtifactSchema:
         with pytest.raises(ValidationError):
             RootCauseArtifact.parse_obj({**self._BASE_PAYLOAD, "analyzed_window": window})
 
-    def test_generated_schema_keeps_new_fields_optional(self) -> None:
+    def test_generated_schema_keeps_analyzed_window_optional(self) -> None:
         schema = RootCauseArtifact.schema()
 
-        assert {"classification", "no_code_fix_reason", "analyzed_window"} <= set(
-            schema["properties"]
-        )
+        assert "analyzed_window" in schema["properties"]
+        assert "classification" not in schema["properties"]
+        assert "no_code_fix_reason" not in schema["properties"]
         assert set(schema["required"]) == {
             "one_line_description",
             "five_whys",
@@ -1646,16 +1623,14 @@ class TestRootCauseArtifactSchema:
     def test_generated_schema_carries_llm_guidance(self) -> None:
         schema = RootCauseArtifact.schema()
 
-        assert schema["properties"]["classification"]["enum"] == [
-            "rca_only",
-            "action_recommended",
-            "code_fix",
+        fixability_properties = schema["definitions"]["FixabilityAssessment"]["properties"]
+        assert fixability_properties["assessment"]["enum"] == [
+            "fixable",
+            "needs_more_context",
+            "not_actionable",
         ]
-        classification_description = schema["properties"]["classification"]["description"]
-        assert "'code_fix'" in classification_description
-        assert "'action_recommended'" in classification_description
-        assert "'rca_only'" in classification_description
-        assert "not 'code_fix'" in schema["properties"]["no_code_fix_reason"]["description"]
+        assert "no code change applies" in fixability_properties["assessment"]["description"]
+        assert "non-code action" in fixability_properties["reason"]["description"]
         window_properties = schema["definitions"]["AnalyzedWindow"]["properties"]
         assert "ISO 8601" in window_properties["start"]["description"]
         assert "ISO 8601" in window_properties["end"]["description"]

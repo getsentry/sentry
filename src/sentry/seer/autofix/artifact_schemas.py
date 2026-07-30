@@ -1,8 +1,6 @@
-from typing import Any, Literal
+from typing import Literal
 
-from pydantic import BaseModel, Field, root_validator
-
-RootCauseClassification = Literal["rca_only", "action_recommended", "code_fix"]
+from pydantic import BaseModel, Field
 
 
 class AnalyzedWindow(BaseModel):
@@ -28,9 +26,18 @@ class SolutionStep(BaseModel):
 
 class FixabilityAssessment(BaseModel):
     assessment: Literal["fixable", "needs_more_context", "not_actionable"] = Field(
-        description="Whether the root cause is fixable through code changes"
+        description=(
+            "Whether the root cause is fixable through code changes: 'fixable' if code the "
+            "user owns can address it, 'needs_more_context' if more evidence is required, or "
+            "'not_actionable' if no code change applies."
+        )
     )
-    reason: str = Field(description="Brief explanation for the assessment")
+    reason: str = Field(
+        description=(
+            "Brief explanation for the assessment. For 'not_actionable', explain why no code "
+            "fix applies and include any useful non-code action."
+        )
+    )
 
 
 # Artifact schemas for each step
@@ -55,37 +62,10 @@ class RootCauseArtifact(BaseModel):
     fixability: FixabilityAssessment = Field(
         description="Assessment of whether this root cause is fixable through code changes"
     )
-    classification: RootCauseClassification | None = Field(
-        default=None,
-        description=(
-            "How the root cause should be acted on: 'code_fix' if it lies in code the user owns and is addressable with a code change, "
-            "'action_recommended' if a non-code action (e.g. config, infra, or third-party follow-up) would resolve it, "
-            "'rca_only' if an explanation is the outcome and no action is warranted."
-        ),
-    )
-    no_code_fix_reason: str | None = Field(
-        default=None,
-        description=(
-            "Justification for why the root cause is not solvable with a code change "
-            "(e.g. infra outage, expected traffic, isolated customer/workload, third-party regression, "
-            "config/data problem, noisy alert). Required whenever classification is not 'code_fix'."
-        ),
-    )
     analyzed_window: AnalyzedWindow | None = Field(
         default=None,
         description="The open period and time range that was investigated for this analysis",
     )
-
-    @root_validator
-    def _require_no_code_fix_reason(cls, values: dict[str, Any]) -> dict[str, Any]:
-        classification = values.get("classification")
-        if (
-            classification is not None
-            and classification != "code_fix"
-            and not (values.get("no_code_fix_reason") or "").strip()
-        ):
-            raise ValueError("no_code_fix_reason is required when classification is not 'code_fix'")
-        return values
 
 
 class SolutionArtifact(BaseModel):
