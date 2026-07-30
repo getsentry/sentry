@@ -46,6 +46,7 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -578,6 +579,14 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
                     borderless
                     steps={steps}
                     source="conversations_onboarding"
+                    onCopy={() => {
+                      trackAnalytics('onboarding.ai_prompt_copied', {
+                        organization,
+                        platform: project.platform ?? 'unknown',
+                        product: 'conversations',
+                        source: 'prompt',
+                      });
+                    }}
                   />
                 ) : undefined
               }
@@ -615,7 +624,7 @@ function UnsupportedPlatformOnboarding({
             }
           )}
         </Text>
-        <CopyLLMPromptButton />
+        <CopyLLMPromptButton platform={project.platform ?? 'unknown'} />
       </Prose>
     </ConversationOnboardingPanel>
   );
@@ -641,7 +650,7 @@ function NoDocsOnboarding({project}: {project: Project}) {
             }
           )}
         </Text>
-        <CopyLLMPromptButton />
+        <CopyLLMPromptButton platform={project.platform ?? 'unknown'} />
       </Prose>
     </ConversationOnboardingPanel>
   );
