@@ -197,19 +197,32 @@ const response = await chatModel.invoke(
   { callbacks: [callbackHandler] }
 );`,
   [AgentIntegration.LANGGRAPH]: `import * as Sentry from "@sentry/cloudflare";
-import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { ChatOpenAI } from "@langchain/openai";
+import { StateGraph, MessagesAnnotation, START, END } from "@langchain/langgraph";
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 
-const model = new ChatOpenAI({ modelName: "gpt-5.4" });
+const llm = new ChatOpenAI({ modelName: "gpt-5.4" });
 
-// Setting the agent name helps Sentry identify and group agent activity
-const agent = createReactAgent({ llm: model, tools: [], name: "joke_agent" });
+async function callLLM(state) {
+  const response = await llm.invoke(state.messages);
+  return { messages: [...state.messages, response] };
+}
 
-// Wrap the agent so its calls are captured as AI spans
+const agent = new StateGraph(MessagesAnnotation)
+  .addNode("agent", callLLM)
+  .addEdge(START, "agent")
+  .addEdge("agent", END);
+
+// Instrument the graph BEFORE compiling so its calls are captured as AI spans
 Sentry.instrumentLangGraph(agent);
 
-const result = await agent.invoke({
-  messages: [{ role: "user", content: "Tell me a joke" }],
+const graph = agent.compile({ name: "joke_agent" });
+
+const result = await graph.invoke({
+  messages: [
+    new SystemMessage("You are a helpful assistant."),
+    new HumanMessage("Tell me a joke"),
+  ],
 });`,
 };
 

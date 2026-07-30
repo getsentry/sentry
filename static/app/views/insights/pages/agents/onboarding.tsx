@@ -400,6 +400,9 @@ export function Onboarding() {
         </p>
       </DescriptionWrapper>
       <GuidedSteps
+        // Remount when the integration or runtime changes so the stepper doesn't
+        // carry over stale per-step state from the previous selection.
+        key={`${selectedPlatformOptions.integration}-${deploymentTarget}`}
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {
           navigate({
