@@ -136,7 +136,7 @@ describe('buildRoutes()', () => {
         routes,
         '/organizations/test-org/explore/nonexistent-page/also-nonexistent-page/'
       );
-      expect(matchedPaths).toContain(':catchAll/*');
+      expect(matchedPaths).toContain('*');
     });
   });
 

@@ -12,6 +12,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -25,6 +26,7 @@ from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
+from sentry.models.repository import Repository
 from sentry.utils.groupreference import find_referenced_groups
 
 if TYPE_CHECKING:
@@ -196,8 +198,6 @@ class PullRequestManager(BaseManager["PullRequest"]):
         rather than through an SCM installation (e.g. Seer-created and delegated-agent
         attribution).
         """
-        from sentry.models.repository import Repository
-
         normalized_provider = normalize_scm_provider(provider)
         provider_unmappable = (
             normalized_provider is not None and normalized_provider not in _KNOWN_SCM_PROVIDERS
@@ -219,6 +219,32 @@ class PullRequestManager(BaseManager["PullRequest"]):
             key=str(key),
         )
         return ResolvedPullRequest(pull_request, "resolved", provider_unmappable)
+
+    def for_provider_pr(
+        self, *, external_id: str, integration_id: int, key: int | str
+    ) -> list[PullRequest]:
+        """Every ``PullRequest`` row for one provider-side PR, across all orgs
+        sharing the repository.
+
+        A repo connected to N orgs via one shared installation has one ``Repository``
+        per org, all with the same ``integration_id`` and ``external_id``, so one
+        provider PR fans out to one row per org. Returns them all so callers treat the
+        provider PR as the unit, not the per-org row.
+
+        Keyed on ``integration_id`` (the shared installation) rather than provider, so
+        a numeric ``external_id`` reused across provider hosts — e.g. two GitHub
+        Enterprise instances — doesn't over-match. Filters repos like the SCM webhook
+        (all but ``HIDDEN``), so the set is the rows that can emit and includes the
+        caller's own PR. Cell-local. ``[]`` when no repo matches.
+        """
+        repo_ids = list(
+            Repository.objects.exclude(status=ObjectStatus.HIDDEN)
+            .filter(external_id=external_id, integration_id=integration_id)
+            .values_list("id", flat=True)
+        )
+        if not repo_ids:
+            return []
+        return list(self.filter(repository_id__in=repo_ids, key=str(key)))
 
 
 @cell_silo_model
@@ -267,7 +293,6 @@ class PullRequest(Model):
         return find_referenced_groups(text, self.organization_id)
 
     def get_external_url(self) -> str | None:
-        from sentry.models.repository import Repository
         from sentry.plugins.base import bindings
 
         repository = Repository.objects.get(id=self.repository_id)

@@ -111,6 +111,7 @@ describe('Dashboards - DashboardTable', () => {
         organization={organization}
         dashboards={[]}
         location={location}
+        isOnlyPrebuilt={false}
       />
     );
 
@@ -127,6 +128,7 @@ describe('Dashboards - DashboardTable', () => {
         organization={organization}
         dashboards={dashboards}
         location={location}
+        isOnlyPrebuilt={false}
       />
     );
 
@@ -141,6 +143,7 @@ describe('Dashboards - DashboardTable', () => {
         organization={organization}
         dashboards={dashboards}
         location={location}
+        isOnlyPrebuilt={false}
       />
     );
 
@@ -164,6 +167,7 @@ describe('Dashboards - DashboardTable', () => {
           ...LocationFixture(),
           query: {sort: 'title', query: 'agent', statsPeriod: '7d'},
         }}
+        isOnlyPrebuilt={false}
       />
     );
 
@@ -180,6 +184,7 @@ describe('Dashboards - DashboardTable', () => {
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
+        isOnlyPrebuilt={false}
       />
     );
     renderGlobalModal();
@@ -205,6 +210,7 @@ describe('Dashboards - DashboardTable', () => {
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
+        isOnlyPrebuilt={false}
       />
     );
     renderGlobalModal();
@@ -236,6 +242,7 @@ describe('Dashboards - DashboardTable', () => {
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
+        isOnlyPrebuilt={false}
       />
     );
     renderGlobalModal();
@@ -266,6 +273,7 @@ describe('Dashboards - DashboardTable', () => {
         organization={organizationWithEditAccess}
         dashboards={dashboards}
         location={location}
+        isOnlyPrebuilt={false}
       />
     );
 
@@ -292,6 +300,7 @@ describe('Dashboards - DashboardTable', () => {
         organization={organizationWithFavorite}
         dashboards={dashboards}
         location={location}
+        isOnlyPrebuilt={false}
       />,
       {
         organization: organizationWithFavorite,
@@ -304,5 +313,105 @@ describe('Dashboards - DashboardTable', () => {
 
     await userEvent.click(screen.queryAllByLabelText('Star')[0]!);
     expect(screen.queryAllByLabelText('Unstar')).toHaveLength(2);
+  });
+
+  describe('with dashboards-user-last-visited feature flag', () => {
+    const organizationWithLastVisited = OrganizationFixture({
+      features: [
+        'dashboards-basic',
+        'dashboards-edit',
+        'discover-query',
+        'dashboards-user-last-visited',
+      ],
+    });
+
+    let lastVisitedDashboards: DashboardListItem[];
+
+    beforeEach(() => {
+      lastVisitedDashboards = [
+        DashboardListItemFixture({
+          id: '1',
+          title: 'Dashboard With Description',
+          description: 'Some accurate description about this dashboard.',
+          lastVisited: '2021-04-19T13:13:23.962105Z',
+          createdBy: UserFixture({id: '1'}),
+        }),
+        DashboardListItemFixture({
+          id: '2',
+          title: 'Dashboard Without Description',
+          createdBy: UserFixture({id: '1'}),
+        }),
+      ];
+    });
+
+    it('renders all columns in the default view', async () => {
+      render(
+        <DashboardTable
+          onDashboardsChange={jest.fn()}
+          organization={organizationWithLastVisited}
+          dashboards={lastVisitedDashboards}
+          location={location}
+          isOnlyPrebuilt={false}
+        />,
+        {organization: organizationWithLastVisited}
+      );
+
+      const headers = await screen.findAllByTestId('grid-head-cell');
+      expect(headers).toHaveLength(6);
+      expect(headers[0]).toHaveTextContent('Name');
+      expect(headers[1]).toHaveTextContent('Widgets');
+      expect(headers[2]).toHaveTextContent('Owner');
+      expect(headers[3]).toHaveTextContent('Access');
+      expect(headers[4]).toHaveTextContent('Created');
+      expect(headers[5]).toHaveTextContent('Last Visited');
+      // Description is only shown in the Sentry Built view
+      expect(screen.queryByText('Description')).not.toBeInTheDocument();
+
+      expect(screen.getAllByTestId('dashboard-delete')).toHaveLength(
+        lastVisitedDashboards.length
+      );
+    });
+
+    it('renders Sentry Built columns with Description instead of Owner/Created', async () => {
+      render(
+        <DashboardTable
+          onDashboardsChange={jest.fn()}
+          organization={organizationWithLastVisited}
+          dashboards={lastVisitedDashboards}
+          location={location}
+          isOnlyPrebuilt
+        />,
+        {organization: organizationWithLastVisited}
+      );
+
+      const headers = await screen.findAllByTestId('grid-head-cell');
+      expect(headers).toHaveLength(4);
+      expect(headers[0]).toHaveTextContent('Name');
+      expect(headers[1]).toHaveTextContent('Description');
+      expect(headers[2]).toHaveTextContent('Widgets');
+      expect(headers[3]).toHaveTextContent('Last Visited');
+
+      // Owner, Created, and Access are omitted from the Sentry Built view
+      expect(screen.queryByText('Owner')).not.toBeInTheDocument();
+      expect(screen.queryByText('Created')).not.toBeInTheDocument();
+      expect(screen.queryByText('Access')).not.toBeInTheDocument();
+    });
+
+    it('renders the description column', async () => {
+      render(
+        <DashboardTable
+          onDashboardsChange={jest.fn()}
+          organization={organizationWithLastVisited}
+          dashboards={lastVisitedDashboards}
+          location={location}
+          isOnlyPrebuilt
+        />,
+        {organization: organizationWithLastVisited}
+      );
+
+      expect(
+        await screen.findByText('Some accurate description about this dashboard.')
+      ).toBeInTheDocument();
+    });
   });
 });
