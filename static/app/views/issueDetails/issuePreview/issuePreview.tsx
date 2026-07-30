@@ -242,7 +242,6 @@ function IssuePreviewContent() {
                       <ActivitySection
                         group={group}
                         variant="standalone"
-                        size="md"
                         placeholder={t(
                           'Add a comment. Tag users with @, or teams with #'
                         )}

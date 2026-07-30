@@ -5,8 +5,7 @@ import {GroupActivityType, type Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {ActivityFeedItem} from './activityFeedItem';
-import {ActivityLineBody} from './body';
-import {getCompactGroupActivityItem} from './compactActivityItem';
+import {getActivityItem} from './activityItem';
 import {ActivityLineHeadline, ActivityLineRow} from './layout';
 import {ActivityLineMarker} from './progressMarker';
 
@@ -23,7 +22,7 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
   const {activity} = item;
   const compactItem = useMemo(
     () =>
-      getCompactGroupActivityItem({
+      getActivityItem({
         item,
         organization,
         project,
@@ -51,7 +50,6 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
         details={compactItem.details}
         timestamp={timestamp}
       />
-      <ActivityLineBody subtext={compactItem.subtext} />
     </ActivityLineRow>
   );
 }
