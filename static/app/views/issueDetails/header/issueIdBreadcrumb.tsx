@@ -66,6 +66,7 @@ export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProp
         text: group.shortId,
         label: t('Copy Issue Short-ID'),
         tooltip: t('Copy Issue Short-ID'),
+        icon: <IconCopyId variant="muted" />,
         onCopy: handleCopyShortId,
       },
       group.isPublic && shareUrl
