@@ -11,6 +11,7 @@ from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
+from sentry import options
 from sentry.replays.consumers.recording import commit_message, process_message
 from sentry.replays.lib.kafka import PROCESS_REPLAY_RECORDING_TASK_NAME, publish_replay_event
 from sentry.replays.lib.storage import (
@@ -194,9 +195,6 @@ def _delete_if_exists(filename: str) -> None:
         pass
 
 
-CHUNK_SIZE_DAYS = 7
-
-
 @instrumented_task(
     name="sentry.replays.tasks.run_bulk_replay_delete_job",
     namespace=replays_long_tasks,
@@ -223,6 +221,7 @@ def run_bulk_replay_delete_job(
     in the model. Restarting the task will use the offset passed by the caller. If you want to
     restart the task from the previous checkpoint you must pass the checkpoint explicitly.
     """
+    chunk_size_days = options.get("replay.bulk_delete_job.chunk_size_days") or 7
     job = ReplayDeletionJobModel.objects.get(id=replay_delete_job_id)
 
     # If this is the first run of the task we set the model to in-progress.
@@ -237,7 +236,7 @@ def run_bulk_replay_delete_job(
     # Derive the current window boundaries from the immutable job range and the cursor.
     # Chunking into 7-day windows avoids full table scans in ClickHouse.
     window_start = job.range_start + timedelta(days=window_offset_days)
-    window_end = min(window_start + timedelta(days=CHUNK_SIZE_DAYS), job.range_end)
+    window_end = min(window_start + timedelta(days=chunk_size_days), job.range_end)
 
     try:
         # Delete the replays within a limited range. If more replays exist an incremented offset value
@@ -307,7 +306,7 @@ def run_bulk_replay_delete_job(
             limit=limit,
             has_seer_data=has_seer_data,
             total_deleted=new_total,
-            window_offset_days=window_offset_days + CHUNK_SIZE_DAYS,
+            window_offset_days=window_offset_days + chunk_size_days,
         )
         return None
 
