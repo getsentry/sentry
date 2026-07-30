@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import contextlib
 from collections.abc import Iterator
-from datetime import timedelta
 from typing import Any
 from unittest import mock
 
@@ -102,18 +101,13 @@ def _skip_retry_backoff() -> Iterator[None]:
 
 @pytest.fixture(autouse=True)
 def mock_objectstore() -> Iterator[mock.Mock]:
-    session = mock.Mock()
-    session.object_url.side_effect = (
-        lambda key, token_validity=None: f"http://objectstore/{key}?sig=abc"
-    )
+    # teapot presigns each attachment via objectstore.get_internal_download_url.
+    get_url = mock.Mock(side_effect=lambda _session, key: f"http://objectstore/{key}?sig=abc")
     with (
-        mock.patch("sentry.lang.native.teapot.get_attachments_session", return_value=session),
-        mock.patch(
-            "sentry.lang.native.teapot.maybe_rewrite_url_for_symbolicator",
-            side_effect=lambda url: url,
-        ),
+        mock.patch("sentry.lang.native.teapot.get_attachments_session", return_value=mock.Mock()),
+        mock.patch("sentry.lang.native.teapot.get_internal_download_url", get_url),
     ):
-        yield session
+        yield get_url
 
 
 def _relay_gpu_event() -> dict[str, Any]:
@@ -289,11 +283,13 @@ def test_client_sends_presigned_urls(mock_objectstore: mock.Mock) -> None:
     assert shader["uid"] == "cafebabecafebabecafebabecafebabe"  # recovered from filename
     assert shader["storage_url"] == "http://objectstore/nvdbg-obj-id?sig=abc"
 
-    # Both attachments (dump + shader) get a short-lived presigned URL (embedded
-    # read-only token); the keys are covered by the storage_url asserts above.
-    assert mock_objectstore.object_url.call_count == 2
-    for call in mock_objectstore.object_url.call_args_list:
-        assert call.kwargs["token_validity"] == timedelta(seconds=60)
+    # Both attachments (dump + shader) are presigned via the shared internal
+    # objectstore helper, keyed by their stored_id.
+    assert mock_objectstore.call_count == 2
+    assert {call.args[1] for call in mock_objectstore.call_args_list} == {
+        "dump-obj-id",
+        "nvdbg-obj-id",
+    }
 
 
 @pytest.mark.parametrize(
