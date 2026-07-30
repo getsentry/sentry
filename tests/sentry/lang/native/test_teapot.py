@@ -158,6 +158,13 @@ def test_apply_gpu_crash_symbolication_shape() -> None:
     assert data["contexts"]["gpu_crash"]["fault_category"] == "shader_hang"
     assert tags["gpu.fault_category"] == "shader_hang"
     assert tags["gpu.shader_hash"] == "abc123"
+    # Standard gpu context uses the schema's `api_type` field, not `api`.
+    assert data["contexts"]["gpu"] == {
+        "name": "RTX 4090",
+        "vendor_name": "NVIDIA",
+        "driver_version": "555.1",
+        "api_type": "D3D12",
+    }
 
 
 def test_apply_fingerprint_fallback() -> None:
@@ -204,6 +211,22 @@ def test_apply_fills_os_from_gpu_state_as_raw_description() -> None:
         data, _completed_response(gpu_state={"os_version": "Windows 10 (19H1)"})
     )
     assert data["contexts"]["os"] == {"raw_description": "Windows 10 (19H1)", "type": "os"}
+
+
+def test_apply_merges_gpu_context_preserving_sdk_fields() -> None:
+    """teapot overlays its crash-dump fields onto an SDK-provided gpu context
+    without wiping SDK-only fields (memory_size, vendor_id)."""
+    data = _relay_gpu_event()
+    data["contexts"] = {"gpu": {"memory_size": 8192, "vendor_id": "0x10de", "name": "old"}}
+    apply_gpu_crash_symbolication(
+        data,
+        _completed_response(gpu_state={"device_name": "RTX 4090", "api": "Vulkan"}),
+    )
+    gpu = data["contexts"]["gpu"]
+    assert gpu["memory_size"] == 8192  # SDK-only field survives
+    assert gpu["vendor_id"] == "0x10de"  # SDK-only field survives
+    assert gpu["name"] == "RTX 4090"  # teapot's crash-dump value wins
+    assert gpu["api_type"] == "Vulkan"
 
 
 def test_apply_appends_markers_to_existing_breadcrumbs() -> None:
