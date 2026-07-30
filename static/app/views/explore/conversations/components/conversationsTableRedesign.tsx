@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -21,7 +22,7 @@ import {
 import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconFire, IconUser} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {markdownToPlainText} from 'sentry/utils/marked/marked';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
@@ -31,15 +32,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
-import {
-  CELL_MAX_CHARS,
-  getUserDisplayName,
-  UserNotInstrumentedTooltip,
-} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
   useConversations,
   type Conversation,
+  type ConversationUser,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
@@ -92,6 +89,41 @@ const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
 };
 
 const RIGHT_ALIGNED_COLUMNS = new Set<ColumnKey>(['age']);
+
+// Plain-text title/first-message is ellipsized to this length before rendering.
+const CELL_MAX_CHARS = 256;
+
+export function normalizeUserField(value: string | null | undefined): string | null {
+  if (!value || value.toLowerCase() === 'none') {
+    return null;
+  }
+  return value;
+}
+
+export function getUserDisplayName(user: ConversationUser): string | null {
+  return (
+    normalizeUserField(user.email) ||
+    normalizeUserField(user.username) ||
+    normalizeUserField(user.ip_address) ||
+    null
+  );
+}
+
+export function UserNotInstrumentedTooltip() {
+  return (
+    <Text>
+      {tct(
+        'User data not found. Call [code:sentry.setUser()] in your SDK to track users. [link:Learn more]',
+        {
+          code: <code />,
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/configuration/apis/#setUser" />
+          ),
+        }
+      )}
+    </Text>
+  );
+}
 
 export function ConversationsTableRedesign() {
   const organization = useOrganization();
