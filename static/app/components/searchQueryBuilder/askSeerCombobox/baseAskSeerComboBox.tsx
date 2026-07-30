@@ -96,12 +96,14 @@ export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> extends Om
   queries: T[];
   searchQuery: string;
   submitQuery: (query: string) => void;
+  className?: string;
   onReset?: () => void;
   unsupportedReason?: string | null;
 }
 
 export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   applySeerSearchQuery,
+  className,
   emptyTitle,
   errorTitle,
   isError,
@@ -440,7 +442,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
     : Boolean(openForm);
 
   return (
-    <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
+    <Wrapper className={className} ref={containerRef} isDropdownOpen={state.isOpen}>
       <PositionedSearchIconContainer>
         <SearchIcon size="sm" />
       </PositionedSearchIconContainer>

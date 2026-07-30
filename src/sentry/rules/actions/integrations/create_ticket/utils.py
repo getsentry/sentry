@@ -16,6 +16,8 @@ from sentry.integrations.project_management.metrics import (
 )
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
+from sentry.issues.action_log.publish import publish_action
+from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, CreateExternalIssueAction
 from sentry.models.activity import Activity
 from sentry.models.grouplink import GroupLink
 from sentry.notifications.utils.links import create_link_to_workflow
@@ -84,6 +86,17 @@ def create_link(
             "label": installation.get_issue_display_name(external_issue) or external_issue.key,
             "new": True,
         },
+    )
+    # This runs from a rule/workflow firing, so there is no request user to attribute.
+    publish_action(
+        CreateExternalIssueAction(
+            provider=integration.provider,
+            external_issue_key=external_issue.key,
+        ),
+        source=ActionSource.SYSTEM,
+        group_id=event.group.id,
+        project=event.group.project,
+        actor=SYSTEM_ACTOR,
     )
 
 
