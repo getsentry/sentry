@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import {useQueryClient, type Query} from '@tanstack/react-query';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -10,10 +9,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  updateDashboardFavorite,
-  updateDashboardPermissions,
-} from 'sentry/actionCreators/dashboards';
+import {updateDashboardPermissions} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
@@ -29,9 +25,6 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {withApi} from 'sentry/utils/withApi';
@@ -39,7 +32,7 @@ import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWr
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
-import {reorderFavoriteDashboards} from 'sentry/views/dashboards/manage/utils/reorderFavoriteDashboards';
+import {useToggleDashboardFavorite} from 'sentry/views/dashboards/hooks/useToggleDashboardFavorite';
 import type {
   DashboardDetails,
   DashboardListItem,
@@ -75,29 +68,12 @@ const SortKeys = {
 };
 
 type FavoriteButtonProps = {
-  api: Client;
-  dashboardId: string;
+  dashboard: DashboardListItem;
   isFavorited: boolean;
-  onDashboardsChange: () => void;
-  organization: Organization;
 };
 
-function FavoriteButton({
-  isFavorited,
-  api,
-  organization,
-  dashboardId,
-  onDashboardsChange,
-}: FavoriteButtonProps) {
-  const queryClient = useQueryClient();
-
-  const listFilter = {
-    queryKey: [dashboardsApiOptions(organization).queryKey[0]],
-    predicate: (query: Query) => {
-      const options = query.queryKey[1] as {query?: {pin?: string}} | undefined;
-      return options?.query?.pin === 'favorites';
-    },
-  };
+function FavoriteButton({isFavorited, dashboard}: FavoriteButtonProps) {
+  const toggleFavorite = useToggleDashboardFavorite();
 
   return (
     <Button
@@ -112,44 +88,7 @@ function FavoriteButton({
           size="sm"
         />
       }
-      onClick={async () => {
-        const shouldFavorite = !isFavorited;
-        await queryClient.cancelQueries(listFilter);
-        const snapshot = queryClient.getQueriesData(listFilter);
-        snapshot.forEach(([key, data]) => {
-          const response = data as ApiResponse<DashboardListItem[]> | undefined;
-          if (!response) {
-            return;
-          }
-          const options = key[1] as {query?: {sort?: string}} | undefined;
-          const json =
-            options?.query?.sort === 'recentlyViewed'
-              ? reorderFavoriteDashboards(response.json, dashboardId, shouldFavorite)
-              : response.json.map(dashboard =>
-                  dashboard.id === dashboardId
-                    ? {...dashboard, isFavorited: shouldFavorite}
-                    : dashboard
-                );
-          queryClient.setQueryData(key, {...response, json});
-        });
-        try {
-          await updateDashboardFavorite(
-            api,
-            queryClient,
-            organization,
-            dashboardId,
-            shouldFavorite
-          );
-          onDashboardsChange();
-          trackAnalytics('dashboards_manage.toggle_favorite', {
-            organization,
-            dashboard_id: dashboardId,
-            favorited: shouldFavorite,
-          });
-        } catch (error) {
-          snapshot.forEach(([key, data]) => queryClient.setQueryData(key, data));
-        }
-      }}
+      onClick={() => toggleFavorite({dashboard, shouldFavorite: !isFavorited})}
     />
   );
 }
@@ -313,10 +252,7 @@ function DashboardTable({
       return (
         <FavoriteButton
           isFavorited={dataRow[ResponseKeys.FAVORITE] ?? false}
-          api={api}
-          organization={organization}
-          dashboardId={dataRow.id}
-          onDashboardsChange={onDashboardsChange}
+          dashboard={dataRow}
           key={dataRow.id}
         />
       );
