@@ -2708,6 +2708,12 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
+  install_groups: {
+    desc: t('The install groups this build distribution belongs to'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
   snapshot_status: {
     desc: t('Status of the snapshot in the comparison pipeline'),
     kind: FieldKind.FIELD,

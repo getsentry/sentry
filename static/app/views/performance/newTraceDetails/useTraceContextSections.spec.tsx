@@ -91,6 +91,21 @@ describe('useTraceContextSections', () => {
     expect(result.current.hasTraceEvents).toBe(false);
   });
 
+  it('does not show trace events when metrics are the only available data', () => {
+    const {result} = renderHook(() =>
+      useTraceContextSections({
+        tree: makeTree(),
+        logs: undefined,
+        metrics: undefined,
+        metricsCount: 1,
+        meta: undefined,
+      })
+    );
+
+    expect(result.current.hasMetrics).toBe(true);
+    expect(result.current.hasTraceEvents).toBe(false);
+  });
+
   it('falls back to tree data for AI spans when EAP trace meta has no gen_ai span op count', () => {
     const {result} = renderHook(() =>
       useTraceContextSections({

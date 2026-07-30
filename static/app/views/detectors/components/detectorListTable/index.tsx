@@ -13,8 +13,8 @@ import {useQueryState} from 'nuqs';
 import NoAlertsImage from 'sentry-images/features/alerts-not-found.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
 
 import {
   GridLineLabels,
@@ -252,13 +252,11 @@ export function DetectorListTable({
         {isPending && <LoadingSkeletons />}
         {isSuccess && detectors.length === 0 && (
           <SimpleTable.Empty>
-            <StyledFlex gap="xl" direction="column" align="center">
-              <img src={NoAlertsImage} />
-              <Heading as="h3">{t('No monitors found.')}</Heading>
-              <Text align="center" variant="muted">
-                {t("Sorry, we couldn't find what you were looking for.")}
-              </Text>
-            </StyledFlex>
+            <EmptyState
+              title={t('No monitors found.')}
+              description={t("Sorry, we couldn't find what you were looking for.")}
+              illustration={<img src={NoAlertsImage} />}
+            />
           </SimpleTable.Empty>
         )}
         {hasVisualization && detectors.length > 0 && (
@@ -521,10 +519,6 @@ const PositionedGridLineOverlay = styled(GridLineOverlay)`
 
 const VisualizationHeaderContainer = styled(Container)`
   grid-column: -3 / -1;
-`;
-
-const StyledFlex = styled(Flex)`
-  padding: ${p => p.theme.size.xs};
 `;
 
 const VisualizationExpandButton = styled('div')`

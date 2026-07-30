@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from django.db import router, transaction
 from django.utils import timezone
+from pydantic import ValidationError
 from scm.manager import SourceCodeManager
 
 from sentry import analytics, features
@@ -21,6 +22,7 @@ from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import Artifact
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
+from sentry.seer.autofix.artifact_schemas import FixabilityAssessment, RootCauseArtifact
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     AutofixStep,
@@ -37,13 +39,6 @@ from sentry.seer.autofix.github_perms import (
     comment_on_out_of_date_github_permissions,
     get_out_of_date_github_permissions,
     repos_with_failed_tool_calls,
-)
-from sentry.seer.autofix.introspection import (
-    IntrospectionDecision,
-    introspect_code_changes,
-    introspect_iteration,
-    introspect_root_cause,
-    introspect_solution,
 )
 from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
@@ -634,47 +629,37 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
             reached_stopping_point = current_step == stopping_step
 
-        if features.has("organizations:seer-autofix-introspection", organization=organization):
-            decision = cls.run_introspection(
-                organization,
-                run_id,
-                state,
-                current_step,
-                group,
+        fixability = cls.determine_fixability(
+            organization,
+            state,
+            current_step,
+        )
+        if fixability is not None:
+            analytics.record(
+                AiAutofixIntrospectionEvent(
+                    organization_id=organization.id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    run_id=run_id,
+                    referrer=referrer.value,
+                    step=current_step.value,
+                    action=fixability.assessment.value,
+                    reached_stopping_point=reached_stopping_point,
+                )
             )
-            if decision is not None:
-                iteration_index = (
-                    get_latest_iteration_index(state)
-                    if current_step == AutofixStep.PR_ITERATION
-                    else None
-                )
-                analytics.record(
-                    AiAutofixIntrospectionEvent(
-                        organization_id=organization.id,
-                        project_id=group.project_id,
-                        group_id=group.id,
-                        run_id=run_id,
-                        referrer=referrer.value,
-                        step=current_step.value,
-                        action=decision.action.value,
-                        reached_stopping_point=reached_stopping_point,
-                        iteration_index=iteration_index,
-                    )
-                )
-                logger.info(
-                    "autofix.on_completion_hook.introspection",
-                    extra={
-                        "organization_id": organization.id,
-                        "project_id": group.project_id,
-                        "group_id": group.id,
-                        "referrer": referrer.value,
-                        "step": current_step.value,
-                        "action": decision.action.value,
-                        "reason": decision.reason,
-                        "reached_stopping_point": reached_stopping_point,
-                        "iteration_index": iteration_index,
-                    },
-                )
+            logger.info(
+                "autofix.on_completion_hook.introspection",
+                extra={
+                    "organization_id": organization.id,
+                    "project_id": group.project_id,
+                    "group_id": group.id,
+                    "referrer": referrer.value,
+                    "step": current_step.value,
+                    "action": fixability.assessment.value,
+                    "reason": fixability.reason,
+                    "reached_stopping_point": reached_stopping_point,
+                },
+            )
 
         # PR iteration runs against an existing PR rather than the automated
         # pipeline. Once the agent finishes iterating, push the new changes to
@@ -766,24 +751,25 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         )
 
     @classmethod
-    def run_introspection(
+    def determine_fixability(
         cls,
         organization: Organization,
-        run_id: int,
         state: SeerRunState,
         step: AutofixStep,
-        group: Group,
-    ) -> IntrospectionDecision | None:
-        # For now, this method just triggers the introspection
-        # but does not do anything with it just yet.
-        if step == AutofixStep.ROOT_CAUSE:
-            return introspect_root_cause(organization, run_id, state, group)
-        elif step == AutofixStep.SOLUTION:
-            return introspect_solution(organization, run_id, state, group)
-        elif step == AutofixStep.CODE_CHANGES:
-            return introspect_code_changes(organization, run_id, state, group)
-        elif step == AutofixStep.PR_ITERATION:
-            return introspect_iteration(organization, run_id, state, group)
+    ) -> FixabilityAssessment | None:
+        if step != AutofixStep.ROOT_CAUSE:
+            return None
+
+        try:
+            artifact = state.get_artifact("root_cause", RootCauseArtifact)
+        except ValidationError:
+            # The agent may produce artifacts that dont follow the schema
+            return None
+
+        if artifact is None:
+            return None
+
+        return artifact.fixability
 
     @classmethod
     def _iteration_terminal_errored_repos(cls, state: SeerRunState) -> list[str]:
