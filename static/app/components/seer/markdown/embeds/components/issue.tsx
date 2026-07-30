@@ -1,10 +1,15 @@
-import {useMemo} from 'react';
+import {lazy, useMemo} from 'react';
 
-import {GroupList} from 'sentry/components/issues/groupList';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconIssues} from 'sentry/icons';
+
+const LazyGroupList = lazy(async () => {
+  const {GroupList} = await import('sentry/components/issues/groupList');
+  return {default: GroupList};
+});
 
 const BLOCK_COLUMNS: GroupListColumn[] = [
   'graph',
@@ -20,7 +25,8 @@ function SingleIssueBlock({id}: {id: string}) {
   const queryParams = useMemo(() => ({query: `issue:${id}`, limit: '1'}), [id]);
 
   return (
-    <GroupList
+    <LazyLoad
+      LazyComponent={LazyGroupList}
       queryParams={queryParams}
       withChart
       withColumns={[]}
@@ -43,7 +49,8 @@ function MultiIssueBlock({ids}: {ids: string[]}) {
   );
 
   return (
-    <GroupList
+    <LazyLoad
+      LazyComponent={LazyGroupList}
       queryParams={queryParams}
       withChart
       withColumns={BLOCK_COLUMNS}
