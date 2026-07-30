@@ -880,6 +880,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/seer/code_review/                                              @getsentry/agent-interfaces-sentry-backend
 /src/sentry/releases/                                     @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/releases/                                   @getsentry/agent-interfaces-sentry-backend
+/src/sentry/pr_metrics/                                   @getsentry/agent-interfaces-sentry-backend
+/tests/sentry/pr_metrics/                                 @getsentry/agent-interfaces-sentry-backend
 
 ## SCM
 /src/sentry/scm/                                                        @getsentry/scm
