@@ -7,10 +7,15 @@ from sentry.testutils.cases import TestCase
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.defaults.detectors import (
     UnableToAcquireLockApiError,
+    ensure_default_all_projects_detector,
     ensure_default_detectors,
 )
 from sentry.workflow_engine.models import Detector
-from sentry.workflow_engine.types import ERROR_DETECTOR_NAME, ISSUE_STREAM_DETECTOR_NAME
+from sentry.workflow_engine.types import (
+    ALL_PROJECTS_DETECTOR_NAME,
+    ERROR_DETECTOR_NAME,
+    ISSUE_STREAM_DETECTOR_NAME,
+)
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
@@ -49,3 +54,65 @@ class TestEnsureDefaultDetectors(TestCase):
             with pytest.raises(UnableToAcquireLockApiError):
                 project = self.create_project()
                 ensure_default_detectors(project)
+
+    def test_ensure_default_detectors__creates_all_projects_detector_when_flag_on(self) -> None:
+        project = self.create_project()
+        with self.feature("organizations:workflow-engine-all-projects-detector"):
+            ensure_default_detectors(project)
+
+        all_projects = Detector.objects.filter(
+            type=IssueStreamGroupType.slug,
+            project__isnull=True,
+            config__organization_id=project.organization_id,
+        )
+        assert all_projects.count() == 1
+
+    def test_ensure_default_detectors__no_all_projects_detector_when_flag_off(self) -> None:
+        project = self.create_project()
+        ensure_default_detectors(project)
+
+        assert not Detector.objects.filter(
+            type=IssueStreamGroupType.slug,
+            project__isnull=True,
+        ).exists()
+
+
+class TestEnsureDefaultAllProjectsDetector(TestCase):
+    def test_creates_detector(self) -> None:
+        org = self.create_organization()
+        detector = ensure_default_all_projects_detector(org.id)
+
+        assert detector.type == IssueStreamGroupType.slug
+        assert detector.project is None
+        assert detector.config == {"organization_id": org.id}
+        assert detector.name == ALL_PROJECTS_DETECTOR_NAME
+        assert detector.enabled is True
+
+    def test_idempotent(self) -> None:
+        org = self.create_organization()
+        first = ensure_default_all_projects_detector(org.id)
+        second = ensure_default_all_projects_detector(org.id)
+        assert first.id == second.id
+        assert (
+            Detector.objects.filter(
+                type=IssueStreamGroupType.slug,
+                project__isnull=True,
+                config__organization_id=org.id,
+            ).count()
+            == 1
+        )
+
+    def test_separate_orgs(self) -> None:
+        org1 = self.create_organization()
+        org2 = self.create_organization()
+        d1 = ensure_default_all_projects_detector(org1.id)
+        d2 = ensure_default_all_projects_detector(org2.id)
+        assert d1.id != d2.id
+        assert d1.config["organization_id"] == org1.id
+        assert d2.config["organization_id"] == org2.id
+
+    def test_lock_failure(self) -> None:
+        with patch("sentry.workflow_engine.defaults.detectors.locks.get") as mock_lock:
+            mock_lock.return_value.blocking_acquire.side_effect = UnableToAcquireLock
+            with pytest.raises(UnableToAcquireLockApiError):
+                ensure_default_all_projects_detector(self.organization.id)

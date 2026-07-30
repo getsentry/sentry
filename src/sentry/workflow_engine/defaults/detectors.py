@@ -37,6 +37,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import (
+    ALL_PROJECTS_DETECTOR_NAME,
     ERROR_DETECTOR_NAME,
     ISSUE_STREAM_DETECTOR_NAME,
     DetectorPriorityLevel,
@@ -278,9 +279,62 @@ def ensure_performance_detectors(project: Project) -> dict[str, Detector]:
     return detectors
 
 
+def ensure_default_all_projects_detector(organization_id: int) -> Detector:
+    """
+    Ensure that an org-scoped all-project detector exists for the organization.
+    This detector has project=NULL and config={"organization_id": org_id}.
+    """
+    existing = (
+        Detector.objects.filter(
+            type=IssueStreamGroupType.slug,
+            project__isnull=True,
+            config__organization_id=organization_id,
+        )
+        .order_by("id")
+        .first()
+    )
+    if existing:
+        return existing
+
+    lock = locks.get(
+        f"workflow-engine-org-{IssueStreamGroupType.slug}-detector:{organization_id}",
+        duration=2,
+        name=f"workflow_engine_all_project_{IssueStreamGroupType.slug}_detector",
+    )
+    try:
+        with (
+            lock.blocking_acquire(initial_delay=0.1, timeout=3),
+            transaction.atomic(router.db_for_write(Detector)),
+        ):
+            existing = (
+                Detector.objects.filter(
+                    type=IssueStreamGroupType.slug,
+                    project__isnull=True,
+                    config__organization_id=organization_id,
+                )
+                .order_by("id")
+                .first()
+            )
+            if existing:
+                return existing
+
+            return Detector.objects.create(
+                type=IssueStreamGroupType.slug,
+                project=None,
+                config={"organization_id": organization_id},
+                name=ALL_PROJECTS_DETECTOR_NAME,
+                enabled=True,
+            )
+    except UnableToAcquireLock:
+        raise UnableToAcquireLockApiError
+
+
 def ensure_default_detectors(project: Project) -> dict[str, Detector]:
     detectors: dict[str, Detector] = {}
     detectors[ErrorGroupType.slug] = _ensure_detector(project, ErrorGroupType.slug)
     detectors[IssueStreamGroupType.slug] = _ensure_detector(project, IssueStreamGroupType.slug)
     detectors.update(ensure_performance_detectors(project))
+    organization = project.organization
+    if features.has("organizations:workflow-engine-all-projects-detector", organization):
+        ensure_default_all_projects_detector(organization_id=project.organization_id)
     return detectors
