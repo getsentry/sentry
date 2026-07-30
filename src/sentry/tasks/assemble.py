@@ -23,7 +23,6 @@ from sentry.debug_files.artifact_bundles import (
     index_artifact_bundles_for_release,
 )
 from sentry.debug_files.tasks import backfill_artifact_bundle_db_indexing
-from sentry.lang.native.sources import record_last_upload
 from sentry.models.artifactbundle import (
     NULL_STRING,
     ArtifactBundle,
@@ -33,19 +32,8 @@ from sentry.models.artifactbundle import (
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
 )
-from sentry.models.debugfile import (
-    BadDif,
-    create_dif_from_file,
-    create_objectstore_dif_from_id,
-    detect_single_dif_from_path,
-)
 from sentry.models.files.file import File
-from sentry.models.files.fileblob import FileBlob
-from sentry.models.files.utils import (
-    MAX_FILE_SIZE,
-    MAX_OBJECTSTORE_DEBUG_FILE_SIZE,
-    AssembleChecksumMismatch,
-)
+from sentry.models.files.utils import MAX_FILE_SIZE, MAX_OBJECTSTORE_DEBUG_FILE_SIZE
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -110,6 +98,8 @@ def assemble_file_blobs_to_temp(
     max_file_size: int = MAX_FILE_SIZE,
 ) -> TemporaryAssembleResult | None:
     """Verifies and assembles organization-owned FileBlobs into a temporary file, returning it plus metadata."""
+    from sentry.models.files.fileblob import FileBlob
+
     organization = (
         org_or_project.organization if isinstance(org_or_project, Project) else org_or_project
     )
@@ -187,6 +177,9 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
 
     Returns a tuple ``(File, TempFile)`` on success, or ``None`` on error.
     """
+    from sentry.models.files.fileblob import FileBlob
+    from sentry.models.files.utils import AssembleChecksumMismatch
+
     if isinstance(org_or_project, Project):
         organization = org_or_project.organization
     else:
@@ -332,6 +325,15 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
+    from sentry.lang.native.sources import record_last_upload
+    from sentry.models.debugfile import (
+        BadDif,
+        create_dif_from_file,
+        create_objectstore_dif_from_id,
+        detect_single_dif_from_path,
+    )
+    from sentry.models.project import Project
+
     sentry_sdk.set_tag("project", project_id)
     sentry_sdk.set_attribute("project", project_id)
 

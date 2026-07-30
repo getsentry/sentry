@@ -65,7 +65,6 @@ from sentry.roles import organization_roles
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
-    assemble_dif,
     get_assemble_status,
     set_assemble_status,
 )
@@ -651,6 +650,8 @@ def batch_assemble(project: Project, files: AssembleRequestPayload):
             "missingChunks": list(missing_chunks),
         }
         files_to_check.pop(checksum, None)
+
+    from sentry.tasks.assemble import assemble_dif
 
     # 6. Kickstart async assembling for all remaining chunks that have passed all checks.
     for checksum, file in files_to_check.items():
