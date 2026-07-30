@@ -25,6 +25,11 @@ from sentry.utils.env import in_test_environment
 __all__ = ["get_attachments_session", "get_debug_files_session", "parse_accept_encoding"]
 
 
+# Default validity of the token used for redirecting to Objectstore. This is a
+# short-lived token, as it is only used for a single request.
+REDIRECT_VALIDITY = timedelta(minutes=5)
+
+
 def default_attachment_retention() -> int:
     """
     Returns the default attachment retention in days, which is used if no
@@ -190,16 +195,13 @@ def maybe_rewrite_url_for_symbolicator(url: str) -> str:
     return urlunparse(updated)
 
 
-def get_symbolicator_url(session: Session, key: str) -> str:
-    """
-    Gets the URL that Symbolicator shall use to access the object at the given key in Objectstore.
-
-    The URL is only rewritten in dev/test mode. See `maybe_rewrite_url_for_symbolicator` for details.
-    """
-    return maybe_rewrite_url_for_symbolicator(session.object_url(key))
-
-
-def get_download_redirect_url(request: HttpRequest, session: Session, org: int, key: str) -> str:
+def get_download_redirect_url(
+    request: HttpRequest,
+    session: Session,
+    org: int,
+    key: str,
+    token_validity: timedelta | None = None,
+) -> str:
     """
     Returns the URL that `request` should be redirected to in order to download the object at `key`
     directly from Objectstore, bypassing Sentry.
@@ -210,7 +212,9 @@ def get_download_redirect_url(request: HttpRequest, session: Session, org: int, 
     from sentry.api.utils import generate_locality_url
     from sentry.auth import system
 
-    presigned_url = session.object_url(key, token_validity=timedelta(minutes=5))
+    if token_validity is None:
+        token_validity = REDIRECT_VALIDITY
+    presigned_url = session.object_url(key, token_validity=token_validity)
 
     if system.is_internal_ip(request):
         # Redirect to a URL pointing to the internal Objectstore ip/hostname.
