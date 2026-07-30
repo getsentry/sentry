@@ -22,6 +22,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
+  BasePlatformOptions,
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -52,7 +53,11 @@ import {LLM_ONBOARDING_COPY_MARKDOWN} from 'sentry/views/insights/pages/agents/l
 import {
   AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
+  CLOUDFLARE_AGENT_INTEGRATIONS,
   DENO_AGENT_INTEGRATIONS,
+  DEPLOYMENT_TARGET_ICONS,
+  DEPLOYMENT_TARGET_LABELS,
+  DeploymentTarget,
   NODE_AGENT_INTEGRATIONS,
   PHP_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
@@ -242,6 +247,42 @@ export function Onboarding() {
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
   const isDenoPlatform = project?.platform === 'deno';
   const isPhpPlatform = (project?.platform ?? '').startsWith('php');
+  // Node-based platforms can deploy their agents to either the Node runtime or
+  // Cloudflare Workers, so we let the user pick a target that tailors the setup.
+  const isNodePlatform = (project?.platform ?? '').startsWith('node');
+  // Cloudflare Workers projects are pinned to the Cloudflare (withSentry) setup.
+  // Cloudflare Pages bootstraps via `sentryPagesPlugin` instead, so it's left out
+  // of this selector for now and keeps its existing onboarding.
+  const isCloudflareWorkers = project?.platform === 'node-cloudflare-workers';
+  const isCloudflarePages = project?.platform === 'node-cloudflare-pages';
+  const showDeploymentTarget =
+    isNodePlatform && !isCloudflareWorkers && !isCloudflarePages;
+
+  const deploymentTargetOptions: BasePlatformOptions = showDeploymentTarget
+    ? {
+        deploymentTarget: {
+          label: t('Deployment'),
+          defaultValue: DeploymentTarget.NODE,
+          items: [DeploymentTarget.NODE, DeploymentTarget.CLOUDFLARE].map(target => ({
+            label: DEPLOYMENT_TARGET_LABELS[target],
+            value: target,
+            leadingItems: (
+              <PlatformIcon platform={DEPLOYMENT_TARGET_ICONS[target]} size={16} />
+            ),
+          })),
+        },
+      }
+    : {};
+
+  const selectedDeploymentTarget = useUrlPlatformOptions(deploymentTargetOptions)
+    .deploymentTarget as DeploymentTarget | undefined;
+  // Cloudflare Workers projects are pinned to the Cloudflare runtime; other Node
+  // projects follow the selector (defaulting to Node).
+  const deploymentTarget = isCloudflareWorkers
+    ? DeploymentTarget.CLOUDFLARE
+    : selectedDeploymentTarget;
+  const isCloudflareTarget =
+    isNodePlatform && deploymentTarget === DeploymentTarget.CLOUDFLARE;
 
   const integrations = isPythonPlatform
     ? PYTHON_AGENT_INTEGRATIONS
@@ -249,9 +290,11 @@ export function Onboarding() {
       ? DENO_AGENT_INTEGRATIONS
       : isPhpPlatform
         ? PHP_AGENT_INTEGRATIONS
-        : NODE_AGENT_INTEGRATIONS;
+        : isCloudflareTarget
+          ? CLOUDFLARE_AGENT_INTEGRATIONS
+          : NODE_AGENT_INTEGRATIONS;
 
-  const integrationOptions = {
+  const platformOptions: BasePlatformOptions = {
     integration: {
       label: t('Integration'),
       items: integrations.map(integration => ({
@@ -271,9 +314,10 @@ export function Onboarding() {
         ),
       })),
     },
+    ...deploymentTargetOptions,
   };
 
-  const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
+  const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -318,7 +362,7 @@ export function Onboarding() {
       isLoading: isLoadingRegistry,
       data: registryData,
     },
-    platformOptions: selectedPlatformOptions,
+    platformOptions: {...selectedPlatformOptions, deploymentTarget},
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     urlPrefix,
     isSelfHosted,
@@ -336,7 +380,10 @@ export function Onboarding() {
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
       <OptionsWrapper>
-        <PlatformOptionDropdown platformOptions={integrationOptions} />
+        <PlatformOptionDropdown
+          platformOptions={platformOptions}
+          connectors={{deploymentTarget: t('on')}}
+        />
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <DescriptionWrapper>
@@ -353,6 +400,9 @@ export function Onboarding() {
         </p>
       </DescriptionWrapper>
       <GuidedSteps
+        // Remount when the integration or runtime changes so the stepper doesn't
+        // carry over stale per-step state from the previous selection.
+        key={`${selectedPlatformOptions.integration}-${deploymentTarget}`}
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {
           navigate({

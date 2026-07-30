@@ -107,6 +107,14 @@
         border-right: none;
     }
 
+    .project-breakdown .graph td.axis {
+      height: 1px;
+      font-size: 0;
+      line-height: 0;
+      background-color: #DEE7EB;
+      border-right: none;
+    }
+
     .project-breakdown .graph .label {
       font-size: 10px;
       color: #000;
@@ -254,6 +262,9 @@
         {% endfor %}
       </tr>
       <tr>
+        <td class="axis" colspan="{{ trends.series|length }}" height="1" style="height: 1px; font-size: 0; line-height: 0; background-color: #C0BEC6; border-right: none;">&nbsp;</td>
+      </tr>
+      <tr>
         {% for timestamp, project_values in trends.series %}
           <td class="label" style="width: {% widthratio 1 trends.series|length 100 %}%">
             {{ timestamp|day_initial }}
@@ -291,6 +302,9 @@
             </table>
           </td>
         {% endfor %}
+      </tr>
+      <tr>
+        <td class="axis" colspan="{{ trends.series|length }}" height="1" style="height: 1px; font-size: 0; line-height: 0; background-color: #C0BEC6; border-right: none;">&nbsp;</td>
       </tr>
       <tr>
         {% for timestamp, project_values in trends.series %}

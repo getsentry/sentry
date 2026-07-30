@@ -96,12 +96,14 @@ export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> extends Om
   queries: T[];
   searchQuery: string;
   submitQuery: (query: string) => void;
+  className?: string;
   onReset?: () => void;
   unsupportedReason?: string | null;
 }
 
 export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   applySeerSearchQuery,
+  className,
   emptyTitle,
   errorTitle,
   isError,
@@ -434,8 +436,13 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
     return null;
   }
 
+  const showLeftFooterAction = hasAskSeerUxRework;
+  const showFooter = hasAskSeerUxRework
+    ? isDisplayingResults || isError
+    : Boolean(openForm);
+
   return (
-    <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
+    <Wrapper className={className} ref={containerRef} isDropdownOpen={state.isOpen}>
       <PositionedSearchIconContainer>
         <SearchIcon size="sm" />
       </PositionedSearchIconContainer>
@@ -480,7 +487,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
             loadingContent
           ) : isError ? (
             <Stack flex="1">
-              <AskSeerSearchHeader title={errorTitle} />
+              <AskSeerSearchHeader title={errorTitle} isError={hasAskSeerUxRework} />
             </Stack>
           ) : hasResults ? (
             <Stack flex="1" onMouseLeave={onMouseLeave}>
@@ -505,19 +512,19 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
               <AskSeerSearchHeader title={emptyTitle} />
             </Stack>
           )}
-          {(hasAskSeerUxRework ? isDisplayingResults : openForm) ? (
+          {showFooter ? (
             <Flex
-              justify={hasAskSeerUxRework ? 'between' : 'end'}
+              justify={showLeftFooterAction ? 'between' : 'end'}
               borderTop="primary"
               paddingTop="sm"
               paddingBottom="sm"
               paddingLeft="md"
               paddingRight="md"
-              background={hasAskSeerUxRework ? 'secondary' : 'primary'}
+              background={showLeftFooterAction ? 'secondary' : 'primary'}
               onMouseDown={e => e.preventDefault()}
             >
               <Flex gap="sm">
-                {hasAskSeerUxRework ? (
+                {showLeftFooterAction ? (
                   <Button
                     icon={<IconSync />}
                     size="zero"
@@ -538,16 +545,16 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
                       submitQuery(query);
                     }}
                   >
-                    {t('Generate again')}
+                    {isError ? t('Try again') : t('Generate again')}
                   </Button>
                 ) : null}
-                {hasAskSeerUxRework && displayAskSeerFeedback ? (
+                {showLeftFooterAction && displayAskSeerFeedback && isDisplayingResults ? (
                   <AskSeerFeedback />
                 ) : null}
               </Flex>
               {openForm ? (
                 <Button
-                  size={hasAskSeerUxRework ? 'zero' : 'xs'}
+                  size={showLeftFooterAction ? 'zero' : 'xs'}
                   icon={<IconMegaphone />}
                   onClick={() =>
                     openForm({

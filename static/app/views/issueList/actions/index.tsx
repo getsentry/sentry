@@ -6,7 +6,7 @@ import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-m
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex, Grid, useHasContainerQuery} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {bulkDelete, mergeGroups} from 'sentry/actionCreators/group';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -23,14 +23,11 @@ import {uniq} from 'sentry/utils/array/uniq';
 import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   useIssueSelectionActions,
   useIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import {useIsIssueListContainerNarrow} from 'sentry/views/issueList/utils';
-import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 import {ActionSet} from './actionSet';
 import {Headers} from './headers';
@@ -65,6 +62,7 @@ const animationProps: MotionNodeAnimationOptions = {
 
 function ActionsBarPriority({
   anySelected,
+  narrowViewport,
   displayReprocessingActions,
   pageSelected,
   queryCount,
@@ -80,7 +78,6 @@ function ActionsBarPriority({
   onSelectStatsPeriod,
   statsPeriod,
   selection,
-  isSavedSearchesOpen,
   withColumns,
 }: {
   allInQuerySelected: boolean;
@@ -89,8 +86,8 @@ function ActionsBarPriority({
   handleDelete: () => void;
   handleMerge: () => void;
   handleUpdate: (data: IssueUpdateData) => void;
-  isSavedSearchesOpen: boolean;
   multiSelected: boolean;
+  narrowViewport: boolean;
   onSelectStatsPeriod: (period: string) => void;
   pageSelected: boolean;
   query: string;
@@ -102,15 +99,6 @@ function ActionsBarPriority({
   toggleSelectAllVisible: () => void;
   withColumns?: GroupListColumn[];
 }) {
-  const theme = useTheme();
-  const hasContainerQuery = useHasContainerQuery();
-  const disableActionsInContainer = useIsIssueListContainerNarrow(isSavedSearchesOpen);
-  const disableActionsInViewport = useMedia(
-    `(width < ${isSavedSearchesOpen ? theme.container['5xl'] : theme.container['3xl']})`
-  );
-  const narrowViewport = hasContainerQuery
-    ? disableActionsInContainer
-    : disableActionsInViewport;
   const shouldDisplayActions = anySelected && !narrowViewport;
 
   return (
@@ -200,10 +188,8 @@ export function IssueListActions({
     const uniqProjects = uniq(projects);
     return uniqProjects.length === 1 ? uniqProjects[0] : undefined;
   }, [selectedIdsSet]);
-  const [isSavedSearchesOpen] = useSyncedLocalStorageState(
-    SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
-    false
-  );
+  const theme = useTheme();
+  const disableActions = useMedia(`(width < ${theme.breakpoints.md})`);
   const area = useAnalyticsArea();
   const numIssues = selectedIdsSet.size;
 
@@ -306,7 +292,7 @@ export function IssueListActions({
         handleUpdate={handleUpdate}
         toggleSelectAllVisible={toggleSelectAllVisible}
         multiSelected={multiSelected}
-        isSavedSearchesOpen={isSavedSearchesOpen}
+        narrowViewport={disableActions}
         selectedProjectSlug={selectedProjectSlug}
         anySelected={anySelected}
         onSelectStatsPeriod={onSelectStatsPeriod}

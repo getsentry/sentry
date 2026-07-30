@@ -33,6 +33,8 @@ import {
   LogsInfiniteTable,
 } from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {createErrorLogRow} from 'sentry/views/explore/logs/utils';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 jest.mock('@tanstack/react-virtual', () => {
   return {
@@ -751,6 +753,142 @@ describe('LogsInfiniteTable', () => {
       expect(pinnedRow).toHaveAttribute('data-row-hover-linked', 'true');
     });
     expect(tbodyRow).toHaveAttribute('data-row-hover-linked', 'true');
+  });
+
+  it('interleaves injected error rows and links them to the issue when clicked', async () => {
+    const traceError: TraceTree.TraceError = {
+      event_id: 'abc123def456',
+      issue: 'JAVASCRIPT-1',
+      issue_id: 42,
+      level: 'error',
+      message: 'Boom happened',
+      project_id: Number(project.id),
+      project_slug: project.slug,
+      span: 'span1',
+      title: 'TypeError: Boom happened',
+      // Newest timestamp so the merge places it at the top (rendered) row.
+      timestamp: new Date('2100-01-01T00:00:00Z').getTime() / 1000,
+    };
+
+    const {router} = renderWithProviders(
+      <LogsInfiniteTable
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        injectedErrorRows={[createErrorLogRow(traceError)]}
+      />
+    );
+
+    const errorRow = (await screen.findByText('TypeError: Boom happened')).closest(
+      '[data-test-id="log-table-row"]'
+    );
+    expect(errorRow).not.toBeNull();
+
+    await userEvent.click(errorRow!);
+
+    expect(router.location.pathname).toBe(
+      `/organizations/${organization.slug}/issues/42/events/abc123def456/`
+    );
+  });
+
+  it('renders injected error rows without the empty state when the logs query is empty', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}},
+      },
+    });
+
+    const traceError: TraceTree.TraceError = {
+      event_id: 'abc123def456',
+      issue: 'JAVASCRIPT-1',
+      issue_id: 42,
+      level: 'error',
+      message: 'Boom happened',
+      project_id: Number(project.id),
+      project_slug: project.slug,
+      span: 'span1',
+      title: 'TypeError: Boom happened',
+      timestamp: new Date('2100-01-01T00:00:00Z').getTime() / 1000,
+    };
+
+    renderWithProviders(
+      <LogsInfiniteTable
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        injectedErrorRows={[createErrorLogRow(traceError)]}
+      />
+    );
+
+    expect(await screen.findByText('TypeError: Boom happened')).toBeInTheDocument();
+    expect(screen.queryByText('No logs found')).not.toBeInTheDocument();
+  });
+
+  it('renders injected error rows when the logs query fails', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 500,
+    });
+
+    const traceError: TraceTree.TraceError = {
+      event_id: 'abc123def456',
+      issue: 'JAVASCRIPT-1',
+      issue_id: 42,
+      level: 'error',
+      message: 'Boom happened',
+      project_id: Number(project.id),
+      project_slug: project.slug,
+      span: 'span1',
+      title: 'TypeError: Boom happened',
+      timestamp: new Date('2100-01-01T00:00:00Z').getTime() / 1000,
+    };
+
+    renderWithProviders(
+      <LogsInfiniteTable
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        injectedErrorRows={[createErrorLogRow(traceError)]}
+      />
+    );
+
+    expect(await screen.findByText('TypeError: Boom happened')).toBeInTheDocument();
+  });
+
+  it('skips injected error rows when the table is not sorted by timestamp descending', async () => {
+    const traceError: TraceTree.TraceError = {
+      event_id: 'abc123def456',
+      issue: 'JAVASCRIPT-1',
+      issue_id: 42,
+      level: 'error',
+      message: 'Boom happened',
+      project_id: Number(project.id),
+      project_slug: project.slug,
+      span: 'span1',
+      title: 'TypeError: Boom happened',
+      timestamp: new Date('2100-01-01T00:00:00Z').getTime() / 1000,
+    };
+
+    renderWithProviders(
+      <LogsInfiniteTable
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        injectedErrorRows={[createErrorLogRow(traceError)]}
+      />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_FIELDS_KEY]: visibleColumnFields,
+              [LOGS_SORT_BYS_KEY]: '-severity',
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByText('test log body 1')).toBeInTheDocument();
+    expect(screen.queryByText('TypeError: Boom happened')).not.toBeInTheDocument();
   });
 
   it('cycles column sort: unsorted → desc → asc → reset to default timestamp desc', async () => {
