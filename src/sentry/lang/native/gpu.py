@@ -189,7 +189,10 @@ def _markers_to_breadcrumbs(markers: list[Any]) -> list[dict[str, Any]]:
         kind = m.get("kind") or "marker"
         label = m.get("label") or kind
         data = m.get("data")
-        msg = label if isinstance(data, (dict, list)) else f"{label}: {data}"
+        # Scalar data goes in the message; a dict/list (or none) leaves it label-only.
+        msg = (
+            f"{label}: {data}" if data is not None and not isinstance(data, (dict, list)) else label
+        )
         out.append(
             {
                 "category": f"gpu.{kind}",
