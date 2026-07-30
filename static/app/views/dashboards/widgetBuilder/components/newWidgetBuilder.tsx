@@ -32,10 +32,7 @@ import {
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
-import {
-  getWidgetConfigError,
-  hasUnresolvedTraceMetric,
-} from 'sentry/views/dashboards/utils/getWidgetConfigError';
+import {getWidgetConfigError} from 'sentry/views/dashboards/utils/getWidgetConfigError';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import {
   DEFAULT_WIDGET_DRAG_POSITIONING,
@@ -58,6 +55,7 @@ import {
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import {hasUnresolvedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/hasUnresolvedTraceMetric';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
