@@ -41,7 +41,7 @@ interface SeerAction {
 interface IssuePreviewSeerActionsProps {
   autofix: ExplorerAutofix;
   group: Group;
-  onOpenAutofix: () => void;
+  onContinueInSeer: () => void;
   disabled?: boolean;
 }
 
@@ -84,8 +84,7 @@ function getAutofixPrimaryAction(
     };
   }
 
-  // The run is paused waiting on the user
-  // For now open the autofix tab, but in the future open an explorer side panel
+  // The run is paused waiting on the user, so continue in the full Seer drawer.
   if (runState.status === 'awaiting_user_input') {
     return {
       ...AUTOFIX_ANALYTICS.view,
@@ -202,7 +201,7 @@ export function IssuePreviewSeerActions({
   autofix,
   disabled,
   group,
-  onOpenAutofix,
+  onContinueInSeer,
 }: IssuePreviewSeerActionsProps) {
   if (autofix.isLoading) {
     return <Placeholder width="120px" height="32px" />;
@@ -213,7 +212,7 @@ export function IssuePreviewSeerActions({
       autofix={autofix}
       disabled={disabled}
       group={group}
-      onOpenAutofix={onOpenAutofix}
+      onContinueInSeer={onContinueInSeer}
     />
   );
 }
@@ -222,7 +221,7 @@ function IssuePreviewSeerButton({
   autofix,
   disabled,
   group,
-  onOpenAutofix,
+  onContinueInSeer,
 }: IssuePreviewSeerActionsProps) {
   const [isStartingAction, setIsStartingAction] = useState(false);
   const action = getAutofixPrimaryAction(autofix.runState);
@@ -239,9 +238,8 @@ function IssuePreviewSeerButton({
   };
 
   const handleClick = async () => {
-    onOpenAutofix();
-
     if (action.kind === 'view_autofix') {
+      onContinueInSeer();
       return;
     }
 
