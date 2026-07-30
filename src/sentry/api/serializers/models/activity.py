@@ -59,10 +59,46 @@ PULL_REQUEST_ACTIVITY_TYPES = {
 }
 
 
+def _resolve_mentioned_users(item_list: list[Activity]) -> dict[int, list[dict[str, str]]]:
+    """The Sentry users each activity @mentions, as ``{"name", "email"}`` keyed by activity
+    id, resolved in one batch.
+
+    Mentions are stored as ``{"id", "actor_type"}`` refs; a team ref, or a row that embedded
+    a whole serialized user instead of a ref, is skipped.
+    """
+    user_ids_by_activity = {
+        item.id: [
+            mention["id"]
+            for mention in (item.data or {}).get("mentions") or []
+            if isinstance(mention, dict) and mention.get("actor_type") == "User"
+        ]
+        for item in item_list
+    }
+    all_user_ids = {user_id for ids in user_ids_by_activity.values() for user_id in ids}
+    if not all_user_ids:
+        return {}
+
+    users = {u.id: u for u in user_service.get_many_by_id(ids=list(all_user_ids))}
+    return {
+        activity_id: [
+            {"name": user.name, "email": user.email}
+            for user_id in user_ids
+            if (user := users.get(user_id))
+        ]
+        for activity_id, user_ids in user_ids_by_activity.items()
+    }
+
+
 @register(Activity)
 class ActivitySerializer(Serializer):
-    def __init__(self, environment_func=None):
+    def __init__(self, environment_func=None, resolve_mentions: bool = False):
+        """
+        Args:
+            environment_func: A function that returns the environment for the activity.
+            resolve_mentions: Whether to resolve the mentions to the users' ``{"name", "email"}``.
+        """
         self.environment_func = environment_func
+        self.resolve_mentions = resolve_mentions
 
     def get_attrs(self, item_list, user, **kwargs):
         from sentry.api.serializers.models.group import GroupSerializer
@@ -146,10 +182,13 @@ class ActivitySerializer(Serializer):
             ).items()
         }
 
+        mentions = _resolve_mentioned_users(item_list) if self.resolve_mentions else {}
+
         return {
             item: {
                 "user": users.get(str(item.user_id)) if item.user_id else None,
                 "sentry_app": sentry_apps.get(str(item.user_id)) if item.user_id else None,
+                "mentions": mentions.get(item.id) or [],
                 "source": (
                     groups.get(item.data["source_id"])
                     if item.type == ActivityType.UNMERGE_DESTINATION.value
@@ -182,12 +221,16 @@ class ActivitySerializer(Serializer):
         elif obj.type == ActivityType.UNMERGE_SOURCE.value:
             data = {"fingerprints": obj.data["fingerprints"], "destination": attrs["destination"]}
         else:
-            data = obj.data or {}
+            # Copied because the mention handling below rewrites the key: mutating
+            # obj.data risks persisting serialized users back onto the row.
+            data = dict(obj.data or {})
             # XXX: We had a problem where Users were embedded into the mentions
             # attribute of group notes which needs to be removed
             # While group_note update has been fixed there are still many skunky comments
             # in the database.
             data.pop("mentions", None)
+            if attrs["mentions"]:
+                data["mentions"] = attrs["mentions"]
 
         return {
             "id": str(obj.id),
