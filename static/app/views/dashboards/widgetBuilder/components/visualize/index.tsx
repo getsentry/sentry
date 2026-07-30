@@ -62,7 +62,10 @@ import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {MAX_METRICS_ALLOWED} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
+import {
+  parseConditionalAggregate,
+  withBaseConditionalAggregateField,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 
 export const NONE = 'none';
 
@@ -155,9 +158,15 @@ export function getColumnOptions(
   filterOutIncompatibleResults?: boolean
 ) {
   const fieldValues = Object.values(fieldOptions);
+  // Explore-style `_if` fields explode with names like `count_unique_if`. Use the
+  // base aggregate when looking up parameter metadata and filtering columns.
+  const fieldForColumnFiltering =
+    dataset === WidgetType.SPANS || dataset === WidgetType.LOGS
+      ? withBaseConditionalAggregateField(selectedField)
+      : selectedField;
 
   if (
-    selectedField.kind !== FieldValueKind.FUNCTION ||
+    fieldForColumnFiltering.kind !== FieldValueKind.FUNCTION ||
     dataset === WidgetType.SPANS ||
     dataset === WidgetType.LOGS
   ) {
@@ -165,11 +174,11 @@ export function getColumnOptions(
     // generic columns. Functions like performance_score and opportunity_score
     // define restricted dropdown options that must be respected.
     if (
-      selectedField.kind === FieldValueKind.FUNCTION &&
+      fieldForColumnFiltering.kind === FieldValueKind.FUNCTION &&
       (dataset === WidgetType.SPANS || dataset === WidgetType.LOGS)
     ) {
       const fnData = fieldValues.find(
-        option => option.value.meta.name === selectedField.function[0]
+        option => option.value.meta.name === fieldForColumnFiltering.function[0]
       )?.value;
       if (
         fnData?.kind === FieldValueKind.FUNCTION &&
@@ -179,13 +188,18 @@ export function getColumnOptions(
         return fnData.meta.parameters[0].options;
       }
     }
-    return formatColumnOptions(dataset, fieldValues, columnFilterMethod, selectedField)
+    return formatColumnOptions(
+      dataset,
+      fieldValues,
+      columnFilterMethod,
+      fieldForColumnFiltering
+    )
       .filter(option => (filterOutIncompatibleResults ? !option.disabled : true))
       .sort(_sortFn);
   }
 
   const fieldData = fieldValues.find(
-    option => option.value.meta.name === selectedField.function[0]
+    option => option.value.meta.name === fieldForColumnFiltering.function[0]
   )?.value;
 
   if (

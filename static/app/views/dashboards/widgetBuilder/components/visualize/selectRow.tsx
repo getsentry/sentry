@@ -210,10 +210,7 @@ export function SelectRow({
 
   const [lockOptions, columnOptions] = useMemo(() => {
     if (state.dataset === WidgetType.SPANS && field.kind === FieldValueKind.FUNCTION) {
-      if (
-        parsedFunction?.name === AggregationKey.COUNT ||
-        field.function[0] === AggregationKey.COUNT
-      ) {
+      if (parsedFunction?.name === AggregationKey.COUNT) {
         const options = [
           {
             label: t('spans'),
@@ -227,7 +224,10 @@ export function SelectRow({
       state.dataset === WidgetType.LOGS &&
       field.kind === FieldValueKind.FUNCTION
     ) {
-      if (field.function[0] === AggregationKey.COUNT) {
+      if (
+        parsedFunction?.name === AggregationKey.COUNT ||
+        field.function[0] === AggregationKey.COUNT
+      ) {
         const options = [
           {
             label: t('logs'),

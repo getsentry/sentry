@@ -3,6 +3,7 @@ import {
   buildConditionalAggregate,
   parseConditionalAggregate,
   supportsConditionalAggregateFilter,
+  withBaseConditionalAggregateField,
   withReadableConditionalFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
 
@@ -151,6 +152,28 @@ describe('conditionalAggregate', () => {
       expect(supportsConditionalAggregateFilter('opportunity_score')).toBe(false);
       expect(supportsConditionalAggregateFilter('apdex')).toBe(false);
       expect(supportsConditionalAggregateFilter('user_misery')).toBe(false);
+    });
+  });
+
+  describe('withBaseConditionalAggregateField', () => {
+    it('rewrites Explore-style _if function names to the base aggregate', () => {
+      expect(
+        withBaseConditionalAggregateField({
+          kind: 'function',
+          function: ['count_unique_if' as any, '`span.op:db`', 'span.op', undefined],
+        })
+      ).toEqual({
+        kind: 'function',
+        function: ['count_unique', 'span.op', undefined, undefined],
+      });
+    });
+
+    it('leaves Discover-style count_if unchanged', () => {
+      const field = {
+        kind: 'function' as const,
+        function: ['count_if' as any, 'transaction.duration', 'equals', '300'] as const,
+      };
+      expect(withBaseConditionalAggregateField(field as any)).toEqual(field);
     });
   });
 });

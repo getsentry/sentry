@@ -3,11 +3,17 @@ import {
   type TokenFunction,
 } from 'sentry/components/arithmeticBuilder/token';
 import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
-import {parseFunction, type ParsedFunction} from 'sentry/utils/discover/fields';
+import {
+  generateFieldAsString,
+  parseFunction,
+  type AggregationKeyWithAlias,
+  type ParsedFunction,
+  type QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import {AggregationKey, NO_ARGUMENT_SPAN_AGGREGATES} from 'sentry/utils/fields';
 import {prettifyQueryConditions} from 'sentry/views/dashboards/utils/prettifyQueryConditions';
 
-export const IF_SUFFIX = '_if';
+const IF_SUFFIX = '_if';
 
 export interface ConditionalAggregate extends ParsedFunction {
   /**
@@ -26,7 +32,7 @@ function isBacktickSearchFilter(value: string): boolean {
  * Only Explore-style search filters (backtick-wrapped first argument) are treated as
  * conditional. Discover-style forms like `count_if(column,equals,value)` are left as-is.
  */
-export function normalizeConditionalFunctionToken(token: TokenFunction): {
+function normalizeConditionalFunctionToken(token: TokenFunction): {
   filter: string;
   plainAggregate: string;
 } {
@@ -86,6 +92,35 @@ export function parseConditionalAggregate(yAxis: string): ConditionalAggregate |
     name: parsed.name.slice(0, -IF_SUFFIX.length),
     arguments: restArgs,
     filter: filterText.slice(1, -1),
+  };
+}
+
+/**
+ * Normalize an exploded QueryFieldValue so Explore-style `_if` names
+ * (e.g. `count_unique_if`) become the base aggregate for column filtering.
+ *
+ * Discover-style forms like `count_if(column,equals,value)` are left unchanged.
+ */
+export function withBaseConditionalAggregateField(
+  field: QueryFieldValue
+): QueryFieldValue {
+  if (field.kind !== 'function') {
+    return field;
+  }
+
+  const parsed = parseConditionalAggregate(generateFieldAsString(field));
+  if (!parsed || parsed.name === field.function[0]) {
+    return field;
+  }
+
+  return {
+    ...field,
+    function: [
+      parsed.name as AggregationKeyWithAlias,
+      parsed.arguments[0] ?? '',
+      parsed.arguments[1],
+      parsed.arguments[2],
+    ],
   };
 }
 
