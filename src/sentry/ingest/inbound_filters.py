@@ -499,7 +499,7 @@ def get_trace_metric_names_generic_filter(trace_metric_names: list[str]) -> Gene
     }
 
 
-CUSTOM_INBOUND_FILTER_ID_PREFIX = "custom-inbound-filter-"
+CUSTOM_INBOUND_FILTER_ID_PREFIX = "cif-"
 
 
 def _custom_error_message_condition(values: list[str]) -> RuleCondition:
