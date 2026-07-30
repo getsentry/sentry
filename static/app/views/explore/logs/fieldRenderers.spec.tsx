@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
@@ -6,6 +7,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
 import {TimezoneProvider} from 'sentry/components/timezoneProvider';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
@@ -40,12 +42,13 @@ describe('Logs Field Renderers', () => {
     },
     extra: {
       organization,
-      location: {} as any,
+      location: LocationFixture(),
       navigate: jest.fn(),
       theme: ThemeFixture(),
       attributeTypes: {},
       attributes,
       caseSensitiveHighlighting: false,
+      datetime: getDefaultPageFilterSelection().datetime,
       highlightTerms: [],
       logColors: {
         text: '#000',
@@ -186,8 +189,7 @@ describe('Logs Field Renderers', () => {
     const timestamp = '2024-01-15T14:30:45.123Z';
     const traceId = 'a'.repeat(32);
 
-    it('keeps the date selection when linking to the trace', () => {
-      expect(TraceIDRenderer).toBeDefined();
+    const renderTraceLink = (datetime: RendererExtra['datetime']) => {
       const props = makeRendererProps(timestamp, {
         [OurLogKnownFieldKey.TIMESTAMP]: timestamp,
       });
@@ -199,19 +201,43 @@ describe('Logs Field Renderers', () => {
           metaFieldType: 'string',
           unit: null,
         } as LogRowItem,
-        extra: {
-          ...props.extra,
-          location: LocationFixture({query: {statsPeriod: '7d'}}),
-        },
+        extra: {...props.extra, datetime},
         basicRendered: <span>{traceId}</span>,
       });
 
       render(<Fragment>{result}</Fragment>);
 
-      expect(screen.getByRole('link', {name: traceId})).toHaveAttribute(
-        'href',
-        expect.stringContaining('statsPeriod=7d')
+      return screen.getByRole('link', {name: traceId});
+    };
+
+    it('keeps the relative period when linking to the trace', () => {
+      const link = renderTraceLink({
+        period: '7d',
+        start: null,
+        end: null,
+        utc: null,
+      });
+
+      expect(link).toHaveAttribute('href', expect.stringContaining('statsPeriod=7d'));
+    });
+
+    it('keeps the absolute range when linking to the trace', () => {
+      const link = renderTraceLink({
+        period: null,
+        start: '2024-01-14T00:00:00.000',
+        end: '2024-01-16T00:00:00.000',
+        utc: true,
+      });
+
+      const href = link.getAttribute('href')!;
+      const query = qs.parse(href.split('?')[1]!);
+      expect(query).toEqual(
+        expect.objectContaining({
+          pageStart: '2024-01-14T00:00:00.000',
+          pageEnd: '2024-01-16T00:00:00.000',
+        })
       );
+      expect(query).not.toHaveProperty('statsPeriod');
     });
   });
 });

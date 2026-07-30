@@ -7,6 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
@@ -68,6 +69,7 @@ export function MetricDetails({
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const getActions = useMetricAttributesTreeActions();
   const project = useProjectFromId({
     project_id: String(dataRow[TraceMetricKnownFieldKey.PROJECT_ID] ?? ''),
@@ -156,6 +158,7 @@ export function MetricDetails({
                     attributes,
                     attributeTypes,
                     caseSensitiveHighlighting: false,
+                    datetime: selection.datetime,
                     highlightTerms: [],
                     logColors: getLogColors(SeverityLevel.INFO, theme),
                     location,

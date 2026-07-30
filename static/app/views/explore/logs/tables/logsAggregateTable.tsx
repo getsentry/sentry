@@ -7,6 +7,7 @@ import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStack} from 'sentry/icons/iconStack';
@@ -90,6 +91,7 @@ export function LogsAggregateTable({
   const theme = useTheme();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
 
   if (isRateLimitError(error)) {
     return (
@@ -185,6 +187,7 @@ export function LogsAggregateTable({
               attributes: row,
               attributeTypes: meta.fields,
               caseSensitiveHighlighting: false,
+              datetime: selection.datetime,
               highlightTerms: [],
               logColors: getLogColors(level, theme),
               location,

@@ -398,7 +398,7 @@ describe('logsTableRow', () => {
     const traceLink = screen.getByRole('link', {name: '7b91699f'});
     expect(traceLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/logs/trace/7b91699f/?logsSortBys=-timestamp&source=logs&timestamp=1743695410'
+      '/organizations/org-slug/explore/logs/trace/7b91699f/?logsSortBys=-timestamp&source=logs&statsPeriod=14d&timestamp=1743695410'
     );
 
     // The code file path should be rendered but not as a link until hover

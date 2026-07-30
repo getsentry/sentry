@@ -14,6 +14,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Version} from 'sentry/components/version';
 import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -74,6 +75,7 @@ export interface RendererExtra extends RenderFunctionBaggage {
   >;
   attributes: Record<string, string | number | boolean>;
   caseSensitiveHighlighting: boolean;
+  datetime: PageFilters['datetime'];
   highlightTerms: string[];
   logColors: ReturnType<typeof getLogColors>;
   align?: 'left' | 'center' | 'right';
@@ -416,7 +418,7 @@ function TraceIDRenderer(props: LogFieldRendererProps) {
         ? timestamp
         : undefined,
     organization: props.extra.organization,
-    dateSelection: normalizeDateTimeParams(props.extra.location.query),
+    dateSelection: normalizeDateTimeParams(props.extra.datetime),
     location,
     source: TraceViewSources.LOGS,
   });
