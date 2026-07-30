@@ -43,7 +43,7 @@ def record_prediction(run: SeerAgentRun, predicted_assignee_user_ids: list[int |
 def record_ground_truth(
     group: Group,
     activity_type: ActivityType,
-    activity: Activity | None = None,
+    activity: Activity,
 ) -> None:
     """Record who the issue actually belonged to, then score the prediction.
 
@@ -66,7 +66,7 @@ def record_ground_truth(
         )
 
 
-def resolver_user_id(activity: Activity | None) -> int | None:
+def resolver_user_id(activity: Activity) -> int | None:
     """The user a resolution can be credited to, or ``None`` when it names no one who
     could have owned the issue.
 
@@ -75,7 +75,7 @@ def resolver_user_id(activity: Activity | None) -> int | None:
     acts as the Sentry App's proxy user (``is_sentry_app``), which identifies the app
     rather than a person.
     """
-    if activity is None or activity.user_id is None:
+    if activity.user_id is None:
         return None
     user = user_service.get_user(user_id=activity.user_id)
     if user is None or user.is_sentry_app:
@@ -87,7 +87,7 @@ def _ground_truth_updates(
     run: SeerAgentRun,
     group: Group,
     activity_type: ActivityType,
-    activity: Activity | None,
+    activity: Activity,
 ) -> RunUpdates | None:
     """Build the ground-truth mirror updates for an activity, or ``None`` when it
     carries no useful signal.
