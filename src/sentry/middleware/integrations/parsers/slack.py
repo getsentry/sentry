@@ -368,6 +368,7 @@ class SlackRequestParser(BaseRequestParser):
                 "url_name": self.match.url_name,
                 "status_code": status_code,
                 "event_type": self.slack_request.type,
+                "slack_event_id": self.slack_request.data.get("event_id"),
                 "retry_num": self.request.META.get("HTTP_X_SLACK_RETRY_NUM"),
                 "retry_reason": self.request.META.get("HTTP_X_SLACK_RETRY_REASON"),
             },
