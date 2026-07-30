@@ -21,6 +21,7 @@ import {
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
+import type {MetricsRelativePeriod} from 'sentry/views/explore/metrics/hooks/metricPeriod';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {removeHiddenKeys} from 'sentry/views/explore/utils';
 import {
@@ -59,6 +60,7 @@ export type TraceItemAttributeConfig = {
   traceItemType: TraceItemDataset;
   projects?: Project[] | Array<string | number>;
   query?: string;
+  relativePeriod?: MetricsRelativePeriod;
   search?: string;
   staleTime?: number;
 };
@@ -77,6 +79,7 @@ function useTraceItemAttributeConfig({
   projects: rawProjects,
   search,
   query,
+  relativePeriod,
   staleTime,
 }: TraceItemAttributeConfig): TypedTraceItemAttributesResult {
   const {selection} = usePageFilters();
@@ -94,6 +97,7 @@ function useTraceItemAttributeConfig({
       projects,
       search,
       query,
+      relativePeriod,
       staleTime,
     }),
     enabled,

@@ -142,6 +142,32 @@ describe('useGetTraceItemAttributeValues', () => {
     expect(searchResults).toEqual([{value: 'search-result', count: 1234}]);
   });
 
+  it('uses the metrics relative period when provided', async () => {
+    const request = addAttributeValuesMock({
+      substringMatch: 'search-query',
+      body: [makeAttributeValue('search-result')],
+      query: {
+        statsPeriodStart: '14d',
+        statsPeriodEnd: '120s',
+        statsPeriod: undefined,
+        start: undefined,
+        end: undefined,
+      },
+    });
+
+    const {result} = renderValuesHook({
+      relativePeriod: {statsPeriodStart: '14d', statsPeriodEnd: '120s'},
+    });
+
+    let searchResults: ValueResult = [];
+    await act(async () => {
+      searchResults = await result.current({tag, searchQuery: 'search-query'});
+    });
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(searchResults).toEqual([{value: 'search-result'}]);
+  });
+
   it('getTraceItemAttributeValues returns empty array for number type', async () => {
     const searchQueryMock = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/trace-items/attributes/${attributeKey}/values/`,

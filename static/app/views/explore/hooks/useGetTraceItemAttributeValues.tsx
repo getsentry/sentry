@@ -18,6 +18,7 @@ import {defined} from 'sentry/utils/defined';
 import {FieldKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
+import type {MetricsRelativePeriod} from 'sentry/views/explore/metrics/hooks/metricPeriod';
 import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/types';
 import {findFreshEmptyPrefixSearchCacheMatch} from 'sentry/views/explore/utils/findFreshEmptyPrefixSearchCacheMatch';
 
@@ -34,6 +35,7 @@ interface UseGetTraceItemAttributeValuesProps extends UseTraceItemAttributeBaseP
   datetime?: PageFilters['datetime'];
   projectIds?: PageFilters['projects'];
   query?: string;
+  relativePeriod?: MetricsRelativePeriod;
 }
 
 /**
@@ -46,6 +48,7 @@ export function useGetTraceItemAttributeValues({
   datetime,
   type,
   query: filterQuery,
+  relativePeriod,
 }: UseGetTraceItemAttributeValuesProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -78,6 +81,14 @@ export function useGetTraceItemAttributeValues({
             substringMatch: searchQuery || undefined,
             project,
             ...datetimeParams,
+            ...(relativePeriod
+              ? {
+                  start: undefined,
+                  end: undefined,
+                  statsPeriod: undefined,
+                  ...relativePeriod,
+                }
+              : {}),
           },
         }
       );
@@ -112,6 +123,7 @@ export function useGetTraceItemAttributeValues({
       organization.slug,
       projectIds,
       queryClient,
+      relativePeriod,
       selection.datetime,
       selection.projects,
       traceItemType,

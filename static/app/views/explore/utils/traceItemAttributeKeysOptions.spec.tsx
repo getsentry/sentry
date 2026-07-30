@@ -114,6 +114,33 @@ describe('traceItemAttributeKeysOptions', () => {
     expect(longerRequest).not.toHaveBeenCalled();
   });
 
+  it('uses the metrics relative period when provided', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'GET',
+      body: [],
+      match: [
+        (_url, options) => {
+          const query = options?.query || {};
+          return (
+            query.statsPeriodStart === '7d' &&
+            query.statsPeriodEnd === '120s' &&
+            query.statsPeriod === undefined &&
+            query.start === undefined &&
+            query.end === undefined
+          );
+        },
+      ],
+    });
+
+    await fetchAttributeKeys({
+      search: 'foo',
+      relativePeriod: {statsPeriodStart: '7d', statsPeriodEnd: '120s'},
+    });
+
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
   it('does not reuse non-empty cached prefix results', async () => {
     const prefixBody = [makeAttribute('foo')];
     const longerBody = [makeAttribute('foo.bar')];

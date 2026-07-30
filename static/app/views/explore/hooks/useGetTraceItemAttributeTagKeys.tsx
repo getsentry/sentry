@@ -4,6 +4,7 @@ import type {GetTagKeys} from 'sentry/components/searchQueryBuilder';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {useGetTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeKeys';
+import type {MetricsRelativePeriod} from 'sentry/views/explore/metrics/hooks/metricPeriod';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {isHiddenAttribute} from 'sentry/views/explore/utils';
 
@@ -14,6 +15,7 @@ export function useGetTraceItemAttributeTagKeys({
   query,
   hiddenKeys,
   datetime,
+  relativePeriod,
 }: {
   itemType: TraceItemDataset;
   datetime?: PageFilters['datetime'];
@@ -21,12 +23,14 @@ export function useGetTraceItemAttributeTagKeys({
   hiddenKeys?: string[];
   projects?: PageFilters['projects'];
   query?: string;
+  relativePeriod?: MetricsRelativePeriod;
 }): GetTagKeys {
   const getTraceItemAttributeKeys = useGetTraceItemAttributeKeys({
     traceItemType: itemType,
     projectIds: projects,
     query,
     datetime,
+    relativePeriod,
   });
 
   return useCallback(

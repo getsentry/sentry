@@ -11,6 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
+import {useMetricsRelativePeriod} from 'sentry/views/explore/metrics/hooks/metricPeriod';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {
@@ -56,6 +57,7 @@ export function GroupBySelector({
   const organization = useOrganization();
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
+  const relativePeriod = useMetricsRelativePeriod();
   const isDisabled = disabledReason !== undefined;
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
@@ -66,6 +68,7 @@ export function GroupBySelector({
       selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       query: skipTraceMetricFilter ? undefined : traceMetricFilter,
+      relativePeriod,
     }),
     select: selectTraceItemTagCollection(),
     enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),

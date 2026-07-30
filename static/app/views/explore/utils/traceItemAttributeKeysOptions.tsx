@@ -10,6 +10,7 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {FieldKind} from 'sentry/utils/fields';
+import type {MetricsRelativePeriod} from 'sentry/views/explore/metrics/hooks/metricPeriod';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {findFreshEmptyPrefixSearchCacheMatch} from 'sentry/views/explore/utils/findFreshEmptyPrefixSearchCacheMatch';
 
@@ -45,6 +46,7 @@ interface TraceItemAttributeKeysOptions {
   projectIds?: Array<string | number>;
   projects?: Project[];
   query?: string;
+  relativePeriod?: MetricsRelativePeriod;
   search?: string;
   staleTime?: number;
   type?: TraceItemAttributeType | TraceItemAttributeType[];
@@ -60,6 +62,7 @@ export function traceItemAttributeKeysOptions({
   projectIds: explicitProjectIds,
   environments,
   query,
+  relativePeriod,
   search,
 }: TraceItemAttributeKeysOptions) {
   const projectIds =
@@ -74,6 +77,14 @@ export function traceItemAttributeKeysOptions({
     environment: environments ?? selection.environments,
     query,
     ...normalizeDateTimeParams(selection.datetime),
+    ...(relativePeriod
+      ? {
+          start: undefined,
+          end: undefined,
+          statsPeriod: undefined,
+          ...relativePeriod,
+        }
+      : {}),
     ...(substringMatch === undefined ? {} : {substringMatch}),
   };
 

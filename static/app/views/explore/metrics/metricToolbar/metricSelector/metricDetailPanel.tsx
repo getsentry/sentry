@@ -11,6 +11,7 @@ import {prettifyTagKey} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HIDDEN_TRACEMETRIC_GROUP_BY_FIELDS_SET} from 'sentry/views/explore/metrics/constants';
+import {useMetricsRelativePeriod} from 'sentry/views/explore/metrics/hooks/metricPeriod';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 import {
@@ -94,10 +95,12 @@ function MetricAttributesSection({
     traceMetricFilter,
     METRIC_ATTRIBUTES_DEBOUNCE_DURATION
   );
+  const relativePeriod = useMetricsRelativePeriod();
 
   const isDebouncingAttributes = debouncedTraceMetricFilter !== traceMetricFilter;
   const metricAttributeQuery = {
     enabled: Boolean(debouncedTraceMetricFilter),
+    relativePeriod,
     query: debouncedTraceMetricFilter,
     staleTime: Infinity,
   };

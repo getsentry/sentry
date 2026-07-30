@@ -19,6 +19,7 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {useMetricsRelativePeriod} from 'sentry/views/explore/metrics/hooks/metricPeriod';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {
   StyledSimpleTable,
@@ -86,6 +87,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
   const organization = useOrganization();
   const topEvents = useTopEvents();
   const visualize = useMetricVisualize();
+  const relativePeriod = useMetricsRelativePeriod();
 
   const {result, eventView, fields} = useMetricAggregatesTable({
     enabled: isVisualizeFunction(visualize)
@@ -112,6 +114,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
       selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       query: traceMetricFilter,
+      relativePeriod,
       staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
     }),
     enabled: Boolean(traceMetricFilter),
@@ -243,7 +246,10 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
           result.data.map((row, i) => {
             const displayRow =
               groupBys.length === 0
-                ? {...row, [TraceMetricKnownFieldKey.METRIC_NAME]: traceMetric.name}
+                ? {
+                    ...row,
+                    [TraceMetricKnownFieldKey.METRIC_NAME]: traceMetric.name,
+                  }
                 : row;
 
             return (

@@ -21,6 +21,7 @@ import {
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
+import {useMetricsRelativePeriod} from 'sentry/views/explore/metrics/hooks/metricPeriod';
 import {useValidateMetricsTab} from 'sentry/views/explore/metrics/hooks/useValidateMetricsTab';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsTabSeerComboBox} from 'sentry/views/explore/metrics/metricsTabSeerComboBox';
@@ -78,6 +79,7 @@ export function Filter({
   const setQuery = useSetQueryParamsQuery();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const relativePeriod = useMetricsRelativePeriod();
 
   const hasTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
@@ -95,6 +97,7 @@ export function Filter({
       selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       query: attributeQuery,
+      relativePeriod,
       projectIds,
       environments,
     }),
@@ -256,6 +259,7 @@ export function Filter({
         hiddenAttributeKeys: HiddenTraceMetricSearchFields,
         projects: projectIds,
         environments,
+        relativePeriod,
         disabled: isSearchBarDisabled,
         portalTarget,
         invalidFilterKeys,
@@ -272,6 +276,7 @@ export function Filter({
       portalTarget,
       projectIds,
       query,
+      relativePeriod,
       setQuery,
       skipTraceMetricFilter,
       traceMetric.name,

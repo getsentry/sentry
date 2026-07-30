@@ -19,6 +19,7 @@ import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGet
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {TRACEMETRICS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/metrics/constants';
+import type {MetricsRelativePeriod} from 'sentry/views/explore/metrics/hooks/metricPeriod';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
@@ -45,6 +46,7 @@ export type TraceItemSearchQueryBuilderProps = {
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
+  relativePeriod?: MetricsRelativePeriod;
   replaceRawSearchKeys?: string[];
 } & Omit<SpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
@@ -103,6 +105,7 @@ export function useTraceItemSearchQueryBuilderProps({
   portalTarget,
   projects,
   datetime,
+  relativePeriod,
   supportedAggregates = [],
   namespace,
   replaceRawSearchKeys,
@@ -143,6 +146,7 @@ export function useTraceItemSearchQueryBuilderProps({
     projectIds: projects,
     datetime,
     query: attributeQuery,
+    relativePeriod,
   });
 
   const getSuggestedAttribute = useExploreSuggestedAttribute({
@@ -158,6 +162,7 @@ export function useTraceItemSearchQueryBuilderProps({
     query: attributeQuery,
     hiddenKeys: hiddenAttributeKeys,
     datetime,
+    relativePeriod,
   });
   // When an allowlist is in effect, the static filterKeys are already curated to
   // it. Skip the dynamic EAP fetch so typed-key autocomplete only matches against
@@ -172,6 +177,7 @@ export function useTraceItemSearchQueryBuilderProps({
       effectiveDatetime,
       attributeQuery,
       hiddenAttributeKeys,
+      relativePeriod,
       allowedAttributeKeys,
     ],
     [
@@ -181,6 +187,7 @@ export function useTraceItemSearchQueryBuilderProps({
       effectiveProjects,
       hiddenAttributeKeys,
       itemType,
+      relativePeriod,
       selection.environments,
     ]
   );
@@ -303,6 +310,7 @@ export function TraceItemSearchQueryBuilder({
   allowedAttributeKeys,
   placeholder,
   invalidFilterKeys,
+  relativePeriod,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -338,6 +346,7 @@ export function TraceItemSearchQueryBuilder({
     hiddenAttributeKeys,
     allowedAttributeKeys,
     datetime,
+    relativePeriod,
     invalidFilterKeys,
   });
 

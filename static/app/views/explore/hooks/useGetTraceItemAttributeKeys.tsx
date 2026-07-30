@@ -6,6 +6,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
+import type {MetricsRelativePeriod} from 'sentry/views/explore/metrics/hooks/metricPeriod';
 import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/types';
 import {
   getTraceItemTagCollection,
@@ -19,6 +20,7 @@ interface UseGetTraceItemAttributeKeysProps extends Omit<
   datetime?: PageFilters['datetime'];
   projectIds?: Array<string | number>;
   query?: string;
+  relativePeriod?: MetricsRelativePeriod;
 }
 
 export function useGetTraceItemAttributeKeys({
@@ -26,6 +28,7 @@ export function useGetTraceItemAttributeKeys({
   projectIds,
   query,
   datetime,
+  relativePeriod,
 }: UseGetTraceItemAttributeKeysProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -48,6 +51,7 @@ export function useGetTraceItemAttributeKeys({
             projectIds: projectIds ?? selection.projects,
             search: queryString,
             query,
+            relativePeriod,
             staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
           })
         );
@@ -56,6 +60,15 @@ export function useGetTraceItemAttributeKeys({
         throw new Error(`Unable to fetch trace item attribute keys: ${e}`);
       }
     },
-    [datetime, organization, projectIds, query, queryClient, selection, traceItemType]
+    [
+      datetime,
+      organization,
+      projectIds,
+      query,
+      queryClient,
+      relativePeriod,
+      selection,
+      traceItemType,
+    ]
   );
 }
