@@ -6,7 +6,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconClock, IconContract, IconEllipsis, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -62,10 +62,7 @@ import {
   getSamplingWarningReason,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
-import {
-  getCreateAlertLabel,
-  getMetricAlertsUpsellTooltip,
-} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
+import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -308,23 +305,17 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
   const aggregateFields = useQueryParamsAggregateFields();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 
-  const items: MenuItemProps[] = useMemo(() => {
+  const items = useMemo(() => {
     const project =
       projects.length === 1
         ? projects[0]
         : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
     const disableAddToDashboard = !organization.features.includes('dashboards-edit');
-    const alertsUpsellTooltip = getMetricAlertsUpsellTooltip(organization);
-    const newAlertLabel = getCreateAlertLabel(organization);
 
     return [
-      {
-        key: 'create-alert',
-        textValue: newAlertLabel,
-        label: newAlertLabel,
-        disabled: defined(alertsUpsellTooltip),
-        tooltip: alertsUpsellTooltip,
+      getSaveAsAlertMenuItem({
+        organization,
         to: getAlertsUrl({
           project,
           query: search.formatString(),
@@ -343,7 +334,7 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
           });
           return;
         },
-      },
+      }),
       {
         key: 'add-to-dashboard',
         textValue: t('Add to Dashboard'),

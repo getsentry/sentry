@@ -33,10 +33,7 @@ import {
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
-import {
-  getCreateAlertLabel,
-  getMetricAlertsUpsellTooltip,
-} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
+import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -108,31 +105,27 @@ export function MultiQueryModeChart({
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
   if (defined(yAxes[0])) {
-    const alertsUpsellTooltip = getMetricAlertsUpsellTooltip(organization);
-    const newAlertLabel = getCreateAlertLabel(organization);
-    items.push({
-      key: 'create-alert',
-      textValue: newAlertLabel,
-      label: newAlertLabel,
-      disabled: defined(alertsUpsellTooltip),
-      tooltip: alertsUpsellTooltip,
-      to: getAlertsUrl({
-        project,
-        query: queryParts.query,
-        pageFilters: pageFilters.selection,
-        aggregate: yAxes[0],
+    items.push(
+      getSaveAsAlertMenuItem({
         organization,
-        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-        interval,
-      }),
-      onAction: () => {
-        trackAnalytics('trace_explorer.save_as', {
-          save_type: 'alert',
-          ui_source: 'compare chart',
+        to: getAlertsUrl({
+          project,
+          query: queryParts.query,
+          pageFilters: pageFilters.selection,
+          aggregate: yAxes[0],
           organization,
-        });
-      },
-    });
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          interval,
+        }),
+        onAction: () => {
+          trackAnalytics('trace_explorer.save_as', {
+            save_type: 'alert',
+            ui_source: 'compare chart',
+            organization,
+          });
+        },
+      })
+    );
   }
 
   const disableAddToDashboard = !organization.features.includes('dashboards-edit');

@@ -50,7 +50,7 @@ describe('getSaveAsAlertMenuItem', () => {
   it('is enabled with children when the organization has metric alerts', () => {
     const organization = OrganizationFixture({features: ['incidents']});
 
-    const item = getSaveAsAlertMenuItem({organization, alertsUrls});
+    const item = getSaveAsAlertMenuItem({organization, alertsUrls, submenu: true});
 
     expect(item).toEqual(
       expect.objectContaining({
@@ -65,7 +65,7 @@ describe('getSaveAsAlertMenuItem', () => {
   it('is disabled with an upsell tooltip when metric alerts are unavailable', () => {
     const organization = OrganizationFixture({features: []});
 
-    const item = getSaveAsAlertMenuItem({organization, alertsUrls});
+    const item = getSaveAsAlertMenuItem({organization, alertsUrls, submenu: true});
 
     expect(item).toEqual(
       expect.objectContaining({
@@ -79,7 +79,7 @@ describe('getSaveAsAlertMenuItem', () => {
   it('is disabled when the organization has metric alerts but no aggregates', () => {
     const organization = OrganizationFixture({features: ['incidents']});
 
-    const item = getSaveAsAlertMenuItem({organization, alertsUrls: []});
+    const item = getSaveAsAlertMenuItem({organization, alertsUrls: [], submenu: true});
 
     expect(item.disabled).toBe(true);
     expect(item.tooltip).toBeUndefined();
@@ -90,8 +90,66 @@ describe('getSaveAsAlertMenuItem', () => {
       features: ['incidents', 'workflow-engine-ui'],
     });
 
-    const item = getSaveAsAlertMenuItem({organization, alertsUrls});
+    const item = getSaveAsAlertMenuItem({organization, alertsUrls, submenu: true});
 
     expect(item.label).toBe('Monitor for');
+  });
+
+  it('uses the given label when one is provided', () => {
+    const organization = OrganizationFixture({features: ['incidents']});
+
+    const item = getSaveAsAlertMenuItem({
+      organization,
+      alertsUrls,
+      submenu: true,
+      label: 'Create an Alert for',
+    });
+
+    expect(item.label).toBe('Create an Alert for');
+  });
+
+  it('returns an actionable item with no children when not a submenu', () => {
+    const organization = OrganizationFixture({features: ['incidents']});
+    const onAction = jest.fn();
+
+    const item = getSaveAsAlertMenuItem({organization, to: '/alert/', onAction});
+
+    expect(item).toEqual(
+      expect.objectContaining({
+        label: 'Create an Alert',
+        disabled: false,
+        tooltip: undefined,
+        to: '/alert/',
+        onAction,
+      })
+    );
+    expect(item.children).toBeUndefined();
+  });
+
+  it('is disabled with an upsell tooltip when not a submenu and metric alerts are unavailable', () => {
+    const organization = OrganizationFixture({features: []});
+
+    const item = getSaveAsAlertMenuItem({
+      organization,
+      to: '/alert/',
+      onAction: jest.fn(),
+    });
+
+    expect(item.disabled).toBe(true);
+    expect(item.tooltip).toBe('Alerts are not available on your current plan.');
+  });
+
+  it('is disabled when the caller disables it for an unrelated reason', () => {
+    const organization = OrganizationFixture({features: ['incidents']});
+
+    const item = getSaveAsAlertMenuItem({
+      organization,
+      disabled: true,
+      to: '/alert/',
+      onAction: jest.fn(),
+    });
+
+    expect(item.disabled).toBe(true);
+    expect(item.tooltip).toBeUndefined();
   });
 });

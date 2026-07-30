@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -16,8 +16,8 @@ import {
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import {
-  getCreateAlertLabel,
-  getMetricAlertsUpsellTooltip,
+  getCreateAlertForLabel,
+  getSaveAsAlertMenuItem,
 } from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
@@ -38,7 +38,7 @@ export function ChartContextMenu({
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
 
-  const items: MenuItemProps[] = useMemo(() => {
+  const items = useMemo(() => {
     const menuItems = [];
 
     const project =
@@ -46,36 +46,31 @@ export function ChartContextMenu({
         ? projects[0]
         : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
-    const alertsUpsellTooltip = getMetricAlertsUpsellTooltip(organization);
-
     if (visualizeYAxes.length === 1) {
-      const newAlertLabel = getCreateAlertLabel(organization);
-
       const yAxis = visualizeYAxes[0]!.yAxis;
-      menuItems.push({
-        key: 'create-alert',
-        textValue: newAlertLabel,
-        label: newAlertLabel,
-        disabled: isVisualizeEquation(visualizeYAxes[0]!) || !!alertsUpsellTooltip,
-        tooltip: alertsUpsellTooltip,
-        to: getAlertsUrl({
-          project,
-          query,
-          pageFilters: pageFilters.selection,
-          aggregate: yAxis,
+      menuItems.push(
+        getSaveAsAlertMenuItem({
           organization,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          interval,
-        }),
-        onAction: () => {
-          trackAnalytics('trace_explorer.save_as', {
-            save_type: 'alert',
-            ui_source: 'chart',
+          disabled: isVisualizeEquation(visualizeYAxes[0]!),
+          to: getAlertsUrl({
+            project,
+            query,
+            pageFilters: pageFilters.selection,
+            aggregate: yAxis,
             organization,
-          });
-          return;
-        },
-      });
+            dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+            interval,
+          }),
+          onAction: () => {
+            trackAnalytics('trace_explorer.save_as', {
+              save_type: 'alert',
+              ui_source: 'chart',
+              organization,
+            });
+            return;
+          },
+        })
+      );
     } else {
       const alertsUrls = visualizeYAxes.map((visualizeYAxis, index) => ({
         key: `${visualizeYAxis.yAxis}-${index}`,
@@ -100,19 +95,14 @@ export function ChartContextMenu({
         },
       }));
 
-      const newAlertLabel = organization.features.includes('workflow-engine-ui')
-        ? t('Create a Monitor for')
-        : t('Create an Alert for');
-
-      const hasAccess = !alertsUpsellTooltip;
-      menuItems.push({
-        key: 'create-alert',
-        label: newAlertLabel,
-        children: hasAccess ? alertsUrls : [],
-        disabled: !hasAccess || alertsUrls.length === 0,
-        tooltip: alertsUpsellTooltip,
-        submenu: true,
-      });
+      menuItems.push(
+        getSaveAsAlertMenuItem({
+          organization,
+          alertsUrls,
+          submenu: true,
+          label: getCreateAlertForLabel(organization),
+        })
+      );
     }
 
     const disableAddToDashboard = !organization.features.includes('dashboards-edit');

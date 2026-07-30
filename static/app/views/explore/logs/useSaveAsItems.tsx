@@ -153,7 +153,7 @@ export function useSaveAsItems({
       };
     });
 
-    return getSaveAsAlertMenuItem({organization, alertsUrls});
+    return getSaveAsAlertMenuItem({organization, alertsUrls, submenu: true});
   }, [aggregates, interval, organization, pageFilters, project, search]);
 
   const saveAsDashboard = useMemo(() => {
