@@ -2,21 +2,44 @@ import type {
   ExplorerAutofixResponse,
   ExplorerAutofixState,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
+import type {Artifact, Block, RepoPRState} from 'sentry/views/seerExplorer/types';
+
+export function AutofixRootCauseArtifactFixture(
+  params: Partial<Artifact> = {}
+): Artifact {
+  return {
+    data: {
+      five_whys: ['The faulty code did not handle an unexpected value.'],
+      one_line_description: 'The issue was caused by an unexpected value.',
+      reproduction_steps: ['Trigger the unexpected value.'],
+    },
+    key: 'root_cause',
+    reason: 'Found the root cause',
+    ...params,
+  };
+}
+
+export function AutofixSolutionArtifactFixture(params: Partial<Artifact> = {}): Artifact {
+  return {
+    data: {
+      one_line_summary: 'Handle the unexpected value before using it.',
+      steps: [
+        {
+          description: 'Validate the value before accessing its properties.',
+          title: 'Add validation',
+        },
+      ],
+    },
+    key: 'solution',
+    reason: 'Created a plan',
+    ...params,
+  };
+}
 
 export function ExplorerAutofixBlockFixture(params: Partial<Block> = {}): Block {
   return {
     id: 'root-cause',
-    artifacts: [
-      {
-        data: {
-          five_whys: ['The faulty code did not handle an unexpected value.'],
-          one_line_description: 'The issue was caused by an unexpected value.',
-        },
-        key: 'root_cause',
-        reason: 'Found the root cause',
-      },
-    ],
+    artifacts: [AutofixRootCauseArtifactFixture()],
     loading: false,
     message: {
       content: 'Root cause complete',

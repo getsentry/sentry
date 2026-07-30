@@ -1,12 +1,14 @@
 import {
   AutofixRepoPRStateFixture,
+  AutofixRootCauseArtifactFixture,
+  AutofixSolutionArtifactFixture,
   ExplorerAutofixBlockFixture,
   ExplorerAutofixStateFixture,
 } from 'sentry-fixture/autofix';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import type {Artifact, ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 import {IssuePreviewAutofixSummary} from './issuePreviewAutofixSummary';
 
@@ -26,9 +28,7 @@ function makePatch(repoName: string, path: string): ExplorerFilePatch {
   } as ExplorerFilePatch;
 }
 
-const rootCauseArtifact: Artifact = {
-  key: 'root-cause',
-  reason: 'Found the root cause',
+const rootCauseArtifact = AutofixRootCauseArtifactFixture({
   data: {
     one_line_description: 'An unexpected null value reached the user handler.',
     five_whys: [
@@ -37,11 +37,9 @@ const rootCauseArtifact: Artifact = {
     ],
     reproduction_steps: ['Request a user ID that does not exist.'],
   },
-};
+});
 
-const solutionArtifact: Artifact = {
-  key: 'solution',
-  reason: 'Created a plan',
+const solutionArtifact = AutofixSolutionArtifactFixture({
   data: {
     one_line_summary: 'Guard the user lookup before reading its properties.',
     steps: [
@@ -55,7 +53,7 @@ const solutionArtifact: Artifact = {
       },
     ],
   },
-};
+});
 
 describe('IssuePreviewAutofixSummary', () => {
   it('renders collapsed summaries in the requested order and expands full details', async () => {
@@ -225,11 +223,10 @@ describe('IssuePreviewAutofixSummary', () => {
         blocks: [
           ExplorerAutofixBlockFixture({
             artifacts: [
-              {
-                key: 'root-cause',
+              AutofixRootCauseArtifactFixture({
                 reason: 'Malformed root cause',
                 data: {one_line_description: 'Missing required details'},
-              },
+              }),
             ],
           }),
         ],
