@@ -1471,7 +1471,7 @@ describe('SearchQueryBuilder', () => {
       );
     });
 
-    it('uses explicit tag syntax for colon-containing keys selected from key suggestions', async () => {
+    it('quotes colon-containing keys selected from key suggestions', async () => {
       const filterKey = 'imaginary.attribute:made_up_key';
       render(
         <SearchQueryBuilder
@@ -1498,7 +1498,7 @@ describe('SearchQueryBuilder', () => {
 
       expect(
         screen.getByRole('row', {
-          name: `tags[${filterKey},string]:${WildcardOperators.CONTAINS}""`,
+          name: `"${filterKey}":${WildcardOperators.CONTAINS}""`,
         })
       ).toBeInTheDocument();
     });
@@ -2898,7 +2898,7 @@ describe('SearchQueryBuilder', () => {
       });
     });
 
-    it('uses explicit tag syntax when selecting a value for a quoted user attribute', async () => {
+    it('preserves quoted syntax when selecting a value for a user attribute', async () => {
       const mockOnChange = jest.fn();
       const filterKey = 'imaginary.attribute:made_up_key';
       render(
@@ -2929,7 +2929,7 @@ describe('SearchQueryBuilder', () => {
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith(
-          `tags[${filterKey},string]:asdf`,
+          `"${filterKey}":asdf`,
           expect.anything()
         );
       });

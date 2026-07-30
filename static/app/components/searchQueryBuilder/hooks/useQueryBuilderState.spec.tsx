@@ -365,34 +365,31 @@ describe('typed filter keys containing colons', () => {
     },
   };
 
-  it('uses explicit tag syntax when updating a value', () => {
+  it('preserves quoted key syntax when updating a value', () => {
     const query = `"${filterKey}":foo`;
 
     expect(
       modifyFilterValue(
         query,
         getFirstFilterToken(query, () => fieldDefinition, {filterKeys}),
-        'bar',
-        undefined,
-        fieldDefinition
+        'bar'
       )
-    ).toBe(`tags[${filterKey},string]:bar`);
+    ).toBe(`"${filterKey}":bar`);
   });
 
-  it('uses explicit tag syntax when updating an operator', () => {
+  it('preserves quoted key syntax when updating an operator', () => {
     const query = `"${filterKey}":foo`;
 
     expect(
       modifyFilterOperatorQuery(
         query,
         getFirstFilterToken(query, () => fieldDefinition, {filterKeys}),
-        TermOperator.NOT_EQUAL,
-        fieldDefinition
+        TermOperator.NOT_EQUAL
       )
-    ).toBe(`!tags[${filterKey},string]:foo`);
+    ).toBe(`!"${filterKey}":foo`);
   });
 
-  it('uses explicit tag syntax when toggling a multi-select value', () => {
+  it('preserves quoted key syntax when toggling a multi-select value', () => {
     const query = `"${filterKey}":foo`;
     const state = {
       query,
@@ -402,16 +399,12 @@ describe('typed filter keys containing colons', () => {
     };
 
     expect(
-      multiSelectTokenValue(
-        state,
-        {
-          type: 'TOGGLE_FILTER_VALUE',
-          token: getFirstFilterToken(query, () => fieldDefinition, {filterKeys}),
-          value: 'bar',
-        },
-        fieldDefinition
-      ).query
-    ).toBe(`tags[${filterKey},string]:[foo,bar]`);
+      multiSelectTokenValue(state, {
+        type: 'TOGGLE_FILTER_VALUE',
+        token: getFirstFilterToken(query, () => fieldDefinition, {filterKeys}),
+        value: 'bar',
+      }).query
+    ).toBe(`"${filterKey}":[foo,bar]`);
   });
 });
 
