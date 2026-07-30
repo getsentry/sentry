@@ -3,7 +3,11 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {ConversationsChart} from 'sentry/views/explore/conversations/components/conversationsChart';
+
+jest.mock('sentry/actionCreators/modal');
 
 describe('ConversationsChart', () => {
   const organization = OrganizationFixture();
@@ -150,5 +154,98 @@ describe('ConversationsChart', () => {
     render(<ConversationsChart />, {organization});
 
     expect(await screen.findByText('Internal Error')).toBeInTheDocument();
+  });
+
+  it('collapses and expands the chart', async () => {
+    const {router} = render(<ConversationsChart />, {organization});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse chart'}));
+
+    await waitFor(() => {
+      expect(router.location.query.chartCollapsed).toBe('true');
+    });
+
+    // Collapsing hides the chart-type/interval controls and reveals the expander.
+    const expandButton = await screen.findByRole('button', {name: 'Expand chart'});
+    expect(
+      screen.queryByRole('button', {name: 'Collapse chart'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Bar'})).not.toBeInTheDocument();
+
+    await userEvent.click(expandButton);
+
+    // Expanding resets to the default, which nuqs strips from the URL.
+    await waitFor(() => {
+      expect(router.location.query.chartCollapsed).toBeUndefined();
+    });
+    expect(
+      await screen.findByRole('button', {name: 'Collapse chart'})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Expand chart'})).not.toBeInTheDocument();
+  });
+
+  it('links to the metric alert builder for the current visualization', async () => {
+    render(<ConversationsChart />, {organization});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Chart actions'}));
+
+    const alertItem = await screen.findByRole('menuitemradio', {name: 'Create an Alert'});
+    const href = alertItem.getAttribute('href') ?? '';
+    expect(href).toContain('/alerts/new/metric/');
+    expect(href).toContain('aggregate=sum');
+    expect(href).toContain('gen_ai.cost.total_tokens');
+    expect(href).toContain('dataset=events_analytics_platform');
+  });
+
+  it('shows "Create a Monitor" with the workflow-engine-ui feature', async () => {
+    render(<ConversationsChart />, {
+      organization: OrganizationFixture({features: ['workflow-engine-ui']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Chart actions'}));
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Create a Monitor'})
+    ).toBeInTheDocument();
+  });
+
+  it('disables "Add to Dashboard" without the dashboards-edit feature', async () => {
+    render(<ConversationsChart />, {
+      organization: OrganizationFixture({features: []}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Chart actions'}));
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Add to Dashboard'})
+    ).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('opens the add-to-dashboard modal with the dashboards-edit feature', async () => {
+    render(<ConversationsChart />, {
+      organization: OrganizationFixture({features: ['dashboards-edit']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Chart actions'}));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Add to Dashboard'})
+    );
+
+    expect(openAddToDashboardModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        widgets: [
+          expect.objectContaining({
+            displayType: DisplayType.BAR,
+            widgetType: WidgetType.SPANS,
+            queries: [
+              expect.objectContaining({
+                aggregates: ['sum(gen_ai.cost.total_tokens)'],
+                conditions: 'has:gen_ai.conversation.id gen_ai.operation.type:ai_client',
+              }),
+            ],
+          }),
+        ],
+      })
+    );
   });
 });

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, cast
 
@@ -103,16 +103,6 @@ START_DATE_FOR_CHECKING_ONBOARDING_COMPLETION = datetime(2024, 10, 30, tzinfo=ti
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
 logger = logging.getLogger(__name__)
-
-# A mapping of OrganizationOption keys to a list of frontend features, and functions to apply the feature.
-# Enabling feature-flagging frontend components without an extra API call/endpoint to verify
-# the OrganizationOption.
-OptionFeature = tuple[str, Callable[[OrganizationOption], bool]]
-ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, list[OptionFeature]] = {
-    "quotas:new-spike-protection": [
-        ("spike-projections", lambda opt: bool(opt.value)),
-    ],
-}
 
 
 class _Status(TypedDict):
@@ -518,15 +508,6 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
         # Include api-keys feature if they previously had any api-keys
         if "api-keys" not in feature_set and attrs["has_api_key"]:
             feature_set.add("api-keys")
-
-        # Organization flag features (not provided through the features module)
-        options_as_features = OrganizationOption.objects.filter(
-            organization=obj, key__in=ORGANIZATION_OPTIONS_AS_FEATURES.keys()
-        )
-        for option in options_as_features:
-            for option_feature, option_function in ORGANIZATION_OPTIONS_AS_FEATURES[option.key]:
-                if option_function(option):
-                    feature_set.add(option_feature)
 
         if getattr(obj.flags, "allow_joinleave"):
             feature_set.add("open-membership")

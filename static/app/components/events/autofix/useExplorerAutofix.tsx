@@ -34,6 +34,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {
   isArtifact,
   isExplorerCodingAgentState,
@@ -667,6 +668,9 @@ export function useExplorerAutofix(
         // Invalidate to fetch fresh data
         const invalidation = queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
+        });
+        queryClient.invalidateQueries({
+          queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
         });
 
         if (step === 'pr_iteration') {
