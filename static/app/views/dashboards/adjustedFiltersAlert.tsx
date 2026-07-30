@@ -1,5 +1,4 @@
 import {Alert} from '@sentry/scraps/alert';
-import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {getPageFilterAdjustmentMessage} from 'sentry/components/pageFilters/adjustments';
@@ -29,18 +28,15 @@ export function AdjustedFiltersAlert({hasUnsavedChanges}: AdjustedFiltersAlertPr
     return null;
   }
 
+  const sentences = adjustments.map(getPageFilterAdjustmentMessage);
+
+  if (hasUnsavedChanges) {
+    sentences.push(t('Save this dashboard to keep the new selection.'));
+  }
+
   return (
     <Alert variant="info" showIcon>
-      <Stack gap="xs">
-        {adjustments.map(adjustment => (
-          <Text key={`${adjustment.filter}-${adjustment.reason}`}>
-            {getPageFilterAdjustmentMessage(adjustment)}
-          </Text>
-        ))}
-        {hasUnsavedChanges ? (
-          <Text>{t('Save this dashboard to keep the new selection.')}</Text>
-        ) : null}
-      </Stack>
+      <Text>{sentences.join(' ')}</Text>
     </Alert>
   );
 }

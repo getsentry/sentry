@@ -41,7 +41,7 @@ describe('AdjustedFiltersAlert', () => {
     render(<AdjustedFiltersAlert hasUnsavedChanges />);
 
     expect(
-      screen.getByText('Save this dashboard to keep the new selection.')
+      screen.getByText(/Save this dashboard to keep the new selection\./)
     ).toBeInTheDocument();
   });
 
@@ -53,7 +53,7 @@ describe('AdjustedFiltersAlert', () => {
     render(<AdjustedFiltersAlert hasUnsavedChanges={false} />);
 
     expect(
-      screen.queryByText('Save this dashboard to keep the new selection.')
+      screen.queryByText(/Save this dashboard to keep the new selection\./)
     ).not.toBeInTheDocument();
   });
 
@@ -67,16 +67,14 @@ describe('AdjustedFiltersAlert', () => {
       },
     ]);
 
-    render(<AdjustedFiltersAlert hasUnsavedChanges={false} />);
+    render(<AdjustedFiltersAlert hasUnsavedChanges />);
 
+    // Every explanation reads as one paragraph rather than one line each.
     expect(
       screen.getByText(
-        "Your project selection changed because it included projects you don't have access to."
-      )
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Your date range changed to 30 days, the longest range your organization can query.'
+        "Your project selection changed because it included projects you don't have access to. " +
+          'Your date range changed to 30 days, the longest range your organization can query. ' +
+          'Save this dashboard to keep the new selection.'
       )
     ).toBeInTheDocument();
   });
@@ -104,8 +102,7 @@ describe('AdjustedFiltersAlert', () => {
       {filter: 'projects', reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS},
     ]);
 
-    const message =
-      "Your project selection changed to All Projects because you're not a member of any project in this organization.";
+    const message = /Your project selection changed to All Projects/;
 
     const {rerender} = render(<AdjustedFiltersAlert hasUnsavedChanges />);
     expect(screen.getByText(message)).toBeInTheDocument();
