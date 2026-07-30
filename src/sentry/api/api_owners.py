@@ -9,7 +9,7 @@ class ApiOwner(Enum):
 
     ALERTS_MONITORS = "alerts-monitors"
     BILLING = "revenue"
-    CODING_WORKFLOWS = "coding-workflows-sentry-backend"
+    CODING_WORKFLOWS = "agent-interfaces-sentry-backend"
     COMMUNITY = "app-backend"
     CRONS = "crons"
     DASHBOARDS = "dashboards"
