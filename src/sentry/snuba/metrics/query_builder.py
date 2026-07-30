@@ -893,9 +893,13 @@ class SnubaQueryBuilder:
             else:
                 # The support for tags in the order by is disabled for now because there is no
                 # need to have it. If the need arises, we will implement it.
-                raise NotImplementedError(f"Unsupported string field: {metric_action_by_field.field}")
+                raise NotImplementedError(
+                    f"Unsupported string field: {metric_action_by_field.field}"
+                )
 
-            return [OrderBy(exp=Column(name=column_name), direction=metric_action_by_field.direction)]
+            return [
+                OrderBy(exp=Column(name=column_name), direction=metric_action_by_field.direction)
+            ]
 
         if isinstance(metric_action_by_field.field, MetricField):
             try:
