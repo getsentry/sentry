@@ -768,7 +768,9 @@ export class Results extends Component<Props, State> {
                   </MetricsCardinalityProvider>
                 )}
               </Top>
-              <Layout.Main width={showTags ? 'twothirds' : 'full'}>
+              <Layout.Main
+                width={showTags && !transactionsUnsupported ? 'twothirds' : 'full'}
+              >
                 {transactionsUnsupported ? (
                   <Alert.Container>
                     <Alert variant="info">
