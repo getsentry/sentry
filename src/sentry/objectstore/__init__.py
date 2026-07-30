@@ -205,6 +205,11 @@ def get_internal_download_url(
     if token_validity is None:
         token_validity = REDIRECT_VALIDITY
 
+    # Redirect to a URL pointing to the internal Objectstore ip/hostname.
+    # In dev/test, we potentially need to rewrite this URL to point to the hostname in the docker network
+    # instead, so we need to additionally wrap this with `maybe_rewrite_url_for_symbolicator`.
+    # TODO(lcian): Find a more robust way to do this. Here we assume that the caller is Symbolicator,
+    # which is currently the case in practice, but in theory it could be any other service.
     return maybe_rewrite_url_for_symbolicator(
         session.object_url(key, token_validity=token_validity)
     )
