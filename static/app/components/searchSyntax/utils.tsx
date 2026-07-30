@@ -41,7 +41,7 @@ type VisitorFn<T> = (opts: {
   token: TokenResult<Token>;
 }) => null | TokenResultFoundError | typeof skipTokenMarker;
 
-export function isRawFilterKeyWithColon(key: string): boolean {
+function isRawFilterKeyWithColon(key: string): boolean {
   return key.includes(':') && /^[\w.:@-]+$/.test(key);
 }
 
