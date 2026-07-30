@@ -17,6 +17,7 @@ import {
   DEFAULT_VISUALIZATION,
   DEFAULT_VISUALIZATION_FIELD,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
@@ -281,7 +282,9 @@ export function getFieldsForConstructedQuery(yAxes: string[]): string[] {
   const fields: string[] = ['id'];
 
   for (const yAxis of yAxes) {
-    const arg = parseFunction(yAxis)?.arguments[0];
+    // Use parseConditionalAggregate so parameterless `_if` aggregates
+    // (filter-only args) are not treated as fields via parseFunction.
+    const arg = parseConditionalAggregate(yAxis)?.arguments[0];
     if (!arg) {
       continue;
     }

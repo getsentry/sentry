@@ -71,6 +71,7 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {withBaseConditionalAggregateField} from 'sentry/views/explore/utils/conditionalAggregate';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -366,16 +367,22 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
     return true;
   }
 
+  // Explore-style `_if` fields explode as `count_unique_if` / `count_if`, but
+  // column filtering must use the base aggregate name.
+  const normalizedField = fieldValue
+    ? withBaseConditionalAggregateField(fieldValue)
+    : fieldValue;
+
   if (
-    fieldValue?.kind === 'function' &&
-    fieldValue?.function[0] === AggregationKey.COUNT
+    normalizedField?.kind === 'function' &&
+    normalizedField?.function[0] === AggregationKey.COUNT
   ) {
     return option.value.meta.name === 'span.duration';
   }
 
   const expectedDataType =
-    fieldValue?.kind === 'function' &&
-    fieldValue?.function[0] === AggregationKey.COUNT_UNIQUE
+    normalizedField?.kind === 'function' &&
+    normalizedField?.function[0] === AggregationKey.COUNT_UNIQUE
       ? 'string'
       : 'number';
 

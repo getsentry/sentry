@@ -202,6 +202,7 @@ const SearchQueryGridWrapper = styled('div')`
   /* calc + 1px to account for the border */
   padding-top: calc(${p => p.theme.space.xs} + 1px);
   padding-bottom: calc(${p => p.theme.space.xs} + 1px);
+  /* Overridden via [data-hide-search-icon] on the search query builder wrapper. */
   padding-left: 32px;
   padding-right: ${p => p.theme.space.sm};
   display: flex;

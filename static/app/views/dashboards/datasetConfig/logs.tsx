@@ -43,6 +43,7 @@ import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttri
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {LOG_AGGREGATES} from 'sentry/views/explore/logs/logsToolbar';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {withBaseConditionalAggregateField} from 'sentry/views/explore/utils/conditionalAggregate';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -258,16 +259,20 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
     return true;
   }
 
+  const normalizedField = fieldValue
+    ? withBaseConditionalAggregateField(fieldValue)
+    : fieldValue;
+
   if (
-    fieldValue?.kind === 'function' &&
-    fieldValue?.function[0] === AggregationKey.COUNT
+    normalizedField?.kind === 'function' &&
+    normalizedField?.function[0] === AggregationKey.COUNT
   ) {
     return option.value.meta.name === 'message';
   }
 
   const expectedDataTypes =
-    fieldValue?.kind === 'function' &&
-    fieldValue?.function[0] === AggregationKey.COUNT_UNIQUE
+    normalizedField?.kind === 'function' &&
+    normalizedField?.function[0] === AggregationKey.COUNT_UNIQUE
       ? new Set(['number', 'string'])
       : new Set(['number']);
 

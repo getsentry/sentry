@@ -56,6 +56,7 @@ import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {withReadableConditionalFilter} from 'sentry/views/explore/utils/conditionalAggregate';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
@@ -623,7 +624,7 @@ export function prettifyAggregation(aggregation: string): string | null {
     return expression.tokens
       .map(token => {
         if (isTokenFunction(token)) {
-          const func = parseFunction(token.text);
+          const func = parseFunction(withReadableConditionalFilter(token.text));
           if (func) {
             return prettifyParsedFunction(func);
           }
@@ -633,7 +634,7 @@ export function prettifyAggregation(aggregation: string): string | null {
       .join(' ');
   }
 
-  const func = parseFunction(aggregation);
+  const func = parseFunction(withReadableConditionalFilter(aggregation));
   if (func) {
     return prettifyParsedFunction(func);
   }

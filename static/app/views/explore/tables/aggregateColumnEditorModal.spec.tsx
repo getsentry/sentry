@@ -9,13 +9,34 @@ import {
 
 import {openModal} from 'sentry/actionCreators/modal';
 import type {TagCollection} from 'sentry/types/group';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
+
+jest.mock('sentry/views/explore/components/traceItemSearchQueryBuilder', () => {
+  const actual = jest.requireActual(
+    'sentry/views/explore/components/traceItemSearchQueryBuilder'
+  );
+  return {
+    ...actual,
+    TraceItemSearchQueryBuilder: (props: {
+      initialQuery?: string;
+      onSearch?: (query: string) => void;
+      placeholder?: string;
+    }) => (
+      <input
+        aria-label={props.placeholder ?? 'Filter spans for this series'}
+        defaultValue={props.initialQuery ?? ''}
+        onChange={event => props.onSearch?.(event.target.value)}
+        placeholder={props.placeholder}
+      />
+    ),
+  };
+});
 
 const stringTags: TagCollection = {
   id: {
@@ -72,6 +93,24 @@ const booleanTags: TagCollection = {
 };
 
 describe('AggregateColumnEditorModal', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/trace-items/attributes/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/recent-searches/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/recent-searches/`,
+      method: 'POST',
+      body: [],
+    });
+  });
+
   it('allows closes modal on apply', async () => {
     const onClose = jest.fn();
 
@@ -388,6 +427,83 @@ describe('AggregateColumnEditorModal', () => {
       {yAxes: ['equation|avg(tags[foo,number]) * 5']},
     ]);
   });
+
+  it('applies visualize filters as _if aggregates', async () => {
+    const onColumnsChange = jest.fn();
+
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <AggregateColumnEditorModal
+            {...modalProps}
+            columns={[
+              {groupBy: 'geo.country'},
+              new VisualizeFunction('avg(span.duration)'),
+            ]}
+            onColumnsChange={onColumnsChange}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={booleanTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    const rows = await screen.findAllByTestId('editor-row');
+    expectRows(rows).toHaveAggregateFields([
+      {groupBy: 'geo.country'},
+      new VisualizeFunction('avg(span.duration)'),
+    ]);
+
+    const searchInput = within(rows[1]!).getByRole('textbox', {
+      name: 'Filter spans for this series',
+    });
+
+    await userEvent.clear(searchInput);
+    await userEvent.type(searchInput, 'span.op:db');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    expect(onColumnsChange).toHaveBeenCalledWith([
+      {groupBy: 'geo.country'},
+      {yAxes: ['avg_if(`span.op:db`,span.duration)']},
+    ]);
+  });
+
+  it('formats existing _if aggregates in the editor', async () => {
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <AggregateColumnEditorModal
+            {...modalProps}
+            columns={[
+              {groupBy: 'geo.country'},
+              new VisualizeFunction('avg_if(`span.op:db`,span.duration)'),
+            ]}
+            onColumnsChange={() => {}}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={booleanTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    const rows = await screen.findAllByTestId('editor-row');
+    expectRows(rows).toHaveAggregateFields([
+      {groupBy: 'geo.country'},
+      new VisualizeFunction('avg_if(`span.op:db`,span.duration)'),
+    ]);
+
+    expect(
+      within(rows[1]!).getByRole('textbox', {name: 'Filter spans for this series'})
+    ).toHaveValue('span.op:db');
+  });
 });
 
 function expectRows(rows: HTMLElement[]) {
@@ -404,7 +520,7 @@ function expectRows(rows: HTMLElement[]) {
             new RegExp(`Group By${field.groupBy}`)
           );
         } else {
-          const parsedFunction = parseFunction(field.yAxis)!;
+          const parsedFunction = parseConditionalAggregate(field.yAxis)!;
           expect(parsedFunction).not.toBeNull();
           expect(parsedFunction.arguments.filter(Boolean)).toHaveLength(1);
 
@@ -414,7 +530,9 @@ function expectRows(rows: HTMLElement[]) {
           );
 
           const argsRegexOverride =
-            field.yAxis === 'count(span.duration)' ? /spans/ : undefined;
+            field.yAxis === 'count(span.duration)' || field.yAxis.startsWith('count_if(')
+              ? /spans/
+              : undefined;
           const argumentElement = within(row).getByTestId('editor-visualize-argument');
           expect(argumentElement).toHaveTextContent(
             argsRegexOverride ?? new RegExp(parsedFunction.arguments[0]!)

@@ -18,6 +18,34 @@ jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
 
+jest.mock('sentry/views/explore/components/traceItemSearchQueryBuilder', () => {
+  const actual = jest.requireActual(
+    'sentry/views/explore/components/traceItemSearchQueryBuilder'
+  );
+  return {
+    ...actual,
+    TraceItemSearchQueryBuilder: (props: {
+      initialQuery?: string;
+      onSearch?: (query: string) => void;
+      placeholder?: string;
+    }) => {
+      // Keep a lightweight stub for the per-series visualize filter only; other
+      // search bars (query filters) need the real builder (e.g. case toggle).
+      if (props.placeholder === 'Filter spans for this series') {
+        return (
+          <input
+            aria-label={props.placeholder}
+            defaultValue={props.initialQuery ?? ''}
+            onChange={event => props.onSearch?.(event.target.value)}
+            placeholder={props.placeholder}
+          />
+        );
+      }
+      return <actual.TraceItemSearchQueryBuilder {...props} />;
+    },
+  };
+});
+
 describe('MultiQueryModeContent', () => {
   const {organization, project} = initializeOrg();
   let eventsRequest: any;
@@ -101,6 +129,31 @@ describe('MultiQueryModeContent', () => {
 
     const section = await screen.findByTestId('section-visualize-0');
     expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
+  });
+
+  it('applies visualize filters as _if aggregates', async () => {
+    let queries: any;
+    function Component() {
+      queries = useReadQueriesFromLocation();
+      return <MultiQueryModeContent />;
+    }
+
+    render(<Component />);
+
+    const searchInput = await screen.findByRole('textbox', {
+      name: 'Filter spans for this series',
+    });
+
+    await userEvent.clear(searchInput);
+    await userEvent.type(searchInput, 'span.op:db');
+
+    await waitFor(() => {
+      expect(queries).toEqual([
+        expect.objectContaining({
+          yAxes: ['count_if(`span.op:db`,span.duration)'],
+        }),
+      ]);
+    });
   });
 
   it('changes to count(span.duration) when using count', async () => {

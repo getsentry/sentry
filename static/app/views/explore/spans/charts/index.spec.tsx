@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
-import {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {Visualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {defaultVisualizes} from 'sentry/views/explore/spans/spansQueryParams';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
@@ -57,6 +57,38 @@ describe('ExploreCharts', () => {
         "Hey, we're scanning all the data we can to answer your query, so please wait a bit longer"
       )
     ).toBeInTheDocument();
+  });
+
+  it('prettifies wildcard operators in _if chart titles', async () => {
+    const contains = '\uF00DContains\uF00D';
+    const visualize = new VisualizeFunction(
+      `avg_if(\`span.op:${contains}db\`,span.duration)`
+    );
+
+    render(
+      <SpansQueryParamsProvider>
+        <ChartSelectionProvider>
+          <ExploreCharts
+            extrapolate={false}
+            query=""
+            timeseriesResult={timeseriesResultFixture()}
+            visualizes={[visualize]}
+            setVisualizes={() => {}}
+            rawSpanCounts={{
+              total: {count: 0, isLoading: false},
+              normal: {count: 0, isLoading: false},
+            }}
+            samplingMode={SAMPLING_MODE.HIGH_ACCURACY}
+          />
+        </ChartSelectionProvider>
+      </SpansQueryParamsProvider>,
+      {
+        organization: OrganizationFixture(),
+      }
+    );
+
+    expect(await screen.findByText(/span\.op:\*db\*/)).toBeInTheDocument();
+    expect(screen.queryByText(new RegExp(contains))).not.toBeInTheDocument();
   });
 
   describe('expand/collapse', () => {
