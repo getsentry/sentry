@@ -54,10 +54,12 @@ import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {hasUnresolvedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/hasUnresolvedTraceMetric';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -269,29 +271,40 @@ export function WidgetPreviewContainer({
   });
   const hasMetricOptions = (metricOptions?.data?.length ?? 0) > 0;
 
-  // Loading while the options fetch is in flight; once it settles with no options
-  // the metric can never auto-select, so fall through to the error.
   const isResolving = needsMetric && isFetchingMetricOptions;
   const hasNoMetrics = needsMetric && !isFetchingMetricOptions && !hasMetricOptions;
 
+  // `convertBuilderStateToWidget` strips blank equations, so one only matters when it's
+  // the *only* thing entered — otherwise the widget renders from its other aggregates.
+  // In that lone-equation case, nudge the user to finish it rather than showing the
+  // generic "add a field" error.
+  const hasOnlyBlankEquation =
+    widget.widgetType === WidgetType.TRACEMETRICS &&
+    widget.queries.every(query => query.aggregates.length === 0) &&
+    Boolean(
+      getTraceMetricAggregateSource(state.displayType, state.yAxis, state.fields)?.some(
+        aggregate =>
+          aggregate.kind === FieldValueKind.EQUATION && aggregate.field.trim() === ''
+      )
+    );
+
   const message =
+    (hasOnlyBlankEquation ? t('Enter an equation to preview results') : undefined) ??
     getWidgetConfigError(widget) ??
     (isQueryConditionInvalid ? t("This widget's query filter is invalid.") : undefined);
 
-  // A renderable widget always wins; `isResolving`/`hasNoMetrics` only decide how to
-  // present one that can't render yet.
   let previewStatus: WidgetPreviewStatus;
-  if (!message) {
-    previewStatus = {status: 'ready'};
-  } else if (isResolving) {
+  if (isResolving) {
     previewStatus = {status: 'loading'};
   } else if (hasNoMetrics) {
     previewStatus = {
       status: 'invalid',
       message: t('No metrics found for the selected projects.'),
     };
-  } else {
+  } else if (message) {
     previewStatus = {status: 'invalid', message};
+  } else {
+    previewStatus = {status: 'ready'};
   }
   const organization = useOrganization();
   const location = useLocation();

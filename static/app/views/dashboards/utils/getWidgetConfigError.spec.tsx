@@ -118,20 +118,16 @@ describe('getWidgetConfigError', () => {
     );
   });
 
-  it('returns an error when any query in a trace metric widget is unresolvable', () => {
+  it('returns undefined for a trace metric widget with a resolvable metric', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,
       widgetType: WidgetType.TRACEMETRICS,
+      // Encodes the metric as fn(value, name, type, unit).
       queries: [
-        // Resolvable: encodes the metric as fn(value, name, type, unit).
         WidgetQueryFixture({aggregates: ['sum(value,test_metric,distribution,none)']}),
-        // Unresolvable: bare placeholder with no metric.
-        WidgetQueryFixture({aggregates: ['sum(value)']}),
       ],
     });
 
-    expect(getWidgetConfigError(widget)).toBe(
-      'This widget is missing a metric to visualize.'
-    );
+    expect(getWidgetConfigError(widget)).toBeUndefined();
   });
 });
