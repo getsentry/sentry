@@ -15,6 +15,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from slack_sdk.errors import SlackApiError
 
+from sentry import options
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.integrations.messaging import commands
@@ -330,7 +331,12 @@ class SlackRequestParser(BaseRequestParser):
         cannot be deduped, so they always proceed (and are logged — Slack's
         ``event_callback`` envelope always includes ``event_id``; only
         ``url_verification`` omits it, and that is handled earlier).
+
+        Gated by ``slack.dedupe-seer-webhook-events`` (default off).
         """
+        if not options.get("slack.dedupe-seer-webhook-events"):
+            return True
+
         event_id = slack_request.data.get("event_id")
         log_extra = {
             "integration_id": slack_request.integration.id,

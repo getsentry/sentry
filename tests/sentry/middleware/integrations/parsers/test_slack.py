@@ -24,6 +24,7 @@ from sentry.integrations.slack.utils.auth import _encode_data
 from sentry.integrations.slack.views import SALT
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_cells
 from sentry.utils import json
@@ -426,6 +427,7 @@ class SlackRequestParserTest(TestCase):
         assert kwargs["payload"]["method"] == "POST"
         assert kwargs["payload"]["path"].startswith("/extensions/slack/event")
 
+    @override_options({"slack.dedupe-seer-webhook-events": True})
     @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
     def test_seer_event_dedupes_by_event_id(self, mock_apply):
         event_id = "EvDEDUP1"
@@ -443,6 +445,21 @@ class SlackRequestParserTest(TestCase):
         assert second.status_code == status.HTTP_200_OK
         mock_apply.assert_called_once()
 
+    @override_options({"slack.dedupe-seer-webhook-events": False})
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_seer_event_dedupe_disabled_schedules_duplicates(self, mock_apply):
+        event_id = "EvDEDUP_OFF"
+
+        self._make_parser_with_seer_event(
+            event_type="app_mention", event_id=event_id
+        ).get_response()
+        self._make_parser_with_seer_event(
+            event_type="app_mention", event_id=event_id
+        ).get_response()
+
+        assert mock_apply.call_count == 2
+
+    @override_options({"slack.dedupe-seer-webhook-events": True})
     @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
     def test_seer_event_different_event_ids_are_not_deduped(self, mock_apply):
         self._make_parser_with_seer_event(event_type="app_mention", event_id="EvA").get_response()
@@ -450,6 +467,7 @@ class SlackRequestParserTest(TestCase):
 
         assert mock_apply.call_count == 2
 
+    @override_options({"slack.dedupe-seer-webhook-events": True})
     @patch("sentry.middleware.integrations.parsers.slack.logger")
     @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
     def test_seer_event_missing_event_id_logs_and_schedules(
