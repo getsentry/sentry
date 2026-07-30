@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest.mock import patch
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
@@ -27,6 +28,7 @@ from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -668,6 +670,80 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                 transaction_counts=[("alpha", 2)],
             )
         ]
+
+    def test_get_eap_transaction_volumes_excludes_empty_dsc_transaction(self) -> None:
+        """
+        Root spans can carry an empty ``sentry.dsc.transaction``, which EAP returns as a
+        real group next to the missing-attribute group. Both would reach the rebalancing
+        model as transactions named ``""`` and ``"None"`` and take a slot in the
+        per-project top-N. Only the ``has:`` clause drops them, so this test pins the
+        clause down: the same query without it returns the empty-string group.
+        """
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
+
+        def segment(transaction: str | None, offset: int) -> Any:
+            dsc_tags = {} if transaction is None else {"dsc.transaction": transaction}
+            return self.create_span(
+                {
+                    "is_segment": True,
+                    "sentry_tags": {
+                        "transaction": str(transaction),
+                        "dsc.project_id": str(project.id),
+                        **dsc_tags,
+                    },
+                },
+                organization=organization,
+                project=project,
+                start_ts=timestamp + timedelta(seconds=offset),
+            )
+
+        self.store_spans(
+            [
+                segment("checkout", 0),
+                segment("checkout", 1),
+                # Root transaction name set to the empty string.
+                segment("", 2),
+                # Root transaction name absent entirely.
+                segment(None, 3),
+            ]
+        )
+
+        run_table_query = Spans.run_table_query
+        captured_queries: list[dict[str, Any]] = []
+
+        def capture_query(**kwargs: Any) -> Any:
+            captured_queries.append(kwargs)
+            return run_table_query(**kwargs)
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.queries.Spans.run_table_query",
+            side_effect=capture_query,
+        ):
+            volumes = get_eap_transaction_volumes(self.get_config(organization))
+
+        assert volumes == [
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=project.id,
+                transaction_counts=[("checkout", 2)],
+            )
+        ]
+
+        # Replaying the captured query without the `has:` clause isolates it as the only
+        # reason the empty-string group is missing above. Reusing the captured kwargs
+        # keeps this control query in step with the production one.
+        assert len(captured_queries) == 1
+        has_clause = f" has:{DynamicSamplingQueryFields.DSC_TRANSACTION}"
+        query_string = captured_queries[0]["query_string"]
+        assert query_string.endswith(has_clause)
+
+        rows = run_table_query(
+            **{**captured_queries[0], "query_string": query_string[: -len(has_clause)]}
+        )["data"]
+        transactions = [row[DynamicSamplingQueryFields.DSC_TRANSACTION] for row in rows]
+        assert sorted(transactions, key=str) == ["", None, "checkout"]
 
     def test_get_eap_transaction_volumes_project_over_cap_does_not_starve_other_projects(
         self,
