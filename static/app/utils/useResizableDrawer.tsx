@@ -79,7 +79,6 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 } {
   const rafIdRef = useRef<number | null>(null);
   const currentMouseVectorRaf = useRef<[number, number] | null>(null);
-  const isDraggingRef = useRef(false);
   const [size, setSize] = useState<number>(() => {
     const storedSize = options.sizeStorageKey
       ? parseInt(localStorage.getItem(options.sizeStorageKey) ?? '', 10)
@@ -89,6 +88,11 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     // never enters as the size; bounds are enforced from the very first render.
     return clampSize(storedSize || options.initialSize, options.min, options.max);
   });
+  // Mirrors the latest committed size for the drag math and imperative reads.
+  // Kept in sync by every path that changes `size` (updateSize, startDrag, and
+  // the direction-change effect below) — never written during render, so a
+  // re-render that lands mid-drag can't roll back an in-progress drag delta.
+  const sizeRef = useRef(size);
   const [isHeld, setIsHeld] = useState(false);
   const optionsRef = useRef(options);
   useLayoutEffect(() => {
@@ -110,18 +114,10 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   useLayoutEffect(() => {
     const clamped = clampSize(options.initialSize ?? 0, options.min, options.max);
     options.onResize(clamped, size, false);
+    sizeRef.current = clamped;
     setSize(clamped);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.direction]);
-
-  const sizeRef = useRef(size);
-  // During a drag, sizeRef is the authoritative accumulator that onDragMove
-  // steps from and commits. A re-render triggered mid-drag by something else
-  // (e.g. a ResizeObserver measuring the resizing panes) must NOT roll it back
-  // to the last-committed React state, or the in-progress drag delta is lost.
-  if (!isDraggingRef.current) {
-    sizeRef.current = size;
-  }
 
   const onDragMove = useCallback(
     (event: MouseEvent | PointerEvent) => {
@@ -204,9 +200,6 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
       });
       dragStartSizeRef.current = null;
     }
-    // Drag is over: allow re-renders to sync sizeRef from React state again.
-    // Cleared last so the onResizeEnd above still reads the dragged size.
-    isDraggingRef.current = false;
   }, [onDragMove, options, updateSize]);
 
   const startDrag = useCallback((clientX: number, clientY: number) => {
@@ -221,7 +214,6 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     sizeRef.current = clamped;
     setSize(clamped);
     setIsHeld(true);
-    isDraggingRef.current = true;
     dragStartSizeRef.current = clamped;
     currentMouseVectorRaf.current = [clientX, clientY];
   }, []);
