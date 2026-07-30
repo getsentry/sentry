@@ -15,7 +15,7 @@ import type {
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getSnapshotPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
-import {FullRowLink, BuildsTableGrid} from './preprodBuildsTableCommon';
+import {BuildsTableGrid, FullRowLink} from './preprodBuildsTableStyles';
 
 interface PreprodBuildsSnapshotTableProps {
   builds: BuildDetailsApiResponse[];

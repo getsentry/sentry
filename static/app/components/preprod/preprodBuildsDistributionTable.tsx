@@ -14,8 +14,8 @@ import {
   PreprodBuildsCreatedRowCell,
   PreprodBuildsHeaderCells,
   PreprodBuildsRowCells,
-  BuildsTableGrid,
 } from './preprodBuildsTableCommon';
+import {BuildsTableGrid} from './preprodBuildsTableStyles';
 
 interface PreprodBuildsDistributionTableProps {
   builds: BuildDetailsApiResponse[];

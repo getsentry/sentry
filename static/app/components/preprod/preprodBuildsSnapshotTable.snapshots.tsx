@@ -11,12 +11,13 @@ jest.mock('@sentry/scraps/badge', () => ({
   ...jest.requireActual('sentry/components/core/badge/tag'),
 }));
 
-jest.mock('./preprodBuildsTableCommon', () => ({
+jest.mock('./preprodBuildsTableStyles', () => ({
+  ...jest.requireActual('./preprodBuildsTableStyles'),
   FullRowLink: ({to, children, ...props}: any) => (
     <a
       href={typeof to === 'string' ? to : '#'}
       {...props}
-      style={{display: 'contents', color: 'inherit', textDecoration: 'none'}}
+      style={{color: 'inherit', textDecoration: 'none'}}
     >
       {children}
     </a>

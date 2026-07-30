@@ -1,15 +1,14 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {FullRowLink} from 'sentry/components/preprod/preprodBuildsTableStyles';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCheckmark, IconCommit, IconNot} from 'sentry/icons';
@@ -204,31 +203,3 @@ export function PreprodBuildsCreatedRowCell({build}: {build: BuildDetailsApiResp
     </SimpleTable.RowCell>
   );
 }
-
-interface BuildsTableTracks {
-  withProject: string;
-  withoutProject: string;
-}
-
-export const BuildsTableGrid = styled(SimpleTable, {
-  shouldForwardProp: prop => prop !== 'tracks' && prop !== 'showProjectColumn',
-})<{tracks: BuildsTableTracks; showProjectColumn?: boolean}>`
-  overflow: auto;
-  grid-template-columns: ${p =>
-    p.showProjectColumn ? p.tracks.withProject : p.tracks.withoutProject};
-`;
-
-export const FullRowLink = styled(Link)`
-  cursor: pointer;
-  color: inherit;
-
-  &:hover {
-    color: inherit;
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-  }
-`;
