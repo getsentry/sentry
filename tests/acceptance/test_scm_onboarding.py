@@ -69,27 +69,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             yield
 
     def skip_to_setup_docs(self, platform_search: str, platform_label: str) -> None:
-        """Drive through the skip flow to setup-docs: skip connect → pick platform → create project."""
-        self.browser.click(xpath='//button[contains(., "Continue without a repo")]')
-
-        self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-        self.browser.wait_until(xpath='//*[text()="Select a platform"]')
-        input_el = self.browser.element('input[aria-autocomplete="list"]')
-        input_el.send_keys(platform_search)
-        self.browser.wait_until(
-            xpath=f'//p[@data-test-id="menu-list-item-label"][text()="{platform_label}"]'
-        )
-        self.browser.click(
-            xpath=f'//p[@data-test-id="menu-list-item-label"][text()="{platform_label}"]'
-        )
-        self.browser.click(xpath='//button[contains(., "Continue")]')
-
-        self.browser.wait_until('[data-test-id="onboarding-step-scm-project-details"]')
-        self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
-        self.browser.click(xpath='//button[contains(., "Create project")]')
-
-    def skip_to_setup_docs_control(self, platform_search: str, platform_label: str) -> None:
-        """Control-path variant: Continue on platform features auto-creates the project."""
+        """Skip connect → pick platform → Continue auto-creates the project."""
         self.browser.click(xpath='//button[contains(., "Continue without a repo")]')
 
         self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
@@ -104,90 +84,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
         )
         self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
         self.browser.click(xpath='//button[contains(., "Continue")]')
-
-    def test_scm_onboarding_happy_path(self) -> None:
-        """Full flow: welcome → connect repo → detected platform → create project."""
-        self.create_github_integration()
-
-        mock_repos = [
-            {
-                "name": "sentry",
-                "identifier": "getsentry/sentry",
-                "default_branch": "master",
-                "external_id": "12345",
-            },
-        ]
-
-        mock_platforms = {
-            "platforms": [
-                {
-                    "platform": "python-django",
-                    "language": "Python",
-                    "bytes": 50000,
-                    "confidence": "high",
-                    "priority": 1,
-                }
-            ],
-            "k_candidate": 0,
-            "k_reads_realized": 0,
-            "tree_entry_count": 0,
-            "is_truncated": False,
-        }
-
-        with (
-            self.feature(
-                {
-                    "organizations:onboarding-scm-experiment": True,
-                    "organizations:onboarding-scm-project-details-experiment": True,
-                }
-            ),
-            mock.patch(
-                "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
-                return_value=mock_repos,
-            ),
-            mock.patch(
-                "sentry.integrations.github.repository.GitHubRepositoryProvider._validate_repo",
-                return_value={"id": "12345"},
-            ),
-            mock.patch(
-                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
-                return_value=mock_platforms,
-            ),
-        ):
-            self.start_onboarding()
-
-            # SCM Connect: wait for integration to be detected, then search
-            self.browser.wait_until(xpath='//*[contains(text(), "Connected to")]')
-            # react-select renders a separate placeholder element, not an HTML
-            # placeholder attribute, so target the input by its ARIA role.
-            input_el = self.browser.element('input[aria-autocomplete="list"]')
-            input_el.send_keys("sentry")
-            self.browser.wait_until('[data-test-id="menu-list-item-label"]')
-            self.browser.click('[data-test-id="menu-list-item-label"]')
-            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
-            self.browser.click(xpath='//button[contains(., "Continue")]')
-
-            # Platform Features: select detected platform, then continue
-            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until('[role="radio"]')
-            self.browser.click('[role="radio"]')
-            self.browser.click(xpath='//button[contains(., "Continue")]')
-
-            # Project Details: defaults auto-fill from platform + team
-            self.browser.wait_until('[data-test-id="onboarding-step-scm-project-details"]')
-            self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
-            self.browser.click(xpath='//button[contains(., "Create project")]')
-
-            # Setup Docs: verify SDK heading renders, not just the step container
-            self.browser.wait_until(xpath='//h2[text()="Configure Django SDK"]')
-
-            project = Project.objects.get(organization=self.org)
-            assert project.platform == "python-django"
-            assert project.name == "python-django"
-            assert project.slug == "python-django"
-            assert_existing_projects_status(
-                self.org, active_project_ids=[project.id], deleted_project_ids=[]
-            )
 
     def test_scm_onboarding_reload_restores_connected_repo(self) -> None:
         """Reloading the platform-features step restores the connected repo from
@@ -224,7 +120,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.feature(
                 {
                     "organizations:onboarding-scm-experiment": True,
-                    "organizations:onboarding-scm-project-details-experiment": True,
                 }
             ),
             mock.patch(
@@ -327,7 +222,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.feature(
                 {
                     "organizations:onboarding-scm-experiment": True,
-                    "organizations:onboarding-scm-project-details-experiment": True,
                 }
             ),
             mock.patch(
@@ -374,46 +268,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
             self.browser.wait_until(xpath='//*[@role="radio"][contains(., "React")]')
             self.browser.wait_until_not(xpath='//*[@role="radio"][contains(., "Django")]')
-
-    def test_scm_onboarding_skip_integration(self) -> None:
-        """Skip flow: welcome → skip connect → manual platform → create project."""
-        with self.feature(
-            {
-                "organizations:onboarding-scm-experiment": True,
-                "organizations:onboarding-scm-project-details-experiment": True,
-            }
-        ):
-            self.start_onboarding()
-
-            # SCM Connect: skip
-            self.browser.click(xpath='//button[contains(., "Continue without a repo")]')
-
-            # Platform Features: manual picker
-            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(xpath='//*[text()="Select a platform"]')
-            input_el = self.browser.element('input[aria-autocomplete="list"]')
-            input_el.send_keys("React")
-            self.browser.wait_until(
-                xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]'
-            )
-            self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
-            self.browser.click(xpath='//button[contains(., "Continue")]')
-
-            # Project Details: defaults auto-fill
-            self.browser.wait_until('[data-test-id="onboarding-step-scm-project-details"]')
-            self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
-            self.browser.click(xpath='//button[contains(., "Create project")]')
-
-            # Setup Docs
-            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-
-            project = Project.objects.get(organization=self.org)
-            assert project.platform == "javascript-react"
-            assert project.name == "javascript-react"
-            assert project.slug == "javascript-react"
-            assert_existing_projects_status(
-                self.org, active_project_ids=[project.id], deleted_project_ids=[]
-            )
 
     def test_scm_onboarding_header_skip_onboarding(self) -> None:
         """Header skip on scm-platform-features navigates to issues with step-specific referrer."""
@@ -474,7 +328,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.feature(
                 {
                     "organizations:onboarding-scm-experiment": True,
-                    "organizations:onboarding-scm-project-details-experiment": True,
                 }
             ),
             mock.patch(
@@ -570,16 +423,12 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
             self.browser.click(xpath='//button[contains(., "Continue")]')
 
-            # Platform Features
+            # Platform Features: select detected platform, Continue auto-creates the project
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
             self.browser.wait_until('[role="radio"]')
             self.browser.click('[role="radio"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
             self.browser.click(xpath='//button[contains(., "Continue")]')
-
-            # Project Details
-            self.browser.wait_until('[data-test-id="onboarding-step-scm-project-details"]')
-            self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
-            self.browser.click(xpath='//button[contains(., "Create project")]')
 
             # Setup Docs
             self.browser.wait_until(xpath='//h2[text()="Configure Django SDK"]')
@@ -609,7 +458,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.feature(
                 {
                     "organizations:onboarding-scm-experiment": True,
-                    "organizations:onboarding-scm-project-details-experiment": True,
                 }
             ),
             mock.patch(
@@ -645,14 +493,10 @@ class ScmOnboardingTest(AcceptanceTestCase):
                 xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]'
             )
             self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
             self.browser.click(xpath='//button[contains(., "Continue")]')
 
-            # Project Details
-            self.browser.wait_until('[data-test-id="onboarding-step-scm-project-details"]')
-            self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
-            self.browser.click(xpath='//button[contains(., "Create project")]')
-
-            # Setup Docs
+            # Setup Docs: Continue auto-creates the project
             self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
 
             project = Project.objects.get(organization=self.org)
@@ -682,162 +526,15 @@ class ScmOnboardingTest(AcceptanceTestCase):
             input_el.send_keys("nonexistent-repo")
             self.browser.wait_until(xpath='//*[contains(text(), "No repositories found")]')
 
-    def test_scm_back_from_setup_docs_non_active_project(self) -> None:
-        """Non-active project is deleted on back-nav; re-creating produces a fresh project."""
-        with self.feature(
-            {
-                "organizations:onboarding-scm-experiment": True,
-                "organizations:onboarding-scm-project-details-experiment": True,
-            }
-        ):
-            self.start_onboarding()
-            self.skip_to_setup_docs("React", "React")
-
-            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-            project1 = Project.objects.get(organization=self.org)
-            assert project1.platform == "javascript-react"
-
-            # Navigate back — project has no events, so useBackActions deletes it.
-            self.browser.click('[aria-label="Back"]')
-            self.browser.wait_until('[data-test-id="onboarding-step-scm-project-details"]')
-            self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
-            self.browser.click(xpath='//button[contains(., "Create project")]')
-
-            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-            project2 = Project.objects.get(organization=self.org, slug="javascript-react", status=0)
-            assert project2.id != project1.id
-            assert_existing_projects_status(
-                self.org,
-                active_project_ids=[project2.id],
-                deleted_project_ids=[project1.id],
-            )
-
-    def test_scm_back_from_setup_docs_active_project_no_changes(self) -> None:
-        """Active project survives back-nav; clicking Create again reuses it (no duplicate)."""
-        with (
-            self.feature(
-                {
-                    "organizations:onboarding-scm-experiment": True,
-                    "organizations:onboarding-scm-project-details-experiment": True,
-                }
-            ),
-            self.projects_born_active(),
-        ):
-            self.start_onboarding()
-            self.skip_to_setup_docs("React", "React")
-
-            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-            project = Project.objects.get(organization=self.org)
-            assert Rule.objects.filter(project=project).count() == 1
-
-            # Project is active, so useBackActions does NOT delete it on back-nav.
-            self.browser.click('[aria-label="Back"]')
-            self.browser.wait_until('[data-test-id="onboarding-step-scm-project-details"]')
-            self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
-            self.browser.click(xpath='//button[contains(., "Create project")]')
-
-            # Reuse fast-path: same project, same rule.
-            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-            assert Project.objects.filter(organization=self.org, status=0).count() == 1
-            assert_existing_projects_status(
-                self.org, active_project_ids=[project.id], deleted_project_ids=[]
-            )
-            assert Rule.objects.filter(project=project).count() == 1
-
-    def test_scm_back_from_setup_docs_active_project_alert_changed(self) -> None:
-        """Changing the alert setting abandons the active project and creates a new one."""
-        with (
-            self.feature(
-                {
-                    "organizations:onboarding-scm-experiment": True,
-                    "organizations:onboarding-scm-project-details-experiment": True,
-                }
-            ),
-            self.projects_born_active(),
-        ):
-            self.start_onboarding()
-            self.skip_to_setup_docs("React", "React")
-
-            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-            project1 = Project.objects.get(organization=self.org)
-            assert Rule.objects.filter(project=project1).count() == 1
-
-            self.browser.click('[aria-label="Back"]')
-            self.browser.wait_until('[data-test-id="onboarding-step-scm-project-details"]')
-
-            # Switch alerts from "High priority issues" to "set up later".
-            self.browser.click(xpath='//button[@role="radio"][contains(., "set up alerts later")]')
-            self.browser.wait_until(
-                xpath='//button[@role="radio"][@aria-checked="true"][contains(., "set up alerts later")]'
-            )
-            self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
-            self.browser.click(xpath='//button[contains(., "Create project")]')
-
-            # New project is created with a suffixed slug; the old project is kept.
-            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-            active = Project.objects.filter(organization=self.org, status=0).order_by("id")
-            assert active.count() == 2
-            project2 = active.last()
-            assert project2 is not None
-            assert project2.id != project1.id
-            assert project2.platform == "javascript-react"
-            # "create later" → no alert rule on the new project; old rule survives.
-            assert Rule.objects.filter(project=project2).count() == 0
-            assert Rule.objects.filter(project=project1).count() == 1
-
-    def test_scm_back_from_setup_docs_active_project_platform_changed(self) -> None:
-        """Active project survives back-nav; changing platform creates a new project."""
-        with (
-            self.feature(
-                {
-                    "organizations:onboarding-scm-experiment": True,
-                    "organizations:onboarding-scm-project-details-experiment": True,
-                }
-            ),
-            self.projects_born_active(),
-        ):
-            self.start_onboarding()
-            self.skip_to_setup_docs("React", "React")
-
-            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-            project1 = Project.objects.get(organization=self.org)
-
-            # Navigate all the way back to platform selection and pick a different one.
-            self.browser.click('[aria-label="Back"]')
-            self.browser.wait_until('[data-test-id="onboarding-step-scm-project-details"]')
-            self.browser.click('[aria-label="Back"]')
-            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(xpath='//*[text()="Select a platform"]')
-            input_el = self.browser.element('input[aria-autocomplete="list"]')
-            input_el.send_keys("Vue")
-            self.browser.wait_until(xpath='//p[@data-test-id="menu-list-item-label"][text()="Vue"]')
-            self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="Vue"]')
-            self.browser.click(xpath='//button[contains(., "Continue")]')
-
-            self.browser.wait_until('[data-test-id="onboarding-step-scm-project-details"]')
-            self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
-            self.browser.click(xpath='//button[contains(., "Create project")]')
-
-            self.browser.wait_until(xpath='//h2[text()="Configure Vue SDK"]')
-            project2 = Project.objects.get(organization=self.org, platform="javascript-vue")
-            assert project2.id != project1.id
-            assert_existing_projects_status(
-                self.org,
-                active_project_ids=[project1.id, project2.id],
-                deleted_project_ids=[],
-            )
-            assert Rule.objects.filter(project=project2).count() == 1
-
     def test_scm_onboarding_control_skip_integration(self) -> None:
         """Control path skip flow: skip connect → manual platform → Continue auto-creates project."""
         with self.feature(
             {
                 "organizations:onboarding-scm-experiment": True,
-                "organizations:onboarding-scm-project-details-experiment": False,
             }
         ):
             self.start_onboarding()
-            self.skip_to_setup_docs_control("React", "React")
+            self.skip_to_setup_docs("React", "React")
 
             # Skips scm-project-details entirely and lands on setup-docs.
             self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
@@ -885,7 +582,6 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.feature(
                 {
                     "organizations:onboarding-scm-experiment": True,
-                    "organizations:onboarding-scm-project-details-experiment": False,
                 }
             ),
             mock.patch(
@@ -935,11 +631,10 @@ class ScmOnboardingTest(AcceptanceTestCase):
         with self.feature(
             {
                 "organizations:onboarding-scm-experiment": True,
-                "organizations:onboarding-scm-project-details-experiment": False,
             }
         ):
             self.start_onboarding()
-            self.skip_to_setup_docs_control("React", "React")
+            self.skip_to_setup_docs("React", "React")
 
             self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
             project1 = Project.objects.get(organization=self.org)
@@ -967,13 +662,12 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.feature(
                 {
                     "organizations:onboarding-scm-experiment": True,
-                    "organizations:onboarding-scm-project-details-experiment": False,
                 }
             ),
             self.projects_born_active(),
         ):
             self.start_onboarding()
-            self.skip_to_setup_docs_control("React", "React")
+            self.skip_to_setup_docs("React", "React")
 
             self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
             project = Project.objects.get(organization=self.org)
@@ -995,13 +689,12 @@ class ScmOnboardingTest(AcceptanceTestCase):
             self.feature(
                 {
                     "organizations:onboarding-scm-experiment": True,
-                    "organizations:onboarding-scm-project-details-experiment": False,
                 }
             ),
             self.projects_born_active(),
         ):
             self.start_onboarding()
-            self.skip_to_setup_docs_control("React", "React")
+            self.skip_to_setup_docs("React", "React")
 
             self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
             project1 = Project.objects.get(organization=self.org)
