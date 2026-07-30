@@ -63,5 +63,29 @@
         }
       }
     ]
+  },
+  {
+    "name": "dsn",
+    "description": "Display a copyable Sentry DSN (Data Source Name) string. Use this whenever presenting a DSN to the user — never output it as bare text.",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": ["value"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "DSN",
+        "data": {
+          "value": "https://examplePublicKey@o0.ingest.sentry.io/0"
+        }
+      }
+    ]
   }
 ]

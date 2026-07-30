@@ -44,6 +44,19 @@ export const SEER_EMBED_SCHEMAS = {
       },
     ],
   },
+  dsn: {
+    description:
+      'Display a copyable Sentry DSN (Data Source Name) string. ' +
+      'Use this whenever presenting a DSN to the user — never output it as bare text.',
+    level: ['block'],
+    schema: z.object({value: z.string()}),
+    examples: [
+      {
+        label: 'DSN',
+        data: {value: 'https://examplePublicKey@o0.ingest.sentry.io/0'},
+      },
+    ],
+  },
 } as const satisfies Record<string, SeerEmbedSchema>;
 
 export type SeerEmbedName = keyof typeof SEER_EMBED_SCHEMAS;

@@ -583,7 +583,7 @@ def create_objectstore_dif_from_id(
     metrics.distribution(
         "storage.put.size",
         file_size,
-        tags={"usecase": "debug-files", "compression": "none"},
+        tags={"usecase": "debug_files", "compression": "none"},
         unit="byte",
     )
 

@@ -9,13 +9,14 @@ from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.silo.base import SiloMode
 from sentry.spans.consumers.process_segments.factory import _process_segment_bytes
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import spans_process_segments_tasks
 from sentry.taskworker.producer import get_task_producer
-from sentry.utils.arroyo_producer import get_arroyo_producer
+from sentry.utils.arroyo_producer import get_arroyo_producer, get_producer
 from sentry.utils.kafka_config import get_topic_definition
 
 
@@ -33,6 +34,14 @@ _snuba_items_task_producer = get_task_producer(
     producer_name=_snuba_items_task_producer_name,
     producer_factory=partial(_get_snuba_items_producer, name=_snuba_items_task_producer_name),
 )
+
+_snuba_items_future_tracking_producer_name = "sentry.spans.process_segments.snuba_items_ftp"
+_snuba_items_future_tracking_producer = get_producer(
+    producer_name=_snuba_items_future_tracking_producer_name,
+    producer_factory=partial(
+        _get_snuba_items_producer, name=_snuba_items_future_tracking_producer_name
+    ),
+)
 _snuba_items_topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
 
 
@@ -45,5 +54,10 @@ _snuba_items_topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_t
     silo_mode=SiloMode.CELL,
 )
 def process_segment_task(segment_bytes: bytes) -> None:
+    producer = (
+        _snuba_items_future_tracking_producer
+        if options.get("tasks.producer.process-segments.rollout")
+        else _snuba_items_task_producer
+    )
     for payload in _process_segment_bytes(segment_bytes, start_new_transaction=False):
-        _snuba_items_task_producer.produce(_snuba_items_topic, payload)
+        producer.produce(_snuba_items_topic, payload)
