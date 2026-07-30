@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import logging
+from collections.abc import Iterator
 from datetime import datetime
 from typing import TypedDict
 
@@ -35,6 +36,7 @@ from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.snuba.referrer import Referrer
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
@@ -60,7 +62,10 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
     if not rows:
         return None
 
-    delete_replay_recordings(project_id, rows)
+    with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
+        filenames = list(_make_recording_filenames(project_id, rows))
+        pool.map(_delete_if_exists, filenames)
+
     delete_replays(project_id, [row["replay_id"] for row in rows])
     return None
 
@@ -71,14 +76,6 @@ def delete_replays(project_id: int, replay_ids: list[str]) -> None:
         publish_replay_event(archive_event(project_id, replay_id))
 
 
-def delete_replay_recordings(project_id: int, rows: list[MatchedRow]) -> None:
-    filenames = [
-        filename for row in rows for filename in _make_recording_filenames(project_id, row)
-    ]
-    with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
-        pool.map(_delete_if_exists, filenames)
-
-
 def _delete_if_exists(filename: str) -> None:
     """Delete the blob if it exists or silence the 404."""
     try:
@@ -87,24 +84,22 @@ def _delete_if_exists(filename: str) -> None:
         pass
 
 
-def _make_recording_filenames(project_id: int, row: MatchedRow) -> list[str]:
-    # Null segment_ids can cause this to fail. If no segments were ingested then we can skip
-    # deleting the segements.
-    if row["max_segment_id"] is None:
-        return []
+def _make_recording_filenames(project_id: int, rows: list[MatchedRow]) -> Iterator[str]:
+    for row in rows:
+        # Null segment_ids can cause this to fail. If no segments were ingested then we can skip
+        # deleting the segements.
+        if row["max_segment_id"] is None:
+            continue
 
-    # We assume every segment between 0 and the max_segment_id exists. Its a waste of time to
-    # delete a non-existent segment but its not so significant that we'd want to query ClickHouse
-    # to verify it exists.
-    replay_id = row["replay_id"]
-    retention_days = row["retention_days"]
+        # We assume every segment between 0 and the max_segment_id exists. Its a waste of time to
+        # delete a non-existent segment but its not so significant that we'd want to query ClickHouse
+        # to verify it exists.
+        replay_id = row["replay_id"]
+        retention_days = row["retention_days"]
 
-    filenames = []
-    for segment_id in range(row["max_segment_id"] + 1):
-        segment = RecordingSegmentStorageMeta(project_id, replay_id, segment_id, retention_days)
-        filenames.append(make_recording_filename(segment))
-
-    return filenames
+        for segment_id in range(row["max_segment_id"] + 1):
+            segment = RecordingSegmentStorageMeta(project_id, replay_id, segment_id, retention_days)
+            yield make_recording_filename(segment)
 
 
 class MatchedRow(TypedDict):
@@ -169,7 +164,7 @@ def fetch_rows_matching_pattern(
             execute_query,
             query,
             {"tenant_id": Organization.objects.filter(project__id=project_id).get().id},
-            "replays.delete_replays_bulk",
+            Referrer.REPLAYS_DELETE_REPLAYS_BULK.value,
         )
     )
 
