@@ -13,7 +13,7 @@ from rest_framework import serializers
 from sentry import features, options
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.constants import ALL_ACCESS_PROJECTS, ObjectStatus
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.issue_search import parse_search_query
@@ -30,6 +30,7 @@ from sentry.models.dashboard_widget import (
     DatasetSourcesTypes,
     get_max_widget_limit,
 )
+from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
 from sentry.search.eap.trace_metrics.validator import extract_trace_metric_from_aggregate
@@ -44,6 +45,7 @@ from sentry.tasks.on_demand_metrics import (
     set_or_create_on_demand_state,
 )
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.snuba import UnqualifiedQueryError
 from sentry.utils.strings import oxfordize_list
 from sentry.utils.tracing import set_span_data, start_span
 
@@ -285,7 +287,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
         params: ParamsType = {
             "start": datetime.now() - timedelta(days=1),
             "end": datetime.now(),
-            "project_id": [p.id for p in self.context["projects"]],
+            "project_id": self._get_validation_project_ids(),
             "organization_id": self.context["organization"].id,
             "environment": self.context.get("environment", []),
         }
@@ -333,6 +335,13 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
         except InvalidSearchQuery as err:
             data["discover_query_error"] = {"conditions": [f"Invalid conditions: {err}"]}
             return data
+        except UnqualifiedQueryError:
+            # Fixed message: sibling SnubaError types carry Snuba/ClickHouse
+            # internals that must not reach API consumers.
+            data["discover_query_error"] = {
+                "conditions": ["Could not validate query: no project available."]
+            }
+            return data
 
         # TODO(dam): Add validation for metrics fields/queries
         try:
@@ -350,6 +359,29 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             data["discover_query_error"] = {"orderby": f"Invalid orderby: {err}"}
 
         return data
+
+    def _get_validation_project_ids(self) -> list[int]:
+        """Project ids used only to satisfy the query builder during validation.
+
+        Which projects are in scope doesn't affect the outcome, so any active
+        one in the organization will do when the context list is empty. That
+        happens routinely: `get_projects` filters on team membership, while
+        `allow_joinleave` orgs grant project access without it, so any teamless
+        member of an open-membership org lands here despite seeing everything.
+        Not an access check — no query runs against the borrowed project.
+        """
+        project_ids = [p.id for p in self.context["projects"]]
+        if project_ids:
+            return project_ids
+
+        fallback_id = (
+            Project.objects.filter(
+                organization_id=self.context["organization"].id, status=ObjectStatus.ACTIVE
+            )
+            .values_list("id", flat=True)
+            .first()
+        )
+        return [fallback_id] if fallback_id is not None else []
 
     def _get_attr(self, data, attr, empty_value=None):
         value = data.get(attr)
