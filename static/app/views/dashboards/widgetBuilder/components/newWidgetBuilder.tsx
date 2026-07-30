@@ -32,7 +32,10 @@ import {
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
-import {getWidgetConfigError} from 'sentry/views/dashboards/utils/getWidgetConfigError';
+import {
+  getWidgetConfigError,
+  hasUnresolvedTraceMetric,
+} from 'sentry/views/dashboards/utils/getWidgetConfigError';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import {
   DEFAULT_WIDGET_DRAG_POSITIONING,
@@ -54,9 +57,7 @@ import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
-import {getSelectedAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregate';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
@@ -260,35 +261,27 @@ export function WidgetPreviewContainer({
   const {state} = useWidgetBuilderContext();
 
   const widget = convertBuilderStateToWidget(state);
-  const isMetricsDataset = widget.widgetType === WidgetType.TRACEMETRICS;
+  // A trace-metric widget with an unresolved metric will auto-select one once its
+  // options load — the same predicate getWidgetConfigError uses — so only fetch the
+  // options when we actually need to, and gate the resolving/no-metrics states on it.
+  const needsMetric =
+    widget.widgetType === WidgetType.TRACEMETRICS && hasUnresolvedTraceMetric(widget);
   const {data: metricOptions, isFetching: isFetchingMetricOptions} = useMetricOptions({
-    enabled: isMetricsDataset,
+    enabled: needsMetric,
   });
   const hasMetricOptions = (metricOptions?.data?.length ?? 0) > 0;
-  const selectedAggregate = getSelectedAggregate(widget);
-  const hasSelectedMetric = Boolean(
-    selectedAggregate && extractTraceMetricFromColumn(selectedAggregate)
-  );
 
-  // A metric auto-selects once its options load, so a metrics widget with none
-  // picked shows loading while that fetch is in flight. Once the fetch settles the
-  // widget either resolves or falls through to an error below, so one that can never
-  // resolve — e.g. a heat map in a project with no distribution metrics — surfaces
-  // the error instead of spinning forever.
-  const isResolving = isMetricsDataset && !hasSelectedMetric && isFetchingMetricOptions;
-  const hasNoMetrics =
-    isMetricsDataset &&
-    !hasSelectedMetric &&
-    !isFetchingMetricOptions &&
-    !hasMetricOptions;
+  // Loading while the options fetch is in flight; once it settles with no options
+  // the metric can never auto-select, so fall through to the error.
+  const isResolving = needsMetric && isFetchingMetricOptions;
+  const hasNoMetrics = needsMetric && !isFetchingMetricOptions && !hasMetricOptions;
 
   const message =
     getWidgetConfigError(widget) ??
     (isQueryConditionInvalid ? t("This widget's query filter is invalid.") : undefined);
 
-  // A renderable widget always wins — `isResolving`/`hasNoMetrics` only decide how to
-  // present a widget that can't render yet (e.g. an equation-mode widget has no
-  // selected metric but is perfectly valid, so it must not get stuck loading).
+  // A renderable widget always wins; `isResolving`/`hasNoMetrics` only decide how to
+  // present one that can't render yet.
   let previewStatus: WidgetPreviewStatus;
   if (!message) {
     previewStatus = {status: 'ready'};

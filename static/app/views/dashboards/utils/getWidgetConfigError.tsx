@@ -19,17 +19,9 @@ export function getWidgetConfigError(widget: Widget): string | undefined {
     return t('The widget configuration is not valid. Please add a "Visualize" field.');
   }
 
-  // Trace-metric widgets encode the metric in the aggregate (fn(value, name, type,
-  // unit)); if any non-equation aggregate doesn't resolve to a metric, nothing can
-  // render. Applies to every display type, including heat maps. Equations carry no
-  // metric tuple and reference base aggregates that are validated on their own.
-  const hasUnresolvedMetric =
-    widget.widgetType === WidgetType.TRACEMETRICS &&
-    widget.queries
-      .flatMap(query => query.aggregates)
-      .filter(aggregate => !isEquation(aggregate))
-      .some(aggregate => !extractTraceMetricFromColumn(explodeField({field: aggregate})));
-  if (hasUnresolvedMetric) {
+  // Trace-metric widgets encode the metric in the aggregate; if it doesn't resolve,
+  // nothing can render (applies to every display type, including heat maps).
+  if (widget.widgetType === WidgetType.TRACEMETRICS && hasUnresolvedTraceMetric(widget)) {
     return t('This widget is missing a metric to visualize.');
   }
 
@@ -45,4 +37,18 @@ export function getWidgetConfigError(widget: Widget): string | undefined {
   }
 
   return undefined;
+}
+
+/**
+ * Whether any of a trace-metric widget's aggregates fail to resolve to a metric
+ * (`fn(value, name, type, unit)`). This is the same predicate the metric selector's
+ * auto-select uses, so it also answers "is a metric about to be filled in?".
+ * Equations carry no metric tuple and reference base aggregates validated on their
+ * own, so they're skipped. Callers must confirm the trace-metrics dataset first.
+ */
+export function hasUnresolvedTraceMetric(widget: Widget): boolean {
+  return widget.queries
+    .flatMap(query => query.aggregates)
+    .filter(aggregate => !isEquation(aggregate))
+    .some(aggregate => !extractTraceMetricFromColumn(explodeField({field: aggregate})));
 }
