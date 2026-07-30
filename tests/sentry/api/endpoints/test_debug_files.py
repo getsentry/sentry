@@ -342,6 +342,33 @@ class DebugFilesTest(DebugFilesTestCases):
 
 
 @requires_objectstore
+class DebugFileObjectstoreExclusiveUploadTest(DebugFilesTestCases):
+    """Zip/dSYM uploads under organizations:objectstore-debugfiles-exclusive-write."""
+
+    def test_exclusive_write_zip_upload_is_objectstore_only(self) -> None:
+        with self.feature(
+            {
+                "organizations:objectstore-debugfiles-exclusive-write": True,
+                "organizations:objectstore-debugfiles-write": False,
+                "organizations:objectstore-debugfiles-read": True,
+            }
+        ):
+            response = self._upload_proguard(self.url, PROGUARD_UUID)
+
+        assert response.status_code == 201, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["uuid"] == PROGUARD_UUID
+        assert response.data[0]["sha1"] == "e6d3c5185dac63eddfdc1a5edfffa32d46103b44"
+
+        dif = ProjectDebugFile.objects.get(project_id=self.project.id, debug_id=PROGUARD_UUID)
+        assert dif.file_id is None
+        assert dif.storage_path is not None
+        assert dif.content_type == "text/x-proguard+plain"
+        assert dif.get_file().read() == PROGUARD_SOURCE
+        assert not File.objects.filter(type="project.dif").exists()
+
+
+@requires_objectstore
 class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
     """Explicit coverage of both redirect branches for Objectstore-backed debug files."""
 

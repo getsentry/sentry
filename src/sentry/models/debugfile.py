@@ -613,6 +613,20 @@ def create_objectstore_dif_from_id(
     return dif, True
 
 
+def _checksum_and_size(fileobj: IO[bytes]) -> tuple[str, int]:
+    """Returns ``(sha1_hex, size)`` for ``fileobj`` and rewinds it to the start."""
+    file_size = 0
+    h = hashlib.sha1()
+    while True:
+        chunk = fileobj.read(16384)
+        if not chunk:
+            break
+        h.update(chunk)
+        file_size += len(chunk)
+    fileobj.seek(0, 0)
+    return h.hexdigest(), file_size
+
+
 def create_dif_from_id(
     project: Project,
     meta: DifMeta,
@@ -641,16 +655,7 @@ def create_dif_from_id(
         checksum = file.checksum
         assert checksum is not None
     elif fileobj is not None:
-        file_size = 0
-        h = hashlib.sha1()
-        while True:
-            chunk = fileobj.read(16384)
-            if not chunk:
-                break
-            h.update(chunk)
-            file_size += len(chunk)
-        checksum = h.hexdigest()
-        fileobj.seek(0, 0)
+        checksum, file_size = _checksum_and_size(fileobj)
     else:
         raise RuntimeError("missing file object")
 
@@ -1018,10 +1023,17 @@ def create_debug_file_from_dif(
     """Create a ProjectDebugFile from a dif (Debug Information File) and
     return an array of created objects.
     """
+    exclusive = features.has(
+        "organizations:objectstore-debugfiles-exclusive-write", project.organization
+    )
     rv = []
     for meta in to_create:
         with open(meta.path, "rb") as f:
-            dif, created = create_dif_from_id(project, meta, fileobj=f)
+            if exclusive:
+                checksum, file_size = _checksum_and_size(f)
+                dif, created = create_objectstore_dif_from_id(project, meta, f, checksum, file_size)
+            else:
+                dif, created = create_dif_from_id(project, meta, fileobj=f)
             if created:
                 rv.append(dif)
     return rv
