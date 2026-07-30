@@ -259,7 +259,6 @@ export function WidgetPreviewContainer({
 }) {
   const {state} = useWidgetBuilderContext();
 
-  // The builder owns the preview's validity/loading decision.
   const widget = convertBuilderStateToWidget(state);
   const isMetricsDataset = widget.widgetType === WidgetType.TRACEMETRICS;
   const {data: metricOptions, isFetching: isFetchingMetricOptions} = useMetricOptions({
@@ -277,7 +276,6 @@ export function WidgetPreviewContainer({
   // resolve — e.g. a heat map in a project with no distribution metrics — surfaces
   // the error instead of spinning forever.
   const isResolving = isMetricsDataset && !hasSelectedMetric && isFetchingMetricOptions;
-  // The options finished loading and the selected projects have no metrics to pick.
   const hasNoMetrics =
     isMetricsDataset &&
     !hasSelectedMetric &&
