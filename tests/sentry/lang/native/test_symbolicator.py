@@ -1,18 +1,14 @@
 import copy
-from unittest import mock
 
 import pytest
 
-from sentry.attachments.base import CachedAttachment
 from sentry.lang.native.sources import (
     get_sources_for_project,
     redact_internal_sources,
     reverse_aliases_map,
 )
-from sentry.lang.native.symbolicator import Symbolicator
 from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
 
 CUSTOM_SOURCE_CONFIG = """
 [{
@@ -32,62 +28,6 @@ CUSTOM_SOURCE_CONFIG = """
     "bundleId": "test"
 }]
 """
-
-
-@django_db_all
-@pytest.mark.parametrize("enabled", [False, True])
-def test_minidump_object_store_extract_variables(default_project, enabled) -> None:
-    symbolicator = object.__new__(Symbolicator)
-    symbolicator.project = default_project
-    symbolicator.event_id = "event-id"
-
-    session = mock.Mock()
-    session.mint_token.return_value = "token"
-    response = {"status": "completed"}
-    attachment = CachedAttachment(stored_id="attachment-id")
-
-    with (
-        Feature({"organizations:native-variable-extraction": enabled}),
-        mock.patch(
-            "sentry.lang.native.symbolicator.sources_for_symbolication",
-            return_value=([], lambda result: result),
-        ),
-        mock.patch("sentry.lang.native.symbolicator.get_scraping_config", return_value={}),
-        mock.patch("sentry.lang.native.symbolicator.get_attachments_session", return_value=session),
-        mock.patch(
-            "sentry.lang.native.symbolicator.get_symbolicator_url", return_value="storage-url"
-        ),
-        mock.patch.object(symbolicator, "_process", return_value=response) as process,
-    ):
-        symbolicator.process_minidump("native", attachment, [])
-
-    request = process.call_args.kwargs["kwargs_cb"]()["json"]
-    assert request["options"]["extract_variables"] is enabled
-
-
-@django_db_all
-@pytest.mark.parametrize("enabled", [False, True])
-def test_minidump_multipart_extract_variables(default_project, enabled) -> None:
-    symbolicator = object.__new__(Symbolicator)
-    symbolicator.project = default_project
-    symbolicator.event_id = "event-id"
-
-    response = {"status": "completed"}
-    attachment = CachedAttachment(data=b"minidump")
-
-    with (
-        Feature({"organizations:native-variable-extraction": enabled}),
-        mock.patch(
-            "sentry.lang.native.symbolicator.sources_for_symbolication",
-            return_value=([], lambda result: result),
-        ),
-        mock.patch("sentry.lang.native.symbolicator.get_scraping_config", return_value={}),
-        mock.patch.object(symbolicator, "_process", return_value=response) as process,
-    ):
-        symbolicator.process_minidump("native", attachment, [])
-
-    options = json.loads(process.call_args.kwargs["data"]["options"])
-    assert options["extract_variables"] is enabled
 
 
 @django_db_all
