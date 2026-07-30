@@ -629,37 +629,15 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
             reached_stopping_point = current_step == stopping_step
 
-        fixability = cls.determine_fixability(
-            organization,
-            state,
-            current_step,
+        cls.determine_fixability(
+            organization=organization,
+            group=group,
+            run_id=run_id,
+            state=state,
+            step=current_step,
+            referrer=referrer,
+            reached_stopping_point=reached_stopping_point,
         )
-        if fixability is not None:
-            analytics.record(
-                AiAutofixIntrospectionEvent(
-                    organization_id=organization.id,
-                    project_id=group.project_id,
-                    group_id=group.id,
-                    run_id=run_id,
-                    referrer=referrer.value,
-                    step=current_step.value,
-                    action=fixability.assessment.value,
-                    reached_stopping_point=reached_stopping_point,
-                )
-            )
-            logger.info(
-                "autofix.on_completion_hook.introspection",
-                extra={
-                    "organization_id": organization.id,
-                    "project_id": group.project_id,
-                    "group_id": group.id,
-                    "referrer": referrer.value,
-                    "step": current_step.value,
-                    "action": fixability.assessment.value,
-                    "reason": fixability.reason,
-                    "reached_stopping_point": reached_stopping_point,
-                },
-            )
 
         # PR iteration runs against an existing PR rather than the automated
         # pipeline. Once the agent finishes iterating, push the new changes to
@@ -753,9 +731,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     @classmethod
     def determine_fixability(
         cls,
+        *,
         organization: Organization,
+        group: Group,
+        run_id: int,
         state: SeerRunState,
         step: AutofixStep,
+        referrer: AutofixReferrer,
+        reached_stopping_point: bool,
     ) -> FixabilityAssessment | None:
         if step != AutofixStep.ROOT_CAUSE:
             return None
@@ -769,7 +752,35 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if artifact is None:
             return None
 
-        return artifact.fixability
+        fixability = artifact.fixability
+
+        analytics.record(
+            AiAutofixIntrospectionEvent(
+                organization_id=organization.id,
+                project_id=group.project_id,
+                group_id=group.id,
+                run_id=run_id,
+                referrer=referrer.value,
+                step=step.value,
+                action=fixability.assessment,
+                reached_stopping_point=reached_stopping_point,
+            )
+        )
+        logger.info(
+            "autofix.on_completion_hook.introspection",
+            extra={
+                "organization_id": organization.id,
+                "project_id": group.project_id,
+                "group_id": group.id,
+                "referrer": referrer.value,
+                "step": step.value,
+                "action": fixability.assessment,
+                "reason": fixability.reason,
+                "reached_stopping_point": reached_stopping_point,
+            },
+        )
+
+        return fixability
 
     @classmethod
     def _iteration_terminal_errored_repos(cls, state: SeerRunState) -> list[str]:
