@@ -369,7 +369,7 @@ export function modifyFilterOperatorQuery(
   }
 
   const {negated, internalOp} = termOperatorToInternal(newOperator);
-  const key = formatFilterKeyForSearch(getKeyName(token.key), fieldDefinition);
+  const key = formatExistingFilterKeyForSearch(token.key, fieldDefinition);
   const prefix = negated ? '!' : '';
   const replacement = `${prefix}${key}:${internalOp}${stringifyToken(token.value)}`;
 
@@ -689,7 +689,7 @@ export function modifyFilterValue(
   newValue = newValue.replace(/\*\*+/g, '*');
 
   const currentKey = stringifyToken(token.key);
-  const key = formatFilterKeyForSearch(getKeyName(token.key), fieldDefinition);
+  const key = formatExistingFilterKeyForSearch(token.key, fieldDefinition);
 
   // No operator or key change — just replace the value.
   if (newOp === undefined && key === currentKey) {
@@ -747,7 +747,7 @@ function replaceFilterValueAndFormatKey(
   value: string,
   fieldDefinition: FieldDefinition | null
 ): QueryBuilderState {
-  const key = formatFilterKeyForSearch(getKeyName(token.key), fieldDefinition);
+  const key = formatExistingFilterKeyForSearch(token.key, fieldDefinition);
   const replacements: Array<{replacement: string; token: TokenResult<Token>}> = [
     {token: token.value, replacement: value},
   ];
@@ -756,6 +756,19 @@ function replaceFilterValueAndFormatKey(
   }
 
   return {...state, query: multipleReplaceQueryToken(state.query, replacements)};
+}
+
+function formatExistingFilterKeyForSearch(
+  key: TokenResult<Token.FILTER>['key'],
+  fieldDefinition: FieldDefinition | null
+): string {
+  const serializedKey = stringifyToken(key);
+  if (key.type !== Token.KEY_SIMPLE) {
+    return serializedKey;
+  }
+
+  const formattedKey = formatFilterKeyForSearch(key.value, fieldDefinition);
+  return formattedKey === key.value ? serializedKey : formattedKey;
 }
 
 // Normalizes a filter value so that different surface representations of the

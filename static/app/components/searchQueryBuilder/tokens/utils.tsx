@@ -14,7 +14,10 @@ import {
   WildcardOperators,
   type ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
-import {quoteFilterKey} from 'sentry/components/searchSyntax/utils';
+import {
+  isRawFilterKeyWithColon,
+  quoteFilterKey,
+} from 'sentry/components/searchSyntax/utils';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -234,8 +237,7 @@ export function formatFilterKeyForSearch(
   key: string,
   fieldDefinition: FieldDefinition | null
 ): string {
-  const canUseExplicitTagSyntax = key.includes(':') && /^[\w.:@-]+$/.test(key);
-  if (!canUseExplicitTagSyntax) {
+  if (!isRawFilterKeyWithColon(key)) {
     return key;
   }
 

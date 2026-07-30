@@ -26,6 +26,12 @@ describe('formatFilterKeyForSearch', () => {
     );
   });
 
+  it('quotes colon-containing keys with at signs when their type is unknown', () => {
+    expect(formatFilterKeyForSearch('imaginary@attribute:made_up_key', null)).toBe(
+      '"imaginary@attribute:made_up_key"'
+    );
+  });
+
   it('preserves existing explicit tag keys', () => {
     expect(
       formatFilterKeyForSearch('tags[imaginary.attribute:made_up_key,string]', {

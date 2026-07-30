@@ -41,12 +41,15 @@ type VisitorFn<T> = (opts: {
   token: TokenResult<Token>;
 }) => null | TokenResultFoundError | typeof skipTokenMarker;
 
+export function isRawFilterKeyWithColon(key: string): boolean {
+  return key.includes(':') && /^[\w.:@-]+$/.test(key);
+}
+
 export function quoteFilterKey(key: string): string {
   const negated = key.startsWith('!');
   const keyWithoutNegation = negated ? key.slice(1) : key;
-  const isSimpleKey = /^[\w.:-]+$/.test(keyWithoutNegation);
 
-  if (isSimpleKey && keyWithoutNegation.includes(':')) {
+  if (isRawFilterKeyWithColon(keyWithoutNegation)) {
     return `${negated ? '!' : ''}"${keyWithoutNegation}"`;
   }
 

@@ -152,12 +152,14 @@ describe('MutableSearch', () => {
       results.addContainsFilterValue('!imaginary.attribute:made_up_key', 'fdsa');
       results.addFilterValue('tags[imaginary.attribute:made_up_key,string]', 'typed');
       results.addFilterValue('has', 'imaginary.attribute:made_up_key');
+      results.addFilterValue('imaginary@attribute:made_up_key', 'at_sign');
 
       expect(results.formatString()).toBe(
         `"imaginary.attribute:made_up_key":asdf ` +
           `!"imaginary.attribute:made_up_key":${WildcardOperators.CONTAINS}fdsa ` +
           `tags[imaginary.attribute:made_up_key,string]:typed ` +
-          `has:"imaginary.attribute:made_up_key"`
+          `has:"imaginary.attribute:made_up_key" ` +
+          `"imaginary@attribute:made_up_key":at_sign`
       );
     });
 

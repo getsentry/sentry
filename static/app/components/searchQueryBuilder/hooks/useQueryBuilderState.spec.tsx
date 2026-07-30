@@ -408,3 +408,54 @@ describe('typed filter keys containing colons', () => {
     ).toBe(`tags[${filterKey},string]:[foo,bar]`);
   });
 });
+
+describe('syntax-bearing filter keys', () => {
+  function getFilterToken(query: string) {
+    const parsed = parseQueryBuilderValue(query, () => null);
+    const token = parsed?.find(t => t.type === Token.FILTER);
+    if (!token) {
+      throw new Error(`No filter token found in query: ${query}`);
+    }
+    return token;
+  }
+
+  it('preserves an aggregate key when updating its value', () => {
+    const query = 'count():>100';
+
+    expect(modifyFilterValue(query, getFilterToken(query), '200')).toBe('count():>200');
+  });
+
+  it('preserves an aggregate key and arguments when updating its operator', () => {
+    const query = 'count_if(imaginary_field,equals,fictional_value):>100';
+
+    expect(
+      modifyFilterOperatorQuery(query, getFilterToken(query), TermOperator.LESS_THAN)
+    ).toBe('count_if(imaginary_field,equals,fictional_value):<100');
+  });
+
+  it('preserves untyped explicit tag syntax when updating a value', () => {
+    const query = 'tags[imaginary_tag]:fictional_value';
+
+    expect(
+      modifyFilterValue(query, getFilterToken(query), 'alternate_fictional_value')
+    ).toBe('tags[imaginary_tag]:alternate_fictional_value');
+  });
+
+  it('preserves untyped explicit tag syntax when toggling a multi-select value', () => {
+    const query = 'tags[imaginary_tag]:fictional_value';
+    const state = {
+      query,
+      committedQuery: query,
+      focusOverride: null,
+      clearAskSeerFeedback: false,
+    };
+
+    expect(
+      multiSelectTokenValue(state, {
+        type: 'TOGGLE_FILTER_VALUE',
+        token: getFilterToken(query),
+        value: 'alternate_fictional_value',
+      }).query
+    ).toBe('tags[imaginary_tag]:[fictional_value,alternate_fictional_value]');
+  });
+});
