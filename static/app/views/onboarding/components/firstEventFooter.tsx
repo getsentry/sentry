@@ -85,7 +85,7 @@ export function FirstEventFooter({
       <StatusWrapper
         align="center"
         justify="center"
-        display={{'screen:2xs': 'none', 'screen:sm': 'flex'}}
+        display={{zero: 'none', xl: 'flex'}}
         initial="initial"
         animate="animate"
         exit="exit"
@@ -181,7 +181,6 @@ const WaitingIndicator = styled(motion.div)`
   background-color: ${p => p.theme.colors.pink400};
 `;
 
-// Sets the font size its text children inherit — the global base is smaller.
 const StatusWrapper = styled(motion.create(Flex))`
   font-size: ${p => p.theme.font.size.md};
 `;
@@ -192,13 +191,10 @@ const LeadingSlot = styled('div')`
   margin: auto ${p => p.theme.space['3xl']};
 `;
 
-// Container's render-prop form styles the Link's own anchor rather than wrapping
-// it, so the responsive display lands on the element that has to disappear.
-// Viewport-driven to match the fixed footer bar it sits in — see GridFooter.
 function SkipOnboardingLink(props: LinkProps) {
   return (
     <Container
-      display={{'screen:2xs': 'none', 'screen:sm': 'block'}}
+      display={{zero: 'none', xl: 'block'}}
       margin="auto 3xl"
       whiteSpace="nowrap"
     >

@@ -13,10 +13,6 @@ const motionProps = {
   transition: {staggerChildren: 0.2},
 };
 
-/**
- * Height of the fixed footer bar. Exported so steps can reserve matching bottom
- * clearance — the bar overlays their content. Too large for the space scale.
- */
 export const FOOTER_HEIGHT = '72px';
 
 const footerChromeStyles = (theme: Theme) => css`
@@ -38,16 +34,14 @@ export function GenericFooter(
 
 export function GridFooter(props: React.ComponentProps<typeof motion.div> & GridProps) {
   return (
-    <MotionGrid
-      // Viewport-driven (`screen:`) rather than container-driven: the bar is
-      // `position: fixed` at `width: 100%`, so its own width is the viewport's.
-      // Below sm the leading and status slots hide themselves, which takes them
-      // out of grid flow — so a single track leaves the one remaining slot
-      // spanning the full width, flush to the trailing edge.
-      columns={{'screen:2xs': '1fr', 'screen:sm': 'repeat(3, 1fr)'}}
-      {...motionProps}
-      {...props}
-    />
+    <FooterChrome>
+      <MotionGrid
+        height="100%"
+        columns={{zero: '1fr', xl: 'repeat(3, 1fr)'}}
+        {...motionProps}
+        {...props}
+      />
+    </FooterChrome>
   );
 }
 
@@ -56,9 +50,10 @@ const StyledFlex = styled(Flex)`
   justify-content: space-between;
 `;
 
-const StyledGrid = styled(Grid)`
+const FooterChrome = styled('div')`
   ${p => footerChromeStyles(p.theme)};
+  container-type: inline-size;
 `;
 
 const MotionFlex = motion.create(StyledFlex);
-const MotionGrid = motion.create(StyledGrid);
+const MotionGrid = motion.create(Grid);

@@ -441,10 +441,12 @@ export function OnboardingWithoutContext() {
         hasScmOnboarding={hasScmOnboarding}
       >
         {hasScmOnboarding ? null : (
-          <AdaptivePageCorners
-            // Controls the current corner variant
-            animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
-          />
+          <PageCornersQueryContainer>
+            <AdaptivePageCorners
+              // Controls the current corner variant
+              animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
+            />
+          </PageCornersQueryContainer>
         )}
         {stepIndex > 0 && !hasScmOnboarding && (
           <BackMotionDiv
@@ -505,9 +507,6 @@ function Onboarding() {
   );
 }
 
-// Stays a viewport `@media`: this box holds the step's `position: fixed` footer,
-// so making it a query container would re-anchor that footer to it instead of
-// the viewport.
 const OnboardingContainerNewWelcomeUI = styled('div')<{
   hasFooter: boolean;
 }>`
@@ -576,12 +575,17 @@ const OnboardingStepNewUi = styled(motion.div)`
   justify-content: center;
 `;
 
-// Stays a viewport `@media`: the corners span the full onboarding container,
-// which itself just tracks the window, so there is no narrower box to query.
+const PageCornersQueryContainer = styled('div')`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  container-type: inline-size;
+`;
+
 const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;
   overflow: hidden;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     --corner-scale: 0.5;
   }
 `;
