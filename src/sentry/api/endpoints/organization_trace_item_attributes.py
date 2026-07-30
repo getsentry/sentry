@@ -1270,12 +1270,20 @@ def adjust_start_end_window(start_date: datetime, end_date: datetime) -> tuple[d
 
 def full_retention_window() -> tuple[datetime, datetime]:
     """
-    The widest window we can query, used by context existence checks that must
-    always look at all of an org's data regardless of any `statsPeriod`/`start`/
-    `end` filters passed on the request. Anchored to the default (max) stats
-    period so a narrow user-supplied range can't cause a false negative.
+    The widest window we can query at full fidelity, used by context existence
+    checks that must always look at all of an org's data regardless of any
+    `statsPeriod`/`start`/`end` filters passed on the request, so a narrow
+    user-supplied range can't cause a false negative.
+
+    Anchored to EAP's full-fidelity (tier 1) retention rather than the 90 day
+    API default. Tier 1 only holds ~30 days, so a wider window can't surface
+    anything extra -- it only pushes the query past Snuba's downsampling
+    boundary, which routes it to a sampled tier that holds a fraction of the
+    items and would make existence checks return false negatives.
     """
-    start_date, end_date = default_start_end_dates()
+    start_date, end_date = default_start_end_dates(
+        default_stats_period=timedelta(days=constants.EAP_FULL_FIDELITY_QUERY_DAYS)
+    )
     return adjust_start_end_window(start_date, end_date)
 
 

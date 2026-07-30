@@ -139,6 +139,17 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
     "array": ARRAY,
 }
 
+# How far back EAP keeps full-fidelity (tier 1) data. Downsampled tiers retain items for
+# much longer, but Snuba routes any query whose window starts beyond this boundary to a
+# sampled tier, so this is the widest window that still sees every item.
+EAP_FULL_FIDELITY_RETENTION_DAYS = 30
+
+# Snuba downsamples EAP queries starting more than 31 days ago, so a 30 day lookback that
+# then gets floored to midnight (see `adjust_start_end_window`) leaves as little as a
+# second of headroom just before midnight UTC. Stay a day inside the boundary so callers
+# that widen the window to whole days can't cross it.
+EAP_FULL_FIDELITY_QUERY_DAYS = EAP_FULL_FIDELITY_RETENTION_DAYS - 1
+
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py
 # The RPC limits us to 10100 points per timeseries
 # MAX 1 minute granularity over 7 days (10080 buckets) + extra buckets to allow for partial time buckets on
