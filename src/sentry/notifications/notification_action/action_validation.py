@@ -45,18 +45,12 @@ class EmailActionValidatorHandler:
         except (TypeError, ValueError):
             raise ValidationError("Target identifier must be a valid integer")
 
-        if (
-            target_type == ActionTarget.TEAM
-            and not Team.objects.filter(id=target_id, organization_id=self.organization.id).exists()
-        ):
-            raise ValidationError("Team does not exist")
-
-        if (
-            target_type == ActionTarget.USER
-            and not OrganizationMember.objects.filter(
-                user_id=target_id, organization_id=self.organization.id
-            ).exists()
-        ):
+        if target_type == ActionTarget.TEAM:
+            if not Team.objects.filter(id=target_id, organization_id=self.organization.id).exists():
+                raise ValidationError("Team does not exist")
+        elif not OrganizationMember.objects.filter(
+            user_id=target_id, organization_id=self.organization.id
+        ).exists():
             raise ValidationError("User does not belong to this organization")
 
         return self.validated_data
