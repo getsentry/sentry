@@ -73,8 +73,10 @@ function detailPane() {
 
 describe('ConversationViewContent', () => {
   beforeEach(() => {
-    // jsdom doesn't implement Element.scrollTo, which the detail pane calls.
+    // jsdom implements neither scroll API the view relies on: the detail pane
+    // calls scrollTo, and switching tabs reveals a selected span via scrollIntoView.
     Element.prototype.scrollTo = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
     MockApiClient.clearMockResponses();
     act(() => {
       PageFiltersStore.reset();
@@ -120,6 +122,58 @@ describe('ConversationViewContent', () => {
     await userEvent.click(await screen.findByText('First answer'));
 
     expect(onSelectSpan).toHaveBeenCalledWith('span-a');
+  });
+
+  it('scrolls the selected span into view when switching tabs', async () => {
+    const {rerender} = renderView({
+      activeTab: 'transcript',
+      selectedSpanId: 'span-a',
+    });
+
+    // Wait for the deep-linked selection to render before asserting the switch.
+    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
+
+    jest.mocked(Element.prototype.scrollIntoView).mockClear();
+
+    rerender(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="timeline"
+        selectedSpanId="span-a"
+      />
+    );
+
+    await waitFor(() =>
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({block: 'nearest'})
+    );
+  });
+
+  it('does not scroll into view when returning to a tab with no selection', async () => {
+    const {rerender} = renderView({activeTab: 'transcript'});
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+
+    // The timeline opens its default span, so leaving the transcript is fine to
+    // scroll; returning to the transcript (nothing selected) must restore the
+    // saved offset instead of scrolling.
+    rerender(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="timeline"
+      />
+    );
+    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
+
+    jest.mocked(Element.prototype.scrollIntoView).mockClear();
+
+    rerender(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+      />
+    );
+
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
   });
 
   it('closes the timeline default and does not reopen it', async () => {

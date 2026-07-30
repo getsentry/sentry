@@ -14,6 +14,7 @@ import {
   useConversation,
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
+import {useConversationScrollRestoration} from 'sentry/views/explore/conversations/hooks/useConversationScrollRestoration';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
 import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
@@ -92,6 +93,13 @@ export function ConversationViewContent({
     return;
   }, [selectedNode, isTimeline, timelineDefaultDismissed, defaultTimelineNode]);
 
+  // Each tab keeps its own scroll position in the shared content container; a
+  // selected span is scrolled into view instead when switching tabs.
+  const contentRef = useConversationScrollRestoration({
+    activeTab,
+    selectedNodeId: displayedNode?.id ?? null,
+  });
+
   const handleSelectAndOpenDetail = useCallback(
     (node: AITraceSpanNode) => {
       setTimelineDefaultDismissed(false);
@@ -129,6 +137,7 @@ export function ConversationViewContent({
   return (
     <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
       <ConversationContentLayout
+        contentRef={contentRef}
         leftPadding={isTranscript ? '0' : 'md'}
         left={
           isTranscript ? (

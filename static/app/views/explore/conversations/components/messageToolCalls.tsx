@@ -142,6 +142,7 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
       padding="sm sm"
       cursor="pointer"
       css={rowCss}
+      data-selected={isSelected}
       style={
         isSelected
           ? {
