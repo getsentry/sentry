@@ -72,36 +72,39 @@ export function getPageFilterAdjustmentMessage(adjustment: PageFilterAdjustment)
   switch (reason) {
     case PageFilterAdjustmentReason.INVALID_PROJECTS:
       return t(
-        "We removed projects you don't have access to from your project selection."
+        "Your project selection changed because it included projects you don't have access to."
       );
     case PageFilterAdjustmentReason.INVALID_ENVIRONMENTS:
-      return t("We removed environments that don't exist from your selection.");
+      return t(
+        "Your environment selection changed because it included environments that don't exist."
+      );
     case PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED:
       return projectSlug
-        ? t('We selected %s, the only project in this organization.', projectSlug)
-        : t('We selected the only project in this organization.');
+        ? t(
+            'Your project selection changed to %s, the only project in this organization.',
+            projectSlug
+          )
+        : t('Your project selection changed to the only project in this organization.');
     case PageFilterAdjustmentReason.NO_MEMBER_PROJECTS:
       return t(
-        "We selected All Projects because you're not a member of any project in this organization."
+        "Your project selection changed to All Projects because you're not a member of any project in this organization."
       );
     case PageFilterAdjustmentReason.MAX_PICKABLE_DAYS:
       return days
         ? tn(
-            'We shortened your date range to %s day, the longest range your organization can query.',
-            'We shortened your date range to %s days, the longest range your organization can query.',
+            'Your date range changed to %s day, the longest range your organization can query.',
+            'Your date range changed to %s days, the longest range your organization can query.',
             days
           )
-        : t(
-            'We shortened your date range to the longest range your organization can query.'
-          );
+        : t('Your date range changed to the longest range your organization can query.');
     case PageFilterAdjustmentReason.MAX_DATE_RANGE:
       return days
         ? tn(
-            'We shortened your date range to %s day, the longest range this page can query.',
-            'We shortened your date range to %s days, the longest range this page can query.',
+            'Your date range changed to %s day, the longest range this page can query.',
+            'Your date range changed to %s days, the longest range this page can query.',
             days
           )
-        : t('We shortened your date range to the longest range this page can query.');
+        : t('Your date range changed to the longest range this page can query.');
     default:
       unreachable(reason);
       return '';

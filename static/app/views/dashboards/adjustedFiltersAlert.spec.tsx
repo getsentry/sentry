@@ -28,7 +28,7 @@ describe('AdjustedFiltersAlert', () => {
 
     expect(
       screen.getByText(
-        "We selected All Projects because you're not a member of any project in this organization."
+        "Your project selection changed to All Projects because you're not a member of any project in this organization."
       )
     ).toBeInTheDocument();
   });
@@ -71,12 +71,12 @@ describe('AdjustedFiltersAlert', () => {
 
     expect(
       screen.getByText(
-        "We removed projects you don't have access to from your project selection."
+        "Your project selection changed because it included projects you don't have access to."
       )
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'We shortened your date range to 30 days, the longest range your organization can query.'
+        'Your date range changed to 30 days, the longest range your organization can query.'
       )
     ).toBeInTheDocument();
   });
@@ -94,7 +94,7 @@ describe('AdjustedFiltersAlert', () => {
 
     expect(
       screen.getByText(
-        'We selected the-only-project, the only project in this organization.'
+        'Your project selection changed to the-only-project, the only project in this organization.'
       )
     ).toBeInTheDocument();
   });
@@ -105,7 +105,7 @@ describe('AdjustedFiltersAlert', () => {
     ]);
 
     const message =
-      "We selected All Projects because you're not a member of any project in this organization.";
+      "Your project selection changed to All Projects because you're not a member of any project in this organization.";
 
     const {rerender} = render(<AdjustedFiltersAlert hasUnsavedChanges />);
     expect(screen.getByText(message)).toBeInTheDocument();
