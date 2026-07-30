@@ -119,9 +119,10 @@ describe('FormattedQuery', () => {
     const path = '/api/0/organizations/{organization_id_or_slug}/events/';
     render(<FormattedQuery {...defaultProps} query={`transaction:${path}`} />);
 
-    expect(
-      screen.getByText('/api/0…{organization_id_or_slug}/events/')
-    ).toBeInTheDocument();
+    expect(screen.getByText('/api/0…{organization_id_or_slug}/events/')).toHaveAttribute(
+      'data-overflowing',
+      'true'
+    );
     expect(screen.queryByText(path)).not.toBeInTheDocument();
   });
 

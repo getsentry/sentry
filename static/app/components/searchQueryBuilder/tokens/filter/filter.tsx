@@ -171,7 +171,11 @@ function TruncatedFilterDisplayValue({
 
   const Truncated = multi ? FilterMultiValueTruncated : FilterValueSingleTruncatedValue;
 
-  return <Truncated ref={ref}>{displayValue}</Truncated>;
+  return (
+    <Truncated ref={ref} data-overflowing={displayValue === value ? undefined : 'true'}>
+      {displayValue}
+    </Truncated>
+  );
 }
 
 export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {

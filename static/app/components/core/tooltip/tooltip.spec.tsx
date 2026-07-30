@@ -141,6 +141,22 @@ describe('Tooltip', () => {
     await userEvent.unhover(screen.getByText('This text overflows'));
   });
 
+  it('displays a tooltip for content truncated by JavaScript', async () => {
+    render(
+      <Tooltip title="test" showOnlyOnOverflow>
+        <div>
+          <span data-overflowing="true">This text is truncated</span>
+        </div>
+      </Tooltip>
+    );
+
+    await userEvent.hover(screen.getByText('This text is truncated'));
+
+    expect(screen.getByText('test')).toBeInTheDocument();
+
+    await userEvent.unhover(screen.getByText('This text is truncated'));
+  });
+
   it('hides an open tooltip when the content stops overflowing', async () => {
     let resizeCallback: ResizeObserverCallback | undefined;
     window.ResizeObserver = class {
