@@ -14,6 +14,19 @@ import {
   replaceFreeTextTokens,
 } from './useQueryBuilderState';
 
+function getFirstFilterToken(
+  query: string,
+  getFieldDefinition: Parameters<typeof parseQueryBuilderValue>[1] = () => null,
+  options?: Parameters<typeof parseQueryBuilderValue>[2]
+) {
+  const parsed = parseQueryBuilderValue(query, getFieldDefinition, options);
+  const token = parsed?.find(t => t.type === Token.FILTER);
+  if (!token) {
+    throw new Error(`No filter token found in query: ${query}`);
+  }
+  return token;
+}
+
 describe('replaceFreeTextTokens', () => {
   describe('when there are free text tokens', () => {
     type TestCase = {
@@ -272,11 +285,7 @@ describe('multiSelectTokenValue', () => {
   };
 
   function runToggle(query: string, value: string) {
-    const parsed = parseQueryBuilderValue(query, () => null, {filterKeys});
-    const token = parsed?.find(t => t.type === Token.FILTER);
-    if (!token) {
-      throw new Error(`No filter token found in query: ${query}`);
-    }
+    const token = getFirstFilterToken(query, () => null, {filterKeys});
 
     const state = {
       query,
@@ -356,20 +365,17 @@ describe('typed filter keys containing colons', () => {
     },
   };
 
-  function getFilterToken(query: string) {
-    const parsed = parseQueryBuilderValue(query, () => fieldDefinition, {filterKeys});
-    const token = parsed?.find(t => t.type === Token.FILTER);
-    if (!token) {
-      throw new Error(`No filter token found in query: ${query}`);
-    }
-    return token;
-  }
-
   it('uses explicit tag syntax when updating a value', () => {
     const query = `"${filterKey}":foo`;
 
     expect(
-      modifyFilterValue(query, getFilterToken(query), 'bar', undefined, fieldDefinition)
+      modifyFilterValue(
+        query,
+        getFirstFilterToken(query, () => fieldDefinition, {filterKeys}),
+        'bar',
+        undefined,
+        fieldDefinition
+      )
     ).toBe(`tags[${filterKey},string]:bar`);
   });
 
@@ -379,7 +385,7 @@ describe('typed filter keys containing colons', () => {
     expect(
       modifyFilterOperatorQuery(
         query,
-        getFilterToken(query),
+        getFirstFilterToken(query, () => fieldDefinition, {filterKeys}),
         TermOperator.NOT_EQUAL,
         fieldDefinition
       )
@@ -400,7 +406,7 @@ describe('typed filter keys containing colons', () => {
         state,
         {
           type: 'TOGGLE_FILTER_VALUE',
-          token: getFilterToken(query),
+          token: getFirstFilterToken(query, () => fieldDefinition, {filterKeys}),
           value: 'bar',
         },
         fieldDefinition
@@ -410,26 +416,19 @@ describe('typed filter keys containing colons', () => {
 });
 
 describe('syntax-bearing filter keys', () => {
-  function getFilterToken(query: string) {
-    const parsed = parseQueryBuilderValue(query, () => null);
-    const token = parsed?.find(t => t.type === Token.FILTER);
-    if (!token) {
-      throw new Error(`No filter token found in query: ${query}`);
-    }
-    return token;
-  }
-
   it('preserves an aggregate key when updating its value', () => {
     const query = 'count():>100';
 
-    expect(modifyFilterValue(query, getFilterToken(query), '200')).toBe('count():>200');
+    expect(modifyFilterValue(query, getFirstFilterToken(query), '200')).toBe(
+      'count():>200'
+    );
   });
 
   it('preserves an aggregate key and arguments when updating its operator', () => {
     const query = 'count_if(imaginary_field,equals,fictional_value):>100';
 
     expect(
-      modifyFilterOperatorQuery(query, getFilterToken(query), TermOperator.LESS_THAN)
+      modifyFilterOperatorQuery(query, getFirstFilterToken(query), TermOperator.LESS_THAN)
     ).toBe('count_if(imaginary_field,equals,fictional_value):<100');
   });
 
@@ -437,7 +436,7 @@ describe('syntax-bearing filter keys', () => {
     const query = 'tags[imaginary_tag]:fictional_value';
 
     expect(
-      modifyFilterValue(query, getFilterToken(query), 'alternate_fictional_value')
+      modifyFilterValue(query, getFirstFilterToken(query), 'alternate_fictional_value')
     ).toBe('tags[imaginary_tag]:alternate_fictional_value');
   });
 
@@ -453,7 +452,7 @@ describe('syntax-bearing filter keys', () => {
     expect(
       multiSelectTokenValue(state, {
         type: 'TOGGLE_FILTER_VALUE',
-        token: getFilterToken(query),
+        token: getFirstFilterToken(query),
         value: 'alternate_fictional_value',
       }).query
     ).toBe('tags[imaginary_tag]:[fictional_value,alternate_fictional_value]');
