@@ -4,6 +4,7 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import type {ButtonVariant} from '@sentry/scraps/button/types';
 import {type AnalyticsProps, useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {useLinkBehavior} from './linkBehaviorContext';
@@ -67,7 +68,7 @@ const Anchor = styled('a', {
 
 type LinkPropsWithButtonBehavior = LinkProps & {
   busy?: boolean;
-  variant?: string;
+  variant?: ButtonVariant;
 };
 
 function LinkBase(props: LinkPropsWithButtonBehavior) {
@@ -98,9 +99,13 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
   return <Component {...linkProps} onClick={handleClick} />;
 }
 
-export const Link = styled(LinkBase)`
+const StyledLink = styled(LinkBase)`
   ${getLinkStyles}
 `;
+
+export function Link(props: LinkProps) {
+  return <StyledLink {...props} />;
+}
 
 interface ExternalLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   disabled?: LinkProps['disabled'];
