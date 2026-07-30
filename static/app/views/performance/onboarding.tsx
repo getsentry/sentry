@@ -90,6 +90,10 @@ const docsLink = (
   </LinkButton>
 );
 
+function doesNotSupportPerformance(project: Project) {
+  return project.platform ? withoutPerformanceSupport.has(project.platform) : false;
+}
+
 export const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   {
     title: t('Track Application Metrics'),
@@ -180,8 +184,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
   const hasPerformanceOnboarding = currentPlatform
     ? withPerformanceOnboarding.has(currentPlatform)
     : false;
-  const noPerformanceSupport =
-    currentPlatform && withoutPerformanceSupport.has(currentPlatform);
+  const noPerformanceSupport = doesNotSupportPerformance(project);
 
   let setupButton = (
     <LinkButton
@@ -288,9 +291,7 @@ function OnboardingPanel({
 }) {
   const organization = useOrganization();
 
-  const doesNotSupportPerformance = project.platform
-    ? withoutPerformanceSupport.has(project.platform)
-    : false;
+  const noPerformanceSupport = doesNotSupportPerformance(project);
 
   const trackPromptCopied = (source: 'install_command' | 'prompt') => {
     trackAnalytics('onboarding.ai_prompt_copied', {
@@ -334,9 +335,7 @@ function OnboardingPanel({
               </HeaderWrapper>
               <Divider />
               <Body>
-                {doesNotSupportPerformance ? null : (
-                  // The AI-assisted flow is the primary call to action, so it
-                  // leads on the left with the manual checklist beside it.
+                {noPerformanceSupport ? null : (
                   <AiSetup>
                     <BodyTitle>
                       <Flex align="center" gap="sm">
@@ -350,9 +349,6 @@ function OnboardingPanel({
                         {pluginLink: <ExternalLink href={AGENT_PLUGIN_DOCS_URL} />}
                       )}
                     </SubTitle>
-                    {/* The wrapper keeps the code block sized to its content: the
-                        block is height: 100%, and this column is a stretched grid
-                        item, so an unwrapped snippet would fill the whole column. */}
                     <Container marginTop="md" marginBottom="2xl">
                       <OnboardingCodeSnippet
                         language="bash"
@@ -378,7 +374,7 @@ function OnboardingPanel({
                   </AiSetup>
                 )}
                 <Setup>{children}</Setup>
-                {doesNotSupportPerformance ? null : (
+                {noPerformanceSupport ? null : (
                   <OrDivider aria-hidden>{t('OR')}</OrDivider>
                 )}
               </Body>
@@ -403,15 +399,13 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
 
-  const doesNotSupportPerformance = project.platform
-    ? withoutPerformanceSupport.has(project.platform)
-    : false;
+  const noPerformanceSupport = doesNotSupportPerformance(project);
 
   const firstIssue = useEventWaiter({
     eventType: 'transaction',
     organization,
     project,
-    disabled: doesNotSupportPerformance,
+    disabled: noPerformanceSupport,
   });
   const received = !!firstIssue;
 
@@ -450,17 +444,10 @@ export function Onboarding({organization, project}: OnboardingProps) {
     traceAnalytics.trackTracingOnboarding(
       organization,
       currentPlatform.id,
-      !doesNotSupportPerformance,
+      !noPerformanceSupport,
       withPerformanceOnboarding.has(currentPlatform.id)
     );
-  }, [
-    currentPlatform,
-    isLoading,
-    dsn,
-    projectKeyId,
-    organization,
-    doesNotSupportPerformance,
-  ]);
+  }, [currentPlatform, isLoading, dsn, projectKeyId, organization, noPerformanceSupport]);
 
   const performanceDocs = docs?.performanceOnboarding;
 
@@ -468,7 +455,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
     return <LoadingIndicator />;
   }
 
-  if (doesNotSupportPerformance) {
+  if (noPerformanceSupport) {
     return (
       <OnboardingPanel project={project} receivedFirstTrace={received}>
         <div>
@@ -720,8 +707,6 @@ const Setup = styled('div')`
   padding: ${p => p.theme.space['3xl']};
 `;
 
-// Sits on top of the vertical divider (AiSetup's :after) at the horizontal
-// center of Body, with a panel-colored background to break the line.
 const OrDivider = styled('div')`
   position: absolute;
   left: 50%;

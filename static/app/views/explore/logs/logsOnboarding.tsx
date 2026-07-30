@@ -205,9 +205,6 @@ function OnboardingPanel({
                           {pluginLink: <ExternalLink href={AGENT_PLUGIN_DOCS_URL} />}
                         )}
                       </SubTitle>
-                      {/* The wrapper keeps the code block sized to its content: the
-                          block is height: 100%, and this column is a stretched grid
-                          item, so an unwrapped snippet would fill the whole column. */}
                       <Container marginTop="md" marginBottom="2xl">
                         <OnboardingCodeSnippet
                           language="bash"
