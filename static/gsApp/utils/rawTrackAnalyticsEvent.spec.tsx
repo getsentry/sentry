@@ -66,6 +66,24 @@ describe('rawTrackAnalyticsEvent', () => {
     expect(trackReloadEvent).not.toHaveBeenCalled();
   });
 
+  it('does not consume the custom referrer without an event', () => {
+    sessionStorageWrapper.setItem(CUSTOM_REFERRER_KEY, JSON.stringify('batman'));
+
+    rawTrackAnalyticsEvent({
+      eventName: null,
+      eventKey: undefined,
+      organization,
+    });
+
+    expect(sessionStorageWrapper.getItem(CUSTOM_REFERRER_KEY)).toBe(
+      JSON.stringify('batman')
+    );
+    expect(trackReloadEvent).not.toHaveBeenCalled();
+    expect(trackAmplitudeEvent).not.toHaveBeenCalled();
+
+    sessionStorageWrapper.removeItem(CUSTOM_REFERRER_KEY);
+  });
+
   it('tracks named events without a Reload event key', () => {
     rawTrackAnalyticsEvent({
       eventName: 'Test Event',
