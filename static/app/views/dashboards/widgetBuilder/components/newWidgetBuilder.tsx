@@ -261,9 +261,14 @@ export function WidgetPreviewContainer({
   const {state} = useWidgetBuilderContext();
 
   const widget = convertBuilderStateToWidget(state);
-  // A trace-metric widget with an unresolved metric will auto-select one once its
-  // options load — the same predicate getWidgetConfigError uses — so only fetch the
-  // options when we actually need to, and gate the resolving/no-metrics states on it.
+
+  // `MetricSelector` loads available metrics, and if the current widget doesn't
+  // have a selected metric, `MetricSelect` might _force_ one, in a `useEffect`.
+  // To prevent showing an error state while it's fetching, fetch data here, if
+  // needed. Show a loading screen while it's fetching. NOTE: the default
+  // aggregate for trace metrics is `sum(value)` because we don't know available
+  // metrics at render time, so a default metrics widget is invalid, which is
+  // why we need to wait for the load.
   const needsMetric =
     widget.widgetType === WidgetType.TRACEMETRICS && hasUnresolvedTraceMetric(widget);
   const {data: metricOptions, isFetching: isFetchingMetricOptions} = useMetricOptions({

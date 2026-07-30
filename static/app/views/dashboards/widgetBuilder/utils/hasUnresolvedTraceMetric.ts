@@ -4,11 +4,8 @@ import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilde
 
 /**
  * Whether any of a trace-metric widget's aggregates fail to resolve to a metric
- * (`fn(value, name, type, unit)`). This uses the same per-aggregate predicate the
- * metric selector's auto-select keys off (`extractTraceMetricFromColumn`), so it
- * also answers "is a metric about to be filled in?". Equations carry no metric
- * tuple and reference base aggregates validated on their own, so they're skipped.
- * Callers must confirm the trace-metrics dataset first.
+ * (`fn(value, name, type, unit)`). Equations carry no metric tuple and
+ * reference base aggregates validated on their own, so they're skipped.
  */
 export function hasUnresolvedTraceMetric(widget: Widget): boolean {
   return widget.queries

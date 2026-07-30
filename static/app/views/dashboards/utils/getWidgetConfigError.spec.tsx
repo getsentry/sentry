@@ -118,11 +118,23 @@ describe('getWidgetConfigError', () => {
     );
   });
 
+  it('nudges to finish the equation when a blank equation is the only aggregate', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.TRACEMETRICS,
+      // The blank equation was stripped during conversion, leaving no aggregates.
+      queries: [WidgetQueryFixture({aggregates: []})],
+    });
+
+    expect(getWidgetConfigError(widget, {hasBlankEquation: true})).toBe(
+      'Enter an equation to preview results'
+    );
+  });
+
   it('returns undefined for a trace metric widget with a resolvable metric', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,
       widgetType: WidgetType.TRACEMETRICS,
-      // Encodes the metric as fn(value, name, type, unit).
       queries: [
         WidgetQueryFixture({aggregates: ['sum(value,test_metric,distribution,none)']}),
       ],
