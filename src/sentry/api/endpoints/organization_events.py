@@ -323,8 +323,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     orderby = transform_orderby_for_error_upsampling(orderby)
 
             query_source = self.get_request_source(request)
-            sentry_sdk.set_tag("query.query_source", query_source)
-            sentry_sdk.set_attribute("query.query_source", query_source)
+            sentry_sdk.set_tag("query.query_source", query_source.value)
+            sentry_sdk.set_attribute("query.query_source", query_source.value)
 
             return dataset_query(
                 selected_columns=selected_columns,

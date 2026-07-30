@@ -296,8 +296,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         sentry_sdk.set_attribute("query.referrer", referrer)
 
         query_source = self.get_request_querysource(request, referrer)
-        sentry_sdk.set_tag("query.query_source", query_source)
-        sentry_sdk.set_attribute("query.query_source", query_source)
+        sentry_sdk.set_tag("query.query_source", query_source.value)
+        sentry_sdk.set_attribute("query.query_source", query_source.value)
 
         # We are going to start ratcheting usage of this endpoint for legacy
         # datasets. For now, log usage from blocked orgs but still permit the
