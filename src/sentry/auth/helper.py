@@ -454,9 +454,11 @@ class AuthIdentityHandler:
 
         return render_to_response(template, default_context, self.request, status=status)
 
-    def _post_login_redirect(self) -> HttpResponseRedirect:
+    def _post_login_redirect(self, is_new_user: bool | None = None) -> HttpResponseRedirect:
         url = auth.get_login_redirect(self.request)
-        if self.request.POST.get("op") == "newuser":
+        if is_new_user is None:
+            is_new_user = self.request.POST.get("op") == "newuser"
+        if is_new_user:
             # add events that we can handle on the front end
             provider = self.auth_provider.provider if self.auth_provider else None
             params = {
@@ -654,20 +656,28 @@ class AuthIdentityHandler:
             )
             return self._build_confirmation_response(is_new_account)
 
+        return self.complete_and_login(auth_identity, state, is_new_user=(op == "newuser"))
+
+    def complete_and_login(
+        self,
+        auth_identity: AuthIdentity,
+        state: AuthHelperSessionStore,
+        is_new_user: bool = False,
+    ) -> HttpResponseRedirect:
+        """Log in a user after identity resolution and clean up pipeline state."""
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-        # XXX(dcramer): this is repeated from above
         try:
             self._login(user)
         except self._NotCompletedSecurityChecks:
-            return self._post_login_redirect()
+            return self._post_login_redirect(is_new_user=is_new_user)
 
         state.clear()
 
         if not is_active_superuser(self.request):
             auth.set_active_org(self.request, self.organization.slug)
-        return self._post_login_redirect()
+        return self._post_login_redirect(is_new_user=is_new_user)
 
     @property
     def provider_name(self) -> str:
@@ -696,7 +706,7 @@ class AuthIdentityHandler:
         self.request.session.set_test_cookie()
         return None if is_new_account else self.user, "auth-confirm-identity"
 
-    def handle_new_user(self) -> AuthIdentity:
+    def handle_new_user(self, skip_confirm_emails: bool = False) -> AuthIdentity:
         user = User.objects.create(
             username=uuid4().hex,
             email=self.identity["email"],
@@ -720,7 +730,8 @@ class AuthIdentityHandler:
             )
             auth_identity.update(user=user, data=self.identity.get("data", {}))
 
-        user.send_confirm_emails(is_new_user=True)
+        if not skip_confirm_emails:
+            user.send_confirm_emails(is_new_user=True)
         provider = self.auth_provider.provider if self.auth_provider else None
         user_signup.send_robust(
             sender=self.handle_new_user,
