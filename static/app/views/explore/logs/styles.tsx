@@ -430,7 +430,7 @@ export const AutoRefreshLabel = styled('label')`
 `;
 
 export const AutoRefreshText = styled('span')`
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
+  @container (max-width: ${p => p.theme.container['3xl']}) {
     display: none;
   }
 `;
@@ -510,7 +510,7 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
 export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+  @container (min-width: ${p => p.theme.container['4xl']}) {
     display: inline-flex;
   }
 
@@ -593,7 +593,7 @@ export const LogsFilterSection = styled('div')`
   display: grid;
   gap: ${p => p.theme.space.md};
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     grid-template-columns: minmax(300px, auto) 1fr min-content;
   }
 `;

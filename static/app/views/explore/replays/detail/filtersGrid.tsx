@@ -8,7 +8,7 @@ export const FiltersGrid = styled('div')`
     repeat(${p => Children.toArray(p.children).length - 1}, max-content)
     1fr;
   margin-bottom: ${p => p.theme.space.md};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     margin-top: ${p => p.theme.space.md};
   }
 `;

@@ -534,7 +534,7 @@ const ViewportConstrainedBody = styled(ExploreBodyContent)`
 `;
 
 const LogsControlSection = styled(ExploreControlSection)`
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
+  @container (max-width: ${p => p.theme.container['3xl']}) {
     display: none;
   }
 `;

@@ -25,15 +25,7 @@ import {
 } from 'sentry/views/explore/profiling/landing/styles';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import {ReplayPanel} from 'sentry/views/explore/replays/list/replayPanel';
-import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-
-type Breakpoints = {
-  lg: string;
-  md: string;
-  sm: string;
-  xl: string;
-};
 
 const OnboardingCTAHook = OverrideOrDefault({
   overrideName: 'component:replay-onboarding-cta',
@@ -45,8 +37,6 @@ export function ReplayOnboardingPanel() {
   const projects = useProjects();
   const organization = useOrganization();
   const canUserCreateProject = useCanCreateProject();
-  const {view} = useSecondaryNavigation();
-  const isCollapsed = view !== 'expanded';
 
   const supportedPlatforms = replayPlatforms;
 
@@ -74,26 +64,12 @@ export function ReplayOnboardingPanel() {
       ? !canUserCreateProject
       : allSelectedProjectsUnsupported && hasSelectedProjects;
 
-  const breakpoints = isCollapsed
-    ? {
-        sm: '800px',
-        md: '992px',
-        lg: '1210px',
-        xl: '1450px',
-      }
-    : {
-        sm: '800px',
-        md: '1175px',
-        lg: '1375px',
-        xl: '1450px',
-      };
-
   return (
     <Fragment>
       {hasSelectedProjects && allSelectedProjectsUnsupported && (
         <ReplayUnsupportedAlert projectSlug={selectedProjects[0]!.slug} />
       )}
-      <ReplayPanel image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}>
+      <ReplayPanel image={<HeroImage src={emptyStateImg} />}>
         <OnboardingCTAHook organization={organization}>
           <SetupReplaysCTA
             primaryAction={primaryAction}
@@ -301,8 +277,8 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
   );
 }
 
-const HeroImage = styled('img')<{breakpoints: Breakpoints}>`
-  @media (min-width: ${p => p.breakpoints.sm}) {
+const HeroImage = styled('img')`
+  @container (min-width: ${p => p.theme.container.xl}) {
     user-select: none;
     position: absolute;
     top: 0;
@@ -314,19 +290,19 @@ const HeroImage = styled('img')<{breakpoints: Breakpoints}>`
     left: 50%;
   }
 
-  @media (min-width: ${p => p.breakpoints.md}) {
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     transform: translateX(-55%);
     width: 300px;
     min-width: 300px;
   }
 
-  @media (min-width: ${p => p.breakpoints.lg}) {
+  @container (min-width: ${p => p.theme.container['4xl']}) {
     transform: translateX(-60%);
     width: 380px;
     min-width: 380px;
   }
 
-  @media (min-width: ${p => p.breakpoints.xl}) {
+  @container (min-width: ${p => p.theme.container['5xl']}) {
     transform: translateX(-65%);
     width: 420px;
     min-width: 420px;

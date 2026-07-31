@@ -23,7 +23,7 @@ const Container = styled('div')`
   padding: ${p => p.theme.space['2xl']};
   position: relative;
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     display: flex;
     align-items: flex-start;
     flex-direction: row;
@@ -34,7 +34,7 @@ const Container = styled('div')`
     margin: 0 auto;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     min-height: 350px;
   }
 `;
@@ -46,7 +46,7 @@ const StyledBox = styled('div')<{centered?: boolean}>`
   ${p => (p.centered ? 'text-align: center;' : '')}
   ${p => (p.centered ? 'max-width: 600px;' : '')}
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     flex: 2;
   }
 `;
@@ -58,7 +58,7 @@ const IlloBox = styled(StyledBox)`
   min-width: 150px;
   margin: ${p => p.theme.space.xl} auto;
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     flex: 1;
     margin: 120px ${p => p.theme.space['2xl']} ${p => p.theme.space['2xl']}
       ${p => p.theme.space['2xl']};
