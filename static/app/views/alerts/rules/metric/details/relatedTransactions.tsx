@@ -121,6 +121,7 @@ export function RelatedTransactions({
       eventView={sortedEventView}
       orgSlug={organization.slug}
       location={location}
+      referrer="api.alerts.related-transactions"
     >
       {({isLoading, tableData}) => (
         <GridEditable

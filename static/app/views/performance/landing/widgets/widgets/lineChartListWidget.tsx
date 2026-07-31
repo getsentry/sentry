@@ -43,6 +43,7 @@ import {Chart as DurationChart} from 'sentry/views/performance/charts/chart';
 import {excludeTransaction} from 'sentry/views/performance/landing/utils';
 import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import {genericQueryReferrer} from 'sentry/views/performance/landing/widgets/components/queryHandler';
 import {
   GrowLink,
   HighestCacheMissRateTransactionsWidgetEmptyStateWarning,
@@ -340,6 +341,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             cursor="0:0:1"
             noPagination
             queryExtras={extraQueryParams}
+            referrer={genericQueryReferrer(props.chartSetting)}
           />
         );
       },

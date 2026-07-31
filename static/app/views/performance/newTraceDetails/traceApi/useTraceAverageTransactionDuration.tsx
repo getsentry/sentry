@@ -38,5 +38,6 @@ export const useTraceAverageTransactionDuration = ({
     eventView,
     location,
     orgSlug: organization.slug,
+    referrer: 'api.trace-details.average-transaction-duration',
   });
 };

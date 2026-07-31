@@ -50,6 +50,7 @@ const useApdex = (props: Props) => {
     field: ['apdex(span.duration,300)'],
     query: ['is_transaction:true count():>0', query].join(' ').trim(),
     dataset: DiscoverDatasets.SPANS,
+    referrer: 'api.project-detail.apdex-score-card',
   };
 
   const currentQuery = useApiQuery<TableData>(

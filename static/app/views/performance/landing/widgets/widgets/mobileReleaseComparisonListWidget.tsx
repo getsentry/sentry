@@ -37,6 +37,7 @@ import type {TabKey} from 'sentry/views/insights/mobile/screens/views/screenDeta
 import {ModuleName} from 'sentry/views/insights/types';
 import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import {genericQueryReferrer} from 'sentry/views/performance/landing/widgets/components/queryHandler';
 import {
   GrowLink,
   WidgetEmptyStateWarning,
@@ -166,6 +167,7 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
             cursor="0:0:1"
             noPagination
             queryExtras={extraQueryParams}
+            referrer={genericQueryReferrer(props.chartSetting)}
           />
         );
       },

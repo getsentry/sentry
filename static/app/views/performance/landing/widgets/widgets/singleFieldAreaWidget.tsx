@@ -15,6 +15,7 @@ import {withApi} from 'sentry/utils/withApi';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {Chart as DurationChart} from 'sentry/views/performance/charts/chart';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import {genericQueryReferrer} from 'sentry/views/performance/landing/widgets/components/queryHandler';
 import {transformDiscoverToSingleValue} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToSingleValue';
 import {transformEventsRequestToArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToArea';
 import type {
@@ -103,6 +104,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
             eventView={eventView}
             location={location}
             queryExtras={queryExtras}
+            referrer={genericQueryReferrer(props.chartSetting)}
           />
         );
       },

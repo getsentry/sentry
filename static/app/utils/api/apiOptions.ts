@@ -14,6 +14,11 @@ type KnownApiUrls = KnownGetsentryApiUrls | KnownSentryApiUrls;
 
 type Options = QueryKeyEndpointOptions & {staleTime: number | 'static'};
 
+type RequiresReferrer<TApiPath extends string> =
+  TApiPath extends '/organizations/$organizationIdOrSlug/events/'
+    ? {query: {referrer: string} & Record<string, unknown>}
+    : {query?: Record<string, unknown>};
+
 type PathParamOptions<TApiPath extends string> =
   ExtractPathParams<TApiPath> extends never
     ? {path?: never}
@@ -157,7 +162,7 @@ export const apiOptions = {
     <TManualData>() =>
     <TApiPath extends KnownApiUrls = KnownApiUrls>(
       path: TApiPath,
-      options: Options & PathParamOptions<TApiPath>
+      options: Options & PathParamOptions<TApiPath> & RequiresReferrer<TApiPath>
     ) =>
       _apiOptions<TManualData>(path, options as never),
 
@@ -165,7 +170,7 @@ export const apiOptions = {
     <TManualData>() =>
     <TApiPath extends KnownApiUrls = KnownApiUrls>(
       path: TApiPath,
-      options: Options & PathParamOptions<TApiPath>
+      options: Options & PathParamOptions<TApiPath> & RequiresReferrer<TApiPath>
     ) =>
       _apiOptionsInfinite<TManualData>(path, options as never),
 };

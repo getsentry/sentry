@@ -376,7 +376,6 @@ export function useErrorsAndTransactionsTableQuery(
       const requestParams: DiscoverQueryRequestParams = {
         per_page: limit,
         cursor,
-        referrer: getReferrer(filteredWidget.displayType),
         dataset: isMEPEnabled
           ? DiscoverDatasets.METRICS_ENHANCED
           : DiscoverDatasets.DISCOVER,
@@ -391,6 +390,7 @@ export function useErrorsAndTransactionsTableQuery(
       const queryParams = {
         ...eventView.generateQueryStringObject(),
         ...requestParams,
+        referrer: getReferrer(filteredWidget.displayType),
       };
 
       return queryOptions({

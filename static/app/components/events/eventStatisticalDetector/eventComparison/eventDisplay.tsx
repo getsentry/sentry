@@ -103,6 +103,7 @@ function useFetchSampleEvents({
     location,
     orgSlug: organization.slug,
     limit: 20,
+    referrer: 'api.statistical-detector.event-comparison',
   });
 }
 

@@ -29,7 +29,12 @@ describe('DiscoverQuery', () => {
       },
     });
     render(
-      <DiscoverQuery orgSlug="test-org" location={location} eventView={eventView}>
+      <DiscoverQuery
+        orgSlug="test-org"
+        location={location}
+        eventView={eventView}
+        referrer="api.discover.test"
+      >
         {({tableData, isLoading}) => {
           if (isLoading) {
             return 'loading';
@@ -57,6 +62,7 @@ describe('DiscoverQuery', () => {
         orgSlug="test-org"
         location={location}
         eventView={eventView}
+        referrer="api.discover.test"
         limit={3}
         cursor="1:0:1"
       >
@@ -97,6 +103,7 @@ describe('DiscoverQuery', () => {
         orgSlug="test-org"
         location={location}
         eventView={eventView}
+        referrer="api.discover.test"
         setError={e => (errorValue = e)}
       >
         {({isLoading}) => {
@@ -130,6 +137,7 @@ describe('DiscoverQuery', () => {
         orgSlug="test-org"
         location={location}
         eventView={eventView}
+        referrer="api.discover.test"
         setError={e => (errorValue = e)}
       >
         {({isLoading}) => {

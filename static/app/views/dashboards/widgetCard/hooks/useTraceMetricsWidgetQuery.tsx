@@ -274,7 +274,6 @@ export function useTraceMetricsTableQuery(
       const requestParams: DiscoverQueryRequestParams = {
         per_page: limit,
         cursor,
-        referrer: getReferrer(filteredWidget.displayType),
         dataset: DiscoverDatasets.TRACEMETRICS,
       };
 
@@ -302,6 +301,7 @@ export function useTraceMetricsTableQuery(
         ...eventView.generateQueryStringObject(),
         ...requestParams,
         ...(samplingMode ? {sampling: samplingMode} : {}),
+        referrer: getReferrer(filteredWidget.displayType),
       };
 
       return queryOptions({

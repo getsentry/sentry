@@ -49,7 +49,10 @@ function metricOptionsQueryKey({
     searchValue.addContainsFilterValue(TraceMetricKnownFieldKey.METRIC_NAME, search);
   }
 
-  const query: Record<string, string | string[] | number[] | undefined> = {
+  const query: {referrer: string} & Record<
+    string,
+    string | string[] | number[] | undefined
+  > = {
     dataset: DiscoverDatasets.TRACEMETRICS,
     field: queryFields,
     referrer: 'api.explore.metric-options',

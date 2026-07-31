@@ -238,7 +238,6 @@ export function useErrorsTableQuery(
       const requestParams: DiscoverQueryRequestParams = {
         per_page: limit,
         cursor,
-        referrer: getReferrer(filteredWidget.displayType),
         dataset: DiscoverDatasets.ERRORS,
       };
 
@@ -252,6 +251,7 @@ export function useErrorsTableQuery(
       const queryParams = {
         ...eventView.generateQueryStringObject(),
         ...requestParams,
+        referrer: getReferrer(filteredWidget.displayType),
       };
 
       return queryOptions({

@@ -256,12 +256,14 @@ export function TeamMiseryWrapper({
       eventView={periodEventView}
       orgSlug={organization.slug}
       location={location}
+      referrer="api.team-insights.team-misery"
     >
       {({isLoading, tableData: periodTableData, error}) => (
         <DiscoverQuery
           eventView={weekEventView}
           orgSlug={organization.slug}
           location={location}
+          referrer="api.team-insights.team-misery"
         >
           {({isLoading: isWeekLoading, tableData: weekTableData, error: weekError}) => (
             <TeamMisery

@@ -80,6 +80,7 @@ export function AttributeDistribution() {
           per_page: 1,
           disableAggregateExtrapolation: '1',
           sampling: SAMPLING_MODE.NORMAL,
+          referrer: 'api.explore.attribute-distribution',
         },
         staleTime: Infinity,
       }

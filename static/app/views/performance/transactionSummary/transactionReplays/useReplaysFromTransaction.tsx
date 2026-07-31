@@ -62,11 +62,14 @@ export function useReplaysFromTransaction({
       const [{data}, _textStatus, resp] = await doDiscoverQuery<{data: EventSpanData[]}>(
         api,
         `/organizations/${organization.slug}/events/`,
-        replayIdsEventView.getEventsAPIPayload({
-          query: {cursor},
-          // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
-        } as Location<ReplayListLocationQuery>)
+        {
+          ...replayIdsEventView.getEventsAPIPayload({
+            query: {cursor},
+            // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
+          } as Location<ReplayListLocationQuery>),
+          referrer: 'api.transaction-summary.replay-ids',
+        }
       );
 
       setResponse({

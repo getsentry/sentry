@@ -280,7 +280,6 @@ export function useSpansTableQuery(
       const requestParams: DiscoverQueryRequestParams = {
         per_page: limit,
         cursor,
-        referrer: getReferrer(filteredWidget.displayType),
         dataset: DiscoverDatasets.SPANS,
       };
 
@@ -317,6 +316,7 @@ export function useSpansTableQuery(
         ...eventView.generateQueryStringObject(),
         ...requestParams,
         ...(samplingMode ? {sampling: samplingMode} : {}),
+        referrer: getReferrer(filteredWidget.displayType),
       };
 
       const baseOptions = apiOptions.as<SpansTableResponse>()(

@@ -177,6 +177,7 @@ export function ReleaseComparisonChart({
       start,
       end,
       ...(period ? {statsPeriod: period} : {}),
+      referrer: 'api.releases.release-comparison-chart',
     };
 
     setEventsLoading(true);

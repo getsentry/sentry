@@ -229,7 +229,6 @@ export function useLogsTableQuery(
       const requestParams: DiscoverQueryRequestParams = {
         per_page: limit,
         cursor,
-        referrer: getReferrer(filteredWidget.displayType),
         dataset: DiscoverDatasets.OURLOGS,
       };
 
@@ -241,6 +240,7 @@ export function useLogsTableQuery(
         ...eventView.generateQueryStringObject(),
         ...requestParams,
         ...(samplingMode ? {sampling: samplingMode} : {}),
+        referrer: getReferrer(filteredWidget.displayType),
       };
 
       return queryOptions({

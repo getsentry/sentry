@@ -32,6 +32,7 @@ const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 const SIXTY_DAYS = 60 * 24 * 60 * 60 * 1000;
 
 type SpansQueryProps<T = any[]> = {
+  referrer: string;
   allowAggregateConditions?: boolean;
   cursor?: string;
   enabled?: boolean;
@@ -39,13 +40,12 @@ type SpansQueryProps<T = any[]> = {
   initialData?: T;
   limit?: number;
   queryExtras?: RPCQueryExtras;
-  referrer?: string;
   staleTime?: number;
   trackResponseAnalytics?: boolean;
 };
 
 export function useSpansQuery<T = any[]>({
-  referrer = 'use-spans-query',
+  referrer,
   trackResponseAnalytics = true,
   ...props
 }: SpansQueryProps<T>) {
@@ -60,7 +60,7 @@ export function useSpansQuery<T = any[]>({
 }
 
 export function useSpansQueryWithoutPageFilters<T = any[]>({
-  referrer = 'use-spans-query',
+  referrer,
   trackResponseAnalytics = true,
   ...props
 }: SpansQueryProps<T>) {
@@ -247,6 +247,7 @@ function useWrappedDiscoverTimeseriesQueryWithoutPageFilters<T>(
 
 type WrappedDiscoverQueryProps<T> = {
   eventView: EventView;
+  referrer: string;
   additionalQueryKey?: string[];
   allowAggregateConditions?: boolean;
   caseInsensitive?: CaseInsensitive;
@@ -260,7 +261,6 @@ type WrappedDiscoverQueryProps<T> = {
   logQuery?: string[];
   metricQuery?: string[];
   noPagination?: boolean;
-  referrer?: string;
   refetchInterval?: number;
   samplingMode?: SamplingMode;
   spanQuery?: string[];

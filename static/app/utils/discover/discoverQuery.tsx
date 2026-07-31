@@ -31,6 +31,7 @@ export type EventsTableData = {
 export type TableDataWithTitle = TableData & {title: string};
 
 type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
+  referrer: string;
   transactionName?: string;
   transactionThreshold?: number;
   transactionThresholdMetric?: TransactionThresholdMetric;

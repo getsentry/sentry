@@ -37,7 +37,7 @@ export function QueryHandler<T extends WidgetDataConstraint>(
   );
 }
 
-function genericQueryReferrer(setting: PerformanceWidgetSetting) {
+export function genericQueryReferrer(setting: PerformanceWidgetSetting) {
   return `api.insights.generic-widget-chart.${setting.replace(/_/g, '-')}`;
 }
 
