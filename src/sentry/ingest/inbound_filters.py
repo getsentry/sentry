@@ -305,12 +305,6 @@ _healthcheck_filter = _FilterSpec(
 )
 
 
-# Relay `Getter` field paths that both an option-backed filter and a custom inbound
-# filter condition location glob, so the two cannot drift apart.
-LOG_BODY_FIELD = "log.body"
-TRACE_METRIC_NAME_FIELD = "trace_metric.name"
-
-
 def _glob(name: str, values: list[str]) -> RuleCondition:
     return {"op": "glob", "name": name, "value": values}
 
@@ -471,9 +465,9 @@ def get_generic_filters(
 
     if filter_features.custom_inbound_filters:
         if filter_features.ourlogs_ingestion:
-            generic_filters += _log_messages_generic_filters(project)
+            generic_filters += _option_generic_filters(project, _LOGS)
         if filter_features.tracemetrics_ingestion:
-            generic_filters += _trace_metric_names_generic_filters(project)
+            generic_filters += _option_generic_filters(project, _TRACE_METRICS)
         if filter_features.inbound_filters_v2:
             generic_filters += get_custom_inbound_filter_generic_filters(project)
 
@@ -495,24 +489,6 @@ def get_generic_filters(
         "version": GENERIC_FILTERS_VERSION,
         "filters": generic_filters,
     }
-
-
-def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
-    log_messages = project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}")
-    if not log_messages:
-        return []
-
-    return [_generic_filter("log-message", _glob(LOG_BODY_FIELD, log_messages))]
-
-
-def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]:
-    trace_metric_names = project.get_option(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}")
-    if not trace_metric_names:
-        return []
-
-    return [
-        _generic_filter("trace-metric-name", _glob(TRACE_METRIC_NAME_FIELD, trace_metric_names))
-    ]
 
 
 CUSTOM_INBOUND_FILTER_ID_PREFIX = "cif-"
@@ -540,30 +516,84 @@ _ConditionLocation = str | Callable[[list[str]], RuleCondition]
 # Where each condition type's data lives on one ingestion item type.
 _ItemTypeLocations = Mapping[CustomInboundFilterConditionType, _ConditionLocation]
 
-_EVENT_LOCATIONS: _ItemTypeLocations = {
-    CustomInboundFilterConditionType.ERROR_MESSAGE: _custom_error_message_condition,
-    CustomInboundFilterConditionType.RELEASE: "event.release",
+
+@dataclass(frozen=True)
+class _OptionFilter:
+    """
+    The pre-v2 inbound filter over a data category's primary data, configured through a
+    project option holding a list of globs rather than a ``CustomInboundFilter`` row.
+
+    It globs the same field as its category's primary condition type.
+    """
+
+    generic_filter_id: str
+    option: str
+
+
+@dataclass(frozen=True)
+class _DataCategory:
+    """
+    The Relay field paths of one kind of ingested item, and the inbound filters over them.
+
+    ``primary_condition`` is the condition type that identifies the category, and
+    ``primary_location`` is where its data lives. A custom inbound filter belongs to the
+    category of its first recognised condition type; one carrying only release conditions
+    belongs to events, mirroring the legacy ``releases`` inbound filter.
+    """
+
+    primary_condition: CustomInboundFilterConditionType
+    primary_location: _ConditionLocation
+    release_field: str
+    option_filter: _OptionFilter | None = None
+
+    @property
+    def condition_locations(self) -> _ItemTypeLocations:
+        return {
+            self.primary_condition: self.primary_location,
+            CustomInboundFilterConditionType.RELEASE: self.release_field,
+        }
+
+
+_EVENTS = _DataCategory(
+    primary_condition=CustomInboundFilterConditionType.ERROR_MESSAGE,
+    primary_location=_custom_error_message_condition,
+    release_field="event.release",
+)
+
+_LOGS = _DataCategory(
+    primary_condition=CustomInboundFilterConditionType.LOG_MESSAGE,
+    primary_location="log.body",
+    release_field="log.attributes.sentry.release.value",
+    option_filter=_OptionFilter(generic_filter_id="log-message", option=FilterTypes.LOG_MESSAGES),
+)
+
+_TRACE_METRICS = _DataCategory(
+    primary_condition=CustomInboundFilterConditionType.METRIC_NAME,
+    primary_location="trace_metric.name",
+    release_field="trace_metric.attributes.sentry.release.value",
+    option_filter=_OptionFilter(
+        generic_filter_id="trace-metric-name", option=FilterTypes.TRACE_METRIC_NAMES
+    ),
+)
+
+_CATEGORY_BY_PRIMARY_CONDITION: Mapping[CustomInboundFilterConditionType | None, _DataCategory] = {
+    None: _EVENTS,
+    **{category.primary_condition: category for category in (_EVENTS, _LOGS, _TRACE_METRICS)},
 }
 
-_LOG_LOCATIONS: _ItemTypeLocations = {
-    CustomInboundFilterConditionType.LOG_MESSAGE: LOG_BODY_FIELD,
-    CustomInboundFilterConditionType.RELEASE: "log.attributes.sentry.release.value",
-}
 
-_TRACE_METRIC_LOCATIONS: _ItemTypeLocations = {
-    CustomInboundFilterConditionType.METRIC_NAME: TRACE_METRIC_NAME_FIELD,
-    CustomInboundFilterConditionType.RELEASE: "trace_metric.attributes.sentry.release.value",
-}
+def _option_generic_filters(project: Project, category: _DataCategory) -> list[GenericFilter]:
+    option_filter = category.option_filter
+    field = category.primary_location
+    # Only categories whose primary data is a single field carry an option filter.
+    if option_filter is None or not isinstance(field, str):
+        return []
 
-# A filter's primary condition type selects the item type it applies to.
-# Filters with only release conditions (key None) apply to events, mirroring
-# the legacy `releases` inbound filter.
-_LOCATIONS_BY_PRIMARY_TYPE: dict[CustomInboundFilterConditionType | None, _ItemTypeLocations] = {
-    None: _EVENT_LOCATIONS,
-    CustomInboundFilterConditionType.ERROR_MESSAGE: _EVENT_LOCATIONS,
-    CustomInboundFilterConditionType.LOG_MESSAGE: _LOG_LOCATIONS,
-    CustomInboundFilterConditionType.METRIC_NAME: _TRACE_METRIC_LOCATIONS,
-}
+    globs = project.get_option(f"sentry:{option_filter.option}")
+    if not globs:
+        return []
+
+    return [_generic_filter(option_filter.generic_filter_id, _glob(field, globs))]
 
 
 def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition | None:
@@ -592,8 +622,8 @@ def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition 
 
         parsed.append((condition_type, values))
 
-    primary_type = next((ty for ty, _ in parsed if ty in _LOCATIONS_BY_PRIMARY_TYPE), None)
-    locations = _LOCATIONS_BY_PRIMARY_TYPE[primary_type]
+    primary_type = next((ty for ty, _ in parsed if ty in _CATEGORY_BY_PRIMARY_CONDITION), None)
+    locations = _CATEGORY_BY_PRIMARY_CONDITION[primary_type].condition_locations
 
     rule_conditions: list[RuleCondition] = []
     for condition_type, values in parsed:
