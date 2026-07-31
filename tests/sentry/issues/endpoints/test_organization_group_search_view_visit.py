@@ -113,7 +113,6 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
         # Org auth tokens authenticate without a user. This endpoint stores
         # last-visited state per user, so userless credentials must be rejected
         # instead of writing a null user_id.
-        # Logout under CONTROL silo so User lookups in the logout signal succeed.
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.client.logout()
         token_str = generate_token(self.organization.slug, "")
