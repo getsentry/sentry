@@ -540,7 +540,7 @@ export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
       return null;
     }
     const hasTxEvent = 'txEvent' in replay;
-    const txDuration = hasTxEvent ? replay.txEvent?.['transaction.duration'] : undefined;
+    const txDuration = hasTxEvent ? replay.txEvent?.['span.duration'] : undefined;
     if (!hasTxEvent) {
       return null;
     }
