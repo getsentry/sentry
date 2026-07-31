@@ -1,4 +1,5 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {triggerResizeObservers} from 'sentry-test/resizeObserver';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
@@ -244,69 +245,33 @@ describe('FormattedQuery', () => {
   it('tightens and restores middle-ellipsis as available width changes', () => {
     const path = '/api/0/organizations/{organization_id_or_slug}/events/';
     const capped = '/api/0…{organization_id_or_slug}/events/';
-    let clientWidth = 0;
-    let resizeCallback: ResizeObserverCallback | undefined;
+    render(<FormattedQuery {...defaultProps} query={`transaction:${path}`} />);
 
-    const originalClientWidth = Object.getOwnPropertyDescriptor(
-      HTMLElement.prototype,
-      'clientWidth'
-    );
-    const originalScrollWidth = Object.getOwnPropertyDescriptor(
-      HTMLElement.prototype,
-      'scrollWidth'
-    );
-    const originalResizeObserver = window.ResizeObserver;
-
-    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+    // clientWidth 0 → fall through to the character cap.
+    const element = screen.getByText(capped);
+    let clientWidth = 120;
+    Object.defineProperty(element, 'clientWidth', {
       configurable: true,
       get() {
         return clientWidth;
       },
     });
-    Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
+    Object.defineProperty(element, 'scrollWidth', {
       configurable: true,
       get() {
         // Approximate: treat each character as 10px wide, plus 2px end padding.
         return (this.textContent?.length ?? 0) * 10 + 2;
       },
     });
-    window.ResizeObserver = class {
-      constructor(callback: ResizeObserverCallback) {
-        resizeCallback = callback;
-      }
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    } as unknown as typeof ResizeObserver;
 
-    try {
-      render(<FormattedQuery {...defaultProps} query={`transaction:${path}`} />);
+    act(triggerResizeObservers);
 
-      // clientWidth 0 → fall through to the character cap.
-      expect(screen.getByText(capped)).toBeInTheDocument();
+    expect(screen.getByText('…events/')).toBeInTheDocument();
+    expect(screen.queryByText(capped)).not.toBeInTheDocument();
 
-      clientWidth = 120;
-      act(() => {
-        resizeCallback?.([], {} as ResizeObserver);
-      });
+    clientWidth = 1000;
+    act(triggerResizeObservers);
 
-      expect(screen.getByText('…events/')).toBeInTheDocument();
-      expect(screen.queryByText(capped)).not.toBeInTheDocument();
-
-      clientWidth = 1000;
-      act(() => {
-        resizeCallback?.([], {} as ResizeObserver);
-      });
-
-      expect(screen.getByText(path)).toBeInTheDocument();
-    } finally {
-      window.ResizeObserver = originalResizeObserver;
-      if (originalClientWidth) {
-        Object.defineProperty(HTMLElement.prototype, 'clientWidth', originalClientWidth);
-      }
-      if (originalScrollWidth) {
-        Object.defineProperty(HTMLElement.prototype, 'scrollWidth', originalScrollWidth);
-      }
-    }
+    expect(screen.getByText(path)).toBeInTheDocument();
   });
 });
