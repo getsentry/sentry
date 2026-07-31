@@ -3,69 +3,28 @@ import type {PinnedPageFilter} from 'sentry/types/core';
 import {unreachable} from 'sentry/utils/unreachable';
 
 /**
- * The reasons page filters may adjust a selection during initialization.
- *
- * `initializeUrlState` doesn't always apply the selection it's given: it drops
- * values the user can't access and substitutes defaults when nothing is
- * selected. Those adjustments are otherwise invisible, which is confusing on
- * pages that treat the selection as editable state (Dashboards renders a
- * "Save" button for it).
+ * Ways `initializeUrlState` may adjust the selection it was given.
  */
 export enum PageFilterAdjustmentReason {
-  /**
-   * Project ids in the URL or local storage that the user can't access were
-   * dropped from the selection.
-   */
   INVALID_PROJECTS = 'invalid_projects',
-  /**
-   * Environments in the URL or local storage that don't exist on any
-   * accessible project were dropped from the selection.
-   */
   INVALID_ENVIRONMENTS = 'invalid_environments',
-  /**
-   * Nothing was selected and the organization has exactly one project, so it
-   * was selected automatically.
-   */
   SINGLE_PROJECT_AUTO_SELECTED = 'single_project_auto_selected',
-  /**
-   * The user is a member of no projects but can access others, so the
-   * selection fell back to "All Projects".
-   */
   NO_MEMBER_PROJECTS = 'no_member_projects',
-  /**
-   * The selected date range starts further back than the organization's
-   * retention allows, so it was shortened.
-   */
   MAX_PICKABLE_DAYS = 'max_pickable_days',
-  /**
-   * The selected date range is longer than the maximum queryable range, so it
-   * was shortened.
-   */
   MAX_DATE_RANGE = 'max_date_range',
 }
 
 export interface PageFilterAdjustment {
   /**
-   * The page filter whose value was adjusted. Used to clear the adjustment
-   * once the user changes that filter themselves.
+   * Which filter was adjusted, so the adjustment can be cleared once the user
+   * changes that filter themselves.
    */
   filter: PinnedPageFilter;
   reason: PageFilterAdjustmentReason;
-  /**
-   * The number of days the date range was shortened to. Only set for the
-   * date range reasons.
-   */
   days?: number;
-  /**
-   * The name of the project that was auto-selected. Only set for
-   * `SINGLE_PROJECT_AUTO_SELECTED`.
-   */
   projectSlug?: string;
 }
 
-/**
- * A user-facing explanation of why the selection was adjusted.
- */
 export function getPageFilterAdjustmentMessage(adjustment: PageFilterAdjustment): string {
   const {reason, days, projectSlug} = adjustment;
 

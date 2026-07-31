@@ -41,8 +41,7 @@ function datetimeHasSameValue(
 }
 
 /**
- * Drops adjustments for filters the user has since changed themselves. Once
- * they've picked their own value there's nothing left to explain.
+ * Drops adjustments for filters the user has since changed themselves.
  */
 function clearAdjustments(
   adjustments: PageFilterAdjustment[],
@@ -59,11 +58,8 @@ function clearAdjustments(
 
 export interface PageFiltersState {
   /**
-   * Adjustments page filters made to the requested selection during
-   * initialization (e.g. dropping inaccessible projects, shortening a date
-   * range past retention). Pages can surface these to explain why the
-   * selection isn't what the user asked for. Each entry is cleared once the
-   * user changes the filter it applies to.
+   * Adjustments made to the requested selection during initialization, so pages
+   * can explain why the selection isn't what the user asked for.
    */
   adjustments: PageFilterAdjustment[];
   /**
@@ -88,8 +84,8 @@ export interface PageFiltersState {
 
 interface PageFiltersStoreDefinition extends StrictStoreDefinition<PageFiltersState> {
   /**
-   * Records an adjustment made after initialization. Call this *after* the
-   * update that caused it, since updating a filter clears its adjustments.
+   * Call this *after* the update that caused the adjustment, since updating a
+   * filter clears its adjustments.
    */
   addAdjustment(adjustment: PageFilterAdjustment): void;
   onInitializeUrlState(

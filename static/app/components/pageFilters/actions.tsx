@@ -201,8 +201,6 @@ export function initializeUrlState({
   const hasProjectOrEnvironmentInUrl =
     Object.keys(pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])).length > 0;
 
-  // Adjustments we make to the requested selection below, so pages can explain
-  // to the user why the selection isn't what they asked for.
   const adjustments: PageFilterAdjustment[] = [];
 
   /**
