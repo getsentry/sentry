@@ -507,25 +507,33 @@ function getKnownSourceParentCrumbs({
 
 /**
  * The crumbs leading up to the trace, derived from the `source` query param.
- * Excludes the trace itself — that is the page title. Sources we don't
- * recognize fall back to the traces list, which every trace is reachable from.
+ * Excludes the trace itself — that is the page title. Only linked crumbs are
+ * kept, since an unlinked parent is not worth a slot. Sources we don't
+ * recognize, and known sources that yield nothing to link to, fall back to the
+ * traces list, which every trace is reachable from.
  */
 export function getTraceViewParentCrumbs(
   options: TraceParentCrumbsOptions
 ): TraceParentCrumb[] {
   const {organization, location} = options;
 
-  return (
-    getKnownSourceParentCrumbs(options) ?? [
-      {
-        label: t('Traces'),
-        to: getBreadCrumbTarget(
-          makeTracesPathname({path: '/', organization}),
-          location.query
-        ),
-      },
-    ]
+  const linkedCrumbs = (getKnownSourceParentCrumbs(options) ?? []).filter(
+    crumb => crumb.to
   );
+
+  if (linkedCrumbs.length > 0) {
+    return linkedCrumbs;
+  }
+
+  return [
+    {
+      label: t('Traces'),
+      to: getBreadCrumbTarget(
+        makeTracesPathname({path: '/', organization}),
+        location.query
+      ),
+    },
+  ];
 }
 
 export function getTraceViewBreadcrumbs({

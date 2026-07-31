@@ -33,9 +33,7 @@ interface TraceBreadcrumbsProps {
 }
 
 /**
- * The parent crumbs of the trace, keyed off the `source` query param. Sources
- * that contribute a label without a destination are dropped — the page title
- * already names the trace.
+ * The parent crumbs of the trace, keyed off the `source` query param.
  */
 function useTraceParentItems(organization: Organization) {
   const location = useLocation();
