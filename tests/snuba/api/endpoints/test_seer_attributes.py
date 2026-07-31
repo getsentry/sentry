@@ -70,6 +70,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 {"key": "span.duration", "type": "number", "context": None},
                 {"key": "span.self_time", "type": "number", "context": None},
             ],
+            "custom_fields": [],
         }
 
     def test_get_attribute_names_with_context(self) -> None:
@@ -132,6 +133,9 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         # attaches an empty context to attributes without convention metadata).
         for field in result.built_in_fields:
             assert field.context is None or field.context != {}
+
+        # This org has authored no context, so there are no custom fields.
+        assert result.custom_fields == []
 
     def test_get_attribute_values_with_substring(self) -> None:
         for transaction in ["foo", "bar", "baz"]:

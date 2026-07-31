@@ -210,16 +210,22 @@ class BuiltInField(BaseModel):
     type: str
     # Attribute metadata (brief, examples, isDeprecated, replacementAttribute,
     # ...) for the attribute, populated when the caller requests
-    # `expand="context"`; otherwise None. Today the metadata comes from the
-    # sentry conventions, so only attributes that map to a known convention
-    # carry it, but custom attribute context is planned and will populate this
-    # for user-defined attributes too.
+    # `expand="context"`; otherwise None. Sentry-owned attributes carry metadata
+    # from the sentry conventions or their column definition; user-defined
+    # attributes carry user-authored metadata (see
+    # AttributeNamesResponse.custom_fields).
     context: dict[str, Any] | None = None
 
 
 class AttributeNamesResponse(BaseModel):
     fields: dict[str, list[str]]
+    # Sentry-owned attributes (conventions and Sentry-defined fields), whose
+    # context comes from the sentry conventions or a column definition.
     built_in_fields: list[BuiltInField]
+    # Custom (user-defined) attributes that carry user-authored context. Only
+    # populated when the caller requests context and the organization has
+    # authored some; attributes without context are still listed in `fields`.
+    custom_fields: list[BuiltInField] = []
 
 
 class AttributeBucket(BaseModel):
