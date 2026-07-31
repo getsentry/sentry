@@ -257,7 +257,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
           <Stack
             aria-label={t('Loading %s issues', section.label)}
             gap="xs"
-            padding="xs xs 0 xs"
+            padding="0 xs"
           >
             {Array.from({length: ISSUE_LIMIT}).map((_, index) => (
               <Placeholder key={index} height="76px" />
@@ -279,7 +279,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
         ) : (
           <Stack gap="xs">
             {groups.map(group => (
-              <Container key={group.id} padding="xs xs 0 xs">
+              <Container key={group.id} padding="0 xs">
                 <InboxIssueCard
                   group={group}
                   selected={selectedIssueId === group.id}
@@ -381,7 +381,7 @@ function InboxIssueCard({
 }
 
 const InboxSectionContent = styled(Disclosure.Content)`
-  padding: 0;
+  padding: ${p => p.theme.space.xs} 0 0 0;
 `;
 
 const StickySectionHeader = styled(Container)`
