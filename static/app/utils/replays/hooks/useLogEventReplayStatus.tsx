@@ -20,7 +20,7 @@ export function useLogEventReplayStatus({readerResult}: Props) {
   });
   const organization = useOrganization();
 
-  const {fetchError, attachmentError, isPending} = readerResult;
+  const {fetchError, attachmentError} = readerResult;
   const hasError = Boolean(fetchError) || Boolean(attachmentError?.length);
   const is404 =
     isNotFoundError(fetchError) || Boolean(attachmentError?.some(isNotFoundError));
@@ -28,9 +28,6 @@ export function useLogEventReplayStatus({readerResult}: Props) {
   const hasLoggedRef = useRef(false);
 
   useEffect(() => {
-    if (isPending) {
-      return;
-    }
     if (hasError && !hasLoggedRef.current) {
       hasLoggedRef.current = true;
       trackAnalytics('replay.render-missing-replay-alert', {
@@ -41,7 +38,7 @@ export function useLogEventReplayStatus({readerResult}: Props) {
     } else if (!hasError) {
       hasLoggedRef.current = false;
     }
-  }, [organization, hasError, is404, isPending]);
+  }, [organization, hasError, is404]);
 }
 
 function getReplayAnalyticsStatus({
