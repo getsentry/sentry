@@ -3621,6 +3621,28 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         )
         self.error_group_2 = error_event_2.group
 
+    def _create_performance_issue(self, tag_value: str) -> Group:
+        group_type = PerformanceNPlusOneGroupType
+        with (
+            mock.patch.object(group_type, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))),
+            self.feature(group_type.build_ingest_feature_name()),
+        ):
+            _, group_info = self.process_occurrence(
+                event_id=uuid.uuid4().hex,
+                project_id=self.project.id,
+                type=group_type.type_id,
+                fingerprint=[uuid.uuid4().hex],
+                event_data={
+                    "title": "some problem",
+                    "platform": "python",
+                    "tags": {"my_tag": tag_value},
+                    "timestamp": before_now(minutes=1).isoformat(),
+                    "received": before_now(minutes=1).isoformat(),
+                },
+            )
+        assert group_info is not None
+        return group_info.group
+
     def test_generic_query(self) -> None:
         results = self.make_query(
             search_filter_query=f"issue.type:{ProfileFileIOGroupType.slug} my_tag:1"
@@ -3636,34 +3658,14 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         assert list(results) == [self.profile_group_1, self.profile_group_2]
 
     def test_generic_query_perf(self) -> None:
-        event_id = uuid.uuid4().hex
         group_type = PerformanceNPlusOneGroupType
+        performance_group = self._create_performance_issue("3")
+        with self.feature(group_type.build_visible_feature_name()):
+            results = self.make_query(
+                search_filter_query=f"issue.type:{PerformanceNPlusOneGroupType.slug} my_tag:3"
+            )
 
-        with mock.patch.object(
-            PerformanceNPlusOneGroupType, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))
-        ):
-            with self.feature(group_type.build_ingest_feature_name()):
-                _, group_info = self.process_occurrence(
-                    event_id=event_id,
-                    project_id=self.project.id,
-                    type=group_type.type_id,
-                    fingerprint=["some perf issue"],
-                    event_data={
-                        "title": "some problem",
-                        "platform": "python",
-                        "tags": {"my_tag": "3"},
-                        "timestamp": before_now(minutes=1).isoformat(),
-                        "received": before_now(minutes=1).isoformat(),
-                    },
-                )
-                assert group_info is not None
-
-            with self.feature(group_type.build_visible_feature_name()):
-                results = self.make_query(
-                    search_filter_query=f"issue.type:{PerformanceNPlusOneGroupType.slug} my_tag:3"
-                )
-
-        assert list(results) == [group_info.group]
+        assert list(results) == [performance_group]
 
     def test_merge_default_category_queries(self) -> None:
         with (
@@ -3689,24 +3691,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
 
     def test_merge_generic_category_queries(self) -> None:
         group_type = PerformanceNPlusOneGroupType
-        with (
-            mock.patch.object(group_type, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))),
-            self.feature(group_type.build_ingest_feature_name()),
-        ):
-            _, group_info = self.process_occurrence(
-                event_id=uuid.uuid4().hex,
-                project_id=self.project.id,
-                type=group_type.type_id,
-                fingerprint=["merged generic query"],
-                event_data={
-                    "title": "some problem",
-                    "platform": "python",
-                    "tags": {"my_tag": "1"},
-                    "timestamp": before_now(minutes=1).isoformat(),
-                    "received": before_now(minutes=1).isoformat(),
-                },
-            )
-        assert group_info is not None
+        performance_group = self._create_performance_issue("1")
 
         query = (
             f"issue.type:[{ProfileFileIOGroupType.slug},"
@@ -3715,7 +3700,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         expected_groups = {
             self.profile_group_1,
             self.profile_group_2,
-            group_info.group,
+            performance_group,
             self.error_group_1,
             self.error_group_2,
         }
@@ -3761,6 +3746,21 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         assert set(issue_platform_params.filter_keys["occurrence_type_id"]) >= {
             ProfileFileIOGroupType.type_id,
             PerformanceNPlusOneGroupType.type_id,
+        }
+
+    def test_merge_generic_category_query_pagination(self) -> None:
+        group_type = PerformanceNPlusOneGroupType
+        performance_group = self._create_performance_issue("1")
+        query = (
+            f"issue.type:[{ProfileFileIOGroupType.slug},"
+            f"{PerformanceNPlusOneGroupType.slug},error] my_tag:1"
+        )
+        expected_groups = {
+            self.profile_group_1,
+            self.profile_group_2,
+            performance_group,
+            self.error_group_1,
+            self.error_group_2,
         }
 
         with (
