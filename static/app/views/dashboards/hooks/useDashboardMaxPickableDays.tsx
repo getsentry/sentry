@@ -33,7 +33,7 @@ function getDataCategoryFromWidgetType(widgetType: WidgetType): DataCategory {
   }
 }
 
-function toDataCategoryTuple(
+function toNonEmptyDataCategories(
   categories: Iterable<DataCategory>
 ): [DataCategory, ...DataCategory[]] {
   // Return as tuple with at least one element (required by useMaxPickableDays)
@@ -47,14 +47,14 @@ function toDataCategoryTuple(
  * Every data category a dashboard widget can query, so the ceiling covers any
  * widget the dashboard could hold rather than the ones it holds right now.
  */
-export const ALL_DASHBOARD_DATA_CATEGORIES = toDataCategoryTuple(
+export const ALL_DASHBOARD_DATA_CATEGORIES = toNonEmptyDataCategories(
   Object.values(WidgetType).map(getDataCategoryFromWidgetType)
 );
 
 function getDataCategoriesFromWidgets(
   widgets: Widget[]
 ): [DataCategory, ...DataCategory[]] {
-  return toDataCategoryTuple(
+  return toNonEmptyDataCategories(
     widgets.map(widget =>
       getDataCategoryFromWidgetType(widget.widgetType ?? WidgetType.DISCOVER)
     )
