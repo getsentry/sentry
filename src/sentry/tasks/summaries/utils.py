@@ -671,10 +671,8 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
 
     resolution_labels: dict[int, str] = {}
 
-    # Ordered newest first so the most recent resolution wins per group
-    for gr in GroupResolution.objects.filter(group_id__in=all_group_ids).order_by("-datetime"):
-        if gr.group_id in resolution_labels:
-            continue
+    # GroupResolution.group is unique, so there is at most one row per group
+    for gr in GroupResolution.objects.filter(group_id__in=all_group_ids):
         if gr.current_release_version or gr.type in (
             None,
             GroupResolution.Type.in_next_release,
