@@ -71,11 +71,11 @@ def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[Que
 
 
 def delete_replay_ids(project_id: int, rows: list[tuple[int, str, int]]) -> None:
+    """Delete a set of replay-ids for a specific project."""
     logging_context = {
         "project_id": project_id,
         "num_replays": len(rows),
     }
-    """Delete a set of replay-ids for a specific project."""
     logger.info("Archiving %d replays.", len(rows), extra=logging_context)
 
     # Bulk produce archived replay rows to the ingest-replay-events topic before flushing.
