@@ -205,15 +205,16 @@ class SpanAttributesResponse(BaseModel):
     attributes: list[SpanAttribute]
 
 
-class BuiltInField(BaseModel):
+class AttributeMeta(BaseModel):
+    """An attribute's name, type, and optional context, as listed in
+    ``AttributeNamesResponse``."""
+
     key: str
     type: str
-    # Attribute metadata (brief, examples, isDeprecated, replacementAttribute,
-    # ...) for the attribute, populated when the caller requests
-    # `expand="context"`; otherwise None. Sentry-owned attributes carry metadata
-    # from the sentry conventions or their column definition; user-defined
-    # attributes carry user-authored metadata (see
-    # AttributeNamesResponse.custom_fields).
+    # Metadata (brief, examples, isDeprecated, replacementAttribute, ...),
+    # populated when the caller requests `expand="context"`; otherwise None.
+    # Sourced from the sentry conventions or a column definition for Sentry-owned
+    # attributes, and authored by the org for custom ones.
     context: dict[str, Any] | None = None
 
 
@@ -221,11 +222,11 @@ class AttributeNamesResponse(BaseModel):
     fields: dict[str, list[str]]
     # Sentry-owned attributes (conventions and Sentry-defined fields), whose
     # context comes from the sentry conventions or a column definition.
-    built_in_fields: list[BuiltInField]
+    built_in_fields: list[AttributeMeta]
     # Custom (user-defined) attributes that carry user-authored context. Only
     # populated when the caller requests context and the organization has
     # authored some; attributes without context are still listed in `fields`.
-    custom_fields: list[BuiltInField] = []
+    custom_fields: list[AttributeMeta] = []
 
 
 class AttributeBucket(BaseModel):
@@ -244,7 +245,7 @@ class MetricMetadataRow(BaseModel):
     count: int
     # Authored context (brief, details) for the metric, populated only when the
     # caller passes include_context=True (and the metric has context); otherwise
-    # None. Mirrors the attributes context shape (see BuiltInField.context).
+    # None. Mirrors the attributes context shape (see AttributeMeta.context).
     context: dict[str, Any] | None = None
 
 

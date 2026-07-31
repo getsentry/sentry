@@ -6,9 +6,9 @@ from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.seer.sentry_data_models import (
+    AttributeMeta,
     AttributeNamesResponse,
     AttributeValuesResponse,
-    BuiltInField,
 )
 
 logger = logging.getLogger(__name__)
@@ -207,7 +207,7 @@ def get_attribute_names(
 
     hardcoded_fields = _get_built_in_fields(item_type)
     built_in_fields = [
-        BuiltInField(**f, context=context_by_name.get(f["key"])) for f in hardcoded_fields
+        AttributeMeta(**f, context=context_by_name.get(f["key"])) for f in hardcoded_fields
     ]
 
     # Context-bearing attributes that aren't hardcoded built-ins (e.g. the
@@ -219,7 +219,7 @@ def get_attribute_names(
     for name, context in context_by_name.items():
         if name in hardcoded_keys:
             continue
-        field = BuiltInField(key=name, type=type_by_name[name], context=context)
+        field = AttributeMeta(key=name, type=type_by_name[name], context=context)
         if context.get("isConvention") or source_by_name.get(name) == "sentry":
             built_in_fields.append(field)
         elif context.get("isCustom"):
