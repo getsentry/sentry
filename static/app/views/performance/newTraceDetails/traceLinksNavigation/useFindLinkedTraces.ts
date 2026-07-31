@@ -134,7 +134,7 @@ export function useFindAdjacentTrace({
       trace: adjacentTraceId,
       id: adjacentTraceSpanId,
       available: !!data?.[0]?.id && !isError,
-      isLoading: isPending,
+      isLoading: enabled && isPending,
     };
   }, [
     direction,
