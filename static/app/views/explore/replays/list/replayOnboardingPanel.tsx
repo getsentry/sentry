@@ -1,10 +1,15 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useState, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Grid, type GridProps} from '@sentry/scraps/layout';
+import {
+  Container,
+  Grid,
+  type GridProps,
+  useResponsivePropValue,
+} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -69,7 +74,7 @@ export function ReplayOnboardingPanel() {
       {hasSelectedProjects && allSelectedProjectsUnsupported && (
         <ReplayUnsupportedAlert projectSlug={selectedProjects[0]!.slug} />
       )}
-      <ReplayPanel image={<HeroImage src={emptyStateImg} />}>
+      <ReplayPanel image={<HeroImage />}>
         <OnboardingCTAHook organization={organization}>
           <SetupReplaysCTA
             primaryAction={primaryAction}
@@ -277,37 +282,64 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
   );
 }
 
-const HeroImage = styled('img')`
-  @container (min-width: ${p => p.theme.container.xl}) {
-    user-select: none;
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 220px;
-    margin-top: auto;
-    margin-bottom: auto;
-    transform: translateX(-50%);
-    left: 50%;
-  }
+function HeroImage() {
+  const style = useResponsivePropValue<CSSProperties>({
+    zero: {},
+    xl: {
+      bottom: 0,
+      left: '50%',
+      marginBottom: 'auto',
+      marginTop: 'auto',
+      position: 'absolute',
+      top: 0,
+      transform: 'translateX(-50%)',
+      userSelect: 'none',
+      width: 220,
+    },
+    '3xl': {
+      bottom: 0,
+      left: '50%',
+      marginBottom: 'auto',
+      marginTop: 'auto',
+      minWidth: 300,
+      position: 'absolute',
+      top: 0,
+      transform: 'translateX(-55%)',
+      userSelect: 'none',
+      width: 300,
+    },
+    '4xl': {
+      bottom: 0,
+      left: '50%',
+      marginBottom: 'auto',
+      marginTop: 'auto',
+      minWidth: 380,
+      position: 'absolute',
+      top: 0,
+      transform: 'translateX(-60%)',
+      userSelect: 'none',
+      width: 380,
+    },
+    '5xl': {
+      bottom: 0,
+      left: '50%',
+      marginBottom: 'auto',
+      marginTop: 'auto',
+      minWidth: 420,
+      position: 'absolute',
+      top: 0,
+      transform: 'translateX(-65%)',
+      userSelect: 'none',
+      width: 420,
+    },
+  });
 
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    transform: translateX(-55%);
-    width: 300px;
-    min-width: 300px;
-  }
-
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    transform: translateX(-60%);
-    width: 380px;
-    min-width: 380px;
-  }
-
-  @container (min-width: ${p => p.theme.container['5xl']}) {
-    transform: translateX(-65%);
-    width: 420px;
-    min-width: 420px;
-  }
-`;
+  return (
+    <Container>
+      {containerProps => <img {...containerProps} src={emptyStateImg} style={style} />}
+    </Container>
+  );
+}
 
 const ButtonList = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
