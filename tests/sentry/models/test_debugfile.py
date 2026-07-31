@@ -19,7 +19,6 @@ from sentry.models.debugfile import (
     ProjectDebugFile,
     create_dif_from_file,
     create_dif_from_id,
-    create_objectstore_dif_from_id,
     detect_dif_from_path,
     get_debug_id_from_dif_request,
 )
@@ -399,20 +398,16 @@ class CreateDebugFileTest(APITestCase):
         assert dif.get_file().read() == content
 
     @requires_objectstore
-    def test_create_objectstore_only_dif(self) -> None:
+    def test_exclusive_objectstore_create_dif_from_fileobj(self) -> None:
         content = b"objectstore-dif-content"
         checksum = "46b15fc7714307c2d13a1e42651ba92245662ab0"
-        meta = DifMeta(
-            file_format="macho",
-            arch="x86_64",
-            debug_id="67e9247c-814e-392b-a027-dbde6748fcbf",
-            data={"features": ["debug"]},
-            path="crash.dsym",
-        )
-
-        dif, created = create_objectstore_dif_from_id(
-            self.project, meta, BytesIO(content), checksum, len(content)
-        )
+        with self.feature(
+            {
+                "organizations:objectstore-debugfiles-exclusive-write": True,
+                "organizations:objectstore-debugfiles-write": True,
+            }
+        ):
+            dif, created = self.create_dif(fileobj=BytesIO(content))
 
         assert created
         assert dif.file_id is None
@@ -423,24 +418,13 @@ class CreateDebugFileTest(APITestCase):
         assert dif.get_file().read() == content
 
     @patch("sentry.models.debugfile._upload_dif_to_objectstore")
-    def test_objectstore_only_dif_is_idempotent(self, upload) -> None:
+    def test_exclusive_objectstore_dif_is_idempotent(self, upload) -> None:
         content = b"objectstore-dif-content"
-        checksum = "46b15fc7714307c2d13a1e42651ba92245662ab0"
-        meta = DifMeta(
-            file_format="macho",
-            arch="x86_64",
-            debug_id="67e9247c-814e-392b-a027-dbde6748fcbf",
-            data={"features": ["debug"]},
-            path="crash.dsym",
-        )
         upload.return_value = "storage-path"
 
-        first, first_created = create_objectstore_dif_from_id(
-            self.project, meta, BytesIO(content), checksum, len(content)
-        )
-        second, second_created = create_objectstore_dif_from_id(
-            self.project, meta, BytesIO(content), checksum, len(content)
-        )
+        with self.feature("organizations:objectstore-debugfiles-exclusive-write"):
+            first, first_created = self.create_dif(fileobj=BytesIO(content))
+            second, second_created = self.create_dif(fileobj=BytesIO(content))
 
         assert first_created
         assert not second_created
@@ -450,27 +434,47 @@ class CreateDebugFileTest(APITestCase):
     @patch("sentry.models.debugfile.ProjectDebugFile.objects.create")
     @patch("sentry.models.debugfile._upload_dif_to_objectstore")
     @patch("sentry.models.debugfile.get_debug_files_session")
-    def test_objectstore_only_dif_cleans_up_after_database_error(
+    def test_exclusive_objectstore_dif_cleans_up_after_database_error(
         self, get_session, upload, create
     ) -> None:
-        content = b"objectstore-dif-content"
-        checksum = "46b15fc7714307c2d13a1e42651ba92245662ab0"
-        meta = DifMeta(
-            file_format="macho",
-            arch="x86_64",
-            debug_id="67e9247c-814e-392b-a027-dbde6748fcbf",
-            data={"features": ["debug"]},
-            path="crash.dsym",
-        )
         upload.return_value = "storage-path"
         create.side_effect = RuntimeError
 
-        with pytest.raises(RuntimeError):
-            create_objectstore_dif_from_id(
-                self.project, meta, BytesIO(content), checksum, len(content)
-            )
+        with (
+            self.feature("organizations:objectstore-debugfiles-exclusive-write"),
+            pytest.raises(RuntimeError),
+        ):
+            self.create_dif(fileobj=BytesIO(b"objectstore-dif-content"))
 
         get_session.return_value.delete.assert_called_once_with("storage-path")
+
+    @requires_objectstore
+    def test_exclusive_objectstore_create_dif_from_file(self) -> None:
+        content = b"objectstore-dif-content"
+        file = self.create_file(
+            name="crash.dsym", checksum="46b15fc7714307c2d13a1e42651ba92245662ab0"
+        )
+        file.putfile(ContentFile(content))
+
+        with self.feature("organizations:objectstore-debugfiles-exclusive-write"):
+            dif, created = self.create_dif(file=file)
+
+        assert created
+        assert dif.file_id is None
+        assert dif.storage_path is not None
+        assert dif.get_file().read() == content
+
+    @requires_objectstore
+    def test_exclusive_objectstore_write_failure_does_not_create_file(self) -> None:
+        with (
+            self.feature("organizations:objectstore-debugfiles-exclusive-write"),
+            patch("sentry.models.debugfile._upload_dif_to_objectstore", side_effect=RuntimeError),
+            pytest.raises(RuntimeError),
+        ):
+            self.create_dif(fileobj=BytesIO(b"objectstore-dif-content"))
+
+        assert not ProjectDebugFile.objects.filter(project_id=self.project.id).exists()
+        assert not File.objects.filter(type="project.dif").exists()
 
     @requires_objectstore
     def test_objectstore_write_failure_preserves_legacy_dif(self) -> None:
