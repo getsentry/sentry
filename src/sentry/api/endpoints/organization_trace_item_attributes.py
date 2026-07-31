@@ -201,13 +201,10 @@ EXPAND_QUERY_PARAM = OpenApiParameter(
     type=str,
     enum=["context"],
     # Internal-only for now, so exclude it from the public OpenAPI spec.
-    # Promoting it is tracked separately.
     exclude=True,
     description=(
         "Optional fields to expand. Pass `context` to include attribute metadata "
-        "(brief, examples, deprecation, etc.), sourced from the sentry "
-        "conventions, Sentry's own attribute definitions, or the organization's "
-        "authored context for custom attributes."
+        "(brief, examples, deprecation, etc.)."
     ),
 )
 
@@ -440,11 +437,8 @@ def build_custom_attribute_context(
 ) -> TraceItemAttributeContext:
     """
     Build context for a custom (user-authored) attribute from its stored row.
-
-    Unlike conventions and Sentry column definitions, this metadata is authored
-    by the organization, so it's marked ``isCustom`` to let clients tell the two
-    apart. ``brief`` is required by the write endpoint, and deprecation isn't
-    modeled for custom attributes, so ``isDeprecated`` is omitted.
+    Marked ``isCustom`` so clients can tell it from convention and Sentry-defined
+    context. Deprecation isn't modeled for custom attributes.
     """
     context: TraceItemAttributeContext = {"isCustom": True}
     if row.brief is not None:
@@ -463,28 +457,16 @@ def attach_custom_attribute_context(
     project_ids: Sequence[int],
 ) -> None:
     """
-    Attach user-authored context to the attributes that don't already have any,
-    with a single lookup for the whole page (no N+1).
+    Attach user-authored context to attributes that don't already have any, with a
+    single lookup for the whole page (no N+1). Skipping attributes that resolved
+    convention or Sentry-defined context keeps those sources winning, and bounds
+    the query to names in the response.
 
-    Only attributes left without context are considered: conventions and
-    Sentry-defined attributes already resolved theirs, and the write endpoint
-    rejects Sentry-owned names, so nothing here can shadow them. That also keeps
-    the query bounded to names actually present in the response rather than
-    every row the organization has authored.
-
-    Rows are stored against an attribute's internal name, which for a custom
-    attribute is also its ``name`` (only Sentry-owned attributes get a public
-    alias that differs, and those are excluded above).
-
-    Context is authored either for a single project or org-wide (see the PUT
-    endpoint), so reads mirror that: with exactly one project in scope its rows
-    take precedence over the org-wide ones, and with any other selection only
-    org-wide context applies (a per-project brief would otherwise be ambiguous
-    across a multi-project query).
+    Mirrors the write endpoint's scoping: with exactly one project in scope its
+    rows beat the org-wide ones, otherwise only org-wide context applies.
     """
-    # Keyed by (name, type), the identity rows are stored under: one name can
-    # appear twice in a page when a custom attribute was sent as both a string
-    # and a number, and each variant takes its own context.
+    # Keyed by (name, type) since a custom attribute sent as both a string and a
+    # number appears twice, and each variant takes its own context.
     describable = {
         (attribute["name"], attribute["attributeType"]): attribute
         for attribute in attributes
@@ -505,11 +487,8 @@ def attach_custom_attribute_context(
         attribute_key__in={name for name, _ in describable},
     )
 
-    # Apply org-wide rows (project_id None) first so a project-scoped row for the
-    # same attribute takes precedence.
+    # Org-wide rows first, so a project-scoped row overwrites them.
     for row in sorted(rows, key=lambda row: row.project_id is not None):
-        # A row whose type matches no variant of that name is simply not applied,
-        # so context authored for `number` can't attach to a `string` attribute.
         attribute = describable.get(
             (row.attribute_key, TraceItemAttributeTypes.get_type_name(row.attribute_type))
         )
@@ -592,9 +571,8 @@ def as_attribute_key(
         # `http.route` -- is missing from it and resolves as a `user` source
         # attribute. A Sentry-defined attribute that isn't a convention (e.g.
         # `span.description`) instead carries its context on the definition.
-        # Attributes left without a match get an empty context here; custom ones
-        # may still have user-authored context attached afterwards (see
-        # attach_custom_attribute_context).
+        # Custom attributes get an empty context here; see
+        # attach_custom_attribute_context.
         context = build_sentry_convention_context(
             public_name, name, attr_type
         ) or build_sentry_attribute_context(public_name, attr_type, item_type)
@@ -782,8 +760,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 attributes.extend(result_attributes)
                 if result_debug_info is not None:
                     debug_infos.append(result_debug_info)
-            # Attach authored context once all types are in, so the lookup covers
-            # the whole page in one query.
+            # Attach once all types are in, so the lookup is one query per page.
             if include_custom_context:
                 attach_custom_attribute_context(
                     attributes,

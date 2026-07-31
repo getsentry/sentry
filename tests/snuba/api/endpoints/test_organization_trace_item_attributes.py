@@ -693,9 +693,8 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.data
 
         attributes = {item["key"]: item for item in response.data}
-        # User-authored context is marked isCustom so clients can tell it apart
-        # from convention/Sentry-defined context. Deprecation isn't modeled for
-        # custom attributes, so isDeprecated is absent.
+        # Marked isCustom, and no isDeprecated since deprecation isn't modeled
+        # for custom attributes.
         assert attributes["foo"]["context"] == {
             "isCustom": True,
             "brief": "How foo is used here",
@@ -708,8 +707,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
     def test_expand_context_custom_attribute_single_bounded_query(self) -> None:
         self._store_basic_segment()
         self.create_context("foo")
-        # Authored rows for attributes that aren't in the response must not be
-        # fetched: the lookup is bounded to the names actually being serialized.
+        # Rows for attributes not in the response must not be fetched.
         for i in range(10):
             self.create_context(f"not_in_response_{i}")
 
@@ -745,9 +743,8 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
             measurements={"cart_total": 42.0},
         )
-        # Number attributes are exposed under a `tags[...]` key but context is
-        # keyed by the attribute's internal name, which is what the write
-        # endpoint stores.
+        # Number attributes are exposed under a `tags[...]` key, but context is
+        # matched on the internal name the write endpoint stores.
         self.create_context(
             "cart_total",
             attribute_type=TraceItemAttributeTypes.NUMBER,
@@ -770,9 +767,8 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         }
 
     def test_expand_context_custom_attribute_same_name_both_types(self) -> None:
-        # A custom attribute sent as a string on one span and a number on another
-        # appears twice in an all-types response, under one name. Each variant
-        # must resolve its own context rather than one clobbering the other.
+        # Sent as a string on one span and a number on another, so it appears
+        # twice under one name; each variant resolves its own context.
         self.store_segment(
             self.project.id,
             uuid4().hex,
@@ -877,8 +873,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
     def test_expand_context_custom_attribute_type_must_match(self) -> None:
         self._store_basic_segment()
-        # `foo` is a string attribute; context authored for the number type must
-        # not attach to it.
+        # `foo` is a string attribute, so number-typed context must not attach.
         self.create_context("foo", attribute_type=TraceItemAttributeTypes.NUMBER)
 
         response = self.do_request(
