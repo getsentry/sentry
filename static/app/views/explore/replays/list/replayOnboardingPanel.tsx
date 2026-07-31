@@ -1,4 +1,4 @@
-import {Fragment, useState, type CSSProperties} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
@@ -283,7 +283,7 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
 }
 
 function HeroImage() {
-  const style = useResponsivePropValue<CSSProperties>({
+  const style = useResponsivePropValue({
     zero: {},
     xl: {
       transform: 'translateX(-50%)',
