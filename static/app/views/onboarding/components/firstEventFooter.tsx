@@ -200,7 +200,7 @@ function SkipOnboardingLink(props: LinkProps) {
       margin="auto 3xl"
       whiteSpace="nowrap"
     >
-      {({className}) => <Link className={className} {...props} />}
+      {(containerProps) => <Link {...containerProps} {...props} />}
     </Container>
   );
 }
