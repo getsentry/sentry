@@ -74,6 +74,7 @@ describe('ProjectDetail > ProjectApdex', () => {
           field: ['apdex(span.duration,300)'],
           project: ['1'],
           query: 'is_transaction:true count():>0',
+          referrer: 'api.project-detail.apdex-score-card',
           statsPeriod: '14d',
         },
       })
@@ -89,6 +90,7 @@ describe('ProjectDetail > ProjectApdex', () => {
           field: ['apdex(span.duration,300)'],
           project: ['1'],
           query: 'is_transaction:true count():>0',
+          referrer: 'api.project-detail.apdex-score-card',
           statsPeriodStart: '28d',
           statsPeriodEnd: '14d',
         },
