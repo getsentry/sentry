@@ -286,56 +286,34 @@ function HeroImage() {
   const style = useResponsivePropValue<CSSProperties>({
     zero: {},
     xl: {
-      bottom: 0,
-      left: '50%',
-      marginBottom: 'auto',
-      marginTop: 'auto',
-      position: 'absolute',
-      top: 0,
       transform: 'translateX(-50%)',
       userSelect: 'none',
-      width: 220,
     },
     '3xl': {
-      bottom: 0,
-      left: '50%',
-      marginBottom: 'auto',
-      marginTop: 'auto',
-      minWidth: 300,
-      position: 'absolute',
-      top: 0,
       transform: 'translateX(-55%)',
       userSelect: 'none',
-      width: 300,
     },
     '4xl': {
-      bottom: 0,
-      left: '50%',
-      marginBottom: 'auto',
-      marginTop: 'auto',
-      minWidth: 380,
-      position: 'absolute',
-      top: 0,
       transform: 'translateX(-60%)',
       userSelect: 'none',
-      width: 380,
     },
     '5xl': {
-      bottom: 0,
-      left: '50%',
-      marginBottom: 'auto',
-      marginTop: 'auto',
-      minWidth: 420,
-      position: 'absolute',
-      top: 0,
       transform: 'translateX(-65%)',
       userSelect: 'none',
-      width: 420,
     },
   });
 
   return (
-    <Container>
+    <Container
+      bottom={{xl: 0}}
+      left={{xl: '50%'}}
+      marginBottom={{xl: 'auto'}}
+      marginTop={{xl: 'auto'}}
+      minWidth={{'3xl': 300, '4xl': 380, '5xl': 420}}
+      position={{xl: 'absolute'}}
+      top={{xl: 0}}
+      width={{xl: 220, '3xl': 300, '4xl': 380, '5xl': 420}}
+    >
       {containerProps => <img {...containerProps} src={emptyStateImg} style={style} />}
     </Container>
   );
