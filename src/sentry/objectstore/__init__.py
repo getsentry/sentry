@@ -22,7 +22,12 @@ from sentry import options
 from sentry.utils import metrics as sentry_metrics
 from sentry.utils.env import in_test_environment
 
-__all__ = ["get_attachments_session", "get_debug_files_session", "parse_accept_encoding"]
+__all__ = [
+    "get_attachments_session",
+    "get_chunk_upload_session",
+    "get_debug_files_session",
+    "parse_accept_encoding",
+]
 
 
 def default_attachment_retention() -> int:
@@ -67,6 +72,9 @@ _OBJECTSTORE_CLIENT: Client | None = None
 _ATTACHMENTS_USECASE: Usecase | None = None
 _DEBUG_FILES_USECASE = Usecase(
     "debug_files", compression="none", expiration_policy=TimeToIdle(timedelta(days=90))
+)
+_CHUNK_UPLOAD_USECASE = Usecase(
+    "chunk-upload", compression="none", expiration_policy=TimeToLive(timedelta(hours=25))
 )
 _PROFILE_ATTACHMENTS_USECASE: Usecase | None = None
 _PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToIdle(timedelta(days=30)))
@@ -122,6 +130,10 @@ def get_attachments_session(org: int, project: int) -> Session:
 
 def get_debug_files_session(org: int, project: int) -> Session:
     return get_client().session(_DEBUG_FILES_USECASE, org=org, project=project)
+
+
+def get_chunk_upload_session(org: int) -> Session:
+    return get_client().session(_CHUNK_UPLOAD_USECASE, org=org)
 
 
 def get_profile_attachments_usecase() -> Usecase:

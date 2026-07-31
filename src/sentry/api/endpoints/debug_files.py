@@ -4,6 +4,7 @@ import re
 import shutil
 import tempfile
 import uuid
+from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence, Set
 from typing import TYPE_CHECKING, NotRequired, TypedDict, TypeGuard, cast
 
@@ -43,9 +44,10 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
+from sentry.chunk_upload import find_missing_objectstore_chunks, get_chunk_upload_objectstore_mode
 from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
 from sentry.debug_files.debug_files import maybe_renew_debug_files
-from sentry.debug_files.upload import find_missing_chunks
+from sentry.debug_files.upload import find_missing_fileblob_chunks
 from sentry.lang.native.sources import record_last_upload
 from sentry.models.debugfile import (
     ProguardArtifactRelease,
@@ -619,7 +621,7 @@ def batch_assemble(project: Project, files: AssembleRequestPayload):
         }
 
     # 3. Compute all the chunks that have to be checked for existence.
-    chunks_to_check = {}
+    chunks_to_check: defaultdict[str, set[str]] = defaultdict(set)
     for checksum, file in list(files_to_check.items()):
         name, debug_id, chunks = get_file_info(file)
 
@@ -632,16 +634,31 @@ def batch_assemble(project: Project, files: AssembleRequestPayload):
 
         # Map each chunk back to its source file checksum.
         for chunk in chunks:
-            chunks_to_check[chunk] = checksum
+            chunks_to_check[chunk].add(checksum)
 
     # 4. Find missing chunks and group them per checksum.
-    all_missing_chunks = find_missing_chunks(project.organization.id, chunks_to_check.keys())
+    if not chunks_to_check:
+        return file_response
+
+    # TODO: Remove the rollout mode pinning after Objectstore-only DIF assembly is fully rolled out.
+    use_objectstore = get_chunk_upload_objectstore_mode(
+        project.organization.id,
+        features.has("organizations:objectstore-debugfiles-exclusive-write", project.organization),
+    )
+    if use_objectstore:
+        all_missing_chunks = find_missing_objectstore_chunks(
+            project.organization.id, chunks_to_check.keys()
+        )
+    else:
+        all_missing_chunks = find_missing_fileblob_chunks(
+            project.organization.id, chunks_to_check.keys()
+        )
 
     missing_chunks_per_checksum: dict[str, set[str]] = {}
     for chunk in all_missing_chunks:
-        # We access the chunk via `[]` since the chunk must be there since `all_missing_chunks` must be a subset of
-        # `chunks_to_check.keys()`.
-        missing_chunks_per_checksum.setdefault(chunks_to_check[chunk], set()).add(chunk)
+        # A chunk may be referenced by multiple files in the same manifest.
+        for checksum in chunks_to_check[chunk]:
+            missing_chunks_per_checksum.setdefault(checksum, set()).add(chunk)
 
     # 5. Report missing chunks per checksum.
     for checksum, missing_chunks in missing_chunks_per_checksum.items():
@@ -667,6 +684,7 @@ def batch_assemble(project: Project, files: AssembleRequestPayload):
                 "debug_id": debug_id,
                 "checksum": checksum,
                 "chunks": chunks,
+                "use_objectstore": use_objectstore,
             }
         )
 

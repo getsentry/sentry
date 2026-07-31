@@ -21,6 +21,7 @@ from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.models.files.fileblobowner import FileBlobOwner
+from sentry.objectstore import get_chunk_upload_session
 from sentry.tasks.assemble import (
     ArtifactBundlePostAssembler,
     AssembleResult,
@@ -29,6 +30,7 @@ from sentry.tasks.assemble import (
     assemble_artifacts,
     assemble_dif,
     assemble_file,
+    assemble_objectstore_chunks_to_temp,
     delete_assemble_status,
     get_assemble_status,
     set_assemble_status,
@@ -189,8 +191,8 @@ class AssembleDifTest(BaseAssembleTest):
 
     def test_objectstore_assembly_bypasses_file(self) -> None:
         sym_file = self.load_fixture("crash.sym")
-        blob = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
         checksum = sha1(sym_file).hexdigest()
+        get_chunk_upload_session(self.organization.id).put(sym_file, key=checksum)
 
         with self.feature(
             {
@@ -202,7 +204,8 @@ class AssembleDifTest(BaseAssembleTest):
                 project_id=self.project.id,
                 name="crash.sym",
                 checksum=checksum,
-                chunks=[blob.checksum],
+                chunks=[checksum],
+                use_objectstore=True,
             )
 
         dif = ProjectDebugFile.objects.get(project_id=self.project.id, checksum=checksum)
@@ -212,24 +215,47 @@ class AssembleDifTest(BaseAssembleTest):
         assert dif.get_file().read() == sym_file
         assert not File.objects.filter(type="project.dif", checksum=checksum).exists()
         assert not FileBlobIndex.objects.exists()
-        assert FileBlob.objects.filter(id=blob.id).exists()
-        assert FileBlobOwner.objects.filter(
-            blob=blob, organization_id=self.organization.id
-        ).exists()
+        assert not FileBlob.objects.filter(checksum=checksum).exists()
+
+    def test_objectstore_assembly_preserves_chunk_order_and_duplicates(self) -> None:
+        first_chunk = b"first"
+        second_chunk = b"second"
+        first_checksum = sha1(first_chunk).hexdigest()
+        second_checksum = sha1(second_chunk).hexdigest()
+        contents = first_chunk + second_chunk + first_chunk
+        checksum = sha1(contents).hexdigest()
+        session = get_chunk_upload_session(self.organization.id)
+        session.put(first_chunk, key=first_checksum)
+        session.put(second_chunk, key=second_checksum)
+
+        result = assemble_objectstore_chunks_to_temp(
+            self.project,
+            "test",
+            checksum,
+            [first_checksum, second_checksum, first_checksum],
+        )
+
+        assert result is not None
+        with result.file:
+            assert result.file.read() == contents
+        assert result.size == len(contents)
+        assert not File.objects.filter(type="project.dif").exists()
+        assert not FileBlobIndex.objects.exists()
 
     @patch("sentry.models.debugfile._upload_dif_to_objectstore")
     def test_objectstore_assembly_failure_does_not_fallback(self, upload: MagicMock) -> None:
         upload.side_effect = RuntimeError
         sym_file = self.load_fixture("crash.sym")
-        blob = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
         checksum = sha1(sym_file).hexdigest()
+        get_chunk_upload_session(self.organization.id).put(sym_file, key=checksum)
 
         with self.feature("organizations:objectstore-debugfiles-exclusive-write"):
             assemble_dif(
                 project_id=self.project.id,
                 name="crash.sym",
                 checksum=checksum,
-                chunks=[blob.checksum],
+                chunks=[checksum],
+                use_objectstore=True,
             )
 
         status, detail = get_assemble_status(AssembleTask.DIF, self.project.id, checksum)
@@ -238,6 +264,19 @@ class AssembleDifTest(BaseAssembleTest):
         assert not ProjectDebugFile.objects.filter(project_id=self.project.id).exists()
         assert not File.objects.filter(type="project.dif").exists()
         assert not FileBlobIndex.objects.exists()
+
+    def test_objectstore_assembly_clears_status_when_chunk_is_missing(self) -> None:
+        checksum = sha1(b"missing staged chunk").hexdigest()
+
+        assemble_dif(
+            project_id=self.project.id,
+            name="crash.sym",
+            checksum=checksum,
+            chunks=[checksum],
+            use_objectstore=True,
+        )
+
+        assert get_assemble_status(AssembleTask.DIF, self.project.id, checksum) == (None, None)
 
     def test_assemble_debug_id_override(self) -> None:
         sym_file = self.load_fixture("crash.sym")

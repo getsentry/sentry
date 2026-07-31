@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Set
 from datetime import timedelta
 
@@ -7,7 +9,7 @@ from sentry.models.files import FileBlob
 from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 
 
-def find_missing_chunks(organization_id: int, chunks: Set[str]) -> list[str]:
+def find_missing_fileblob_chunks(organization_id: int, chunks: Set[str]) -> list[str]:
     """Returns a list of chunks which are missing for an org."""
     with start_span(op="find_missing_chunks", name="find_missing_chunks") as span:
         set_span_tag(span, "organization_id", organization_id)

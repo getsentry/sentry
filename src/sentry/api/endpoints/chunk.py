@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import re
 from gzip import BadGzipFile, GzipFile
@@ -16,9 +17,14 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.api.utils import generate_locality_url
+from sentry.chunk_upload import (
+    delete_chunk_upload_objectstore_intents,
+    get_chunk_upload_objectstore_intents,
+)
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.utils import MAX_FILE_SIZE, MAX_OBJECTSTORE_DEBUG_FILE_SIZE
 from sentry.models.organization import Organization
+from sentry.objectstore import get_chunk_upload_session
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.utils.http import absolute_uri
@@ -308,6 +314,38 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         except OSError as err:
             logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
             return Response({"error": str(err)}, status=status.HTTP_400_BAD_REQUEST)
+
+        marked_checksums = get_chunk_upload_objectstore_intents(organization.id, checksums)
+        if marked_checksums:
+            files_by_checksum = dict(zip(checksums, files, strict=True))
+            session = get_chunk_upload_session(organization.id)
+            uploaded_checksums: set[str] = set()
+
+            for checksum in marked_checksums:
+                chunk = files_by_checksum[checksum]
+                chunk.seek(0)
+                actual_checksum = hashlib.sha1(chunk.read()).hexdigest()
+                chunk.seek(0)
+                if actual_checksum != checksum:
+                    logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+                    return Response(
+                        {"error": "Checksum mismatch"}, status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                try:
+                    session.put(chunk, key=checksum)
+                except Exception:
+                    logger.exception("chunkupload.objectstore_upload_failed")
+                    logger.info(
+                        "chunkupload.end", extra={"status": status.HTTP_500_INTERNAL_SERVER_ERROR}
+                    )
+                    return Response(
+                        {"error": "Failed to upload chunk"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    )
+                uploaded_checksums.add(checksum)
+
+            delete_chunk_upload_objectstore_intents(organization.id, uploaded_checksums)
 
         logger.info("chunkupload.end", extra={"status": status.HTTP_200_OK})
         return Response(status=status.HTTP_200_OK)

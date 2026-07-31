@@ -14,7 +14,6 @@ from django.db import router
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import features
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.debug_files.artifact_bundles import (
@@ -36,6 +35,7 @@ from sentry.models.files.file import File
 from sentry.models.files.utils import MAX_FILE_SIZE, MAX_OBJECTSTORE_DEBUG_FILE_SIZE
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.objectstore import get_chunk_upload_session
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import attachments_tasks
@@ -89,67 +89,48 @@ class TemporaryAssembleResult(NamedTuple):
 
 
 @trace
-def assemble_file_blobs_to_temp(
-    task,
-    org_or_project,
-    name,
-    checksum,
-    chunks,
-    max_file_size: int = MAX_FILE_SIZE,
+def assemble_objectstore_chunks_to_temp(
+    project: Project, name: str, checksum: str, chunks: list[str]
 ) -> TemporaryAssembleResult | None:
-    """Verifies and assembles organization-owned FileBlobs into a temporary file, returning it plus metadata."""
-    from sentry.models.files.fileblob import FileBlob
-
-    organization = (
-        org_or_project.organization if isinstance(org_or_project, Project) else org_or_project
-    )
-    file_blobs = list(
-        FileBlob.objects.filter(checksum__in=chunks, fileblobowner__organization_id=organization.id)
-    )
-
-    if {blob.checksum for blob in file_blobs} != set(chunks):
-        logger.error(
-            "Not all chunks are available for assembly; they may have been removed or are not associated with the organization."
-        )
-        set_assemble_status(
-            task,
-            org_or_project.id,
-            checksum,
-            ChunkFileState.ERROR,
-            detail="Not all chunks available for assembling",
-        )
-        return None
-
-    blobs_by_checksum = {blob.checksum: blob for blob in file_blobs}
-    ordered_blobs = [blobs_by_checksum[chunk] for chunk in chunks]
-    file_size = sum(blob.size or 0 for blob in ordered_blobs)
-    if file_size > max_file_size:
-        set_assemble_status(
-            task,
-            org_or_project.id,
-            checksum,
-            ChunkFileState.ERROR,
-            detail=f"File {name} exceeds maximum size ({file_size} > {max_file_size})",
-        )
-        return None
-
+    """Streams staged Objectstore chunks into a temporary DIF file."""
     temp_file = tempfile.NamedTemporaryFile()
     actual_checksum = hashlib.sha1()
     actual_size = 0
+    session = get_chunk_upload_session(project.organization_id)
 
     try:
-        for blob in ordered_blobs:
-            with blob.getfile() as blob_file:
-                for chunk in blob_file.chunks():
-                    actual_checksum.update(chunk)
-                    actual_size += len(chunk)
-                    temp_file.write(chunk)
+        for chunk_checksum in chunks:
+            response = session.get(chunk_checksum)
+            if response is None:
+                # The chunk expired or was deleted after manifest discovery. Let the client rediscover it.
+                delete_assemble_status(AssembleTask.DIF, project.id, checksum)
+                temp_file.close()
+                return None
+
+            with response.payload:
+                while data := response.payload.read(65536):
+                    actual_checksum.update(data)
+                    actual_size += len(data)
+                    if actual_size > MAX_OBJECTSTORE_DEBUG_FILE_SIZE:
+                        set_assemble_status(
+                            AssembleTask.DIF,
+                            project.id,
+                            checksum,
+                            ChunkFileState.ERROR,
+                            detail=(
+                                f"File {name} exceeds maximum size "
+                                f"({actual_size} > {MAX_OBJECTSTORE_DEBUG_FILE_SIZE})"
+                            ),
+                        )
+                        temp_file.close()
+                        return None
+                    temp_file.write(data)
 
         digest = actual_checksum.hexdigest()
         if checksum != digest:
             set_assemble_status(
-                task,
-                org_or_project.id,
+                AssembleTask.DIF,
+                project.id,
                 checksum,
                 ChunkFileState.ERROR,
                 detail="Reported checksum mismatch",
@@ -321,7 +302,9 @@ def delete_assemble_status(task, scope, checksum):
     processing_deadline_duration=60 * 3,
     silo_mode=SiloMode.CELL,
 )
-def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
+def assemble_dif(
+    project_id, name, checksum, chunks, debug_id=None, use_objectstore=False, **kwargs
+):
     """
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
@@ -344,9 +327,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         project = Project.objects.filter(id=project_id).get()
         set_assemble_status(AssembleTask.DIF, project_id, checksum, ChunkFileState.ASSEMBLING)
 
-        if not features.has(
-            "organizations:objectstore-debugfiles-exclusive-write", project.organization
-        ):
+        if not use_objectstore:
             # Assemble the chunks into a temporary file
             rv = assemble_file(
                 AssembleTask.DIF, project, name, checksum, chunks, file_type="project.dif"
@@ -383,14 +364,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 # Only if `dif.file is file` we want to avoid the deletion, given that the new DIF will be backed by `File` that up until now we considered temporary.
                 delete_file = dif.file is not file
         else:
-            tmp = assemble_file_blobs_to_temp(
-                AssembleTask.DIF,
-                project,
-                name,
-                checksum,
-                chunks,
-                max_file_size=MAX_OBJECTSTORE_DEBUG_FILE_SIZE,
-            )
+            tmp = assemble_objectstore_chunks_to_temp(project, name, checksum, chunks)
             if tmp is None:
                 return
 
@@ -409,6 +383,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                     )
                     return
 
+                tmp.file.seek(0)
                 dif, created = create_objectstore_dif_from_id(
                     project,
                     meta,

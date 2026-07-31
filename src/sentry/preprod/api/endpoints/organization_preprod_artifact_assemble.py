@@ -12,7 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.debug_files.upload import find_missing_chunks
+from sentry.debug_files.upload import find_missing_fileblob_chunks
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
@@ -169,7 +169,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                 return Response({"error": vcs_error}, status=400)
 
             # Check if all requested chunks have been uploaded
-            missing_chunks = find_missing_chunks(project.organization_id, set(chunks))
+            missing_chunks = find_missing_fileblob_chunks(project.organization_id, set(chunks))
             if missing_chunks:
                 return Response(
                     {
