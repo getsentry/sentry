@@ -24,6 +24,7 @@ import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
+import {isQueryOutsideRetentionError} from 'sentry/views/dashboards/utils/isQueryOutsideRetentionError';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -129,13 +130,15 @@ export function useErrorsSeriesQuery(
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
     const allHaveData = queryResults.every(q => q?.data);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
+    const error = queryResults.find(q => q?.error)?.error;
+    const errorMessage = error?.message;
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
       return {
         loading,
         errorMessage,
+        isOutsideRetention: isQueryOutsideRetentionError(error),
         rawData: EMPTY_ARRAY,
       };
     }
@@ -287,13 +290,15 @@ export function useErrorsTableQuery(
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
     const allHaveData = queryResults.every(q => q?.data?.json);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
+    const error = queryResults.find(q => q?.error)?.error;
+    const errorMessage = error?.message;
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
       return {
         loading,
         errorMessage,
+        isOutsideRetention: isQueryOutsideRetentionError(error),
         rawData: EMPTY_ARRAY,
       };
     }

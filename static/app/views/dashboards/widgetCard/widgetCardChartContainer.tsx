@@ -28,6 +28,10 @@ import type {
   HeatMapSeries,
   TabularColumn,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {
+  OUTSIDE_RETENTION_DESCRIPTION,
+  WidgetNoDataPanel,
+} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {HEATMAP_RESIZE_DEBOUNCE_MS} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
 import {calculateHeatMapBucketDimensions} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/calculateHeatMapBucketDimensions';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -161,6 +165,7 @@ export function WidgetCardChartContainer({
         timeseriesResults,
         heatmapResults,
         errorMessage,
+        isOutsideRetention,
         loading,
         timeseriesResultsTypes,
         timeseriesResultsUnits,
@@ -172,6 +177,12 @@ export function WidgetCardChartContainer({
         // Bind timeseries to widget for ability to control each widget's legend individually
         const modifiedTimeseriesResults =
           WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(widget, timeseriesResults);
+
+        // The range predates retention, so there is genuinely nothing to show.
+        // Check this before the error message, which is set for this case too.
+        if (!loading && isOutsideRetention) {
+          return <WidgetNoDataPanel description={OUTSIDE_RETENTION_DESCRIPTION} />;
+        }
 
         const errorOrEmptyMessage = loading
           ? errorMessage

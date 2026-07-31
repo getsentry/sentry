@@ -800,4 +800,73 @@ describe('Dashboards > WidgetCard', () => {
       expect(screen.queryByLabelText('Widget warnings')).not.toBeInTheDocument();
     });
   });
+
+  describe('queries outside of retention', () => {
+    const outsideRetentionResponse = {
+      statusCode: 400,
+      body: {detail: 'Invalid date range. Please try a more recent date range.'},
+    };
+
+    const renderErrorsWidget = (displayType: DisplayType) =>
+      renderWithProviders(
+        <WidgetCard
+          api={api}
+          widget={{
+            ...multipleQueryWidget,
+            displayType,
+            queries: [multipleQueryWidget.queries[0]!],
+          }}
+          selection={selection}
+          onDelete={() => {}}
+          onEdit={() => {}}
+          onDuplicate={() => {}}
+          showContextMenu
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+        />
+      );
+
+    it('renders an empty state instead of an error for a timeseries widget', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        ...outsideRetentionResponse,
+      });
+
+      renderErrorsWidget(DisplayType.LINE);
+
+      expect(await screen.findByText('No data to plot.')).toBeInTheDocument();
+      expect(
+        screen.getByText('Events from this date range are outside your retention period.')
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Try adjusting the filters.')).not.toBeInTheDocument();
+    });
+
+    it('renders an empty state instead of an error for a table widget', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        ...outsideRetentionResponse,
+      });
+
+      renderErrorsWidget(DisplayType.TABLE);
+
+      expect(await screen.findByText('No data to plot.')).toBeInTheDocument();
+      expect(
+        screen.getByText('Events from this date range are outside your retention period.')
+      ).toBeInTheDocument();
+    });
+
+    it('still renders an error for other failures', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        statusCode: 400,
+        body: {detail: 'Invalid query. Argument to function is wrong type.'},
+      });
+
+      renderErrorsWidget(DisplayType.LINE);
+
+      await waitFor(() => {
+        expect(screen.queryByText('No data to plot.')).not.toBeInTheDocument();
+      });
+    });
+  });
 });
