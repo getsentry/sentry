@@ -17,29 +17,28 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 
+import {getAssignedActivityItem} from './activityItem/assignment';
+import {getResolvedInCommitDetails} from './activityItem/commitDetails';
+import {getProviderName} from './activityItem/provider';
+import {getResolvedInReleaseDetails} from './activityItem/releaseDetails';
 import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
 import {getIntegrationChip} from './chips/integrationChip';
 import {ActivityPriorityChip} from './chips/priorityChip';
 import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
 import {ActivityRelease} from './chips/releaseChip';
-import {getAssignedActivityItem} from './compactActivityItem/assignment';
-import {getResolvedInCommitDetails} from './compactActivityItem/commitDetails';
-import {getProviderName} from './compactActivityItem/provider';
-import {getResolvedInReleaseDetails} from './compactActivityItem/releaseDetails';
-import type {CompactGroupActivityItem} from './compactActivityItem/types';
+import type {ActivityFeedItem, CollapsedSeerActivity} from './activityFeedItem';
 import {getArchiveDetails} from './archiveDetails';
 
-export type {CompactGroupActivityItem} from './compactActivityItem/types';
+interface ActivityItem {
+  title: React.ReactNode;
+  details?: React.ReactNode;
+}
 
-function getNoteAuthorName(item: GroupActivity) {
-  if (item.sentry_app) {
-    return item.sentry_app.name;
-  }
-  if (item.user) {
-    return item.user.name;
-  }
-  return 'Sentry';
+export function getActivityNoteAuthor(
+  activity: Extract<GroupActivity, {type: GroupActivityType.NOTE}>
+) {
+  return activity.sentry_app?.name ?? activity.user?.name ?? 'Sentry';
 }
 
 function getPullRequestProvider(pullRequest: PullRequest) {
@@ -124,26 +123,61 @@ function getPriorityDetails(
   }
 }
 
-interface GetCompactGroupActivityItemParams {
-  activity: GroupActivity;
+interface GetActivityItemParams {
   issueCategory: IssueCategory;
+  item: ActivityFeedItem;
   organization: Organization;
   project: Project;
 }
 
-export function getCompactGroupActivityItem({
-  activity,
+const MINIMUM_SEER_ACTIVITY_DURATION_SECONDS = 5 * 60;
+
+function getSeerActivityDuration(
+  activity: CollapsedSeerActivity
+): React.ReactNode | null {
+  const durationSeconds =
+    (new Date(activity.activity.dateCreated).getTime() -
+      new Date(activity.startedActivity.dateCreated).getTime()) /
+    1000;
+
+  return Number.isFinite(durationSeconds) &&
+    durationSeconds >= MINIMUM_SEER_ACTIVITY_DURATION_SECONDS ? (
+    <Duration seconds={durationSeconds} />
+  ) : null;
+}
+
+function getSeerIterationReferrer(referrer: string | undefined) {
+  if (referrer === 'github.check_suite') {
+    return t('after CI failed');
+  }
+
+  return referrer?.startsWith('github.') ? t('from GitHub') : null;
+}
+
+function getCollapsedSeerIterationReferrer(item: ActivityFeedItem) {
+  if (item.type !== GroupActivityType.SEER_ITERATION_COMPLETED) {
+    return null;
+  }
+
+  return getSeerIterationReferrer(item.startedActivity.data.referrer);
+}
+
+export function getActivityItem({
+  item,
   organization,
   project,
   issueCategory,
-}: GetCompactGroupActivityItemParams): CompactGroupActivityItem {
+}: GetActivityItemParams): ActivityItem {
+  const {activity} = item;
   const issuesLink = `/organizations/${organization.slug}/issues/`;
   const activityContext = {id: activity.id, type: activity.type};
+  const seerActivityDuration =
+    item.type === 'activity' ? null : getSeerActivityDuration(item);
 
   switch (activity.type) {
     case GroupActivityType.NOTE:
       return {
-        title: getNoteAuthorName(activity),
+        title: getActivityNoteAuthor(activity),
       };
     case GroupActivityType.SET_RESOLVED: {
       const integrationChip = getIntegrationChip({data: activity.data, organization});
@@ -293,7 +327,7 @@ export function getCompactGroupActivityItem({
       return {
         title:
           issueCategory === IssueCategoryEnum.FEEDBACK
-            ? t('Marked as spam')
+            ? t('Marked as Spam')
             : t('Archived'),
         details: getArchiveDetails(activity.data, issueCategory),
       };
@@ -454,6 +488,9 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.SEER_RCA_COMPLETED:
       return {
         title: t('Root cause found'),
+        details: seerActivityDuration
+          ? tct('in [duration]', {duration: seerActivityDuration})
+          : null,
       };
     case GroupActivityType.SEER_SOLUTION_STARTED:
       return {
@@ -462,6 +499,9 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.SEER_SOLUTION_COMPLETED:
       return {
         title: t('Plan created'),
+        details: seerActivityDuration
+          ? tct('in [duration]', {duration: seerActivityDuration})
+          : null,
       };
     case GroupActivityType.SEER_CODING_STARTED:
       return {
@@ -470,6 +510,9 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.SEER_CODING_COMPLETED:
       return {
         title: t('Code changes suggested'),
+        details: seerActivityDuration
+          ? tct('in [duration]', {duration: seerActivityDuration})
+          : null,
       };
     case GroupActivityType.SEER_PR_CREATED: {
       const pullRequest = activity.data.pull_requests?.[0];
@@ -490,27 +533,34 @@ export function getCompactGroupActivityItem({
       const {referrer} = activity.data;
       return {
         title: t('Pull request iteration started'),
-        details:
-          referrer === 'github.check_suite'
-            ? t('after CI failed')
-            : referrer?.startsWith('github.')
-              ? t('from GitHub')
-              : null,
+        details: getSeerIterationReferrer(referrer),
       };
     }
     case GroupActivityType.SEER_ITERATION_COMPLETED: {
       const pullRequest = activity.data.pull_requests?.[0];
+      const provider = pullRequest ? getProviderName(pullRequest.provider) : null;
+      const referrer = getCollapsedSeerIterationReferrer(item);
+      let details: React.ReactNode = referrer;
+
+      if (!details && provider) {
+        details = tct('on [provider]', {provider});
+      }
+      if (seerActivityDuration) {
+        details = details
+          ? tct('[details] in [duration]', {
+              details,
+              duration: seerActivityDuration,
+            })
+          : tct('in [duration]', {duration: seerActivityDuration});
+      }
+
       return {
         title: pullRequest
           ? tct('Pull request [pullRequest] updated', {
               pullRequest: <SeerPullRequestChip pullRequest={pullRequest} />,
             })
           : t('Pull request updated'),
-        details: pullRequest
-          ? tct('on [provider]', {
-              provider: getProviderName(pullRequest.provider),
-            })
-          : null,
+        details,
       };
     }
     case GroupActivityType.TRIGGER_AUTOFIX:

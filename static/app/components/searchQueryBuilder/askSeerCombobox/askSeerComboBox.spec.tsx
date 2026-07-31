@@ -306,8 +306,8 @@ describe('AskSeerComboBox', () => {
     expect(screen.queryByText('Time Range')).not.toBeInTheDocument();
   });
 
-  it('wraps long query tokens', async () => {
-    const longValue = 'a'.repeat(400);
+  it('middle-ellipsizes long query tokens', async () => {
+    const longValue = '/api/0/organizations/{organization_id_or_slug}/events/';
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-explorer-ai/query/',
       method: 'POST',
@@ -334,15 +334,10 @@ describe('AskSeerComboBox', () => {
     });
     await userEvent.type(input, 'test{Enter}');
 
-    const value = await screen.findByText(longValue);
-    expect(getEmotionRules(value).join(' ')).toContain('overflow-wrap: anywhere');
-
-    const formattedQuery = screen
-      .getAllByLabelText(`message:${longValue}`)
-      .find(element => element.parentElement?.tagName === 'SPAN')!;
-    expect(getEmotionRules(formattedQuery.parentElement!).join(' ')).toContain(
-      'width: fit-content'
-    );
+    expect(
+      await screen.findByText('/api/0…{organization_id_or_slug}/events/')
+    ).toBeInTheDocument();
+    expect(screen.queryByText(longValue)).not.toBeInTheDocument();
   });
 
   it('sizes parameter chips to their content', async () => {

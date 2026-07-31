@@ -786,6 +786,7 @@ class Referrer(StrEnum):
     REPLAYS_QUERY_BROWSE_SIMPLE_AGGREGATION = "replays.query.browse_simple_aggregation"
     REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
     REPLAYS_SCRIPTS_DELETE_REPLAYS = "replays.scripts.delete_replays"
+    REPLAYS_DELETE_REPLAYS_BULK = "replays.delete_replays_bulk"
     FEEDBACKS_LABEL_QUERY = "feedbacks.label_query"
     EU_DATA_EXPORT = "sentry.internal.eu-compliance-data-export"
     REPORTS_KEY_ERROR_ISSUES = "reports.key_errors"

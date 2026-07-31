@@ -12,6 +12,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 
+import {getActivityNoteAuthor} from './activityItem';
 import {ActivityLineContent, ActivityLineRow, type ActivityLineVariant} from './layout';
 import {ActivityLineMarker} from './progressMarker';
 
@@ -28,14 +29,6 @@ interface ActivityLineNoteProps {
 
 export function isActivityNote(activity: GroupActivity): activity is GroupActivityNote {
   return activity.type === GroupActivityType.NOTE;
-}
-
-function getNoteAuthorName(activity: GroupActivityNote) {
-  if (activity.sentry_app) {
-    return activity.sentry_app.name;
-  }
-
-  return activity.user?.name ?? 'Sentry';
 }
 
 export function ActivityLineNote({
@@ -57,7 +50,7 @@ export function ActivityLineNote({
     <ActivityLineRow>
       <ActivityLineMarker item={activity} showProgress={showProgress} />
       <ActivityLineNoteHeadline
-        title={t('%s commented', getNoteAuthorName(activity))}
+        title={t('%s commented', getActivityNoteAuthor(activity))}
         timestamp={timestamp}
         variant={inputVariant}
         actions={

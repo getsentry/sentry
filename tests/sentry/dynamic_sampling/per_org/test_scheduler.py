@@ -460,9 +460,10 @@ class RunCalculationsPerOrgTest(TestCase):
             project_config, rebalanced_projects, cached_sample_rates, project_volumes
         )
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
-        assert [p.id for p in get_transaction_volumes.call_args.kwargs["root_projects"]] == [
-            project.id
-        ]
+        # Every root project is queried, not only the ones being rebalanced. Narrowing
+        # to `projects_to_balance` drops every segment rooted at a project sampled at
+        # 100%, so those root projects report no transaction volume at all.
+        assert "root_projects" not in get_transaction_volumes.call_args.kwargs
         transaction_balancing.assert_called_once_with(
             transaction_config, project_volumes, get_transaction_volumes.return_value
         )

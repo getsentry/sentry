@@ -25,7 +25,7 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
     ResolvedPullRequest,
-    parse_pull_request_number,
+    parse_pull_request_url,
 )
 
 logger = logging.getLogger(__name__)
@@ -310,7 +310,8 @@ def attribute_delegated_agent_pull_request(
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
 
-    pr_number = parse_pull_request_number(pr_url)
+    parsed_pr = parse_pull_request_url(pr_url)
+    pr_number = parsed_pr.number if parsed_pr else None
 
     log_context = {
         "organization_id": organization_id,
