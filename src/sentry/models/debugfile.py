@@ -556,7 +556,7 @@ def _find_existing_dif(project: Project, meta: DifMeta, checksum: str) -> Projec
 def create_dif_from_id(
     project: Project,
     meta: DifMeta,
-    fileobj: BinaryIO | None = None,
+    fileobj: IO[bytes] | None = None,
     file: File | None = None,
 ) -> tuple[ProjectDebugFile, bool]:
     """Creates the :class:`ProjectDebugFile` entry for the provided DIF.
