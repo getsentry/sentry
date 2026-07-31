@@ -1,5 +1,8 @@
+import {useMemo} from 'react';
+
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useReplayExists} from 'sentry/utils/replayCount/useReplayExists';
+import {useReplays} from 'sentry/utils/replays/hooks/useReplays';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 
@@ -17,23 +20,54 @@ export function useReplayCountForTransaction({
   const {selection} = usePageFilters();
   const {replaysExist} = useReplayExists();
 
-  const search = new MutableSearch('!replayId:"" is_transaction:true');
-  search.addFilterValue('transaction', transaction);
+  // 1. Segment names approach — query replays directly
+  const replaysQuery = useMemo(() => {
+    const s = new MutableSearch('');
+    s.addFilterValue('segment_names', transaction);
+    return s;
+  }, [transaction]);
 
-  const {data, isPending} = useSpans(
+  const {data: replaysData, isPending: isReplaysPending} = useReplays({
+    fields: ['id'],
+    limit: limit + 1,
+    projects: selection.projects,
+    query: replaysQuery,
+    queryReferrer: 'useReplayCountForTransaction',
+    sort: '-started_at',
+    statsPeriod,
+  });
+
+  const replayIdsFromReplaysSearch = useMemo(() => {
+    const rows = (replaysData?.data ?? []) as Array<{id: string}>;
+    const ids = rows.map(r => String(r.id)).filter(Boolean);
+    return new Set(ids);
+  }, [replaysData]);
+
+  const segmentNamesSufficient =
+    !isReplaysPending && replayIdsFromReplaysSearch.size > limit;
+
+  // 2. Spans-based fallback. Only fires once segment_names has resolved and
+  // came up short, so a fully-covered transaction never issues this query.
+  const spansSearch = new MutableSearch('!replayId:"" is_transaction:true');
+  spansSearch.addFilterValue('transaction', transaction);
+  if (replayIdsFromReplaysSearch.size > 0) {
+    spansSearch.addFilterValue(
+      '!replayId',
+      `[${[...replayIdsFromReplaysSearch].join(',')}]`,
+      false
+    );
+  }
+
+  const {data: spansData, isPending: isSpansPending} = useSpans(
     {
-      search,
-      // Note that this has to be `replayId` and not `replay.id` - only
-      // `replayId` holds sampled replays, while `replay.id` currently also
-      // holds the ID of Replays that were active but not sampled.
-      // See REPLAY-893.
+      search: spansSearch,
       fields: ['replayId', 'timestamp'],
       sorts: [{field: 'timestamp', kind: 'desc'}],
-      // Over-fetch so we can still distinguish "limit+" from an exact count
-      // when some candidate IDs don't exist in the replays dataset.
       limit: limit * 2,
+      enabled: !isReplaysPending && !segmentNamesSufficient,
       pageFilters: {
         ...selection,
+        environments: [],
         datetime: {
           period: statsPeriod,
           start: null,
@@ -45,20 +79,31 @@ export function useReplayCountForTransaction({
     'api.performance.transaction-summary.replay-count'
   );
 
-  if (isPending) {
+  if (isReplaysPending) {
     return undefined;
   }
 
-  const candidateIds = Array.from(
-    new Set(data.map(row => String(row.replayId)).filter(Boolean))
-  );
-  if (candidateIds.length === 0) {
-    return 0;
+  if (segmentNamesSufficient) {
+    return replayIdsFromReplaysSearch.size;
   }
 
-  const existence = replaysExist(candidateIds);
-  if (Object.keys(existence).length !== candidateIds.length) {
+  // Fallback is enabled but hasn't resolved yet.
+  if (isSpansPending) {
     return undefined;
   }
-  return Object.values(existence).filter(Boolean).length;
+
+  const newCandidateIds = [
+    ...new Set(spansData.map(row => String(row.replayId)).filter(Boolean)),
+  ];
+  if (newCandidateIds.length === 0) {
+    return replayIdsFromReplaysSearch.size;
+  }
+
+  const existence = replaysExist(newCandidateIds);
+  if (Object.keys(existence).length !== newCandidateIds.length) {
+    // Existence check is still running.
+    return undefined;
+  }
+  const additionalCount = Object.values(existence).filter(Boolean).length;
+  return Math.min(replayIdsFromReplaysSearch.size + additionalCount, limit + 1);
 }

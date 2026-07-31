@@ -59,6 +59,10 @@ describe('Performance > Transaction Summary Header', () => {
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replays/',
+      body: {data: []},
+    });
   });
 
   it('should render', async () => {

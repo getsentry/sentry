@@ -185,21 +185,6 @@ export type ReplayRecordNestedFieldName =
   | `os.${keyof ReplayRecord['os']}`
   | `user.${keyof ReplayRecord['user']}`;
 
-export type ReplayListLocationQuery = {
-  cursor?: string;
-  end?: string;
-  environment?: string[];
-  field?: string[];
-  limit?: string;
-  offset?: string;
-  project?: string[];
-  query?: string;
-  sort?: string;
-  start?: string;
-  statsPeriod?: string;
-  utc?: 'true' | 'false';
-};
-
 export type ReplayListQueryReferrer =
   | 'replayList'
   | 'issueReplays'
