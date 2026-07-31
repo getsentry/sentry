@@ -8,7 +8,7 @@ import {
   WildcardOperators,
   type TokenResult,
 } from './parser';
-import {getKeyName} from './utils';
+import {getKeyName, quoteFilterKey, stringifyToken} from './utils';
 
 const EMPTY_OPTION_VALUE = '(empty)';
 
@@ -51,6 +51,10 @@ interface FilterToken extends BaseToken {
    * Otherwise it is the concrete key returned by getKeyName().
    */
   key: string;
+  /**
+   * The serialized key, including negation and any quotes or explicit tag syntax.
+   */
+  keyText: string;
   type: TokenType.FILTER;
   /**
    * A normalized value for lookups. For HAS filters this is the actual field name.
@@ -177,12 +181,20 @@ function parseToFlatTokens(query: string): Token[] {
               }
             }
           }
-          const text = `${existsKey}:${field}`;
-          tokens.push({type: TokenType.FILTER, key: existsKey, value: field, text});
+          const fieldText = valueToken ? stringifyToken(valueToken) : '';
+          const text = `${existsKey}:${fieldText}`;
+          tokens.push({
+            type: TokenType.FILTER,
+            key: existsKey,
+            keyText: existsKey,
+            value: field,
+            text,
+          });
           break;
         }
 
         const keyName = getKeyName(t.key);
+        const keyText = `${t.negated ? '!' : ''}${stringifyToken(t.key)}`;
 
         // Prefer unquoted raw value for VALUE_TEXT, otherwise fall back to token text
         let rawVal: string;
@@ -214,8 +226,7 @@ function parseToFlatTokens(query: string): Token[] {
           !/\s/.test(rawVal)
         ) {
           const op = t.operator ?? '';
-          const negation = t.negated ? '!' : '';
-          text = `${negation}${keyName}:${op}${rawVal}`;
+          text = `${keyText}:${op}${rawVal}`;
         }
 
         let wildcard: WildcardOperators | undefined;
@@ -230,6 +241,7 @@ function parseToFlatTokens(query: string): Token[] {
         tokens.push({
           type: TokenType.FILTER,
           key: keyName,
+          keyText,
           value: lookupValue,
           listValues,
           text,
@@ -321,23 +333,22 @@ function consolidateUnquotedValues(tokens: Token[]): Token[] {
             if (BRACKET_QUOTE_PATTERN_RE.test(finalValue)) {
               // Convert pattern PREFIX, [WORD]"] to PREFIX, \"[WORD]\"
               finalValue = finalValue.replace(BRACKET_QUOTE_PATTERN_RE, '$1, \\"$2\\"]');
-              newText = `${token.key}:"${finalValue}"`;
+              newText = `${token.keyText}:"${finalValue}"`;
             } else {
               // Fallback to general quote escaping
               const escapedValue = completeValue.replace(/"/g, '\\"');
-              newText = `${token.key}:"${escapedValue}"`;
+              newText = `${token.keyText}:"${escapedValue}"`;
             }
           } else {
             // For release consolidation, add quotes around the space-separated value
             completeValue = [token.value, ...freeTextTokens.map(ft => ft.value)].join(
               ' '
             );
-            newText = `${token.key}:"${escapeDoubleQuotes(completeValue)}"`;
+            newText = `${token.keyText}:"${escapeDoubleQuotes(completeValue)}"`;
           }
 
           result.push({
-            type: token.type,
-            key: token.key,
+            ...token,
             value: completeValue,
             text: newText,
           });
@@ -569,17 +580,25 @@ export class MutableSearch {
       | WildcardOperators.ENDS_WITH
   ): this {
     if (key === 'has' || key === '!has') {
-      this.tokens.push({type: TokenType.FILTER, key, value, text: `${key}:${value}`});
+      this.tokens.push({
+        type: TokenType.FILTER,
+        key,
+        keyText: key,
+        value,
+        text: `${key}:${quoteFilterKey(value)}`,
+      });
       return this;
     }
 
     const escaped = shouldEscape ? escapeFilterValue(value) : value;
     const valueText = quoteIfNeeded(escaped);
+    const keyText = quoteFilterKey(key);
     this.tokens.push({
       type: TokenType.FILTER,
       key,
+      keyText,
       value: escaped,
-      text: `${key}:${operator}${valueText}`,
+      text: `${keyText}:${operator}${valueText}`,
       wildcard: operator || undefined,
     });
 
@@ -640,13 +659,15 @@ export class MutableSearch {
       const escaped = shouldEscape ? escapeFilterValue(value) : value;
       return quoteIfNeeded(escaped);
     });
+    const keyText = quoteFilterKey(key);
 
     this.tokens.push({
       type: TokenType.FILTER,
       key,
+      keyText,
       value: `${operator}[${escapedValues.join(',')}]`,
       listValues: escapedValues,
-      text: `${key}:${operator}[${escapedValues.join(',')}]`,
+      text: `${keyText}:${operator}[${escapedValues.join(',')}]`,
       wildcard: operator || undefined,
     });
     return this;
