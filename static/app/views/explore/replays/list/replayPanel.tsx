@@ -26,11 +26,10 @@ export function ReplayPanel({image, noCenter, children, ...props}: Props) {
         {image ? (
           <Container
             flex={{xl: 1}}
-            margin={{zero: 'xl auto', xl: '120px 2xl 2xl'}}
+            margin={{zero: 'xl auto', xl: '2xl'}}
             maxWidth="300px"
             minHeight="100px"
             minWidth="150px"
-            position="relative"
           >
             {image}
           </Container>

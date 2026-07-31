@@ -278,34 +278,19 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
 }
 
 const HeroImage = styled('img')`
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  margin: 0 auto;
+  user-select: none;
+
   @container (min-width: ${p => p.theme.container.xl}) {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 50%;
     width: 220px;
-    margin-top: auto;
-    margin-bottom: auto;
-    user-select: none;
-    transform: translateX(-50%);
   }
 
   @container (min-width: ${p => p.theme.container['3xl']}) {
-    min-width: 300px;
     width: 300px;
-    transform: translateX(-55%);
-  }
-
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    min-width: 380px;
-    width: 380px;
-    transform: translateX(-60%);
-  }
-
-  @container (min-width: ${p => p.theme.container['5xl']}) {
-    min-width: 420px;
-    width: 420px;
-    transform: translateX(-65%);
   }
 `;
 
