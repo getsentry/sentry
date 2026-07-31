@@ -107,6 +107,19 @@ describe('ConversationsChart', () => {
     expect(screen.getByRole('button', {name: 'Line'})).toBeInTheDocument();
   });
 
+  it('switches the chart type to area', async () => {
+    const {router} = render(<ConversationsChart />, {organization});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Bar'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Area'}));
+
+    await waitFor(() => {
+      expect(router.location.query.chartType).toBe('area');
+    });
+
+    expect(screen.getByRole('button', {name: 'Area'})).toBeInTheDocument();
+  });
+
   it('applies the search query and agent filter to the timeseries request', async () => {
     render(<ConversationsChart />, {
       organization,
@@ -245,6 +258,26 @@ describe('ConversationsChart', () => {
             ],
           }),
         ],
+      })
+    );
+  });
+
+  it('maps the area chart type to the area dashboard display type', async () => {
+    render(<ConversationsChart />, {
+      organization: OrganizationFixture({features: ['dashboards-edit']}),
+      initialRouterConfig: {
+        location: {pathname: '/', query: {chartType: 'area'}},
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Chart actions'}));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Add to Dashboard'})
+    );
+
+    expect(openAddToDashboardModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        widgets: [expect.objectContaining({displayType: DisplayType.AREA})],
       })
     );
   });
