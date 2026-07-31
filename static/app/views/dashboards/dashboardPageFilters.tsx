@@ -1,7 +1,15 @@
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {DataCategory} from 'sentry/types/core';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/dashboards/data';
-import {ALL_DASHBOARD_DATA_CATEGORIES} from 'sentry/views/dashboards/hooks/useDashboardMaxPickableDays';
+
+const ALL_DASHBOARD_DATA_CATEGORIES = [
+  DataCategory.SPANS,
+  DataCategory.TRANSACTIONS,
+  DataCategory.ERRORS,
+  DataCategory.LOG_ITEM,
+  DataCategory.TRACE_METRICS,
+] as const;
 
 interface DashboardPageFiltersProps {
   children: React.ReactNode;
