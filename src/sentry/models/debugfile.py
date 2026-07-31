@@ -553,66 +553,6 @@ def _find_existing_dif(project: Project, meta: DifMeta, checksum: str) -> Projec
     )
 
 
-def create_objectstore_dif_from_id(
-    project: Project,
-    meta: DifMeta,
-    fileobj: IO[bytes],
-    checksum: str,
-    file_size: int,
-) -> tuple[ProjectDebugFile, bool]:
-    """Creates the :class:`ProjectDebugFile` entry for the provided DIF.
-
-    Analogous to :func:`create_dif_from_id`, but writes exclusively to Objectstore.
-
-    Returns a tuple of ``(dif, created)``.
-    """
-    dif = _find_existing_dif(project, meta, checksum)
-    if dif is not None:
-        return dif, False
-
-    content_type = DIF_MIMETYPES[meta.file_format]
-    session = get_debug_files_session(project.organization_id, project.id)
-    storage_path = _upload_dif_to_objectstore(
-        session,
-        fileobj,
-        content_type,
-        file_size,
-        _get_dif_download_filename(meta),
-    )
-
-    metrics.distribution(
-        "storage.put.size",
-        file_size,
-        tags={"usecase": "debug_files", "compression": "none"},
-        unit="byte",
-    )
-
-    try:
-        dif = ProjectDebugFile.objects.create(
-            file=None,
-            checksum=checksum,
-            debug_id=meta.debug_id,
-            code_id=meta.code_id,
-            cpu_name=meta.arch,
-            object_name=_get_dif_object_name(meta),
-            project_id=project.id,
-            data=meta.data,
-            storage_path=storage_path,
-            content_type=content_type,
-            file_size=file_size,
-            date_created=timezone.now(),
-        )
-    except Exception:
-        try:
-            session.delete(storage_path)
-        except Exception:
-            logger.exception("Failed to clean up Objectstore debug file after database error")
-        raise
-
-    clean_redundant_difs(project, meta.debug_id)
-    return dif, True
-
-
 def create_dif_from_id(
     project: Project,
     meta: DifMeta,
@@ -625,8 +565,8 @@ def create_dif_from_id(
     :class:`DifMeta` object). If the correct entry already exists, this simply returns the
     existing entry.
 
-    It intentionally does not validate the file, only will ensure a :class:`File` entry or
-    a `storage_path` exists, and set the `ContentType` according to the provided :class:DifMeta`.
+    It intentionally does not validate the file. Depending on the configured Objectstore write
+    flags, it creates a :class:`File` entry, an Objectstore ``storage_path``, or both.
 
     It can be passed either an existing `File` model, or an actual stream of bytes, depending on
     whether the `File` already exists.
@@ -634,8 +574,6 @@ def create_dif_from_id(
     Returns a tuple of `(dif, created)` where `dif` is the `ProjectDebugFile` instance and
     `created` is a bool.
     """
-    object_name = _get_dif_object_name(meta)
-
     if file is not None:
         file_size = file.size
         checksum = file.checksum
@@ -660,36 +598,62 @@ def create_dif_from_id(
         return dif, False
 
     content_type = DIF_MIMETYPES[meta.file_format]
-
-    if file is None:
-        file = File.objects.create(
-            name=meta.debug_id,
-            type="project.dif",
-            headers={"Content-Type": content_type},
-        )
-        file.putfile(fileobj)
-    else:
-        file.type = "project.dif"
-        file.headers["Content-Type"] = content_type
-        file.save()
-
-    metrics.distribution(
-        "storage.put.size",
-        file.size,
-        tags={"usecase": "debug_files", "compression": "none"},
-        unit="byte",
+    object_name = _get_dif_object_name(meta)
+    exclusive_objectstore_write = features.has(
+        "organizations:objectstore-debugfiles-exclusive-write", project.organization
+    )
+    objectstore_write = exclusive_objectstore_write or features.has(
+        "organizations:objectstore-debugfiles-write", project.organization
     )
 
+    if not exclusive_objectstore_write:
+        if file is None:
+            file = File.objects.create(
+                name=meta.debug_id,
+                type="project.dif",
+                headers={"Content-Type": content_type},
+            )
+            file.putfile(fileobj)
+        else:
+            file.type = "project.dif"
+            file.headers["Content-Type"] = content_type
+            file.save()
+
+        metrics.distribution(
+            "storage.put.size",
+            file.size,
+            tags={"usecase": "debug_files", "compression": "none"},
+            unit="byte",
+        )
+
     objectstore_metadata: dict[str, Any] = {}
-    if features.has("organizations:objectstore-debugfiles-write", project.organization):
+    session: Session | None = None
+    storage_path: str | None = None
+    if objectstore_write:
         session = get_debug_files_session(project.organization_id, project.id)
-        filename = _get_dif_download_filename(meta)
         try:
-            with file.getfile() as source:
+            if file is not None:
+                with file.getfile() as source:
+                    storage_path = _upload_dif_to_objectstore(
+                        session,
+                        source,
+                        content_type,
+                        file_size,
+                        _get_dif_download_filename(meta),
+                    )
+            else:
+                assert fileobj is not None
                 storage_path = _upload_dif_to_objectstore(
-                    session, source, content_type, file_size, filename
+                    session,
+                    fileobj,
+                    content_type,
+                    file_size,
+                    _get_dif_download_filename(meta),
                 )
         except Exception:
+            if exclusive_objectstore_write:
+                logger.exception("Failed to write debug file to Objectstore")
+                raise
             logger.exception("Failed to dual-write debug file to Objectstore")
         else:
             objectstore_metadata = {
@@ -699,17 +663,34 @@ def create_dif_from_id(
                 "date_created": timezone.now(),
             }
 
-    dif = ProjectDebugFile.objects.create(
-        file=file,
-        checksum=file.checksum,
-        debug_id=meta.debug_id,
-        code_id=meta.code_id,
-        cpu_name=meta.arch,
-        object_name=object_name,
-        project_id=project.id,
-        data=meta.data,
-        **objectstore_metadata,
-    )
+    if exclusive_objectstore_write:
+        metrics.distribution(
+            "storage.put.size",
+            file_size,
+            tags={"usecase": "debug_files", "compression": "none"},
+            unit="byte",
+        )
+
+    try:
+        dif = ProjectDebugFile.objects.create(
+            file=None if exclusive_objectstore_write else file,
+            checksum=checksum,
+            debug_id=meta.debug_id,
+            code_id=meta.code_id,
+            cpu_name=meta.arch,
+            object_name=object_name,
+            project_id=project.id,
+            data=meta.data,
+            **objectstore_metadata,
+        )
+    except Exception:
+        if exclusive_objectstore_write and storage_path is not None:
+            assert session is not None
+            try:
+                session.delete(storage_path)
+            except Exception:
+                logger.exception("Failed to clean up Objectstore debug file after database error")
+        raise
 
     # The DIF we've just created might actually be removed here again. But since
     # this can happen at any time in near or distant future, we don't care and
