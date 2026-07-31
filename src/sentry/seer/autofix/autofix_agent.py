@@ -575,7 +575,7 @@ def trigger_autofix_agent(
     return run
 
 
-def get_autofix_agent_state(organization: Organization, group_id: int):
+def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRunState | None:
     """
     Get the current state of an agent-based autofix run for a group.
 
