@@ -9,7 +9,6 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
-from sentry.pr_metrics.attribution import attribute_seer_created_pull_requests
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
@@ -31,7 +30,6 @@ from sentry.seer.entrypoints.types import (
     SeerEntrypointKey,
 )
 from sentry.seer.models import SeerPermissionError
-from sentry.seer.pull_requests import link_seer_run_pull_requests
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.tasks.base import instrumented_task
@@ -728,35 +726,6 @@ def process_autofix_updates(
                     "event_type": str(event_type),
                 },
             )
-
-        if event_type == SentryAppEventType.SEER_PR_CREATED:
-            pull_requests = event_payload.get("pull_requests", [])
-
-            if features.has("organizations:pr-metrics-attribution", organization):
-                try:
-                    attribute_seer_created_pull_requests(
-                        organization=organization,
-                        pull_requests=pull_requests,
-                        run_id=run_id,
-                        group_id=group_id,
-                    )
-                except Exception:
-                    logger.exception(
-                        "seer.pr_attribution.failed",
-                        extra={"group_id": group_id, "run_id": run_id},
-                    )
-
-            try:
-                link_seer_run_pull_requests(
-                    organization=organization,
-                    seer_run_state_id=run_id,
-                    pull_requests=pull_requests,
-                )
-            except Exception:
-                logger.exception(
-                    "seer.pr_link.failed",
-                    extra={"group_id": group_id, "run_id": run_id},
-                )
 
         for entrypoint_key, entrypoint_cls in autofix_entrypoint_registry.registrations.items():
             logging_ctx = {

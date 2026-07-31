@@ -48,10 +48,13 @@ const CONVERSATION_BODY = [
   }),
 ];
 
-function mockApis(title: string | null = null) {
+function mockApis(
+  title: string | null = null,
+  spans: Array<Record<string, unknown>> = CONVERSATION_BODY
+) {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/ai-conversations/${CONVERSATION_ID}/`,
-    body: {conversationId: CONVERSATION_ID, title, spans: CONVERSATION_BODY},
+    body: {conversationId: CONVERSATION_ID, title, spans},
   });
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/trace-items/attributes/',
@@ -187,5 +190,43 @@ describe('ConversationDetailPage title', () => {
     expect(
       await screen.findByRole('heading', {name: new RegExp(CONVERSATION_ID)})
     ).toBeInTheDocument();
+  });
+});
+
+describe('ConversationDetailPage summary errors', () => {
+  beforeEach(() => {
+    Element.prototype.scrollTo = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
+    MockApiClient.clearMockResponses();
+    act(() => {
+      PageFiltersStore.reset();
+      PageFiltersStore.init();
+    });
+  });
+
+  it('renders the fire icon in the summary when a span errored', async () => {
+    mockApis(null, [
+      ...CONVERSATION_BODY,
+      spanFixture({
+        span_id: 'span-error',
+        'span.name': 'failed turn',
+        'span.status': 'internal_error',
+        'precise.start_ts': 3000,
+        'precise.finish_ts': 3000.5,
+      }),
+    ]);
+    renderPage();
+
+    // The summary renders the fire icon once the conversation finishes loading.
+    expect(await screen.findByTestId('conversation-error-icon')).toBeInTheDocument();
+  });
+
+  it('omits the fire icon in the summary when there are no errors', async () => {
+    mockApis(null);
+    renderPage();
+
+    // Wait for the conversation to load before asserting the icon's absence.
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+    expect(screen.queryByTestId('conversation-error-icon')).not.toBeInTheDocument();
   });
 });

@@ -707,9 +707,15 @@ class SearchResolver:
                     key=resolved_column.proto_definition,
                 )
             )
+            # Attributes that reject the empty string can never hold it, and comparing against it
+            # fails in snuba for the ones backed by a typed column (eg. trace id parsed as a UUID).
+            compare_to_empty_string = (
+                resolved_column.proto_definition.type == constants.STRING
+                and resolved_column.allows_value(value)
+            )
             if term.operator == "!=":
                 filters = [exists_filter]
-                if resolved_column.proto_definition.type == constants.STRING:
+                if compare_to_empty_string:
                     filters.append(
                         TraceItemFilter(
                             comparison_filter=ComparisonFilter(
@@ -725,7 +731,7 @@ class SearchResolver:
                 )
             elif term.operator == "=":
                 filters = [TraceItemFilter(not_filter=NotFilter(filters=[exists_filter]))]
-                if resolved_column.proto_definition.type == constants.STRING:
+                if compare_to_empty_string:
                     filters.append(
                         TraceItemFilter(
                             comparison_filter=ComparisonFilter(

@@ -64,7 +64,7 @@ function NewQueryTokens({
             .filter(({text}) => text.trim() !== '')
             .map(({text}) => (
               <FormattedQueryWrapper key={text}>
-                <ProvidedFormattedQuery query={text} wrapTokens />
+                <ProvidedFormattedQuery query={text} />
               </FormattedQueryWrapper>
             ))}
         </Stack>
@@ -193,7 +193,7 @@ function NewQueryTokens({
                 ?.filter(({text}) => text.trim() !== '')
                 .map(({text}) => (
                   <FormattedQueryWrapper key={text}>
-                    <ProvidedFormattedQuery query={text} wrapTokens />
+                    <ProvidedFormattedQuery query={text} />
                   </FormattedQueryWrapper>
                 ))}
             </Stack>

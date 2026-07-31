@@ -112,8 +112,6 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         except Exception as exc:
             sentry_sdk.capture_exception(exc)
 
-    # run_transaction_balancing skips projects at a 100% rate (legacy parity), so their
-    # transaction volumes are never used — leave them out of the query.
     sample_rates = config.get_project_sample_rates()
     # Emitted once per org per scheduler cycle, so summing over one CYCLE_DURATION
     # window yields the total number of projects sampled below 100%.
@@ -128,7 +126,7 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     if not projects_to_balance:
         return DynamicSamplingStatus.ALL_PROJECTS_AT_FULL_SAMPLE_RATE
 
-    transaction_volumes = get_eap_transaction_volumes(config, root_projects=projects_to_balance)
+    transaction_volumes = get_eap_transaction_volumes(config)
     if not transaction_volumes:
         return DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
 

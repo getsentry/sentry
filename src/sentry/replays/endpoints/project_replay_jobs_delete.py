@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TypedDict
 
 from drf_spectacular.utils import extend_schema
@@ -79,6 +80,10 @@ class ReplayDeletionJobCreateDataSerializer(serializers.Serializer):
     def validate(self, data):
         if data["rangeStart"] >= data["rangeEnd"]:
             raise serializers.ValidationError("rangeStart must be before rangeEnd")
+        if data["rangeEnd"] - data["rangeStart"] > timedelta(days=30):
+            raise serializers.ValidationError(
+                "you cannot delete more than 30 days of data at a time"
+            )
         return data
 
 

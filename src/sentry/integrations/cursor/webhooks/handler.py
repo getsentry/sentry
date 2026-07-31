@@ -23,7 +23,7 @@ from sentry.api.utils import to_valid_int_id
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
-from sentry.models.pullrequest import PullRequestAttributionSignalType
+from sentry.models.pullrequest import PullRequestAttributionSignalType, parse_pull_request_url
 from sentry.pr_metrics.attribution import attribute_delegated_agent_pull_request
 from sentry.seer.autofix.coding_agent_handoffs import sync_coding_agent_status
 from sentry.seer.autofix.constants import CodingAgentStatus
@@ -219,18 +219,28 @@ class CursorWebhookEndpoint(Endpoint):
             )
             return
 
-        if pr_url and not self._validate_pr_url(pr_url, repo_full_name):
+        # Cursor reports the repo separately from the PR URL, so a URL naming a different
+        # repo would attribute someone else's PR to this agent.
+        parsed_pr = parse_pull_request_url(pr_url) if pr_url else None
+        if parsed_pr is not None and (
+            parsed_pr.host != "github.com" or parsed_pr.repo_full_name != repo_full_name
+        ):
+            parsed_pr = None
+        if pr_url and parsed_pr is None:
             logger.warning(
                 "cursor_webhook.invalid_pr_url",
                 extra={"agent_id": agent_id, "pr_url": pr_url},
             )
             pr_url = None
 
+        # Only a completed agent has a result to point at.
+        is_completed = status == CodingAgentStatus.COMPLETED
         result = CodingAgentResult(
             repo_full_name=repo_full_name,
             repo_provider=repo_provider,
             description=summary or f"Agent {status.lower()}",
-            pr_url=pr_url if status == CodingAgentStatus.COMPLETED else None,
+            pr_number=parsed_pr.number if parsed_pr and is_completed else None,
+            pr_url=pr_url if is_completed else None,
             branch_name=branch_name,
         )
 
@@ -242,7 +252,7 @@ class CursorWebhookEndpoint(Endpoint):
             result=result,
         )
 
-        if sync_result.known_to_seer and status == CodingAgentStatus.COMPLETED and pr_url:
+        if sync_result.known_to_seer and is_completed and pr_url:
             try:
                 attribute_delegated_agent_pull_request(
                     organization_id=self.organization_id,
@@ -261,7 +271,7 @@ class CursorWebhookEndpoint(Endpoint):
                     "cursor_webhook.pr_attribution_failed",
                     extra={"agent_id": agent_id, "pr_url": pr_url},
                 )
-        elif status == CodingAgentStatus.COMPLETED:
+        elif is_completed:
             # A completed agent that we did not attribute is otherwise invisible: the
             # webhook arrived and the agent finished, but one of the remaining gates
             # dropped it silently, leaving no SEER_DELEGATED_CURSOR row and no trace of
@@ -276,7 +286,3 @@ class CursorWebhookEndpoint(Endpoint):
                     "has_pr_url": bool(pr_url),
                 },
             )
-
-    def _validate_pr_url(self, pr_url: str, repo_full_name: str) -> bool:
-        """Validates that the URL points to the expected repo."""
-        return pr_url.startswith(f"https://github.com/{repo_full_name}/pull/")
