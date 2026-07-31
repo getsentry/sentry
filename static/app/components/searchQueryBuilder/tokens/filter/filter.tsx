@@ -488,6 +488,9 @@ const DeleteButton = styled(UnstyledButton)`
 
 const FilterValueJoiner = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
+  /* Offset the preceding value's clipping allowance without affecting the
+   * trailing space before the next value. */
+  margin-inline-start: -2px;
 `;
 
 const FilterMultiValueTruncated = styled('div')`
