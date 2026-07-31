@@ -456,15 +456,25 @@ def build_custom_attribute_context(
     return context
 
 
-def get_custom_attribute_contexts(
+def attach_custom_attribute_context(
+    attributes: list[TraceItemAttributeKey],
     organization: Organization,
     item_type: SupportedTraceItemType,
     project_ids: Sequence[int],
-) -> dict[tuple[str, str], TraceItemAttributeContext]:
+) -> None:
     """
-    Load user-authored attribute context for an organization, keyed by
-    ``(internal attribute name, attribute type)`` — the identity the write
-    endpoint stores rows under.
+    Attach user-authored context to the attributes that don't already have any,
+    with a single lookup for the whole page (no N+1).
+
+    Only attributes left without context are considered: conventions and
+    Sentry-defined attributes already resolved theirs, and the write endpoint
+    rejects Sentry-owned names, so nothing here can shadow them. That also keeps
+    the query bounded to names actually present in the response rather than
+    every row the organization has authored.
+
+    Rows are stored against an attribute's internal name, which for a custom
+    attribute is also its ``name`` (only Sentry-owned attributes get a public
+    alias that differs, and those are excluded above).
 
     Context is authored either for a single project or org-wide (see the PUT
     endpoint), so reads mirror that: with exactly one project in scope its rows
@@ -472,8 +482,13 @@ def get_custom_attribute_contexts(
     org-wide context applies (a per-project brief would otherwise be ambiguous
     across a multi-project query).
     """
-    scoped_project_id = project_ids[0] if len(project_ids) == 1 else None
+    describable = {
+        attribute["name"]: attribute for attribute in attributes if not attribute.get("context")
+    }
+    if not describable:
+        return
 
+    scoped_project_id = project_ids[0] if len(project_ids) == 1 else None
     project_scope = Q(project_id__isnull=True)
     if scoped_project_id is not None:
         project_scope |= Q(project_id=scoped_project_id)
@@ -482,18 +497,20 @@ def get_custom_attribute_contexts(
         project_scope,
         organization=organization,
         item_type=TraceItemTypes.get_id_for_type_name(item_type.value),
+        attribute_key__in=list(describable),
     )
 
-    contexts: dict[tuple[str, str], TraceItemAttributeContext] = {}
-    # Sort org-wide rows (project_id None) first so a project-scoped row for the
-    # same attribute overwrites them.
+    # Apply org-wide rows (project_id None) first so a project-scoped row for the
+    # same attribute takes precedence.
     for row in sorted(rows, key=lambda row: row.project_id is not None):
-        attribute_type = TraceItemAttributeTypes.get_type_name(row.attribute_type)
-        if attribute_type is None:
+        attribute = describable.get(row.attribute_key)
+        # The stored type must match the attribute's own, so context authored for
+        # `number` doesn't attach to a same-named `string` attribute.
+        if attribute is None or attribute["attributeType"] != TraceItemAttributeTypes.get_type_name(
+            row.attribute_type
+        ):
             continue
-        contexts[(row.attribute_key, attribute_type)] = build_custom_attribute_context(row)
-
-    return contexts
+        attribute["context"] = build_custom_attribute_context(row)
 
 
 def is_known_attribute(name: str, definitions: ColumnDefinitions) -> bool:
@@ -516,7 +533,6 @@ def as_attribute_key(
     item_type: SupportedTraceItemType,
     is_proxy: bool = False,
     include_context: bool = False,
-    custom_contexts: dict[tuple[str, str], TraceItemAttributeContext] | None = None,
 ) -> TraceItemAttributeKey:
     public_key, public_name, attribute_source = translate_internal_to_public_alias(
         name, attr_type, item_type
@@ -571,15 +587,12 @@ def as_attribute_key(
         # `http.route` -- is missing from it and resolves as a `user` source
         # attribute. A Sentry-defined attribute that isn't a convention (e.g.
         # `span.description`) instead carries its context on the definition.
-        # Anything left over is a custom attribute, which may have
-        # user-authored context stored against its internal name; the write
-        # endpoint rejects Sentry-owned names, so the sources can't collide.
-        # Attributes with no match at all get an empty context.
-        context = (
-            build_sentry_convention_context(public_name, name, attr_type)
-            or build_sentry_attribute_context(public_name, attr_type, item_type)
-            or (custom_contexts or {}).get((name, attr_type))
-        )
+        # Attributes left without a match get an empty context here; custom ones
+        # may still have user-authored context attached afterwards (see
+        # attach_custom_attribute_context).
+        context = build_sentry_convention_context(
+            public_name, name, attr_type
+        ) or build_sentry_attribute_context(public_name, attr_type, item_type)
         attribute_key["context"] = context or {}
 
     return attribute_key
@@ -730,17 +743,10 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         include_context = "context" in serialized.get("expand", set())
 
         # Custom (user-authored) context is gated behind the
-        # data-browsing-attribute-context feature. Loaded once per request rather
-        # than per attribute, so serialization stays free of queries.
-        custom_contexts: dict[tuple[str, str], TraceItemAttributeContext] = {}
-        if include_context and features.has(
+        # data-browsing-attribute-context feature, unlike conventions context.
+        include_custom_context = include_context and features.has(
             "organizations:data-browsing-attribute-context", organization, actor=request.user
-        ):
-            custom_contexts = get_custom_attribute_contexts(
-                organization,
-                trace_item_type,
-                [project.id for project in snuba_params.projects],
-            )
+        )
 
         def data_fn(offset: int, limit: int) -> list[TraceItemAttributeKey]:
             futures = []
@@ -762,7 +768,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                             trace_item_type,
                             include_internal,
                             include_context,
-                            custom_contexts,
                             debug=debug,
                         )
                     )
@@ -772,6 +777,15 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 attributes.extend(result_attributes)
                 if result_debug_info is not None:
                     debug_infos.append(result_debug_info)
+            # Attach authored context once all types are in, so the lookup covers
+            # the whole page in one query.
+            if include_custom_context:
+                attach_custom_attribute_context(
+                    attributes,
+                    organization,
+                    trace_item_type,
+                    [project.id for project in snuba_params.projects],
+                )
             return attributes
 
         response = self.paginate(
@@ -797,7 +811,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         trace_item_type: SupportedTraceItemType,
         include_internal: bool,
         include_context: bool = False,
-        custom_contexts: dict[tuple[str, str], TraceItemAttributeContext] | None = None,
         debug: str | bool = False,
     ) -> tuple[list[TraceItemAttributeKey], dict | None]:
         debug_info: dict | None = None
@@ -904,7 +917,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 aliased_attributes,
                 all_aliased_attributes,
                 include_context,
-                custom_contexts,
             )
 
             sentry_sdk.set_context("api_response", {"attributes": attributes})
@@ -923,7 +935,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         aliased_attributes: list[ResolvedAttribute | ProxyResolvedAttribute],
         exclude_attributes: list[ResolvedAttribute | ProxyResolvedAttribute],
         include_context: bool = False,
-        custom_contexts: dict[tuple[str, str], TraceItemAttributeContext] | None = None,
     ) -> list[TraceItemAttributeKey]:
         attribute_keys = {}
         for attribute in rpc_response.attributes:
@@ -934,7 +945,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 attribute_type,
                 trace_item_type,
                 include_context=include_context,
-                custom_contexts=custom_contexts,
             )
             if (
                 _can_expose_data_attribute_to_api(

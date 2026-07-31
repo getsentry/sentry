@@ -3,6 +3,8 @@ from unittest import mock
 from uuid import uuid4
 
 import pytest
+from django.db import connections
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 from sentry_conventions.attributes import ATTRIBUTE_METADATA
@@ -702,6 +704,37 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         }
         # A custom attribute with no authored context still gets an empty one.
         assert attributes["http.route"]["context"]["isConvention"] is True
+
+    def test_expand_context_custom_attribute_single_bounded_query(self) -> None:
+        self._store_basic_segment()
+        self.create_context("foo")
+        # Authored rows for attributes that aren't in the response must not be
+        # fetched: the lookup is bounded to the names actually being serialized.
+        for i in range(10):
+            self.create_context(f"not_in_response_{i}")
+
+        with CaptureQueriesContext(connections["default"]) as captured:
+            response = self.do_request(
+                query={"attributeType": "string", "expand": "context"},
+                features={
+                    **self.feature_flags,
+                    "organizations:data-browsing-attribute-context": True,
+                },
+            )
+        assert response.status_code == 200, response.data
+
+        context_queries = [
+            query["sql"]
+            for query in captured.captured_queries
+            if "explore_traceitemattributecontext" in (query["sql"] or "")
+        ]
+        # One query for the whole page, regardless of how many attributes it has.
+        assert len(context_queries) == 1
+        assert "IN (" in context_queries[0]
+        assert "not_in_response_0" not in context_queries[0]
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["foo"]["context"]["isCustom"] is True
 
     def test_expand_context_custom_number_attribute(self) -> None:
         self.store_segment(
