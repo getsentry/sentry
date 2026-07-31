@@ -976,6 +976,7 @@ function parseArguments(columnText: string): string[] {
   const args: string[] = [];
 
   let quoted = false;
+  let inBacktick = false;
   let inTag = false;
   let escaped = false;
 
@@ -983,11 +984,20 @@ function parseArguments(columnText: string): string[] {
   let j = 0;
 
   while (j < columnText?.length) {
-    if (!inTag && i === j && columnText[j] === '"') {
+    if (!inTag && !inBacktick && i === j && columnText[j] === '"') {
       // when we see a quote at the beginning of
       // an argument, then this is a quoted string
       quoted = true;
-    } else if (!quoted && columnText[j] === '[' && _lookback(columnText, j, 'tags')) {
+    } else if (!quoted && !inTag && i === j && columnText[j] === '`') {
+      // when we see a backtick at the beginning of an argument,
+      // then this is a search-filter argument (e.g. avg_if(`span.op:db`,…))
+      inBacktick = true;
+    } else if (
+      !quoted &&
+      !inBacktick &&
+      columnText[j] === '[' &&
+      _lookback(columnText, j, 'tags')
+    ) {
       // when the argument begins with tags[,
       // then this is the beginning of the tag that may contain commas
       inTag = true;
@@ -1002,6 +1012,9 @@ function parseArguments(columnText: string): string[] {
       // when we see a non-escaped quote while inside
       // of a quoted string, we should end it
       quoted = false;
+    } else if (inBacktick && columnText[j] === '`') {
+      // closing backtick for a search-filter argument
+      inBacktick = false;
     } else if (inTag && !escaped && columnText[j] === ']') {
       // when we see a non-escaped quote while inside
       // of a quoted string, we should end it
@@ -1010,8 +1023,8 @@ function parseArguments(columnText: string): string[] {
       // when we are inside a quoted string and have
       // begun an escape character, we should end it
       escaped = false;
-    } else if ((quoted || inTag) && columnText[j] === ',') {
-      // when we are inside a quoted string or tag and see
+    } else if ((quoted || inTag || inBacktick) && columnText[j] === ',') {
+      // when we are inside a quoted string, tag, or backtick filter and see
       // a comma, it should not be considered an
       // argument separator
     } else if (columnText[j] === ',') {
@@ -1155,6 +1168,10 @@ function isQuotedFunctionArgument(value: string): boolean {
   );
 }
 
+function isBacktickWrappedFunctionArgument(value: string): boolean {
+  return value.length >= 2 && value.startsWith('`') && value.endsWith('`');
+}
+
 function normalizeFunctionArgument(value: string): string {
   if (!isQuotedFunctionArgument(value)) {
     return value;
@@ -1166,6 +1183,7 @@ function normalizeFunctionArgument(value: string): string {
 function generateFunctionArgument(value: string): string {
   if (
     isQuotedFunctionArgument(value) ||
+    isBacktickWrappedFunctionArgument(value) ||
     EXPLICIT_TAG_FUNCTION_ARGUMENT.test(value) ||
     !UNSAFE_FUNCTION_ARGUMENT.test(value)
   ) {

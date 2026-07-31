@@ -231,6 +231,11 @@ export interface SearchQueryBuilderProps {
    */
   replaceRawSearchKeys?: string[];
   /**
+   * When false, hides the leading magnifying-glass icon and its reserved padding.
+   * Defaults to true. Use false for compact filter bars (e.g. per-series `_if` filters).
+   */
+  showSearchIcon?: boolean;
+  /**
    * Render custom content in the trailing section of the search bar, located
    * to the left of the clear button.
    */
@@ -294,6 +299,7 @@ function SearchQueryBuilderUI({
   initialQuery,
   onBlur,
   queryInterface = QueryInterfaceType.TOKENIZED,
+  showSearchIcon = true,
   trailingItems,
   onChange,
 }: SearchQueryBuilderProps) {
@@ -330,11 +336,14 @@ function SearchQueryBuilderUI({
       ref={setWrapperRef}
       aria-disabled={disabled}
       data-test-id="search-query-builder"
+      data-hide-search-icon={showSearchIcon ? undefined : true}
     >
       <PanelProvider>
-        <PositionedSearchIconContainer>
-          <SearchIcon size="sm" />
-        </PositionedSearchIconContainer>
+        {showSearchIcon ? (
+          <PositionedSearchIconContainer>
+            <SearchIcon size="sm" />
+          </PositionedSearchIconContainer>
+        ) : null}
         {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
           <PlainTextQueryInput label={label} />
         ) : (
@@ -374,6 +383,10 @@ const Wrapper = styled(Input.withComponent('div'))`
   contain: inline-size;
   font-size: ${p => p.theme.font.size.md};
   cursor: text;
+
+  &[data-hide-search-icon='true'] [role='grid'] {
+    padding-left: ${p => p.theme.space.sm};
+  }
 `;
 
 const ButtonsWrapper = styled('div')`

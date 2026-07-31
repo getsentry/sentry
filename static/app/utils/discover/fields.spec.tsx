@@ -1,6 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {ColumnValueType} from 'sentry/utils/discover/fields';
+import type {
+  ColumnValueType,
+  AggregationKeyWithAlias,
+} from 'sentry/utils/discover/fields';
 import {
   aggregateMultiPlotType,
   aggregateOutputType,
@@ -93,6 +96,17 @@ describe('parseFunction', () => {
       arguments: ['tags[foo,number]'],
     });
   });
+
+  it('handles backtick-wrapped search-filter arguments', () => {
+    expect(parseFunction('avg_if(`span.op:db`,span.duration)')).toEqual({
+      name: 'avg_if',
+      arguments: ['`span.op:db`', 'span.duration'],
+    });
+    expect(parseFunction('avg_if(`span.op:[db,http]`,span.duration)')).toEqual({
+      name: 'avg_if',
+      arguments: ['`span.op:[db,http]`', 'span.duration'],
+    });
+  });
 });
 
 describe('generateFieldAsString', () => {
@@ -121,6 +135,20 @@ describe('generateFieldAsString', () => {
         function: ['count', 'tags[foo,number]', undefined, undefined],
       })
     ).toBe('count(tags[foo,number])');
+  });
+
+  it('preserves backtick-wrapped search-filter arguments', () => {
+    expect(
+      generateFieldAsString({
+        kind: 'function',
+        function: [
+          'avg_if' as AggregationKeyWithAlias,
+          '`span.op:[db,http]`',
+          'span.duration',
+          undefined,
+        ],
+      })
+    ).toBe('avg_if(`span.op:[db,http]`,span.duration)');
   });
 
   it('round-trips quoted function arguments through field parsing', () => {

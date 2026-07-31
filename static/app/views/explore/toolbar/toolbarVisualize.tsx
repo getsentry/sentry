@@ -5,10 +5,14 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {IconHide} from 'sentry/icons/iconHide';
+import {t} from 'sentry/locale';
 import {EQUATION_PREFIX, parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -20,6 +24,7 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
@@ -36,6 +41,12 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  applyConditionalFilter,
+  buildConditionalAggregate,
+  parseConditionalAggregate,
+  supportsConditionalAggregateFilter,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 
 interface ToolbarVisualizeProps {
   allowEquations: boolean;
@@ -167,6 +178,11 @@ function ToolbarVisualizeItem({
 }: VisualizeDropdownProps) {
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
+  const {selection} = usePageFilters();
+  const organization = useOrganization();
+  const hasConditionalAggregates = organization.features.includes(
+    'explore-conditional-aggregates'
+  );
 
   const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
     {search: debouncedSearch},
@@ -193,7 +209,21 @@ function ToolbarVisualizeItem({
     []
   );
 
-  const parsedFunction = useMemo(() => parseFunction(visualize.yAxis), [visualize.yAxis]);
+  const conditionalAggregate = useMemo(
+    () => parseConditionalAggregate(visualize.yAxis),
+    [visualize.yAxis]
+  );
+
+  // Dropdowns operate on the base aggregate (without `_if` / filter).
+  const parsedFunction = useMemo(() => {
+    if (!conditionalAggregate) {
+      return parseFunction(visualize.yAxis);
+    }
+    return {
+      name: conditionalAggregate.name,
+      arguments: conditionalAggregate.arguments,
+    };
+  }, [conditionalAggregate, visualize.yAxis]);
 
   const fieldOptions = useVisualizeFields({
     numberTags,
@@ -211,10 +241,24 @@ function ToolbarVisualizeItem({
           oldAggregate: parsedFunction?.name,
           oldArguments: parsedFunction?.arguments,
         });
-        onReplace(visualize.replace({yAxis}));
+        const filter =
+          hasConditionalAggregates && supportsConditionalAggregateFilter(option.value)
+            ? (conditionalAggregate?.filter ?? '')
+            : '';
+        onReplace(
+          visualize.replace({
+            yAxis: applyConditionalFilter(yAxis, filter),
+          })
+        );
       }
     },
-    [onReplace, parsedFunction, visualize]
+    [
+      conditionalAggregate?.filter,
+      hasConditionalAggregates,
+      onReplace,
+      parsedFunction,
+      visualize,
+    ]
   );
 
   const onChangeArgument = useCallback(
@@ -226,12 +270,57 @@ function ToolbarVisualizeItem({
         } else {
           args = [option.value];
         }
-        const yAxis = `${parsedFunction?.name}(${args.join(',')})`;
-        onReplace(visualize.replace({yAxis}));
+        onReplace(
+          visualize.replace({
+            yAxis: buildConditionalAggregate({
+              name: parsedFunction?.name ?? '',
+              arguments: args,
+              filter: hasConditionalAggregates
+                ? (conditionalAggregate?.filter ?? '')
+                : '',
+            }),
+          })
+        );
       }
+    },
+    [
+      conditionalAggregate?.filter,
+      hasConditionalAggregates,
+      onReplace,
+      parsedFunction,
+      visualize,
+    ]
+  );
+
+  const onFilterSearch = useCallback(
+    (filter: string) => {
+      if (!parsedFunction) {
+        return;
+      }
+      onReplace(
+        visualize.replace({
+          yAxis: buildConditionalAggregate({
+            name: parsedFunction.name,
+            arguments: parsedFunction.arguments,
+            filter,
+          }),
+        })
+      );
     },
     [onReplace, parsedFunction, visualize]
   );
+
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects: selection.projects,
+    initialQuery: conditionalAggregate?.filter ?? '',
+    onSearch: onFilterSearch,
+    searchSource: 'explore',
+    placeholder: t('Filter spans for this series'),
+  });
+
+  const showFilterSearchBar =
+    hasConditionalAggregates &&
+    supportsConditionalAggregateFilter(parsedFunction?.name ?? '');
 
   return (
     <ToolbarVisualizeDropdown
@@ -246,6 +335,14 @@ function ToolbarVisualizeItem({
       loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
       onSearch={setSearch}
       onClose={() => setSearch(undefined)}
+      filterSearchBar={
+        showFilterSearchBar ? (
+          <TraceItemSearchQueryBuilder
+            {...spanSearchQueryBuilderProps}
+            showSearchIcon={false}
+          />
+        ) : undefined
+      }
     />
   );
 }

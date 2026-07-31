@@ -199,6 +199,18 @@ describe('SearchQueryBuilder', () => {
     expect(await screen.findByPlaceholderText('foo')).toBeInTheDocument();
   });
 
+  it('hides the leading search icon when showSearchIcon is false', async () => {
+    const {rerender} = render(
+      <SearchQueryBuilder {...defaultProps} showSearchIcon={false} />
+    );
+
+    const builder = await screen.findByTestId('search-query-builder');
+    expect(builder).toHaveAttribute('data-hide-search-icon', 'true');
+
+    rerender(<SearchQueryBuilder {...defaultProps} />);
+    expect(builder).not.toHaveAttribute('data-hide-search-icon');
+  });
+
   it('syncs external initial query changes while disabled', async () => {
     function ExternalProviderSearchQueryBuilder({
       disabled,

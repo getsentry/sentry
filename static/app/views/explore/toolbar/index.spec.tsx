@@ -34,9 +34,34 @@ function Wrapper({children}: {children: ReactNode}) {
 
 jest.mock('sentry/actionCreators/modal');
 
+jest.mock('sentry/views/explore/components/traceItemSearchQueryBuilder', () => {
+  const actual = jest.requireActual(
+    'sentry/views/explore/components/traceItemSearchQueryBuilder'
+  );
+  return {
+    ...actual,
+    TraceItemSearchQueryBuilder: (props: {
+      initialQuery?: string;
+      onSearch?: (query: string) => void;
+      placeholder?: string;
+    }) => (
+      <input
+        aria-label={props.placeholder ?? 'Filter spans for this series'}
+        defaultValue={props.initialQuery ?? ''}
+        onChange={event => props.onSearch?.(event.target.value)}
+        placeholder={props.placeholder}
+      />
+    ),
+  };
+});
+
 describe('ExploreToolbar', () => {
   const organization = OrganizationFixture({
     features: ['dashboards-edit', 'incidents'],
+  });
+
+  const organizationWithConditionalAggregates = OrganizationFixture({
+    features: ['dashboards-edit', 'incidents', 'explore-conditional-aggregates'],
   });
 
   beforeEach(() => {
@@ -106,6 +131,16 @@ describe('ExploreToolbar', () => {
         },
         valid: true,
       },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: [],
     });
   });
 
@@ -870,6 +905,110 @@ describe('ExploreToolbar', () => {
 
     act(() => setMode(Mode.AGGREGATE));
     expect(aggregateSortBys).toEqual([{field: 'count(span.duration)', kind: 'asc'}]);
+  });
+
+  it('applies visualize filters as _if aggregates', async () => {
+    let visualizes: any;
+    function Component() {
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      additionalWrapper: Wrapper,
+      organization: organizationWithConditionalAggregates,
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+    const searchInput = within(section).getByRole('textbox', {
+      name: 'Filter spans for this series',
+    });
+
+    await userEvent.clear(searchInput);
+    await userEvent.type(searchInput, 'span.op:db');
+
+    await waitFor(() => {
+      expect(visualizes).toEqual([
+        new VisualizeFunction('count_if(`span.op:db`,span.duration)'),
+      ]);
+    });
+
+    await userEvent.clear(searchInput);
+
+    await waitFor(() => {
+      expect(visualizes).toEqual([new VisualizeFunction('count(span.duration)')]);
+    });
+  });
+
+  it('hides the visualize filter for aggregates that cannot be filtered', async () => {
+    function Component() {
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      additionalWrapper: Wrapper,
+      organization: organizationWithConditionalAggregates,
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+
+    expect(
+      within(section).getByRole('textbox', {name: 'Filter spans for this series'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'epm'}));
+
+    expect(
+      within(section).queryByRole('textbox', {name: 'Filter spans for this series'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides the visualize filter without the conditional aggregates feature', async () => {
+    function Component() {
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {additionalWrapper: Wrapper, organization});
+
+    const section = screen.getByTestId('section-visualizes');
+
+    expect(
+      await within(section).findByRole('button', {name: 'count'})
+    ).toBeInTheDocument();
+    expect(
+      within(section).queryByRole('textbox', {name: 'Filter spans for this series'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('drops the _if filter when the feature is disabled', async () => {
+    let visualizes: any;
+    function Component() {
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      additionalWrapper: Wrapper,
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/',
+          query: {
+            visualize: encodeURIComponent(
+              '{"chartType":1,"yAxes":["count_if(`span.op:db`,span.duration)"]}'
+            ),
+          },
+        },
+      },
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+
+    await userEvent.click(await within(section).findByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+
+    expect(visualizes).toEqual([new VisualizeFunction('avg(span.duration)')]);
   });
 
   it('disables compare queries when only one chart is available', async () => {

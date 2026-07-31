@@ -1,9 +1,9 @@
 import type {TagCollection} from 'sentry/types/group';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 export interface AttributeCollections {
@@ -30,7 +30,10 @@ export function getColumnFieldsForValidation({
     }
 
     fieldsForValidation.add(aggregateField.yAxis);
-    for (const argument of parseFunction(aggregateField.yAxis)?.arguments ?? []) {
+    // Use parseConditionalAggregate so `_if` filter queries (e.g. `span.op:db`)
+    // are not treated as attribute columns to validate.
+    const conditional = parseConditionalAggregate(aggregateField.yAxis);
+    for (const argument of conditional?.arguments ?? []) {
       if (argument) {
         fieldsForValidation.add(argument);
       }
@@ -147,7 +150,9 @@ function getValidatedAggregateFields({
       return false;
     }
 
-    return !parseFunction(aggregateField.yAxis)?.arguments.some(
+    // Only check base aggregate arguments — ignore `_if` filter queries.
+    const conditional = parseConditionalAggregate(aggregateField.yAxis);
+    return !conditional?.arguments.some(
       argument => argument && invalidFields.has(argument)
     );
   });
