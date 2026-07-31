@@ -228,7 +228,7 @@ function arrayToCSV(data: Array<Record<string, any>>): string {
     headers
       .map(header => {
         const value = row[header];
-        return escapeCsvField(value !== null && value !== undefined ? value : '');
+        return escapeCsvField(value ?? '');
       })
       .join(',')
   );

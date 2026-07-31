@@ -31,6 +31,7 @@ class ConfigOptionsTest(CliTestCase):
         options.register("change_channel_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("to_unset_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("invalid_type", default=15, flags=FLAG_AUTOMATOR_MODIFIABLE)
+        options.register("float_option", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register(
             "set_on_disk_option",
             default="",
@@ -49,6 +50,7 @@ class ConfigOptionsTest(CliTestCase):
         options.unregister("change_channel_option")
         options.unregister("to_unset_option")
         options.unregister("invalid_type")
+        options.unregister("float_option")
         options.unregister("set_on_disk_option")
         del settings.SENTRY_OPTIONS["set_on_disk_option"]
 
@@ -122,7 +124,7 @@ class ConfigOptionsTest(CliTestCase):
         assert_not_set()
         rv = self.invoke(
             "--dry-run",
-            "--file=tests/sentry/runner/commands/valid_patch.yaml",
+            "--file=tests/sentry/runner/commands/valid_patch.json",
             "patch",
         )
         assert_output(rv)
@@ -130,7 +132,7 @@ class ConfigOptionsTest(CliTestCase):
         assert_not_set()
 
         rv = self.invoke(
-            "--file=tests/sentry/runner/commands/valid_patch.yaml",
+            "--file=tests/sentry/runner/commands/valid_patch.json",
             "patch",
         )
         assert_output(rv)
@@ -148,7 +150,7 @@ class ConfigOptionsTest(CliTestCase):
         rv = self.invoke(
             "patch",
             input=Path(
-                "tests/sentry/runner/commands/valid_patch.yaml",
+                "tests/sentry/runner/commands/valid_patch.json",
             ).read_text(),
         )
 
@@ -162,10 +164,36 @@ class ConfigOptionsTest(CliTestCase):
         assert options.get("list_option") == [1, 2]
         assert options.get("drifted_option") == [1, 2, 3]
 
+    def test_small_float_is_parsed_as_float(self) -> None:
+        # Regression: the options automator emits floats < 1e-4 in bare-exponent
+        # form (e.g. ``1e-05``). YAML 1.1 (PyYAML) decodes that as a string and
+        # fails type validation; parsing the input as JSON keeps it a float.
+        rv = self.invoke(
+            "patch",
+            input='{"options": {"float_option": 1e-05}}',
+        )
+
+        assert rv.exit_code == 0, rv.output
+        value = options.get("float_option")
+        assert value == 1e-05
+        assert isinstance(value, float)
+
+    def test_yaml_input_is_accepted(self) -> None:
+        # Hand-authored YAML (e.g. the local flagpole devloop) is not valid JSON,
+        # so it must fall back to the YAML parser.
+        rv = self.invoke(
+            "patch",
+            input="options:\n  int_option: 40\n  str_option: 'new value'\n",
+        )
+
+        assert rv.exit_code == 0, rv.output
+        assert options.get("int_option") == 40
+        assert options.get("str_option") == "new value"
+
     def test_sync(self) -> None:
         rv = self.invoke(
             "-f",
-            "tests/sentry/runner/commands/valid_patch.yaml",
+            "tests/sentry/runner/commands/valid_patch.json",
             "sync",
         )
         assert rv.exit_code == 2, rv.output
@@ -202,7 +230,7 @@ class ConfigOptionsTest(CliTestCase):
     def test_bad_sync(self) -> None:
         rv = self.invoke(
             "-f",
-            "tests/sentry/runner/commands/badsync.yaml",
+            "tests/sentry/runner/commands/badsync.json",
             "sync",
         )
         assert rv.exit_code == 2, rv.output
@@ -218,7 +246,7 @@ class ConfigOptionsTest(CliTestCase):
 
         rv = self.invoke(
             "-f",
-            "tests/sentry/runner/commands/unsetsync.yaml",
+            "tests/sentry/runner/commands/unsetsync.json",
             "sync",
         )
         assert rv.exit_code == 0, rv.output
@@ -245,14 +273,14 @@ class ConfigOptionsTest(CliTestCase):
         # assert there's no drift after unsetting
         rv = self.invoke(
             "-f",
-            "tests/sentry/runner/commands/unsetsync.yaml",
+            "tests/sentry/runner/commands/unsetsync.json",
             "sync",
         )
         assert rv.exit_code == 0, rv.output
 
     def test_bad_patch(self) -> None:
         rv = self.invoke(
-            "--file=tests/sentry/runner/commands/badpatch.yaml",
+            "--file=tests/sentry/runner/commands/badpatch.json",
             "patch",
         )
 
@@ -274,7 +302,7 @@ class ConfigOptionsTest(CliTestCase):
         # nothing to the DB.
         rv = self.invoke(
             "-f",
-            "tests/sentry/runner/commands/valid_patch.yaml",
+            "tests/sentry/runner/commands/valid_patch.json",
             "validate",
         )
 
@@ -290,9 +318,9 @@ class ConfigOptionsTest(CliTestCase):
         # invalid. The valid file alone would pass.
         rv = self.invoke(
             "-f",
-            "tests/sentry/runner/commands/multifile_a.yaml",
+            "tests/sentry/runner/commands/multifile_a.json",
             "-f",
-            "tests/sentry/runner/commands/badpatch.yaml",
+            "tests/sentry/runner/commands/badpatch.json",
             "validate",
         )
 
@@ -325,7 +353,7 @@ class ConfigOptionsTest(CliTestCase):
         ):
             rv = self.invoke(
                 "-f",
-                "tests/sentry/runner/commands/badpatch.yaml",
+                "tests/sentry/runner/commands/badpatch.json",
                 "validate",
             )
 
@@ -339,9 +367,9 @@ class ConfigOptionsTest(CliTestCase):
     def test_patch_rejects_multiple_files(self) -> None:
         rv = self.invoke(
             "-f",
-            "tests/sentry/runner/commands/multifile_a.yaml",
+            "tests/sentry/runner/commands/multifile_a.json",
             "-f",
-            "tests/sentry/runner/commands/multifile_b.yaml",
+            "tests/sentry/runner/commands/multifile_b.json",
             "patch",
         )
 

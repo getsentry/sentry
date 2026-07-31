@@ -674,22 +674,20 @@ class DatadogIdentityProviderTest(TestCase):
         with pytest.raises(ValueError, match="Invalid Datadog site"):
             self.provider._build_mcp_base_url()
 
-    def test_build_mcp_url(self) -> None:
-        assert (
-            self.provider.build_mcp_url({"site": "datadoghq.com"})
-            == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
-        )
+    def test_build_mcp_urls(self) -> None:
+        assert self.provider.build_mcp_urls({"site": "datadoghq.com"}) == [
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
+        ]
 
-        assert (
-            self.provider.build_mcp_url({"site": "datadoghq.eu"})
-            == "https://mcp.datadoghq.eu/api/unstable/mcp-server/mcp"
-        )
+        assert self.provider.build_mcp_urls({"site": "datadoghq.eu"}) == [
+            "https://mcp.datadoghq.eu/api/unstable/mcp-server/mcp"
+        ]
 
-    def test_build_mcp_url_missing_site(self) -> None:
-        assert self.provider.build_mcp_url({}) is None
+    def test_build_mcp_urls_missing_site(self) -> None:
+        assert self.provider.build_mcp_urls({}) == []
 
-    def test_build_mcp_url_invalid_site(self) -> None:
-        assert self.provider.build_mcp_url({"site": "evil.example.com"}) is None
+    def test_build_mcp_urls_invalid_site(self) -> None:
+        assert self.provider.build_mcp_urls({"site": "evil.example.com"}) == []
 
 
 @control_silo_test
@@ -729,6 +727,30 @@ class DatadogPatIdentityProviderTest(TestCase):
         mock_get_user_info.assert_not_called()
 
     @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity_strips_whitespace_from_access_token(
+        self, mock_get_user_info: MagicMock
+    ) -> None:
+        mock_get_user_info.return_value = {
+            "user_uuid": "dd-user-123",
+            "org_uuid": "dd-org-456",
+        }
+
+        result = self.provider.build_identity(
+            {"access_token": "  pat-abc  ", "site": "datadoghq.com"}
+        )
+
+        assert result["data"]["access_token"] == "pat-abc"
+        mock_get_user_info.assert_called_once_with("pat-abc", "https://mcp.datadoghq.com")
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
+    def test_build_identity_whitespace_only_access_token(
+        self, mock_get_user_info: MagicMock
+    ) -> None:
+        with pytest.raises(ValueError, match="requires an 'access_token'"):
+            self.provider.build_identity({"access_token": "   ", "site": "datadoghq.com"})
+        mock_get_user_info.assert_not_called()
+
+    @patch("sentry.identity.datadog.provider.get_user_info")
     def test_build_identity_missing_site(self, mock_get_user_info: MagicMock) -> None:
         with pytest.raises(ValueError, match="requires a 'site'"):
             self.provider.build_identity({"access_token": "pat-abc"})
@@ -754,14 +776,13 @@ class DatadogPatIdentityProviderTest(TestCase):
         with pytest.raises(IdentityNotValid, match="missing required fields"):
             self.provider.build_identity({"access_token": "pat-abc", "site": "datadoghq.com"})
 
-    def test_build_mcp_url(self) -> None:
-        assert (
-            self.provider.build_mcp_url({"site": "datadoghq.com"})
-            == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
-        )
+    def test_build_mcp_urls(self) -> None:
+        assert self.provider.build_mcp_urls({"site": "datadoghq.com"}) == [
+            "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
+        ]
 
-    def test_build_mcp_url_missing_site(self) -> None:
-        assert self.provider.build_mcp_url({}) is None
+    def test_build_mcp_urls_missing_site(self) -> None:
+        assert self.provider.build_mcp_urls({}) == []
 
-    def test_build_mcp_url_invalid_site(self) -> None:
-        assert self.provider.build_mcp_url({"site": "evil.example.com"}) is None
+    def test_build_mcp_urls_invalid_site(self) -> None:
+        assert self.provider.build_mcp_urls({"site": "evil.example.com"}) == []

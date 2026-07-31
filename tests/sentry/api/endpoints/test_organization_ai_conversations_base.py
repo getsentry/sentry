@@ -2,6 +2,8 @@ from sentry.testutils.cases import APITestCase, BaseSpansTestCase, SpanTestCase
 from sentry.utils import json
 
 LLM_TOKENS = 100
+LLM_INPUT_TOKENS = 70
+LLM_OUTPUT_TOKENS = 30
 LLM_COST = 0.001
 
 
@@ -24,12 +26,16 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         status="ok",
         operation_type=None,
         tokens=None,
+        input_tokens=None,
+        output_tokens=None,
         cost=None,
         trace_id=None,
         agent_name=None,
         messages=None,
         response_text=None,
         tool_name=None,
+        tool_result=None,
+        tool_output=None,
         user_id=None,
         user_email=None,
         user_username=None,
@@ -38,24 +44,29 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         output_messages=None,
         system_instructions=None,
         tool_definitions=None,
+        project=None,
         store=True,
     ):
         """Create and store an AI span with the given attributes.
 
         Args:
-            conversation_id: The gen_ai.conversation.id attribute
+            conversation_id: The gen_ai.conversation.id(old), and ai_conversation_id(new), attribute
             timestamp: The span start timestamp
             op: The span operation (default: "gen_ai.chat")
             description: Span description
             status: Span status (default: "ok")
             operation_type: The gen_ai.operation.type attribute
             tokens: Token count (gen_ai.usage.total_tokens)
+            input_tokens: Input token count (gen_ai.usage.input_tokens)
+            output_tokens: Output token count (gen_ai.usage.output_tokens)
             cost: Cost (gen_ai.cost.total_tokens)
             trace_id: The trace ID for the span
             agent_name: The gen_ai.agent.name attribute
             messages: The gen_ai.request.messages (will be JSON serialized)
             response_text: The gen_ai.response.text attribute
             tool_name: The gen_ai.tool.name attribute
+            tool_result: The gen_ai.tool.call.result attribute
+            tool_output: The gen_ai.tool.output attribute
             user_id: User ID (sentry.user.id)
             user_email: User email (sentry.user.email)
             user_username: User username (sentry.user.username)
@@ -64,15 +75,23 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             output_messages: The gen_ai.output.messages (new format, will be JSON serialized)
             system_instructions: The gen_ai.system_instructions attribute
             tool_definitions: The gen_ai.tool.definitions (new format, will be JSON serialized)
+            project: The project to store the span under (default: self.project)
 
         Returns:
             The created span object
         """
-        span_data = {"gen_ai.conversation.id": conversation_id}
+        span_data = {
+            # deprecated in favour of `ai_conversation_id` down below.
+            "gen_ai.conversation.id": conversation_id,
+        }
         if operation_type:
             span_data["gen_ai.operation.type"] = operation_type
         if tokens is not None:
             span_data["gen_ai.usage.total_tokens"] = tokens
+        if input_tokens is not None:
+            span_data["gen_ai.usage.input_tokens"] = input_tokens
+        if output_tokens is not None:
+            span_data["gen_ai.usage.output_tokens"] = output_tokens
         if cost is not None:
             span_data["gen_ai.cost.total_tokens"] = cost
         if agent_name is not None:
@@ -84,6 +103,10 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             span_data["gen_ai.response.text"] = response_text
         if tool_name is not None:
             span_data["gen_ai.tool.name"] = tool_name
+        if tool_result is not None:
+            span_data["gen_ai.tool.call.result"] = tool_result
+        if tool_output is not None:
+            span_data["gen_ai.tool.output"] = tool_output
         # New format attributes
         if input_messages is not None:
             span_data["gen_ai.input.messages"] = json.dumps(input_messages)
@@ -107,12 +130,14 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             "description": description or "default",
             "sentry_tags": {"status": status, "op": op},
             "data": span_data,
+            "ai_conversation_id": conversation_id,
         }
         if trace_id:
             extra_data["trace_id"] = trace_id
 
         span = self.create_span(
             extra_data,
+            project=project,
             start_ts=timestamp,
         )
         if store:

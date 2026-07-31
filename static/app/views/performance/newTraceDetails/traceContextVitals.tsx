@@ -1,14 +1,12 @@
 import {Fragment} from 'react';
-import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, type Responsive, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import type {MobileVital, WebVital} from 'sentry/utils/fields';
+import {MobileVital, type WebVital} from 'sentry/utils/fields';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Vital, Vital as VitalDetails} from 'sentry/utils/performance/vitals/types';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -24,7 +22,6 @@ import {
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   TRACE_VIEW_MOBILE_VITALS,
@@ -33,40 +30,37 @@ import {
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 type Props = {
-  containerWidth: number | undefined;
   rootEventResults: TraceRootEventQueryResults;
   tree: TraceTree;
 };
 
-export function TraceContextVitals({rootEventResults, tree, containerWidth}: Props) {
+export function TraceContextVitals({rootEventResults, tree}: Props) {
   const {hasVitals} = useTraceContextSections({
     tree,
     logs: undefined,
     metrics: undefined,
   });
   const traceNode = tree.root.children[0];
-  const theme = useTheme();
+
+  const isWeb = tree.vital_types.has('web');
+  const vitalsToDisplay = isWeb ? TRACE_VIEW_WEB_VITALS : TRACE_VIEW_MOBILE_VITALS;
+  const totalCount = vitalsToDisplay.length;
+
+  // How many vitals fit inline before collapsing into "+N more", resolved
+  // against the container width. Web shows all from xl up; mobile ramps 2 → 3
+  // and stays at 3 — showing all 7 mobile vitals inline crowds/overflows the row.
+  const primaryCountByBreakpoint: Responsive<number> = isWeb
+    ? {zero: 2, xl: totalCount}
+    : {zero: 2, xl: 3};
+  const primaryVitalsCount = useResponsivePropValue(primaryCountByBreakpoint);
 
   // TODO Abdullah Khan: Ignoring loading/error states for now
   if (!hasVitals || !rootEventResults.data || !traceNode) {
     return null;
   }
 
-  const vitalsToDisplay = tree.vital_types.has('web')
-    ? TRACE_VIEW_WEB_VITALS
-    : TRACE_VIEW_MOBILE_VITALS;
+  const collectedVitals = Array.from(tree.vitals.values()).flat();
 
-  const collectedVitals =
-    traceNode.isEAPEvent && tree.vital_types.has('mobile')
-      ? getMobileVitalsFromRootEventResults(rootEventResults.data)
-      : Array.from(tree.vitals.values()).flat();
-
-  const primaryVitalsCount = getPrimaryVitalsCount(
-    vitalsToDisplay,
-    tree.vital_types.has('web') ? 'web' : 'mobile',
-    containerWidth,
-    theme
-  );
   const [primaryVitals, secondaryVitals] = [
     vitalsToDisplay.slice(0, primaryVitalsCount),
     vitalsToDisplay.slice(primaryVitalsCount),
@@ -198,33 +192,6 @@ const SecondaryVitalsCountContainer = styled('div')`
   text-align: left;
 `;
 
-function getPrimaryVitalsCount(
-  primaryVitals: WebVital[] | MobileVital[],
-  type: 'web' | 'mobile',
-  containerWidth: number | undefined,
-  theme: Theme
-) {
-  const totalCount = primaryVitals.length;
-
-  if (!containerWidth) {
-    return totalCount;
-  }
-
-  if (containerWidth > parseInt(theme.breakpoints['2xl'], 10)) {
-    return totalCount;
-  }
-
-  if (containerWidth > parseInt(theme.breakpoints.sm, 10)) {
-    if (type === 'web') {
-      return totalCount;
-    }
-
-    return 3;
-  }
-
-  return 2;
-}
-
 const getVitalInfo = (
   vitalKey: WebVital | MobileVital,
   collectedVitals: TraceTree.CollectedVital[]
@@ -251,30 +218,6 @@ function getFormattedValue(
         )
       : defaultVitalValueFormatter(vitalDetails, vital.measurement.value)
     : '\u2014';
-}
-
-function getMobileVitalsFromRootEventResults(
-  data: TraceRootEventQueryResults['data']
-): TraceTree.CollectedVital[] {
-  if (!data || !isTraceItemDetailsResponse(data)) {
-    return [];
-  }
-
-  return data.attributes
-    .map(attribute => {
-      if (
-        TRACE_VIEW_MOBILE_VITALS.includes(attribute.name as MobileVital) &&
-        typeof attribute.value === 'number'
-      ) {
-        return {
-          key: attribute.name.replace('measurements.', ''),
-          measurement: {value: attribute.value},
-          score: undefined,
-        };
-      }
-      return;
-    })
-    .filter(defined);
 }
 
 function defaultVitalValueFormatter(vital: Vital, value: number) {

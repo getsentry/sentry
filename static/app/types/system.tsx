@@ -93,11 +93,11 @@ declare global {
      */
     __sentry_preload?: {
       orgSlug?: string;
-      organization?: Promise<ApiResult>;
+      organization?: Promise<ApiResult | null>;
       organization_fallback?: Promise<ApiResult>;
-      projects?: Promise<ApiResult>;
+      projects?: Promise<ApiResult | null>;
       projects_fallback?: Promise<ApiResult>;
-      teams?: Promise<ApiResult>;
+      teams?: Promise<ApiResult | null>;
       teams_fallback?: Promise<ApiResult>;
     };
     /**
@@ -191,12 +191,13 @@ export interface Config {
     release: string;
     tracePropagationTargets: string[];
     environment?: string;
-    profilesSampleRate?: number;
+    profileSessionSampleRate?: number;
   };
   // sentryMode intends to supersede isSelfHosted,
   // so we can differentiate between "SELF_HOSTED", "SINGLE_TENANT", and "SAAS".
   sentryMode: 'SELF_HOSTED' | 'SINGLE_TENANT' | 'SAAS';
   shouldPreloadData: boolean;
+  signupLocalities: string[];
   singleOrganization: boolean;
   superUserCookieDomain: string | null;
   superUserCookieName: string;
@@ -228,9 +229,6 @@ export interface Config {
     agreements: ParntershipAgreementType[];
     partnerDisplayName: string;
   } | null;
-  relocationConfig?: {
-    selectableRegions: string[];
-  };
   shouldShowBeaconConsentPrompt?: boolean;
   statuspage?: {
     api_host: string;
@@ -260,7 +258,7 @@ export interface Broadcast {
    * Category of the broadcast.
    * Synced with https://github.com/getsentry/sentry/blob/master/src/sentry/models/broadcast.py#L14
    */
-  category?: 'announcement' | 'feature' | 'blog' | 'event' | 'video';
+  category?: 'announcement' | 'feature' | 'blog' | 'event' | 'video' | 'sdk_update';
   /**
    * The text for the CTA link at the bottom of the panel item
    */

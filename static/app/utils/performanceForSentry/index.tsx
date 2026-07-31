@@ -1,19 +1,34 @@
 import type {ProfilerOnRenderCallback, ReactNode} from 'react';
-import {Fragment, Profiler, useEffect, useRef} from 'react';
-import type {MeasurementUnit, Span, TransactionEvent} from '@sentry/core';
-import {browserPerformanceTimeOrigin, timestampInSeconds} from '@sentry/core';
+import {
+  Fragment,
+  Profiler,
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+} from 'react';
+import type {Client, Span} from '@sentry/core';
+import {spanToStreamedSpanJSON, timestampInSeconds} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import {usePrevious} from 'sentry/utils/usePrevious';
 
 const MIN_UPDATE_SPAN_TIME = 16; // Frame boundary @ 60fps
 const WAIT_POST_INTERACTION = 50; // Leave a small amount of time for observers and onRenderCallback to log since they come in after they occur and not during.
 const INTERACTION_TIMEOUT = 2 * 60_000; // 2min. Wrap interactions up after this time since we don't want transactions sticking around forever.
-const MEASUREMENT_OUTLIER_VALUE = 5 * 60_000; // Measurements over 5 minutes don't get recorded as a metric and are tagged instead.
-const ASSET_OUTLIER_VALUE = 1_000_000_000; // Assets over 1GB are ignored since they are likely a reporting error.
 const VCD_START = 'vcd-start';
 const VCD_END = 'vcd-end';
+
+// User Timing entries remain in memory until they are explicitly cleared.
+function replacePerformanceMark(name: string) {
+  performance.clearMarks(name);
+  performance.mark(name);
+}
+
+function replacePerformanceMeasure(name: string, startMark: string, endMark: string) {
+  performance.clearMeasures(name);
+  performance.measure(name, startMark, endMark);
+}
 
 // This re-export makes it possible to stub out the Profiler globally if required
 export {Profiler};
@@ -147,92 +162,91 @@ export function VisuallyCompleteWithData({
   isLoading?: boolean;
 }) {
   const location = useLocation();
-  const previousLocation = usePrevious(location);
 
-  const isDataCompleteSet = useRef(false);
-
-  const num = useRef(1);
-
-  const isVCDSet = useRef(false);
-
-  const locationPath = useRef(location.pathname);
-  locationPath.current = location.pathname;
-
-  if (isVCDSet && hasData && performance?.mark && !disabled) {
-    performance.mark(`${id}-${VCD_START}`);
-    isVCDSet.current = true;
-  }
-
-  const _hasData = isLoading === undefined ? hasData : hasData && !isLoading;
-
-  useEffect(() => {
-    // Capture changes in location to reset VCD as it's likely indicative of a route change.
-    if (location !== previousLocation) {
-      isDataCompleteSet.current = false;
-      performance
-        .getEntriesByType('mark')
-        .map(m => m.name)
-        .filter(n => n.includes('vcd'))
-        .forEach(n => performance.clearMarks(n));
-    }
-  }, [location, previousLocation]);
-
-  useEffect(() => {
-    if (disabled) {
-      return;
-    }
+  // Read the latest route without making it part of the measurement lifecycle.
+  const recordVCDMetric = useEffectEvent((vcdTime: number) => {
     try {
-      const span = Sentry.getActiveSpan();
-
-      if (!span) {
-        return;
-      }
-      const rootSpan = Sentry.getRootSpan(span);
-
-      if (!isDataCompleteSet.current && _hasData) {
-        isDataCompleteSet.current = true;
-
-        performance.mark(`${id}-${VCD_END}-pretimeout`);
-
-        window.setTimeout(() => {
-          if (!browserPerformanceTimeOrigin) {
-            return;
-          }
-          performance.mark(`${id}-${VCD_END}`);
-          const startMarks = performance.getEntriesByName(`${id}-${VCD_START}`);
-          const endMarks = performance.getEntriesByName(`${id}-${VCD_END}`);
-          if (startMarks.length > 1 || endMarks.length > 1) {
-            rootSpan.setAttribute('vcd_extra_recorded_marks', true);
-          }
-
-          const startMark = startMarks.at(-1);
-          const endMark = endMarks.at(-1);
-          if (!startMark || !endMark) {
-            return;
-          }
-          try {
-            const vcdTime = endMark.startTime - startMark.startTime;
-            Sentry.metrics.count('visually_complete_with_data', vcdTime, {
-              attributes: {
-                url: locationPath.current,
-              },
-              unit: 'millisecond', // DOMHighResTimeStamp
-            });
-          } catch (_) {
-            // Defensive catch since this code is auxiliary.
-          }
-          performance.measure(
-            `VCD [${id}] #${num.current}`,
-            `${id}-${VCD_START}`,
-            `${id}-${VCD_END}`
-          );
-          num.current = num.current++;
-        }, 0);
-      }
+      Sentry.metrics.count('visually_complete_with_data', vcdTime, {
+        attributes: {
+          url: location.pathname,
+        },
+        unit: 'millisecond', // DOMHighResTimeStamp
+      });
     } catch (_) {
       // Defensive catch since this code is auxiliary.
     }
-  }, [_hasData, disabled, id]);
+  });
+
+  const isDataCompleteSet = useRef(false);
+
+  const startMarkName = `${id}-${VCD_START}`;
+  const endMarkName = `${id}-${VCD_END}`;
+  const preTimeoutEndMarkName = `${endMarkName}-pretimeout`;
+  const measureName = `VCD [${id}] #1`;
+
+  const isDataReady = isLoading === undefined ? hasData : hasData && !isLoading;
+
+  useLayoutEffect(() => {
+    isDataCompleteSet.current = false;
+  }, [id, location]);
+
+  useLayoutEffect(() => {
+    if (disabled || !hasData || !performance?.mark || isDataCompleteSet.current) {
+      return;
+    }
+
+    // Layout effects only run for committed renders and run before paint.
+    replacePerformanceMark(startMarkName);
+  }, [disabled, hasData, location, startMarkName]);
+
+  useEffect(() => {
+    if (
+      disabled ||
+      !isDataReady ||
+      !Sentry.getActiveSpan() ||
+      isDataCompleteSet.current
+    ) {
+      return;
+    }
+
+    isDataCompleteSet.current = true;
+    replacePerformanceMark(preTimeoutEndMarkName);
+
+    let didRun = false;
+    const timeoutId = window.setTimeout(() => {
+      didRun = true;
+      try {
+        replacePerformanceMark(endMarkName);
+        const startMark = performance.getEntriesByName(startMarkName).at(-1);
+        const endMark = performance.getEntriesByName(endMarkName).at(-1);
+
+        if (!startMark || !endMark) {
+          return;
+        }
+
+        recordVCDMetric(endMark.startTime - startMark.startTime);
+        replacePerformanceMeasure(measureName, startMarkName, endMarkName);
+      } catch (_) {
+        // Defensive catch since this code is auxiliary.
+      }
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      // Only reopen the visit if this cleanup canceled its pending measurement.
+      if (!didRun) {
+        isDataCompleteSet.current = false;
+      }
+    };
+  }, [
+    disabled,
+    endMarkName,
+    isDataReady,
+    location,
+    measureName,
+    preTimeoutEndMarkName,
+    startMarkName,
+  ]);
 
   if (disabled) {
     return <Fragment>{children}</Fragment>;
@@ -244,261 +258,6 @@ export function VisuallyCompleteWithData({
     </Profiler>
   );
 }
-
-interface OpAssetMeasurementDefinition {
-  key: string;
-}
-
-const OP_ASSET_MEASUREMENT_MAP: Record<string, OpAssetMeasurementDefinition> = {
-  'resource.script': {
-    key: 'script',
-  },
-};
-const ASSET_MEASUREMENT_ALL = 'allResources';
-const SENTRY_ASSET_DOMAINS = ['sentry-cdn.com'];
-
-/**
- * Creates aggregate measurements for assets to understand asset size impact on performance.
- * The `hasAnyAssetTimings` is also added here since the asset information depends on the `allow-timing-origin` header.
- */
-const addAssetMeasurements = (transaction: TransactionEvent) => {
-  const spans = transaction.spans;
-
-  if (!spans) {
-    return;
-  }
-
-  let allTransfered = 0;
-  let allEncoded = 0;
-  let hasAssetTimings = false;
-  const getOperation = (data: any) => data.operation ?? '';
-  const getTransferSize = (data: any) =>
-    data['http.response_transfer_size'] ?? data['Transfer Size'] ?? 0;
-  const getEncodedSize = (data: any) =>
-    data['http.response_content_length'] ?? data['Encoded Body Size'] ?? 0;
-  const getDecodedSize = (data: any) =>
-    data['http.decoded_response_content_length'] ?? data['Decoded Body Size'] ?? 0;
-  const getFields = (data: any) => ({
-    operation: getOperation(data),
-    transferSize: getTransferSize(data),
-    encodedSize: getEncodedSize(data),
-    decodedSize: getDecodedSize(data),
-  });
-
-  for (const [op, _] of Object.entries(OP_ASSET_MEASUREMENT_MAP)) {
-    const filtered = spans.filter(
-      s =>
-        s.op === op &&
-        SENTRY_ASSET_DOMAINS.some(
-          domain =>
-            !s.description ||
-            s.description.includes(domain) ||
-            s.description.startsWith('/')
-        )
-    );
-    const transfered = filtered.reduce((acc, curr) => {
-      const fields = getFields(curr.data);
-      if (fields.transferSize > ASSET_OUTLIER_VALUE) {
-        return acc;
-      }
-      return acc + fields.transferSize;
-    }, 0);
-    const encoded = filtered.reduce((acc, curr) => {
-      const fields = getFields(curr.data);
-      if (
-        fields.encodedSize > ASSET_OUTLIER_VALUE ||
-        (fields.encodedSize > 0 && fields.decodedSize === 0)
-      ) {
-        // There appears to be a bug where we have massive encoded sizes w/o a decode size, we'll ignore these assets for now.
-        return acc;
-      }
-      return acc + fields.encodedSize;
-    }, 0);
-
-    if (encoded > 0) {
-      hasAssetTimings = true;
-    }
-
-    allTransfered += transfered;
-    allEncoded += encoded;
-  }
-
-  if (!transaction.measurements || !transaction.tags) {
-    return;
-  }
-
-  transaction.measurements[`${ASSET_MEASUREMENT_ALL}.encoded`] = {
-    value: allEncoded,
-    unit: 'byte',
-  };
-  transaction.measurements[`${ASSET_MEASUREMENT_ALL}.transfer`] = {
-    value: allTransfered,
-    unit: 'byte',
-  };
-  transaction.tags.hasAnyAssetTimings = hasAssetTimings;
-};
-
-const addCustomMeasurements = (transaction: TransactionEvent) => {
-  const browserTimeOrigin = browserPerformanceTimeOrigin();
-  if (!browserTimeOrigin || !transaction.start_timestamp) {
-    return;
-  }
-
-  const measurements: Record<string, Measurement> = {...transaction.measurements};
-
-  const ttfb = Object.entries(measurements).find(([key]) =>
-    key.toLowerCase().includes('ttfb')
-  );
-
-  const ttfbValue = ttfb?.[1]?.value;
-
-  const context: MeasurementContext = {
-    transaction,
-    ttfb: ttfbValue,
-    browserTimeOrigin,
-    transactionStart: transaction.start_timestamp,
-    transactionOp: transaction.contexts?.trace?.op! ?? 'pageload',
-  };
-
-  for (const [name, fn] of Object.entries(customMeasurements)) {
-    const measurement = fn(context);
-    if (measurement) {
-      if (
-        measurement.unit === 'millisecond' &&
-        measurement.value > MEASUREMENT_OUTLIER_VALUE
-      ) {
-        // exclude outlier measurements and don't add any of the custom measurements in case something is wrong.
-        if (transaction.tags) {
-          transaction.tags.outlier_vcd = name;
-        }
-        return;
-      }
-      measurements[name] = measurement;
-    }
-  }
-
-  transaction.measurements = measurements;
-};
-
-interface Measurement {
-  unit: MeasurementUnit;
-  value: number;
-}
-interface MeasurementContext {
-  browserTimeOrigin: number;
-  transaction: TransactionEvent;
-  transactionOp: string;
-  transactionStart: number;
-  ttfb?: number;
-}
-
-const getVCDSpan = (transaction: TransactionEvent) =>
-  transaction.spans?.find(s => s.description?.startsWith('VCD'));
-const getBundleLoadSpan = (transaction: TransactionEvent) =>
-  transaction.spans?.find(s => s.description === 'app.page.bundle-load');
-
-const customMeasurements: Record<
-  string,
-  (ctx: MeasurementContext) => Measurement | undefined
-> = {
-  /**
-   * Budget measurement between the time to first byte (the beginning of the response) and the beginning of our
-   * webpack bundle load. Useful for us since we have an entrypoint script we want to measure the impact of.
-   *
-   * Performance budget: **0 ms**
-   *
-   * - We should get rid of delays before loading the main app bundle to improve performance.
-   */
-  pre_bundle_load: ({ttfb, browserTimeOrigin, transactionStart}) => {
-    const headMark = performance.getEntriesByName('head-start')[0];
-
-    if (!headMark || !ttfb) {
-      return;
-    }
-
-    const entryStartSeconds = browserTimeOrigin / 1000 + headMark.startTime / 1000;
-    const value = (entryStartSeconds - transactionStart) * 1000 - ttfb;
-    return {
-      value,
-      unit: 'millisecond',
-    };
-  },
-  /**
-   * Budget measurement representing the `app.page.bundle-load` measure.
-   * We can use this to track asset transfer performance impact over time as a measurement.
-   *
-   * Performance budget: **__** ms
-   *
-   */
-  bundle_load: ({transaction, ttfb}) => {
-    const span = getBundleLoadSpan(transaction);
-    if (!span?.timestamp || !span?.start_timestamp || !ttfb) {
-      return;
-    }
-    return {
-      value: (span?.timestamp - span?.start_timestamp) * 1000,
-      unit: 'millisecond',
-    };
-  },
-  /**
-   * Experience measurement representing the time when the first "visually complete" component approximately *finishes* rendering on the page.
-   * - Provided by the {@link VisuallyCompleteWithData} wrapper component.
-   * - This only fires when it receives a non-empty data set for that component. Which won't capture onboarding or empty states,
-   *   but most 'happy path' performance for using any product occurs only in views with data.
-   * - Only record for pageload transactions
-   *
-   * This should replace LCP as a 'load' metric when it's present, since it also works on navigations.
-   */
-  visually_complete_with_data: ({transaction, ttfb, transactionStart}) => {
-    const vcdSpan = getVCDSpan(transaction);
-    if (!vcdSpan?.timestamp || !ttfb) {
-      return;
-    }
-    const value = (vcdSpan?.timestamp - transactionStart) * 1000;
-    return {
-      value,
-      unit: 'millisecond',
-    };
-  },
-
-  /**
-   * Budget measurement for the time between loading the bundle and a visually complete component finishing its render.
-   *
-   * Fires for navigation components as well using the beginning of the navigation as 'init'
-   *
-   * For now this is a quite broad measurement but can be roughly be broken down into:
-   * - Post bundle load application initialization
-   * - Http waterfalls for data
-   * - Rendering of components, including the VCD component.
-   */
-  init_to_vcd: ({transaction, transactionOp, transactionStart}) => {
-    const bundleSpan = getBundleLoadSpan(transaction);
-    const vcdSpan = getVCDSpan(transaction);
-    if (!vcdSpan?.timestamp || !['navigation', 'pageload'].includes(transactionOp)) {
-      return;
-    }
-
-    const startTimestamp =
-      transactionOp === 'navigation' ? transactionStart : bundleSpan?.timestamp;
-    if (!startTimestamp) {
-      return;
-    }
-    return {
-      value: (vcdSpan.timestamp - startTimestamp) * 1000,
-      unit: 'millisecond',
-    };
-  },
-};
-
-export const addExtraMeasurements = (transaction: TransactionEvent) => {
-  try {
-    addAssetMeasurements(transaction);
-    addCustomMeasurements(transaction);
-    addSlowAppInit(transaction);
-  } catch (_) {
-    // Defensive catch since this code is auxiliary.
-  }
-};
 
 /**
  * A util function to help create some broad buckets to group entity counts without exploding cardinality.
@@ -527,61 +286,39 @@ export const setGroupedEntityTag = (
   }
   groups = [...groups, +Infinity];
   Sentry.setTag(`${tagName}.grouped`, `<=${groups.find(g => n <= g)}`);
-};
-
-const addSlowAppInit = (transaction: TransactionEvent) => {
-  const appInitSpan = transaction.spans?.find(
-    s => s.description === 'sentry-tracing-init'
-  );
-  if (!appInitSpan || !transaction.spans) {
-    return;
-  }
-  const longTaskSpans = transaction.spans.filter(
-    s =>
-      s.op === 'ui.long-task' &&
-      s.timestamp &&
-      appInitSpan.timestamp &&
-      s.start_timestamp < appInitSpan.start_timestamp
-  );
-  longTaskSpans.forEach(s => {
-    s.op = 'ui.long-task.app-init';
-  });
-  if (longTaskSpans.length) {
-    const sum = longTaskSpans.reduce(
-      (acc, span) =>
-        span.timestamp ? acc + (span.timestamp - span.start_timestamp) * 1000 : acc,
-      0
-    );
-    transaction.measurements = {
-      ...transaction.measurements,
-      app_init_long_tasks: {
-        value: sum,
-        unit: 'millisecond',
-      },
-    };
-  }
+  Sentry.setAttribute(`${tagName}.grouped`, `<=${groups.find(g => n <= g)}`);
 };
 
 /**
  * A temporary util function used for interaction transactions that will attach a tag to the transaction, indicating the element
  * that was interacted with. This will allow for querying for transactions by a specific element. This is a high cardinality tag, but
  * it is only temporary for an experiment
+ *
+ * Previously, we added the interactionElement tag to the transaction event in
+ * beforeSendTransaction. For span streaming, we need to do this via the spanStart
+ * hook, since we have no hook anymore where we can add a tag to the root span based
+ * on child spans.
  */
-export const addUIElementTag = (transaction: TransactionEvent) => {
-  if (!transaction || transaction.contexts?.trace?.op !== 'ui.action.click') {
-    return;
-  }
+export function addUIElementTagToSegmentSpan(client: Client) {
+  client.on('spanStart', span => {
+    const segmentSpan = Sentry.getRootSpan(span);
+    const segmentSpanJson = spanToStreamedSpanJSON(segmentSpan);
 
-  if (!transaction.tags) {
-    return;
-  }
+    if (segmentSpanJson.attributes?.['sentry.op'] !== 'ui.action.click') {
+      return;
+    }
 
-  const interactionSpan = transaction.spans?.find(
-    span => span.op === 'ui.interaction.click'
-  );
+    const spanJson = spanToStreamedSpanJSON(span);
+    const spanOp = spanJson.attributes?.['sentry.op'];
 
-  transaction.tags.interactionElement = interactionSpan?.description;
-};
+    if (
+      spanOp === 'ui.interaction.click' &&
+      !segmentSpanJson.attributes?.interactionElement
+    ) {
+      segmentSpan.setAttribute('interactionElement', spanJson.name);
+    }
+  });
+}
 
 function supportsINP() {
   return (

@@ -26,8 +26,9 @@ from sentry.seer.autofix.coding_agent import (
     store_coding_agent_states_to_seer,
     validate_and_get_integration,
 )
+from sentry.seer.autofix.coding_agent_handoffs import create_seer_run_coding_agent_handoff
 from sentry.seer.autofix.utils import CodingAgentState, extract_api_error_message
-from sentry.seer.models import SeerApiError, SeerRepoDefinition
+from sentry.seer.models import SeerRepoDefinition
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
@@ -78,6 +79,7 @@ def launch_coding_agents(
     provider: str | None = None,
     user_id: int | None = None,
     issue_short_id: str | None = None,
+    issue_url: str | None = None,
 ) -> dict[str, list]:
     """
     Launch coding agents for an agent run.
@@ -93,6 +95,7 @@ def launch_coding_agents(
         provider: The coding agent provider (e.g., 'github_copilot') - alternative to integration_id
         user_id: The user ID (required for user-authenticated providers like GitHub Copilot)
         issue_short_id: Optional Sentry issue short ID for coding agent session naming
+        issue_url: Optional full URL to the Sentry issue for linking in PRs
 
     Returns:
         Dictionary with 'successes' and 'failures' lists
@@ -118,6 +121,7 @@ def launch_coding_agents(
             branch_name=sanitize_branch_name(branch_name_base),
             auto_create_pr=auto_create_pr,
             issue_short_id=issue_short_id,
+            issue_url=issue_url,
         )
 
         try:
@@ -189,6 +193,8 @@ def launch_coding_agents(
             }
         )
 
+        create_seer_run_coding_agent_handoff(organization, run_id, coding_agent_state)
+
     # Store the coding agent states to Seer
     try:
         store_coding_agent_states_to_seer(
@@ -196,7 +202,7 @@ def launch_coding_agents(
             coding_agent_states=states_to_store,
             organization_id=organization.id,
         )
-    except SeerApiError:
+    except Exception:
         logger.exception(
             "explorer.coding_agent.seer_storage_error",
             extra={
@@ -215,6 +221,11 @@ def launch_coding_agents(
             "run_id": run_id,
             "repos_succeeded": len(successes),
             "repos_failed": len(failures),
+            # The launched agent ids are the only join key between this run and the
+            # provider webhooks that later report completion (keyed on agent_id). Seer's
+            # handoff record carries run_id but no agent_id, so without this a webhook's
+            # attribution outcome cannot be traced back to the run that launched it.
+            "agent_ids": [state.id for state in states_to_store],
         },
     )
 

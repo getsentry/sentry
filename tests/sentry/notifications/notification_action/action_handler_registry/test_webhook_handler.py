@@ -8,7 +8,6 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.notifications.notification_action.action_handler_registry.webhook_handler import (
     WebhookActionHandler,
 )
-from sentry.plugins.base import plugins
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.workflow_engine.models import Action
@@ -37,8 +36,7 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
             workflow_id=self.workflow.id,
         )
         ProjectOption.objects.set_value(self.project, "webhooks:urls", "http://example.com/hook")
-        webhook_plugin = plugins.get("webhooks")
-        webhook_plugin.set_option("enabled", True, self.project)
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
 
     @responses.activate
     def test_sends_webhook(self) -> None:
@@ -121,8 +119,7 @@ class TestWebhookActionHandlerExecute(BaseWorkflowTest):
     @responses.activate
     def test_disabled_webhooks_does_not_send(self) -> None:
         responses.add(responses.POST, "http://example.com/hook")
-        webhook_plugin = plugins.get("webhooks")
-        webhook_plugin.set_option("enabled", False, self.project)
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", False)
 
         with self.tasks():
             WebhookActionHandler.execute(self.invocation)

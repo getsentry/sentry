@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import orjson
 
+from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.manifest import (
     ComparisonImageResult,
@@ -17,6 +18,10 @@ from sentry.preprod.snapshots.tasks import (
     _try_auto_approve_snapshot,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_not_analytics_event,
+)
 from sentry.testutils.silo import cell_silo_test
 
 
@@ -212,7 +217,8 @@ class TryAutoApproveSnapshotTest(TestCase):
             images=images,
         )
 
-    def test_auto_approves_when_fingerprints_match(self):
+    @patch("sentry.analytics.record")
+    def test_auto_approves_when_fingerprints_match(self, mock_analytics):
         shared_images = {
             "screen1.png": ComparisonImageResult(
                 status="changed", head_hash="abc", base_hash="old1"
@@ -265,7 +271,19 @@ class TryAutoApproveSnapshotTest(TestCase):
         assert approval.extras["auto_approval"] is True
         assert approval.extras["prev_approved_artifact_id"] == sibling.id
 
-    def test_no_auto_approve_when_fingerprints_differ(self):
+        assert_any_analytics_event(
+            mock_analytics,
+            PreprodStatusCheckApprovalCreatedEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                artifact_id=head_artifact.id,
+                product="snapshots",
+                source="auto",
+            ),
+        )
+
+    @patch("sentry.analytics.record")
+    def test_no_auto_approve_when_fingerprints_differ(self, mock_analytics):
         sibling_images = {
             "screen1.png": ComparisonImageResult(
                 status="changed", head_hash="abc", base_hash="old1"
@@ -302,6 +320,8 @@ class TryAutoApproveSnapshotTest(TestCase):
             preprod_artifact=head_artifact,
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
         ).exists()
+
+        assert_not_analytics_event(mock_analytics, PreprodStatusCheckApprovalCreatedEvent)
 
     def test_no_auto_approve_when_no_pr_number(self):
         cc = self.create_commit_comparison(

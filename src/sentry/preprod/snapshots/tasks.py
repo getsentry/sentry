@@ -4,6 +4,7 @@ import logging
 import threading
 import time
 from collections.abc import Callable
+from datetime import datetime
 from difflib import SequenceMatcher
 from typing import NamedTuple
 
@@ -16,7 +17,9 @@ from objectstore_client import RequestError, Session
 from pydantic import BaseModel, ValidationError
 from taskbroker_client.retry import Retry
 
+from sentry import analytics
 from sentry.objectstore import get_preprod_session
+from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.categorize import categorize_image_sets
 from sentry.preprod.snapshots.constants import (
@@ -103,8 +106,15 @@ def _retry_objectstore[T](operation: Callable[[], T]) -> T:
     raise AssertionError("unreachable")
 
 
+def _read_objectstore(session: Session, key: str) -> bytes:
+    response = session.get(key)
+    if response is None:
+        raise FileNotFoundError("Object does not exist in objectstore")
+    return response.payload.read()
+
+
 def _get_json[T: BaseModel](session: Session, key: str, model_cls: type[T]) -> T:
-    return model_cls(**orjson.loads(_retry_objectstore(lambda: session.get(key).payload.read())))
+    return model_cls(**orjson.loads(_retry_objectstore(lambda: _read_objectstore(session, key))))
 
 
 def _put_json(session: Session, key: str, model: BaseModel) -> None:
@@ -264,7 +274,7 @@ def _fetch_batch_images(
     def fetch(image_hash: str) -> None:
         try:
             key = f"{key_prefix}/{image_hash}"
-            data = _retry_objectstore(lambda: session.get(key).payload.read())
+            data = _retry_objectstore(lambda: _read_objectstore(session, key))
             with lock:
                 cache[image_hash] = data
         except Exception:
@@ -375,7 +385,7 @@ def _try_auto_approve_snapshot(
 
     try:
         sibling_manifest = ComparisonManifest(
-            **orjson.loads(session.get(sibling_comparison_key).payload.read())
+            **orjson.loads(_read_objectstore(session, sibling_comparison_key))
         )
     except Exception:
         logger.exception(
@@ -409,6 +419,16 @@ def _try_auto_approve_snapshot(
             "auto_approval": True,
             "prev_approved_artifact_id": approved_sibling.id,
         },
+    )
+
+    analytics.record(
+        PreprodStatusCheckApprovalCreatedEvent(
+            organization_id=head_artifact.project.organization_id,
+            project_id=head_artifact.project_id,
+            artifact_id=head_artifact.id,
+            product="snapshots",
+            source="auto",
+        )
     )
 
     logger.info(
@@ -716,6 +736,7 @@ def compare_snapshots(
     head_artifact_id: int,
     base_artifact_id: int,
 ) -> None:
+    task_start_time = timezone.now()
     logger.info(
         "Snapshot comparison kicked off for artifacts",
         extra={
@@ -880,7 +901,13 @@ def compare_snapshots(
         try:
             head_manifest = _get_json(session, head_manifest_key, SnapshotManifest)
             base_manifest = _get_json(session, base_manifest_key, SnapshotManifest)
-        except (orjson.JSONDecodeError, RequestError, ValidationError, TypeError):
+        except (
+            orjson.JSONDecodeError,
+            FileNotFoundError,
+            RequestError,
+            ValidationError,
+            TypeError,
+        ):
             logger.exception(
                 "compare_snapshots: failed to load or parse manifest",
                 extra={
@@ -894,10 +921,6 @@ def compare_snapshots(
             )
             return
 
-        # Not flag-gated here: a selective base only reaches this task when the
-        # feature flag was on at dispatch (find_base_snapshot_artifact/fan-out are gated),
-        # or via staff recompare. An in-flight comparison should finish correctly.
-        #
         # Gate on the manifest, not base_metrics.is_selective: the manifest is the source of
         # truth (reconstruct_base_manifest distrusts the DB flag because it can drift). If the
         # DB flag drifts to False while the manifest is selective, the DB gate would skip
@@ -990,8 +1013,12 @@ def compare_snapshots(
                 }
             )
 
+        comparison.extras = {
+            **(comparison.extras or {}),
+            "diff_processing_started_at": task_start_time.isoformat(),
+        }
         comparison.chunks_total = len(plan.chunks)
-        comparison.save(update_fields=["chunks_total", "date_updated"])
+        comparison.save(update_fields=["chunks_total", "extras", "date_updated"])
 
         logger.info(
             "compare_snapshots: orchestration dispatched",
@@ -1111,7 +1138,7 @@ def finalize_snapshot_comparison(
     plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
     try:
         plan = _get_json(session, plan_key, ComparisonPlan)
-    except (orjson.JSONDecodeError, RequestError, ValidationError, TypeError):
+    except (orjson.JSONDecodeError, FileNotFoundError, RequestError, ValidationError, TypeError):
         # Without the plan there are no chunks to assemble, so this is unrecoverable.
         # Fail the row cleanly instead of leaving it PROCESSING for the reaper to sweep
         # ~30min later (the chunk-result read below degrades for the same reason).
@@ -1144,7 +1171,13 @@ def finalize_snapshot_comparison(
             )
             try:
                 result = _get_json(session, chunk_result_key, ChunkResult)
-            except (orjson.JSONDecodeError, RequestError, ValidationError, TypeError):
+            except (
+                orjson.JSONDecodeError,
+                FileNotFoundError,
+                RequestError,
+                ValidationError,
+                TypeError,
+            ):
                 # A done chunk whose result blob is missing/evicted/corrupt must not crash
                 # finalize, otherwise the comparison stays PROCESSING forever and every retry
                 # re-raises. Degrade its candidates to errored, mirroring the failed branch.
@@ -1195,21 +1228,6 @@ def finalize_snapshot_comparison(
         date_updated=timezone.now(),
     )
     if updated:
-        logger.debug(
-            "compare_snapshots: finalized",
-            extra={
-                "comparison_id": comparison.id,
-                "done": len(done_set),
-                "chunks_total": comparison.chunks_total,
-                "images_changed": counts["changed"],
-                "images_added": counts["added"],
-                "images_removed": counts["removed"],
-                "images_unchanged": counts["unchanged"],
-                "images_renamed": counts["renamed"],
-                "images_skipped": counts["skipped"],
-                "images_errored": counts["errored"],
-            },
-        )
         try:
             head_artifact = PreprodArtifact.objects.select_related("project__organization").get(
                 id=head_artifact_id,
@@ -1223,6 +1241,25 @@ def finalize_snapshot_comparison(
             )
             return
 
+        logger.info(
+            "compare_snapshots: finalized",
+            extra={
+                "comparison_id": comparison.id,
+                "organization_id": org_id,
+                "organization_slug": head_artifact.project.organization.slug,
+                "project_id": project_id,
+                "done": len(done_set),
+                "chunks_total": comparison.chunks_total,
+                "images_changed": counts["changed"],
+                "images_added": counts["added"],
+                "images_removed": counts["removed"],
+                "images_unchanged": counts["unchanged"],
+                "images_renamed": counts["renamed"],
+                "images_skipped": counts["skipped"],
+                "images_errored": counts["errored"],
+            },
+        )
+
         metric_tags = {
             "app_id_temp": head_artifact.app_id or "",
         }
@@ -1234,6 +1271,25 @@ def finalize_snapshot_comparison(
             sample_rate=1.0,
             tags=metric_tags,
         )
+
+        started_raw = (comparison.extras or {}).get("diff_processing_started_at")
+        if started_raw:
+            try:
+                diff_duration_s = (
+                    timezone.now() - datetime.fromisoformat(started_raw)
+                ).total_seconds()
+            except (ValueError, TypeError):
+                logger.warning(
+                    "finalize: unparseable diff_processing_started_at, skipping metric",
+                    extra={"comparison_id": comparison.id},
+                )
+            else:
+                metrics.distribution(
+                    "preprod.snapshots.diff.duration_s",
+                    diff_duration_s,
+                    sample_rate=1.0,
+                    tags=metric_tags,
+                )
 
         if (
             counts["changed"] == 0

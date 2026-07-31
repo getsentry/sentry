@@ -28,7 +28,7 @@ class HandleIssueMergeTest(TestCase):
             add_group_to_inbox(group, GroupInboxReason.NEW)
             self.groups.append(group)
 
-    @patch("sentry.tasks.merge.merge_groups.delay")
+    @patch("sentry.tasks.merge.start_merge_groups.delay")
     def test_handle_merge(self, merge_groups: MagicMock) -> None:
         Activity.objects.all().delete()
         merge = handle_merge(self.groups, self.project_lookup, self.user)

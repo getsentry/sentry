@@ -104,6 +104,7 @@ class RepoPRState(BaseModel):
     """PR state for a single repository."""
 
     repo_name: str
+    provider: str | None = None
     branch_name: str | None = None
     pr_number: int | None = None
     pr_url: str | None = None
@@ -185,11 +186,17 @@ class PendingUserInput(BaseModel):
 
 
 class CodingAgentResult(BaseModel):
-    """Result from a coding agent."""
+    """Result from a coding agent.
+
+    ``pr_url`` points at a pull request when ``pr_number`` is set and at a pushed branch
+    otherwise, except on results recorded before Seer reported the number -- so a missing
+    number does not by itself mean the URL is a branch.
+    """
 
     description: str
     repo_provider: str
     repo_full_name: str
+    pr_number: int | None = None
     pr_url: str | None = None
 
     class Config:

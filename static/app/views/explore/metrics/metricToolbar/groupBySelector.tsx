@@ -120,6 +120,7 @@ export function GroupBySelector({
     <CompactSelect
       multiple
       search={{
+        highlight: true,
         filter: (option, searchText) => {
           return sortSearchedAttributes({
             fieldDefinitionType: TraceItemDataset.TRACEMETRICS,

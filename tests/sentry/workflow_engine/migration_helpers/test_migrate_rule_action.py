@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from sentry.models.options.project_option import ProjectOption
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
@@ -643,40 +644,45 @@ class TestNotificationActionMigrationUtils(TestCase):
         with pytest.raises(ValueError):
             build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
-    def test_plugin_action_migration(self) -> None:
-        action_data = [
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "uuid": "c792d184-81db-419f-8ab2-83baef1216f4",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "uuid": "0202a169-326b-4575-8887-afe69cc58040",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "uuid": "ad671f12-6bb7-4b9d-a4fe-f32e985fe08e",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "uuid": "efe1841d-d33a-460a-8d65-7697893ec7f1",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "uuid": "8c0c2fc9-5d89-4974-9d3c-31b1d602a065",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "uuid": "e63c387c-94f4-4284-bef8-c08b218654a3",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                "uuid": "0269d028-9466-4826-8ab9-18cd47fb08d2",
-            },
-        ]
+    NOTIFY_EVENT_ACTION_DATA = [
+        {
+            "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+            "uuid": "c792d184-81db-419f-8ab2-83baef1216f4",
+        },
+        {
+            "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+            "uuid": "0202a169-326b-4575-8887-afe69cc58040",
+        },
+    ]
 
-        actions = build_notification_actions_from_rule_data_actions(action_data)
-        self.assert_actions_migrated_correctly(actions, action_data, None, None, None)
+    def test_notify_event_action_migration_webhooks_enabled(self) -> None:
+        # NotifyEventAction dual-writes a WEBHOOK("webhooks") action when webhooks are enabled.
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
+
+        actions = build_notification_actions_from_rule_data_actions(
+            self.NOTIFY_EVENT_ACTION_DATA, project=self.project
+        )
+        assert len(actions) == len(self.NOTIFY_EVENT_ACTION_DATA)
+        for action in actions:
+            action.refresh_from_db()
+            assert action.type == Action.Type.WEBHOOK
+            assert action.config.get("target_identifier") == "webhooks"
+            assert action.config.get("target_display") is None
+            assert action.config.get("target_type") is None
+            assert action.integration_id is None
+            assert action.data == {}
+
+    def test_notify_event_action_migration_webhooks_disabled(self) -> None:
+        # Webhooks disabled: skip the action instead of writing a dead one.
+        actions = build_notification_actions_from_rule_data_actions(
+            self.NOTIFY_EVENT_ACTION_DATA, project=self.project
+        )
+        assert actions == []
+
+    def test_notify_event_action_migration_no_project(self) -> None:
+        # No project to gate on: skip.
+        actions = build_notification_actions_from_rule_data_actions(self.NOTIFY_EVENT_ACTION_DATA)
+        assert actions == []
 
     def test_webhook_action_migration(self) -> None:
         action_data = WEBHOOK_ACTION_DATA_BLOBS
@@ -757,7 +763,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             ),
             (
                 "sentry.rules.actions.notify_event.NotifyEventAction",
-                ActionType.PLUGIN,
+                ActionType.WEBHOOK,
             ),
             (
                 "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
@@ -866,14 +872,6 @@ class TestNotificationActionMigrationUtils(TestCase):
                     "targetType": "IssueOwners",
                 },
                 Action.Type.EMAIL,
-            ),
-            # Plugin
-            (
-                {
-                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                    "uuid": "test-uuid",
-                },
-                Action.Type.PLUGIN,
             ),
             # Webhook
             (

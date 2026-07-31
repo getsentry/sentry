@@ -12,7 +12,7 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
@@ -41,20 +41,6 @@ import {combineStatus, getFileName, normalizeId} from './utils';
 
 const ROW_HEIGHT = 45;
 const MAX_HEIGHT = 400;
-
-function shouldSkipSection(
-  filteredImages: Image[],
-  images: EntryDebugMeta['data']['images']
-) {
-  if (filteredImages.length) {
-    return false;
-  }
-  const definedImages = images?.filter(image => defined(image));
-  if (!definedImages?.length) {
-    return true;
-  }
-  return definedImages.every(image => image.type === 'proguard');
-}
 
 function filterImages(
   images: ImageWithCombinedStatus[],
@@ -214,7 +200,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     [event, groupId, organization, projectSlug, theme, openModal]
   );
 
-  if (shouldSkipSection(filteredImages, data.images)) {
+  if (!allImages.length) {
     return null;
   }
 
@@ -238,9 +224,9 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
         <Container border="primary" radius="md" overflow="hidden" marginTop="sm">
           <Header
             columns={{
-              '2xs': '0.6fr 1.5fr 0.6fr',
-              xs: '0.6fr 2fr 0.6fr',
-              sm: '0.6fr 2fr 1fr 0.4fr',
+              'screen:2xs': '0.6fr 1.5fr 0.6fr',
+              'screen:xs': '0.6fr 2fr 0.6fr',
+              'screen:sm': '0.6fr 2fr 1fr 0.4fr',
             }}
             background="secondary"
             borderBottom="primary"
@@ -253,7 +239,11 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             </Flex>
             <Flex
               align="center"
-              display={{'2xs': 'none', xs: 'none'}}
+              display={{
+                'screen:2xs': 'none',
+                'screen:xs': 'none',
+                'screen:sm': 'flex',
+              }}
               minWidth="0"
               paddingTop="md"
               paddingBottom="md"
@@ -291,8 +281,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
               </div>
             </ScrollArea>
           ) : (
-            <Flex
-              direction="column"
+            <Stack
               align="center"
               justify="center"
               gap="md"
@@ -314,7 +303,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
                   {filterSelections.length ? t('Reset filter') : t('Clear search')}
                 </Button>
               )}
-            </Flex>
+            </Stack>
           )}
         </Container>
       </Fragment>

@@ -1,3 +1,4 @@
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -7,6 +8,7 @@ import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types
 import {
   collectPatches,
   getOrderedAutofixSections,
+  getPollInterval,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
   isLastStepPrIteration,
@@ -31,6 +33,51 @@ function makeValidArtifact<T>(data: T): Artifact<T> {
     data,
   };
 }
+
+describe('getPollInterval', () => {
+  function makeState(
+    overrides: Partial<ExplorerAutofixState> = {}
+  ): ExplorerAutofixState {
+    return {
+      run_id: 1,
+      blocks: [],
+      status: 'completed',
+      updated_at: '2026-01-01T00:00:00Z',
+      ...overrides,
+    };
+  }
+
+  const completedPr: ExplorerAutofixState['repo_pr_states'] = {
+    'org/repo': {pr_creation_status: 'completed'} as any,
+  };
+
+  it('polls when pollPR is set and a PR has been created, even when idle', () => {
+    const state = makeState({status: 'completed', repo_pr_states: completedPr});
+    expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
+      1000
+    );
+  });
+
+  it('does not poll when pollPR is set but no PR has been created', () => {
+    const state = makeState({status: 'completed', repo_pr_states: {}});
+    expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
+      false
+    );
+  });
+
+  it('ignores PR state when pollPR is not set', () => {
+    const state = makeState({status: 'completed', repo_pr_states: completedPr});
+    expect(getPollInterval({autofixState: state, runStarted: false})).toBe(false);
+  });
+
+  it('polls while processing regardless of pollPR', () => {
+    const state = makeState({status: 'processing'});
+    expect(getPollInterval({autofixState: state, runStarted: false})).toBe(1000);
+    expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
+      1000
+    );
+  });
+});
 
 describe('isRootCauseArtifact', () => {
   function makeValidRootCauseData(): RootCauseArtifact {
@@ -652,8 +699,10 @@ describe('isLastStepPrIteration', () => {
   });
 });
 
+const GROUP_ID = '123';
+const MOCK_GROUP = GroupFixture({id: GROUP_ID});
+
 describe('useExplorerAutofix - createPR', () => {
-  const GROUP_ID = '123';
   const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
 
   beforeEach(() => {
@@ -672,7 +721,7 @@ describe('useExplorerAutofix - createPR', () => {
       body: {},
     });
 
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
 
     await act(() => result.current.createPR(42));
 
@@ -693,7 +742,7 @@ describe('useExplorerAutofix - createPR', () => {
       body: {},
     });
 
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
 
     await act(() => result.current.createPR(42, 'org/repo'));
 
@@ -707,6 +756,31 @@ describe('useExplorerAutofix - createPR', () => {
     );
   });
 
+  it('sends sentry_run_id instead of run_id when given a UUID', async () => {
+    const mockPost = MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await act(() => result.current.createPR('f00dcafe-0000-0000-0000-000000000000'));
+
+    expect(mockPost).toHaveBeenCalledWith(
+      AUTOFIX_URL,
+      expect.objectContaining({
+        method: 'POST',
+        query: {mode: 'explorer'},
+        data: {
+          step: 'open_pr',
+          sentry_run_id: 'f00dcafe-0000-0000-0000-000000000000',
+          referrer: 'api.web',
+        },
+      })
+    );
+  });
+
   it('calls addErrorMessage and throws on API error', async () => {
     MockApiClient.addMockResponse({
       url: AUTOFIX_URL,
@@ -715,7 +789,7 @@ describe('useExplorerAutofix - createPR', () => {
       body: {detail: 'Server error'},
     });
 
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
 
     await expect(act(() => result.current.createPR(42))).rejects.toThrow();
 
@@ -725,8 +799,115 @@ describe('useExplorerAutofix - createPR', () => {
   });
 });
 
+describe('useExplorerAutofix - startStep pr_iteration', () => {
+  const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
+  const baseState = {
+    run_id: 42,
+    blocks: [],
+    status: 'processing' as const,
+    updated_at: '2026-01-01T00:00:00Z',
+  };
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: baseState},
+    });
+  });
+
+  it('sends the POST with user_context', async () => {
+    const mockPost = MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {run_id: 42},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await act(() =>
+      result.current.startStep('pr_iteration', {runId: 42, userContext: 'make it blue'})
+    );
+
+    expect(mockPost).toHaveBeenCalledWith(
+      AUTOFIX_URL,
+      expect.objectContaining({
+        method: 'POST',
+        query: {mode: 'explorer'},
+        data: {
+          step: 'pr_iteration',
+          run_id: 42,
+          user_context: 'make it blue',
+          referrer: 'api.web',
+        },
+      })
+    );
+  });
+
+  it('continues via sentry_run_id when given a UUID', async () => {
+    const mockPost = MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {run_id: 42},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await act(() =>
+      result.current.startStep('pr_iteration', {
+        runId: 'f00dcafe-0000-0000-0000-000000000000',
+        userContext: 'make it blue',
+      })
+    );
+
+    expect(mockPost).toHaveBeenCalledWith(
+      AUTOFIX_URL,
+      expect.objectContaining({
+        method: 'POST',
+        query: {mode: 'explorer'},
+        data: {
+          step: 'pr_iteration',
+          sentry_run_id: 'f00dcafe-0000-0000-0000-000000000000',
+          user_context: 'make it blue',
+          referrer: 'api.web',
+        },
+      })
+    );
+  });
+
+  it('awaits the refetch so queued feedback is present once it resolves', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {run_id: 42},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+    expect(result.current.runState?.queued_feedback).toBeUndefined();
+
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {
+        autofix: {
+          ...baseState,
+          queued_feedback: [{text: 'make it blue', source: {type: 'user-ui'}}],
+        },
+      },
+    });
+
+    await act(() =>
+      result.current.startStep('pr_iteration', {runId: 42, userContext: 'make it blue'})
+    );
+
+    expect(result.current.runState?.queued_feedback).toHaveLength(1);
+  });
+});
+
 describe('useExplorerAutofix - codingAgentErrors', () => {
-  const GROUP_ID = '123';
   const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
   const integration = {id: '42', name: 'Claude Agent', provider: 'claude_code' as const};
 
@@ -749,7 +930,7 @@ describe('useExplorerAutofix - codingAgentErrors', () => {
       },
     });
 
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
 
     await act(() => result.current.triggerCodingAgentHandoff(1, integration));
     await waitFor(() => {
@@ -790,7 +971,7 @@ describe('useExplorerAutofix - codingAgentErrors', () => {
       body: {detail: 'boom'},
     });
 
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
 
     await expect(
       act(() => result.current.triggerCodingAgentHandoff(1, integration))
@@ -799,6 +980,59 @@ describe('useExplorerAutofix - codingAgentErrors', () => {
     await waitFor(() => {
       expect(result.current.codingAgentErrors.map(e => e.message)).toEqual(['boom']);
     });
+  });
+
+  it('sends the legacy run_id for an integer run', async () => {
+    const mockPost = MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {successes: [], failures: []},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await act(() => result.current.triggerCodingAgentHandoff(1, integration));
+
+    expect(mockPost).toHaveBeenCalledWith(
+      AUTOFIX_URL,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          step: 'coding_agent_handoff',
+          run_id: 1,
+          integration_id: 42,
+        }),
+      })
+    );
+    expect(mockPost.mock.calls[0][1].data.sentry_run_id).toBeUndefined();
+  });
+
+  it('sends sentry_run_id for a UUID run', async () => {
+    const mockPost = MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {successes: [], failures: []},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await act(() =>
+      result.current.triggerCodingAgentHandoff(
+        'f00dcafe-0000-0000-0000-000000000000',
+        integration
+      )
+    );
+
+    expect(mockPost).toHaveBeenCalledWith(
+      AUTOFIX_URL,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          step: 'coding_agent_handoff',
+          sentry_run_id: 'f00dcafe-0000-0000-0000-000000000000',
+          integration_id: 42,
+        }),
+      })
+    );
+    expect(mockPost.mock.calls[0][1].data.run_id).toBeUndefined();
   });
 
   it('dismissCodingAgentError removes the error with the given id', async () => {
@@ -815,7 +1049,7 @@ describe('useExplorerAutofix - codingAgentErrors', () => {
       },
     });
 
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
 
     await act(() => result.current.triggerCodingAgentHandoff(1, integration));
     await waitFor(() => {

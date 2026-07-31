@@ -33,7 +33,11 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {AddFilter} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {GenericFilterSelector} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
-import {globalFilterKeysAreEqual} from 'sentry/views/dashboards/globalFilter/utils';
+import {
+  globalFilterKeysAreEqual,
+  globalFiltersAreEqual,
+  mergeGlobalFilters,
+} from 'sentry/views/dashboards/globalFilter/utils';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
@@ -43,7 +47,6 @@ import {
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
@@ -140,7 +143,6 @@ export function FiltersBar({
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const getSearchBarData = useDatasetSearchBarData();
   const isPrebuiltDashboard = defined(prebuiltDashboardId);
   const prebuiltDashboardFilters = prebuiltDashboardId
@@ -230,6 +232,19 @@ export function FiltersBar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    // this ensures that when the global filters url is updated from external
+    // components, the global filter selector displays the correct filter values
+    const urlFilters = dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER];
+    if (urlFilters && urlFilters.length > 0) {
+      for (const filter of urlFilters) {
+        if (!activeGlobalFilters.some(f => globalFiltersAreEqual(f, filter))) {
+          setActiveGlobalFilters(mergeGlobalFilters(activeGlobalFilters, urlFilters));
+        }
+      }
+    }
+  }, [activeGlobalFilters, dashboardFiltersFromURL]);
+
   const updateGlobalFilters = (newGlobalFilters: GlobalFilter[]) => {
     setActiveGlobalFilters(newGlobalFilters);
     onDashboardFilterChange({
@@ -259,7 +274,6 @@ export function FiltersBar({
       : null
     : t('You do not have permission to edit this dashboard');
   const showAddWidgetButton =
-    hasPageFrameFeature &&
     !isPrebuiltDashboard &&
     !isEditingDashboard &&
     !isPreview &&

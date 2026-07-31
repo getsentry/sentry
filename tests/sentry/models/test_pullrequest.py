@@ -4,13 +4,20 @@ from uuid import uuid4
 
 from django.utils import timezone
 
+from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
-from sentry.models.pullrequest import CommentType, PullRequest, PullRequestCommit
+from sentry.models.pullrequest import (
+    CommentType,
+    PullRequest,
+    PullRequestCommit,
+    parse_pull_request_url,
+)
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
@@ -101,8 +108,12 @@ class FindReferencedGroupsTest(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
         )
-        assert activity.data == {"version": release.version}
+        assert activity.data == {"version": release.version, "commit": commit.id}
         assert activity.ident == str(resolution.id)
+
+        serialized_data = serialize(activity)["data"]
+        assert serialized_data["version"] == release.version
+        assert serialized_data["commit"]["id"] == commit.key
 
     def test_resolve_in_pull_request(self) -> None:
         group = self.create_group()
@@ -133,6 +144,15 @@ class FindReferencedGroupsTest(TestCase):
         # XXX: Oddly,resolved_in_pull_request doesn't update the group status
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
+
+        pr.message = "no groups here"
+        pr.save()
+
+        assert not GroupLink.objects.filter(
+            group=group,
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=pr.id,
+        ).exists()
 
     def test_resolve_in_pull_request_resolved_via_release(self) -> None:
         group = self.create_group()
@@ -169,8 +189,43 @@ class FindReferencedGroupsTest(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
         )
-        assert activity.data == {"version": release.version}
+        commit = Commit.objects.get(key=merge_commit_sha)
+        assert activity.data == {"version": release.version, "commit": commit.id}
         assert activity.ident == str(resolution.id)
+
+        serialized_data = serialize(activity)["data"]
+        assert serialized_data["version"] == release.version
+        assert serialized_data["commit"]["id"] == commit.key
+        assert serialized_data["commit"]["pullRequest"]["id"] == pr.key
+
+    def test_pull_request_resolves_only_when_released_to_issue_project(self) -> None:
+        frontend_project = self.project
+        backend_project = self.create_project(organization=frontend_project.organization)
+        group = self.create_group(project=frontend_project)
+        repo = self.create_repo(project=frontend_project, name="example-monorepo")
+        merge_commit_sha = sha1(uuid4().hex.encode("utf-8")).hexdigest()
+        pull_request = self.create_pull_request(
+            repository_id=repo.id,
+            organization_id=frontend_project.organization_id,
+            message=f"Fixes {group.qualified_short_id}",
+        )
+        pull_request.update(merge_commit_sha=merge_commit_sha)
+        backend_release = self.create_release(project=backend_project, version="backend@1.0.0")
+
+        backend_release.set_commits([{"id": merge_commit_sha, "repository": repo.name}])
+
+        assert not GroupResolution.objects.filter(group=group, release=backend_release).exists()
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+
+        frontend_release = self.create_release(project=frontend_project, version="frontend@1.0.0")
+        frontend_release.set_commits([{"id": merge_commit_sha, "repository": repo.name}])
+
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == frontend_release
+        assert resolution.status == GroupResolution.Status.resolved
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
 
 
 class PullRequestRetentionTest(TestCase):
@@ -415,3 +470,253 @@ class PullRequestRetentionTest(TestCase):
             comment_type=CommentType.OPEN_PR,
         )
         assert not pr.is_unused(self.cutoff_date)
+
+
+class GetOrCreateFromReferenceTest(TestCase):
+    def setUp(self) -> None:
+        self.repo = self.create_repo(
+            self.project, name="getsentry/sentry", provider="integrations:github"
+        )
+
+    def _resolve(
+        self,
+        *,
+        repo_name: str = "getsentry/sentry",
+        provider: str | None = "github",
+        key: int | str = 42,
+    ):
+        return PullRequest.objects.get_or_create_from_reference(
+            organization_id=self.organization.id,
+            repo_name=repo_name,
+            provider=provider,
+            key=key,
+        )
+
+    def test_resolves_and_creates_pull_request(self) -> None:
+        resolved = self._resolve()
+
+        assert resolved.repo_resolution == "resolved"
+        assert resolved.provider_unmappable is False
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == self.repo.id
+        assert resolved.pull_request.key == "42"
+
+    def test_coerces_integer_key_to_string(self) -> None:
+        resolved = self._resolve(key=7)
+
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.key == "7"
+
+    def test_reuses_existing_pull_request_without_overwriting(self) -> None:
+        existing = self.create_pull_request(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="42",
+            title="Real title",
+        )
+
+        resolved = self._resolve()
+
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.id == existing.id
+        # The shell find-or-create must not clobber a title a webhook already filled in.
+        resolved.pull_request.refresh_from_db()
+        assert resolved.pull_request.title == "Real title"
+        assert PullRequest.objects.filter(repository_id=self.repo.id, key="42").count() == 1
+
+    def test_resolves_by_provider_when_name_collides(self) -> None:
+        gitlab_repo = self.create_repo(
+            self.project, name="getsentry/sentry", provider="integrations:gitlab"
+        )
+
+        resolved = self._resolve(provider="github")
+
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == self.repo.id
+        assert not PullRequest.objects.filter(repository_id=gitlab_repo.id).exists()
+
+    def test_not_found_when_no_repository_matches(self) -> None:
+        resolved = self._resolve(repo_name="getsentry/does-not-exist")
+
+        assert resolved.pull_request is None
+        assert resolved.repo_resolution == "not_found"
+        assert resolved.provider_unmappable is False
+
+    def test_ambiguous_when_unknown_provider_matches_many(self) -> None:
+        self.create_repo(self.project, name="getsentry/sentry", provider="integrations:gitlab")
+
+        # Two same-named repos under different providers and no provider to disambiguate —
+        # refuse to guess rather than risk mis-resolution.
+        resolved = self._resolve(provider="unknown")
+
+        assert resolved.pull_request is None
+        assert resolved.repo_resolution == "ambiguous"
+        assert not PullRequest.objects.exists()
+
+    def test_resolves_unknown_provider_when_unambiguous(self) -> None:
+        resolved = self._resolve(provider="unknown")
+
+        assert resolved.pull_request is not None
+        # The "unknown" sentinel is treated as absent, not unmappable.
+        assert resolved.provider_unmappable is False
+
+    def test_flags_unmappable_provider(self) -> None:
+        # An unmapped provider is surfaced via provider_unmappable=True. Resolution still
+        # filters by it, so a repo stored under a recognized provider won't match.
+        resolved = self._resolve(provider="subversion")
+
+        assert resolved.provider_unmappable is True
+        assert resolved.pull_request is None
+        assert resolved.repo_resolution == "not_found"
+
+    def test_unmappable_provider_resolves_against_a_matching_repo(self) -> None:
+        svn_repo = self.create_repo(self.project, name="svn/project", provider="subversion")
+
+        resolved = self._resolve(repo_name="svn/project", provider="subversion")
+
+        # Still flagged, but resolution is attempted and succeeds when a repo actually
+        # carries that provider.
+        assert resolved.provider_unmappable is True
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == svn_repo.id
+
+    def test_scopes_resolution_to_the_given_org(self) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_repo = self.create_repo(
+            other_project, name="getsentry/sentry", provider="integrations:github"
+        )
+
+        resolved = PullRequest.objects.get_or_create_from_reference(
+            organization_id=other_org.id,
+            repo_name="getsentry/sentry",
+            provider="github",
+            key=42,
+        )
+
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == other_repo.id
+        assert not PullRequest.objects.filter(repository_id=self.repo.id).exists()
+
+
+class ForProviderPrTest(TestCase):
+    def setUp(self) -> None:
+        self.external_id = "556677"
+        self.integration_id = 909
+        self.repo = self.create_repo(
+            self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id=self.external_id,
+            integration_id=self.integration_id,
+        )
+        self.pull_request = self.create_pull_request(
+            organization_id=self.organization.id, repository_id=self.repo.id, key="42"
+        )
+
+    def _for_provider_pr(self, *, integration_id: int | None = None, key: int | str = 42):
+        return PullRequest.objects.for_provider_pr(
+            external_id=self.external_id,
+            integration_id=self.integration_id if integration_id is None else integration_id,
+            key=key,
+        )
+
+    def test_resolves_row_in_own_org(self) -> None:
+        assert [pr.id for pr in self._for_provider_pr()] == [self.pull_request.id]
+
+    def test_fans_across_orgs_sharing_installation(self) -> None:
+        other_org = self.create_organization()
+        other_repo = self.create_repo(
+            self.create_project(organization=other_org),
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id=self.external_id,
+            integration_id=self.integration_id,
+        )
+        other_pr = self.create_pull_request(
+            organization_id=other_org.id, repository_id=other_repo.id, key="42"
+        )
+
+        assert {pr.id for pr in self._for_provider_pr()} == {self.pull_request.id, other_pr.id}
+
+    def test_coerces_integer_key_to_string(self) -> None:
+        assert [pr.id for pr in self._for_provider_pr(key=42)] == [self.pull_request.id]
+
+    def test_excludes_other_pr_numbers(self) -> None:
+        self.create_pull_request(
+            organization_id=self.organization.id, repository_id=self.repo.id, key="99"
+        )
+        assert [pr.id for pr in self._for_provider_pr()] == [self.pull_request.id]
+
+    def test_excludes_hidden_repositories(self) -> None:
+        self.repo.update(status=ObjectStatus.HIDDEN)
+        assert self._for_provider_pr() == []
+
+    def test_includes_non_hidden_inactive_repositories(self) -> None:
+        # A pending-deletion repo still gets webhooks (the fan-out only excludes
+        # HIDDEN), so its PR can emit and must stay in its own sibling set — matching
+        # how _repo_external_identity reads the repo regardless of status.
+        self.repo.update(status=ObjectStatus.PENDING_DELETION)
+        assert [pr.id for pr in self._for_provider_pr()] == [self.pull_request.id]
+
+    def test_excludes_other_installations(self) -> None:
+        # Same external_id under a different installation (e.g. a second GHE host,
+        # where repo ids can collide) must not be treated as a sibling.
+        assert self._for_provider_pr(integration_id=self.integration_id + 1) == []
+
+
+class ParsePullRequestUrlTest(TestCase):
+    def test_parses_each_provider_url_shape(self) -> None:
+        cases = {
+            "https://github.com/getsentry/sentry/pull/42": (42, "github.com", "getsentry/sentry"),
+            "https://github.com/getsentry/sentry/pulls/7": (7, "github.com", "getsentry/sentry"),
+            "https://gitlab.com/gs/sentry/merge_requests/13": (13, "gitlab.com", "gs/sentry"),
+            # GitLab nests projects under subgroups and separates the MR path with "/-/", so
+            # the repo name spans the subgroups but excludes the separator.
+            "https://gitlab.com/grp/sub/proj/-/merge_requests/3": (3, "gitlab.com", "grp/sub/proj"),
+            "https://gitlab.com/grp/sub/proj/merge_requests/3": (3, "gitlab.com", "grp/sub/proj"),
+        }
+        for url, expected in cases.items():
+            assert parse_pull_request_url(url) == expected, url
+
+    def test_parses_past_trailing_url_segments(self) -> None:
+        # A PR URL stays a PR URL with a subpath, query, or fragment appended.
+        for url in [
+            "https://github.com/o/r/pull/5/files",
+            "https://github.com/o/r/pull/5?w=1",
+            "https://github.com/o/r/pull/5#issuecomment-1",
+        ]:
+            assert parse_pull_request_url(url) == (5, "github.com", "o/r"), url
+
+    def test_normalizes_the_host(self) -> None:
+        # Callers compare host to a known value, so casing, port and userinfo must not survive.
+        cases = {
+            "https://GitHub.com/o/r/pull/5": (5, "github.com", "o/r"),
+            "https://github.com:443/o/r/pull/5": (5, "github.com", "o/r"),
+            "https://user@github.com/o/r/pull/5": (5, "github.com", "o/r"),
+            # The real host is what follows the userinfo, not what precedes it.
+            "https://github.com@evil.com/o/r/pull/5": (5, "evil.com", "o/r"),
+        }
+        for url, expected in cases.items():
+            assert parse_pull_request_url(url) == expected, url
+
+    def test_returns_none_when_not_a_pr_url(self) -> None:
+        cases = [
+            # A branch/tree URL or a number-less path must not be mistaken for a PR.
+            "https://github.com/getsentry/sentry/tree/123",
+            "https://github.com/getsentry/sentry/pulls",
+            "https://github.com/getsentry/sentry",
+            # The number must end its path segment, not merely start it.
+            "https://github.com/o/r/pull/12x",
+            # Only https, so a parsed host can be trusted.
+            "http://github.com/o/r/pull/5",
+            # A PR URL smuggled into another URL's query string is not this URL's PR.
+            "https://evil.com/x?u=https://github.com/o/r/pull/5",
+            # A PR segment needs a repo above it; "pull" alone is not an owner/repo.
+            "https://github.com/pull/5",
+            # Malformed authority — urlsplit raises rather than returning a host.
+            "https://[::1/o/r/pull/5",
+            "",
+        ]
+        for url in cases:
+            assert parse_pull_request_url(url) is None, url

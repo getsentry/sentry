@@ -25,6 +25,7 @@ from sentry import options
 from sentry.objectstore.endpoints.organization import ChunkedEncodingDecoder, get_raw_body
 from sentry.options.rollout import in_random_rollout
 from sentry.silo.util import (
+    PRESERVE_CONTENT_ENCODING_URL_NAMES,
     PROXY_APIGATEWAY_HEADER,
     PROXY_DIRECT_LOCATION_HEADER,
     clean_outbound_headers,
@@ -128,7 +129,7 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     """Take a django request object and proxy it to a cell silo"""
 
     host = cell.address
-    if cell.api_gateway_address and in_random_rollout("apigateway.proxy.use_gateway_address"):
+    if cell.api_gateway_address:
         host = cell.api_gateway_address
 
     metric_tags = {
@@ -173,7 +174,8 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     header_dict[PROXY_APIGATEWAY_HEADER] = "true"
 
     assert request.method is not None
-    query_params = request.GET
+    query_string = request.META.get("QUERY_STRING")
+    request_url = f"{target_url}?{query_string}" if query_string else target_url
 
     # This option has a default of None, which is cast to 0
     timeout = options.get("apigateway.proxy.timeout")
@@ -185,10 +187,11 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):
         return StreamingHttpResponse(streaming_content="relay proxy skipped", status=404)
 
+    if content_encoding and url_name in PRESERVE_CONTENT_ENCODING_URL_NAMES:
+        header_dict["Content-Encoding"] = content_encoding
+
     data: bytes | Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None = None
     if url_name == "sentry-api-0-organization-objectstore":
-        if content_encoding:
-            header_dict["Content-Encoding"] = content_encoding
         data = get_raw_body(request)
     else:
         data = BodyWithLength(request)
@@ -203,9 +206,8 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
         with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
             resp = requester(
                 request.method,
-                url=target_url,
+                url=request_url,
                 headers=header_dict,
-                params=dict(query_params) if query_params is not None else None,
                 data=data,
                 stream=True,
                 timeout=timeout,

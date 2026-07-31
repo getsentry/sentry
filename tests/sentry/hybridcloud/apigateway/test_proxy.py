@@ -1,6 +1,6 @@
 from collections.abc import Generator
 from typing import NoReturn
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from urllib.parse import urlencode
 
 import httpx
@@ -150,6 +150,52 @@ class ProxyTestCase(ApiGatewayTestCase):
         # parse_qs returns everything in a list, including single arguments
         assert query_param_dict["foo"] == resp_json["foo"][0]
         assert query_param_dict["numlist"] == resp_json["numlist"]
+
+    def test_async_query_string_forwarded_verbatim(self) -> None:
+        captured: dict[str, str] = {}
+
+        def capture(request: httpx.Request) -> tuple[int, dict[str, str], bytes]:
+            captured["raw_query"] = str(request.url).split("?", 1)[1]
+            return (200, {}, b"{}")
+
+        self.httpx_router.add_callback("GET", f"{self.CELL.address}/echo-verbatim", capture)
+
+        # The ``:`` and ``+`` would be percent-encoded by ``dict(request.GET)``.
+        query = (
+            "os_kid=sentry&os_timestamp=2026-07-13T13:19:24+00:00&os_duration=300&os_sig=ab_c-D9z"
+        )
+        request = RequestFactory().get(f"http://sentry.io/echo-verbatim?{query}")
+
+        resp = proxy_request(request, self.organization.slug, url_name)
+        close_streaming_response(resp)
+
+        assert captured["raw_query"] == query
+
+    @responses.activate
+    def test_sync_query_string_forwarded_verbatim(self) -> None:
+        captured: dict[str, str] = {}
+
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            assert request.url is not None
+            captured["url"] = request.url
+            return 200, {"Content-Type": "application/json"}, json.dumps({"proxy": True})
+
+        responses.add_callback(
+            responses.GET,
+            "http://us.internal.sentry.io/echo-verbatim",
+            callback=request_callback,
+        )
+
+        # The ``:`` and ``+`` would be percent-encoded by ``dict(request.GET)``.
+        query = (
+            "os_kid=sentry&os_timestamp=2026-07-13T13:19:24+00:00&os_duration=300&os_sig=ab_c-D9z"
+        )
+        request = RequestFactory().get(f"http://sentry.io/echo-verbatim?{query}")
+
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        close_streaming_response(resp)
+
+        assert captured["url"].split("?", 1)[1] == query
 
     def test_bad_org(self) -> None:
         request = RequestFactory().get("http://sentry.io/get")
@@ -395,6 +441,148 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert isinstance(resp, JsonResponse)
         assert json.loads(resp.content)["detail"] == "Downstream service unavailable"
 
+    @responses.activate
+    def test_sync_preserves_content_encoding_for_snapshot_create(self) -> None:
+        captured: dict[str, str | None] = {}
+
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            captured["content_encoding"] = request.headers.get("Content-Encoding")
+            return 200, {"Content-Type": "application/json"}, json.dumps({"proxy": True})
+
+        responses.add_callback(
+            responses.POST, "http://us.internal.sentry.io/post", callback=request_callback
+        )
+
+        request = RequestFactory().post(
+            "http://sentry.io/post",
+            data={"foo": "bar"},
+            content_type="application/json",
+            headers={"Content-Encoding": "zstd"},
+        )
+        resp = sync_proxy.proxy_request(
+            request, self.organization.slug, "sentry-api-0-project-preprod-snapshots-create"
+        )
+        close_streaming_response(resp)
+        assert captured["content_encoding"] == "zstd"
+
+    @responses.activate
+    def test_sync_strips_content_encoding_for_other_routes(self) -> None:
+        captured: dict[str, str | None] = {}
+
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            captured["content_encoding"] = request.headers.get("Content-Encoding")
+            return 200, {"Content-Type": "application/json"}, json.dumps({"proxy": True})
+
+        responses.add_callback(
+            responses.POST, "http://us.internal.sentry.io/post", callback=request_callback
+        )
+
+        request = RequestFactory().post(
+            "http://sentry.io/post",
+            data={"foo": "bar"},
+            content_type="application/json",
+            headers={"Content-Encoding": "zstd"},
+        )
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        close_streaming_response(resp)
+        assert captured["content_encoding"] is None
+
+    def test_async_preserves_content_encoding_for_snapshot_create(self) -> None:
+        captured: dict[str, str | None] = {}
+
+        def callback(request: httpx.Request) -> tuple[int, dict[str, str], str]:
+            captured["content_encoding"] = request.headers.get("content-encoding")
+            return 200, {}, json.dumps({"proxy": True})
+
+        self.httpx_router.add_callback("POST", "http://us.internal.sentry.io/post", callback)
+
+        request = RequestFactory().post(
+            "http://sentry.io/post",
+            data={"foo": "bar"},
+            content_type="application/json",
+            headers={"Content-Encoding": "zstd"},
+        )
+        resp = proxy_request(
+            request, self.organization.slug, "sentry-api-0-project-preprod-snapshots-create"
+        )
+        close_streaming_response(resp)
+        assert captured["content_encoding"] == "zstd"
+
+    def test_async_strips_content_encoding_for_other_routes(self) -> None:
+        captured: dict[str, str | None] = {}
+
+        def callback(request: httpx.Request) -> tuple[int, dict[str, str], str]:
+            captured["content_encoding"] = request.headers.get("content-encoding")
+            return 200, {}, json.dumps({"proxy": True})
+
+        self.httpx_router.add_callback("POST", "http://us.internal.sentry.io/post", callback)
+
+        request = RequestFactory().post(
+            "http://sentry.io/post",
+            data={"foo": "bar"},
+            content_type="application/json",
+            headers={"Content-Encoding": "zstd"},
+        )
+        resp = proxy_request(request, self.organization.slug, url_name)
+        close_streaming_response(resp)
+        assert captured["content_encoding"] is None
+
+    @patch("sentry.hybridcloud.apigateway_async.proxy.metrics")
+    def test_async_orgslug_metrics_tagged_with_cell_on_success(self, mock_metrics: Mock) -> None:
+        request = RequestFactory().get("http://sentry.io/get")
+        resp = proxy_request(request, self.organization.slug, url_name)
+        close_streaming_response(resp)
+        assert resp.status_code == 200
+
+        mock_metrics.incr.assert_any_call(
+            "apigateway.proxy_request",
+            tags={
+                "url_name": url_name,
+                "kind": "orgslug",
+                "destination_cell": "us",
+                "request_method": "GET",
+            },
+        )
+        mock_metrics.incr.assert_any_call(
+            "apigateway.proxy.request_succeeded",
+            tags={
+                "destination_cell": "us",
+                "url_name": url_name,
+                "destination_host": "http://us.internal.sentry.io",
+                "request_method": "GET",
+            },
+        )
+
+    @patch("sentry.hybridcloud.apigateway_async.proxy.metrics")
+    def test_async_unresolved_org_does_not_emit_proxy_request(self, mock_metrics: Mock) -> None:
+        request = RequestFactory().get("http://sentry.io/get")
+        resp = proxy_request(request, "doesnotexist", url_name)
+        assert resp.status_code == 404
+
+        emitted = [c.args[0] for c in mock_metrics.incr.mock_calls]
+        assert "apigateway.proxy_request" not in emitted
+        assert "apigateway.proxy.request_succeeded" not in emitted
+
+    @patch("sentry.hybridcloud.apigateway_async.proxy.metrics")
+    def test_async_upstream_failure_emits_request_failed_not_succeeded(
+        self, mock_metrics: Mock
+    ) -> None:
+        def bad_gateway(request: httpx.Request) -> tuple[int, dict[str, str], bytes]:
+            return (503, {}, b"{}")
+
+        self.httpx_router.add_callback(
+            "GET", "http://us.internal.sentry.io/bad-gateway", bad_gateway
+        )
+
+        request = RequestFactory().get("http://sentry.io/bad-gateway")
+        resp = proxy_request(request, self.organization.slug, url_name)
+        close_streaming_response(resp)
+        assert resp.status_code == 503
+
+        emitted = [c.args[0] for c in mock_metrics.incr.mock_calls]
+        assert "apigateway.proxy.request_failed" in emitted
+        assert "apigateway.proxy.request_succeeded" not in emitted
+
 
 api_gateway_address_cell = Cell(
     name="us",
@@ -407,7 +595,6 @@ api_gateway_address_cell = Cell(
 @control_silo_test(cells=[api_gateway_address_cell], include_monolith_run=True)
 class ApiGatewayAddressProxyTestCase(ApiGatewayTestCase):
     @responses.activate
-    @override_options({"apigateway.proxy.use_gateway_address": 1.0})
     def test_sync_post(self) -> None:
         responses.add(
             responses.POST,

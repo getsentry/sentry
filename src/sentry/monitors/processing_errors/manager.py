@@ -9,7 +9,7 @@ from itertools import chain
 import sentry_sdk
 from django.conf import settings
 from redis.client import StrictRedis
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry import analytics
 from sentry.analytics.events.checkin_processing_error_stored import CheckinProcessingErrorStored

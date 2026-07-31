@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -19,8 +20,10 @@ from sentry.testutils.helpers.analytics import (
     assert_any_analytics_event,
     assert_last_analytics_event,
 )
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.cache import cache
 from sentry.workflow_engine.models import Action
 from tests.sentry.integrations.slack.test_notifications import (
     additional_attachment_generator_block_kit,
@@ -111,6 +114,47 @@ class SlackNotifyActionTest(RuleTestCase):
         blocks = orjson.loads(blocks)
 
         assert event.title in blocks[0]["text"]["text"]
+
+    @with_feature("organizations:slack-reinstall-nudge-on-issue-alert")
+    @patch("sentry.integrations.slack.utils.nudge.random.random", return_value=0.0)
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    @patch(
+        "slack_sdk.web.client.WebClient._perform_urllib_http_request",
+        return_value={
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        },
+    )
+    def test_test_send_skips_nudge(
+        self, mock_api_call: MagicMock, mock_post: MagicMock, mock_random: MagicMock
+    ) -> None:
+        # Rule test sends use action_id -1. They are not real issue alerts, so they must
+        # not append the reinstall nudge nor consume the per-channel weekly budget, even
+        # with the feature flag on and the random gate forced open.
+        event = self.get_event()
+
+        fake_rule = self.create_project_rule()
+        fake_rule.id = -1
+        rule = self.get_rule(
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "channel_id": "123",
+            },
+            rule=fake_rule,
+        )
+
+        results = list(rule.after(event=event))
+        assert len(results) == 1
+        results[0].callback(event, futures=[])
+
+        blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
+        assert all("reinstall Sentry Slack app" not in str(block) for block in blocks)
+
+        # The per-channel weekly counter was never seeded.
+        iso_year, iso_week, _ = datetime.now(timezone.utc).isocalendar()
+        assert cache.get(f"slack:alert_nudge:123:{iso_year}:{iso_week}") is None
 
     def test_render_label_with_notes(self) -> None:
         rule = self.get_rule(

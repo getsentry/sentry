@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -16,7 +16,7 @@ import {
   ConversationLeftPanel,
   ConversationSplitLayout,
 } from 'sentry/views/explore/conversations/components/conversationLayout';
-import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
+import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -34,12 +34,6 @@ function useAiSpanSelection(nodes: AITraceSpanNode[]) {
     const lastSpan = path?.findLast(item => item.startsWith('span-'));
     return lastSpan?.replace('span-', '') ?? null;
   });
-
-  useEffect(() => {
-    trackAnalytics('agent-monitoring.trace.rendered', {
-      organization,
-    });
-  }, [organization]);
 
   const selectedNode = useMemo(() => {
     return (
@@ -142,7 +136,7 @@ export function TraceAiSpans({
       </HeaderCell>
       <LeftPanel>
         <SpansHeader>{t('AI Spans')}</SpansHeader>
-        <AISpanList
+        <AiSpanTimeline
           nodes={nodes}
           onSelectNode={handleSelectNode}
           selectedNodeKey={selectedNode?.id ?? null}
@@ -196,7 +190,7 @@ export function AiSpansSplitView({
         <ConversationLeftPanel>
           <Flex flex="1" minHeight="0" overflowY="auto" overflowX="hidden">
             <Container padding="md lg md lg" width="100%">
-              <AISpanList
+              <AiSpanTimeline
                 nodes={nodes}
                 onSelectNode={handleSelectNode}
                 selectedNodeKey={selectedNode?.id ?? null}

@@ -2,6 +2,7 @@ from taskbroker_client.retry import Retry
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.eventstream.base import GroupState
+from sentry.issues.action_log import ActionSource, action_context_scope
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -151,5 +152,5 @@ def trigger_action(
     )
     # Set up a timeout grouping context because we want to make sure any Sentry timeout reporting
     # in this scope is grouped properly.
-    with timeout_grouping_context(action.type):
+    with timeout_grouping_context(action.type), action_context_scope(ActionSource.SYSTEM):
         action.trigger(event_data, notification_uuid=notification_uuid, workflow_id=workflow_id)

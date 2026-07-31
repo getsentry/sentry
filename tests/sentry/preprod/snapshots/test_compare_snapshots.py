@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 import pytest
@@ -88,7 +88,7 @@ def _mock_session_with_manifests(manifests_by_key: dict[str, bytes]) -> MagicMoc
 
     def _get(key):
         if key not in manifests_by_key:
-            raise RequestError(f"Key not found: {key}", 404, "not found")
+            return None
         result = MagicMock()
         result.payload.read.return_value = manifests_by_key[key]
         return result
@@ -102,7 +102,7 @@ def _dict_backed_session(stored: dict[str, bytes]) -> MagicMock:
 
     def _get(key):
         if key not in stored:
-            raise RequestError(f"Key not found: {key}", 404, "not found")
+            return None
         result = MagicMock()
         result.payload.read.return_value = stored[key]
         return result
@@ -534,6 +534,43 @@ class FinalizeSnapshotComparisonTest(TestCase):
         from sentry.preprod.snapshots.manifest import ChunkResult, ComparisonImageResult
 
         return ChunkResult(chunk_index=0, images={"a.png": ComparisonImageResult(status="changed")})
+
+    def _finalize_with_extras(self, extras):
+        from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
+
+        comparison, h, b = self._comparison(1, done_indices=[0])
+        comparison.extras = extras
+        comparison.save()
+        prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
+        stored = {
+            f"{prefix}/plan.json": orjson.dumps(self._single_chunk_plan(h, b).dict()),
+            f"{prefix}/chunks/0.json": orjson.dumps(self._changed_chunk_result().dict()),
+        }
+        session = _dict_backed_session(stored)
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot"),
+            patch("sentry.preprod.snapshots.tasks.metrics") as mock_metrics,
+        ):
+            finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
+        comparison.refresh_from_db()
+        diff_calls = [
+            c
+            for c in mock_metrics.distribution.call_args_list
+            if c.args and c.args[0] == "preprod.snapshots.diff.duration_s"
+        ]
+        return comparison, diff_calls
+
+    def test_finalize_skips_diff_duration_metric_on_missing_or_invalid_timestamp(self):
+        missing, missing_calls = self._finalize_with_extras({})
+        assert missing.state == PreprodSnapshotComparison.State.SUCCESS
+        assert missing_calls == []
+
+        invalid, invalid_calls = self._finalize_with_extras(
+            {"diff_processing_started_at": "not-a-date"}
+        )
+        assert invalid.state == PreprodSnapshotComparison.State.SUCCESS
+        assert invalid_calls == []
 
     def test_terminal_state_skips_finalize(self):
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
@@ -996,7 +1033,7 @@ class CompareSnapshotsOrchestratorTest(TestCase):
             PreprodSnapshotComparison.objects.filter(id=comparison.id).update(
                 state=PreprodSnapshotComparison.State.SUCCESS
             )
-            raise RequestError(f"Key not found: {key}", 404, "not found")
+            return None
 
         session = MagicMock()
         session.get.side_effect = _get
@@ -1035,11 +1072,8 @@ class CompareSnapshotsOrchestratorTest(TestCase):
             state=PreprodSnapshotComparison.State.PROCESSING,
         )
 
-        def _get(key):
-            raise RequestError(f"Key not found: {key}", 404, "not found")
-
         session = MagicMock()
-        session.get.side_effect = _get
+        session.get.return_value = None
 
         with (
             patch("sentry.preprod.snapshots.tasks.get_preprod_session", return_value=session),
@@ -1586,6 +1620,8 @@ class EndToEndFanoutTest(TestCase):
         return {h: b"img" for h in hashes}, set()
 
     def test_full_flow_reaches_success(self):
+        from datetime import datetime
+
         from sentry.preprod.snapshots.tasks import (
             compare_snapshots,
             finalize_snapshot_comparison,
@@ -1626,6 +1662,7 @@ class EndToEndFanoutTest(TestCase):
                 side_effect=lambda kwargs, **_: dispatched.append(kwargs),
             ),
             patch("sentry.preprod.snapshots.tasks.finalize_snapshot_comparison.apply_async"),
+            patch("sentry.preprod.snapshots.tasks.metrics") as mock_metrics,
         ):
             compare_snapshots(**kwargs)
 
@@ -1664,3 +1701,15 @@ class EndToEndFanoutTest(TestCase):
         manifest = orjson.loads(stored[f"{prefix}/comparison.json"])
         assert manifest["summary"]["changed"] == 3
         assert manifest["summary"]["added"] == 1
+
+        # The orchestrator stamps the processing-start timestamp at fan-out, and
+        # finalize reads it to emit the diff-duration metric — assert the full round-trip.
+        extras = comparison.extras
+        assert extras is not None
+        assert datetime.fromisoformat(extras["diff_processing_started_at"])
+        mock_metrics.distribution.assert_any_call(
+            "preprod.snapshots.diff.duration_s",
+            ANY,
+            sample_rate=1.0,
+            tags={"app_id_temp": head_artifact.app_id or ""},
+        )

@@ -94,7 +94,7 @@ class TestWorkflowEngineSerializer(TestCase):
         self.expected = {
             "id": str(self.alert_rule.id),
             "name": self.detector.name,
-            "organizationId": str(self.detector.project.organization_id),
+            "organizationId": str(self.detector.linked_project.organization_id),
             "status": AlertRuleStatus.PENDING.value,
             "queryType": self.alert_rule.snuba_query.type,
             "dataset": self.alert_rule.snuba_query.dataset,
@@ -180,7 +180,7 @@ class TestWorkflowEngineSerializer(TestCase):
             action=self.critical_action, group=self.group, workflow=workflow
         )
         self.group_open_period = GroupOpenPeriod.objects.get(
-            group=self.group, project=self.detector.project
+            group=self.group, project=self.detector.linked_project
         )
         self.group_open_period.update(date_started=self.incident.date_started)
         self.incident_group_open_period = IncidentGroupOpenPeriod.objects.create(

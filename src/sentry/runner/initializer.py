@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import importlib.metadata
 import logging
 import os
 import sys
+import time
 from typing import IO, Any
 
 import click
@@ -27,35 +27,6 @@ class ConfigurationError(ValueError, click.ClickException):
 
 
 def register_plugins(settings: Any, raise_on_plugin_load_failure: bool = False) -> None:
-    from sentry.plugins.base import plugins
-
-    # entry_points={
-    #    'sentry.plugins': [
-    #         'example = sentry_plugins.example.plugin:ExamplePlugin'
-    #     ],
-    # },
-    entry_points = {
-        ep
-        for dist in importlib.metadata.distributions()
-        for ep in dist.entry_points
-        if ep.group == "sentry.plugins"
-    }
-
-    for ep in entry_points:
-        try:
-            plugin = ep.load()
-        except Exception:
-            import traceback
-
-            click.echo(f"Failed to load plugin {ep.name!r}:\n{traceback.format_exc()}", err=True)
-            if raise_on_plugin_load_failure:
-                raise
-        else:
-            plugins.register(plugin)
-
-    for plugin in plugins.all(version=None):
-        init_plugin(plugin)
-
     from sentry.integrations.manager import default_manager as integrations
     from sentry.utils.imports import import_string
 
@@ -77,19 +48,6 @@ def register_plugins(settings: Any, raise_on_plugin_load_failure: bool = False) 
             integration.setup()
         except AttributeError:
             pass
-
-
-def init_plugin(plugin: Any) -> None:
-    from sentry.plugins.base import bindings
-
-    plugin.setup(bindings)
-
-    # Register contexts from plugins if necessary
-    if hasattr(plugin, "get_custom_contexts"):
-        from sentry.interfaces.contexts import contexttype
-
-        for cls in plugin.get_custom_contexts() or ():
-            contexttype(cls)
 
 
 def initialize_receivers() -> None:
@@ -309,6 +267,22 @@ def show_big_error(message: str | list[str]) -> None:
 def initialize_app(config: dict[str, Any], skip_service_validation: bool = False) -> None:
     settings = config["settings"]
 
+    # Instrumentation to diagnose slow/hanging startup (e.g. the process-spans
+    # flusher subprocess timing out during configure()). Opt-in via the
+    # SENTRY_TRACE_STARTUP env var. Logging isn't configured until
+    # configure_structlog() runs partway through this function, so emit
+    # breadcrumbs straight to stderr with cumulative timing.
+    _trace_startup = bool(os.environ.get("SENTRY_TRACE_STARTUP"))
+    _init_start = time.monotonic()
+
+    def _trace(step: str) -> None:
+        if not _trace_startup:
+            return
+        sys.stderr.write(f"[initialize_app] +{time.monotonic() - _init_start:6.1f}s {step}\n")
+        sys.stderr.flush()
+
+    _trace("start")
+
     # Just reuse the integration app for Single Org / Self-Hosted as
     # it doesn't make much sense to use 2 separate apps for SSO and
     # integration.
@@ -320,6 +294,7 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
             }
         )
 
+    _trace("bootstrap_options")
     bootstrap_options(settings, config["options"])
 
     # The SENTRY_LOG_FORMAT env var (e.g. the `--logformat` CLI flag) overrides
@@ -330,6 +305,7 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     logging.raiseExceptions = settings.DEBUG
 
+    _trace("configure_structlog")
     configure_structlog()
 
     # Commonly setups don't correctly configure themselves for production envs
@@ -369,38 +345,54 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     import django
 
+    _trace("django.setup")
     django.setup()
 
+    _trace("validate_regions")
     validate_regions(settings)
 
+    _trace("validate_outbox_config")
     validate_outbox_config()
 
+    _trace("monkeypatch_django_migrations")
     monkeypatch_django_migrations()
 
+    _trace("patch_silo_aware_atomic")
     patch_silo_aware_atomic()
 
+    _trace("apply_legacy_settings")
     apply_legacy_settings(settings)
 
+    _trace("bind_cache_to_option_store")
     bind_cache_to_option_store()
 
+    _trace("register_plugins")
     register_plugins(settings)
 
+    _trace("initialize_receivers")
     initialize_receivers()
 
+    _trace("validate_options")
     validate_options(settings)
 
+    _trace("validate_snuba")
     validate_snuba()
 
+    _trace("configure_sdk")
     configure_sdk()
 
+    _trace("setup_services")
     setup_services(validate=not skip_service_validation)
 
+    _trace("import_grouptype")
     import_grouptype()
 
+    _trace("initialize_arroyo_main")
     initialize_arroyo_main()
 
     # Encryption keys should be initialized before any
     # database queries that use encrypted fields are made
+    _trace("initialize_encrypted_field_key_store")
     initialize_encrypted_field_key_store()
 
     # Hacky workaround to dynamically set the CSRF_TRUSTED_ORIGINS for self hosted
@@ -413,6 +405,8 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
         else:
             # For first time users that have not yet set system url prefix, let's default to localhost url
             settings.CSRF_TRUSTED_ORIGINS = ["http://localhost:9000", "http://127.0.0.1:9000"]
+
+    _trace("done")
 
 
 def setup_services(validate: bool = True) -> None:

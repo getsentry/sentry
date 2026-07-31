@@ -48,6 +48,7 @@ function makeBuild(
       is_installable: false,
       download_count: 0,
       release_notes: null,
+      install_groups: null,
     },
     vcs_info: {
       head_sha: 'a1b2c3d4e5f6',

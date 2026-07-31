@@ -2,27 +2,105 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import cast
 
 from django.db.models import Q
+from django.utils import timezone
 
 from sentry import features
+from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration import integration_service
 from sentry.models.commit import Commit
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
-from sentry.models.pullrequest import PullRequest, PullRequestActivity, PullRequestActivityType
-from sentry.seer.seer_setup import has_seer_access
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestActivity,
+    PullRequestActivityLog,
+    PullRequestActivityType,
+    PullRequestAttribution,
+    PullRequestLifecycleState,
+    PullRequestMetrics,
+    PullRequestVerdict,
+)
+from sentry.pr_metrics.activity_doc import ActivityDoc, commit_shas_from_doc
+from sentry.seer.models import SeerAgentRun, SeerRunPullRequest
+
+_PR_ACTIVITY_ATTRIBUTION_BUFFER = timedelta(hours=30)
 
 
-def is_activity_tracking_enabled(organization: Organization) -> bool:
-    """Whether PR activity rows should be written for this organization.
+def is_activity_tracking_enabled(
+    organization: Organization,
+    pr: PullRequest | None = None,
+    *,
+    for_terminal_event: bool = False,
+) -> bool:
+    """Whether PR activity rows should be written for this organization (and PR).
 
-    Both the feature flag rollout and Seer access are required: activity data
-    feeds the judge path which is only meaningful for Seer-enabled orgs.
+    Gated on the feature flag rollout only — Seer access is not required,
+    since activity is collected for all attribution types including MCP.
+
+    When ``pr`` is supplied, two additional per-PR checks apply in order:
+
+    1. If the PR's ``state`` is ``SUPERSEDED``, no further activity is needed —
+       this short-circuits without any extra DB queries. ``CLOSED``/``MERGED`` are
+       deliberately *not* short-circuited: the shared
+       ``PullRequestEventWebhook._handle`` upsert stamps the terminal state
+       *before* the webhook-event processors run, so within the very delivery
+       that closed the PR the row already reads terminal — yet the event that
+       records *who* closed it must still be written. The trade-off is that a
+       stray event on an already-terminal PR may also be recorded until the
+       verdict is claimed — an accepted cost for capturing the closer.
+
+    2. A verdict check runs next: activity remains enabled while the verdict is
+       null or ``WAITING_EVENT_COOLDOWN`` so late check events can be captured.
+       All other non-null verdicts (including terminal verdicts and
+       ``JUDGE_IN_PROGRESS``) stop further activity.
+
+    3. A time-based buffer gate applies last:
+       - Within ``_PR_ACTIVITY_ATTRIBUTION_BUFFER`` (30 h) of ``pr.date_added``,
+         activity is always collected — no attribution row is required yet.
+       - After that window, activity is collected only when the PR has at
+         least one valid ``PullRequestAttribution`` row (``is_valid=True``).
+
+    ``for_terminal_event`` marks a close/merge/reopen webhook: it skips the state
+    and verdict short-circuits (steps 1-2), leaving only the feature flag and the
+    buffer / attribution gate. Two distinct situations need it:
+
+    - Same delivery: the state stamp above means a close/merge event always sees
+      its own PR as terminal already (and a SUPERSEDED PR can still be genuinely
+      closed, which must record the closer).
+    - Later delivery: verdicts are claimed by the deferred emission task
+      *outside* the webhook flow, so a reopen — or a re-close during/after
+      judging — arrives after the claim. No intra-webhook processor reordering
+      can help that case, which is why this bypass exists instead.
+
+    The gates are meant to stop *post*-terminal accumulation, not the terminal
+    event itself.
     """
-    return features.has("organizations:pr-metrics-activity", organization) and has_seer_access(
-        organization
-    )
+    if not features.has("organizations:pr-metrics-activity", organization):
+        return False
+
+    if pr is not None:
+        if not for_terminal_event:
+            if pr.state == PullRequestLifecycleState.SUPERSEDED:
+                return False
+            verdict = (
+                PullRequestMetrics.objects.filter(pull_request=pr)
+                .values_list("verdict", flat=True)
+                .first()
+            )
+            if verdict is not None and verdict != PullRequestVerdict.WAITING_EVENT_COOLDOWN:
+                return False
+        if timezone.now() - pr.date_added <= _PR_ACTIVITY_ATTRIBUTION_BUFFER:
+            return True
+        return PullRequestAttribution.objects.filter(
+            pull_request=pr,
+            is_valid=True,
+        ).exists()
+
+    return True
 
 
 def iso_or_none(value: datetime | None) -> str | None:
@@ -46,6 +124,16 @@ DELEGATED_AGENT_BRANCH_PREFIXES: dict[str, str] = {
 DELEGATED_AGENT_AUTHOR_LOGINS: dict[str, str] = {
     "copilot-swe-agent[bot]": "github_copilot",
 }
+
+
+def org_has_coding_agent_for_provider(organization: Organization, provider_hint: str) -> bool:
+    """Return True if the org has at least one active integration for the given provider."""
+    integrations = integration_service.get_integrations(
+        organization_id=organization.id,
+        providers=[provider_hint],
+        org_integration_status=ObjectStatus.ACTIVE,
+    )
+    return len(integrations) > 0
 
 
 def _commit_shas_from_activity(pull_request: PullRequest) -> set[str]:
@@ -108,6 +196,28 @@ def _commit_shas_from_activity(pull_request: PullRequest) -> set[str]:
     return shas
 
 
+def load_activity_document(pull_request: PullRequest) -> ActivityDoc | None:
+    """The PR's reduced activity document, or None when it's on the legacy store.
+
+    The presence of the 1:1 ``PullRequestActivityLog`` row is the per-PR routing
+    signal every reader uses: a row → read the document; no row → read the legacy
+    ``PullRequestActivity`` rows. Mirrors the write-time routing, so a PR is read
+    from whichever store it was written to.
+
+    A row whose document was never folded — a read racing the first fold, or a
+    pre-fix orphan from a fold that failed after the row was created — carries the
+    model's ``{}`` default with no ``version``. That is not a document: treat it as
+    absent (return None) so readers fall back to the legacy store instead of
+    computing zeroed metrics from a phantom, empty document.
+    """
+    row = PullRequestActivityLog.objects.filter(pull_request=pull_request).first()
+    if row is None:
+        return None
+    if not (row.data and row.data.get("version")):
+        return None
+    return cast(ActivityDoc, row.data)
+
+
 def resolved_group_ids(pull_request: PullRequest) -> list[int]:
     """Group IDs this PR resolves, from the resolving GroupLink rows.
 
@@ -123,7 +233,11 @@ def resolved_group_ids(pull_request: PullRequest) -> list[int]:
         linked_id=pull_request.id,
     )
 
-    shas = _commit_shas_from_activity(pull_request)
+    doc = load_activity_document(pull_request)
+    if doc is not None:
+        shas = commit_shas_from_doc(doc, pull_request.head_commit_sha)
+    else:
+        shas = _commit_shas_from_activity(pull_request)
     if shas:
         commit_ids = Commit.objects.filter(
             repository_id=pull_request.repository_id,
@@ -138,3 +252,29 @@ def resolved_group_ids(pull_request: PullRequest) -> list[int]:
         combined = pr_filter
 
     return sorted(GroupLink.objects.filter(combined).values_list("group_id", flat=True).distinct())
+
+
+def seer_run_link_for_pull_request(pull_request: PullRequest) -> tuple[list[int], int | None]:
+    """Group id and run id for the Seer run that opened this PR, via the local
+    ``SeerRunPullRequest`` link.
+
+    That link is written by the on_completion_hook-driven ``seer.pr_created`` flow
+    (``process_autofix_updates`` -> ``link_seer_run_pull_requests``). It may not
+    exist yet at the "opened" webhook if that flow hasn't landed; the "closed"
+    re-check in ``handle_attribution`` covers that case.
+    """
+    link = (
+        SeerRunPullRequest.objects.select_related("seer_run__agent")
+        .filter(pull_request=pull_request)
+        .first()
+    )
+    if link is None:
+        return [], None
+
+    run_id = link.seer_run.seer_run_state_id
+    try:
+        group_id = link.seer_run.agent.group_id
+    except SeerAgentRun.DoesNotExist:
+        group_id = None
+
+    return ([group_id] if group_id is not None else []), run_id

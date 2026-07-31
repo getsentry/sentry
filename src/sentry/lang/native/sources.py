@@ -15,7 +15,7 @@ from django.conf import settings
 from django.urls import reverse
 from google.auth import impersonated_credentials
 from google.auth.transport.requests import Request
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
@@ -263,7 +263,7 @@ TOKEN_TTL_SECONDS = 3600
 
 def _get_cluster() -> RedisCluster:
     cluster_key = settings.SENTRY_DEBUG_FILES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+    return redis.redis_clusters.get(cluster_key)
 
 
 def _last_upload_key(project_id: int) -> str:
@@ -360,10 +360,11 @@ def get_scraping_config(project: Project) -> dict[str, Any]:
     if allow_scraping:
         allowed_origins = list(get_origins(project))
 
-        token = project.get_option("sentry:token")
-        if token:
-            token_header = project.get_option("sentry:token_header") or "X-Sentry-Token"
-            scraping_headers[token_header] = token
+        if "*" not in allowed_origins:
+            token = project.get_option("sentry:token")
+            if token:
+                token_header = project.get_option("sentry:token_header") or "X-Sentry-Token"
+                scraping_headers[token_header] = token
 
     return {
         "enabled": allow_scraping,

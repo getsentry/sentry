@@ -398,7 +398,7 @@ describe('formatUsageWithUnits', () => {
       formatUsageWithUnits(1000, DataCategory.ATTACHMENTS, {
         useUnitScaling: true,
       })
-    ).toBe('1 KB');
+    ).toBe('1 kB');
     expect(
       formatUsageWithUnits(MILLION, DataCategory.ATTACHMENTS, {
         useUnitScaling: true,
@@ -1002,7 +1002,7 @@ describe('isNewPayingCustomer', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_team',
-      isTrial: true,
+      trialPlan: 'am3_team',
       isFree: false,
     });
     expect(isNewPayingCustomer(subscription, organization)).toBe(false);
@@ -1398,27 +1398,6 @@ describe('productIsEnabled', () => {
       softCapType: 'ON_DEMAND',
     };
     expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(true);
-  });
-
-  it('returns true for subscriptions with hasSoftCap=true even when softCapType is null and no prepaid quota', () => {
-    subscription.hasSoftCap = true;
-    subscription.categories.monitorSeats = {
-      ...subscription.categories.monitorSeats!,
-      reserved: 0,
-      free: 0,
-      prepaid: 0,
-      softCapType: null,
-    };
-    expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(true);
-
-    subscription.categories.uptime = {
-      ...subscription.categories.uptime!,
-      reserved: 0,
-      free: 0,
-      prepaid: 0,
-      softCapType: null,
-    };
-    expect(productIsEnabled(subscription, DataCategory.UPTIME)).toBe(true);
   });
 });
 

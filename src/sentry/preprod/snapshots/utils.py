@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from sentry.preprod.models import PreprodArtifact, PreprodBuildConfiguration
 from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
@@ -15,7 +17,6 @@ def find_base_snapshot_artifact(
     app_id: str | None,
     artifact_type: str | None,
     build_configuration: PreprodBuildConfiguration | None,
-    allow_selective: bool = False,
 ) -> PreprodArtifact | None:
     qs = PreprodArtifact.objects.filter(
         commit_comparison__organization_id=organization_id,
@@ -27,8 +28,6 @@ def find_base_snapshot_artifact(
         artifact_type=artifact_type,
         build_configuration=build_configuration,
     )
-    if not allow_selective:
-        qs = qs.filter(preprodsnapshotmetrics__is_selective=False)
     return qs.order_by("-date_added").first()
 
 
@@ -64,30 +63,35 @@ def find_head_snapshot_artifacts_awaiting_base(
     )
 
 
-def _comparison_has_changes(
-    comparison: PreprodSnapshotComparison,
-    fail_on_added: bool = False,
-    fail_on_removed: bool = True,
-    fail_on_changed: bool = True,
-    fail_on_renamed: bool = False,
+@dataclass(frozen=True)
+class SnapshotChangeCriteria:
+    """Snapshot change categories relevant to a consumer."""
+
+    added: bool
+    removed: bool
+    changed: bool
+    renamed: bool
+
+
+def _comparison_matches_change_criteria(
+    comparison: PreprodSnapshotComparison, criteria: SnapshotChangeCriteria
 ) -> bool:
+    """Return whether a comparison contains a selected change category."""
     return (
-        (fail_on_changed and comparison.images_changed > 0)
-        or (fail_on_renamed and comparison.images_renamed > 0)
-        or (fail_on_added and comparison.images_added > 0)
-        or (fail_on_removed and comparison.images_removed > 0)
+        (criteria.changed and comparison.images_changed > 0)
+        or (criteria.renamed and comparison.images_renamed > 0)
+        or (criteria.added and comparison.images_added > 0)
+        or (criteria.removed and comparison.images_removed > 0)
     )
 
 
-def build_changes_map(
+def evaluate_snapshot_changes_by_artifact_id(
     artifacts: list[PreprodArtifact],
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     comparisons_map: dict[int, PreprodSnapshotComparison],
-    fail_on_added: bool = False,
-    fail_on_removed: bool = True,
-    fail_on_changed: bool = True,
-    fail_on_renamed: bool = False,
+    criteria: SnapshotChangeCriteria,
 ) -> dict[int, bool]:
+    """Return whether each successfully compared artifact matches the selected change criteria."""
     changes_map: dict[int, bool] = {}
     for artifact in artifacts:
         metrics = snapshot_metrics_map.get(artifact.id)
@@ -96,11 +100,5 @@ def build_changes_map(
         comparison = comparisons_map.get(metrics.id)
         if not comparison or comparison.state != PreprodSnapshotComparison.State.SUCCESS:
             continue
-        changes_map[artifact.id] = _comparison_has_changes(
-            comparison,
-            fail_on_added=fail_on_added,
-            fail_on_removed=fail_on_removed,
-            fail_on_changed=fail_on_changed,
-            fail_on_renamed=fail_on_renamed,
-        )
+        changes_map[artifact.id] = _comparison_matches_change_criteria(comparison, criteria)
     return changes_map

@@ -24,7 +24,7 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 type BufferEntry = {
   bucketIndex: number;
@@ -78,9 +78,9 @@ type BufferedTimeseriesGroup = {
 
 export function useStreamingTimeseriesResult(
   tableData: UseInfiniteLogsQueryResult,
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>,
+  timeseriesResult: SortedTimeSeries,
   timeseriesIngestDelay: bigint
-): ReturnType<typeof useSortedTimeSeries> {
+): SortedTimeSeries {
   const organization = useOrganization();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
@@ -326,7 +326,7 @@ function getSeriesGroupValue(series: TimeSeries): string {
 
 function createMergedDataFromBuffer(
   shouldUseStreamedData: boolean,
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>,
+  timeseriesResult: SortedTimeSeries,
   groupBuffers: Record<string, BufferedTimeseriesGroup>,
   timeseriesStartTimestamp: number | undefined,
   timeseriesIntervalDuration: number | null,

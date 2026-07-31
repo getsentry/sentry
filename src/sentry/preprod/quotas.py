@@ -46,12 +46,6 @@ DISTRIBUTION_ENABLED_QUERY_KEY = "sentry:preprod_distribution_enabled_query"
 
 
 def has_size_quota(organization: Organization, actor: User | AnonymousUser | None = None) -> bool:
-    if not features.has("organizations:preprod-enforce-size-quota", organization, actor=actor):
-        logger.info(
-            "has_size_quota",
-            extra={"organization_id": organization.id, "result": True, "reason": "not_enforced"},
-        )
-        return True
     result = quotas.backend.has_usage_quota(organization.id, DataCategory.SIZE_ANALYSIS)
     logger.info(
         "has_size_quota",

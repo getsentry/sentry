@@ -15,7 +15,6 @@ import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import {MonitoringProvidersSection} from 'getsentry/views/seerAutomation/components/monitoringProviders';
 import {SeerSettingsPageBanners} from 'getsentry/views/seerAutomation/components/seerSettingsPageBanners';
 
 const schema = z.object({
@@ -87,9 +86,6 @@ export default function SeerAutomationAdvancedSettings() {
             )}
           </AutoSaveForm>
         </FieldGroup>
-        {organization.features.includes('seer-infra-telemetry') && (
-          <MonitoringProvidersSection />
-        )}
       </Stack>
     </AnalyticsArea>
   );

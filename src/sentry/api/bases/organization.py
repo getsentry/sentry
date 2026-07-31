@@ -40,11 +40,13 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.seer.agent_token import is_agent_auth
 from sentry.types.cell import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import bind_organization_context, set_span_attribute
+from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 
 
 class NoProjects(Exception):
@@ -220,22 +222,6 @@ class OrganizationUserReportsPermission(OrganizationPermission):
     scope_map = {"GET": ["project:read", "project:write", "project:admin"]}
 
 
-class OrganizationPinnedSearchPermission(OrganizationPermission):
-    scope_map = {
-        "PUT": ["org:read", "org:write", "org:admin"],
-        "DELETE": ["org:read", "org:write", "org:admin"],
-    }
-
-
-class OrganizationSearchPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
-        "DELETE": ["org:read", "org:write", "org:admin"],
-    }
-
-
 class OrganizationDataExportPermission(OrganizationPermission):
     scope_map = {
         "GET": ["event:read", "event:write", "event:admin"],
@@ -327,7 +313,10 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         if organization_context is None:
             raise ResourceDoesNotExist
 
-        with sentry_sdk.start_span(op="check_object_permissions_on_organization"):
+        with start_span(
+            op="check_object_permissions_on_organization",
+            name="check_object_permissions_on_organization",
+        ):
             self.check_object_permissions(request, organization_context)
 
         bind_organization_context(organization_context.organization)
@@ -440,9 +429,11 @@ class OrganizationEndpoint(Endpoint):
             qs = qs.filter(id__in=ids)
         # No project ids or slugs === `all projects I am a member of`
 
-        with sentry_sdk.start_span(op="fetch_organization_projects") as span:
+        with start_span(
+            op="fetch_organization_projects", name="fetch_organization_projects"
+        ) as span:
             projects = list(qs)
-            span.set_data("Project Count", len(projects))
+            set_span_data(span, "Project Count", len(projects))
 
         filter_by_membership = not bool(ids) and not bool(slugs)
         filtered_projects = self._filter_projects_by_permissions(
@@ -467,10 +458,10 @@ class OrganizationEndpoint(Endpoint):
         force_global_perms: bool = False,
         include_all_accessible: bool = False,
     ) -> list[Project]:
-        with sentry_sdk.start_span(op="apply_project_permissions") as span:
-            span.set_data("Project Count", len(projects))
+        with start_span(op="apply_project_permissions", name="apply_project_permissions") as span:
+            set_span_data(span, "Project Count", len(projects))
             if force_global_perms:
-                span.set_tag("mode", "force_global_perms")
+                set_span_tag(span, "mode", "force_global_perms")
                 return projects
 
             # There is a special case for staff, where we want to fetch a single project (OrganizationStatsEndpointV2)
@@ -479,19 +470,19 @@ class OrganizationEndpoint(Endpoint):
             # mimics checking for active projects like has_project_access without further validation.
             # NOTE: We must check staff before superuser or else _admin will fail when both cookies are active
             if is_active_staff(request):
-                span.set_tag("mode", "staff_fetch_all")
+                set_span_tag(span, "mode", "staff_fetch_all")
                 proj_filter = lambda proj: proj.status == ObjectStatus.ACTIVE  # noqa: E731
             # Superuser should fetch all projects.
             # Also fetch all accessible projects if requesting $all
             elif is_active_superuser(request) or include_all_accessible:
-                span.set_tag("mode", "has_project_access")
+                set_span_tag(span, "mode", "has_project_access")
                 proj_filter = request.access.has_project_access
             # Check if explicitly requesting specific projects
             elif not filter_by_membership:
-                span.set_tag("mode", "has_project_access")
+                set_span_tag(span, "mode", "has_project_access")
                 proj_filter = request.access.has_project_access
             else:
-                span.set_tag("mode", "has_project_membership")
+                set_span_tag(span, "mode", "has_project_membership")
                 proj_filter = request.access.has_project_membership
 
             return [p for p in projects if proj_filter(p)]
@@ -763,7 +754,10 @@ class OrganizationEndpoint(Endpoint):
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
-        with sentry_sdk.start_span(op="check_object_permissions_on_organization"):
+        with start_span(
+            op="check_object_permissions_on_organization",
+            name="check_object_permissions_on_organization",
+        ):
             self.check_object_permissions(request, organization)
 
         bind_organization_context(organization)
@@ -819,8 +813,15 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             is_api_token_auth(request.auth) and request.access.has_scope("project:releases")
         )
 
+        agent_auth = request.auth if is_agent_auth(request.auth) else None
+        has_valid_agent_auth = (
+            agent_auth is not None and agent_auth.organization_id == organization.id
+        )
+
         if not (
-            has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)
+            has_valid_api_key
+            or has_valid_agent_auth
+            or (getattr(request, "user", None) and request.user.is_authenticated)
         ):
             return []
 
@@ -854,13 +855,14 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         via has_global_access.
 
         Results are cached for 60s per actor/org/release/effective-project-scope/mode.
+        Agent requests bypass the cache so every call rechecks live project membership.
         """
         actor_id = None
         has_perms = None
         key = None
         if request.user.is_authenticated:
             actor_id = "user:%s" % request.user.id
-        elif request.auth is not None:
+        elif request.auth is not None and not is_agent_auth(request.auth):
             actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:
             if project_ids:

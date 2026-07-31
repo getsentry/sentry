@@ -10,7 +10,7 @@ from django.utils import timezone
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 
-FEATURE_FLAG = "organizations:integrations-github-platform-detection"
+ENDPOINT_MODULE = "sentry.integrations.api.endpoints.organization_repository_platforms"
 
 
 class OrganizationRepositoryPlatformsGetTest(APITestCase):
@@ -40,9 +40,83 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             integration_id=self.integration.id,
         )
 
-    def test_feature_flag_required(self) -> None:
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_detects_framework_and_language(self, get_jwt: mock.MagicMock) -> None:
+        # manage.py is a pure existence rule for python-django — no content read needed.
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/repos/Test-Organization/foo/languages",
+            json={"Python": 50000},
+            status=200,
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/repos/Test-Organization/foo/git/trees/HEAD",
+            json={
+                "tree": [{"path": "manage.py", "type": "blob", "size": 100}],
+                "truncated": False,
+            },
+            status=200,
+        )
+
+        response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
+
+        platforms = {p["platform"]: p for p in response.data["platforms"]}
+        assert "python-django" in platforms
+        assert platforms["python-django"]["confidence"] == "high"
+        assert "python" in platforms
+        assert platforms["python"]["confidence"] == "medium"
+
+    @mock.patch(f"{ENDPOINT_MODULE}.sentry_sdk")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_empty_repo_returns_empty_list(
+        self, get_jwt: mock.MagicMock, mock_sentry_sdk: mock.MagicMock
+    ) -> None:
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/repos/Test-Organization/foo/languages",
+            json={"Python": 50000},
+            status=200,
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/repos/Test-Organization/foo/git/trees/HEAD",
+            json={"message": "Git Repository is empty."},
+            status=409,
+        )
+
+        response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
+
+        assert response.data == {"platforms": []}
+        assert mock_sentry_sdk.capture_exception.called
+        scope = mock_sentry_sdk.new_scope.return_value.__enter__.return_value
+        scope.set_tag.assert_any_call("scm_platform_detection", "empty_repo")
+        scope.set_tag.assert_any_call("repo_id", self.repo.id)
+        scope.set_tag.assert_any_call("repo_name", self.repo.name)
+
+    @mock.patch(f"{ENDPOINT_MODULE}.sentry_sdk")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_github_api_error_returns_502(
+        self, get_jwt: mock.MagicMock, mock_sentry_sdk: mock.MagicMock
+    ) -> None:
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/repos/Test-Organization/foo/languages",
+            json={"message": "Server Error"},
+            status=500,
+        )
+
         response = self.get_response(self.organization.slug, self.repo.id)
-        assert response.status_code == 404
+
+        assert response.status_code == 502
+        assert "Failed to detect" in response.data["detail"]
+        assert mock_sentry_sdk.capture_exception.called
+        scope = mock_sentry_sdk.new_scope.return_value.__enter__.return_value
+        scope.set_tag.assert_any_call("repo_id", self.repo.id)
+        scope.set_tag.assert_any_call("repo_name", self.repo.name)
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -50,23 +124,26 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
         responses.add(
             method=responses.GET,
             url="https://api.github.com/repos/Test-Organization/foo/languages",
-            json={"Python": 50000, "JavaScript": 30000},
+            json={"Python": 50000},
             status=200,
         )
-        # Root directory listing (no manifest files -> no framework detection)
+        # Recursive git tree with no manifest files -> language only, no framework detection
         responses.add(
             method=responses.GET,
-            url="https://api.github.com/repos/Test-Organization/foo/contents",
-            json=[],
+            url="https://api.github.com/repos/Test-Organization/foo/git/trees/HEAD",
+            json={
+                "sha": "abc",
+                "truncated": False,
+                "tree": [
+                    {"path": "src/app.py", "type": "blob", "size": 1234},
+                    {"path": "src", "type": "tree"},
+                ],
+            },
             status=200,
         )
 
-        with self.feature(FEATURE_FLAG):
-            response = self.get_success_response(
-                self.organization.slug, self.repo.id, status_code=200
-            )
+        response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
 
-        # Only the top language by bytes is returned
         assert response.data == {
             "platforms": [
                 {
@@ -88,11 +165,17 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             json={"Python": 50000},
             status=200,
         )
-        # Root directory listing with requirements.txt so framework detection can find it
+        # Recursive git tree containing requirements.txt so a content read fires
         responses.add(
             method=responses.GET,
-            url="https://api.github.com/repos/Test-Organization/foo/contents",
-            json=[{"name": "requirements.txt", "type": "file"}],
+            url="https://api.github.com/repos/Test-Organization/foo/git/trees/HEAD",
+            json={
+                "sha": "abc",
+                "truncated": False,
+                "tree": [
+                    {"path": "requirements.txt", "type": "blob", "size": 42},
+                ],
+            },
             status=200,
         )
 
@@ -104,10 +187,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             status=200,
         )
 
-        with self.feature(FEATURE_FLAG):
-            response = self.get_success_response(
-                self.organization.slug, self.repo.id, status_code=200
-            )
+        response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
 
         assert response.data == {
             "platforms": [
@@ -136,8 +216,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
         }
 
     def test_repo_not_found(self) -> None:
-        with self.feature(FEATURE_FLAG):
-            response = self.get_response(self.organization.slug, 99999)
+        response = self.get_response(self.organization.slug, 99999)
         assert response.status_code == 404
 
     def test_non_github_repo(self) -> None:
@@ -148,8 +227,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             external_id="456",
         )
 
-        with self.feature(FEATURE_FLAG):
-            response = self.get_response(self.organization.slug, repo.id)
+        response = self.get_response(self.organization.slug, repo.id)
         assert response.status_code == 400
         assert "only supported for GitHub" in response.data["detail"]
 
@@ -162,8 +240,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             integration_id=self.integration.id,
         )
 
-        with self.feature(FEATURE_FLAG):
-            response = self.get_response(self.organization.slug, repo.id)
+        response = self.get_response(self.organization.slug, repo.id)
         assert response.status_code == 400
         assert "only supported for GitHub" in response.data["detail"]
 
@@ -176,8 +253,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             integration_id=None,
         )
 
-        with self.feature(FEATURE_FLAG):
-            response = self.get_response(self.organization.slug, repo.id)
+        response = self.get_response(self.organization.slug, repo.id)
         assert response.status_code == 400
 
     def test_other_orgs_repo_not_accessible(self) -> None:
@@ -190,21 +266,5 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             integration_id=self.integration.id,
         )
 
-        with self.feature(FEATURE_FLAG):
-            response = self.get_response(self.organization.slug, other_repo.id)
+        response = self.get_response(self.organization.slug, other_repo.id)
         assert response.status_code == 404
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
-    @responses.activate
-    def test_github_api_error_returns_502(self, get_jwt: mock.MagicMock) -> None:
-        responses.add(
-            method=responses.GET,
-            url="https://api.github.com/repos/Test-Organization/foo/languages",
-            json={"message": "Server Error"},
-            status=500,
-        )
-
-        with self.feature(FEATURE_FLAG):
-            response = self.get_response(self.organization.slug, self.repo.id)
-        assert response.status_code == 502
-        assert "Failed to detect" in response.data["detail"]

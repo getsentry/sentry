@@ -11,9 +11,10 @@ import type {
 } from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+import {emptyStringValue} from 'sentry/utils/discover/emptyFieldValues';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   AGGREGATIONS,
   stripEquationPrefix,
@@ -147,7 +148,8 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
   {} as Record<AggregationKey, Aggregation>
 );
 
-const INTERNAL_ERROR_COUNT_FIELD = 'count_if(span.status,equals,internal_error)';
+const INTERNAL_ERROR_COUNT_FIELD =
+  'count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)';
 
 function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
   const {pageFilters, widgetQuery} = props;
@@ -516,7 +518,7 @@ function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardF
 
     const baseConditions = widget.queries[0]?.conditions ?? '';
     const errorQuery = new MutableSearch(baseConditions);
-    errorQuery.addStringFilter('span.status:internal_error');
+    errorQuery.addStringFilter('span.status:[internal_error,error]');
     const widgetWithErrorFilter: Widget = {
       ...widget,
       queries: widget.queries.map(q => ({

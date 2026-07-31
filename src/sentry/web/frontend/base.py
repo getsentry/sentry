@@ -351,6 +351,18 @@ class OrganizationMixin:
                 url_prefix = generate_organization_url(request.subdomain)
                 url = absolute_uri(url, url_prefix=url_prefix)
         elif not features.has("organizations:create"):
+            session = getattr(request, "session", None)
+            if session and (org_slug := session.get("activeorg")):
+                active_organization = determine_active_organization(request, org_slug)
+                if active_organization and active_organization.member:
+                    url = reverse(
+                        "sentry-organization-issue-list",
+                        args=[active_organization.organization.slug],
+                    )
+                    if is_using_customer_domain(request):
+                        url = absolute_uri(url, url_prefix=options.get("system.url-prefix"))
+                    return HttpResponseRedirect(url)
+                session.pop("activeorg", None)
             return self.respond("sentry/no-organization-access.html", status=403)
         else:
             url = reverse("sentry-organization-create")
@@ -428,7 +440,12 @@ class BaseView(View, OrganizationMixin):
 
         """
         organization_slug = kwargs.get("organization_slug", None)
-        if request and is_using_customer_domain(request) and not subdomain_is_locality(request):
+        if (
+            request
+            and is_using_customer_domain(request)
+            and not subdomain_is_locality(request)
+            and organization_slug is None
+        ):
             organization_slug = request.subdomain
         self.active_organization = determine_active_organization(request, organization_slug)
 

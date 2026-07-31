@@ -381,9 +381,9 @@ function OrganizationMembersList() {
             onChange={handleQueryChange}
           />
           <Container flex={1}>
-            {({className}) => (
+            {containerProps => (
               <SearchBar
-                className={className}
+                {...containerProps}
                 placeholder={t('Search Members')}
                 query={searchQuery}
                 onSearch={handleQueryChange}

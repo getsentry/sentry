@@ -10,54 +10,37 @@ than collapsed into a single field.
 from __future__ import annotations
 
 import logging
-import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from django.db.models import Q
+from django.db import router, transaction
 from pydantic import BaseModel
 
 from sentry import features
 from sentry.constants import ObjectStatus
-from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
+    ResolvedPullRequest,
+    parse_pull_request_url,
 )
-from sentry.models.repository import Repository
 
 logger = logging.getLogger(__name__)
 
-# SCM providers that can legitimately back a Repository. Seer normalizes its
-# provider to one of these (lowercased, no ``integrations:`` prefix); anything
-# else in the event is a value we don't understand and should be fixed upstream.
-_KNOWN_SCM_PROVIDERS = frozenset(
-    {
-        IntegrationProviderSlug.GITHUB,
-        IntegrationProviderSlug.GITHUB_ENTERPRISE,
-        IntegrationProviderSlug.GITLAB,
-        IntegrationProviderSlug.BITBUCKET,
-        IntegrationProviderSlug.BITBUCKET_SERVER,
-        IntegrationProviderSlug.AZURE_DEVOPS,
-        IntegrationProviderSlug.PERFORCE,
-    }
-)
 
-# Precedence for picking a PR's primary attribution when more than one valid
-# signal is present (highest first): direct agent-authored signals rank above
-# weaker heuristics like a bare issue reference.
-SIGNAL_TYPE_CONFIDENCE: dict[str, int] = {
-    PullRequestAttributionSignalType.SENTRY_APP: 100,
-    PullRequestAttributionSignalType.SEER_DELEGATED_CURSOR: 80,
-    PullRequestAttributionSignalType.SEER_DELEGATED_GITHUB_COPILOT: 80,
-    PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE: 80,
-    PullRequestAttributionSignalType.SEER_DELEGATED_UNKNOWN: 70,
-    PullRequestAttributionSignalType.MCP: 50,
-    PullRequestAttributionSignalType.UNKNOWN: 0,
-}
+class SentryAppSignalDetails(BaseModel):
+    """Typed signal_details for SENTRY_APP attribution signals.
+
+    Populated by both the GitHub webhook path and the Seer pr_created event.
+    Fields that are unavailable at a given source are left at their defaults.
+    """
+
+    pr_url: str
+    group_ids: list[int] = []
+    run_id: int | None = None
 
 
 class DelegatedAgentSignalDetails(BaseModel):
@@ -66,6 +49,7 @@ class DelegatedAgentSignalDetails(BaseModel):
     agent_id: str | None = None
     pr_url: str
     run_id: int | None = None
+    group_ids: list[int] = []
 
 
 # Signal types that use DelegatedAgentSignalDetails for their signal_details.
@@ -86,6 +70,41 @@ JUDGE_ELIGIBLE_SIGNAL_TYPES = DELEGATED_SIGNAL_TYPES | frozenset(
 )
 
 
+def is_seer_attribution(attribution: PullRequestAttribution) -> bool:
+    return (
+        attribution.source == PullRequestAttributionSource.SEER_DATA
+        or attribution.signal_type in DELEGATED_SIGNAL_TYPES
+    )
+
+
+def _merge_signal_details(
+    existing: Mapping[str, Any] | None, incoming: Mapping[str, Any] | None
+) -> dict[str, Any] | None:
+    """Combine two ``signal_details`` payloads for the same attribution row.
+
+    Schema-agnostic, since ``signal_details`` shapes differ by signal type: list
+    values are unioned (e.g. ``group_ids``), dict values are merged with the
+    incoming side winning on key conflicts (e.g. MCP's group_id -> client_family
+    map), and every other value keeps the incoming value when truthy, else falls
+    back to the existing one.
+    """
+    if existing is None:
+        return dict(incoming) if incoming is not None else None
+    if incoming is None:
+        return dict(existing)
+
+    merged = dict(existing)
+    for key, new_value in incoming.items():
+        old_value = merged.get(key)
+        if isinstance(old_value, list) and isinstance(new_value, list):
+            merged[key] = sorted({*old_value, *new_value})
+        elif isinstance(old_value, Mapping) and isinstance(new_value, Mapping):
+            merged[key] = {**old_value, **new_value}
+        elif new_value:
+            merged[key] = new_value
+    return merged
+
+
 def record_attribution_signal(
     *,
     pull_request: PullRequest,
@@ -96,43 +115,58 @@ def record_attribution_signal(
     """Idempotently record one detected attribution signal for a PR.
 
     Keyed on ``(pull_request, signal_type, source)`` — matching the model's
-    unique constraint — so webhook/event redelivery updates the existing row's
-    ``signal_details`` rather than inserting a duplicate.
+    unique constraint. A still-valid existing row is merged with the incoming
+    details via ``_merge_signal_details`` rather than replaced outright, so two
+    independent producers of the same signal/source (e.g. Seer's
+    ``pr_created`` callback and the live-RPC autofix lookup) accumulate onto the
+    same row instead of clobbering each other on redelivery/race. Reading the
+    existing row with ``select_for_update`` inside the transaction is what
+    makes that merge race-safe: it blocks a concurrent writer until this one
+    commits, so the concurrent writer's merge starts from an up-to-date
+    snapshot instead of a stale one it would otherwise clobber. A previously
+    invalidated row is replaced outright and revived, since the source is
+    reporting it as present again.
     """
     details = dict(signal_details) if signal_details is not None else None
 
-    attribution, created = PullRequestAttribution.objects.get_or_create(
-        pull_request=pull_request,
-        signal_type=signal_type,
-        source=source,
-        defaults={"signal_details": details, "is_valid": True},
-    )
+    with transaction.atomic(using=router.db_for_write(PullRequestAttribution)):
+        attribution, created = PullRequestAttribution.objects.select_for_update().get_or_create(
+            pull_request=pull_request,
+            signal_type=signal_type,
+            source=source,
+            defaults={"signal_details": details, "is_valid": True},
+        )
 
-    # Refresh details on redelivery — and revive a previously-invalidated signal,
-    # since the source is reporting it as present again.
-    if not created and (attribution.signal_details != details or not attribution.is_valid):
-        attribution.signal_details = details
-        attribution.is_valid = True
-        attribution.save(update_fields=["signal_details", "is_valid", "date_updated"])
+        if created:
+            return attribution
 
-    return attribution
+        new_details = (
+            details
+            if not attribution.is_valid
+            else _merge_signal_details(attribution.signal_details, details)
+        )
+        if new_details != attribution.signal_details or not attribution.is_valid:
+            attribution.signal_details = new_details
+            attribution.is_valid = True
+            attribution.save(update_fields=["signal_details", "is_valid", "date_updated"])
+
+        return attribution
 
 
-def recompute_pull_request_attribution(pull_request: PullRequest) -> str | None:
-    """Return the highest-confidence valid attribution signal for a PR.
+def _log_unresolved_reported_pull_request(
+    resolved: ResolvedPullRequest, log_context: Mapping[str, Any]
+) -> None:
+    """Emit the attribution warnings for a reported PR that didn't resolve to a unique repo."""
+    # A present-but-unrecognized provider means the source sent something we don't map —
+    # warn so it can be corrected upstream.
+    if resolved.provider_unmappable:
+        logger.warning("pr_metrics.attribution.unrecognized_provider", extra=log_context)
 
-    Returns the winning ``signal_type``, or ``None`` when the PR has no valid
-    signals.
-    """
-    valid_signal_types = PullRequestAttribution.objects.filter(
-        pull_request=pull_request, is_valid=True
-    ).values_list("signal_type", flat=True)
-
-    return max(
-        valid_signal_types,
-        key=lambda signal_type: SIGNAL_TYPE_CONFIDENCE.get(signal_type, -1),
-        default=None,
-    )
+    if resolved.pull_request is None:
+        if resolved.repo_resolution == "ambiguous":
+            logger.warning("pr_metrics.attribution.repo_ambiguous", extra=log_context)
+        else:
+            logger.warning("pr_metrics.attribution.repo_not_found", extra=log_context)
 
 
 def _attribute_pull_request(
@@ -146,48 +180,35 @@ def _attribute_pull_request(
     signal_details: Mapping[str, Any] | None,
     log_context: Mapping[str, Any],
 ) -> None:
-    """Resolve the org-scoped ``Repository`` for a reported PR, find-or-create the
-    canonical ``PullRequest`` row (keyed on PR number), and idempotently record one
-    attribution signal. Shared by the Seer-native and delegated-agent paths.
+    """Resolve a single reported PR to its canonical ``PullRequest`` and idempotently
+    record one attribution signal. Shared by the Seer-native and delegated-agent paths.
 
-    A find-or-create here may run before the SCM ``opened`` webhook arrives, so the
-    ``PullRequest`` row can be a shell (no title/body); the GitHub webhook fills
-    those in later. We never overwrite them from this path.
-
-    Failures are logged and swallowed rather than raised, so a batch caller's
-    remaining PRs are unaffected.
+    Resolution (repo lookup + find-or-create) lives on ``PullRequest.objects`` so every
+    PR-reporting path converges on the same row; here we add only the attribution write.
+    Failures are logged and swallowed rather than raised, so a batch caller's remaining
+    PRs are unaffected.
     """
-    normalized_provider = _normalize_provider(provider)
-    # A present-but-unrecognized provider means the source sent something we don't
-    # map — warn so it can be corrected upstream, but still attempt to resolve.
-    if normalized_provider is not None and normalized_provider not in _KNOWN_SCM_PROVIDERS:
-        logger.warning("pr_metrics.attribution.unrecognized_provider", extra=log_context)
+    try:
+        resolved = PullRequest.objects.get_or_create_from_reference(
+            organization_id=organization_id,
+            repo_name=repo_name,
+            provider=provider,
+            key=pr_number,
+        )
+    except Exception:
+        logger.exception("pr_metrics.attribution.record_failed", extra=log_context)
+        return
 
-    repository, resolution = _resolve_repository(
-        organization_id=organization_id,
-        repo_name=repo_name,
-        normalized_provider=normalized_provider,
-    )
-    if repository is None:
-        if resolution == "ambiguous":
-            logger.warning("pr_metrics.attribution.repo_ambiguous", extra=log_context)
-        else:
-            logger.warning("pr_metrics.attribution.repo_not_found", extra=log_context)
+    _log_unresolved_reported_pull_request(resolved, log_context)
+    if resolved.pull_request is None:
         return
 
     # The repo is resolved now, so its id sharpens every log from here on.
-    log_context = {**log_context, "repository_id": repository.id}
+    log_context = {**log_context, "repository_id": resolved.pull_request.repository_id}
 
-    # get_or_create is race-safe via the unique constraints — Django retries the
-    # get on IntegrityError.
     try:
-        pull_request, _ = PullRequest.objects.get_or_create(
-            organization_id=organization_id,
-            repository_id=repository.id,
-            key=str(pr_number),
-        )
         record_attribution_signal(
-            pull_request=pull_request,
+            pull_request=resolved.pull_request,
             signal_type=signal_type,
             source=source,
             signal_details=signal_details,
@@ -198,7 +219,7 @@ def _attribute_pull_request(
 
     logger.info(
         "pr_metrics.attribution.recorded",
-        extra={**log_context, "pull_request_id": pull_request.id},
+        extra={**log_context, "pull_request_id": resolved.pull_request.id},
     )
 
 
@@ -244,44 +265,13 @@ def attribute_seer_created_pull_requests(
             pr_number=pr_number,
             signal_type=PullRequestAttributionSignalType.SENTRY_APP,
             source=PullRequestAttributionSource.SEER_DATA,
-            signal_details={"run_id": run_id, "group_id": group_id, "pr_url": pr_url},
+            signal_details=SentryAppSignalDetails(
+                pr_url=pr_url or "",
+                group_ids=[int(group_id)] if group_id is not None else [],
+                run_id=int(run_id) if run_id is not None else None,
+            ).dict(),
             log_context=log_context,
         )
-
-
-def _resolve_repository(
-    *, organization_id: int, repo_name: str, normalized_provider: str | None
-) -> tuple[Repository | None, str]:
-    """Resolve the org-scoped active repository for a Seer-reported PR.
-
-    Sentry stores the ``integrations:``-prefixed provider while Seer sends the
-    bare form, so we match both shapes — the same mapping
-    ``filter_repo_by_provider`` uses.
-
-    Resolves only when exactly one repo matches. A known provider disambiguates
-    same-named repos across providers; an unknown provider (Seer couldn't match
-    the repo) refuses to guess between them rather than risk mis-attribution.
-
-    Returns ``(repository, reason)`` where reason is ``"resolved"``,
-    ``"not_found"`` (zero matches), or ``"ambiguous"`` (more than one).
-    """
-    candidates = Repository.objects.filter(
-        organization_id=organization_id,
-        name=repo_name,
-        status=ObjectStatus.ACTIVE,
-    )
-
-    if normalized_provider is not None:
-        candidates = candidates.filter(
-            Q(provider=normalized_provider) | Q(provider=f"integrations:{normalized_provider}")
-        )
-
-    # Fetch up to 2 to detect ambiguity — the same name can exist under
-    # multiple providers (e.g. github & gitlab) within one org.
-    matches = list(candidates.order_by("id")[:2])
-    if len(matches) == 1:
-        return matches[0], "resolved"
-    return None, "ambiguous" if matches else "not_found"
 
 
 def attribute_delegated_agent_pull_request(
@@ -293,6 +283,7 @@ def attribute_delegated_agent_pull_request(
     pr_url: str,
     agent_id: str | None = None,
     run_id: int | None = None,
+    group_ids: Sequence[int] | None = None,
 ) -> None:
     """Attribute a PR opened by a Seer-delegated coding agent (Cursor/Copilot/Claude).
 
@@ -301,6 +292,11 @@ def attribute_delegated_agent_pull_request(
     ``seer.pr_created`` event, so attribution is recorded here at the detection
     point. Callers pass the ``SEER_DELEGATED_*`` signal type for the authoring
     agent; unlike Seer-native PRs we never attribute these to ``SENTRY_APP``.
+
+    ``run_id``/``group_ids`` are optional and left sparse (``None``/``[]``) when
+    a caller can't resolve them locally; ``group_ids`` is the issue(s) the
+    delegated run was launched against, mirroring the field already on
+    ``SentryAppSignalDetails``.
 
     Gated behind ``organizations:pr-metrics-attribution``. Best-effort: callers run
     this inside the polling/webhook flow, so any failure is logged and swallowed
@@ -314,7 +310,8 @@ def attribute_delegated_agent_pull_request(
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
 
-    pr_number = _parse_pr_number(pr_url)
+    parsed_pr = parse_pull_request_url(pr_url)
+    pr_number = parsed_pr.number if parsed_pr else None
 
     log_context = {
         "organization_id": organization_id,
@@ -341,34 +338,7 @@ def attribute_delegated_agent_pull_request(
             agent_id=agent_id,
             pr_url=pr_url,
             run_id=run_id,
+            group_ids=list(group_ids) if group_ids else [],
         ).dict(),
         log_context=log_context,
     )
-
-
-def _parse_pr_number(pr_url: str) -> int | None:
-    """Extract the PR/MR number from a pull-request URL, or None if there isn't one.
-
-    Matches the number after a ``/pull/`` (GitHub) or ``/merge_requests/`` (GitLab)
-    segment specifically — a delegated agent can report a branch/``tree`` URL as its
-    result, and we must not mistake a trailing branch-name segment for a PR number.
-    """
-    match = re.search(r"/(?:pull|pulls|merge_requests)/(\d+)", pr_url)
-    return int(match.group(1)) if match else None
-
-
-def _normalize_provider(provider: str | None) -> str | None:
-    """Normalize Seer's provider to Sentry's unprefixed form, or None if unusable.
-
-    Returns None for the ``"unknown"`` sentinel (Seer couldn't resolve the repo)
-    and for empty values — neither can scope a provider filter. Lowercases before
-    the sentinel check so any casing (e.g. ``UNKNOWN``) is treated as unknown.
-    """
-    if not provider:
-        return None
-    provider = provider.lower()
-    if provider.startswith("integrations:"):
-        provider = provider.split(":", 1)[1]
-    if provider == "unknown":
-        return None
-    return provider

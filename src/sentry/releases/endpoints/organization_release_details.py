@@ -43,6 +43,11 @@ from sentry.apidocs.response_types import (
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
+from sentry.issues.action_log import (
+    action_context_scope,
+    resolve_action_actor,
+    resolve_action_source,
+)
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus
@@ -307,7 +312,7 @@ class OrganizationReleaseDetailsEndpoint(
     ReleaseAnalyticsMixin,
     OrganizationReleaseDetailsPaginationMixin,
 ):
-    owner = ApiOwner.UNOWNED
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
@@ -503,18 +508,21 @@ class OrganizationReleaseDetailsEndpoint(
             projects = release.projects.all()
         except Release.DoesNotExist:
             scope.set_tag("failure_reason", "Release.DoesNotExist")
+            scope.set_attribute("failure_reason", "Release.DoesNotExist")
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(
             request, organization, release, require_all_projects=True
         ):
             scope.set_tag("failure_reason", "no_release_permission")
+            scope.set_attribute("failure_reason", "no_release_permission")
             raise ResourceDoesNotExist
 
         serializer = OrganizationReleaseSerializer(data=request.data)
 
         if not serializer.is_valid():
             scope.set_tag("failure_reason", "serializer_error")
+            scope.set_attribute("failure_reason", "serializer_error")
             return Response(as_validation_errors(serializer), status=400)
 
         result = serializer.validated_data
@@ -538,7 +546,10 @@ class OrganizationReleaseDetailsEndpoint(
         if commit_list:
             # TODO(dcramer): handle errors with release payloads
             try:
-                release.set_commits(commit_list)
+                with action_context_scope(
+                    resolve_action_source(request), resolve_action_actor(request)
+                ):
+                    release.set_commits(commit_list)
                 self.track_set_commits_local(
                     request,
                     organization_id=organization.id,
@@ -569,6 +580,7 @@ class OrganizationReleaseDetailsEndpoint(
         if refs:
             if not request.user.is_authenticated and not request.auth:
                 scope.set_tag("failure_reason", "user_not_authenticated")
+                scope.set_attribute("failure_reason", "user_not_authenticated")
                 return Response(
                     {"refs": ["You must use an authenticated API token to fetch refs"]},
                     status=400,
@@ -578,6 +590,7 @@ class OrganizationReleaseDetailsEndpoint(
                 release.set_refs(refs, request.user.id, fetch=fetch_commits)
             except InvalidRepository as e:
                 scope.set_tag("failure_reason", "InvalidRepository")
+                scope.set_attribute("failure_reason", "InvalidRepository")
                 return Response({"refs": [str(e)]}, status=400)
 
         if not was_released and release.date_released:

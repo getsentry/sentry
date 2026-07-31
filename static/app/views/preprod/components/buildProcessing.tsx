@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconSettings} from 'sentry/icons';
@@ -13,8 +13,7 @@ interface BuildProcessingProps {
 
 export function BuildProcessing({title, message, children}: BuildProcessingProps) {
   return (
-    <Flex
-      direction="column"
+    <Stack
       align="center"
       justify="center"
       gap="xl"
@@ -22,12 +21,12 @@ export function BuildProcessing({title, message, children}: BuildProcessingProps
       minHeight="60vh"
       maxWidth="500px"
     >
-      <Flex direction="column" align="center" gap="md">
+      <Stack align="center" gap="md">
         <Heading as="h2" align="center">
           {title}
         </Heading>
         <Text align="center">{message}</Text>
-      </Flex>
+      </Stack>
       <Flex align="center" justify="center">
         <RotatingIcon>
           <IconSettings size="2xl" />
@@ -37,7 +36,7 @@ export function BuildProcessing({title, message, children}: BuildProcessingProps
         </RotatingIconReverse>
       </Flex>
       {children}
-    </Flex>
+    </Stack>
   );
 }
 

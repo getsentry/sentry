@@ -5,12 +5,15 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.http import QueryDict
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 
 from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
+from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.helpers.group_index import (
     get_group_list,
+    get_search_referrer,
     update_groups,
     validate_search_filter_permissions,
 )
@@ -28,8 +31,11 @@ from sentry.api.helpers.group_index.update import (
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.issue_search import parse_search_query
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -43,12 +49,14 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.release import ReleaseStatus
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
+from sentry.workflow_engine.models import Detector
 
 pytestmark = [requires_snuba]
 
@@ -118,6 +126,29 @@ def _wrap_request(http_request: Any, data: dict[str, Any] | None = None) -> Requ
     if data is not None:
         setattr(drf_request, "_full_data", data)
     return drf_request
+
+
+class GetSearchReferrerTest(TestCase):
+    def _request(self, authenticator: Any) -> Request:
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict()
+        request = _wrap_request(http_request)
+        # DRF exposes `successful_authenticator` as a read-only property backed by
+        # `_authenticator`, which it sets during authentication; set it directly here.
+        setattr(request, "_authenticator", authenticator)
+        return request
+
+    def test_session_auth_uses_ui_referrer(self) -> None:
+        request = self._request(SessionAuthentication())
+        assert get_search_referrer(request) == Referrer.SEARCH_GROUP_INDEX
+
+    def test_token_auth_uses_api_referrer(self) -> None:
+        request = self._request(UserAuthTokenAuthentication())
+        assert get_search_referrer(request) == Referrer.SEARCH_GROUP_INDEX_API
+
+    def test_missing_authenticator_uses_api_referrer(self) -> None:
+        request = self._request(None)
+        assert get_search_referrer(request) == Referrer.SEARCH_GROUP_INDEX_API
 
 
 class UpdateGroupsTest(TestCase):
@@ -317,6 +348,96 @@ class UpdateGroupsTest(TestCase):
         assert send_robust.called
         assert send_robust.call_args.kwargs["resolution_type"] == "in_commit"
         assert send_robust.call_args.kwargs["commit_id"] == commit.id
+
+    @patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
+    def test_resolving_dispatches_workflow_activity(
+        self, mock_process_workflow_activity: Mock
+    ) -> None:
+        # Resolving now routes through create_group_activity, which invokes the workflow
+        # engine's generic activity handler and dispatches process_workflow_activity.
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        detector = Detector.objects.get(project=self.project, type=ErrorGroupType.slug)
+
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data={"status": "resolved", "substatus": None})
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
+
+        activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED.value)
+        mock_process_workflow_activity.delay.assert_called_once_with(
+            activity_id=activity.id,
+            group_id=group.id,
+            detector_id=detector.id,
+        )
+        # A plain resolve has no GroupResolution, so no ident is stamped.
+        assert activity.ident is None
+
+    @patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
+    def test_resolving_in_release_dispatches_workflow_activity(
+        self, mock_process_workflow_activity: Mock
+    ) -> None:
+        release = self.create_release(project=self.project, version="test@1.0.0")
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        detector = Detector.objects.get(project=self.project, type=ErrorGroupType.slug)
+
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(
+            http_request,
+            data={"status": "resolved", "statusDetails": {"inRelease": release.version}},
+        )
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
+
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
+        mock_process_workflow_activity.delay.assert_called_once_with(
+            activity_id=activity.id,
+            group_id=group.id,
+            detector_id=detector.id,
+        )
+        # The release resolution stamps the GroupResolution id onto the activity's ident.
+        resolution = group.groupresolution_set.get()
+        assert activity.ident == str(resolution.id)
+
+    @patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
+    def test_resolving_in_commit_dispatches_workflow_activity(
+        self, mock_process_workflow_activity: Mock
+    ) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        repo = self.create_repo(project=group.project)
+        commit = self.create_commit(project=group.project, repo=repo)
+        detector = Detector.objects.get(project=self.project, type=ErrorGroupType.slug)
+
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(
+            http_request,
+            data={
+                "status": "resolved",
+                "statusDetails": {"inCommit": {"commit": commit.key, "repository": repo.name}},
+            },
+        )
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
+
+        activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
+        mock_process_workflow_activity.delay.assert_called_once_with(
+            activity_id=activity.id,
+            group_id=group.id,
+            detector_id=detector.id,
+        )
 
     @patch("sentry.signals.issue_ignored.send_robust")
     @patch("sentry.issues.status_change.post_save")
@@ -611,6 +732,53 @@ class UpdateGroupsTest(TestCase):
         assert group.status == GroupStatus.RESOLVED
         resolution = group.groupresolution_set.get()
         assert resolution.release == open_release
+
+    def test_resolve_in_next_release_activity_from_action_log(self) -> None:
+        self.create_release(project=self.project, version="test@1.0.0.0")
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        GroupActionLogEntry.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            type=GroupActionType.RESOLVE.value,
+            actor_type=GroupActorType.USER.value,
+            actor_id=self.user.id,
+            source="web",
+            data={},
+        )
+
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data={"status": "resolvedInNextRelease"})
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        with self.feature("projects:issue-action-log-activity"):
+            response = update_groups(request, group_list)
+
+        activity = response.data["activity"]
+        assert [entry["type"] for entry in activity] == ["set_resolved", "first_seen"]
+        assert activity[-1]["id"] == "0"
+
+    def test_resolve_in_next_release_no_activity_without_action_log(self) -> None:
+        self.create_release(project=self.project, version="test@1.0.0.0")
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data={"status": "resolvedInNextRelease"})
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        with (
+            self.feature("projects:issue-action-log-activity"),
+            self.assertLogs("sentry.api.helpers.group_index.update", level="INFO") as logs,
+        ):
+            response = update_groups(request, group_list)
+
+        assert any(
+            record.message == "group_index.groupactionlogentry.not_found" for record in logs.records
+        )
+        assert response is not None
+        assert "activity" not in response.data
+        assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 0
 
 
 class MergeGroupsTest(TestCase):

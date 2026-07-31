@@ -3327,7 +3327,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert meta["dataset"] == "spans"
 
-    def test_avg_if(self) -> None:
+    def test_avg_if_old_syntax(self) -> None:
         self.store_spans(
             [
                 self.create_span(
@@ -3365,6 +3365,46 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == 1
         assert data[0]["avg_if(span.duration, span.op, equals, queue.process)"] == 1500.0
         assert data[0]["avg_if(span.duration, span.op, equals, queue.publish)"] == 3000.0
+        assert meta["dataset"] == "spans"
+
+    def test_avg_if_new_syntax(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.process"}},
+                    duration=1000,
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.process"}},
+                    duration=2000,
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"op": "queue.publish", "sentry_tags": {"op": "queue.publish"}},
+                    duration=3000,
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg_if(`span.op:queue.process`, span.duration)",
+                    "avg_if(`span.op:queue.publish`, span.duration)",
+                ],
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["avg_if(`span.op:queue.process`, span.duration)"] == 1500.0
+        assert data[0]["avg_if(`span.op:queue.publish`, span.duration)"] == 3000.0
         assert meta["dataset"] == "spans"
 
     def test_avg_compare(self) -> None:
@@ -3444,6 +3484,35 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert response.status_code == 400, response.content
         assert "Invalid parameter snequals" in response.data["detail"]
+
+    def test_any_if_combinator(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo_test", "tags": {"condition": "bad"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "test_foo", "tags": {"condition": "good"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ]
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "any_if(`span.description:*test`, condition)",
+                ],
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"][0]
+        assert data["any_if(`span.description:*test`, condition)"] == "bad"
 
     def test_ttif_ttfd_contribution_rate(self) -> None:
         spans = []
@@ -5873,6 +5942,44 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
 
+    def test_semver_package_multiple_values(self) -> None:
+        release_1 = self.create_release(version="test1@1.2.1")
+        release_2 = self.create_release(version="test2@1.2.1")
+        release_3 = self.create_release(version="test3@1.2.1")
+
+        span1 = self.create_span(
+            {"sentry_tags": {"release": release_1.version}}, start_ts=self.ten_mins_ago
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"release": release_2.version}}, start_ts=self.ten_mins_ago
+        )
+        span3 = self.create_span(
+            {"sentry_tags": {"release": release_3.version}}, start_ts=self.ten_mins_ago
+        )
+        self.store_spans([span1, span2, span3])
+
+        request = {
+            "field": ["release"],
+            "project": self.project.id,
+            "dataset": "spans",
+            "orderby": "release",
+        }
+
+        response = self.do_request({**request, "query": "release.package:[test1, test2]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test1@1.2.1",
+            },
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test2@1.2.1",
+            },
+        ]
+
     def test_semver_build(self) -> None:
         release_1 = self.create_release(version="test@1.2.3+121")
         release_2 = self.create_release(version="test@1.2.3+122")
@@ -6166,6 +6273,80 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["fields"]["failure_count()"] == "integer"
         assert meta["units"]["failure_count()"] is None
 
+    def test_failure_count_if(self) -> None:
+        trace_statuses = ["ok", "cancelled", "unknown", "failure"]
+
+        spans = [
+            self.create_span(
+                {
+                    "sentry_tags": {"status": status},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+            )
+            for status in trace_statuses
+        ]
+        # non-transaction span with failure status — should NOT be counted
+        spans.append(
+            self.create_span(
+                {
+                    "sentry_tags": {"status": "failure"},
+                    "is_segment": False,
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+
+        self.store_spans(spans)
+
+        response = self.do_request(
+            {
+                "field": ["failure_count_if(is_transaction, equals, true)"],
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["failure_count_if(is_transaction, equals, true)"] == 1
+        assert meta["dataset"] == "spans"
+        assert meta["fields"] == {
+            "failure_count_if(is_transaction, equals, true)": "integer",
+        }
+        assert meta["units"] == {
+            "failure_count_if(is_transaction, equals, true)": None,
+        }
+
+    def test_failure_count_if_no_matches(self) -> None:
+        # Only non-transaction spans — failure_count_if(is_transaction, equals, true) should return 0
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "sentry_tags": {"status": "failure"},
+                        "is_segment": False,
+                    },
+                    start_ts=self.ten_mins_ago,
+                )
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "field": ["failure_count_if(is_transaction, equals, true)"],
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["failure_count_if(is_transaction, equals, true)"] == 0
+
     def test_trace_id_glob(self) -> None:
         response = self.do_request(
             {
@@ -6177,7 +6358,26 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             }
         )
         assert response.status_code == 400, response.content
-        assert response.data["detail"] == "test% is an invalid value for trace"
+        assert (
+            response.data["detail"]
+            == "`test%` must be a valid UUID hex (32-36 characters long, containing only digits, dashes, or a-f characters)"
+        )
+
+    def test_invalid_span_id(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["trace"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "query": "id:test",
+                "orderby": "trace",
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert (
+            response.data["detail"]
+            == "`test` must be a valid 16 character hex (containing only digits, or a-f characters)"
+        )
 
     def test_short_trace_id_filter(self) -> None:
         trace_ids = [

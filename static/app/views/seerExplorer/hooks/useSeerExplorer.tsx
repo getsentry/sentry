@@ -20,6 +20,7 @@ import type {
   Block,
   RepoPRState,
   SeerExplorerResponse,
+  SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {
   isSeerExplorerEnabled,
@@ -30,11 +31,20 @@ import {
 type SeerExplorerChatResponse = {
   message: Block;
   run_id: number;
+  sentry_run_id?: string | null;
 };
 
 type SeerExplorerUpdateResponse = {
   run_id: number;
 };
+
+/**
+ * Build the explorer-update endpoint URL. `runId` can originate from an
+ * attacker-controlled `explorerRunId` deep link, so it must be encoded to
+ * prevent path traversal in the resulting same-origin POST.
+ */
+const makeExplorerUpdateUrl = (orgSlug: string, runId: SeerExplorerRunId | null) =>
+  `/organizations/${orgSlug}/seer/explorer-update/${encodeURIComponent(String(runId))}/`;
 
 /** Routes where the LLMContext tree provides structured page context. */
 const STRUCTURED_CONTEXT_ROUTES = new Set([
@@ -101,7 +111,6 @@ const getOptimisticAssistantTexts = () => [
 
 const makeErrorSeerExplorerData = (errorMessage: string): SeerExplorerResponse => ({
   session: {
-    run_id: undefined,
     blocks: [
       {
         id: 'error',
@@ -147,6 +156,10 @@ export const useSeerExplorer = () => {
         return 'on'; // default
       }
     );
+  const [overrideBashModeEnabled, setOverrideBashModeEnabled] = useLocalStorageState(
+    'seer-explorer.override.bash-mode',
+    false
+  );
 
   const {runId, chatStates} = useSeerExplorerChatState();
   const dispatch = useSeerExplorerChatDispatch();
@@ -166,11 +179,12 @@ export const useSeerExplorer = () => {
     {
       insertIndex: number;
       orgSlug: string;
+      overrideBashModeEnabled: boolean;
       overrideCodeModeEnable: 'off' | 'on' | 'only';
       overrideCtxEngEnable: boolean;
       pageName: string;
       query: string;
-      runId: number | null;
+      runId: SeerExplorerRunId | null;
       screenshot: string | undefined;
     }
   >({
@@ -203,14 +217,18 @@ export const useSeerExplorer = () => {
           on_page_context: params.screenshot,
           page_name: params.pageName,
           override_ce_enable: params.overrideCtxEngEnable,
+          override_bash_mode_enabled: params.overrideBashModeEnabled,
           override_code_mode_enable: params.overrideCodeModeEnable,
         },
       });
     },
     onSuccess: (response, params) => {
       if (params.runId === null) {
-        // set run ID if this is a new session
-        dispatch({type: 'set run id', payload: response.run_id});
+        // Prefer the UUID; fall back to the numeric run_id for legacy runs.
+        dispatch({
+          type: 'set run id',
+          payload: response.sentry_run_id ?? response.run_id,
+        });
       } else {
         // invalidate the query so fresh data is fetched
         queryClient.invalidateQueries({
@@ -237,13 +255,17 @@ export const useSeerExplorer = () => {
     },
   });
 
-  const {mutate: userInputMutate} = useMutation({
-    mutationFn: async (params: {
+  const {mutate: userInputMutate} = useMutation<
+    SeerExplorerUpdateResponse,
+    RequestError,
+    {
       inputId: string;
       orgSlug: string;
-      runId: number | null;
+      runId: SeerExplorerRunId | null;
       responseData?: Record<string, unknown>;
-    }) => {
+    }
+  >({
+    mutationFn: async params => {
       setHasSentInterrupt(false);
 
       // Set optimistic status and updated_at to prevent isPolling flicker on new message.
@@ -264,8 +286,8 @@ export const useSeerExplorer = () => {
               : prev
         );
       }
-      return fetchMutation<SeerExplorerUpdateResponse>({
-        url: `/organizations/${params.orgSlug}/seer/explorer-update/${params.runId}/`,
+      return fetchMutation({
+        url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
         method: 'POST',
         data: {
           payload: {
@@ -305,7 +327,7 @@ export const useSeerExplorer = () => {
   const {mutate: createPRMutate} = useMutation<
     SeerExplorerUpdateResponse,
     RequestError,
-    {orgSlug: string; runId: number | null; repoName?: string}
+    {orgSlug: string; runId: SeerExplorerRunId | null; repoName?: string}
   >({
     mutationFn: async params => {
       setHasSentInterrupt(false);
@@ -329,7 +351,7 @@ export const useSeerExplorer = () => {
         );
       }
       return fetchMutation({
-        url: `/organizations/${params.orgSlug}/seer/explorer-update/${params.runId}/`,
+        url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
         method: 'POST',
         data: {
           payload: {
@@ -363,13 +385,13 @@ export const useSeerExplorer = () => {
     RequestError,
     {
       orgSlug: string;
-      runId: number | null;
+      runId: SeerExplorerRunId | null;
     }
   >({
     mutationFn: async params => {
       setHasSentInterrupt(true);
       return fetchMutation({
-        url: `/organizations/${params.orgSlug}/seer/explorer-update/${params.runId}/`,
+        url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
         method: 'POST',
         data: {
           payload: {
@@ -401,7 +423,7 @@ export const useSeerExplorer = () => {
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
-    (newRunId: number | null, {onSuccess}: {onSuccess?: () => void} = {}) => {
+    (newRunId: SeerExplorerRunId | null, {onSuccess}: {onSuccess?: () => void} = {}) => {
       if (newRunId === runId) {
         return;
       }
@@ -432,7 +454,11 @@ export const useSeerExplorer = () => {
   );
 
   const sendMessage = useCallback(
-    (query: string, explicitInsertIndex?: number, explicitRunId?: number | null) => {
+    (
+      query: string,
+      explicitInsertIndex?: number,
+      explicitRunId?: SeerExplorerRunId | null
+    ) => {
       if (!orgSlug) {
         return;
       }
@@ -500,6 +526,7 @@ export const useSeerExplorer = () => {
         orgSlug,
         pageName,
         screenshot,
+        overrideBashModeEnabled,
         overrideCtxEngEnable,
         overrideCodeModeEnable,
       });
@@ -512,6 +539,7 @@ export const useSeerExplorer = () => {
       getLLMContext,
       getPageReferrer,
       organization,
+      overrideBashModeEnabled,
       overrideCtxEngEnable,
       overrideCodeModeEnable,
       sendMessageMutate,
@@ -639,7 +667,6 @@ export const useSeerExplorer = () => {
     ];
 
     const baseSession = rawSessionData ?? {
-      run_id: runId ?? undefined,
       blocks: [],
       status: 'processing' as const,
       updated_at: new Date().toISOString(),
@@ -667,6 +694,8 @@ export const useSeerExplorer = () => {
     hasSentInterrupt,
     respondToUserInput,
     createPR,
+    overrideBashModeEnabled,
+    setOverrideBashModeEnabled,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
     overrideCodeModeEnable,

@@ -31,7 +31,7 @@ from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.services import eventstore
-from sentry.tasks.unmerge import unmerge
+from sentry.tasks.unmerge import start_unmerge
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
@@ -81,7 +81,11 @@ class GroupHashesEndpoint(GroupEndpoint):
         },
         examples=EventExamples.GROUP_HASHES,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-hashes"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-hashes",
+        url_names=["sentry-api-0-group-hashes"],
+    )
     def get(self, request: Request, group: Group) -> Response[list[GroupHashesResult]]:
         """
         List the hashes that make up an issue. Each hash represents a grouping
@@ -112,7 +116,11 @@ class GroupHashesEndpoint(GroupEndpoint):
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-hashes"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-hashes",
+        url_names=["sentry-api-0-group-hashes"],
+    )
     def put(self, request: Request, group: Group) -> Response:
         """
         Perform an unmerge by reassigning events with hash values corresponding to the given
@@ -142,7 +150,7 @@ class GroupHashesEndpoint(GroupEndpoint):
             tags={"platform": group.platform or "unknown", "sdk": group.sdk or "unknown"},
         )
 
-        unmerge.delay(
+        start_unmerge.delay(
             group.project_id, group.id, None, grouphashes, request.user.id if request.user else None
         )
 

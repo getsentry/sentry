@@ -52,7 +52,6 @@ export const FieldWrapper = styled('div')<FieldWrapperProps>`
       }
     `}
 
-
   /* Better padding with form inside of a modal */
   ${p =>
     !p.hasControlState &&

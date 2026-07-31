@@ -1,13 +1,12 @@
-import {useMemo} from 'react';
+import {useQuery, skipToken} from '@tanstack/react-query';
 
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {FieldKey} from 'sentry/utils/fields';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -70,32 +69,27 @@ export function useAttributeBreakdownComparison({
   selectedRegionQuery.addFilterValue(FieldKey.TIMESTAMP, `>=${formattedStartTimestamp}`);
   selectedRegionQuery.addFilterValue(FieldKey.TIMESTAMP, `<=${formattedEndTimestamp}`);
 
-  const query1 = selectedRegionQuery.formatString();
-  const query2 = baselineRegionQuery.formatString();
-
-  const queryParams = useMemo(() => {
-    return {
-      ...pageFiltersToQueryParams(pageFilters),
-      query_1: query1,
-      query_2: query2,
-      dataset,
-      function: aggregateFunction,
-      above: 1,
-      sampling: SAMPLING_MODE.NORMAL,
-      aggregateExtrapolation: extrapolate,
-    };
-  }, [query1, query2, pageFilters, dataset, aggregateFunction, extrapolate]);
-
-  return useApiQuery<AttributeBreakdownsComparison>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/trace-items/attributes/ranked/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: queryParams},
-    ],
-    {
-      staleTime: 0,
-      enabled: !!aggregateFunction && !!range,
-    }
-  );
+  return useQuery({
+    ...apiOptions.as<AttributeBreakdownsComparison>()(
+      '/organizations/$organizationIdOrSlug/trace-items/attributes/ranked/',
+      {
+        path:
+          !!aggregateFunction && !!range
+            ? {organizationIdOrSlug: organization.slug}
+            : skipToken,
+        query: {
+          ...pageFiltersToQueryParams(pageFilters),
+          above: 1,
+          dataset,
+          function: aggregateFunction,
+          query_1: selectedRegionQuery.formatString(),
+          query_2: baselineRegionQuery.formatString(),
+          sampling: SAMPLING_MODE.NORMAL,
+          aggregateExtrapolation: extrapolate,
+        },
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+  });
 }

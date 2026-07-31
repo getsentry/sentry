@@ -3,6 +3,7 @@ from __future__ import annotations
 import operator
 from collections import defaultdict
 from collections.abc import Iterator, Mapping, MutableMapping, Sequence
+from datetime import datetime
 from enum import Enum
 from functools import reduce
 from typing import Any, TypedDict
@@ -25,11 +26,15 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.event_frames import find_stack_frames, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
 from sentry.utils.iterators import chunked
+from sentry.utils.query import RangeQuerySetWrapper
 
 PATH_SEPARATORS = frozenset(["/", "\\"])
 # Limit the number of commits to batch in a single query to avoid query timeouts
 # from large IN clauses combined with complex LIKE conditions
 COMMIT_BATCH_SIZE = 50
+# Page size for keyset-paginating commit reads so a single release with a huge
+# commit history (e.g. a project's first release) doesn't load everything in one query.
+COMMIT_QUERY_PAGE_SIZE = 1000
 
 
 def tokenize_path(path: str) -> Iterator[str]:
@@ -75,8 +80,11 @@ def _get_commits(releases: Sequence[Release]) -> Sequence[Commit]:
         missed = list(releases)
 
     if missed:
-        release_commits = ReleaseCommit.objects.filter(release__in=missed).select_related(
-            "commit", "release", "commit__author"
+        release_commits = RangeQuerySetWrapper(
+            ReleaseCommit.objects.filter(release__in=missed).select_related(
+                "commit", "release", "commit__author"
+            ),
+            step=COMMIT_QUERY_PAGE_SIZE,
         )
         to_cache = defaultdict(list)
         for rc in release_commits:
@@ -340,14 +348,12 @@ def get_previous_releases(
     return rv
 
 
-def get_event_file_committers(
-    project: Project,
-    group_id: int,
-    event_frames: Sequence[Mapping[str, Any]],
-    event_platform: str | None,
-    frame_limit: int = 25,
-    sdk_name: str | None = None,
-) -> Sequence[AuthorCommits]:
+def _get_group_releases(project: Project, group_id: int) -> Sequence[Release]:
+    """Return the group's first-seen release and the few releases before it.
+
+    Raises:
+        Release.DoesNotExist: when the group has no first release or no previous releases.
+    """
     group = Group.objects.get_from_cache(id=group_id)
 
     first_release_version = group.get_first_release()
@@ -358,9 +364,32 @@ def get_event_file_committers(
     if not releases:
         raise Release.DoesNotExist
 
-    commits = _get_commits(releases)
+    return releases
+
+
+def _get_group_release_commits(project: Project, group_id: int) -> Sequence[Commit]:
+    """Fetch commits from the group's first-seen release and the few releases before it.
+
+    Raises:
+        Release.DoesNotExist: when the group has no first release or no previous releases.
+        Commit.DoesNotExist: when the releases contain no commits.
+    """
+    commits = _get_commits(_get_group_releases(project, group_id))
     if not commits:
         raise Commit.DoesNotExist
+
+    return commits
+
+
+def get_event_file_committers(
+    project: Project,
+    group_id: int,
+    event_frames: Sequence[Mapping[str, Any]],
+    event_platform: str | None,
+    frame_limit: int = 25,
+    sdk_name: str | None = None,
+) -> Sequence[AuthorCommits]:
+    commits = _get_group_release_commits(project, group_id)
 
     frames = event_frames or []
     munged = munged_filename_and_frames(event_platform, frames, "munged_filename", sdk_name)
@@ -401,6 +430,42 @@ def get_event_file_committers(
     ]
 
     return _get_committers(annotated_frames, relevant_commits)
+
+
+def get_release_commit_candidates(
+    project: Project,
+    group_id: int,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    limit: int = 500,
+) -> Sequence[Commit]:
+    """Candidate commits shipped around when the group first appeared.
+
+    Returns the commits from the group's first-seen release and the few releases
+    before it (the same pool the release-based suspect-commit scoring runs over),
+    newest-first, optionally restricted to a ``[since, until]`` window. Unlike the
+    suspect commit, these are NOT filtered to the stacktrace frames, so they surface
+    regressions in code that does not appear in the trace.
+
+    The ``[since, until]`` window, ordering, and ``limit`` are all applied at the
+    query level so the database bounds the result set rather than materializing every
+    commit in the releases. ``limit`` defaults to a wide guardrail (500) so it acts as
+    a backstop against a pathological release blowing up the payload, not as a precision
+    filter that risks dropping the commit to blame. Returns ``[]`` when the group has
+    no associated releases.
+    """
+    try:
+        releases = _get_group_releases(project, group_id)
+    except Release.DoesNotExist:
+        return []
+
+    commit_qs = Commit.objects.filter(releasecommit__release__in=releases).select_related("author")
+    if since is not None:
+        commit_qs = commit_qs.filter(date_added__gte=since)
+    if until is not None:
+        commit_qs = commit_qs.filter(date_added__lte=until)
+
+    return list(commit_qs.distinct().order_by("-date_added")[:limit])
 
 
 def get_serialized_committers(project: Project, group_id: int) -> Sequence[AuthorCommitsSerialized]:

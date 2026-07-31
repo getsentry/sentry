@@ -49,7 +49,10 @@ describe('DropdownMenu', () => {
       screen.getByRole('menuitemradio', {name: 'Item Two'})
     ).toHaveAccessibleDescription('Another description here');
 
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Item One'}));
+    const actionItem = screen.getByRole('menuitemradio', {name: 'Item One'});
+    expect(actionItem).not.toHaveAttribute('href');
+
+    await userEvent.click(actionItem);
     expect(onAction).toHaveBeenCalled();
   });
 
@@ -140,7 +143,7 @@ describe('DropdownMenu', () => {
           {
             key: 'item1',
             label: 'Item',
-            isSubmenu: true,
+            submenu: true,
             children: [
               {
                 key: 'subitem',
@@ -234,7 +237,7 @@ describe('DropdownMenu', () => {
           {
             key: 'item1',
             label: 'Item',
-            isSubmenu: true,
+            submenu: true,
             children: [
               {
                 key: 'subitem',

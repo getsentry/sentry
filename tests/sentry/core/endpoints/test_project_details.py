@@ -126,27 +126,6 @@ class ProjectDetailsTest(APITestCase):
             "slug": self.project.organization.slug,
         }
 
-    def test_filters_disabled_plugins(self) -> None:
-        from sentry.plugins.base import plugins
-
-        self.create_group(project=self.project)
-
-        response = self.get_success_response(
-            self.project.organization.slug,
-            self.project.slug,
-        )
-        assert response.data["plugins"] == []
-
-        asana_plugin = plugins.get("asana")
-        asana_plugin.enable(self.project)
-
-        response = self.get_success_response(
-            self.project.organization.slug,
-            self.project.slug,
-        )
-        assert len(response.data["plugins"]) == 1
-        assert response.data["plugins"][0]["slug"] == asana_plugin.slug
-
     def test_project_renamed_302(self) -> None:
         # Rename the project
         self.get_success_response(
@@ -290,6 +269,11 @@ class ProjectDetailsTest(APITestCase):
         )
         assert resp.data["options"]["filters:log_messages"] == "Updated*\n*.sentry.io"
         assert resp.data["options"]["filters:trace_metric_names"] == "counter.*\n*.duration"
+
+    def test_preprod_size_pr_comments_defaults(self) -> None:
+        resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+        assert resp.data["options"]["sentry:preprod_size_pr_comments_enabled"] is False
+        assert resp.data["options"]["sentry:preprod_size_pr_comments_rules"] is None
 
 
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
@@ -841,6 +825,26 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.get_option("sentry:preprod_snapshot_pr_comments_post_on_renamed") is True
 
+    def test_preprod_size_pr_comments_enabled_option(self) -> None:
+        self.get_success_response(self.org_slug, self.proj_slug, preprodSizePrCommentsEnabled=True)
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_size_pr_comments_enabled") is True
+
+    def test_preprod_size_pr_comments_rules_option(self) -> None:
+        rules = [
+            {
+                "id": "r1",
+                "metric": "install_size",
+                "measurement": "absolute",
+                "value": 1000000,
+                "artifactType": "main_artifact",
+                "filterQuery": "",
+            }
+        ]
+        self.get_success_response(self.org_slug, self.proj_slug, preprodSizePrCommentsRules=rules)
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_size_pr_comments_rules") == rules
+
     def test_bookmarks(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
         assert not ProjectBookmark.objects.filter(
@@ -900,6 +904,19 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_success_response(self.org_slug, self.proj_slug, scrapeJavaScript=False)
         assert self.project.get_option("sentry:scrape_javascript") is False
         assert resp.data["scrapeJavaScript"] is False
+
+    def test_enable_auto_release_creation(self) -> None:
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, enableAutoReleaseCreation=False
+        )
+        assert self.project.get_option("sentry:enable_auto_release_creation") is False
+        assert resp.data["enableAutoReleaseCreation"] is False
+
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, enableAutoReleaseCreation=True
+        )
+        assert self.project.get_option("sentry:enable_auto_release_creation") is True
+        assert resp.data["enableAutoReleaseCreation"] is True
 
     def test_default_environment(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, defaultEnvironment="dev")

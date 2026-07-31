@@ -2,8 +2,10 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
+from sentry.testutils.objectstore import debug_files_test_both_backends
 
 
+@debug_files_test_both_backends
 class ProjectDsymsDocs(APIDocsTestCase):
     def setUp(self) -> None:
         self.url = reverse(

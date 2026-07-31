@@ -25,7 +25,12 @@ import {
   type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';
+import {
+  getKeyName,
+  quoteFilterKey,
+  stringifyToken,
+} from 'sentry/components/searchSyntax/utils';
+import {defined} from 'sentry/utils/defined';
 
 type QueryBuilderState = {
   /**
@@ -78,6 +83,14 @@ type DeleteTokensAction = {
   tokens: ParseResultToken[];
   type: 'DELETE_TOKENS';
   focusOverride?: FocusOverride;
+};
+
+type DeleteToCursorAction = {
+  cursorPosition: number;
+  direction: 'before' | 'after';
+  inputValue: string;
+  token: ParseResultToken;
+  type: 'DELETE_TO_CURSOR';
 };
 
 type UpdateFreeTextActionOnSelect = {
@@ -235,6 +248,7 @@ export type QueryBuilderActions =
   | ResetFocusOverrideAction
   | DeleteTokenAction
   | DeleteTokensAction
+  | DeleteToCursorAction
   | UpdateFreeTextActionOnSelect
   | UpdateFreeTextActionOnBlur
   | UpdateFreeTextActionOnCommit
@@ -282,6 +296,39 @@ function deleteQueryTokens(
     ...state,
     query: removeQueryTokensFromQuery(state.query, action.tokens),
     focusOverride: action.focusOverride ?? null,
+  };
+}
+
+function deleteToCursor(
+  state: QueryBuilderState,
+  action: DeleteToCursorAction,
+  parseQuery: (query: string) => ParseResult | null
+): QueryBuilderState {
+  const {token, cursorPosition, inputValue, direction} = action;
+  const deleteBefore = direction === 'before';
+
+  const newQuery = deleteBefore
+    ? removeExcessWhitespaceFromParts(
+        inputValue.slice(cursorPosition),
+        state.query.substring(token.location.end.offset)
+      )
+    : removeExcessWhitespaceFromParts(
+        state.query.substring(0, token.location.start.offset),
+        inputValue.slice(0, cursorPosition)
+      );
+
+  const newParsedQuery = parseQuery(newQuery);
+  const focusedToken = deleteBefore
+    ? newParsedQuery?.find(t => t.type === Token.FREE_TEXT)
+    : newParsedQuery?.findLast(t => t.type === Token.FREE_TEXT);
+
+  return {
+    ...state,
+    query: newQuery,
+    committedQuery: newQuery,
+    focusOverride: focusedToken
+      ? {itemKey: makeTokenKey(focusedToken, newParsedQuery)}
+      : {itemKey: `${Token.FREE_TEXT}:0`},
   };
 }
 
@@ -633,12 +680,12 @@ export function modifyFilterValue(
   // stop the user from entering multiple wildcards by themselves
   newValue = newValue.replace(/\*\*+/g, '*');
 
-  // No operator change — just replace the value (existing behavior)
+  // No operator change — just replace the value.
   if (newOp === undefined) {
     return replaceQueryToken(query, token.value, newValue);
   }
 
-  // Operator change — replace the entire filter token atomically
+  // Operator change — replace the entire filter token atomically.
   const {negated, internalOp} = termOperatorToInternal(newOp);
 
   const prefix = negated ? '!' : '';
@@ -701,6 +748,37 @@ function canonicalizeSearchValue(value: string) {
       : value;
 
   return escapeTagValueForSearch(unescapeAsteriskSearchValue(unquotedValue));
+}
+
+function getCanonicalSelectedValues(token: TokenResult<Token.FILTER>): Set<string> {
+  const tokenValue = token.value;
+
+  switch (tokenValue.type) {
+    case Token.VALUE_TEXT_LIST:
+    case Token.VALUE_NUMBER_LIST:
+      return new Set(
+        tokenValue.items
+          .map(item => item.value?.value)
+          .filter(defined)
+          .map(canonicalizeSearchValue)
+      );
+    default:
+      return tokenValue.value
+        ? new Set([canonicalizeSearchValue(tokenValue.value)])
+        : new Set();
+  }
+}
+
+export function getMultiSelectValueState(
+  token: TokenResult<Token.FILTER>,
+  value: string
+): {selected: boolean; selectedCount: number} {
+  const canonicalSelectedValues = getCanonicalSelectedValues(token);
+
+  return {
+    selected: canonicalSelectedValues.has(canonicalizeSearchValue(value)),
+    selectedCount: canonicalSelectedValues.size,
+  };
 }
 
 export function multiSelectTokenValue(
@@ -812,7 +890,11 @@ function updateFilterKey(
   state: QueryBuilderState,
   action: UpdateFilterKeyAction
 ): QueryBuilderState {
-  const newQuery = replaceQueryToken(state.query, action.token.key, action.key);
+  const newQuery = replaceQueryToken(
+    state.query,
+    action.token.key,
+    quoteFilterKey(action.key)
+  );
 
   if (newQuery === state.query) {
     return state;
@@ -1114,6 +1196,12 @@ export function useQueryBuilderState({
         case 'DELETE_TOKENS': {
           return {
             ...deleteQueryTokens(state, action),
+            clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
+          };
+        }
+        case 'DELETE_TO_CURSOR': {
+          return {
+            ...deleteToCursor(state, action, parseQuery),
             clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
           };
         }

@@ -72,6 +72,54 @@ describe('TrialSubscriptionAction', () => {
     });
   });
 
+  it('can pass startTrialOnLatestTier for an enterprise trial', async () => {
+    jest.mock('@sentry/scraps/alert');
+
+    openAdminConfirmModal({
+      onConfirm,
+      renderModalSpecificContent: deps => (
+        <TrialSubscriptionAction
+          subscription={SubscriptionFixture({
+            organization,
+            plan: 'mm2_f',
+            isFree: true,
+          })}
+          startEnterpriseTrial
+          {...deps}
+        />
+      ),
+    });
+
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Trial the latest tier'}));
+    await confirmTrialDays('45');
+
+    expect(onConfirm).toHaveBeenCalledWith({
+      trialDays: 45,
+      startEnterpriseTrial: true,
+      startTrialOnLatestTier: true,
+    });
+  });
+
+  it('does not show the latest tier checkbox for a regular trial', () => {
+    openAdminConfirmModal({
+      onConfirm,
+      renderModalSpecificContent: deps => (
+        <TrialSubscriptionAction
+          subscription={SubscriptionFixture({organization})}
+          {...deps}
+        />
+      ),
+    });
+
+    renderGlobalModal();
+
+    expect(
+      screen.queryByRole('checkbox', {name: 'Trial the latest tier'})
+    ).not.toBeInTheDocument();
+  });
+
   it('can pass trialDays and extend enterprise plan onConfirm', async () => {
     jest.mock('@sentry/scraps/alert');
 

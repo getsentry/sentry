@@ -5,7 +5,7 @@ import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconLightning, IconLock, IconOpen, IconSeer, IconUpload} from 'sentry/icons';
@@ -50,14 +50,14 @@ function Cta({
       background="secondary"
       padding="xl"
       direction={isBanner ? 'row' : 'column'}
-      gap={isBanner ? {'2xs': 'xl', xl: '3xl'} : 'xl'}
+      gap={isBanner ? {'screen:2xs': 'xl', 'screen:xl': '3xl'} : 'xl'}
       borderBottom={isBanner ? 'primary' : undefined}
       radius={isBanner ? '0 0 md md' : 'md'}
       align="center"
       justify={isBanner ? 'between' : 'center'}
       height={heightOverride ?? (isBanner ? undefined : '100%')}
     >
-      <Flex direction="column" gap="lg" align={isBanner ? 'start' : 'center'}>
+      <Stack gap="lg" align={isBanner ? 'start' : 'center'}>
         {icon && <Flex align="center">{icon}</Flex>}
         {image && (
           <Flex align="center">
@@ -69,7 +69,9 @@ function Cta({
         <Text bold align={isBanner ? 'left' : 'center'} size="lg" textWrap="balance">
           {title}
         </Text>
-        <Container maxWidth={{'2xs': '300px', xl: isBanner ? 'unset' : '300px'}}>
+        <Container
+          maxWidth={{'screen:2xs': '300px', 'screen:xl': isBanner ? 'unset' : '300px'}}
+        >
           <Text
             variant="muted"
             size="sm"
@@ -79,16 +81,15 @@ function Cta({
             {subtitle}
           </Text>
         </Container>
-      </Flex>
+      </Stack>
       {buttons && (
-        <Flex
-          direction="column"
+        <Stack
           gap={isBanner ? 'sm' : 'lg'}
           align="center"
           flexGrow={isBanner ? 1 : undefined}
         >
           {buttons}
-        </Flex>
+        </Stack>
       )}
     </Flex>
   );
@@ -125,18 +126,11 @@ function SeerCta({action, footerText}: {action: React.ReactNode; footerText?: st
   // add copy to BILLED_DATA_CATEGORY_INFO or serialize them in some endpoint
   return (
     <Container background="secondary" height="100%" radius="md" alignSelf="stretch">
-      <Flex
-        direction="column"
-        gap="xl"
-        align="center"
-        justify="center"
-        justifySelf="center"
-        height="100%"
-      >
+      <Stack gap="xl" align="center" justify="center" justifySelf="center" height="100%">
         <Container>
           <Image src={seerConfigMainImg} alt="" />
         </Container>
-        <Flex direction="column" gap="md">
+        <Stack gap="md">
           <Text align="center" size="xl" bold>
             {t('Find and fix issues anywhere with Seer AI debugger')}
           </Text>
@@ -145,14 +139,14 @@ function SeerCta({action, footerText}: {action: React.ReactNode; footerText?: st
             <Text>$40 </Text>
             <Text variant="muted">{t('per active contributor / month')}</Text>
           </Text>
-        </Flex>
+        </Stack>
         {action}
         {footerText && (
           <Text align="center" variant="muted" size="sm">
             {footerText}
           </Text>
         )}
-      </Flex>
+      </Stack>
     </Container>
   );
 }

@@ -1,8 +1,10 @@
 import {useCallback} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import type {Location} from 'history';
+import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {ALL_DATE_TIME_QUERY_KEYS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
@@ -18,15 +20,18 @@ import {
   useSelectedProjectIds,
   useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import {resolveSeerProjectSelection} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {PageFilters} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
   LOGS_CURSOR_KEY,
@@ -57,24 +62,31 @@ export function getLogsSeerLocationQuery({
   currentAggregateFields,
   currentLocation,
   pageDatetime,
+  projects = [],
   result,
 }: {
   currentAggregateFields: readonly AggregateField[];
   currentLocation: Location;
   pageDatetime: PageFilters['datetime'];
   result: AskSeerSearchQuery;
+  projects?: Project[];
 }): LogsSeerLocationQueryResult {
   const seerQuery = getSeerExploreQuery({pageDatetime, result});
+  const {query: cleanedQuery, projectIds} = resolveSeerProjectSelection(
+    seerQuery.query,
+    projects,
+    result.expandedProjectIds
+  );
   const targetLocation: Location = {
     ...currentLocation,
-    query: {...currentLocation.query},
+    query: omit(currentLocation.query, ALL_DATE_TIME_QUERY_KEYS),
   };
 
-  if (result.expandedProjectIds?.length) {
-    targetLocation.query.project = result.expandedProjectIds.map(String);
+  if (projectIds?.length) {
+    targetLocation.query.project = projectIds.map(String);
   }
 
-  updateNullableLocation(targetLocation, LOGS_QUERY_KEY, seerQuery.query);
+  updateNullableLocation(targetLocation, LOGS_QUERY_KEY, cleanedQuery);
   updateNullableLocation(targetLocation, 'mode', seerQuery.mode);
   updateNullableLocation(
     targetLocation,
@@ -105,7 +117,7 @@ export function getLogsSeerLocationQuery({
       currentAggregateFields,
       groupBys: seerQuery.groupBys,
       visualizes: seerQuery.visualizes,
-      fallbackVisualizes: defaultVisualizes(true).map(visualize => visualize.serialize()),
+      fallbackVisualizes: defaultVisualizes().map(visualize => visualize.serialize()),
     });
     targetLocation.query[LOGS_AGGREGATE_FIELD_KEY] = aggregateFields.map(field =>
       JSON.stringify(field)
@@ -124,7 +136,9 @@ export function getLogsSeerLocationQuery({
 
   return {
     query: targetLocation.query,
-    seerQuery,
+    // Reflect the project-stripped query so the suggestion ref and analytics
+    // match what actually gets applied to the search bar.
+    seerQuery: {...seerQuery, query: cleanedQuery},
   };
 }
 
@@ -133,6 +147,7 @@ export function LogsTabSeerComboBox() {
   const location = useLocation();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
+  const {projects} = useProjects();
   const queryParams = useQueryParams();
   const analyticsArea = useAnalyticsArea();
   const {setRunId} = useAiQueryContext();
@@ -173,6 +188,7 @@ export function LogsTabSeerComboBox() {
         result,
         currentLocation: location,
         currentAggregateFields: queryParams.aggregateFields,
+        projects,
         pageDatetime: {
           start: pageFilters.selection.datetime.start,
           end: pageFilters.selection.datetime.end,
@@ -221,6 +237,7 @@ export function LogsTabSeerComboBox() {
       navigate,
       organization,
       pageFilters.selection,
+      projects,
       queryParams.aggregateFields,
       setRunId,
     ]

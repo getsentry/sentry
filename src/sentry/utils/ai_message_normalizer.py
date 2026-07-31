@@ -3,6 +3,10 @@ import json  # noqa: S003
 from typing import Any, TypedDict
 
 FILTERED = "[Filtered]"
+# Rendered when a text content part is structurally present but carries no
+# usable text (e.g. {"type": "text", "chars": 56}). Matches the product-wide
+# empty-value convention so the message still renders instead of vanishing.
+EMPTY_TEXT_CONTENT = "(no value)"
 FILE_CONTENT_PARTS = ("blob", "uri", "file")
 _INVALID_JSON = object()
 
@@ -292,8 +296,7 @@ def _bucket_parts(parts: list[Any]) -> PartBuckets:
         if part_type == "text":
             buckets["has_renderable_text_part"] = True
             text = _text_from_part(part, strip=True)
-            if text:
-                buckets["text_parts"].append(text)
+            buckets["text_parts"].append(text or EMPTY_TEXT_CONTENT)
             continue
         if part_type == "reasoning":
             text = _text_from_part(part, strip=True)
@@ -370,8 +373,7 @@ def _append_output_from_parts(
         part_type = part.get("type")
         if part_type == "text":
             text = part.get("content") or part.get("text")
-            if isinstance(text, str) and text:
-                text_parts.append(text)
+            text_parts.append(text if isinstance(text, str) and text else EMPTY_TEXT_CONTENT)
             continue
         if part_type == "reasoning":
             text = part.get("content") or part.get("text")

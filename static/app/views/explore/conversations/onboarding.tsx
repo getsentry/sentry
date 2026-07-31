@@ -17,20 +17,21 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
-import {
-  OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
   TabSelectionScope,
 } from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
+  BasePlatformOptions,
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {DocsPageLocation} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  DocsPageLocation,
+  StepType,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
@@ -45,22 +46,28 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
   AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
+  CLOUDFLARE_AGENT_INTEGRATIONS,
+  DEPLOYMENT_TARGET_ICONS,
+  DEPLOYMENT_TARGET_LABELS,
+  DeploymentTarget,
   NODE_AGENT_INTEGRATIONS,
+  PHP_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
-import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {
   BulletList,
   HeaderText,
@@ -94,7 +101,7 @@ function useConversationSpanWaiter(project: Project) {
         },
       },
     },
-    Referrer.CONVERSATIONS_ONBOARDING
+    Referrer.ONBOARDING
   );
 
   const hasEvents = Boolean(request.data?.length);
@@ -197,7 +204,7 @@ function ConversationOnboardingPanel({
                     </li>
                   </BulletList>
                 </HeaderText>
-                <Container display={{xs: 'none', sm: 'block'}}>
+                <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
                   <Image src={replayOnboardingImg} alt="" height="120px" width="auto" />
                 </Container>
               </Flex>
@@ -225,10 +232,66 @@ function ConversationOnboardingPanel({
   );
 }
 
-function getConversationIdStep(integration: string, isPython: boolean): OnboardingStep {
+function getConversationIdStep(
+  integration: string,
+  platform: 'javascript' | 'php' | 'python',
+  jsPackageName = '@sentry/node'
+): OnboardingStep {
   const isOpenAI =
     integration === AgentIntegration.OPENAI ||
     integration === AgentIntegration.OPENAI_AGENTS;
+
+  if (platform === 'php') {
+    return {
+      title: t('Enable Conversations'),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Make your Laravel AI agent conversational with the [code:Conversational] contract and [code:RemembersConversations] trait:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          language: 'php',
+          code: `<?php
+// ...
+
+use Laravel\\Ai\\Concerns\\RemembersConversations;
+use Laravel\\Ai\\Contracts\\Agent;
+use Laravel\\Ai\\Contracts\\Conversational;
+use Laravel\\Ai\\Promptable;
+
+class MyAgent implements Agent, Conversational
+{
+    use Promptable, RemembersConversations;
+
+    // ...
+}`,
+        },
+      ],
+    };
+  }
+
+  const conversationIdCodeBlock: ContentBlock =
+    platform === 'python'
+      ? {
+          type: 'code',
+          language: 'python',
+          code: `import sentry_sdk.ai
+
+# Call this at the start of each conversation
+sentry_sdk.ai.set_conversation_id("my-conversation-123")`,
+        }
+      : {
+          type: 'code',
+          language: 'javascript',
+          code: `import * as Sentry from "${jsPackageName}";
+
+// Call this at the start of each conversation
+Sentry.setConversationId("my-conversation-123");`,
+        };
 
   const content: ContentBlock[] = [
     {
@@ -237,23 +300,7 @@ function getConversationIdStep(integration: string, isPython: boolean): Onboardi
         'Group related LLM calls into a single conversation thread by setting an ID at the start:'
       ),
     },
-    isPython
-      ? {
-          type: 'code' as const,
-          language: 'python',
-          code: `import sentry_sdk
-
-# Call this at the start of each conversation
-sentry_sdk.ai.set_conversation_id("my-conversation-123")`,
-        }
-      : {
-          type: 'code' as const,
-          language: 'javascript',
-          code: `import * as Sentry from "@sentry/node";
-
-// Call this at the start of each conversation
-Sentry.setConversationId("my-conversation-123");`,
-        },
+    conversationIdCodeBlock,
     ...(isOpenAI
       ? [
           {
@@ -273,12 +320,73 @@ Sentry.setConversationId("my-conversation-123");`,
   };
 }
 
+function getSetUserStep(
+  isPython: boolean,
+  jsPackageName = '@sentry/node'
+): OnboardingStep {
+  const content: ContentBlock[] = [
+    {
+      type: 'text',
+      text: t(
+        'Identify the user behind each conversation so the Conversations view can show who sent each message:'
+      ),
+    },
+    isPython
+      ? {
+          type: 'code' as const,
+          language: 'python',
+          code: `import sentry_sdk
+
+# Call this once per request / session, before any AI calls
+sentry_sdk.set_user({"id": "user_123", "email": "jane@example.com", "username": "jane"})`,
+        }
+      : {
+          type: 'code' as const,
+          language: 'javascript',
+          code: `import * as Sentry from "${jsPackageName}";
+
+// Call this once per request / session, before any AI calls
+Sentry.setUser({ id: "user_123", email: "jane@example.com", username: "jane" });`,
+        },
+  ];
+
+  return {
+    title: t('Identify Users (optional)'),
+    content,
+  };
+}
+
+function getPhpConversationVerifyStep(): OnboardingStep {
+  return {
+    type: StepType.VERIFY,
+    content: [
+      {
+        type: 'text',
+        text: tct(
+          'Verify Conversations by continuing an existing Laravel AI conversation with [code:->continue()]:',
+          {code: <code />}
+        ),
+      },
+      {
+        type: 'code',
+        language: 'php',
+        code: `<?php
+
+use App\\Ai\\Agents\\MyAgent;
+
+$response = (new MyAgent)
+    ->continue('my-conversation-123', as: auth()->user())
+    ->prompt('Make it shorter.');`,
+      },
+    ],
+  };
+}
+
 export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const api = useApi();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
-  const copyEnabled = useCopySetupInstructionsEnabled();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -293,25 +401,76 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   });
 
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
+  const isPhpPlatform = (project?.platform ?? '').startsWith('php');
+  // Node-based platforms can deploy to either the Node runtime or Cloudflare
+  // Workers, so we let the user pick a target that tailors the instructions.
+  const isNodePlatform = (project?.platform ?? '').startsWith('node');
+  // Cloudflare Workers projects are pinned to the Cloudflare (withSentry) setup.
+  // Cloudflare Pages bootstraps via `sentryPagesPlugin` instead, so it's left out
+  // of this selector for now and keeps its existing onboarding.
+  const isCloudflareWorkers = project?.platform === 'node-cloudflare-workers';
+  const isCloudflarePages = project?.platform === 'node-cloudflare-pages';
+  const showDeploymentTarget =
+    isNodePlatform && !isCloudflareWorkers && !isCloudflarePages;
+
+  const deploymentTargetOptions: BasePlatformOptions = showDeploymentTarget
+    ? {
+        deploymentTarget: {
+          label: t('Deployment'),
+          defaultValue: DeploymentTarget.NODE,
+          items: [DeploymentTarget.NODE, DeploymentTarget.CLOUDFLARE].map(target => ({
+            label: DEPLOYMENT_TARGET_LABELS[target],
+            value: target,
+            leadingItems: (
+              <PlatformIcon platform={DEPLOYMENT_TARGET_ICONS[target]} size={16} />
+            ),
+          })),
+        },
+      }
+    : {};
+
+  const selectedDeploymentTarget = useUrlPlatformOptions(deploymentTargetOptions)
+    .deploymentTarget as DeploymentTarget | undefined;
+  // Cloudflare Workers projects are pinned to the Cloudflare runtime; other Node
+  // projects follow the selector (defaulting to Node).
+  const deploymentTarget = isCloudflareWorkers
+    ? DeploymentTarget.CLOUDFLARE
+    : selectedDeploymentTarget;
+  const isCloudflareTarget =
+    isNodePlatform && deploymentTarget === DeploymentTarget.CLOUDFLARE;
 
   const integrations = isPythonPlatform
     ? PYTHON_AGENT_INTEGRATIONS
-    : NODE_AGENT_INTEGRATIONS;
+    : isPhpPlatform
+      ? PHP_AGENT_INTEGRATIONS
+      : isCloudflareTarget
+        ? CLOUDFLARE_AGENT_INTEGRATIONS
+        : NODE_AGENT_INTEGRATIONS;
 
-  const integrationOptions = {
+  const platformOptions: BasePlatformOptions = {
     integration: {
       label: t('Integration'),
       items: integrations.map(integration => ({
-        label: AGENT_INTEGRATION_LABELS[integration],
+        label: isPhpPlatform
+          ? (currentPlatform?.name ?? t('Laravel'))
+          : AGENT_INTEGRATION_LABELS[integration],
         value: integration,
         leadingItems: (
-          <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
+          <PlatformIcon
+            platform={
+              isPhpPlatform
+                ? (project?.platform ?? 'php-laravel')
+                : AGENT_INTEGRATION_ICONS[integration]
+            }
+            size={16}
+          />
         ),
       })),
     },
+    ...deploymentTargetOptions,
   };
 
-  const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
+  const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -356,20 +515,28 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
       isLoading: isLoadingRegistry,
       data: registryData,
     },
-    platformOptions: selectedPlatformOptions,
+    platformOptions: {...selectedPlatformOptions, deploymentTarget},
     docsLocation: DocsPageLocation.PROFILING_PAGE,
-    newOrg: false,
     urlPrefix,
     isSelfHosted,
   };
 
-  const selectedIntegration = selectedPlatformOptions.integration;
+  const selectedIntegration =
+    selectedPlatformOptions.integration ?? AgentIntegration.VERCEL_AI;
+  const jsPackageName = isCloudflareTarget ? '@sentry/cloudflare' : '@sentry/node';
 
   const steps: OnboardingStep[] = [
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
-    getConversationIdStep(selectedIntegration, isPythonPlatform),
-    ...(agentMonitoringDocs.verify?.(docParams) || []),
+    getConversationIdStep(
+      selectedIntegration,
+      isPythonPlatform ? 'python' : isPhpPlatform ? 'php' : 'javascript',
+      jsPackageName
+    ),
+    ...(isPhpPlatform ? [] : [getSetUserStep(isPythonPlatform, jsPackageName)]),
+    ...(isPhpPlatform
+      ? [getPhpConversationVerifyStep()]
+      : agentMonitoringDocs.verify?.(docParams) || []),
   ].filter(s => !s.collapsible);
 
   const introduction = agentMonitoringDocs.introduction?.(docParams);
@@ -379,7 +546,10 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
       <SetupTitle project={project} />
       <Stack gap="md">
         <Flex gap="md" align="center" wrap="wrap">
-          <PlatformOptionDropdown platformOptions={integrationOptions} />
+          <PlatformOptionDropdown
+            platformOptions={platformOptions}
+            connectors={{deploymentTarget: t('on')}}
+          />
         </Flex>
         {introduction && <Prose>{introduction}</Prose>}
         <GuidedSteps
@@ -404,11 +574,19 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
               isLastStep={index === steps.length - 1}
               onDismiss={onDismiss}
               trailingItems={
-                index === 0 && copyEnabled ? (
+                index === 0 ? (
                   <OnboardingCopyMarkdownButton
                     borderless
                     steps={steps}
                     source="conversations_onboarding"
+                    onCopy={() => {
+                      trackAnalytics('onboarding.ai_prompt_copied', {
+                        organization,
+                        platform: project.platform ?? 'unknown',
+                        product: 'conversations',
+                        source: 'prompt',
+                      });
+                    }}
                   />
                 ) : undefined
               }
@@ -446,7 +624,10 @@ function UnsupportedPlatformOnboarding({
             }
           )}
         </Text>
-        <CopyLLMPromptButton />
+        <CopyLLMPromptButton
+          platform={project.platform ?? 'unknown'}
+          product="conversations"
+        />
       </Prose>
     </ConversationOnboardingPanel>
   );
@@ -472,7 +653,10 @@ function NoDocsOnboarding({project}: {project: Project}) {
             }
           )}
         </Text>
-        <CopyLLMPromptButton />
+        <CopyLLMPromptButton
+          platform={project.platform ?? 'unknown'}
+          product="conversations"
+        />
       </Prose>
     </ConversationOnboardingPanel>
   );

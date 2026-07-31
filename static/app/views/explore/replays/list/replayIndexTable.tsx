@@ -20,7 +20,10 @@ import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import {BulkDeleteAlert} from 'sentry/views/explore/replays/list/bulkDeleteAlert';
 import {useReplayIndexTableColumns} from 'sentry/views/explore/replays/list/useReplayIndexTableColumns';
-import {DeadRageSelectorCards} from 'sentry/views/explore/replays/selectors/deadRageSelectorCards';
+import {
+  DeadRageSelectorCards,
+  DeadRageSelectorCardsPlaceholder,
+} from 'sentry/views/explore/replays/selectors/deadRageSelectorCards';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
@@ -30,6 +33,7 @@ interface Props {
   queryKey: ApiQueryKey;
   replays: ReplayListRecord[];
   showDeadRageClickCards: boolean;
+  showDeadRageClickCardsPlaceholder: boolean;
   widgetIsOpen: boolean;
 }
 
@@ -40,6 +44,7 @@ export function ReplayIndexTable({
   queryKey,
   replays,
   showDeadRageClickCards,
+  showDeadRageClickCardsPlaceholder,
   widgetIsOpen,
 }: Props) {
   const queryClient = useQueryClient();
@@ -80,6 +85,9 @@ export function ReplayIndexTable({
       ) : null}
 
       {widgetIsOpen && showDeadRageClickCards ? <DeadRageSelectorCards /> : null}
+      {widgetIsOpen && showDeadRageClickCardsPlaceholder ? (
+        <DeadRageSelectorCardsPlaceholder />
+      ) : null}
 
       {needsJetpackComposePiiWarning && <JetpackComposePiiNotice />}
       <ListItemCheckboxProvider

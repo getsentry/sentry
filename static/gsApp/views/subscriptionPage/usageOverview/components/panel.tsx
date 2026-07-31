@@ -152,10 +152,7 @@ export function ProductBreakdownPanel({
     enabled: shouldCheckSetup,
   });
   const setupRequired =
-    shouldCheckSetup &&
-    !setupCheckLoading &&
-    (!setupCheck?.isSeerConfigured ||
-      (setupCheck?.needsConfigReminder && !setupCheck?.isCodeReviewEnabled));
+    shouldCheckSetup && !setupCheckLoading && !setupCheck?.isSeerConfigured;
 
   if (!billedCategory) {
     return null;

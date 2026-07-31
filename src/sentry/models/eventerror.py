@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import enum
+from typing import Any, TypedDict
 
 
 class EventErrorType(enum.StrEnum):
@@ -58,6 +59,12 @@ class EventErrorType(enum.StrEnum):
     # Processing: Proguard
     PROGUARD_MISSING_MAPPING = "proguard_missing_mapping"
     PROGUARD_MISSING_LINENO = "proguard_missing_lineno"
+
+
+class EventErrorApiContext(TypedDict):
+    type: str
+    message: str
+    data: dict[str, Any]
 
 
 class EventError:
@@ -125,5 +132,5 @@ class EventError:
     def message(self):
         return self._messages.get(self._data["type"], self._messages["unknown_error"])
 
-    def get_api_context(self):
+    def get_api_context(self) -> EventErrorApiContext:
         return {"type": self.type, "message": self.message, "data": self.data}

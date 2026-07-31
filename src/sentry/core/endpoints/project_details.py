@@ -118,6 +118,11 @@ class ProjectMemberSerializer(serializers.Serializer):
         required=False,
     )
     preprodSizeStatusChecksRules = serializers.JSONField(required=False)
+    preprodSizePrCommentsEnabled = serializers.BooleanField(
+        help_text="Enable preprod size PR comments. Can be updated with **`project:read`** permission.",
+        required=False,
+    )
+    preprodSizePrCommentsRules = serializers.JSONField(required=False)
     preprodSnapshotStatusChecksEnabled = serializers.BooleanField(required=False)
     preprodSnapshotStatusChecksFailOnAdded = serializers.BooleanField(required=False)
     preprodSnapshotStatusChecksFailOnRemoved = serializers.BooleanField(required=False)
@@ -180,6 +185,8 @@ class ProjectMemberSerializer(serializers.Serializer):
         "debugFilesRole",
         "preprodSizeStatusChecksEnabled",
         "preprodSizeStatusChecksRules",
+        "preprodSizePrCommentsEnabled",
+        "preprodSizePrCommentsRules",
         "preprodSizeEnabledQuery",
         "preprodDistributionEnabledQuery",
         "preprodSizeEnabledByCustomer",
@@ -279,6 +286,10 @@ E.g. `['release', 'environment']`""",
     )
     secondaryGroupingExpiry = serializers.IntegerField(min_value=1, required=False, allow_null=True)
     scrapeJavaScript = serializers.BooleanField(required=False)
+    enableAutoReleaseCreation = serializers.BooleanField(
+        required=False,
+        help_text="Automatically create releases from ingested events. When disabled, releases must be created manually (e.g. via the Sentry CLI).",
+    )
     allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
 
     copy_from_project = serializers.IntegerField(required=False)
@@ -591,9 +602,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         else:
             data["dynamicSamplingBiases"] = None
 
-        # filter for enabled plugins o/w the response body is gigantic and difficult to read
-        data["plugins"] = [plugin for plugin in data["plugins"] if plugin.get("enabled")]
-
         return Response(data)
 
     @extend_schema(
@@ -625,6 +633,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Note that solely having the **`project:read`** scope restricts updatable settings to
         `isBookmarked`, `autofixAutomationTuning`, `seerScannerAutomation`,
         `preprodSizeStatusChecksEnabled`, `preprodSizeStatusChecksRules`,
+        `preprodSizePrCommentsEnabled`, `preprodSizePrCommentsRules`,
         `preprodSizeEnabledQuery`, `preprodDistributionEnabledQuery`,
         `preprodSizeEnabledByCustomer`, `preprodDistributionEnabledByCustomer`,
         and `preprodDistributionPrCommentsEnabledByCustomer`.
@@ -793,6 +802,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("scrapeJavaScript") is not None:
             if project.update_option("sentry:scrape_javascript", result["scrapeJavaScript"]):
                 changed_proj_settings["sentry:scrape_javascript"] = result["scrapeJavaScript"]
+        if result.get("enableAutoReleaseCreation") is not None:
+            if project.update_option(
+                "sentry:enable_auto_release_creation", result["enableAutoReleaseCreation"]
+            ):
+                changed_proj_settings["sentry:enable_auto_release_creation"] = result[
+                    "enableAutoReleaseCreation"
+                ]
         if result.get("allowedDomains"):
             if project.update_option("sentry:origins", result["allowedDomains"]):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
@@ -860,6 +876,22 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:preprod_size_status_checks_rules"] = result[
                     "preprodSizeStatusChecksRules"
+                ]
+        if result.get("preprodSizePrCommentsEnabled") is not None:
+            if project.update_option(
+                "sentry:preprod_size_pr_comments_enabled",
+                result["preprodSizePrCommentsEnabled"],
+            ):
+                changed_proj_settings["sentry:preprod_size_pr_comments_enabled"] = result[
+                    "preprodSizePrCommentsEnabled"
+                ]
+        if result.get("preprodSizePrCommentsRules") is not None:
+            if project.update_option(
+                "sentry:preprod_size_pr_comments_rules",
+                result["preprodSizePrCommentsRules"],
+            ):
+                changed_proj_settings["sentry:preprod_size_pr_comments_rules"] = result[
+                    "preprodSizePrCommentsRules"
                 ]
 
         if "preprodSizeEnabledByCustomer" in result:

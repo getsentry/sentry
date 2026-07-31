@@ -1,14 +1,17 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Mapping, MutableMapping
+from typing import Any, Protocol
 
 from sentry.lang.dart.utils import (
     get_debug_meta_image_ids,
     has_native_frames_in_stacktraces,
 )
 from sentry.lang.java.utils import has_proguard_file
-from sentry.plugins.base.v2 import EventPreprocessor
+
+
+class EventPreprocessor(Protocol):
+    def __call__(self, data: MutableMapping[str, Any]) -> MutableMapping[str, Any] | None: ...
 
 
 def get_event_preprocessors(data: Mapping[str, Any]) -> list[EventPreprocessor]:

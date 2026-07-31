@@ -70,7 +70,11 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         },
         examples=[TagsExamples.GROUP_TAGKEY_VALUES],
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-tag-key-values"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-tag-key-values",
+        url_names=["sentry-api-0-group-tag-key-values"],
+    )
     def get(self, request: Request, group, key) -> Response[list[TagValueSerializerResponse]]:
         """
         List a Tag's Values

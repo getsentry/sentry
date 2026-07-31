@@ -7,6 +7,7 @@ from sentry.constants import ObjectStatus
 from sentry.db.pending_deletion import build_pending_deletion_key
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.exceptions import PluginError
+from sentry.integrations.example import ExampleRepositoryProvider
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -159,14 +160,18 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
             run_scheduled_deletions()
         assert Repository.objects.filter(id=repo.id).exists()
 
-    @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.delete_repository")
+    @patch.object(ExampleRepositoryProvider, "on_delete_repository")
     def test_delete_fail_email(self, mock_delete_repo: MagicMock) -> None:
         mock_delete_repo.side_effect = PluginError("foo")
 
         org = self.create_organization()
+        integration = self.create_integration(
+            organization=org, provider="example", external_id="example:1"
+        )
         repo = Repository.objects.create(
             organization_id=org.id,
-            provider="dummy",
+            provider="integrations:example",
+            integration_id=integration.id,
             name="example/example",
             status=ObjectStatus.PENDING_DELETION,
         )
@@ -182,14 +187,18 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
         assert "foo" in msg.body
         assert not Repository.objects.filter(id=repo.id).exists()
 
-    @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.delete_repository")
+    @patch.object(ExampleRepositoryProvider, "on_delete_repository")
     def test_delete_fail_email_random(self, mock_delete_repo: MagicMock) -> None:
         mock_delete_repo.side_effect = Exception("secrets")
 
         org = self.create_organization()
+        integration = self.create_integration(
+            organization=org, provider="example", external_id="example:1"
+        )
         repo = Repository.objects.create(
             organization_id=org.id,
-            provider="dummy",
+            provider="integrations:example",
+            integration_id=integration.id,
             name="example/example",
             status=ObjectStatus.PENDING_DELETION,
         )

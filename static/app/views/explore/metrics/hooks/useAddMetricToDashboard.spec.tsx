@@ -138,6 +138,60 @@ describe('useAddMetricToDashboard', () => {
     );
   });
 
+  it('carries the aggregate into fields for heat maps so the visualize is preserved', () => {
+    // Heat maps store their aggregate in `fields` (not `yAxis`), since the widget
+    // builder reads non-time-series aggregates from `fields`. If it only landed in
+    // `aggregates`, the visualize would be dropped and the widget would be broken.
+    const yAxis = 'count(value,metric.a,counter,none)';
+    const visualize = new VisualizeFunction(yAxis, {chartType: ChartType.HEATMAP});
+    const metricQuery: BaseMetricQuery = {
+      metric: {name: 'metric.a', type: 'counter'},
+      queryParams: new ReadableQueryParams({
+        extrapolate: true,
+        mode: Mode.AGGREGATE,
+        query: 'release:1.2.3',
+        cursor: '',
+        fields: [],
+        sortBys: [],
+        aggregateCursor: '',
+        aggregateFields: [visualize],
+        aggregateSortBys: [{field: yAxis, kind: 'desc'}],
+      }),
+    };
+
+    const {result} = renderHookWithProviders(useAddMetricToDashboard, {
+      ...context,
+    });
+
+    act(() => {
+      result.current.addToDashboard(metricQuery);
+    });
+
+    expect(openAddToDashboardModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        widgets: [
+          {
+            title: 'Custom Widget',
+            displayType: DisplayType.HEATMAP,
+            interval: undefined,
+            limit: undefined,
+            widgetType: WidgetType.TRACEMETRICS,
+            queries: [
+              {
+                aggregates: [yAxis],
+                columns: [],
+                fields: [yAxis],
+                conditions: 'release:1.2.3',
+                orderby: '',
+                name: '',
+              },
+            ],
+          },
+        ],
+      })
+    );
+  });
+
   it('does not pass an orderby if there are no group bys', () => {
     const yAxis = 'avg(value,metric.a,counter,none)';
     const visualize = new VisualizeFunction(yAxis, {chartType: ChartType.BAR});

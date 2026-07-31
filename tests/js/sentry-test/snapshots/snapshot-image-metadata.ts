@@ -1,6 +1,8 @@
+/* eslint-disable unicorn/filename-case */
 // Keep in sync with src/sentry/preprod/snapshots/manifest.py
 export interface SnapshotImageMetadata {
   display_name: string;
+  canvas_theme?: 'light' | 'dark';
   context?: {
     test_file_path: string;
   };
@@ -9,7 +11,7 @@ export interface SnapshotImageMetadata {
   // Skip height, width and image_file_name as they're handled by the CLI
 }
 
-type SnapshotArea = 'core' | 'snapshots';
+type SnapshotArea = 'core' | 'snapshots' | 'billing';
 
 type SnapshotTags = {area: SnapshotArea} & Record<string, string>;
 

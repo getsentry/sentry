@@ -101,7 +101,7 @@ describe('ExternalIssueList', () => {
       organization,
     });
     expect(
-      await screen.findByRole('button', {name: 'Test-Sentry/github-test#13'})
+      await screen.findByRole('link', {name: 'Test-Sentry/github-test#13'})
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Jira'})).toBeInTheDocument();
   });

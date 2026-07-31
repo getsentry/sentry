@@ -95,7 +95,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("workflow_engine", "0083_add_status_to_action"),
-        ("monitors", "0009_backfill_monitor_detectors"),
+        # ("monitors", "0009_backfill_monitor_detectors"),
     ]
 
     operations = [

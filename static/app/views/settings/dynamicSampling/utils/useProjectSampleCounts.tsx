@@ -114,7 +114,7 @@ export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod
     return Array.from(map.values()).map<ProjectSampleCount>(value => {
       return {
         ...value,
-        subProjects: value.subProjects.toSorted((a: any, b: any) => b.count - a.count),
+        subProjects: value.subProjects.toSorted((a, b) => b.count - a.count),
       };
     });
   }, [projectById, projectBySlug, queryResult]);

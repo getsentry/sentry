@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -13,7 +13,9 @@ import {
   useSpanSearchQueryBuilderProps,
   type UseSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -22,13 +24,19 @@ import {
   ExploreBodySearch,
 } from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {ConversationsChart} from 'sentry/views/explore/conversations/components/conversationsChart';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
+import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
+import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
-import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import {
+  FilterUrlParams,
+  TableUrlParams,
+} from 'sentry/views/insights/pages/agents/utils/urlParams';
 
 function ConversationsOverviewPage() {
   const organization = useOrganization();
@@ -54,14 +62,36 @@ function ConversationsOverviewPage() {
     });
   }, [organization]);
 
+  useEffect(() => {
+    if (!isOnboardingLoading) {
+      if (showOnboarding) {
+        trackAnalytics('conversations.onboarding.page-view', {
+          organization,
+        });
+      } else {
+        trackAnalytics('conversations.table.page-view', {
+          organization,
+        });
+      }
+    }
+  }, [showOnboarding, isOnboardingLoading, organization]);
+
   const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
       initialQuery: searchQuery ?? '',
-      onSearch: (newQuery: string) => {
+      onSearch: (newQuery, {queryIsValid}) => {
+        // The conversations API can't express negation (and other invalid
+        // syntax), so don't apply a query the builder has flagged as invalid.
+        if (!queryIsValid) {
+          return;
+        }
         setSearchQuery(newQuery);
         unsetCursor();
       },
       searchSource: 'conversations',
+      // The conversations API cannot express negation given how it fetches
+      // conversations, so hide negation operators from the search suggestions.
+      disallowNegation: true,
       replaceRawSearchKeys: ['gen_ai.conversation.id', 'gen_ai.input.messages'],
       matchKeySuggestions: [
         {key: 'gen_ai.conversation.id', valuePattern: /^[0-9a-fA-F]{8,32}$/},
@@ -76,43 +106,65 @@ function ConversationsOverviewPage() {
   const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
     useSpanSearchQueryBuilderProps(searchQueryBuilderProps);
 
+  // Value counts are span-level and can imply conversation results that the list
+  // will not return. Strip them so autocomplete only shows attribute values.
+  const searchQueryBuilderProviderProps = useMemo(() => {
+    const getTagValuesWithoutCounts: GetTagValues = async params => {
+      const values = await spanSearchQueryBuilderProviderProps.getTagValues(params);
+      return values.map(value =>
+        typeof value === 'string' ? value : {value: value.value}
+      );
+    };
+
+    return {
+      ...spanSearchQueryBuilderProviderProps,
+      getTagValues: getTagValuesWithoutCounts,
+    };
+  }, [spanSearchQueryBuilderProviderProps]);
+
   return (
-    <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
+    <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
       <ExploreBodySearch>
         <Layout.Main width="full">
           <Stack gap="md">
             <Flex gap="md" align="center" wrap="wrap">
-              <Flex gap="md" align="center">
+              <Flex gap="md" align="center" wrap="wrap">
                 <PageFilterBar condensed>
-                  <ProjectPageFilter resetParamsOnChange={[TableUrlParams.CURSOR]} />
+                  <ProjectPageFilter
+                    resetParamsOnChange={[TableUrlParams.CURSOR, FilterUrlParams.AGENT]}
+                  />
                   <EnvironmentPageFilter resetParamsOnChange={[TableUrlParams.CURSOR]} />
                   <DatePageFilter
                     {...datePageFilterProps}
                     resetParamsOnChange={[TableUrlParams.CURSOR]}
                   />
                 </PageFilterBar>
-                <AgentSelector
-                  storageKeyPrefix="conversations:agent-filter"
-                  referrer="api.insights.conversations.get-agent-names"
-                />
+                <AgentSelector referrer={Referrer.AGENT_NAMES} />
               </Flex>
               {!showOnboarding && !isOnboardingLoading && (
                 <Flex flex={1} minWidth="300px">
-                  <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+                  <TraceItemSearchQueryBuilder
+                    {...spanSearchQueryBuilderProps}
+                    placeholder={t('Search or paste a conversation ID')}
+                  />
                 </Flex>
               )}
+              {!showOnboarding && !isOnboardingLoading && <SaveConversationQueryButton />}
             </Flex>
           </Stack>
         </Layout.Main>
       </ExploreBodySearch>
       <ExploreBodyContent>
-        <Stack flex={1} padding="xl" gap="md">
+        <Stack flex={1} minWidth="0" padding="xl" gap="md">
           {isOnboardingLoading ? (
             <LoadingIndicator />
           ) : showOnboarding ? (
             <ConversationOnboarding onDismiss={refetchOnboarding} />
           ) : (
-            <ConversationsTable />
+            <Fragment>
+              <ConversationsChart />
+              <ConversationsTable />
+            </Fragment>
           )}
         </Stack>
       </ExploreBodyContent>

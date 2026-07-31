@@ -35,6 +35,7 @@ import {
   isBizPlanFamily,
   isTeamPlanFamily,
 } from 'getsentry/utils/billing';
+import {isCheckoutCategory} from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
@@ -348,7 +349,7 @@ function recordAnalytics(
   // Parse previous data and populate both flat and nested structures
   Object.entries(subscription.categories).forEach(([category, metricHistory]) => {
     if (
-      subscription.planDetails.checkoutCategories.includes(category as DataCategory) &&
+      isCheckoutCategory(category as DataCategory, subscription.planDetails) &&
       metricHistory.reserved !== null &&
       metricHistory.reserved !== undefined
     ) {
@@ -665,6 +666,7 @@ export function useSubmitCheckout({
     },
     onError: (error: RequestError, _variables) => {
       const body = error.responseJSON;
+      onSubmitting?.(false);
 
       if (body?.previewToken) {
         onErrorMessage(
@@ -699,7 +701,6 @@ export function useSubmitCheckout({
               t('An unknown error occurred while saving your subscription')
           );
         }
-        onSubmitting?.(false);
 
         // TODO: add 402 ignoring once we've confirmed all valid error states
         Sentry.withScope(scope => {

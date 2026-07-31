@@ -6,9 +6,13 @@ import {rc, type Responsive} from '@sentry/scraps/layout';
 import type {HeadingSize} from 'sentry/utils/theme';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
-import {type BaseTextProps, type ExclusiveTextEllipsisProps} from './text';
+import {type BaseTextProps} from './text';
 
 type BaseHeadingProps = Omit<BaseTextProps, 'bold' | 'uppercase'>;
+
+type ExclusiveHeadingEllipsisProps =
+  | {ellipsis?: true; wrap?: never}
+  | {ellipsis?: never; wrap?: BaseTextProps['wrap']};
 
 export type HeadingProps = BaseHeadingProps & {
   /**
@@ -32,10 +36,10 @@ export type HeadingProps = BaseHeadingProps & {
     React.DetailedHTMLProps<React.HTMLAttributes<HTMLHeadingElement>, HTMLHeadingElement>,
     'style'
   > &
-  ExclusiveTextEllipsisProps;
+  ExclusiveHeadingEllipsisProps;
 
 export type HeadingPropsWithRenderFunction = BaseHeadingProps &
-  ExclusiveTextEllipsisProps & {
+  ExclusiveHeadingEllipsisProps & {
     children: (props: {className: string}) => React.ReactNode | undefined;
     as?: never;
     ref?: never;

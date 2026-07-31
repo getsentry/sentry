@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Final, NotRequired, TypedDict
 
 import orjson
-import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db import connection
@@ -15,7 +14,6 @@ from django.utils import timezone
 
 from sentry import features, options, projectoptions, quotas, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles
 from sentry.app import env
 from sentry.auth.access import Access
@@ -33,7 +31,7 @@ from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_project
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
-from sentry.models.environment import EnvironmentProject
+from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.options.project_option import OPTION_KEYS, ProjectOption
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -44,13 +42,16 @@ from sentry.models.release import Release
 from sentry.models.userreport import UserReport
 from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.snuba import discover
+from sentry.snuba.spans_rpc import Spans
 from sentry.tempest.utils import has_tempest_access
 from sentry.users.api.serializers.user import SerializedAvatarFields
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.tracing import set_span_data, start_span
 
 if TYPE_CHECKING:
     from sentry.api.serializers.models.organization import OrganizationSummarySerializerResponse
@@ -72,6 +73,11 @@ STATS_PERIOD_CHOICES = {
 }
 
 _PROJECT_SCOPE_PREFIX = "projects:"
+
+# Transactions live in the spans dataset as 'segment' spans, so counting them means
+# counting spans matching `is_transaction:true` (might change later to is_segment)
+TRANSACTION_STATS_QUERY = "is_transaction:true"
+TRANSACTION_STATS_COUNT = "count(span.duration)"
 
 LATEST_DEPLOYS_KEY: Final = "latestDeploys"
 UNUSED_ON_FRONTEND_FEATURES: Final = "unusedFeatures"
@@ -136,7 +142,7 @@ def get_access_by_project(
 
     result: dict[Project, dict[str, Any]] = {}
     has_team_roles_cache: dict[int, bool] = {}
-    with sentry_sdk.start_span(op="project.check-access"):
+    with start_span(op="project.check-access", name="project.check-access"):
         for project in projects:
             member_teams = [
                 memberships_by_team[tid]
@@ -367,8 +373,11 @@ class ProjectSerializer(Serializer):
         self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> dict[Project, dict[str, Any]]:
         def measure_span(op_tag):
-            span = sentry_sdk.start_span(op=f"serialize.get_attrs.project.{op_tag}")
-            span.set_data("Object Count", len(item_list))
+            span = start_span(
+                op=f"serialize.get_attrs.project.{op_tag}",
+                name=f"serialize.get_attrs.project.{op_tag}",
+            )
+            set_span_data(span, "Object Count", len(item_list))
             return span
 
         with measure_span("preamble"):
@@ -391,7 +400,7 @@ class ProjectSerializer(Serializer):
             if self.stats_period:
                 stats = self.get_stats(item_list, "!event.type:transaction")
                 if self._expand("transaction_stats"):
-                    transaction_stats = self.get_stats(item_list, "event.type:transaction")
+                    transaction_stats = self.get_transaction_stats(item_list)
                 if self._expand("session_stats"):
                     session_stats = self.get_session_stats(project_ids)
 
@@ -472,6 +481,59 @@ class ProjectSerializer(Serializer):
                 for item in stats[str_id].data["data"]:
                     serialized.append((item["time"], item.get("count", 0)))
             results[project.id] = serialized
+        return results
+
+    def get_transaction_stats(
+        self, projects: Sequence[Project]
+    ) -> dict[int, list[tuple[int, int]]]:
+        """Transaction counts can only come from the spans dataset now with is_transaction:true"""
+        assert self.stats_period is not None
+        segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
+        now = timezone.now()
+        rollup = int(interval.total_seconds())
+        start = now - ((segments - 1) * interval)
+
+        snuba_params = SnubaParams(
+            projects=projects,
+            environments=(
+                list(Environment.objects.filter(id=self.environment_id))
+                if self.environment_id
+                else []
+            ),
+            start=start,
+            end=now,
+            granularity_secs=rollup,
+        )
+
+        stats = Spans.run_top_events_timeseries_query(
+            params=snuba_params,
+            query_string=TRANSACTION_STATS_QUERY,
+            y_axes=[TRANSACTION_STATS_COUNT],
+            raw_groupby=["project.id"],
+            orderby=[f"-{TRANSACTION_STATS_COUNT}"],
+            limit=len(projects),
+            include_other=False,
+            referrer="api.serializer.projects.get_transaction_stats",
+            config=SearchResolverConfig(),
+            sampling_mode=None,
+        )
+
+        # The spans query drops projects without transactions entirely, but callers expect
+        # every project to come back with a full series.
+        empty_series = [
+            (item["time"], 0) for item in discover.zerofill([], start, now, rollup, ["time"])
+        ]
+
+        results = {}
+        for project in projects:
+            str_id = str(project.id)
+            if str_id in stats:
+                results[project.id] = [
+                    (item["time"], item.get(TRANSACTION_STATS_COUNT) or 0)
+                    for item in stats[str_id].data["data"]
+                ]
+            else:
+                results[project.id] = list(empty_series)
         return results
 
     def get_session_stats(
@@ -950,6 +1012,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     verifySSL: bool
     scrubIPAddresses: bool
     scrapeJavaScript: bool
+    enableAutoReleaseCreation: bool
     highlightTags: list[str]
     highlightContext: dict[str, Any]
     highlightPreset: HighlightPreset
@@ -960,7 +1023,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     secondaryGroupingConfig: str | None
     fingerprintingRules: str
     organization: OrganizationSummarySerializerResponse
-    plugins: list[Plugin]
     platforms: list[str]
     processingIssues: int
     defaultEnvironment: str | None
@@ -1021,8 +1083,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> DetailedProjectResponse:
-        from sentry.plugins.base import plugins
-
         base = super().serialize(obj, attrs, user)
 
         custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")
@@ -1079,6 +1139,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "verifySSL": bool(attrs["options"].get("sentry:verify_ssl", False)),
             "scrubIPAddresses": bool(attrs["options"].get("sentry:scrub_ip_address", False)),
             "scrapeJavaScript": bool(attrs["options"].get("sentry:scrape_javascript", True)),
+            "enableAutoReleaseCreation": bool(
+                attrs["options"].get("sentry:enable_auto_release_creation", True)
+            ),
             "highlightTags": attrs["options"].get(
                 "sentry:highlight_tags",
                 attrs["highlight_preset"].get("tags", []),
@@ -1105,15 +1168,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 attrs, "sentry:fingerprinting_rules"
             ),
             "organization": attrs["org"],
-            "plugins": serialize(
-                [
-                    plugin
-                    for plugin in plugins.configurable_for_project(obj, version=None)
-                    if plugin.has_project_conf()
-                ],
-                user,
-                PluginSerializer(obj),
-            ),
             "platforms": attrs["platforms"],
             "processingIssues": attrs["processing_issues"],
             "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
@@ -1198,6 +1252,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
             "sentry:preprod_size_status_checks_rules": options.get(
                 "sentry:preprod_size_status_checks_rules"
+            ),
+            "sentry:preprod_size_pr_comments_enabled": options.get(
+                "sentry:preprod_size_pr_comments_enabled", False
+            ),
+            "sentry:preprod_size_pr_comments_rules": options.get(
+                "sentry:preprod_size_pr_comments_rules"
             ),
             "sentry:preprod_snapshot_status_checks_enabled": options.get(
                 "sentry:preprod_snapshot_status_checks_enabled", True

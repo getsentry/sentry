@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Generator
 from unittest.mock import patch
 
 import pytest
@@ -13,12 +12,9 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.pipeline.types import PipelineStepAction
-from sentry.plugins.base import plugins
-from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
 from sentry.testutils.cases import IntegrationTestCase
@@ -26,10 +22,6 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.users.models.identity import Identity
-
-
-class ExamplePlugin(IssuePlugin2):
-    slug = "example"
 
 
 def naive_build_integration(data):
@@ -44,12 +36,6 @@ def naive_build_integration(data):
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
     external_id = "dummy_id-123"
-
-    @pytest.fixture(autouse=True)
-    def _register_example_plugin(self) -> Generator[None]:
-        plugins.register(ExamplePlugin)
-        yield
-        plugins.unregister(ExamplePlugin)
 
     @pytest.fixture(autouse=True)
     def _modify_provider(self):
@@ -360,27 +346,6 @@ class FinishPipelineTestCase(IntegrationTestCase):
             integration_id=integration.id, organization_id=self.organization.id
         ).exists()
 
-    @patch("sentry.plugins.migrator.Migrator.run")
-    def test_disabled_plugin_when_fully_migrated(self, run, *args) -> None:
-        with assume_test_silo_mode(SiloMode.CELL):
-            Repository.objects.create(
-                organization_id=self.organization.id,
-                name="user/repo",
-                url="https://example.org/user/repo",
-                provider=self.provider.key,
-                external_id=self.external_id,
-            )
-
-        self.pipeline.state.data = {
-            "external_id": self.external_id,
-            "name": "Name",
-            "metadata": {"url": "https://example.com"},
-        }
-
-        self.pipeline.finish_pipeline()
-
-        assert run.called
-
     @patch("sentry.integrations.pipeline.logger")
     def test_disallow_with_no_permission(self, mock_logger, *args) -> None:
         member_user = self.create_user()
@@ -550,12 +515,6 @@ class FinishPipelineTestCase(IntegrationTestCase):
 class ApiFinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
     external_id = "dummy_id-123"
-
-    @pytest.fixture(autouse=True)
-    def _register_example_plugin(self) -> Generator[None]:
-        plugins.register(ExamplePlugin)
-        yield
-        plugins.unregister(ExamplePlugin)
 
     @pytest.fixture(autouse=True)
     def _modify_provider(self):

@@ -1,25 +1,23 @@
-import {useCallback} from 'react';
 import {useMatches} from 'react-router-dom';
 
-import type {ButtonProps} from '@sentry/scraps/button';
+import type {TrackingProps} from '@sentry/scraps/trackingContext';
 
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {convertToReloadPath, getEventPath} from 'getsentry/utils/routeAnalytics';
 
-type Props = ButtonProps;
-
-export function useButtonTracking({
-  analyticsEventName,
-  analyticsEventKey,
-  analyticsParams,
-  'aria-label': ariaLabel,
-}: Props) {
+export function useButtonTracking() {
   const organization = useOrganization({allowNull: true});
   const matches = useMatches();
 
-  const trackButton = useCallback(() => {
+  return ({
+    clickType,
+    analyticsEventName,
+    analyticsEventKey,
+    analyticsParams,
+    'aria-label': ariaLabel,
+  }: TrackingProps) => {
     const considerSendingAnalytics = organization && Boolean(matches);
 
     if (considerSendingAnalytics) {
@@ -30,7 +28,7 @@ export function useButtonTracking({
       // note null means something different than undefined for eventName so
       // checking for that explicitly
       const eventKey =
-        analyticsEventKey === undefined
+        analyticsEventKey === undefined && clickType === 'button'
           ? `button_click.${reloadPath}`
           : analyticsEventKey;
       const eventName = analyticsEventName === undefined ? null : analyticsEventName;
@@ -45,14 +43,5 @@ export function useButtonTracking({
         ...analyticsParams,
       });
     }
-  }, [
-    analyticsEventKey,
-    analyticsEventName,
-    analyticsParams,
-    ariaLabel,
-    organization,
-    matches,
-  ]);
-
-  return trackButton;
+  };
 }

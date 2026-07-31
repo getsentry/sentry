@@ -1,143 +1,179 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {
-  ConversationsTable,
-  InputOutputTooltipCell,
-} from 'sentry/views/explore/conversations/components/conversationsTable';
-import {
-  useConversations,
-  type Conversation,
-} from 'sentry/views/explore/conversations/hooks/useConversations';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 
-jest.mock('sentry/views/explore/conversations/hooks/useConversations');
+import {ConversationsTable, getVisibleToolCount} from './conversationsTable';
 
-const mockUseConversations = jest.mocked(useConversations);
+const BASE_CONVERSATION = {
+  conversationId: 'conv-1',
+  endTimestamp: 2000,
+  errors: 0,
+  firstInput: null,
+  generationDuration: 5000,
+  lastOutput: null,
+  inputTokens: 10,
+  outputTokens: 20,
+  llmCalls: 3,
+  projectId: null,
+  startTimestamp: 1000,
+  title: null,
+  toolCalls: 0,
+  toolErrors: 0,
+  toolNames: [],
+  totalCost: null,
+  totalTokens: 100,
+  traceCount: 1,
+  traceIds: ['trace-1'],
+  user: null,
+};
 
-function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
-  return {
-    conversationId: 'conv-1',
-    duration: 0,
-    endTimestamp: 0,
-    errors: 0,
-    firstInput: 'hello',
-    lastOutput: 'world',
-    llmCalls: 0,
-    startTimestamp: 0,
-    toolCalls: 0,
-    toolErrors: 0,
-    toolNames: [],
-    totalCost: null,
-    totalTokens: 0,
-    traceCount: 0,
-    traceIds: [],
-    user: null,
-    ...overrides,
-  };
+const organization = OrganizationFixture({
+  features: ['gen-ai-conversations'],
+});
+
+function mockConversations(body: Array<Record<string, unknown>>) {
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/ai-conversations/`,
+    body,
+  });
 }
 
-function mockConversations(data: Conversation[], overrides = {}) {
-  mockUseConversations.mockReturnValue({
-    data,
-    isLoading: false,
-    error: null,
-    pageLinks: undefined,
-    setCursor: jest.fn(),
-    ...overrides,
-  } as any);
+function renderTable() {
+  return render(<ConversationsTable />, {organization});
 }
 
-const MISSING_MESSAGES_TEXT = 'Capture Your Conversation Messages';
-
-describe('ConversationsTable missing messages alert', () => {
-  const organization = OrganizationFixture({features: ['gen-ai-conversations']});
-
-  afterEach(() => {
-    jest.clearAllMocks();
+describe('ConversationsTable', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    act(() => {
+      PageFiltersStore.reset();
+      PageFiltersStore.init();
+    });
   });
 
-  it('shows the alert when no conversation has input or output', () => {
+  it('renders the AI-generated title when present', async () => {
     mockConversations([
-      makeConversation({firstInput: null, lastOutput: null}),
-      makeConversation({conversationId: 'conv-2', firstInput: null, lastOutput: null}),
+      {
+        ...BASE_CONVERSATION,
+        title: 'Summarize Q2 revenue trends',
+        firstInput: 'can you look at revenue',
+      },
     ]);
 
-    render(<ConversationsTable />, {organization});
+    renderTable();
 
-    expect(screen.getByText(MISSING_MESSAGES_TEXT)).toBeInTheDocument();
+    expect(await screen.findByText('Summarize Q2 revenue trends')).toBeInTheDocument();
   });
 
-  it('does not show the alert when a conversation has input or output', () => {
+  it('falls back to the first input message when there is no title', async () => {
     mockConversations([
-      makeConversation({firstInput: null, lastOutput: null}),
-      makeConversation({conversationId: 'conv-2', firstInput: 'hi', lastOutput: null}),
+      {...BASE_CONVERSATION, title: null, firstInput: 'Debug failing auth middleware'},
     ]);
 
-    render(<ConversationsTable />, {organization});
+    renderTable();
 
-    expect(screen.queryByText(MISSING_MESSAGES_TEXT)).not.toBeInTheDocument();
+    expect(await screen.findByText('Debug failing auth middleware')).toBeInTheDocument();
   });
 
-  it('does not show the alert when there are no conversations', () => {
-    mockConversations([]);
+  it('flattens markdown and tags in the title to plain text', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: '# Summarize <b>Q2</b> revenue'}]);
 
-    render(<ConversationsTable />, {organization});
+    renderTable();
 
-    expect(screen.queryByText(MISSING_MESSAGES_TEXT)).not.toBeInTheDocument();
+    expect(await screen.findByText('Summarize Q2 revenue')).toBeInTheDocument();
   });
 
-  it('does not show the alert while loading', () => {
-    mockConversations([], {isLoading: true});
+  it('shows the placeholder when the first message flattens to nothing', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: null, firstInput: '```\n```'}]);
 
-    render(<ConversationsTable />, {organization});
+    renderTable();
 
-    expect(screen.queryByText(MISSING_MESSAGES_TEXT)).not.toBeInTheDocument();
+    expect(await screen.findByText('Untitled conversation')).toBeInTheDocument();
+  });
+
+  it('renders the user identity', async () => {
+    mockConversations([
+      {
+        ...BASE_CONVERSATION,
+        title: 'A conversation',
+        user: {
+          id: '1',
+          email: 'sarah@example.com',
+          username: null,
+          ip_address: null,
+        },
+      },
+    ]);
+
+    renderTable();
+
+    expect(await screen.findByText('sarah@example.com')).toBeInTheDocument();
+  });
+
+  it('renders tool tags', async () => {
+    mockConversations([
+      {
+        ...BASE_CONVERSATION,
+        title: 'A conversation',
+        toolNames: ['get_issue_details', 'execute_query'],
+      },
+    ]);
+
+    renderTable();
+
+    // Tags render both in the visible row and the hidden measurement layer, so
+    // there is more than one match. Overflow math is layout-dependent and is
+    // covered by the getVisibleToolCount unit tests below.
+    expect((await screen.findAllByText('get_issue_details')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('execute_query').length).toBeGreaterThan(0);
+  });
+
+  it('navigates to the conversation detail on row click', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Open me'}]);
+
+    const {router} = renderTable();
+
+    await userEvent.click(await screen.findByText('Open me'));
+
+    await waitFor(() => {
+      expect(router.location.pathname).toContain('conv-1');
+    });
   });
 });
 
-function mockOverflow(width: number, containerWidth: number) {
-  Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
-    configurable: true,
-    value: width,
-  });
-  Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
-    configurable: true,
-    value: containerWidth,
-  });
-}
+describe('getVisibleToolCount', () => {
+  // 5 tags of 40px each, 4px gap, and a 30px overflow badge.
+  const tagWidths = [40, 40, 40, 40, 40];
+  const badgeWidth = 30;
+  const gap = 4;
 
-describe('InputOutputTooltipCell', () => {
-  afterEach(() => {
-    // @ts-expect-error cleanup previously mocked properties
-    delete HTMLElement.prototype.scrollWidth;
-    // @ts-expect-error cleanup previously mocked properties
-    delete HTMLElement.prototype.clientWidth;
+  it('shows every tag when they all fit within the row budget', () => {
+    // Two rows of ~500px each easily fit all five 40px tags.
+    expect(
+      getVisibleToolCount({tagWidths, badgeWidth, gap, containerWidth: 500, maxRows: 2})
+    ).toBe(5);
   });
 
-  it('does not show the tooltip when the cell content fits', async () => {
-    mockOverflow(80, 120);
-
-    render(
-      <InputOutputTooltipCell text={'Conversation preview\n\n```js\ntooltip only\n```'} />
-    );
-
-    await userEvent.hover(screen.getByText('Conversation preview'));
-
-    expect(screen.queryByText('tooltip only')).not.toBeInTheDocument();
-  });
-
-  it('shows the tooltip when the cell content overflows', async () => {
-    mockOverflow(180, 100);
-
-    render(
-      <InputOutputTooltipCell text={'Conversation preview\n\n```js\ntooltip only\n```'} />
-    );
-
-    await userEvent.hover(screen.getByText('Conversation preview'));
-
-    await waitFor(() => {
-      expect(screen.getByText('tooltip only')).toBeInTheDocument();
+  it('reserves room for the overflow badge when tags spill past the rows', () => {
+    // Each row holds two 40px tags (40 + 4 + 40 = 84 <= 100). Two rows hold
+    // four, but the fifth tag would need a third row, so the badge takes the
+    // last slot: 3 tags visible + "+2".
+    const visible = getVisibleToolCount({
+      tagWidths,
+      badgeWidth,
+      gap,
+      containerWidth: 100,
+      maxRows: 2,
     });
+    expect(visible).toBe(3);
+  });
+
+  it('can collapse everything into the badge in a very narrow column', () => {
+    // 20px only fits the 30px badge on its own — no tag fits alongside it.
+    expect(
+      getVisibleToolCount({tagWidths, badgeWidth, gap, containerWidth: 20, maxRows: 2})
+    ).toBe(0);
   });
 });

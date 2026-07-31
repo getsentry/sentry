@@ -4,29 +4,29 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {Config} from 'sentry/types/system';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationCreate, {
   DATA_STORAGE_DOCS_LINK,
 } from 'sentry/views/organizationCreate';
 
 describe('OrganizationCreate', () => {
-  let configstate: Config;
+  const configstate = ConfigStore.getState();
 
+  // The component subscribes to ConfigStore, so config is restored before each
+  // test rather than in afterEach — the describe-level afterEach runs before
+  // React Testing Library unmounts, which would re-render a mounted component
+  // outside of act().
   beforeEach(() => {
-    ConfigStore.get('termsUrl');
-    ConfigStore.get('privacyUrl');
-
-    configstate = ConfigStore.getState();
+    ConfigStore.loadInitialData(configstate);
 
     // Set only a single locality in the config store by default
     ConfigStore.set('localities', [{name: '--monolith--', url: 'https://example.com'}]);
+    ConfigStore.set('signupLocalities', ['--monolith--']);
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
-    ConfigStore.loadInitialData(configstate);
   });
 
   it('renders without terms', () => {
@@ -84,13 +84,18 @@ describe('OrganizationCreate', () => {
         success: expect.any(Function),
         error: expect.any(Function),
         method: 'POST',
-        data: {agreeTerms: true, defaultTeam: true, name: 'Good Burger'},
+        data: {
+          agreeTerms: true,
+          defaultTeam: true,
+          name: 'Good Burger',
+          aggregatedDataConsent: false,
+        },
         host: ConfigStore.get('links').sentryUrl,
       });
     });
     expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
-      '/organizations/org-slug/projects/new/'
+      '/organizations/org-slug/projects/new/?projectCreationOrigin=org_creation'
     );
   });
 
@@ -117,7 +122,12 @@ describe('OrganizationCreate', () => {
 
     await waitFor(() => {
       expect(orgCreateMock).toHaveBeenCalledWith('/organizations/', {
-        data: {agreeTerms: true, defaultTeam: true, name: 'Good Burger'},
+        data: {
+          agreeTerms: true,
+          defaultTeam: true,
+          name: 'Good Burger',
+          aggregatedDataConsent: false,
+        },
         method: 'POST',
         success: expect.any(Function),
         error: expect.any(Function),
@@ -127,7 +137,7 @@ describe('OrganizationCreate', () => {
 
     expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
-      'https://org-slug.sentry.io/projects/new/'
+      'https://org-slug.sentry.io/projects/new/?projectCreationOrigin=org_creation'
     );
   });
 
@@ -146,6 +156,7 @@ describe('OrganizationCreate', () => {
         name: 'de',
       },
     ]);
+    ConfigStore.set('signupLocalities', ['us', 'de']);
 
     return orgCreateMock;
   }
@@ -154,6 +165,7 @@ describe('OrganizationCreate', () => {
     const orgCreateMock = multiLocalitySetup();
     // Set only a single region in the config store
     ConfigStore.set('localities', [{name: '--monolith--', url: 'https://example.com'}]);
+    ConfigStore.set('signupLocalities', ['--monolith--']);
     ConfigStore.set('features', new Set(['system:multi-region']));
 
     render(<OrganizationCreate />);
@@ -167,13 +179,13 @@ describe('OrganizationCreate', () => {
         error: expect.any(Function),
         method: 'POST',
         host: ConfigStore.get('links').sentryUrl,
-        data: {defaultTeam: true, name: 'Good Burger'},
+        data: {defaultTeam: true, name: 'Good Burger', aggregatedDataConsent: false},
       });
     });
 
     expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
-      'https://org-slug.sentry.io/projects/new/'
+      'https://org-slug.sentry.io/projects/new/?projectCreationOrigin=org_creation'
     );
   });
 
@@ -204,13 +216,18 @@ describe('OrganizationCreate', () => {
         error: expect.any(Function),
         method: 'POST',
         host: ConfigStore.get('links').sentryUrl,
-        data: {defaultTeam: true, name: 'Good Burger', dataStorageLocation: 'us'},
+        data: {
+          defaultTeam: true,
+          name: 'Good Burger',
+          dataStorageLocation: 'us',
+          aggregatedDataConsent: false,
+        },
       });
     });
 
     expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
-      'https://org-slug.sentry.io/projects/new/'
+      'https://org-slug.sentry.io/projects/new/?projectCreationOrigin=org_creation'
     );
   });
 
@@ -236,13 +253,18 @@ describe('OrganizationCreate', () => {
         error: expect.any(Function),
         method: 'POST',
         host: ConfigStore.get('links').sentryUrl,
-        data: {defaultTeam: true, name: 'Good Burger', dataStorageLocation: 'de'},
+        data: {
+          defaultTeam: true,
+          name: 'Good Burger',
+          dataStorageLocation: 'de',
+          aggregatedDataConsent: false,
+        },
       });
     });
 
     expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
-      'https://org-slug.sentry.io/projects/new/'
+      'https://org-slug.sentry.io/projects/new/?projectCreationOrigin=org_creation'
     );
   });
 
@@ -256,6 +278,7 @@ describe('OrganizationCreate', () => {
         name: 'de',
       },
     ]);
+    ConfigStore.set('signupLocalities', ['us', 'de']);
     const orgCreateMock = MockApiClient.addMockResponse({
       host: ConfigStore.get('links').sentryUrl,
       url: '/organizations/',
@@ -281,13 +304,18 @@ describe('OrganizationCreate', () => {
         error: expect.any(Function),
         method: 'POST',
         host: 'https://sentry.io',
-        data: {defaultTeam: true, name: 'Good Burger', dataStorageLocation: 'de'},
+        data: {
+          defaultTeam: true,
+          name: 'Good Burger',
+          dataStorageLocation: 'de',
+          aggregatedDataConsent: false,
+        },
       });
     });
 
     expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
-      'https://org-slug.sentry.io/projects/new/'
+      'https://org-slug.sentry.io/projects/new/?projectCreationOrigin=org_creation'
     );
   });
 });

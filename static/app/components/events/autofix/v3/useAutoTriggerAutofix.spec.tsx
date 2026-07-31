@@ -16,6 +16,7 @@ function makeAutofix(
     triggerCodingAgentHandoff: jest.fn(),
     codingAgentErrors: [],
     dismissCodingAgentError: jest.fn(),
+    warnings: [],
     isLoading: false,
     isPolling: false,
   };

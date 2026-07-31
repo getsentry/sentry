@@ -3,11 +3,9 @@ import type {PreviewData} from 'getsentry/types';
 export function InvoicePreviewFixture(params: Partial<PreviewData> = {}): PreviewData {
   return {
     atPeriodEnd: false,
-    balanceChange: 0,
     proratedAmount: 8900,
     billedAmount: 8900,
     creditApplied: 0,
-    newBalance: 0,
     effectiveAt: '2020-06-08T05:01:02.304299Z',
     previewToken: '1:2020-06-08T05:01:02',
     invoiceItems: [

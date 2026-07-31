@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-import sentry_sdk
 from django.db.models import Max, OuterRef, Subquery
 from taskbroker_client.retry import Retry
 
@@ -15,6 +14,7 @@ from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
+from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +91,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
         extra=logger_extra,
     )
 
-    with sentry_sdk.start_span(name="iterate_chunked_group_ids"):
+    with start_span(name="iterate_chunked_group_ids"):
         for groups in chunked(
             RangeQuerySetWrapper(
                 base_queryset,
@@ -129,8 +129,8 @@ def run_auto_transition_issues_new_to_ongoing(
     Child task of `auto_transition_issues_new_to_ongoing`
     to conduct the update of specified Groups to Ongoing.
     """
-    with sentry_sdk.start_span(name="bulk_transition_group_to_ongoing") as span:
-        span.set_tag("group_ids", group_ids)
+    with start_span(name="bulk_transition_group_to_ongoing") as span:
+        set_span_tag(span, "group_ids", group_ids)
         bulk_transition_group_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.NEW,
@@ -187,7 +187,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
         )
     )
 
-    with sentry_sdk.start_span(name="iterate_chunked_group_ids"):
+    with start_span(name="iterate_chunked_group_ids"):
         for group_ids_with_regressed_history in chunked(
             RangeQuerySetWrapper(
                 base_queryset.values_list("id", flat=True),
@@ -224,8 +224,8 @@ def run_auto_transition_issues_regressed_to_ongoing(
     Child task of `auto_transition_issues_regressed_to_ongoing`
     to conduct the update of specified Groups to Ongoing.
     """
-    with sentry_sdk.start_span(name="bulk_transition_group_to_ongoing") as span:
-        span.set_tag("group_ids", group_ids)
+    with start_span(name="bulk_transition_group_to_ongoing") as span:
+        set_span_tag(span, "group_ids", group_ids)
         bulk_transition_group_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.REGRESSED,
@@ -284,7 +284,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
         )
     )
 
-    with sentry_sdk.start_span(name="iterate_chunked_group_ids"):
+    with start_span(name="iterate_chunked_group_ids"):
         for new_group_ids in chunked(
             RangeQuerySetWrapper(
                 base_queryset.values_list("id", flat=True),
@@ -321,8 +321,8 @@ def run_auto_transition_issues_escalating_to_ongoing(
     Child task of `auto_transition_issues_escalating_to_ongoing`
     to conduct the update of specified Groups to Ongoing.
     """
-    with sentry_sdk.start_span(name="bulk_transition_group_to_ongoing") as span:
-        span.set_tag("group_ids", group_ids)
+    with start_span(name="bulk_transition_group_to_ongoing") as span:
+        set_span_tag(span, "group_ids", group_ids)
         bulk_transition_group_to_ongoing(
             GroupStatus.UNRESOLVED,
             GroupSubStatus.ESCALATING,

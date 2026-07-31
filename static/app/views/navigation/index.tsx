@@ -12,10 +12,7 @@ import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/command
 import {t} from 'sentry/locale';
 import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  MobileNavigation,
-  MobilePageFrameNavigation,
-} from 'sentry/views/navigation/mobileNavigation';
+import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
 import {
   NavigationTourProvider,
@@ -28,7 +25,6 @@ import {
   MobileSecondaryNavigationContextProvider,
   useSecondaryNavigation,
 } from 'sentry/views/navigation/secondaryNavigationContext';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
@@ -55,12 +51,10 @@ function CommandPaletteSlotOutlets() {
   );
 }
 
-function UserAndOrganizationNavigation() {
+function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
   const {layout} = usePrimaryNavigation();
   const {visible} = useModal();
   const {view, setView} = useSecondaryNavigation();
-
-  const hasPageFrame = useHasPageFrameFeature();
 
   useHotkeys(
     visible
@@ -74,13 +68,13 @@ function UserAndOrganizationNavigation() {
   );
 
   return (
-    <NavigationLayout>
+    <NavigationLayout pageBannerHeight={pageBannerHeight}>
       <CommandPaletteHotkeys />
       <CommandPaletteSlotOutlets />
       <GlobalCommandPaletteActions />
       {layout === 'mobile' ? (
         <MobileSecondaryNavigationContextProvider>
-          {hasPageFrame ? <MobilePageFrameNavigation /> : <MobileNavigation />}
+          <MobileNavigation />
         </MobileSecondaryNavigationContextProvider>
       ) : (
         <DesktopNavigation />
@@ -97,7 +91,14 @@ function UserOnlyNavigation() {
   );
 }
 
-function NavigationLayout({children}: {children: React.ReactNode}) {
+interface NavigationProps {
+  pageBannerHeight?: number;
+}
+
+function NavigationLayout({
+  children,
+  pageBannerHeight = 0,
+}: NavigationProps & {children: React.ReactNode}) {
   const theme = useTheme();
   const {layout} = usePrimaryNavigation();
   const {currentStepId} = useNavigationTour();
@@ -110,7 +111,14 @@ function NavigationLayout({children}: {children: React.ReactNode}) {
       left={0}
       position={currentStepId ? undefined : 'sticky'}
       bottom={layout === 'mobile' ? undefined : 0}
-      height={layout === 'mobile' ? undefined : `calc(100dvh - ${barTop})`}
+      height={
+        layout === 'mobile'
+          ? undefined
+          : // barTop (marquee) and pageBannerHeight (marquee + alerts) overlap, so
+            // max not sum; barTop also floors the height while pageBannerHeight's
+            // ResizeObserver still reports 0 on first paint.
+            `calc(100dvh - max(${barTop}, ${pageBannerHeight}px))`
+      }
       style={{
         zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
         userSelect: 'none',
@@ -122,7 +130,7 @@ function NavigationLayout({children}: {children: React.ReactNode}) {
   );
 }
 
-export function Navigation() {
+export function Navigation({pageBannerHeight = 0}: NavigationProps) {
   const organization = useOrganization({allowNull: true});
 
   if (!organization) {
@@ -138,7 +146,7 @@ export function Navigation() {
     <HoverOverlayGroupProvider>
       <NavigationTourProvider>
         <SkipLink />
-        <UserAndOrganizationNavigation />
+        <UserAndOrganizationNavigation pageBannerHeight={pageBannerHeight} />
       </NavigationTourProvider>
     </HoverOverlayGroupProvider>
   );

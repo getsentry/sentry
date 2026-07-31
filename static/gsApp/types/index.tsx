@@ -70,7 +70,6 @@ export enum PlanName {
   BUSINESS_BUNDLE = 'Business Bundle',
   TEAM_SPONSORED = 'Sponsored Team',
   BUSINESS_SPONSORED = 'Sponsored Business',
-  ENTERPRISE_TEAM = 'Enterprise (Team)',
   ENTERPRISE_BUSINESS = 'Enterprise (Business)',
 }
 
@@ -158,8 +157,6 @@ export type Plan = {
    * Data categories on the plan (errors, transactions, etc.)
    */
   categories: DataCategory[];
-  checkoutCategories: DataCategory[];
-  contractInterval: 'monthly' | 'annual';
   dashboardLimit: number;
   features: string[];
 
@@ -170,13 +167,11 @@ export type Plan = {
    * upsell suppression, provisioning).
    */
   isEnterprise: boolean;
-  isTestPlan: boolean;
   maxMembers: number | null;
   metricDetectorLimit: number;
   name: string;
   onDemandCategories: DataCategory[];
   planCategories: Partial<Record<DataCategory, EventBucket[]>>;
-  price: number;
 
   retentionDays: number;
   totalPrice: number;
@@ -295,7 +290,6 @@ export type Subscription = {
    * Current history per data category
    */
   categories: Partial<Record<DataCategory, BillingMetricHistory>>;
-  contractInterval: 'monthly' | 'annual';
   customPrice: number | null;
   customPricePcss: number | null;
   // Event details
@@ -312,19 +306,12 @@ export type Subscription = {
   // GDPR Info
   gdprDetails: GDPRDetails | null;
   hadCustomDynamicSampling: boolean;
-  hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
   hasMigratedToBillingPlatform: boolean;
-  hasOverageNotificationsDisabled: boolean;
-  hasRestrictedIntegration: boolean | null;
-  hasSoftCap: boolean;
   id: string;
 
   // Added by SubscriptionStore to show/hide a UI element
   isEnterpriseTrial: boolean;
-  // was the trial forced on to the org to rectify access to premium features
-  isExemptFromForcedTrial: boolean;
-  isForcedTrial: boolean;
   isFree: boolean;
 
   // Subscription flags
@@ -333,12 +320,10 @@ export type Subscription = {
 
   isPartner: boolean;
   isPastDue: boolean;
-  isPerformancePlanTrial: boolean;
   isSelfServePartner: boolean;
   isSponsored: boolean;
   isSuspended: boolean;
 
-  isTrial: boolean;
   lastTrialEnd: string | null;
   membersDeactivatedFromLimit: number;
   name: string;
@@ -379,10 +364,6 @@ export type Subscription = {
   trialEnd: string | null;
   trialPlan: string | null;
   type: BillingType;
-  /**
-   * All quotas available on the plan are exceeded
-   */
-  usageExceeded: boolean;
   // Seats
   usedLicenses: number;
   acv?: number;
@@ -625,8 +606,14 @@ type CamelToSnake<
         ? `${Prev extends '' ? '' : Prev extends 'lower' ? '_' : ''}${Lowercase<First>}`
         : Rest extends `${infer Next}${infer _Tail}`
           ? Next extends Lowercase<Next>
-            ? `${Prev extends '' ? '' : '_'}${Lowercase<First>}${CamelToSnake<Rest, 'upper'>}`
-            : `${Prev extends 'lower' ? '_' : ''}${Lowercase<First>}${CamelToSnake<Rest, 'upper'>}`
+            ? `${Prev extends '' ? '' : '_'}${Lowercase<First>}${CamelToSnake<
+                Rest,
+                'upper'
+              >}`
+            : `${Prev extends 'lower' ? '_' : ''}${Lowercase<First>}${CamelToSnake<
+                Rest,
+                'upper'
+              >}`
           : never
       : `${First}${CamelToSnake<Rest, Prev>}`
   : S;
@@ -768,10 +755,8 @@ export type BillingMetricHistory = {
   paygCpe: number | null;
   prepaid: number;
   reserved: number | null;
-  sentUsageWarning: boolean;
   // TODO(isabella): Make SoftCapType an enum
   softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null;
-  trueForward: boolean;
   usage: number;
   usageExceeded: boolean;
   retention?: {downsampled: number | null; standard: number | null};
@@ -802,12 +787,10 @@ export type BillingHistory = {
 
 export type PreviewData = {
   atPeriodEnd: boolean;
-  balanceChange: number;
   billedAmount: number;
   creditApplied: number;
   effectiveAt: string;
   invoiceItems: PreviewInvoiceItem[];
-  newBalance: number;
   previewToken: string;
   proratedAmount: number;
   /** Only set by the next-bill preview: the plan/period the bill covers is annual. */

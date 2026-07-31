@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {isString} from '@sentry/core';
 import type {Location} from 'history';
@@ -24,12 +24,15 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import type {EventView} from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
+import {isAggregateField} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   MetricsCardinalityProvider,
   useMetricsCardinalityContext,
 } from 'sentry/utils/performance/contexts/metricsCardinality';
-import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -45,29 +48,20 @@ import {
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
-import {tagsRouteWithQuery} from './transactionTags/utils';
 import {TransactionHeader} from './header';
 import {Tab} from './tabs';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import {generateTransactionSummaryRoute, transactionSummaryRouteWithQuery} from './utils';
 
 type TabEvents =
-  | 'performance_views.tags.tags_tab_clicked'
   | 'performance_views.events.events_tab_clicked'
   | 'performance_views.spans.spans_tab_clicked';
 
 export const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
-  [Tab.TAGS]: 'performance_views.tags.tags_tab_clicked',
   [Tab.EVENTS]: 'performance_views.events.events_tab_clicked',
 };
 
 type Props = {
-  generateEventView: (props: {
-    location: Location;
-    organization: Organization;
-    theme: Theme;
-    transactionName: string;
-  }) => EventView;
   getDocumentTitle: (name: string) => string;
   location: Location;
   organization: Organization;
@@ -78,15 +72,7 @@ type Props = {
 };
 
 export function PageLayout(props: Props) {
-  const {
-    location,
-    organization,
-    projects,
-    tab,
-    getDocumentTitle,
-    generateEventView,
-    features = [],
-  } = props;
+  const {location, organization, projects, tab, getDocumentTitle, features = []} = props;
 
   let projectId: string | undefined;
   const filterProjects = location.query.project;
@@ -95,7 +81,6 @@ export function PageLayout(props: Props) {
     projectId = filterProjects;
   }
 
-  const theme = useTheme();
   const navigate = useNavigate();
   const transactionName = getTransactionName(location);
   const [error, setError] = useState<string | undefined>();
@@ -112,12 +97,7 @@ export function PageLayout(props: Props) {
       case Tab.REPLAYS:
         return [DataCategory.REPLAYS];
       case Tab.EVENTS:
-      case Tab.TAGS:
       case Tab.TRANSACTION_SUMMARY:
-        // The transactions summary page technically also uses transactions
-        // in additional to spans. But if we specify transactions here, it'll
-        // use the 90d retention for transactions instead of the 30d retention
-        // for spans in some cases which is not what we want.
         return [DataCategory.SPANS];
       default:
         throw new Error(`Unsupported tab: ${tab}`);
@@ -143,8 +123,6 @@ export function PageLayout(props: Props) {
       };
 
       switch (newTab) {
-        case Tab.TAGS:
-          return tagsRouteWithQuery(routeQuery);
         case Tab.EVENTS:
           return eventsRouteWithQuery(routeQuery);
         case Tab.REPLAYS:
@@ -182,12 +160,26 @@ export function PageLayout(props: Props) {
     return null;
   }
 
-  const eventView = generateEventView({
-    location,
-    organization,
-    transactionName,
-    theme,
+  const conditions = new MutableSearch(decodeScalar(location.query.query, ''));
+  conditions.setFilterValues('transaction', [transactionName]);
+  Object.keys(conditions.filters).forEach(field => {
+    if (isAggregateField(field)) {
+      conditions.removeFilter(field);
+    }
   });
+
+  const eventView = EventView.fromNewQueryWithLocation(
+    {
+      id: undefined,
+      version: 2,
+      name: transactionName,
+      fields: ['project', 'count()'],
+      query: conditions.formatString(),
+      projects: [],
+      dataset: DiscoverDatasets.SPANS,
+    },
+    location
+  );
 
   if (!defined(projectId)) {
     // Using a discover query to get the projects associated
@@ -267,64 +259,59 @@ export function PageLayout(props: Props) {
         renderDisabled={NoAccess}
       >
         <MetricsCardinalityProvider location={location} organization={organization}>
-          <PerformanceEventViewContext value={{eventView}}>
-            <PageFiltersContainer
-              shouldForceProject={defined(project)}
-              forceProject={project}
-              specificProjectSlugs={defined(project) ? [project.slug] : []}
-              maxPickableDays={datePageFilterProps.maxPickableDays}
-              defaultSelection={
-                datePageFilterProps.defaultPeriod
-                  ? {
-                      datetime: {
-                        period: datePageFilterProps.defaultPeriod,
-                        start: null,
-                        end: null,
-                        utc: null,
-                      },
-                    }
-                  : undefined
-              }
-            >
-              <Tabs value={tab} onChange={onTabChange}>
-                <Stack flex={1}>
-                  <TransactionHeader
-                    eventView={eventView}
-                    location={location}
-                    organization={organization}
-                    projects={projects}
-                    projectId={projectId}
-                    transactionName={transactionName}
-                    currentTab={tab}
-                    onChangeThreshold={(threshold, metric) => {
-                      setTransactionThreshold(threshold);
-                      setTransactionThresholdMetric(metric);
+          <PageFiltersContainer
+            shouldForceProject={defined(project)}
+            forceProject={project}
+            specificProjectSlugs={defined(project) ? [project.slug] : []}
+            maxPickableDays={datePageFilterProps.maxPickableDays}
+            defaultSelection={
+              datePageFilterProps.defaultPeriod
+                ? {
+                    datetime: {
+                      period: datePageFilterProps.defaultPeriod,
+                      start: null,
+                      end: null,
+                      utc: null,
+                    },
+                  }
+                : undefined
+            }
+          >
+            <Tabs value={tab} onChange={onTabChange}>
+              <Stack flex={1}>
+                <TransactionHeader
+                  eventView={eventView}
+                  location={location}
+                  organization={organization}
+                  projects={projects}
+                  projectId={projectId}
+                  transactionName={transactionName}
+                  currentTab={tab}
+                  onChangeThreshold={(threshold, metric) => {
+                    setTransactionThreshold(threshold);
+                    setTransactionThresholdMetric(metric);
+                  }}
+                  metricsCardinality={metricsCardinality}
+                />
+                <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
+                  {defined(error) && <StyledAlert variant="danger">{error}</StyledAlert>}
+                  <TransactionSummaryContext
+                    value={{
+                      organization,
+                      projectId,
+                      projects,
+                      setError,
+                      transactionName,
+                      transactionThreshold,
+                      transactionThresholdMetric,
                     }}
-                    metricsCardinality={metricsCardinality}
-                  />
-                  <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
-                    {defined(error) && (
-                      <StyledAlert variant="danger">{error}</StyledAlert>
-                    )}
-                    <TransactionSummaryContext
-                      value={{
-                        eventView,
-                        organization,
-                        projectId,
-                        projects,
-                        setError,
-                        transactionName,
-                        transactionThreshold,
-                        transactionThresholdMetric,
-                      }}
-                    >
-                      <Outlet />
-                    </TransactionSummaryContext>
-                  </StyledBody>
-                </Stack>
-              </Tabs>
-            </PageFiltersContainer>
-          </PerformanceEventViewContext>
+                  >
+                    <Outlet />
+                  </TransactionSummaryContext>
+                </StyledBody>
+              </Stack>
+            </Tabs>
+          </PageFiltersContainer>
         </MetricsCardinalityProvider>
       </Feature>
     </SentryDocumentTitle>

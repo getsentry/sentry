@@ -36,6 +36,10 @@
           "value": "public, max-age=31536000, immutable"
         }
       ]
+    },
+    {
+      "source": "/entrypoints/service-worker.js",
+      "headers": [{"key": "Service-Worker-Allowed", "value": "/"}]
     }
   ],
   "github": {"silent": true},

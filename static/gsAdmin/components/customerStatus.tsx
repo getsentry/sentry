@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {InfoText} from '@sentry/scraps/info';
 
 import type {Subscription} from 'getsentry/types';
+import {isTrial} from 'getsentry/utils/billing';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
 type Props = {
@@ -14,7 +15,7 @@ const getLabel = (item: Subscription) => {
   if (item.isEnterpriseTrial) {
     return `Trialing (${item.trialPlan} enterprise)`;
   }
-  if (item.isTrial) {
+  if (isTrial(item)) {
     return `Trialing (${item.trialPlan})`;
   }
   if (item.isFree) {
@@ -41,9 +42,7 @@ const getTooltip = ({planDetails, trialPlan}: Subscription) => (
       </Fragment>
     )}
     <dt>Base Price:</dt>
-    <dd>{formatCurrency(planDetails?.price)}</dd>
-    <dt>Contract:</dt>
-    <dd>{planDetails?.contractInterval}</dd>
+    <dd>{formatCurrency(planDetails?.totalPrice)}</dd>
     <dt>Billed:</dt>
     <dd>{planDetails?.billingInterval}</dd>
   </StatusList>

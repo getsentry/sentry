@@ -22,14 +22,9 @@ class Migration(CheckedMigration):
 
     is_post_deployment = True
 
-    replaces = [
-        ("sentry", "0815_add_action_cols_to_threads_model"),
-        ("sentry", "0817_update_notificationmessage_constraints_for_action_group_open_period"),
-    ]
-
     dependencies = [
         ("sentry", "0001_squashed_0904_onboarding_task_project_id_idx"),
-        ("workflow_engine", "0001_squashed_0065_add_status_to_detector_and_workflow"),
+        # ("workflow_engine", "0001_squashed_0065_add_status_to_detector_and_workflow"),
     ]
 
     operations = [

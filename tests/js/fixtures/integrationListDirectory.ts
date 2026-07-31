@@ -96,6 +96,7 @@ export function OrgOwnedAppsFixture(): SentryApp[] {
       status: 'internal',
       uuid: 'a806ab10-9608-4a4f-8dd9-ca6d6c09f9f5',
       verifyInstall: false,
+      webhookEvents: [],
       webhookUrl: 'https://myheadbandwasher.com',
       featureData: [],
       popularity: null,
@@ -118,6 +119,7 @@ export function OrgOwnedAppsFixture(): SentryApp[] {
       status: 'unpublished',
       uuid: 'a59c8fcc-2f27-49f8-af9e-02661fc3e8d7',
       verifyInstall: false,
+      webhookEvents: [],
       webhookUrl: 'https://lacroix.com',
       featureData: [
         {
@@ -145,6 +147,7 @@ export function OrgOwnedAppsFixture(): SentryApp[] {
       status: 'published',
       uuid: '5d547ecb-7eb8-4ed2-853b-40256177d526',
       verifyInstall: false,
+      webhookEvents: [],
       webhookUrl: 'http://localhost:7000',
       featureData: [
         {
@@ -178,6 +181,7 @@ export function PublishedAppsFixture(): SentryApp[] {
       popularity: 9,
       uuid: '5d547ecb-7eb8-4ed2-853b-40256177d526',
       verifyInstall: false,
+      webhookEvents: [],
       webhookUrl: 'http://localhost:7000',
       featureData: [
         {
@@ -202,93 +206,6 @@ export function SentryAppInstallsFixture() {
       organization: {slug: 'sentry'},
       status: 'installed',
       uuid: '5379e8e1-0554-468f-90ca-2e0c88f1ac32',
-    },
-  ];
-}
-
-export function PluginListConfigFixture() {
-  return [
-    {
-      author: {name: 'Sentry Team', url: 'https://github.com/getsentry/sentry'},
-      canDisable: true,
-      contexts: [],
-      description: 'Forward Sentry events to Amazon SQS.',
-      doc: '',
-      featureDescriptions: [
-        {
-          description: 'Forward Sentry errors and events to Amazon SQS.',
-          featureGate: 'data-forwarding',
-        },
-      ],
-      features: ['data-forwarding'],
-      hasConfiguration: true,
-      id: 'amazon-sqs',
-      isHidden: false,
-      isTestable: false,
-      metadata: {},
-      name: 'Amazon SQS',
-      projectList: [],
-      resourceLinks: [
-        {
-          title: 'Report Issue',
-          url: 'https://github.com/getsentry/sentry/issues',
-        },
-        {
-          title: 'View Source',
-          url: 'https://github.com/getsentry/sentry/tree/master/src/sentry_plugins',
-        },
-      ],
-      shortName: 'Amazon SQS',
-      slug: 'amazon-sqs',
-      status: 'beta',
-      type: 'data-forwarding',
-      version: '10.1.0.dev0',
-    },
-    {
-      status: 'unknown',
-      description: 'Send alerts to PagerDuty.',
-      isTestable: true,
-      isHidden: true,
-      hasConfiguration: true,
-      shortName: 'PagerDuty',
-      id: 'pagerduty',
-      featureDescriptions: [
-        {
-          description:
-            'Configure rule based PagerDuty alerts to automatically be triggered in a specific\n            service - or in multiple services!',
-          featureGate: 'alert-rule',
-        },
-      ],
-      features: ['alert-rule'],
-      name: 'PagerDuty',
-      author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
-      contexts: [],
-      doc: '',
-      resourceLinks: [
-        {
-          url: 'https://github.com/getsentry/sentry/issues',
-          title: 'Report Issue',
-        },
-        {
-          url: 'https://github.com/getsentry/sentry/tree/master/src/sentry_plugins',
-          title: 'View Source',
-        },
-      ],
-      slug: 'pagerduty',
-      projectList: [
-        {
-          projectId: 2,
-          configured: true,
-          enabled: true,
-          projectSlug: 'javascript',
-          projectPlatform: 'javascript',
-          projectName: 'JavaScript',
-        },
-      ],
-      version: '10.1.0.dev0',
-      canDisable: true,
-      type: 'notification',
-      metadata: {},
     },
   ];
 }

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sentry.tasks.seer.night_shift.models import TriageAction
 
@@ -27,6 +27,9 @@ class TriageCandidate(_Base):
     times_seen: int
     first_seen: str  # ISO 8601; Seer parses it back to a datetime.
     priority: str | None = None
+    connected_repos: list[str] = Field(default_factory=list)
+    # Only ever set for legacy (non-seat-based) orgs.
+    automation_tuning: str | None = None
 
 
 class TriageTweaks(_Base):
@@ -47,6 +50,9 @@ class TriageVerdict(_Base):
     group_id: int
     action: TriageAction
     reason: str = ""
+    # Only meaningful when action="skip". A passthrough string rather than an
+    # enum, so a new category from Seer doesn't fail the whole batch to parse.
+    skip_reason: str | None = None
 
 
 class TriageResponse(_Base):

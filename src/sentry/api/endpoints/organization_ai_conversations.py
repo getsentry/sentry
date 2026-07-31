@@ -1,5 +1,7 @@
 import logging
+import re
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
@@ -8,6 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.ai_monitoring.utils import fetch_conversation_titles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -30,8 +33,18 @@ from sentry.utils.ai_message_normalizer import (
     normalize_to_messages,
     stringify_message_content,
 )
+from sentry.utils.tracing import set_span_data, start_span, trace
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
+
+
+# Matches a query that is exactly a single gen_ai.conversation.id filter, e.g.
+# `gen_ai.conversation.id:abc` or `gen_ai.conversation.id:"slack:1234"`.
+_CONVERSATION_ID_LOOKUP_RE = re.compile(r'^gen_ai\.conversation\.id:(?:"[^"]+"|\S+)$')
+
+
+def _is_conversation_id_lookup(user_query: str) -> bool:
+    return bool(_CONVERSATION_ID_LOOKUP_RE.match(user_query.strip()))
 
 
 def _build_conversation_query(base_query: str, user_query: str) -> str:
@@ -65,6 +78,17 @@ def _to_timestamp_float(ts: Any) -> float:
 
 def _compute_timestamp_ms(finish_ts: float) -> int:
     return int(finish_ts * 1000) if finish_ts else 0
+
+
+def _first_title(
+    titles: Mapping[tuple[str, int], str], conv_id: str, project_ids: Sequence[int]
+) -> str | None:
+    """Lowest project id with a stored title wins, so results are stable across requests."""
+    for project_id in project_ids:
+        title = titles.get((conv_id, project_id))
+        if title is not None:
+            return title
+    return None
 
 
 def _extract_first_user_message(messages: Any) -> str | None:
@@ -154,6 +178,8 @@ def _build_conversation_response(
     llm_calls: int,
     tool_calls: int,
     total_tokens: int,
+    input_tokens: int,
+    output_tokens: int,
     total_cost: float,
     trace_ids: list[str],
     flow: list[str],
@@ -162,15 +188,23 @@ def _build_conversation_response(
     user: dict[str, str | None] | None = None,
     tool_names: list[str] | None = None,
     tool_errors: int = 0,
+    title: str | None = None,
+    generation_duration: float = 0,
+    project_id: int | None = None,
 ) -> dict[str, Any]:
     return {
         "conversationId": conv_id,
+        "title": title,
+        "projectId": project_id,
         "flow": flow,
         "errors": errors,
         "llmCalls": llm_calls,
         "toolCalls": tool_calls,
         "totalTokens": total_tokens,
+        "inputTokens": input_tokens,
+        "outputTokens": output_tokens,
         "totalCost": total_cost,
+        "generationDuration": generation_duration,
         "startTimestamp": start_timestamp,
         "endTimestamp": end_timestamp,
         "traceCount": len(trace_ids),
@@ -215,7 +249,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             )
 
         with handle_query_errors():
-            return self.paginate(
+            response = self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
                 on_results=lambda results: results,
@@ -223,7 +257,17 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 max_per_page=100,
             )
 
-    @sentry_sdk.trace
+        # A search for a single conversation ID that resolves to exactly one
+        # conversation signals the client to redirect straight to the detail view.
+        if (
+            _is_conversation_id_lookup(validated_data.get("query") or "")
+            and len(response.data) == 1
+        ):
+            response["X-Sentry-Direct-Hit"] = "1"
+
+        return response
+
+    @trace
     def _get_conversations(
         self,
         snuba_params,
@@ -232,11 +276,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         user_query: str,
         sampling_mode: SAMPLING_MODES = "NORMAL",
     ) -> list[dict]:
-        base_filter = (
-            "has:gen_ai.conversation.id"
-            " (has:gen_ai.input.messages OR has:gen_ai.request.messages)"
-            " (has:gen_ai.output.messages OR has:gen_ai.response.text)"
-        )
+        base_filter = "has:gen_ai.conversation.id has:gen_ai.operation.type"
         query_string = _build_conversation_query(base_filter, user_query)
 
         conversation_ids_results = self._fetch_conversation_ids(
@@ -252,7 +292,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         return self._get_conversations_data(snuba_params, conversation_ids)
 
-    @sentry_sdk.trace
+    @trace
     def _fetch_conversation_ids(
         self,
         snuba_params,
@@ -273,7 +313,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             sampling_mode=sampling_mode,
         )
 
-    @sentry_sdk.trace
+    @trace
     def _get_conversations_data(self, snuba_params, conversation_ids: list[str]) -> list[dict]:
         config = SearchResolverConfig(auto_fields=True)
         resolver = Spans.get_resolver(snuba_params, config)
@@ -286,16 +326,17 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         ]
 
         # Execute all queries in a single bulk RPC call
-        with sentry_sdk.start_span(
-            op="ai_conversations.bulk_rpc", name="Execute bulk table queries"
-        ):
+        with start_span(op="ai_conversations.bulk_rpc", name="Execute bulk table queries"):
             results = Spans.run_bulk_table_queries(queries)
 
         # Process results
-        with sentry_sdk.start_span(op="ai_conversations.process", name="Process query results"):
+        with start_span(op="ai_conversations.process", name="Process query results"):
             conversations_map = self._build_conversations_from_aggregations(results["aggregations"])
-            self._apply_enrichment(conversations_map, results["enrichment"])
+            project_ids_by_conversation = self._apply_enrichment(
+                conversations_map, results["enrichment"]
+            )
             self._apply_first_last_io(conversations_map, results["first_last_io"])
+            self._apply_titles(conversations_map, project_ids_by_conversation)
 
         return [
             conversations_map[conv_id]
@@ -315,7 +356,10 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "count_if(gen_ai.operation.type,equals,ai_client)",
                 "count_if(gen_ai.operation.type,equals,tool)",
                 "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)",
+                "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client)",
+                "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client)",
                 "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)",
+                "sum_if(span.duration,gen_ai.operation.type,equals,ai_client)",
                 "min(precise.start_ts)",
                 "max(precise.finish_ts)",
             ],
@@ -341,6 +385,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "span.status",
                 "trace",
                 "timestamp",
+                "project.id",
                 "user.id",
                 "user.email",
                 "user.username",
@@ -379,7 +424,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _build_conversations_from_aggregations(
         self, aggregations: EAPResponse
     ) -> dict[str, dict[str, Any]]:
-        with sentry_sdk.start_span(
+        with start_span(
             op="ai_conversations.build_from_aggregations",
             name="Build conversations from aggregations",
         ):
@@ -403,11 +448,26 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                         )
                         or 0
                     ),
+                    input_tokens=int(
+                        row.get(
+                            "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client)"
+                        )
+                        or 0
+                    ),
+                    output_tokens=int(
+                        row.get(
+                            "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client)"
+                        )
+                        or 0
+                    ),
                     total_cost=float(
                         row.get(
                             "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)"
                         )
                         or 0
+                    ),
+                    generation_duration=float(
+                        row.get("sum_if(span.duration,gen_ai.operation.type,equals,ai_client)") or 0
                     ),
                     trace_ids=[],
                     flow=[],
@@ -419,25 +479,35 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
     def _apply_enrichment(
         self, conversations_map: dict[str, dict[str, Any]], enrichment_data: EAPResponse
-    ) -> None:
-        with sentry_sdk.start_span(
+    ) -> dict[str, set[int]]:
+        """Apply enrichment data, returning the project ids each conversation spans."""
+        with start_span(
             op="ai_conversations.apply_enrichment",
             name="Apply enrichment data",
         ) as span:
             enrichment_rows = enrichment_data.get("data", [])
-            span.set_data("rows_count", len(enrichment_rows))
+            set_span_data(span, "rows_count", len(enrichment_rows))
 
             flows_by_conversation: dict[str, list[str]] = defaultdict(list)
             traces_by_conversation: dict[str, set[str]] = defaultdict(set)
             tool_names_by_conversation: dict[str, set[str]] = defaultdict(set)
             tool_errors_by_conversation: dict[str, int] = defaultdict(int)
-            # Track first user data per conversation (data is sorted by timestamp, so first occurrence wins)
+            project_ids_by_conversation: dict[str, set[int]] = defaultdict(set)
+            # Rows are sorted by timestamp, so the first occurrence per conversation
+            # is the earliest span. Track the first span's user and project.
             user_by_conversation: dict[str, UserResponse] = {}
+            first_project_by_conversation: dict[str, int] = {}
 
             for row in enrichment_rows:
                 conv_id = row.get("gen_ai.conversation.id", "")
                 if not conv_id:
                     continue
+
+                project_id = row.get("project.id")
+                if isinstance(project_id, int):
+                    project_ids_by_conversation[conv_id].add(project_id)
+                    if conv_id not in first_project_by_conversation:
+                        first_project_by_conversation[conv_id] = project_id
 
                 trace_id = row.get("trace", "")
                 if trace_id:
@@ -475,16 +545,19 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 conversation["user"] = user_by_conversation.get(conv_id)
                 conversation["toolNames"] = sorted(tool_names_by_conversation.get(conv_id, set()))
                 conversation["toolErrors"] = tool_errors_by_conversation.get(conv_id, 0)
+                conversation["projectId"] = first_project_by_conversation.get(conv_id)
+
+            return project_ids_by_conversation
 
     def _apply_first_last_io(
         self, conversations_map: dict[str, dict[str, Any]], first_last_io_data: EAPResponse
     ) -> None:
-        with sentry_sdk.start_span(
+        with start_span(
             op="ai_conversations.apply_first_last_io",
             name="Apply first/last IO data",
         ) as span:
             io_rows = first_last_io_data.get("data", [])
-            span.set_data("rows_count", len(io_rows))
+            set_span_data(span, "rows_count", len(io_rows))
 
             first_input_by_conv: dict[str, str] = {}
             last_output_by_conv: dict[str, tuple[float, str]] = {}
@@ -512,3 +585,24 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 conversation["firstInput"] = first_input_by_conv.get(conv_id)
                 last_tuple = last_output_by_conv.get(conv_id)
                 conversation["lastOutput"] = last_tuple[1] if last_tuple else None
+
+    @trace
+    def _apply_titles(
+        self,
+        conversations_map: dict[str, dict[str, Any]],
+        project_ids_by_conversation: Mapping[str, set[int]],
+    ) -> None:
+        """Attach stored conversation titles, leaving `title` as None when we have none."""
+        sorted_project_ids = {
+            conv_id: sorted(project_ids_by_conversation.get(conv_id, ()))
+            for conv_id in conversations_map
+        }
+        titles = fetch_conversation_titles(
+            [
+                (conv_id, project_id)
+                for conv_id, project_ids in sorted_project_ids.items()
+                for project_id in project_ids
+            ]
+        )
+        for conv_id, conversation in conversations_map.items():
+            conversation["title"] = _first_title(titles, conv_id, sorted_project_ids[conv_id])

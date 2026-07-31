@@ -7,6 +7,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -78,7 +79,7 @@ function getIssueRowMetadata(
 const SPECIAL_FIELDS: SpecialFields = {
   issue: {
     sortField: null,
-    renderFunc: (data, {organization}) => {
+    renderFunc: (data, {organization, location}) => {
       const issueID = data['issue.id'];
 
       if (!issueID) {
@@ -91,6 +92,7 @@ const SPECIAL_FIELDS: SpecialFields = {
 
       const target = {
         pathname: `/organizations/${organization.slug}/issues/${issueID}/`,
+        query: extractSelectionParameters(location.query),
       };
 
       return (

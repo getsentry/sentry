@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {MessageRow, ToolCallIndicator, type ToolCallStatus} from '@sentry/scraps/chat';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -8,16 +9,10 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  IconCheckmark,
-  IconClose,
-  IconLink,
-  IconLinkBroken,
-  IconWarning,
-} from 'sentry/icons';
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {Block, TodoItem} from 'sentry/views/seerExplorer/types';
@@ -28,14 +23,7 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 import type {ToolUseBlockProps} from './shared';
-import {
-  type BlockStatus,
-  MessagePlaceholder,
-  SeerMarkdown,
-  Spinner,
-  getBlockStatus,
-  hasValidContent,
-} from './shared';
+import {MessagePlaceholder, getBlockStatus, hasValidContent} from './shared';
 
 export function ToolUseBlock({
   block,
@@ -48,23 +36,25 @@ export function ToolUseBlock({
   }
 
   return (
-    <Stack padding="md xl" gap="md" minWidth={0} overflow="hidden">
-      {showThinking && hasValidContent(block.message.thinking_content) && (
-        <Disclosure size="sm">
-          <Disclosure.Title>
-            <Text size="sm" variant="muted" monospace>
-              {t('Thinking')}
-            </Text>
-          </Disclosure.Title>
-          <Disclosure.Content>
-            <SeerMarkdown raw={block.message.thinking_content} />
-          </Disclosure.Content>
-        </Disclosure>
-      )}
-      {block.message.tool_calls ? (
-        <ToolCallList block={block} blocks={blocks} getPageReferrer={getPageReferrer} />
-      ) : null}
-    </Stack>
+    <MessageRow from="assistant" density="compact">
+      <Stack gap="md" width="100%" minWidth={0} overflow="hidden">
+        {showThinking && hasValidContent(block.message.thinking_content) && (
+          <Disclosure size="sm">
+            <Disclosure.Title>
+              <Text size="sm" variant="muted" monospace>
+                {t('Thinking')}
+              </Text>
+            </Disclosure.Title>
+            <Disclosure.Content>
+              <SeerMarkdown raw={block.message.thinking_content} />
+            </Disclosure.Content>
+          </Disclosure>
+        )}
+        {block.message.tool_calls ? (
+          <ToolCallList block={block} blocks={blocks} getPageReferrer={getPageReferrer} />
+        ) : null}
+      </Stack>
+    </MessageRow>
   );
 }
 
@@ -123,7 +113,6 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
   } = useToolLinks(block);
   const toolsUsed = getToolsStringFromBlock(block);
   const blockStatus = getBlockStatus(block);
-  const isLoading = blockStatus === 'loading' || blockStatus === 'pending';
 
   return (
     <Stack gap="md" width="100%" minWidth={0} paddingRight="lg">
@@ -155,9 +144,12 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
             }
           : undefined;
 
-        const isTodoWrite = toolCall.function === 'todo_write';
+        // Render the checklist once per block (on the last tool-call row), regardless of
+        // which tool produced it — classic `todo_write` or Code Mode `sentry_api_execute`,
+        // which projects its todos onto block.todos (code-mode-effects-bus).
+        const isLastToolCall = idx === (block.message.tool_calls?.length ?? 0) - 1;
         const todos =
-          isTodoWrite &&
+          isLastToolCall &&
           block.todos?.length &&
           blocks?.findLast(b => b.todos?.length) === block
             ? block.todos
@@ -174,7 +166,6 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
             key={toolCall.id ?? `${toolCall.function}-${idx}`}
             toolString={toolsUsed[idx] ?? ''}
             blockStatus={idx === 0 ? blockStatus : undefined}
-            isLoading={isLoading}
             toolUrl={toolUrl}
             failureTooltip={failureTooltip}
             onLinkClick={handleLinkClick}
@@ -189,15 +180,13 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
 function ToolCallRow({
   toolString,
   blockStatus,
-  isLoading,
   toolUrl,
   failureTooltip,
   onLinkClick,
   todos,
 }: {
-  blockStatus: BlockStatus | undefined;
+  blockStatus: ToolCallStatus | undefined;
   failureTooltip: string | null;
-  isLoading: boolean;
   todos: TodoItem[] | null;
   toolString: string;
   toolUrl: ReturnType<typeof buildToolLinkUrl>;
@@ -225,7 +214,7 @@ function ToolCallRow({
           flexShrink={0}
           style={{transform: 'translateY(0.15em)'}}
         >
-          {blockStatus && <BlockStatusIndicator status={blockStatus} />}
+          {blockStatus && <ToolCallIndicator status={blockStatus} />}
         </Flex>
         {hasLink ? (
           <ToolCallLink to={toolUrl} onClick={onLinkClick}>
@@ -235,12 +224,7 @@ function ToolCallRow({
             </ToolCallLinkIconWrapper>
           </ToolCallLink>
         ) : (
-          <ToolCallPlainRow>
-            {toolCallText}
-            <ToolCallBrokenLinkIconWrapper isLoading={isLoading}>
-              <ToolCallBrokenLinkIcon size="xs" />
-            </ToolCallBrokenLinkIconWrapper>
-          </ToolCallPlainRow>
+          <ToolCallPlainRow>{toolCallText}</ToolCallPlainRow>
         )}
       </Flex>
       {todos && <TodoList todos={todos} />}
@@ -264,51 +248,6 @@ function TodoList({todos}: {todos: TodoItem[]}) {
       })}
     </Stack>
   );
-}
-
-function BlockStatusIndicator({status}: {status: BlockStatus}) {
-  switch (status) {
-    case 'loading':
-      return (
-        <Tooltip title={t('Running...')}>
-          <Spinner />
-        </Tooltip>
-      );
-    case 'pending':
-      return (
-        <Tooltip title={t('Waiting for approval')}>
-          <Spinner />
-        </Tooltip>
-      );
-    case 'failure':
-      return (
-        <Tooltip title={t('All tool calls failed')}>
-          <Text variant="danger">
-            <IconClose size="xs" />
-          </Text>
-        </Tooltip>
-      );
-    case 'mixed':
-      return (
-        <Tooltip title={t('Some tool calls succeeded and some failed')}>
-          <Text variant="warning">
-            <IconWarning size="xs" />
-          </Text>
-        </Tooltip>
-      );
-    case 'success':
-      return (
-        <Tooltip title={t('All tool calls succeeded')}>
-          <Text variant="success">
-            <IconCheckmark size="xs" />
-          </Text>
-        </Tooltip>
-      );
-    case 'content':
-      return null;
-    default:
-      return unreachable(status);
-  }
 }
 
 const ToolCallText = styled(Text)`
@@ -360,20 +299,4 @@ const ToolCallPlainRow = styled('span')`
   align-items: center;
   gap: ${p => p.theme.space.md};
   max-width: 100%;
-`;
-
-const ToolCallBrokenLinkIcon = styled(IconLinkBroken)`
-  color: ${p => p.theme.tokens.content.secondary};
-  flex-shrink: 0;
-  transform: translateY(2px);
-`;
-
-const ToolCallBrokenLinkIconWrapper = styled('span')<{isLoading?: boolean}>`
-  display: inline-flex;
-  flex-shrink: 0;
-  visibility: hidden;
-
-  ${ToolCallPlainRow}:hover & {
-    visibility: ${p => (p.isLoading ? 'hidden' : 'visible')};
-  }
 `;

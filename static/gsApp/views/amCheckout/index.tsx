@@ -32,7 +32,6 @@ import {withSubscription} from 'getsentry/components/withSubscription';
 import {
   ANNUAL,
   BillingConfigTier,
-  MONTHLY,
   PAYG_BUSINESS_DEFAULT,
   PAYG_TEAM_DEFAULT,
 } from 'getsentry/constants';
@@ -54,6 +53,7 @@ import {
   hasPerformance,
   isBizPlanFamily,
   isNewPayingCustomer,
+  isTrial,
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
@@ -158,40 +158,17 @@ function AMCheckout(props: Props) {
     return navigate(normalizeUrl(`/settings/${organization.slug}/billing/overview/`));
   }, [navigate, organization.slug]);
 
-  const getPlans = useCallback(
-    (config: BillingConfig) => {
-      const isTestOrg = subscription.planDetails.isTestPlan;
-      if (isTestOrg) {
-        const testPlans = config.planList.filter(
-          plan =>
-            plan.isTestPlan &&
-            (plan.id.includes(config.freePlan) ||
-              (plan.basePrice &&
-                ((plan.billingInterval === MONTHLY &&
-                  plan.contractInterval === MONTHLY) ||
-                  (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL))))
-        );
+  const getPlans = useCallback((config: BillingConfig) => {
+    const plans = config.planList.filter(
+      plan =>
+        plan.id === config.freePlan || Boolean(plan.basePrice && plan.userSelectable)
+    );
 
-        if (testPlans.length > 0) {
-          return testPlans;
-        }
-      }
-      const plans = config.planList.filter(
-        plan =>
-          plan.id === config.freePlan ||
-          (plan.basePrice &&
-            plan.userSelectable &&
-            ((plan.billingInterval === MONTHLY && plan.contractInterval === MONTHLY) ||
-              (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL)))
-      );
-
-      if (plans.length === 0) {
-        throw new Error('Cannot get plan options');
-      }
-      return plans;
-    },
-    [subscription.planDetails.isTestPlan]
-  );
+    if (plans.length === 0) {
+      throw new Error('Cannot get plan options');
+    }
+    return plans;
+  }, []);
 
   /**
    * Default to the business plan if:
@@ -199,24 +176,25 @@ function AMCheckout(props: Props) {
    * 2. The subscription is free
    * 3. Or, the subscription is on a free trial
    */
+  const subscriptionIsTrial = isTrial(subscription);
   const shouldDefaultToBusiness = useCallback(() => {
     const hasUpsell = referrer?.startsWith('upgrade') || referrer?.startsWith('upsell');
 
-    return hasUpsell || subscription.isFree || subscription.isTrial;
-  }, [referrer, subscription.isFree, subscription.isTrial]);
+    return hasUpsell || subscription.isFree || subscriptionIsTrial;
+  }, [referrer, subscription.isFree, subscriptionIsTrial]);
 
   const getBusinessPlan = useCallback(
     (config: BillingConfig) => {
       const {planList} = config;
 
-      return planList.find(({name, contractInterval}) => {
+      return planList.find(({name, billingInterval}) => {
         return (
           name === 'Business' &&
-          contractInterval === subscription?.planDetails?.contractInterval
+          billingInterval === subscription?.planDetails?.billingInterval
         );
       });
     },
-    [subscription?.planDetails?.contractInterval]
+    [subscription?.planDetails?.billingInterval]
   );
 
   /**
@@ -246,12 +224,12 @@ function AMCheckout(props: Props) {
       // map bundle plans
       if (subscription.planDetails.name === PlanName.BUSINESS_BUNDLE) {
         return planList.find(
-          p => p.name === PlanName.BUSINESS && p.contractInterval === 'monthly'
+          p => p.name === PlanName.BUSINESS && p.billingInterval === 'monthly'
         );
       }
       if (subscription.planDetails.name === PlanName.TEAM_BUNDLE) {
         return planList.find(
-          p => p.name === PlanName.TEAM && p.contractInterval === 'monthly'
+          p => p.name === PlanName.TEAM && p.billingInterval === 'monthly'
         );
       }
 
@@ -259,9 +237,9 @@ function AMCheckout(props: Props) {
       // (the exact-id lookup above returned nothing), so fall back to an
       // equivalent plan matched by name + contract interval.
       const legacyInitialPlan = planList.find(
-        ({name, contractInterval}) =>
+        ({name, billingInterval}) =>
           name === subscription?.planDetails?.name &&
-          contractInterval === subscription?.planDetails?.contractInterval
+          billingInterval === subscription?.planDetails?.billingInterval
       );
 
       // if no legacy initial plan found, we fallback to the business plan, then the default plan (usually team)
@@ -272,7 +250,7 @@ function AMCheckout(props: Props) {
     [
       subscription.plan,
       subscription.planDetails.name,
-      subscription.planDetails?.contractInterval,
+      subscription.planDetails?.billingInterval,
       getBusinessPlan,
       shouldDefaultToBusiness,
     ]
@@ -698,7 +676,7 @@ function AMCheckout(props: Props) {
   };
 
   const showAnnualTerms =
-    subscription.contractInterval === ANNUAL || activePlan.contractInterval === ANNUAL;
+    subscription.billingInterval === ANNUAL || activePlan.billingInterval === ANNUAL;
 
   const promotionDisclaimerText =
     promotionData?.activePromotions?.[0]?.promotion.discountInfo.disclaimerText;
@@ -788,13 +766,7 @@ function AMCheckout(props: Props) {
   );
 
   return (
-    <Flex
-      width="100%"
-      background="primary"
-      justify="center"
-      align="center"
-      direction="column"
-    >
+    <Stack width="100%" background="primary" justify="center" align="center">
       <SentryDocumentTitle title={t('Change Subscription')} orgSlug={organization.slug} />
       {isOnSponsoredPartnerPlan && (
         <Alert.Container>
@@ -835,7 +807,7 @@ function AMCheckout(props: Props) {
       </CheckoutHeader>
 
       <Flex
-        direction={{xs: 'column', md: 'row'}}
+        direction={{'screen:xs': 'column', 'screen:md': 'row'}}
         gap="md 3xl"
         justify="between"
         width="100%"
@@ -845,7 +817,7 @@ function AMCheckout(props: Props) {
       >
         {renderCheckoutContent()}
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 

@@ -47,6 +47,10 @@ export function useBootstrapOrganizationQuery(orgSlug: string | null) {
       const scope = Sentry.getCurrentScope();
       scope.setTag('organization', organization.id);
       scope.setTag('organization.slug', organization.slug);
+      scope.setAttributes({
+        organization: organization.id,
+        'organization.slug': organization.slug,
+      });
       scope.setContext('organization', {
         id: organization.id,
         slug: organization.slug,

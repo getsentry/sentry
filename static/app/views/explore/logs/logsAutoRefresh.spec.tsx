@@ -5,12 +5,21 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {
+  type AutoRefreshState,
+  LOGS_AUTO_REFRESH_KEY,
+  useSetLogsAutoRefresh,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LOGS_FIELDS_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
+
+function SetAutoRefreshButton({state}: {state: AutoRefreshState}) {
+  const setAutoRefresh = useSetLogsAutoRefresh();
+  return <button onClick={() => setAutoRefresh(state)}>set-auto-refresh</button>;
+}
 
 describe('LogsAutoRefresh Integration Tests', () => {
   const {
@@ -39,6 +48,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useRealTimers();
     MockApiClient.clearMockResponses();
 
     // Default API mock
@@ -377,5 +387,35 @@ describe('LogsAutoRefresh Integration Tests', () => {
 
     // Eventually rate limited
     expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('rate_limit');
+  });
+
+  it('does not navigate when auto-refresh is set to an unchanged state', async () => {
+    const {router} = renderWithProviders(<SetAutoRefreshButton state="idle" />, {
+      initialRouterConfig: routerConfig,
+      organization,
+    });
+
+    const keyBefore = router.location.key;
+
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh'}));
+
+    expect(router.location.key).toBe(keyBefore);
+    expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBeUndefined();
+  });
+
+  it('navigates when the auto-refresh state actually changes', async () => {
+    const {router} = renderWithProviders(<SetAutoRefreshButton state="enabled" />, {
+      initialRouterConfig: routerConfig,
+      organization,
+    });
+
+    const keyBefore = router.location.key;
+
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh'}));
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
+    });
+    expect(router.location.key).not.toBe(keyBefore);
   });
 });

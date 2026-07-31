@@ -71,6 +71,7 @@ from sentry.utils.snuba_rpc import (
     SnubaRPCRateLimitExceeded,
     SnubaRPCTooManySimultaneous,
 )
+from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID
 
 logger = logging.getLogger(__name__)
 
@@ -376,9 +377,15 @@ def handle_query_errors() -> Generator[None]:
         raise ParseError(detail=message)
     except InvalidSearchQuery as error:
         message = original_error = str(error)
-        # Special case the project message since it has so many variants so tagging is messy otherwise
+        # Special case the some messages since that include values causing variants so tagging is messy otherwise
         if message.endswith("do not exist or are not actively selected."):
             message = "Project in query does not exist or not selected"
+        elif message.endswith(INVALID_ID_DETAILS[5:]):
+            message = "Invalid ID used in a filter"
+        elif message.endswith(INVALID_SPAN_ID[5:]):
+            message = "Invalid Span ID used in a filter"
+        elif message.startswith("Empty string after"):
+            message = "Filter key was followed by nothing (eg. thing:)"
         sentry_sdk.set_tag("query.error_reason", message)
         sentry_sdk.set_attribute("query.error_reason", message)
         logger.info("A query error was handled", extra={"query.error_reason": message})

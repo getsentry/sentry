@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, cast
 
-import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import JSONField
 from django.db.models.functions import Cast
@@ -90,6 +89,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.display_name_filter import is_spam_display_name
+from sentry.utils.tracing import start_span
 
 if TYPE_CHECKING:
     from sentry.api.serializers.models.project import OrganizationProjectResponse
@@ -103,16 +103,6 @@ START_DATE_FOR_CHECKING_ONBOARDING_COMPLETION = datetime(2024, 10, 30, tzinfo=ti
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
 logger = logging.getLogger(__name__)
-
-# A mapping of OrganizationOption keys to a list of frontend features, and functions to apply the feature.
-# Enabling feature-flagging frontend components without an extra API call/endpoint to verify
-# the OrganizationOption.
-OptionFeature = tuple[str, Callable[[OrganizationOption], bool]]
-ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, list[OptionFeature]] = {
-    "quotas:new-spike-protection": [
-        ("spike-projections", lambda opt: bool(opt.value)),
-    ],
-}
 
 
 class _Status(TypedDict):
@@ -473,7 +463,7 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
         ]
         feature_set = set()
 
-        with sentry_sdk.start_span(op="features.check", name="check batch features"):
+        with start_span(op="features.check", name="check batch features"):
             # Evaluate flags purely to populate the response — the user has not
             # actually encountered any experiments yet, so suppress the auto
             # exposure events the entity handler would otherwise log.
@@ -493,7 +483,7 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
                     # This feature_name was found via `batch_has`, don't check again using `has`
                     org_features.remove(feature_name)
 
-        with sentry_sdk.start_span(op="features.check", name="check individual features"):
+        with start_span(op="features.check", name="check individual features"):
             # Remaining features should not be checked via the entity handler
             for feature_name in org_features:
                 if features.has(feature_name, obj, actor=user, skip_entity=True):
@@ -518,15 +508,6 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
         # Include api-keys feature if they previously had any api-keys
         if "api-keys" not in feature_set and attrs["has_api_key"]:
             feature_set.add("api-keys")
-
-        # Organization flag features (not provided through the features module)
-        options_as_features = OrganizationOption.objects.filter(
-            organization=obj, key__in=ORGANIZATION_OPTIONS_AS_FEATURES.keys()
-        )
-        for option in options_as_features:
-            for option_feature, option_function in ORGANIZATION_OPTIONS_AS_FEATURES[option.key]:
-                if option_function(option):
-                    feature_set.add(option_feature)
 
         if getattr(obj.flags, "allow_joinleave"):
             feature_set.add("open-membership")
@@ -670,6 +651,7 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     scrapeJavaScript: bool
     allowJoinRequests: bool
     relayPiiConfig: str | None
+    relayDsnEndpoint: str | None
     trustedRelays: list[TrustedRelaySerializerResponse]
     pendingAccessRequests: int
     hideAiFeatures: bool
@@ -827,6 +809,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
                 obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
             ),
             "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
+            "relayDsnEndpoint": obj.get_option("sentry:relay_dsn_endpoint") or None,
             "hideAiFeatures": bool(
                 obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             ),

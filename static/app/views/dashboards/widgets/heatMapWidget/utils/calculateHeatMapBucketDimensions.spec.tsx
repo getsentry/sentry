@@ -337,9 +337,11 @@ describe('calculateHeatMapBucketDimensions()', () => {
         AVAILABLE_INTERVALS
       );
 
-      // The coarsest interval should be selected for such a long window.
+      // One of the coarsest intervals should be selected for such a long
+      // window. With a 5px target over 90d / 800px the bucket target is ~13.5h,
+      // which snaps to '12h' rather than the absolute coarsest '1d'.
       expect(result).not.toBeNull();
-      expect(result!.interval).toBe('1d');
+      expect(result!.interval).toBe('12h');
     });
 
     it('handles absolute date ranges', () => {

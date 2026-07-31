@@ -15,7 +15,6 @@ import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStarted
 import {
   CopyMarkdownButton,
   OnboardingCopyMarkdownButton,
-  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
@@ -23,6 +22,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
+  BasePlatformOptions,
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -49,15 +49,17 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {
-  CopyLLMPromptButton,
-  LLM_ONBOARDING_COPY_MARKDOWN,
-} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {LLM_ONBOARDING_COPY_MARKDOWN} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
   AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
+  CLOUDFLARE_AGENT_INTEGRATIONS,
   DENO_AGENT_INTEGRATIONS,
+  DEPLOYMENT_TARGET_ICONS,
+  DEPLOYMENT_TARGET_LABELS,
+  DeploymentTarget,
   NODE_AGENT_INTEGRATIONS,
+  PHP_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
@@ -228,7 +230,6 @@ export function Onboarding() {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
-  const copyEnabled = useCopySetupInstructionsEnabled();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -245,27 +246,78 @@ export function Onboarding() {
   // Local integration options for Agent Monitoring only
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
   const isDenoPlatform = project?.platform === 'deno';
+  const isPhpPlatform = (project?.platform ?? '').startsWith('php');
+  // Node-based platforms can deploy their agents to either the Node runtime or
+  // Cloudflare Workers, so we let the user pick a target that tailors the setup.
+  const isNodePlatform = (project?.platform ?? '').startsWith('node');
+  // Cloudflare Workers projects are pinned to the Cloudflare (withSentry) setup.
+  // Cloudflare Pages bootstraps via `sentryPagesPlugin` instead, so it's left out
+  // of this selector for now and keeps its existing onboarding.
+  const isCloudflareWorkers = project?.platform === 'node-cloudflare-workers';
+  const isCloudflarePages = project?.platform === 'node-cloudflare-pages';
+  const showDeploymentTarget =
+    isNodePlatform && !isCloudflareWorkers && !isCloudflarePages;
+
+  const deploymentTargetOptions: BasePlatformOptions = showDeploymentTarget
+    ? {
+        deploymentTarget: {
+          label: t('Deployment'),
+          defaultValue: DeploymentTarget.NODE,
+          items: [DeploymentTarget.NODE, DeploymentTarget.CLOUDFLARE].map(target => ({
+            label: DEPLOYMENT_TARGET_LABELS[target],
+            value: target,
+            leadingItems: (
+              <PlatformIcon platform={DEPLOYMENT_TARGET_ICONS[target]} size={16} />
+            ),
+          })),
+        },
+      }
+    : {};
+
+  const selectedDeploymentTarget = useUrlPlatformOptions(deploymentTargetOptions)
+    .deploymentTarget as DeploymentTarget | undefined;
+  // Cloudflare Workers projects are pinned to the Cloudflare runtime; other Node
+  // projects follow the selector (defaulting to Node).
+  const deploymentTarget = isCloudflareWorkers
+    ? DeploymentTarget.CLOUDFLARE
+    : selectedDeploymentTarget;
+  const isCloudflareTarget =
+    isNodePlatform && deploymentTarget === DeploymentTarget.CLOUDFLARE;
 
   const integrations = isPythonPlatform
     ? PYTHON_AGENT_INTEGRATIONS
     : isDenoPlatform
       ? DENO_AGENT_INTEGRATIONS
-      : NODE_AGENT_INTEGRATIONS;
+      : isPhpPlatform
+        ? PHP_AGENT_INTEGRATIONS
+        : isCloudflareTarget
+          ? CLOUDFLARE_AGENT_INTEGRATIONS
+          : NODE_AGENT_INTEGRATIONS;
 
-  const integrationOptions = {
+  const platformOptions: BasePlatformOptions = {
     integration: {
       label: t('Integration'),
       items: integrations.map(integration => ({
-        label: AGENT_INTEGRATION_LABELS[integration],
+        label: isPhpPlatform
+          ? (currentPlatform?.name ?? t('Laravel'))
+          : AGENT_INTEGRATION_LABELS[integration],
         value: integration,
         leadingItems: (
-          <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
+          <PlatformIcon
+            platform={
+              isPhpPlatform
+                ? (project?.platform ?? 'php-laravel')
+                : AGENT_INTEGRATION_ICONS[integration]
+            }
+            size={16}
+          />
         ),
       })),
     },
+    ...deploymentTargetOptions,
   };
 
-  const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
+  const selectedPlatformOptions = useUrlPlatformOptions(platformOptions);
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -310,9 +362,8 @@ export function Onboarding() {
       isLoading: isLoadingRegistry,
       data: registryData,
     },
-    platformOptions: selectedPlatformOptions,
+    platformOptions: {...selectedPlatformOptions, deploymentTarget},
     docsLocation: DocsPageLocation.PROFILING_PAGE,
-    newOrg: false,
     urlPrefix,
     isSelfHosted,
   };
@@ -329,14 +380,18 @@ export function Onboarding() {
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
       <OptionsWrapper>
-        <PlatformOptionDropdown platformOptions={integrationOptions} />
+        <PlatformOptionDropdown
+          platformOptions={platformOptions}
+          connectors={{deploymentTarget: t('on')}}
+        />
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <DescriptionWrapper>
         <p>
           {tct(
-            'To use [link:Conversations], set a conversation ID for each chat. Sentry uses the `gen_ai.conversation.id` attribute to group related AI spans.',
+            'To use [link:Conversations], set a conversation ID for each chat. Sentry uses the [code:gen_ai.conversation.id] attribute to group related AI spans.',
             {
+              code: <code />,
               link: (
                 <ExternalLink href="https://docs.sentry.io/ai/monitoring/conversations/" />
               ),
@@ -345,6 +400,9 @@ export function Onboarding() {
         </p>
       </DescriptionWrapper>
       <GuidedSteps
+        // Remount when the integration or runtime changes so the stepper doesn't
+        // carry over stale per-step state from the previous selection.
+        key={`${selectedPlatformOptions.integration}-${deploymentTarget}`}
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {
           navigate({
@@ -364,7 +422,7 @@ export function Onboarding() {
             stepIndex={index}
             isLastStep={index === steps.length - 1}
             trailingItems={
-              index === 0 && copyEnabled ? (
+              index === 0 ? (
                 <OnboardingCopyMarkdownButton
                   borderless
                   steps={steps}
@@ -387,11 +445,6 @@ export function Onboarding() {
 
 function CopyInstructionsButton() {
   const organization = useOrganization();
-  const copySetupInstructionsEnabled = useCopySetupInstructionsEnabled();
-
-  if (!copySetupInstructionsEnabled) {
-    return <CopyLLMPromptButton />;
-  }
 
   return (
     <CopyMarkdownButton
@@ -414,8 +467,6 @@ export function UnsupportedPlatformOnboarding({
   platformName: string;
   project: Project;
 }) {
-  const copyEnabled = useCopySetupInstructionsEnabled();
-
   return (
     <OnboardingPanel project={project}>
       <DescriptionWrapper>
@@ -428,24 +479,15 @@ export function UnsupportedPlatformOnboarding({
           )}
         </p>
         <p>
-          {copyEnabled
-            ? tct(
-                'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
-                  ),
-                  bold: <strong />,
-                }
-              )
-            : tct(
-                'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or use an AI coding agent to do it for you.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
-                  ),
-                }
-              )}
+          {tct(
+            'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+              ),
+              bold: <strong />,
+            }
+          )}
         </p>
         <CopyInstructionsButton />
       </DescriptionWrapper>
@@ -454,8 +496,6 @@ export function UnsupportedPlatformOnboarding({
 }
 
 export function NoDocsOnboarding({project}: {project: Project}) {
-  const copyEnabled = useCopySetupInstructionsEnabled();
-
   return (
     <OnboardingPanel project={project}>
       <DescriptionWrapper>
@@ -466,24 +506,15 @@ export function NoDocsOnboarding({project}: {project: Project}) {
           )}
         </p>
         <p>
-          {copyEnabled
-            ? tct(
-                'You can set up the Sentry SDK by following our [link:documentation], or click [bold:Copy instructions] to have an AI coding agent do it for you.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
-                  ),
-                  bold: <strong />,
-                }
-              )
-            : tct(
-                'You can set up the Sentry SDK by following our [link:documentation], or use an AI coding agent to do it for you.',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
-                  ),
-                }
-              )}
+          {tct(
+            'You can set up the Sentry SDK by following our [link:documentation], or click [bold:Copy instructions] to have an AI coding agent do it for you.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
+              ),
+              bold: <strong />,
+            }
+          )}
         </p>
         <CopyInstructionsButton />
       </DescriptionWrapper>

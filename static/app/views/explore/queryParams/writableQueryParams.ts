@@ -7,6 +7,8 @@ export interface WritableQueryParams {
   aggregateCursor?: string | null;
   aggregateFields?: readonly WritableAggregateField[] | null;
   aggregateSortBys?: readonly Sort[] | null;
+  breakdownCursor?: string | null;
+  breakdownQuery?: string | null;
   crossEvents?: readonly CrossEvent[] | null;
   cursor?: string | null;
   extrapolate?: boolean;

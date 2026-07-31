@@ -5,10 +5,9 @@ from collections.abc import Callable, Iterator, Mapping, Sequence
 from typing import Any
 
 import orjson
-import sentry_sdk
 from django.conf import settings
-from rediscluster import RedisCluster
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource import (
@@ -21,6 +20,7 @@ from sentry.options.rollout import in_random_rollout
 from sentry.spans.consumers.process_segments.types import CompatibleSpan, attribute_value
 from sentry.utils import redis
 from sentry.utils.safe import safe_execute
+from sentry.utils.tracing import start_span
 
 #: Maximum number of transaction names per project that we want
 #: to store in redis.
@@ -50,7 +50,7 @@ def _get_projects_key(namespace: ClustererNamespace) -> str:
 
 def get_redis_client() -> RedisCluster:
     cluster_key = settings.SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+    return redis.redis_clusters.get(cluster_key)
 
 
 def _get_all_keys(namespace: ClustererNamespace) -> Iterator[str]:
@@ -86,7 +86,10 @@ def get_active_project_ids(namespace: ClustererNamespace) -> Iterator[int]:
 
 
 def _record_sample(namespace: ClustererNamespace, project: Project, sample: str) -> None:
-    with sentry_sdk.start_span(op=f"cluster.{namespace.value.name}.record_sample"):
+    with start_span(
+        op=f"cluster.{namespace.value.name}.record_sample",
+        name=f"cluster.{namespace.value.name}.record_sample",
+    ):
         client = get_redis_client()
         redis_key = _get_redis_key(namespace, project)
         created = add_to_set([redis_key], [sample, MAX_SET_SIZE, SET_TTL], client)

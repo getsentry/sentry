@@ -2,15 +2,14 @@ from __future__ import annotations
 
 import re
 import time
+from base64 import b64decode
 from collections import defaultdict
+from concurrent.futures import as_completed
 from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
+from yaml import YAMLError
 
-from sentry.integrations.github.platform_detection import (
-    _get_repo_file_content,
-    _parse_package_manifest,
-)
 from sentry.integrations.github.platform_registry import (
     _FRAMEWORKS_BY_PLATFORM,
     _NON_SELECTABLE_PLATFORMS,
@@ -43,9 +42,87 @@ from sentry.integrations.github.platform_registry import (
 from sentry.integrations.github.platform_registry import (
     _PackageManifest as _PackageManifest,
 )
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils import json
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.utils.yaml import safe_load
 
 if TYPE_CHECKING:
     from sentry.integrations.github.client import GitHubBaseClient
+
+# ---------------------------------------------------------------------------
+# File I/O and manifest parsing helpers
+# ---------------------------------------------------------------------------
+
+
+def _ref_params(ref: str | None) -> dict[str, str]:
+    return {"ref": ref} if ref else {}
+
+
+def _get_repo_file_content(
+    client: GitHubBaseClient, repo: str, path: str, ref: str | None = None
+) -> str | None:
+    """Fetch a file's content from a GitHub repo. Returns None if not found."""
+    try:
+        response = client.get(
+            f"/repos/{repo}/contents/{path}",
+            params=_ref_params(ref),
+        )
+        return b64decode(response["content"]).decode("utf-8")
+    except (ApiError, KeyError, TypeError, UnicodeDecodeError, ValueError):
+        return None
+
+
+def _parse_package_manifest(content: str, manifest_file: str) -> _PackageManifest | None:
+    """Parse a package manifest into dependency sets."""
+    try:
+        if manifest_file == "package.json":
+            pkg = json.loads(content)
+            return _PackageManifest(
+                dependencies=set((pkg.get("dependencies") or {}).keys()),
+                dev_dependencies=set((pkg.get("devDependencies") or {}).keys()),
+            )
+        elif manifest_file == "composer.json":
+            composer = json.loads(content)
+            return _PackageManifest(
+                dependencies=set((composer.get("require") or {}).keys()),
+                dev_dependencies=set((composer.get("require-dev") or {}).keys()),
+            )
+        elif manifest_file == "pubspec.yaml":
+            return _parse_pubspec_yaml(content)
+        elif manifest_file == "Gemfile":
+            return _parse_gemfile(content)
+    except (json.JSONDecodeError, YAMLError, ValueError, KeyError, TypeError, AttributeError):
+        pass
+    return None
+
+
+def _parse_pubspec_yaml(content: str) -> _PackageManifest:
+    """Parse a pubspec.yaml file into dependency sets using PyYAML."""
+    data = safe_load(content)
+    if not isinstance(data, dict):
+        return _PackageManifest(dependencies=set(), dev_dependencies=set())
+    deps = set((data.get("dependencies") or {}).keys())
+    dev_deps = set((data.get("dev_dependencies") or {}).keys())
+    return _PackageManifest(dependencies=deps, dev_dependencies=dev_deps)
+
+
+def _parse_gemfile(content: str) -> _PackageManifest:
+    """Parse a Gemfile into dependency sets.
+
+    Extracts gem names from ``gem "name"`` or ``gem 'name'`` lines.
+    """
+    deps: set[str] = set()
+    gem_re = re.compile(r"""gem\s+['"]([^'"]+)['"]""")
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            continue
+        match = gem_re.search(stripped)
+        if match:
+            deps.add(match.group(1))
+    return _PackageManifest(dependencies=deps, dev_dependencies=set())
+
 
 # ---------------------------------------------------------------------------
 # Multi-platform detection constants
@@ -191,9 +268,9 @@ _IGNORED_TREE_SEGMENTS = frozenset(
 )
 
 
-def _path_is_ignored(path: str) -> bool:
-    """Return True if any segment of the path is in the ignore-list."""
-    return any(segment in _IGNORED_TREE_SEGMENTS for segment in path.split("/"))
+def _segments_are_ignored(segments: list[str]) -> bool:
+    """Return True if any path segment is in the ignore-list."""
+    return any(segment in _IGNORED_TREE_SEGMENTS for segment in segments)
 
 
 def _get_tree(
@@ -243,6 +320,9 @@ def _build_tree_index(entries: list[dict[str, Any]]) -> _TreeIndex:
     Any entry whose path passes through an ignored segment is skipped, so
     ``node_modules/some-lib/package.json`` never contributes a false signal.
     ``full_repo_size_bytes`` is the sum of ``size`` across all blobs.
+
+    Each path is split once; the resulting segments are reused for both the
+    ignore check and the basename extraction (single-pass, no redundant splits).
     """
     files_full_paths_by_basename: dict[str, set[str]] = defaultdict(set)
     dirs_full_paths_by_basename: dict[str, set[str]] = defaultdict(set)
@@ -250,16 +330,21 @@ def _build_tree_index(entries: list[dict[str, Any]]) -> _TreeIndex:
 
     for entry in entries:
         path = entry.get("path", "")
+        entry_type = entry.get("type")
         size = entry.get("size") or 0
 
-        if entry.get("type") == "blob":
+        if entry_type == "blob":
             full_repo_size_bytes += size
 
-        if not path or _path_is_ignored(path):
+        if not path:
             continue
 
-        entry_type = entry.get("type")
-        basename = path.rsplit("/", 1)[-1]
+        # Split once; reuse segments for ignore check and basename.
+        segments = path.split("/")
+        if _segments_are_ignored(segments):
+            continue
+
+        basename = segments[-1]
 
         if entry_type == "blob":
             files_full_paths_by_basename[basename].add(path)
@@ -368,8 +453,8 @@ def _rule_parent_dirs(
                 continue
             if ext_filter and not basename.endswith(ext_filter):
                 continue
-            # Match case-sensitively to mirror the registry's _rule_matches;
-            # patterns that want case-insensitivity embed an inline (?i) flag.
+            # Match case-sensitively; patterns that want case-insensitivity
+            # embed an inline (?i) flag.
             if re.search(pattern, content):
                 result.add(_parent_dir(full_path))
         return result
@@ -480,11 +565,15 @@ def detect_platforms_multi(
     """
     start_time = time.monotonic()
 
-    languages: dict[str, int] = client.get_languages(repo)
-    active_platforms = _select_active_platforms(languages)
-
+    # Run get_languages and _get_tree concurrently — they are independent
+    # requests.  active_platforms only needs languages, so it is computed on
+    # the main thread while the tree fetch is in flight.
     tree_start = time.monotonic()
-    entries, is_truncated = _get_tree(client, repo, ref)
+    with ContextPropagatingThreadPoolExecutor(max_workers=1) as ex:
+        tree_future = ex.submit(_get_tree, client, repo, ref)
+        languages: dict[str, int] = client.get_languages(repo)
+        active_platforms = _select_active_platforms(languages)
+        entries, is_truncated = tree_future.result()
     tree_duration_ms = (time.monotonic() - tree_start) * 1000
     index = _build_tree_index(entries)
 
@@ -526,12 +615,20 @@ def detect_platforms_multi(
     # are always within the cap before subdirectory files from monorepo workspaces.
     capped_paths = sorted(needed_paths, key=lambda p: (p.count("/"), p))[:MAX_CONTENT_READS]
 
+    # Fan out all content reads in parallel — each _get_repo_file_content call
+    # is an independent REST round-trip and already returns None on failure, so
+    # a single slow or missing file cannot block the others.
     content_reads_start = time.monotonic()
     content_by_path: dict[str, str] = {}
-    for path in capped_paths:
-        content = _get_repo_file_content(client, repo, path, ref)
-        if content is not None:
-            content_by_path[path] = content
+    if capped_paths:
+        with ContextPropagatingThreadPoolExecutor(max_workers=len(capped_paths)) as ex:
+            future_to_path = {
+                ex.submit(_get_repo_file_content, client, repo, p, ref): p for p in capped_paths
+            }
+            for future in as_completed(future_to_path):
+                content = future.result()
+                if content is not None:
+                    content_by_path[future_to_path[future]] = content
     content_reads_duration_ms = (time.monotonic() - content_reads_start) * 1000
 
     manifests_by_path: dict[str, _PackageManifest] = {}
@@ -628,11 +725,15 @@ def detect_platforms_multi(
         f"{_MULTI_METRICS_PREFIX}.k_reads_realized",
         k_reads_realized,
     )
+    # tree.duration: wall time of the concurrent (languages + tree) block —
+    # effectively the tree's wall time since it is the long pole.
     sentry_sdk.metrics.distribution(
         f"{_MULTI_METRICS_PREFIX}.tree.duration",
         tree_duration_ms,
         unit="millisecond",
     )
+    # content_reads.duration: parallel wall time (max of individual reads),
+    # not the former serial sum — expect this metric to be significantly lower.
     sentry_sdk.metrics.distribution(
         f"{_MULTI_METRICS_PREFIX}.content_reads.duration",
         content_reads_duration_ms,

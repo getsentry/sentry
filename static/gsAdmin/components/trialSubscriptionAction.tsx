@@ -3,6 +3,7 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
 
 import type {
@@ -10,6 +11,7 @@ import type {
   AdminConfirmRenderProps,
 } from 'admin/components/adminConfirmationModal';
 import type {Subscription} from 'getsentry/types';
+import {isTrial} from 'getsentry/utils/billing';
 
 type Props = AdminConfirmRenderProps & {
   subscription: Subscription;
@@ -17,6 +19,7 @@ type Props = AdminConfirmRenderProps & {
 };
 
 type State = {
+  startTrialOnLatestTier: boolean;
   trialDays: number;
 };
 
@@ -29,6 +32,7 @@ export class TrialSubscriptionAction extends Component<Props, State> {
       this.props.subscription.isEnterpriseTrial || this.props.startEnterpriseTrial
         ? 28
         : 14,
+    startTrialOnLatestTier: false,
   };
 
   componentDidMount() {
@@ -36,17 +40,19 @@ export class TrialSubscriptionAction extends Component<Props, State> {
   }
 
   handleConfirm = (_params: AdminConfirmParams) => {
-    const {trialDays} = this.state;
+    const {trialDays, startTrialOnLatestTier} = this.state;
     const {startEnterpriseTrial, onConfirm} = this.props;
 
     // XXX(epurkhiser): In the original implementation none of the audit params
     // were passed, is that an oversight?
     //
     // The trial tier is resolved server-side (omitting `trialTier` falls back
-    // to the subscription's default enterprise-trial plan).
+    // to the subscription's default enterprise-trial plan). Passing
+    // `startTrialOnLatestTier` instead opts into the latest available tier.
     const data = {
       trialDays,
       ...(startEnterpriseTrial && {startEnterpriseTrial}),
+      ...(startEnterpriseTrial && startTrialOnLatestTier && {startTrialOnLatestTier}),
     };
 
     onConfirm?.(data);
@@ -64,12 +70,12 @@ export class TrialSubscriptionAction extends Component<Props, State> {
     if (startEnterpriseTrial) {
       return 'Start Enterprise Trial';
     }
-    return subscription.isTrial ? 'Extend Trial' : 'Start Trial';
+    return isTrial(subscription) ? 'Extend Trial' : 'Start Trial';
   }
 
   render() {
     const {subscription, startEnterpriseTrial} = this.props;
-    const {trialDays} = this.state;
+    const {trialDays, startTrialOnLatestTier} = this.state;
 
     if (!subscription) {
       return null;
@@ -103,6 +109,18 @@ export class TrialSubscriptionAction extends Component<Props, State> {
           value={trialDays}
           onChange={this.onDaysChange}
         />
+        {startEnterpriseTrial && (
+          <BooleanField
+            inline={false}
+            stacked
+            flexibleControlStateSize
+            label="Trial the latest tier"
+            help="Start the trial on the latest available tier instead of the tier that matches their current plan."
+            name="startTrialOnLatestTier"
+            value={startTrialOnLatestTier}
+            onChange={(value: boolean) => this.setState({startTrialOnLatestTier: value})}
+          />
+        )}
       </Fragment>
     );
   }

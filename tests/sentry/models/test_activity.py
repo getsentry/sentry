@@ -4,8 +4,10 @@ from unittest.mock import MagicMock, patch
 
 from sentry.event_manager import EventManager
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.utils.iterators import chunked
@@ -20,6 +22,30 @@ class ActivityTest(TestCase):
         act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
         assert len(act_for_group) == 1
         assert act_for_group[0].type == ActivityType.FIRST_SEEN.value
+
+    def test_get_activities_for_group_excludes_hidden(self) -> None:
+        project = self.create_project(name="test_activities_group")
+        group = self.create_group(project)
+        user1 = self.create_user()
+
+        visible = Activity.objects.create_group_activity(
+            group=group,
+            type=ActivityType.SET_RESOLVED,
+            user=user1,
+            send_notification=False,
+        )
+        # Internal signal that drives workflow handlers; it must never reach the feed.
+        Activity.objects.create_group_activity(
+            group=group,
+            type=ActivityType.SMART_ASSIGNMENT_COMPLETED,
+            send_notification=False,
+        )
+
+        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
+        types = {a.type for a in act_for_group}
+        assert ActivityType.SMART_ASSIGNMENT_COMPLETED.value not in types
+        assert visible.id in {a.id for a in act_for_group}
+        assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
 
     def test_get_activities_for_group_priority(self) -> None:
         manager = EventManager(make_event(level=logging.FATAL))
@@ -388,18 +414,20 @@ class ActivityTest(TestCase):
 
         custom_datetime = datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
 
-        activity = Activity.objects.create_group_activity(
-            group=group,
-            type=ActivityType.SET_RESOLVED,
-            user=user,
-            data={"reason": "test"},
-            send_notification=False,
-            datetime=custom_datetime,
-        )
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            activity = Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_RESOLVED,
+                user=user,
+                data={"reason": "test"},
+                send_notification=False,
+                datetime=custom_datetime,
+            )
 
         assert activity.datetime == custom_datetime
         assert activity.type == ActivityType.SET_RESOLVED.value
         assert activity.user_id == user.id
+        assert GroupActionLogEntry.objects.get(group_id=group.id).date_added == custom_datetime
 
     def test_create_group_activity_without_custom_datetime(self) -> None:
         project = self.create_project(name="test_default_datetime")
@@ -418,3 +446,33 @@ class ActivityTest(TestCase):
         after = datetime.now(timezone.utc)
 
         assert before <= activity.datetime <= after
+
+    def test_create_group_activity_with_ident(self) -> None:
+        project = self.create_project(name="test_with_ident")
+        group = self.create_group(project)
+
+        # `ident` is typically a related row's id (e.g. a GroupResolution id) passed as an int.
+        activity = Activity.objects.create_group_activity(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE,
+            data={"version": ""},
+            send_notification=False,
+            ident=12345,
+        )
+
+        # Activity.ident is a CharField, so the value is persisted as a string.
+        activity.refresh_from_db()
+        assert activity.ident == "12345"
+
+    def test_create_group_activity_without_ident(self) -> None:
+        project = self.create_project(name="test_without_ident")
+        group = self.create_group(project)
+
+        activity = Activity.objects.create_group_activity(
+            group=group,
+            type=ActivityType.SET_RESOLVED,
+            send_notification=False,
+        )
+
+        activity.refresh_from_db()
+        assert activity.ident is None

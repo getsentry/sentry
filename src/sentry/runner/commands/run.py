@@ -10,6 +10,7 @@ from typing import Any
 import click
 import taskbroker_client.constants as taskworker_constants
 
+from sentry import options as sentry_options
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
@@ -107,14 +108,11 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     from django.conf import settings
     from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
-    from sentry.taskworker.adapters import SentryMetricsBackend
     from sentry.taskworker.runtime import app
     from sentry.utils.redis import redis_clusters
 
     app.load_modules()
-    run_storage = RunStorage(
-        metrics=SentryMetricsBackend(), redis=redis_clusters.get(redis_cluster)
-    )
+    run_storage = RunStorage(metrics=app.metrics, redis=redis_clusters.get(redis_cluster))
 
     with managed_bgtasks(role="taskworker-scheduler"):
         runner = ScheduleRunner(app, run_storage)
@@ -167,6 +165,9 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 )
 @click.option("--concurrency", help="Number of child processes to create.", default=1)
 @click.option(
+    "--min-concurrency", help="Minimum number of children that should always be active.", default=0
+)
+@click.option(
     "--namespace", help="The dedicated task namespace that this worker processes", default=None
 )
 @click.option(
@@ -209,6 +210,19 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     default=5.0,
     type=float,
 )
+@click.option(
+    "--future-checking-frequency",
+    help="How long the future checking thread in each worker child sleeps between iterations"
+    "to take pressure off the GIL",
+    default=0.1,
+    type=float,
+)
+@click.option(
+    "--prometheus-port",
+    help="Expose worker occupancy on this port for Prometheus scraping. Unset = disabled.",
+    default=None,
+    type=int,
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
@@ -230,6 +244,7 @@ def run_taskworker(
     max_child_task_count: int,
     namespace: str | None,
     concurrency: int,
+    min_concurrency: int,
     child_tasks_queue_maxsize: int,
     result_queue_maxsize: int,
     rebalance_after: int,
@@ -238,22 +253,26 @@ def run_taskworker(
     health_check_file_path: str | None,
     health_check_sec_per_touch: float,
     push_timeout_sec: float,
+    future_checking_frequency: float,
+    prometheus_port: int | None,
     **options: Any,
 ) -> None:
     """
     taskworker factory that can be reloaded
     """
-    from taskbroker_client.worker import BatchPushTaskWorker, PushTaskWorker, TaskWorker
+    from taskbroker_client.worker import PushTaskWorker, TaskWorker
     from taskbroker_client.worker.client import make_broker_hosts
 
+    skip_awaiting_futures = sentry_options.get("taskworker.skip.awaiting.futures")
     with managed_bgtasks(role="taskworker"):
-        if push_mode:
+        if push_mode or batch_push_mode:
             worker: PushTaskWorker | TaskWorker = PushTaskWorker(
                 app_module="sentry.taskworker.bootstrap:app",
                 broker_service=rpc_host,
                 max_child_task_count=max_child_task_count,
                 namespace=namespace,
                 concurrency=concurrency,
+                min_concurrency=min_concurrency,
                 child_tasks_queue_maxsize=child_tasks_queue_maxsize,
                 result_queue_maxsize=result_queue_maxsize,
                 rebalance_after=rebalance_after,
@@ -263,23 +282,9 @@ def run_taskworker(
                 health_check_sec_per_touch=health_check_sec_per_touch,
                 grpc_port=worker_rpc_port,
                 push_task_timeout=push_timeout_sec,
-            )
-        elif batch_push_mode:
-            worker = BatchPushTaskWorker(
-                app_module="sentry.taskworker.bootstrap:app",
-                broker_service=rpc_host,
-                max_child_task_count=max_child_task_count,
-                namespace=namespace,
-                concurrency=concurrency,
-                child_tasks_queue_maxsize=child_tasks_queue_maxsize,
-                result_queue_maxsize=result_queue_maxsize,
-                rebalance_after=rebalance_after,
-                processing_pool_name=processing_pool_name,
-                pod_name=pod_name,
-                health_check_file_path=health_check_file_path,
-                health_check_sec_per_touch=health_check_sec_per_touch,
-                grpc_port=worker_rpc_port,
-                update_in_batches=True,
+                skip_awaiting_futures=skip_awaiting_futures,
+                future_checking_frequency=future_checking_frequency,
+                prometheus_port=prometheus_port,
             )
         else:
             worker = TaskWorker(
@@ -290,12 +295,15 @@ def run_taskworker(
                 max_child_task_count=max_child_task_count,
                 namespace=namespace,
                 concurrency=concurrency,
+                min_concurrency=min_concurrency,
                 child_tasks_queue_maxsize=child_tasks_queue_maxsize,
                 result_queue_maxsize=result_queue_maxsize,
                 rebalance_after=rebalance_after,
                 processing_pool_name=processing_pool_name,
                 health_check_file_path=health_check_file_path,
                 health_check_sec_per_touch=health_check_sec_per_touch,
+                skip_awaiting_futures=skip_awaiting_futures,
+                future_checking_frequency=future_checking_frequency,
             )
         exitcode = worker.start()
         raise SystemExit(exitcode)
@@ -358,6 +366,12 @@ def run_taskworker(
     default=None,
 )
 @click.option(
+    "--application",
+    type=str,
+    help="Override the application field on generated task activations",
+    default=None,
+)
+@click.option(
     "--extra-arg-bytes",
     type=int,
     help="Generater random args of specified size in bytes",
@@ -373,10 +387,15 @@ def taskbroker_send_tasks(
     bootstrap_servers: str,
     kafka_topic: str,
     namespace: str,
+    application: str | None,
     extra_arg_bytes: int | None,
 ) -> None:
+    from taskbroker_client.canary import CANARY_TASK_NAME
+    from taskbroker_client.constants import INTERNAL_NAMESPACE
+
     from sentry.conf.server import KAFKA_CLUSTERS
     from sentry.taskworker.adapters import set_route_overrides
+    from sentry.taskworker.runtime import app
     from sentry.utils.imports import import_string
 
     if bootstrap_servers:
@@ -385,11 +404,14 @@ def taskbroker_send_tasks(
     if kafka_topic and namespace:
         set_route_overrides({namespace: kafka_topic})
 
-    try:
-        func = import_string(task_function_path)
-    except Exception as e:
-        click.echo(f"Error: {e}")
-        raise click.Abort()
+    if task_function_path == CANARY_TASK_NAME and namespace == INTERNAL_NAMESPACE:
+        func = app.get_task(namespace, task_function_path)
+    else:
+        try:
+            func = import_string(task_function_path)
+        except Exception as e:
+            click.echo(f"Error: {e}")
+            raise click.Abort()
 
     task_args = [] if not args else eval(args)
     task_kwargs = {} if not kwargs else eval(kwargs)
@@ -399,6 +421,9 @@ def taskbroker_send_tasks(
             [chr(ord("a") + random.randint(0, ord("z") - ord("a"))) for _ in range(extra_arg_bytes)]
         )
         task_args.append(extra_padding_arg)
+
+    if application is not None:
+        func.namespace.application = application
 
     if not infinite:
         checkmarks = {int(repeat * (i / 10)) for i in range(1, 10)}
@@ -566,6 +591,7 @@ def basic_consumer(
         logging.getLogger("arroyo").setLevel(log_level.upper())
 
     add_global_tags(
+        all_threads=True,
         set_sentry_tags=True,
         tags={
             "kafka_topic": topic,

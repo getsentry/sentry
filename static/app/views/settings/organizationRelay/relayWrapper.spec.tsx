@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {GlobalModal} from '@sentry/scraps/modal';
 
@@ -190,6 +190,106 @@ describe('RelayWrapper', () => {
           name: 'Ingest Through Trusted Relays Only',
         })
       ).toBeDisabled();
+    });
+  });
+
+  describe('relayDsnEndpoint input', () => {
+    it('renders the persisted value', () => {
+      renderComponent({
+        relayDsnEndpoint: 'https://relay.example.com',
+      });
+
+      expect(screen.getByRole('textbox', {name: 'DSN Endpoint Override'})).toHaveValue(
+        'https://relay.example.com'
+      );
+    });
+
+    it('submits relayDsnEndpoint when edited', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/',
+        method: 'PUT',
+        body: OrganizationFixture({relayDsnEndpoint: 'https://relay.example.com'}),
+      });
+
+      renderComponent({
+        relayDsnEndpoint: 'https://old-relay.example.com',
+      });
+
+      const input = screen.getByRole('textbox', {name: 'DSN Endpoint Override'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'https://relay.example.com');
+      await userEvent.tab();
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenCalledWith(
+          '/organizations/org-slug/',
+          expect.objectContaining({
+            method: 'PUT',
+            data: {relayDsnEndpoint: 'https://relay.example.com'},
+          })
+        )
+      );
+    });
+
+    it('submits an empty relayDsnEndpoint when cleared', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/',
+        method: 'PUT',
+        body: OrganizationFixture({relayDsnEndpoint: null}),
+      });
+
+      renderComponent({
+        relayDsnEndpoint: 'https://relay.example.com',
+      });
+
+      const input = screen.getByRole('textbox', {name: 'DSN Endpoint Override'});
+      await userEvent.clear(input);
+      await userEvent.tab();
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenCalledWith(
+          '/organizations/org-slug/',
+          expect.objectContaining({
+            method: 'PUT',
+            data: {relayDsnEndpoint: ''},
+          })
+        )
+      );
+    });
+
+    it('is disabled when user lacks org:write permission', () => {
+      renderComponent({
+        access: [],
+      });
+
+      expect(screen.getByRole('textbox', {name: 'DSN Endpoint Override'})).toBeDisabled();
+    });
+
+    it.each([
+      'relay.example.com',
+      'ftp://relay.example.com',
+      'https://user:password@relay.example.com',
+      'https://relay.example.com?foo=bar',
+      'https://relay.example.com#fragment',
+    ])('rejects %s locally without calling the API', async invalidValue => {
+      const mock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/',
+        method: 'PUT',
+      });
+
+      renderComponent();
+
+      const input = screen.getByRole('textbox', {name: 'DSN Endpoint Override'});
+      await userEvent.clear(input);
+      await userEvent.type(input, invalidValue);
+      await userEvent.tab();
+
+      expect(
+        await screen.findByText(
+          'Enter an absolute http(s) base URL with a host and no credentials, query, or fragment.'
+        )
+      ).toBeInTheDocument();
+      expect(mock).not.toHaveBeenCalled();
     });
   });
 });

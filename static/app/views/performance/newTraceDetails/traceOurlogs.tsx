@@ -1,5 +1,5 @@
 import type React from 'react';
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -7,54 +7,101 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {HiddenLogSearchFields} from 'sentry/views/explore/logs/constants';
 import {useLogsFrozenTraceIds} from 'sentry/views/explore/logs/logsFrozenContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
-import {adjustLogTraceID, getLogsUrl} from 'sentry/views/explore/logs/utils';
+import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
 import {
-  useQueryParamsSearch,
-  useSetQueryParamsQuery,
-} from 'sentry/views/explore/queryParams/context';
+  adjustLogTraceID,
+  createErrorLogRow,
+  getLogsUrl,
+} from 'sentry/views/explore/logs/utils';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
-type UseTraceViewLogsDataProps = {
+type ProviderProps = {
   children: React.ReactNode;
-  traceSlug: string;
 };
 
-export function TraceViewLogsDataProvider({
+type PageDataProviderProps = ProviderProps & {
+  disabled?: boolean;
+};
+
+export function TraceViewLogsQueryParamsProvider({
   traceSlug,
   children,
-}: UseTraceViewLogsDataProps) {
+}: ProviderProps & {traceSlug: string}) {
   return (
     <LogsQueryParamsProvider
       analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
-      source="state"
+      source="location"
       freeze={{traceId: traceSlug}}
     >
-      <LogsPageDataProvider>{children}</LogsPageDataProvider>
+      {children}
     </LogsQueryParamsProvider>
   );
 }
 
-export function TraceViewLogsSection() {
+export function TraceViewLogsPageDataProvider({
+  children,
+  disabled,
+}: PageDataProviderProps) {
+  return <LogsPageDataProvider disabled={disabled}>{children}</LogsPageDataProvider>;
+}
+
+interface TraceViewLogsSectionProps {
+  errors?: TraceTree.TraceErrorIssue[];
+  fallbackTimestampSeconds?: number;
+}
+
+export function TraceViewLogsSection({
+  errors = [],
+  fallbackTimestampSeconds = 0,
+}: TraceViewLogsSectionProps) {
   return (
     <StyledPanel>
-      <LogsSectionContent />
+      <LogsSectionContent
+        errors={errors}
+        fallbackTimestampSeconds={fallbackTimestampSeconds}
+      />
     </StyledPanel>
   );
 }
 
-function LogsSectionContent() {
+function LogsSectionContent({
+  errors,
+  fallbackTimestampSeconds,
+}: Required<TraceViewLogsSectionProps>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const traceIds = useLogsFrozenTraceIds();
-  const setLogsQuery = useSetQueryParamsQuery();
-  const logsSearch = useQueryParamsSearch();
+
+  const injectedErrorRows = useMemo(
+    () => errors.map(error => createErrorLogRow(error, fallbackTimestampSeconds)),
+    [errors, fallbackTimestampSeconds]
+  );
+
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useLogItemAttributes({}, 'string', HiddenLogSearchFields);
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useLogItemAttributes({}, 'number', HiddenLogSearchFields);
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
+
+  const {tracesItemSearchQueryBuilderProps} = useLogsSearchQueryBuilderProps({
+    booleanAttributes,
+    numberAttributes,
+    stringAttributes,
+    booleanSecondaryAliases,
+    numberSecondaryAliases,
+    stringSecondaryAliases,
+  });
 
   const traceId = traceIds?.[0] && adjustLogTraceID(traceIds[0]);
   const logsUrl = getLogsUrl({
@@ -66,13 +113,9 @@ function LogsSectionContent() {
   return (
     <Fragment>
       <Flex gap="lg">
-        <SearchQueryBuilder
+        <TraceItemSearchQueryBuilder
+          {...tracesItemSearchQueryBuilderProps}
           placeholder={t('Search logs for this event')}
-          filterKeys={{}}
-          getTagValues={() => new Promise<string[]>(() => [])}
-          initialQuery={logsSearch.formatString()}
-          searchSource="ourlogs"
-          onSearch={query => setLogsQuery(query)}
         />
         <LinkButton to={logsUrl}>{t('Open in Logs')}</LinkButton>
       </Flex>
@@ -80,6 +123,7 @@ function LogsSectionContent() {
         <LogsInfiniteTable
           analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
           embedded
+          injectedErrorRows={injectedErrorRows}
           showCellActions
           showExploreSimilarSpansLink
         />

@@ -17,6 +17,7 @@ import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModel
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 interface AIOutputData {
+  reasoningText: string | null;
   responseObject: string | null;
   responseText: string | null;
   toolCalls: string | null;
@@ -47,14 +48,14 @@ export function AIOutputSection({
     return null;
   }
 
-  const {responseText, responseObject, toolCalls} = getAIOutputData(
+  const {reasoningText, responseText, responseObject, toolCalls} = getAIOutputData(
     node,
     attributes,
     event
   );
   const toolOutput = getAIToolOutput(node, attributes, event);
 
-  if (!responseText && !responseObject && !toolCalls && !toolOutput) {
+  if (!reasoningText && !responseText && !responseObject && !toolCalls && !toolOutput) {
     return null;
   }
 
@@ -66,6 +67,14 @@ export function AIOutputSection({
       disableCollapsePersistence
       initialCollapse={initialCollapse}
     >
+      {reasoningText && (
+        <Fragment>
+          <TraceDrawerComponents.MultilineTextLabel>
+            {t('Thinking')}
+          </TraceDrawerComponents.MultilineTextLabel>
+          <AIContentRenderer text={reasoningText} />
+        </Fragment>
+      )}
       {responseText && (
         <Fragment>
           <TraceDrawerComponents.MultilineTextLabel>
@@ -117,7 +126,7 @@ export function hasAIOutputAttribute(
  * `gen_ai.response.object` / `gen_ai.response.tool_calls` fields are used as
  * supplementary fallbacks.
  */
-function getAIOutputData(
+export function getAIOutputData(
   node: EapSpanNode | SpanNode | TransactionNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
@@ -130,8 +139,14 @@ function getAIOutputData(
     const extracted = extractAssistantOutput(raw.toString(), {
       defaultRole: 'assistant',
     });
-    if (extracted.responseText || extracted.responseObject || extracted.toolCalls) {
+    if (
+      extracted.reasoningText ||
+      extracted.responseText ||
+      extracted.responseObject ||
+      extracted.toolCalls
+    ) {
       return {
+        reasoningText: extracted.reasoningText,
         responseText: extracted.responseText,
         responseObject: extracted.responseObject,
         toolCalls: extracted.toolCalls,
@@ -153,13 +168,14 @@ function getAIOutputData(
   );
 
   return {
+    reasoningText: null,
     responseText: null,
     responseObject: responseObject?.toString() ?? null,
     toolCalls: toolCalls?.toString() ?? null,
   };
 }
 
-function getAIToolOutput(
+export function getAIToolOutput(
   node: EapSpanNode | SpanNode | TransactionNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction

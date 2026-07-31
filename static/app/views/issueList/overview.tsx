@@ -58,12 +58,10 @@ import {useSupergroupDrawer} from 'sentry/views/issueList/supergroups/useSupergr
 import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
-import {useIssuePreviewDrawer} from './pages/useIssuePreviewDrawer';
 import {IssueListFilters} from './filters';
 import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
 import {
@@ -85,12 +83,6 @@ const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 const MAX_ISSUES_COUNT = 100;
 
 interface Props {
-  /**
-   * Controls what happens when an issue row is clicked.
-   * - 'navigate' (default): navigates to the issue details page.
-   * - 'preview': opens a lightweight issue preview drawer.
-   */
-  clickBehavior?: 'navigate' | 'preview';
   headerActions?: ReactNode;
   initialQuery?: string;
   initialSort?: IssueSortOptions;
@@ -147,17 +139,15 @@ function IssueListOverviewInner({
   title = t('Issues'),
   titleDescription,
   headerActions,
-  clickBehavior = 'navigate',
   withColumns,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const isPreviewMode = clickBehavior === 'preview';
-  const {openIssuePreview} = useIssuePreviewDrawer({enabled: isPreviewMode});
   const api = useApi();
   const urlParams = useParams<{viewId?: string}>();
+  const {data: groupSearchView} = useSelectedGroupSearchView();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
   const [realtimeActive, setRealtimeActive] = useState(
     realtimeActiveCookie === undefined || urlParams.viewId
@@ -227,12 +217,18 @@ function IssueListOverviewInner({
   const query = defined(location.query.query)
     ? (decodeScalar(location.query.query) ?? '')
     : initialQuery;
-  const hasRecommendedSort = organization.features.includes(
-    'issue-stream-recommended-sort'
+  const hasRecommendedSortDefault = organization.features.includes(
+    'issue-stream-recommended-sort-default'
   );
-  const defaultSort =
-    initialSort === DEFAULT_ISSUE_STREAM_SORT
-      ? hasRecommendedSort
+  const hasIssueStreamProgressUI = organization.features.includes(
+    'issue-stream-progress-ui'
+  );
+  // The stored sort is the user's preferred sort for the unsaved feed.
+  // Saved views persist their own sort, so they neither read nor write it.
+  const defaultSort = urlParams.viewId
+    ? (groupSearchView?.querySort ?? DEFAULT_ISSUE_STREAM_SORT)
+    : initialSort === DEFAULT_ISSUE_STREAM_SORT
+      ? hasRecommendedSortDefault
         ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
         : DEFAULT_ISSUE_STREAM_SORT
       : initialSort;
@@ -298,11 +294,15 @@ function IssueListOverviewInner({
       params.statsPeriod = DEFAULT_STATS_PERIOD;
     }
 
-    params.expand = ['owners', 'inbox'];
+    params.expand = [
+      'owners',
+      'inbox',
+      ...(hasIssueStreamProgressUI ? ['derivedData'] : []),
+    ];
     params.collapse = ['stats', 'unhandled'];
 
     return params;
-  }, [getEndpointParams, location.query]);
+  }, [getEndpointParams, location.query, hasIssueStreamProgressUI]);
 
   const loadFromCache = useCallback((): boolean => {
     const cache = IssueListCacheStore.getFromCache(requestParams);
@@ -710,7 +710,11 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
-    if (hasRecommendedSort && initialSort === DEFAULT_ISSUE_STREAM_SORT) {
+    if (
+      hasRecommendedSortDefault &&
+      !urlParams.viewId &&
+      initialSort === DEFAULT_ISSUE_STREAM_SORT
+    ) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
     transitionTo({sort: newSort});
@@ -918,13 +922,9 @@ function IssueListOverviewInner({
 
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
-  const hasPageFrame = useHasPageFrameFeature();
-
   // Derive from query (URL state) not initialQuery (prop) so the hint
   // stays accurate if the user edits the search bar.
   const isTaxonomyView = query.includes('issue.category:');
-
-  const {data: groupSearchView} = useSelectedGroupSearchView();
 
   useLLMContext({
     contextHint:
@@ -970,7 +970,6 @@ function IssueListOverviewInner({
           onActionTaken={onActionTaken}
         />
         <IssueViewsHeader
-          selectedProjectIds={selection.projects}
           title={title}
           description={titleDescription}
           realtimeActive={realtimeActive}
@@ -978,12 +977,7 @@ function IssueListOverviewInner({
           headerActions={headerActions}
         />
         <StyledBody>
-          <Grid
-            area="content"
-            padding={
-              hasPageFrame ? {sm: 'md lg', md: 'md xl'} : {sm: 'xl', md: '2xl 3xl'}
-            }
-          >
+          <Grid area="content" padding={{'screen:sm': 'md lg', 'screen:md': 'lg xl'}}>
             <IssuesDataConsentBanner source="issues" />
             <IssueListFilters
               query={query}
@@ -1003,13 +997,11 @@ function IssueListOverviewInner({
               allResultsVisible={allResultsVisible()}
               displayReprocessingActions={displayReprocessingActions}
               memberList={memberList}
-              selectedProjectIds={selection.projects}
               issuesLoading={issuesLoading || supergroupsLoading}
               statsLoading={statsLoading}
               supergroupLookup={supergroupLookup}
               error={error}
               refetchGroups={fetchData}
-              onGroupClick={isPreviewMode ? openIssuePreview : undefined}
               withColumns={withColumns}
               paginationCaption={
                 !issuesLoading && modifiedQueryCount > 0

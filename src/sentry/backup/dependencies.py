@@ -514,7 +514,6 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
     # list: the schema defines all of their foreign keys as nullable, but since these models have no
     # other models referencing them (ie, they are leaves on our dependency graph), we know that at
     # least one of those nullable relations will be present on every model.
-    model_dependencies_dict[NormalizedModelName("sentry.savedsearch")].dangling = False
     model_dependencies_dict[NormalizedModelName("sentry.servicehook")].dangling = False
     model_dependencies_dict[NormalizedModelName("sentry.snubaqueryeventtype")].dangling = False
     model_dependencies_dict[NormalizedModelName("sentry.rulesnooze")].dangling = False

@@ -49,13 +49,6 @@ export enum CodingAgentProvider {
   GITHUB_COPILOT_AGENT = 'github_copilot_agent',
 }
 
-export function getResultButtonLabel(url: string | null | undefined): string {
-  if (url?.includes('/tree/')) {
-    return t('View Branch');
-  }
-  return t('View Pull Request');
-}
-
 export type FilePatch = {
   added: number;
   hunks: Hunk[];
@@ -126,12 +119,6 @@ function isDiffLine(value: unknown): value is DiffLine {
     (typeof obj.target_line_no === 'number' || obj.target_line_no === null) &&
     typeof obj.value === 'string'
   );
-}
-
-export interface AutofixRepoDefinition {
-  name: string;
-  owner: string;
-  provider: string;
 }
 
 interface AutofixRepo {

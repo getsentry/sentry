@@ -49,26 +49,18 @@ import {SourceField} from './form/sourceField';
 import {ErrorType, handleError} from './handleError';
 import {hasCaptureGroups, useSourceGroupData} from './utils';
 
-const dataScrubSchema = z
-  .object({
-    method: z.enum(MethodType),
-    pattern: z.string(),
-    placeholder: z.string(),
-    replaceCaptured: z.boolean(),
-    source: z.string().min(1, t('This field is required')),
-    type: z.enum(RuleType),
-    dataset: z.enum(AllowedDataScrubbingDatasets),
-    eventId: z.string(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.type === RuleType.PATTERN && !data.pattern.trim()) {
-      ctx.addIssue({
-        code: 'custom',
-        message: t('This field is required'),
-        path: ['pattern'],
-      });
-    }
-  });
+// `pattern` is permissive here and carries its own validator on the field, so
+// it is only enforced when the regex-matches input is displayed.
+const dataScrubSchema = z.object({
+  method: z.enum(MethodType),
+  pattern: z.string(),
+  placeholder: z.string(),
+  replaceCaptured: z.boolean(),
+  source: z.string().min(1, t('This field is required')),
+  type: z.enum(RuleType),
+  dataset: z.enum(AllowedDataScrubbingDatasets),
+  eventId: z.string(),
+});
 
 export type DataScrubFormModalProps = ModalRenderProps & {
   api: Client;
@@ -239,7 +231,7 @@ export function DataScrubFormModal({
         <h5>{title}</h5>
       </Header>
       <Body>
-        <Stack gap={{xs: 'md', sm: 'xl'}}>
+        <Stack gap={{'screen:xs': 'md', 'screen:sm': 'xl'}}>
           {traceItemDatasetsEnabled && (
             <form.AppField name="dataset">
               {field => (
@@ -256,13 +248,13 @@ export function DataScrubFormModal({
                     hintText={t('The dataset targeted by the scrubbing rule')}
                     variant="compact"
                   >
-                    <Flex direction="column" gap="lg">
+                    <Stack gap="lg">
                       {sortBy(enabledDatasets).map(value => (
                         <field.Radio.Item key={value} value={value}>
                           {getDatasetLabelLong(value)}
                         </field.Radio.Item>
                       ))}
-                    </Flex>
+                    </Stack>
                   </field.Layout.Stack>
                 </field.Radio.Group>
               )}
@@ -273,9 +265,11 @@ export function DataScrubFormModal({
             {method => (
               <Grid
                 columns={
-                  method === MethodType.REPLACE ? {xs: '1fr', sm: '1fr 1fr'} : '1fr'
+                  method === MethodType.REPLACE
+                    ? {'screen:xs': '1fr', 'screen:sm': '1fr 1fr'}
+                    : '1fr'
                 }
-                gap={{sm: 'md'}}
+                gap={{'screen:sm': 'md'}}
               >
                 <form.AppField
                   name="method"
@@ -326,8 +320,12 @@ export function DataScrubFormModal({
           </form.Subscribe>
 
           <Grid
-            columns={type === RuleType.PATTERN ? {xs: '1fr', sm: '1fr 1fr'} : '1fr'}
-            gap={{sm: 'md'}}
+            columns={
+              type === RuleType.PATTERN
+                ? {'screen:xs': '1fr', 'screen:sm': '1fr 1fr'}
+                : '1fr'
+            }
+            gap={{'screen:sm': 'md'}}
           >
             <form.AppField
               name="type"
@@ -361,6 +359,9 @@ export function DataScrubFormModal({
             {type === RuleType.PATTERN && (
               <form.AppField
                 name="pattern"
+                validators={{
+                  onDynamic: z.string().trim().min(1, t('This field is required')),
+                }}
                 listeners={{
                   onChange: ({value}) => {
                     if (!hasCaptureGroups(value)) {
@@ -597,7 +598,7 @@ function SourceGroup({
 }: React.PropsWithChildren<{isExpanded?: boolean}>) {
   return (
     <SourceGroupContainer isExpanded={isExpanded}>
-      <Stack gap={{xs: 'md', sm: 'xl'}}>{children}</Stack>
+      <Stack gap={{'screen:xs': 'md', 'screen:sm': 'xl'}}>{children}</Stack>
     </SourceGroupContainer>
   );
 }

@@ -3,11 +3,9 @@ import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {AutofixAgent} from 'sentry/components/seer/projectDetails/autofixAgent';
 import {AutofixRepositoriesList} from 'sentry/components/seer/projectDetails/autofixRepositoriesList';
-import {NightShift} from 'sentry/components/seer/projectDetails/nightShift';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
@@ -50,9 +48,6 @@ export function SeerProjectDetails({project}: {project: DetailedProject}) {
           project={project}
         />
         <AutofixAgent canWrite={canWrite} project={project} />
-        <Feature features="organizations:seer-night-shift-settings">
-          <NightShift canWrite={canWrite} project={project} />
-        </Feature>
       </Stack>
     </AnalyticsArea>
   );

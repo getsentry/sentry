@@ -646,7 +646,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             delete_uptime_subscription(subscription)
             return
 
-        organization = detector.project.organization
+        organization = detector.linked_project.organization
 
         # Nothing to do if this subscription is disabled.
         if not detector.enabled:
@@ -699,9 +699,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 )
             return
 
-        if result["status"] == CHECKSTATUS_FAILURE and features.has(
-            "organizations:uptime-response-capture", organization
-        ):
+        if result["status"] == CHECKSTATUS_FAILURE:
             create_uptime_response_capture(subscription, result)
 
         if last_update_ms > 0:

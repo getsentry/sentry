@@ -44,7 +44,9 @@ function SnapshotsToolbarWithControls({
     mode: DiffMode;
     onModeChange: (mode: DiffMode) => void;
     onOverlayColorChange: (color: string) => void;
+    onOverlayOpacityChange: (opacity: number) => void;
     overlayColor: string;
+    overlayOpacity: number;
     showSplit?: boolean;
   };
   progress?: {
@@ -95,6 +97,8 @@ function SnapshotsToolbarWithControls({
               <ColorPickerButton
                 color={diff.overlayColor}
                 onChange={diff.onOverlayColorChange}
+                opacity={diff.overlayOpacity}
+                onOpacityChange={diff.onOverlayOpacityChange}
               />
             )}
             <DiffModeToggle
@@ -134,6 +138,8 @@ describe('SnapshotsToolbar', () => {
                   onModeChange: noop,
                   overlayColor: '#f55459',
                   onOverlayColorChange: noop,
+                  overlayOpacity: 50,
+                  onOverlayOpacityChange: noop,
                   showSplit: isSm,
                 }}
                 solo={{isActive: false, onToggle: noop}}
@@ -206,6 +212,8 @@ describe('SnapshotsToolbar', () => {
                 onModeChange: noop,
                 overlayColor: '#f55459',
                 onOverlayColorChange: noop,
+                overlayOpacity: 50,
+                onOverlayOpacityChange: noop,
               }}
             />
           </div>

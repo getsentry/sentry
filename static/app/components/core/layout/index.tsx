@@ -11,5 +11,13 @@ export {Stack, type StackProps, type StackPropsWithRenderFunction} from './stack
 /**
  * @TODO: these should probably be private to scraps
  */
-export {rc, type Responsive, useResponsivePropValue} from './styles';
+export {
+  ContainerQueryProvider,
+  rc,
+  type Responsive,
+  type ResponsiveKey,
+  useContainerBreakpoint,
+  useHasContainerQuery,
+  useResponsivePropValue,
+} from './styles';
 export {getBorder, getMargin, getRadius, getSpacing} from './styles';

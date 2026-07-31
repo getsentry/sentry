@@ -959,10 +959,12 @@ describe('Results', () => {
         organization,
       });
 
-      await waitFor(() =>
-        expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Discover Context Menu'})
       );
-      await userEvent.click(screen.getByText('Set as Default'));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Set as Default'})
+      );
 
       expect(mockHomepageUpdate).toHaveBeenCalledWith(
         '/organizations/org-slug/discover/homepage/',
@@ -983,7 +985,7 @@ describe('Results', () => {
       });
 
       const organization = OrganizationFixture({
-        features: ['discover-basic', 'page-frame'],
+        features: ['discover-basic'],
       });
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
@@ -1036,7 +1038,7 @@ describe('Results', () => {
       ProjectsStore.loadInitialData([ProjectFixture()]);
       renderMockRequests();
 
-      const {router} = render(<Results />, {
+      render(<Results />, {
         initialRouterConfig: {
           location: {
             pathname: `/organizations/${organization.slug}/explore/discover/results/`,
@@ -1047,24 +1049,17 @@ describe('Results', () => {
         organization,
       });
 
-      await waitFor(() =>
-        expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
+      // The saved query matches the homepage, so the context menu offers the
+      // "Remove Default" reset action rather than "Set as Default".
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Discover Context Menu'})
       );
-      await userEvent.click(screen.getByText('Set as Default'));
-      expect(await screen.findByText('Remove Default')).toBeInTheDocument();
-
-      await userEvent.click(screen.getByText('Total Period'));
-      await userEvent.click(screen.getByText('Previous Period'));
-
-      // Navigate to update the display parameter
-      const newParams = new URLSearchParams({
-        id: '1',
-        display: 'previous',
-      });
-      router.navigate(`${router.location.pathname}?${newParams.toString()}`);
-
-      await screen.findByText('Previous Period');
-      expect(await screen.findByText('Set as Default')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Remove Default'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Set as Default'})
+      ).not.toBeInTheDocument();
     });
 
     it('Changes the Use as Discover button to a reset button for prebuilt query', async () => {
@@ -1098,8 +1093,19 @@ describe('Results', () => {
       });
 
       await screen.findAllByText(getTransactionViews(organization)[0]!.name);
-      await userEvent.click(screen.getByText('Set as Default'));
-      expect(await screen.findByText('Remove Default')).toBeInTheDocument();
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Discover Context Menu'})
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Set as Default'})
+      );
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Discover Context Menu'})
+      );
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Remove Default'})
+      ).toBeInTheDocument();
+      await userEvent.keyboard('{Escape}');
 
       await userEvent.click(screen.getByText('Total Period'));
       await userEvent.click(screen.getByText('Previous Period'));
@@ -1117,7 +1123,12 @@ describe('Results', () => {
       router.navigate(`${router.location.pathname}?${updatedParams.toString()}`);
 
       await screen.findByText('Previous Period');
-      expect(await screen.findByText('Set as Default')).toBeInTheDocument();
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Discover Context Menu'})
+      );
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Set as Default'})
+      ).toBeInTheDocument();
     });
 
     it('links back to the homepage through the Discover breadcrumb', async () => {
@@ -1210,7 +1221,12 @@ describe('Results', () => {
         expect(measurementsMetaMock).toHaveBeenCalled();
       });
 
-      expect(screen.getByTestId('set-as-default')).toBeEnabled();
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Discover Context Menu'})
+      );
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Set as Default'})
+      ).not.toHaveAttribute('aria-disabled', 'true');
     });
 
     it("doesn't render sample data alert", async () => {
@@ -1517,6 +1533,94 @@ describe('Results', () => {
       expect(
         await screen.findByRole('option', {name: 'transaction.status:ok'})
       ).toBeInTheDocument();
+    });
+  });
+
+  describe('transactions deprecation', () => {
+    const deprecationFeatures = [
+      'discover-basic',
+      'deprecate-discover',
+      'discover-saved-queries-deprecation',
+    ];
+
+    it('blocks the transactions dataset and points users to Explore', async () => {
+      const organization = OrganizationFixture({features: deprecationFeatures});
+
+      const mockRequests = renderMockRequests();
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
+            query: {...generateFields(), queryDataset: 'transaction-like'},
+          },
+          route: '/organizations/:orgId/explore/errors/results/',
+        },
+        organization,
+      });
+
+      const link = await screen.findByRole('link', {name: 'Explore Queries'});
+      expect(link).toHaveAttribute('href', '/explore/saved-queries/');
+
+      expect(mockRequests.eventsResultsMock).not.toHaveBeenCalled();
+      expect(mockRequests.eventsStatsMock).not.toHaveBeenCalled();
+      expect(mockRequests.eventsMetaMock).not.toHaveBeenCalled();
+    });
+
+    it('still renders the table for the errors dataset', async () => {
+      const organization = OrganizationFixture({features: deprecationFeatures});
+
+      const mockRequests = renderMockRequests();
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
+            query: {...generateFields(), queryDataset: 'error-events'},
+          },
+          route: '/organizations/:orgId/explore/errors/results/',
+        },
+        organization,
+      });
+
+      expect(await screen.findByText(eventTitle)).toBeInTheDocument();
+      expect(mockRequests.eventsResultsMock).toHaveBeenCalled();
+      expect(mockRequests.eventsStatsMock).toHaveBeenCalled();
+      await waitFor(() => expect(mockRequests.eventsMetaMock).toHaveBeenCalled());
+      expect(
+        screen.queryByRole('link', {name: 'Explore Queries'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not block transactions when the deprecation is disabled', async () => {
+      const organization = OrganizationFixture({features: ['discover-basic']});
+
+      const mockRequests = renderMockRequests();
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            query: {...generateFields(), queryDataset: 'transaction-like'},
+          },
+          route: '/organizations/:orgId/explore/discover/results/',
+        },
+        organization,
+      });
+
+      expect(await screen.findByText(eventTitle)).toBeInTheDocument();
+      expect(mockRequests.eventsResultsMock).toHaveBeenCalled();
+      expect(mockRequests.eventsStatsMock).toHaveBeenCalled();
+      await waitFor(() => expect(mockRequests.eventsMetaMock).toHaveBeenCalled());
+      expect(
+        screen.queryByRole('link', {name: 'Explore Queries'})
+      ).not.toBeInTheDocument();
     });
   });
 });

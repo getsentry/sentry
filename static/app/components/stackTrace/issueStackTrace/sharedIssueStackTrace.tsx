@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
@@ -195,7 +195,7 @@ function SharedIssueStackTraceContent({
 
     return (
       <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           {hasExceptionInfo && (
             <Fragment>
               <div>
@@ -217,14 +217,14 @@ function SharedIssueStackTraceContent({
           >
             <StackTraceFrames frameContextComponent={FrameContent} />
           </StackTraceProvider>
-        </Flex>
+        </Stack>
       </FoldSection>
     );
   }
 
   return (
     <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Text variant="muted">
           {tn(
             'There is %s chained exception in this event.',
@@ -267,7 +267,7 @@ function SharedIssueStackTraceContent({
                 <ExceptionHeader type={excType} module={excModule} />
               </Disclosure.Title>
               <Disclosure.Content>
-                <Flex direction="column" gap="sm">
+                <Stack gap="sm">
                   <ExceptionDescription
                     value={excValue}
                     mechanism={exc.mechanism}
@@ -289,12 +289,12 @@ function SharedIssueStackTraceContent({
                   >
                     <StackTraceFrames frameContextComponent={FrameContent} />
                   </StackTraceProvider>
-                </Flex>
+                </Stack>
               </Disclosure.Content>
             </Disclosure>
           );
         })}
-      </Flex>
+      </Stack>
     </FoldSection>
   );
 }

@@ -1,9 +1,10 @@
-import {Fragment, type ComponentProps, type ReactNode} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -29,7 +30,10 @@ import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
-import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
+import {
+  IssueIdBreadcrumb,
+  useIssueIdBreadcrumbItem,
+} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -41,7 +45,7 @@ import {
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 interface GroupHeaderProps {
   event: Event | null;
@@ -75,22 +79,52 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const crumbs = [
-    {
-      label: 'Issues',
-      to: {pathname: `/organizations/${organization.slug}/issues/`, query},
-    },
-    {label: <IssueIdBreadcrumb project={project} group={group} />},
-  ];
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
+  const issueItem = useIssueIdBreadcrumbItem({project, group});
 
   return (
     <Fragment>
       <Header>
         <Flex justify="between">
           <Flex align="center" gap="md">
-            <MaybeTopBarSlot name="title">
-              <StyledBreadcrumbs crumbs={crumbs} />
-            </MaybeTopBarSlot>
+            {hasNewBreadcrumbs ? (
+              <Fragment>
+                <TopBar.Slot name="breadcrumbs">
+                  <BreadcrumbList
+                    items={[
+                      {
+                        type: 'link',
+                        label: t('Issues'),
+                        to: {
+                          pathname: `/organizations/${organization.slug}/issues/`,
+                          query,
+                        },
+                      },
+                    ]}
+                  />
+                </TopBar.Slot>
+                <TopBar.Slot name="title">
+                  <BreadcrumbList.Title item={issueItem} />
+                </TopBar.Slot>
+              </Fragment>
+            ) : (
+              <TopBar.Slot name="title">
+                <StyledBreadcrumbs
+                  crumbs={[
+                    {
+                      label: 'Issues',
+                      to: {
+                        pathname: `/organizations/${organization.slug}/issues/`,
+                        query,
+                      },
+                    },
+                    {
+                      label: <IssueIdBreadcrumb project={project} group={group} />,
+                    },
+                  ]}
+                />
+              </TopBar.Slot>
+            )}
             {hasErrorUpsampling && (
               <Tooltip
                 title={t(
@@ -191,22 +225,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
   );
 }
 
-function MaybeTopBarSlot({
-  name,
-  children,
-}: {
-  children: ReactNode;
-  name: ComponentProps<typeof TopBar.Slot>['name'];
-}) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
-  if (hasPageFrameFeature) {
-    return <TopBar.Slot name={name}>{children}</TopBar.Slot>;
-  }
-  return children;
-}
-
 function HeaderActions({group}: {group: Group}) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {feedback} = useFeedbackSDKIntegration();
 
   const isAIDetectedIssue = AI_DETECTED_ISSUE_TYPES.has(group.issueType);
@@ -228,16 +247,15 @@ function HeaderActions({group}: {group: Group}) {
 
   if (hasFeedbackForm && feedback) {
     return (
-      <MaybeTopBarSlot name="feedback">
+      <TopBar.Slot name="feedback">
         <FeedbackButton
           aria-label={feedbackLabel}
-          size={hasPageFrameFeature ? undefined : 'xs'}
           feedbackOptions={feedbackOptions}
-          tooltipProps={hasPageFrameFeature ? {title: feedbackLabel} : undefined}
+          tooltipProps={{title: feedbackLabel}}
         >
-          {hasPageFrameFeature ? null : t('Give Feedback')}
+          {null}
         </FeedbackButton>
-      </MaybeTopBarSlot>
+      </TopBar.Slot>
     );
   }
 

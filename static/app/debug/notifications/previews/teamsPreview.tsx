@@ -5,7 +5,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Image} from '@sentry/scraps/image';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
@@ -15,8 +15,8 @@ import {
   type NotificationTemplateRegistration,
 } from 'sentry/debug/notifications/types';
 import {IconCheckmark, IconCopy} from 'sentry/icons';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 const MSTEAMS_PREVIEW_URL = 'https://adaptivecards.microsoft.com/designer.html';
@@ -72,7 +72,7 @@ export function TeamsPreview({
             </Flex>
             <TeamsCard direction="column" align="start" padding="xl" gap="md">
               <TeamsBlackText size="xl" bold>
-                {subject}
+                {subject.map(block => block.text).join(' ')}
               </TeamsBlackText>
               <TeamsBlackText>
                 <NotificationBodyRenderer
@@ -89,7 +89,7 @@ export function TeamsPreview({
                 ))}
               </Flex>
               {chart && (
-                <Flex direction="column" gap="xs">
+                <Stack gap="xs">
                   <Image
                     height="116px"
                     width="auto"
@@ -97,16 +97,20 @@ export function TeamsPreview({
                     alt={chart.alt_text}
                     objectFit="contain"
                   />
-                </Flex>
+                </Stack>
               )}
-              {footer && <TeamsBlackText size="sm">{footer}</TeamsBlackText>}
+              {footer && (
+                <TeamsBlackText size="sm">
+                  {footer.map(block => block.text).join(' ')}
+                </TeamsBlackText>
+              )}
             </TeamsCard>
           </TeamsMessage>
         </TeamsPreviewContainer>
         <Disclosure>
           <Disclosure.Title>AdaptiveCard Payload</Disclosure.Title>
           <Disclosure.Content>
-            <Flex direction="column" align="start" gap="xl">
+            <Stack align="start" gap="xl">
               <Text>
                 Below is the AdaptiveCard JSON payload that will be sent to MS Teams. For
                 a dynamic preview, copy the JSON and paste it into the Designer linked
@@ -115,7 +119,7 @@ export function TeamsPreview({
               <CodeBlock language="json">
                 {card ? JSON.stringify(card, null, 2) : ''}
               </CodeBlock>
-            </Flex>
+            </Stack>
           </Disclosure.Content>
         </Disclosure>
       </Container>

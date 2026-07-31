@@ -1,4 +1,4 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
@@ -10,28 +10,28 @@ import type {ValidateDataConditionProps} from 'sentry/views/automations/componen
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 const SEER_ACTIVITY_STAGE_CHOICES: Array<{label: string; value: string}> = [
-  {value: 'rca_started', label: t('Root cause analysis started')},
   {value: 'rca_completed', label: t('Root cause analysis completed')},
-  {value: 'solution_started', label: t('Solution search started')},
-  {value: 'solution_completed', label: t('Solution search completed')},
-  {value: 'coding_started', label: t('Coding started')},
+  {value: 'solution_completed', label: t('Planning completed')},
   {value: 'coding_completed', label: t('Coding completed')},
   {value: 'pr_created', label: t('Pull request created')},
 ];
+const SEER_ACTIVITY_STAGES = new Set(SEER_ACTIVITY_STAGE_CHOICES.map(c => c.value));
 
 export function SeerActivityTriggerDetails({condition}: {condition: DataCondition}) {
   const stages: string[] = Array.isArray(condition.comparison)
-    ? condition.comparison
+    ? condition.comparison.filter(stage => SEER_ACTIVITY_STAGES.has(stage))
     : [];
-  // The stages should all appear in SEER_ACTIVITY_STAGE_CHOICES, but for type safety we call
-  // call .filter(Boolean) to get rid of invalid stages when we render.
-  const labels = stages
-    .map(s => SEER_ACTIVITY_STAGE_CHOICES.find(c => c.value === s)?.label)
-    .filter(Boolean);
+
+  const labels = stages.map(
+    s => SEER_ACTIVITY_STAGE_CHOICES.find(c => c.value === s)?.label ?? ''
+  );
+
   const details =
     labels.length === 1
       ? tct("Seer reaches the '[stage]' stage", {stage: labels[0] ?? ''})
-      : tct('Seer reaches any of these stages: [stages]', {stages: labels.join(', ')});
+      : tct('Seer reaches any of these stages: [stages]', {
+          stages: labels.join(', '),
+        });
 
   return <span>{details}</span>;
 }
@@ -39,10 +39,12 @@ export function SeerActivityTriggerDetails({condition}: {condition: DataConditio
 export function SeerActivityTriggerNode() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   const {removeError} = useAutomationBuilderErrorContext();
-  const value: string[] = Array.isArray(condition.comparison) ? condition.comparison : [];
+  const value: string[] = Array.isArray(condition.comparison)
+    ? condition.comparison.filter(stage => SEER_ACTIVITY_STAGES.has(stage))
+    : [];
 
   return (
-    <Flex direction="column" gap="sm">
+    <Stack gap="sm">
       <Text>{t('Seer runs on an issue and reaches the stage...')}</Text>
       <AutomationBuilderSelect
         multiple
@@ -56,14 +58,17 @@ export function SeerActivityTriggerNode() {
           removeError(condition.id);
         }}
       />
-    </Flex>
+    </Stack>
   );
 }
 
 export function validateSeerActivityTriggerCondition({
   condition,
 }: ValidateDataConditionProps): string | undefined {
-  if (!Array.isArray(condition.comparison) || condition.comparison.length === 0) {
+  if (
+    !Array.isArray(condition.comparison) ||
+    condition.comparison.filter(stage => SEER_ACTIVITY_STAGES.has(stage)).length === 0
+  ) {
     return t('You must select at least one Seer stage.');
   }
   return undefined;

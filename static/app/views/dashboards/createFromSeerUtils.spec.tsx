@@ -31,7 +31,6 @@ function makeSession(
   overrides: Partial<NonNullable<SeerExplorerResponse['session']>> = {}
 ): NonNullable<SeerExplorerResponse['session']> {
   return {
-    run_id: 1,
     status: 'completed',
     updated_at: new Date().toISOString(),
     blocks: [],

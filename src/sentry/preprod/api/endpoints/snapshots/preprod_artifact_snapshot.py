@@ -7,16 +7,14 @@ from typing import Any, cast
 import jsonschema
 import orjson
 import pydantic
-import sentry_sdk
 import zstandard
-from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -32,6 +30,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
+from sentry.issues.action_log import resolve_action_source
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -85,6 +84,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +145,7 @@ def build_snapshot_image_response(
         else global_diff_threshold,
         description=metadata.description,
         tags=metadata.tags,
+        canvas_theme=metadata.canvas_theme,
     )
 
 
@@ -251,11 +252,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         This endpoint requires a bearer token with `project:write` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         try:
             artifact = PreprodArtifact.objects.select_related("project").get(
                 id=snapshot_id, project__organization_id=organization.id
@@ -344,20 +340,19 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         Retrieve full details for a snapshot, including categorized image lists
         and comparison status.
 
-        When a comparison exists, images are categorized into `changed`, `added`,
-        `removed`, `renamed`, `unchanged`, `errored`, and `skipped` lists with
-        counts. Without a comparison, only the `images` list is populated.
+        When a comparison exists (`comparison_type` is `diff`), images are
+        categorized into `changed`, `added`, `removed`, `renamed`, `unchanged`,
+        `errored`, and `skipped` lists with counts, and the top-level `images`
+        array is empty because those images are already present in the
+        categorized lists. For `solo` and `waiting_for_base` snapshots the
+        categorized lists are empty and `images` is the only populated source.
+        `image_count` is accurate in all modes.
 
         Use `compact_metadata=1` to strip image objects down to `display_name`,
         `image_file_name`, `group`, and `description` only.
 
         This endpoint requires a bearer token with `project:read` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         compact = request.GET.get("compact_metadata", "0") in ("1", "true")
 
         try:
@@ -382,15 +377,15 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         try:
             session = get_preprod_session(organization.id, artifact.project_id)
             get_response = session.get(manifest_key)
-            with sentry_sdk.start_span(
-                op="preprod.snapshot.read_manifest", name="read_head_manifest"
-            ):
+            if get_response is None:
+                raise FileNotFoundError("Manifest does not exist in objectstore")
+            with start_span(op="preprod.snapshot.read_manifest", name="read_head_manifest"):
                 raw_manifest = get_response.payload.read()
-            with sentry_sdk.start_span(
+            with start_span(
                 op="preprod.snapshot.parse_manifest", name="parse_head_manifest"
             ) as span:
                 manifest = SnapshotManifest(**orjson.loads(raw_manifest))
-                span.set_data("image_count", len(manifest.images))
+                set_span_data(span, "image_count", len(manifest.images))
         except Exception:
             logger.exception(
                 "Failed to retrieve snapshot manifest",
@@ -433,17 +428,20 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             comparison_key = (comparison.extras or {}).get("comparison_key")
             if comparison_key:
                 try:
-                    with sentry_sdk.start_span(
+                    response = session.get(comparison_key)
+                    if response is None:
+                        raise FileNotFoundError("Comparison manifest does not exist in objectstore")
+                    with start_span(
                         op="preprod.snapshot.read_manifest", name="read_comparison_manifest"
                     ):
-                        raw_comparison_manifest = session.get(comparison_key).payload.read()
-                    with sentry_sdk.start_span(
+                        raw_comparison_manifest = response.payload.read()
+                    with start_span(
                         op="preprod.snapshot.parse_manifest", name="parse_comparison_manifest"
                     ) as span:
                         comparison_manifest = ComparisonManifest(
                             **orjson.loads(raw_comparison_manifest)
                         )
-                        span.set_data("image_count", len(comparison_manifest.images))
+                        set_span_data(span, "image_count", len(comparison_manifest.images))
                 except Exception:
                     comparison_manifest = None
                     logger.exception(
@@ -457,15 +455,16 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             base_manifest_key = (comparison.base_snapshot_metrics.extras or {}).get("manifest_key")
             if base_manifest_key:
                 try:
-                    with sentry_sdk.start_span(
-                        op="preprod.snapshot.read_manifest", name="read_base_manifest"
-                    ):
-                        raw_base_manifest = session.get(base_manifest_key).payload.read()
-                    with sentry_sdk.start_span(
+                    response = session.get(base_manifest_key)
+                    if response is None:
+                        raise FileNotFoundError("Base manifest does not exist in objectstore")
+                    with start_span(op="preprod.snapshot.read_manifest", name="read_base_manifest"):
+                        raw_base_manifest = response.payload.read()
+                    with start_span(
                         op="preprod.snapshot.parse_manifest", name="parse_base_manifest"
                     ) as span:
                         base_manifest = SnapshotManifest(**orjson.loads(raw_base_manifest))
-                        span.set_data("image_count", len(base_manifest.images))
+                        set_span_data(span, "image_count", len(base_manifest.images))
                 except Exception:
                     logger.exception(
                         "Failed to fetch base manifest",
@@ -480,6 +479,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                     request.user.id if request.user and request.user.is_authenticated else None
                 ),
                 artifact_id=str(artifact.id),
+                client=resolve_action_source(request),
             )
         )
 
@@ -499,17 +499,14 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                         app_id=artifact.app_id,
                         artifact_type=artifact.artifact_type,
                         build_configuration=artifact.build_configuration,
-                        allow_selective=features.has(
-                            "organizations:preprod-selective-base-snapshots", organization
-                        ),
                     )
                     is not None
                 )
 
-        with sentry_sdk.start_span(
+        with start_span(
             op="preprod.snapshot.serialize_images", name="serialize_head_images"
         ) as span:
-            span.set_data("image_count", len(manifest.images))
+            set_span_data(span, "image_count", len(manifest.images))
             image_list = [
                 build_snapshot_image_response(key, metadata, manifest.diff_threshold)
                 for key, metadata in sorted(manifest.images.items())
@@ -523,10 +520,10 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         if comparison_manifest is not None:
             base_artifact_id = str(comparison_manifest.base_artifact_id)
-            with sentry_sdk.start_span(
+            with start_span(
                 op="preprod.snapshot.categorize_comparison", name="categorize_comparison_images"
             ) as span:
-                span.set_data("image_count", len(comparison_manifest.images))
+                set_span_data(span, "image_count", len(comparison_manifest.images))
                 categorized = categorize_comparison_images(
                     comparison_manifest, images_by_file_name, base_manifest
                 )
@@ -624,10 +621,10 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             )
         )
 
-        with sentry_sdk.start_span(
+        with start_span(
             op="preprod.snapshot.serialize_response", name="serialize_response_body"
         ) as span:
-            span.set_data("image_count", len(image_list))
+            set_span_data(span, "image_count", len(image_list))
             response_data = SnapshotDetailsApiResponse(
                 head_artifact_id=str(artifact.id),
                 base_artifact_id=base_artifact_id,
@@ -637,7 +634,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 vcs_info=vcs_info,
                 app_id=artifact.app_id,
                 is_selective=snapshot_metrics.is_selective,
-                images=image_list,
+                images=image_list if comparison_type != "diff" else [],
                 image_count=snapshot_metrics.image_count,
                 changed=categorized.changed,
                 changed_count=len(categorized.changed),
@@ -722,11 +719,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         This endpoint requires a bearer token with `project:write` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", project.organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         request_body, decode_error = decode_preprod_snapshot_request_body(request)
         if request_body is None:
             return Response({"detail": decode_error or "Invalid request body"}, status=400)
@@ -750,9 +742,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         pr_number = data.get("pr_number")
 
         selective = data.get("selective", False)
-        allow_selective = features.has(
-            "organizations:preprod-selective-base-snapshots", project.organization
-        )
         all_image_file_names = data.get("all_image_file_names")
 
         if all_image_file_names is not None and not selective:
@@ -903,7 +892,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                     app_id=artifact.app_id,
                     artifact_type=artifact.artifact_type,
                     build_configuration=artifact.build_configuration,
-                    allow_selective=allow_selective,
                 )
                 if base_artifact:
                     logger.info(
@@ -967,7 +955,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         # Trigger comparisons for any head artifacts that were uploaded before this base.
         # Handles possible out-of-order uploads where heads arrive before their base build.
-        if commit_comparison is not None and (not selective or allow_selective):
+        if commit_comparison is not None:
             try:
                 waiting_heads = find_head_snapshot_artifacts_awaiting_base(
                     organization_id=project.organization_id,

@@ -5,13 +5,13 @@ from datetime import datetime, timedelta
 from threading import local
 from typing import Any
 
-import sentry_sdk
 from django.core.cache import BaseCache, InvalidCacheBackendError, caches
 from django.utils.functional import cached_property
 
 from sentry import options
 from sentry.utils import json, metrics
 from sentry.utils.services import Service
+from sentry.utils.tracing import set_span_tag, start_span, trace
 
 # Cache an instance of the encoder we want to use
 json_dumps = json.JSONEncoder(
@@ -136,27 +136,27 @@ class NodeStorage(local, Service):
         >>> nodestore.get('key1')
         {"message": "hello world"}
         """
-        with sentry_sdk.start_span(op="nodestore.get") as span:
-            span.set_tag("node_id", id)
+        with start_span(op="nodestore.get", name="nodestore.get") as span:
+            set_span_tag(span, "node_id", id)
             if subkey is None:
                 item_from_cache = self._get_cache_item(id)
                 if item_from_cache:
                     metrics.incr("nodestore.get", tags={"cache": "hit"})
-                    span.set_tag("origin", "from_cache")
-                    span.set_tag("found", bool(item_from_cache))
+                    set_span_tag(span, "origin", "from_cache")
+                    set_span_tag(span, "found", bool(item_from_cache))
                     return item_from_cache
 
-            span.set_tag("subkey", str(subkey))
+            set_span_tag(span, "subkey", str(subkey))
             bytes_data = self._get_bytes(id)
             rv = self._decode(bytes_data, subkey=subkey)
             if subkey is None:
                 # set cache item only after we know decoding did not fail
                 self._set_cache_item(id, rv)
 
-            span.set_tag("result", "from_service")
+            set_span_tag(span, "result", "from_service")
             if bytes_data:
-                span.set_tag("bytes.size", len(bytes_data))
-            span.set_tag("found", bool(rv))
+                set_span_tag(span, "bytes.size", len(bytes_data))
+            set_span_tag(span, "found", bool(rv))
             metrics.incr("nodestore.get", tags={"cache": "miss", "found": bool(rv)})
 
             return rv
@@ -179,17 +179,17 @@ class NodeStorage(local, Service):
             "key2": {"message": "hello world"}
         }
         """
-        with sentry_sdk.start_span(op="nodestore.get_multi") as span:
+        with start_span(op="nodestore.get_multi", name="nodestore.get_multi") as span:
             # Deduplicate ids, preserving order
             id_list = list(dict.fromkeys(id_list))
-            span.set_tag("subkey", str(subkey))
-            span.set_tag("num_ids", len(id_list))
+            set_span_tag(span, "subkey", str(subkey))
+            set_span_tag(span, "num_ids", len(id_list))
 
             if subkey is None:
                 cache_items = self._get_cache_items(id_list)
                 if len(cache_items) == len(id_list):
                     metrics.incr("nodestore.get_multi", amount=len(id_list), tags={"cache": "hit"})
-                    span.set_tag("result", "from_cache")
+                    set_span_tag(span, "result", "from_cache")
                     return cache_items
 
                 uncached_ids = [id for id in id_list if id not in cache_items]
@@ -200,7 +200,10 @@ class NodeStorage(local, Service):
             else:
                 uncached_ids = id_list
 
-            with sentry_sdk.start_span(op="nodestore._get_bytes_multi_and_decode") as span:
+            with start_span(
+                op="nodestore._get_bytes_multi_and_decode",
+                name="nodestore._get_bytes_multi_and_decode",
+            ) as span:
                 items = {
                     id: self._decode(value, subkey=subkey)
                     for id, value in self._get_bytes_multi(uncached_ids).items()
@@ -209,8 +212,8 @@ class NodeStorage(local, Service):
                 self._set_cache_items(items)
                 items.update(cache_items)
 
-            span.set_tag("result", "from_service")
-            span.set_tag("found", len(items))
+            set_span_tag(span, "result", "from_service")
+            set_span_tag(span, "found", len(items))
 
             return items
 
@@ -250,7 +253,7 @@ class NodeStorage(local, Service):
         """
         return self.set_subkeys(item_id, {None: data}, ttl=ttl)
 
-    @sentry_sdk.tracing.trace
+    @trace
     def set_subkeys(
         self, item_id: str, data: dict[str | None, Mapping[str, Any]], ttl: timedelta | None = None
     ) -> None:
@@ -285,7 +288,7 @@ class NodeStorage(local, Service):
             return self.cache.get(item_id)
         return None
 
-    @sentry_sdk.tracing.trace
+    @trace
     def _get_cache_items(self, id_list: list[str]) -> dict[str, Any]:
         if self.cache:
             return self.cache.get_many(id_list)
@@ -295,7 +298,7 @@ class NodeStorage(local, Service):
         if self.cache and data:
             self.cache.set(item_id, data, timeout=options.get("nodestore.cache-ttl"))
 
-    @sentry_sdk.tracing.trace
+    @trace
     def _set_cache_items(self, items: dict[Any, Any]) -> None:
         if self.cache:
             self.cache.set_many(items, timeout=options.get("nodestore.cache-ttl"))

@@ -1,16 +1,48 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderHookWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {
+  useTraceItemDetails,
+  usePrefetchTraceItemDetailsOnHover,
+  usePrefetchTraceItemDetailsOnMount,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+const HOVER_TIMEOUT = 150;
 
 describe('useTraceItemDetails', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({id: '1', slug: 'project-slug'});
+
+  function HoverPrefetchTarget({
+    sharedHoverTimeoutRef,
+  }: {
+    sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
+  }) {
+    const {hoverProps} = usePrefetchTraceItemDetailsOnHover({
+      projectId: project.id,
+      traceItemId: 'item-id',
+      traceId: '1234567890abcdef1234567890abcdef',
+      traceItemType: TraceItemDataset.LOGS,
+      referrer: 'api.explore.log-item-details',
+      timestamp: 123,
+      sharedHoverTimeoutRef,
+      timeout: HOVER_TIMEOUT,
+    });
+
+    return <div {...hoverProps} data-test-id="hover-prefetch-target" />;
+  }
 
   function initializePageFilters(
     datetime: Parameters<typeof PageFiltersStore.onInitializeUrlState>[0]['datetime']
@@ -193,5 +225,122 @@ describe('useTraceItemDetails', () => {
     expect(traceItemDetailsMock.mock.calls[0]![1].query).not.toHaveProperty(
       'statsPeriod'
     );
+  });
+
+  it('fetches details when the hover prefetch is invoked', async () => {
+    initializePageFilters({
+      period: '14d',
+      start: null,
+      end: null,
+      utc: false,
+    });
+    const traceItemDetailsMock = addTraceItemDetailsMock();
+
+    const {result} = renderHookWithProviders(usePrefetchTraceItemDetailsOnHover, {
+      organization,
+      initialProps: {
+        projectId: project.id,
+        traceItemId: 'item-id',
+        traceId: '1234567890abcdef1234567890abcdef',
+        traceItemType: TraceItemDataset.LOGS,
+        referrer: 'api.explore.log-item-details',
+        timestamp: 123,
+        sharedHoverTimeoutRef: {current: null},
+        timeout: 0,
+      },
+    });
+
+    await waitFor(() => expect(ProjectsStore.getState().projects).toHaveLength(1));
+    act(() => result.current.prefetch());
+
+    await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not fetch details when the hovered element unmounts before the hover timeout elapses', async () => {
+    jest.useFakeTimers();
+    initializePageFilters({
+      period: '14d',
+      start: null,
+      end: null,
+      utc: false,
+    });
+    const traceItemDetailsMock = addTraceItemDetailsMock();
+    const sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null> = {
+      current: null,
+    };
+
+    const {unmount} = render(
+      <HoverPrefetchTarget sharedHoverTimeoutRef={sharedHoverTimeoutRef} />,
+      {organization}
+    );
+
+    await userEvent.hover(screen.getByTestId('hover-prefetch-target'), {delay: null});
+    unmount();
+    act(() => {
+      jest.advanceTimersByTime(HOVER_TIMEOUT * 10);
+    });
+
+    expect(traceItemDetailsMock).not.toHaveBeenCalled();
+    expect(sharedHoverTimeoutRef.current).toBeNull();
+    jest.useRealTimers();
+  });
+
+  it('fetches details when the hovered element stays mounted past the hover timeout', async () => {
+    jest.useFakeTimers();
+    initializePageFilters({
+      period: '14d',
+      start: null,
+      end: null,
+      utc: false,
+    });
+    const traceItemDetailsMock = addTraceItemDetailsMock();
+
+    render(<HoverPrefetchTarget sharedHoverTimeoutRef={{current: null}} />, {
+      organization,
+    });
+
+    await waitFor(() => expect(ProjectsStore.getState().projects).toHaveLength(1));
+    await userEvent.hover(screen.getByTestId('hover-prefetch-target'), {delay: null});
+    act(() => {
+      jest.advanceTimersByTime(HOVER_TIMEOUT + 1);
+    });
+
+    await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
+    // Flush the .then() callback that reads cached data after prefetch
+    await act(async () => {});
+    jest.useRealTimers();
+  });
+
+  it('runs the prefetch on mount when enabled and the project is ready', () => {
+    const prefetch = jest.fn();
+
+    renderHookWithProviders(usePrefetchTraceItemDetailsOnMount, {
+      organization,
+      initialProps: {prefetch, enabled: true, isProjectReady: true},
+    });
+
+    expect(prefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not run the prefetch on mount when not enabled', () => {
+    const prefetch = jest.fn();
+
+    renderHookWithProviders(usePrefetchTraceItemDetailsOnMount, {
+      organization,
+      initialProps: {prefetch, enabled: false, isProjectReady: true},
+    });
+
+    expect(prefetch).not.toHaveBeenCalled();
+  });
+
+  it('does not run the prefetch on mount until the project is ready', () => {
+    const prefetch = jest.fn();
+
+    renderHookWithProviders(usePrefetchTraceItemDetailsOnMount, {
+      organization,
+      initialProps: {prefetch, enabled: true, isProjectReady: false},
+    });
+
+    expect(prefetch).not.toHaveBeenCalled();
   });
 });

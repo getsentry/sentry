@@ -29,20 +29,21 @@ from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiscopes import add_scope_hierarchy
 from sentry.models.apitoken import ApiToken
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppInteractionEvent,
     SentryAppInteractionType,
 )
 from sentry.sentry_apps.models.sentry_app import (
-    REQUIRED_EVENT_PERMISSIONS,
+    MASKED_VALUE,
     UUID_CHARS_IN_SLUG,
     SentryApp,
     default_uuid,
+    required_scope_for_subscription,
 )
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -79,7 +80,7 @@ def expand_events(rolled_up_events: list[str]) -> list[str]:
     Can also be given a list of event types (e.g. ['issue.created', 'issue.resolved'])
     """
 
-    expanded_events = []
+    expanded_events: list[str] = []
     for event in rolled_up_events:
         if event in EVENT_EXPANSION:
             expanded_events.extend(EVENT_EXPANSION.get(SentryAppResourceType(event), [event]))
@@ -114,6 +115,7 @@ class SentryAppUpdater:
     schema: Schema | None = None
     overview: str | None = None
     allowed_origins: list[str] | None = None
+    webhook_headers: list[str] | None = None
     popularity: int | None = None
     features: list[int] | None = None
     is_disabled: bool | None = None
@@ -137,6 +139,7 @@ class SentryAppUpdater:
                 self._update_verify_install()
                 self._update_overview()
                 self._update_allowed_origins()
+                self._update_webhook_headers()
                 new_schema_elements = self._update_schema()
                 self._update_popularity(user=user)
                 self.sentry_app.save()
@@ -203,7 +206,7 @@ class SentryAppUpdater:
     def _update_events(self) -> None:
         if self.events is not None:
             for event in self.events:
-                needed_scope = REQUIRED_EVENT_PERMISSIONS[event]
+                needed_scope = required_scope_for_subscription(event)
                 if needed_scope not in self.sentry_app.scope_list:
                     raise ParseError(
                         detail=f"{event} webhooks require the {needed_scope} permission."
@@ -286,6 +289,40 @@ class SentryAppUpdater:
             self.sentry_app.application.allowed_origins = "\n".join(self.allowed_origins)
             self.sentry_app.application.save()
 
+    def _update_webhook_headers(self) -> None:
+        # None means "not provided" (leave unchanged); an empty list clears all headers.
+        if self.webhook_headers is None:
+            return
+
+        # The serializer masks header values on read, so an unchanged entry comes back
+        # as "Header-Name: <MASKED_VALUE>". Substitute the stored value for any masked
+        # entry (matched by name) so a prefill+resave doesn't overwrite real secrets.
+        # Drop masked entries with no stored match.
+        #
+        # Names are unique (the parser rejects duplicates), so this re-pairing is
+        # unambiguous. Known limitation: renaming a header while leaving its value
+        # masked can't be matched by the new name and will drop the entry — only
+        # reachable by an editor who sees masks (org:write without scope coverage);
+        # they should re-enter the value when renaming.
+        existing_by_name = {}
+        for header in self.sentry_app.webhook_headers:
+            name, separator, _value = header.partition(":")
+            if separator:
+                existing_by_name[name.strip().lower()] = header
+
+        resolved: list[str] = []
+        for header in self.webhook_headers:
+            name, separator, value = header.partition(":")
+            if separator and value.strip() == MASKED_VALUE:
+                stored = existing_by_name.get(name.strip().lower())
+                if stored is not None:
+                    resolved.append(stored)
+            else:
+                resolved.append(header)
+
+        self.sentry_app.webhook_headers = resolved
+        # Persisted by the sentry_app.save() call at the end of run().
+
     def _update_popularity(self, user: User | RpcUser) -> None:
         if self.popularity is not None:
             if _is_elevated_user(user):
@@ -343,6 +380,7 @@ class SentryAppCreator:
     schema: Schema = dataclasses.field(default_factory=dict)
     overview: str | None = None
     allowed_origins: list[str] = dataclasses.field(default_factory=list)
+    webhook_headers: list[str] = dataclasses.field(default_factory=list)
     popularity: int | None = None
     metadata: dict | None = field(default_factory=dict)
 
@@ -426,6 +464,7 @@ class SentryAppCreator:
             "events": expand_events(self.events),
             "schema": self.schema or {},
             "webhook_url": self.webhook_url,
+            "webhook_headers": self.webhook_headers,
             "redirect_url": self.redirect_url,
             "is_alertable": self.is_alertable,
             "verify_install": self.verify_install,

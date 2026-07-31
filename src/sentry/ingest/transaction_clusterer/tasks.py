@@ -3,13 +3,13 @@ from collections.abc import Sequence
 from itertools import islice
 from typing import Any
 
-import sentry_sdk
 from taskbroker_client.retry import Retry
 
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import performance_tasks
 from sentry.utils import metrics
+from sentry.utils.tracing import set_span_data, start_span
 
 from . import ClustererNamespace, rules
 from .datasource import redis
@@ -47,7 +47,7 @@ CLUSTERING_TIMEOUT_PER_PROJECT = 0.3
 )
 def spawn_clusterers(**kwargs: Any) -> None:
     """Look for existing transaction name sets in redis and spawn clusterers for each"""
-    with sentry_sdk.start_span(op="txcluster_spawn"):
+    with start_span(op="txcluster_spawn", name="txcluster_spawn"):
         project_count = 0
         project_iter = redis.get_active_project_ids(ClustererNamespace.TRANSACTIONS)
         while batch := list(islice(project_iter, PROJECTS_PER_TASK)):
@@ -69,8 +69,8 @@ def cluster_projects(project_ids: Sequence[int]) -> None:
     num_clustered = 0
     try:
         for project in projects:
-            with sentry_sdk.start_span(op="txcluster_project") as span:
-                span.set_data("project_id", project.id)
+            with start_span(op="txcluster_project", name="txcluster_project") as span:
+                set_span_data(span, "project_id", project.id)
                 tx_names = list(redis.get_transaction_names(project))
                 new_rules = []
                 if len(tx_names) >= MERGE_THRESHOLD:

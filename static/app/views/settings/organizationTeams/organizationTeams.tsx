@@ -90,9 +90,9 @@ export function OrganizationTeams({
       <SearchWrapper>
         <Flex align="center" gap="md">
           <Container flex={1}>
-            {({className}) => (
+            {containerProps => (
               <SearchBar
-                className={className}
+                {...containerProps}
                 placeholder={t('Search teams')}
                 onChange={handleSearch}
                 query={teamQuery}

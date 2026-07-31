@@ -31,6 +31,7 @@ export type PreprodBuildEventParameters = {
   'preprod.builds.compare.go_to_build_details': BasePreprodBuildEvent & {
     slot?: 'head' | 'base';
   };
+  'preprod.builds.compare.open_existing_comparison': BasePreprodBuildEvent;
   'preprod.builds.compare.select_base_build': BasePreprodBuildEvent;
   'preprod.builds.compare.trigger_comparison': BasePreprodBuildEvent;
   'preprod.builds.details.compare_build_clicked': BasePreprodBuildEvent;
@@ -76,6 +77,14 @@ export type PreprodBuildEventParameters = {
   };
   'preprod.releases.snapshots.tab-clicked': {
     organization: Organization;
+  };
+  'preprod.settings.pr_comment_rule_created': PreprodSettingsEvent;
+  'preprod.settings.pr_comment_rule_deleted': PreprodSettingsEvent;
+  'preprod.settings.pr_comment_rule_updated': PreprodSettingsEvent & {
+    artifact_type: ArtifactType;
+    measurement: string;
+    metric: string;
+    value: number;
   };
   'preprod.settings.status_check_rule_created': PreprodSettingsEvent;
   'preprod.settings.status_check_rule_deleted': PreprodSettingsEvent;
@@ -142,6 +151,8 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
   'preprod.builds.compare.download_csv': 'Preprod Build Comparison: Download CSV',
   'preprod.builds.compare.go_to_build_details':
     'Preprod Build Comparison: Go to Build Details',
+  'preprod.builds.compare.open_existing_comparison':
+    'Preprod Build Comparison: Existing Comparison Opened',
   'preprod.builds.compare.select_base_build': 'Preprod Build Comparison: Base Selected',
   'preprod.builds.compare.trigger_comparison':
     'Preprod Build Comparison: Compare Triggered',
@@ -166,4 +177,7 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
     'Preprod Settings: Status Check Rule Deleted',
   'preprod.settings.status_check_rule_updated':
     'Preprod Settings: Status Check Rule Updated',
+  'preprod.settings.pr_comment_rule_created': 'Preprod Settings: PR Comment Rule Created',
+  'preprod.settings.pr_comment_rule_deleted': 'Preprod Settings: PR Comment Rule Deleted',
+  'preprod.settings.pr_comment_rule_updated': 'Preprod Settings: PR Comment Rule Updated',
 };

@@ -12,7 +12,8 @@ class InvokeWorkflowActivityHandlersTest(TestCase):
     def setUp(self) -> None:
         self.group = self.create_group()
         self.activity = self.create_group_activity(
-            group=self.group, type=ActivityType.SEER_PR_CREATED.value
+            group=self.group,
+            type=ActivityType.SEER_PR_CREATED.value,
         )
 
     def test_invoke_handlers_safely(self) -> None:
@@ -66,6 +67,7 @@ class InvokeWorkflowActivityHandlersTest(TestCase):
                     "handler": "handler_a",
                     "result": "success",
                     "activity_type": "SEER_PR_CREATED",
+                    "detector_type": "error",
                 },
             ),
             (
@@ -74,6 +76,7 @@ class InvokeWorkflowActivityHandlersTest(TestCase):
                     "handler": "handler_b",
                     "result": "success",
                     "activity_type": "SEER_PR_CREATED",
+                    "detector_type": "error",
                 },
             ),
         ]
@@ -99,6 +102,7 @@ class InvokeWorkflowActivityHandlersTest(TestCase):
                     "handler": "handler_a",
                     "result": "failure",
                     "activity_type": "SEER_PR_CREATED",
+                    "detector_type": "error",
                 },
             ),
             (
@@ -107,6 +111,7 @@ class InvokeWorkflowActivityHandlersTest(TestCase):
                     "handler": "handler_b",
                     "result": "success",
                     "activity_type": "SEER_PR_CREATED",
+                    "detector_type": "error",
                 },
             ),
         ]

@@ -1,5 +1,6 @@
 from collections.abc import Mapping
-from enum import IntEnum
+from enum import IntEnum, StrEnum
+from typing import Literal
 
 
 class GroupSubStatus:
@@ -40,7 +41,17 @@ SUBSTATUS_UPDATE_CHOICES: Mapping[str, int] = {
     "new": GroupSubStatus.NEW,
 }
 
-SUBSTATUS_TO_STR: Mapping[int, str] = {
+GroupSubStatusStr = Literal[
+    "archived_until_escalating",
+    "archived_until_condition_met",
+    "archived_forever",
+    "escalating",
+    "ongoing",
+    "regressed",
+    "new",
+]
+
+SUBSTATUS_TO_STR: Mapping[int, GroupSubStatusStr] = {
     GroupSubStatus.UNTIL_ESCALATING: "archived_until_escalating",
     GroupSubStatus.UNTIL_CONDITION_MET: "archived_until_condition_met",
     GroupSubStatus.FOREVER: "archived_forever",
@@ -60,16 +71,40 @@ GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS = {
 }
 
 
+GroupPriorityStr = Literal["low", "medium", "high"]
+
+
+class IssueBlocker(StrEnum):
+    NONE = "none"
+    APPROVE_ROOT_CAUSE = "approve_root_cause"
+    APPROVE_PLAN = "approve_plan"
+    APPROVE_CODE_CHANGES = "approve_code_changes"
+    MERGE_PR = "merge_pr"
+
+
+class IssueAutofixStep(StrEnum):
+    NONE = "none"
+    ROOT_CAUSE = "root_cause"
+    SOLUTION = "solution"
+    CODE_CHANGES = "code_changes"
+    PR_CREATED = "pr_created"
+    PR_ITERATION = "pr_iteration"
+
+
 class PriorityLevel(IntEnum):
     LOW = 25
     MEDIUM = 50
     HIGH = 75
 
-    def to_str(self) -> str:
+    def to_str(self) -> GroupPriorityStr:
         """
         Return the string representation of the priority level.
         """
-        return self.name.lower()
+        if self == PriorityLevel.LOW:
+            return "low"
+        if self == PriorityLevel.MEDIUM:
+            return "medium"
+        return "high"
 
     @classmethod
     def from_str(self, name: str) -> "PriorityLevel | None":

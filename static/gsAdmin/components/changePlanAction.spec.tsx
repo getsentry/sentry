@@ -23,7 +23,6 @@ describe('ChangePlanAction', () => {
     organization: mockOrg,
     plan: 'am3_business',
     billingInterval: 'monthly',
-    contractInterval: 'monthly',
     categories: {
       errors: MetricHistoryFixture({
         category: DataCategory.ERRORS,

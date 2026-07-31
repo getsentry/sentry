@@ -3,7 +3,7 @@ from collections.abc import Callable
 from taskbroker_client.types import CloseableProducerProtocol
 from taskbroker_client.worker.producer import TaskProducer
 
-from sentry.taskworker.adapters import SentryMetricsBackend
+from sentry.taskworker.adapters import make_metrics
 
 
 def get_task_producer(
@@ -16,5 +16,5 @@ def get_task_producer(
     return TaskProducer(
         name=producer_name,
         producer_factory=producer_factory,
-        metrics_backend=SentryMetricsBackend(),
+        metrics_backend=make_metrics(),
     )

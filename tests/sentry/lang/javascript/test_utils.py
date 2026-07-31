@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Any
 
-from sentry.lang.javascript.plugin import generate_modules
+from sentry.lang.javascript.preprocessing import generate_modules
 from sentry.lang.javascript.utils import generate_module, trim_line
 
 LONG_LINE = "The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring."

@@ -26,37 +26,30 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
-import PlatformIcon from 'platformicons/build/platformIcon';
 
+import {ProjectsBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {useHovercardContext} from 'sentry/components/hovercard';
-import {
-  IconAllProjects,
-  IconChevron,
-  IconClose,
-  IconGrabbable,
-  IconMyProjects,
-} from 'sentry/icons';
+import {IconChevron, IconClose, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  NAVIGATION_MOBILE_CONTENT_HEIGHT,
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_HEADER_HEIGHT,
@@ -75,7 +68,6 @@ import {
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const MotionContainer = motion.create(Container);
 
@@ -106,8 +98,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
   });
 
   const {activeGroup} = usePrimaryNavigation();
-  const hasPageFrame = useHasPageFrameFeature();
-  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
+  const isMobile = layout === 'mobile';
 
   return (
     <SecondarySidebarWrapper
@@ -125,8 +116,8 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
           height="100%"
           right="0"
           {...props}
-          width={isMobilePageFrame ? '100%' : `${size}px`}
-          ref={isMobilePageFrame ? undefined : mergeRefs(resizableContainerRef, ref)}
+          width={isMobile ? '100%' : `${size}px`}
+          ref={isMobile ? undefined : mergeRefs(resizableContainerRef, ref)}
           {...{
             [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
           }}
@@ -156,7 +147,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
                 width="8px"
                 radius="lg"
                 position="absolute"
-                display={isMobilePageFrame ? 'none' : undefined}
+                display={isMobile ? 'none' : undefined}
               >
                 {p => (
                   <ResizeHandle
@@ -228,9 +219,8 @@ interface SecondaryNavigationListProps {
 }
 
 function SecondaryNavigationList(props: SecondaryNavigationListProps) {
-  const hasPageFrame = useHasPageFrameFeature();
   return (
-    <Stack as="ul" margin="0" padding="0" width="100%" gap={hasPageFrame ? '2xs' : '0'}>
+    <Stack as="ul" margin="0" padding="0" width="100%" gap="2xs">
       {props.children}
     </Stack>
   );
@@ -252,9 +242,10 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   children: ReactNode;
   to: To;
   /**
-   * Will display the link as active under the given path.
+   * Will display the link as active under the given path. Pass a list of paths
+   * to display the link as active when any of them match.
    */
-  activeTo?: To;
+  activeTo?: To | To[];
   analyticsItemName?: string;
   /**
    * When passed, will not show the link as active for descendant paths.
@@ -275,26 +266,17 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
   const {view, setView} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
-  const hasPageFrame = useHasPageFrameFeature();
-  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
+  const isMobile = layout === 'mobile';
 
   return (
     <Grid
       columns="1fr auto"
       align="center"
-      borderBottom={hasPageFrame ? 'primary' : 'muted'}
+      borderBottom="primary"
       height={
-        isMobilePageFrame
-          ? `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`
-          : layout === 'mobile'
-            ? undefined
-            : hasPageFrame
-              ? `${PRIMARY_HEADER_HEIGHT}px`
-              : '44px'
+        isMobile ? `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px` : `${PRIMARY_HEADER_HEIGHT}px`
       }
-      padding={
-        layout === 'mobile' ? (isMobilePageFrame ? 'md lg' : 'md xl') : '0 md 0 xl'
-      }
+      padding={isMobile ? 'md lg' : '0 md 0 xl'}
     >
       <div>
         <Text size="md" bold>
@@ -302,7 +284,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
         </Text>
       </div>
       <div>
-        {isMobilePageFrame ? (
+        {isMobile ? (
           <Button
             size="xs"
             icon={<IconClose />}
@@ -310,7 +292,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
             onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
             variant="transparent"
           />
-        ) : layout === 'mobile' ? null : (
+        ) : (
           <Button
             size="xs"
             icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
@@ -451,14 +433,17 @@ function SecondaryNavigationLink({
 }: SecondaryNavigationItemProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const activeToList = Array.isArray(activeTo) ? activeTo : [activeTo];
   const isActive =
-    incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
+    incomingIsActive ??
+    activeToList.some(path =>
+      isPrimaryNavigationLinkActive(path, location.pathname, {end})
+    );
 
   const {layout, features} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
-  const hasPageFrame = useHasPageFrameFeature();
   const {setView} = useSecondaryNavigation();
-  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
+  const isMobile = layout === 'mobile';
 
   const sharedLinkProps = {
     ...linkProps,
@@ -477,37 +462,15 @@ function SecondaryNavigationLink({
       // this will dismiss it when clicking on a link.
       closeCollapsedNavigationHovercard();
 
-      // On touch devices with page frame, close the nav panel when navigating to a secondary item.
-      // MobilePageFrameNavigation watches for view === 'collapsed' and calls setIsOpen(false).
-      if (isMobilePageFrame && !features.hover) {
+      // On touch mobile devices, close the nav panel when navigating to a secondary item.
+      // MobileNavigation watches for view === 'collapsed' and calls setIsOpen(false).
+      if (isMobile && !features.hover) {
         setView('collapsed');
       }
 
       onClick?.(e);
     },
   };
-
-  if (hasPageFrame) {
-    return (
-      <PageFrameSidebarNavigationLink {...sharedLinkProps}>
-        {leadingItems}
-        <Text ellipsis variant="inherit">
-          {children}
-        </Text>
-        {trailingItems}
-      </PageFrameSidebarNavigationLink>
-    );
-  }
-
-  if (layout === 'mobile') {
-    return (
-      <MobileNavigationLink {...sharedLinkProps}>
-        {leadingItems}
-        <Text ellipsis>{children}</Text>
-        {trailingItems}
-      </MobileNavigationLink>
-    );
-  }
 
   return (
     <SidebarNavigationLink {...sharedLinkProps}>
@@ -534,49 +497,8 @@ interface SecondaryNavigationProjectIconProps {
 }
 
 function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconProps) {
-  let icons: React.ReactNode;
-
-  switch (props.projectPlatforms.length) {
-    case 0:
-      icons = props.allProjects ? (
-        <IconAllProjects size="md" aria-hidden="true" />
-      ) : (
-        <IconMyProjects size="md" aria-hidden="true" />
-      );
-      break;
-    case 1:
-      icons = (
-        <PlatformIcon platform={props.projectPlatforms[0]!} size={16} aria-hidden />
-      );
-      break;
-    default:
-      icons = (
-        <Fragment>
-          <Container position="absolute" top="0" right="6px" width="12px" height="12px">
-            {p => (
-              <PlatformIcon
-                {...p}
-                platform={props.projectPlatforms[0]!}
-                size={12}
-                aria-hidden
-              />
-            )}
-          </Container>
-          <Container position="absolute" bottom="0" right="0" width="12px" height="12px">
-            {p => (
-              <PlatformIcon
-                {...p}
-                platform={props.projectPlatforms[1]!}
-                size={12}
-                aria-hidden
-              />
-            )}
-          </Container>
-        </Fragment>
-      );
-  }
-
   return (
+    // Keep the 18×18 nav-specific outer Stack; ProjectsBadge renders at 16×16 inside it.
     <Stack
       flexShrink={0}
       justify="center"
@@ -587,7 +509,10 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
       data-project-icon
       aria-hidden="true"
     >
-      {icons}
+      <ProjectsBadge
+        projectPlatforms={props.projectPlatforms}
+        allProjects={props.allProjects}
+      />
     </Stack>
   );
 }
@@ -643,110 +568,6 @@ function Collapsible(props: CollapsibleProps) {
 }
 
 const MotionFlex = motion.create(Flex);
-
-function navigationItemStyles(p: {layout: 'mobile' | 'sidebar'; theme: Theme}) {
-  return css`
-    display: flex;
-    gap: ${p.theme.space.sm};
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    color: ${p.theme.tokens.interactive.link.neutral.rest};
-    /* We need to cap the height at md size as some items like the reorderable link with icons
-     * will otherwise cause the links to be taller, visually standing out when they are laid out in a list */
-    height: ${p.theme.form.sm.height};
-    padding: ${p.layout === 'mobile'
-      ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} ${p.theme.space.lg}`
-      : `${p.theme.space.md} ${p.theme.space.lg}`};
-    border-radius: ${p.theme.radius[p.layout === 'mobile' ? '0' : 'md']};
-
-    /* Renders the active state indicator */
-    &::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 4px;
-      height: 20px;
-      left: -${p.theme.space.sm};
-      border-radius: ${p.theme.radius['2xs']};
-      background-color: ${p.theme.tokens.graphics.accent.vibrant};
-      transition: opacity ${p.theme.motion.smooth.fast};
-      opacity: 0;
-    }
-
-    &:hover {
-      color: ${p.theme.tokens.interactive.link.neutral.hover};
-      background-color: ${p.theme.tokens.interactive.transparent.neutral.background
-        .hover};
-    }
-
-    &[aria-current='page'] {
-      color: ${p.theme.tokens.interactive.link.accent.rest};
-      background-color: ${p.theme.tokens.interactive.transparent.accent.selected
-        .background.rest};
-
-      &::before {
-        opacity: 1;
-      }
-
-      &:hover {
-        color: ${p.theme.tokens.interactive.link.accent.hover};
-        background-color: ${p.theme.tokens.interactive.transparent.accent.selected
-          .background.hover};
-      }
-    }
-  `;
-}
-
-const MobileNavigationLink = styled(Link)`
-  display: flex;
-  gap: ${p => p.theme.space.sm};
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  padding: ${p =>
-    `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} ${p.theme.space.lg}`};
-  border-radius: ${p => p.theme.radius['0']};
-  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
-
-  /* Renders the active state indicator */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 4px;
-    height: 20px;
-    left: -${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.radius['2xs']};
-    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-    transition: opacity ${p => p.theme.motion.smooth.fast};
-    opacity: 0;
-  }
-
-  &:hover {
-    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.neutral.background.hover};
-  }
-
-  &[aria-current='page'] {
-    color: ${p => p.theme.tokens.interactive.link.accent.rest};
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
-
-    &::before {
-      opacity: 1;
-    }
-
-    &:hover {
-      color: ${p => p.theme.tokens.interactive.link.accent.hover};
-      background-color: ${p =>
-        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
-    }
-  }
-`;
 
 /**
  * A custom PointerSensor that only activates for mouse and pen pointer events,
@@ -812,6 +633,7 @@ function ReorderableListItem<T extends {id: string | number}>(
         background={isDragging ? 'secondary' : undefined}
         ref={setNodeRef}
         data-is-dragging={isDragging ? true : undefined}
+        css={reorderableHandleCoordination}
         style={{
           listStyleType: 'none',
           transform: CSS.Transform.toString(transform),
@@ -824,6 +646,33 @@ function ReorderableListItem<T extends {id: string | number}>(
     </ReorderableItemContext.Provider>
   );
 }
+
+// Render the handle as a sibling of the link, not a child. The browser fires a
+// click after a drag, targeted at the common ancestor of mouse-down and mouse-up.
+// Mouse-down is on the handle, so keeping it outside the <a> means that click
+// can never target the link and navigate. The icon/handle hover swap lives on
+// the <li> because it's the only element containing both.
+const reorderableHandleCoordination = css`
+  [data-reorderable-handle-slot] {
+    transition:
+      opacity 150ms ease,
+      scale 150ms ease;
+  }
+
+  &:hover [data-drag-icon],
+  &:has(:focus-visible) [data-drag-icon],
+  &[data-is-dragging] [data-drag-icon] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  &:hover [data-reorderable-handle-slot],
+  &:has(:focus-visible) [data-reorderable-handle-slot],
+  &[data-is-dragging] [data-reorderable-handle-slot] {
+    opacity: 0;
+    scale: 0.95;
+  }
+`;
 
 interface SecondaryNavigationReorderableListProps<T extends {id: string | number}> {
   children: (item: T) => ReactNode;
@@ -911,18 +760,20 @@ function SecondaryNavigationReorderableLink({
 }: SecondaryNavigationReorderableLinkProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const navigate = useNavigate();
+  const activeToList = Array.isArray(activeTo) ? activeTo : [activeTo];
   const isActive =
-    incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
+    incomingIsActive ??
+    activeToList.some(path =>
+      isPrimaryNavigationLinkActive(path, location.pathname, {end})
+    );
   const {layout, features} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
-  const {isDragging} = useReorderableItemContext();
-  const hasPageFrame = useHasPageFrameFeature();
   const {setView} = useSecondaryNavigation();
-  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
+  const isMobile = layout === 'mobile';
 
-  function handleNavigate() {
-    if (isDragging) {
+  function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    // Let the browser handle modifier clicks so the view opens in a new tab/window.
+    if (e.metaKey || e.ctrlKey || e.shiftKey) {
       return;
     }
     if (analyticsItemName) {
@@ -933,87 +784,59 @@ function SecondaryNavigationReorderableLink({
     }
     closeCollapsedNavigationHovercard();
 
-    // On touch devices with page frame, close the nav panel when navigating to a secondary item.
-    // MobilePageFrameNavigation watches for view === 'collapsed' and calls setIsOpen(false).
-    if (isMobilePageFrame && !features.hover) {
+    // On touch mobile devices, close the nav panel when navigating to a secondary item.
+    // MobileNavigation watches for view === 'collapsed' and calls setIsOpen(false).
+    if (isMobile && !features.hover) {
       setView('collapsed');
     }
 
     onNavigate?.();
-    navigate(to, {state: {source: SIDEBAR_NAVIGATION_SOURCE}});
   }
 
   const sharedProps = {
-    role: 'link' as const,
-    tabIndex: 0,
+    to,
+    state: {source: SIDEBAR_NAVIGATION_SOURCE},
     layout,
-    isDragging,
     'aria-current': isActive ? ('page' as const) : undefined,
-    onClick: handleNavigate,
-    onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
-      // When the grab handle has focus, dnd-kit owns Space/Enter for pick-up
-      // and drop. Without this guard those keys would also trigger navigation
-      // via bubbling, making the drop action unreliable.
-      if ((e.target as HTMLElement).closest('[data-drag-icon]')) {
-        return;
-      }
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        handleNavigate();
-      }
-    },
+    onClick: handleClick,
   };
 
   const content = (
     <Fragment>
-      <Flex justify="center" align="center" position="relative">
-        <GrabHandle />
-        <Flex justify="center" align="center" data-reorderable-handle-slot>
-          {icon}
-        </Flex>
+      <Flex justify="center" align="center" data-reorderable-handle-slot>
+        {icon}
       </Flex>
       {children}
       {trailingItems}
     </Fragment>
   );
 
-  if (hasPageFrame) {
-    return (
-      <StyledPageFrameReorderableFakeLink {...sharedProps} layout="sidebar">
-        {content}
-      </StyledPageFrameReorderableFakeLink>
-    );
-  }
-
-  if (layout === 'mobile') {
-    return (
-      <StyledReorderableFakeLink {...sharedProps}>{content}</StyledReorderableFakeLink>
-    );
-  }
-
   return (
-    <StyledReorderableFakeLink {...sharedProps}>{content}</StyledReorderableFakeLink>
+    <Fragment>
+      <StyledReorderableLink {...sharedProps} layout="sidebar">
+        {content}
+      </StyledReorderableLink>
+      <GrabHandle />
+    </Fragment>
   );
 }
 
-function GrabHandle(props: FlexProps) {
+function GrabHandle() {
   const {attributes, isDragging, listeners, setActivatorNodeRef} =
     useReorderableItemContext();
 
   return (
     <Flex
       radius="xs"
-      width="24px"
-      height="24px"
+      width="18px"
+      height="18px"
       justify="center"
       align="center"
       position="absolute"
       top="50%"
-      left="50%"
     >
       {p => (
         <GrabHandleAnimation
-          {...props}
           {...p}
           {...listeners}
           {...attributes}
@@ -1021,7 +844,6 @@ function GrabHandle(props: FlexProps) {
           data-drag-icon
           ref={setActivatorNodeRef}
           style={{cursor: isDragging ? 'grabbing' : 'grab'}}
-          onClick={e => e.stopPropagation()}
         >
           <IconGrabbable variant="muted" aria-hidden="true" />
         </GrabHandleAnimation>
@@ -1034,14 +856,11 @@ const GrabHandleAnimation = styled('div')`
   pointer-events: none;
   opacity: 0;
   z-index: 1;
-  transition:
-    opacity ${p => p.theme.motion.smooth.moderate},
-    transform ${p => p.theme.motion.smooth.moderate};
-  transform: translate(-50%, -50%);
+  /* Overlay the project icon, which sits at the link's left padding. */
+  left: ${p => p.theme.space.lg};
+  transition: opacity ${p => p.theme.motion.smooth.moderate};
+  transform: translateY(-50%);
 
-  &:active {
-    cursor: grabbing;
-  }
   &:focus-visible {
     ${p => p.theme.focusRing()}
   }
@@ -1074,61 +893,9 @@ const DotIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
   border: 2px solid ${p => p.theme.tokens.border[p.variant].muted};
 `;
 
-const StyledReorderableFakeLink = styled('div')<{
-  isDragging: boolean;
-  layout: 'mobile' | 'sidebar';
-}>`
-  ${p => navigationItemStyles(p)}
-  cursor: pointer;
-  user-select: none;
-
-  &:focus-visible {
-    ${p => p.theme.focusRing()}
-  }
-
-  :hover,
-  :has(:focus-visible) {
-    [data-drag-icon] {
-      opacity: 1;
-      scale: 1;
-      pointer-events: auto;
-    }
-  }
-
-  ${p =>
-    p.isDragging &&
-    css`
-      [data-drag-icon] {
-        opacity: 1;
-        scale: 1;
-        pointer-events: auto;
-      }
-    `}
-
-  [data-reorderable-handle-slot] {
-    transition:
-      opacity 150ms ease,
-      scale 150ms ease;
-  }
-
-  :hover [data-reorderable-handle-slot],
-  :has(:focus-visible) [data-reorderable-handle-slot] {
-    opacity: 0;
-    scale: 0.95;
-  }
-
-  ${p =>
-    p.isDragging &&
-    css`
-      [data-reorderable-handle-slot] {
-        opacity: 0;
-        scale: 0.95;
-      }
-    `}
-`;
-
-const StyledPageFrameReorderableFakeLink = styled('div')<{
-  isDragging: boolean;
+const StyledReorderableLink = styled(Link, {
+  shouldForwardProp: prop => prop !== 'layout',
+})<{
   layout: 'mobile' | 'sidebar';
 }>`
   display: flex;
@@ -1175,86 +942,9 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
         p.theme.tokens.interactive.transparent.accent.selected.background.hover};
     }
   }
-
-  :hover,
-  :has(:focus-visible) {
-    [data-drag-icon] {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-      pointer-events: auto;
-    }
-  }
-
-  [data-reorderable-handle-slot] {
-    transition:
-      opacity ${p => p.theme.motion.smooth.moderate},
-      transform ${p => p.theme.motion.smooth.moderate};
-    opacity: ${p => (p.isDragging ? 0 : undefined)};
-    transform: ${p => (p.isDragging ? 'scale(0.95)' : 'scale(1)')};
-  }
-
-  :hover [data-reorderable-handle-slot],
-  :has(:focus-visible) [data-reorderable-handle-slot] {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-
-  [data-drag-icon] {
-    opacity: ${p => (p.isDragging ? 1 : undefined)};
-    transform: ${p => (p.isDragging ? 'translate(-50%, -50%) scale(1)' : undefined)};
-    pointer-events: ${p => (p.isDragging ? 'auto' : undefined)};
-  }
 `;
 
 const SidebarNavigationLink = styled(Link)`
-  display: flex;
-  gap: ${p => p.theme.space.sm};
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
-  padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
-  border-radius: ${p => p.theme.radius.md};
-
-  /* Renders the active state indicator */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 4px;
-    height: 20px;
-    left: -${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.radius['2xs']};
-    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-    transition: opacity ${p => p.theme.motion.smooth.fast};
-    opacity: 0;
-  }
-
-  &:hover {
-    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.neutral.background.hover};
-  }
-
-  &[aria-current='page'] {
-    color: ${p => p.theme.tokens.interactive.link.accent.rest};
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
-
-    &::before {
-      opacity: 1;
-    }
-
-    &:hover {
-      color: ${p => p.theme.tokens.interactive.link.accent.hover};
-      background-color: ${p =>
-        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
-    }
-  }
-`;
-
-const PageFrameSidebarNavigationLink = styled(Link)`
   display: flex;
   gap: ${p => p.theme.space.sm};
   justify-content: center;

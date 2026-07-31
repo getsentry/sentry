@@ -9,23 +9,20 @@ import {GroupActivityType} from 'sentry/types/group';
 
 import {getLinkedPullRequestActivityIds, LinkedPullRequests} from './linkedPullRequests';
 
-const LINKED_PULL_REQUESTS_FEATURE = 'issue-details-linked-pull-requests';
 const REPOSITORY_NAME = 'example/widget-app';
 
 describe('LinkedPullRequests', () => {
   const group = GroupFixture();
-  const organizationWithFeature = OrganizationFixture({
-    features: [LINKED_PULL_REQUESTS_FEATURE],
-  });
+  const organization = OrganizationFixture();
   const repository = RepositoryFixture({
     id: '42',
     name: REPOSITORY_NAME,
     provider: {id: 'integrations:github', name: 'GitHub'},
   });
 
-  it('renders linked pull requests when the feature is enabled', async () => {
+  it('renders linked pull requests', async () => {
     const pullRequestsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organizationWithFeature.slug}/issues/${group.id}/pull-requests/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
       body: {
         pullRequests: [
           {
@@ -34,7 +31,9 @@ describe('LinkedPullRequests', () => {
               title: 'Fix widget crash on startup',
               repository,
               externalUrl: 'https://github.com/example/widget-app/pull/123',
+              author: {name: 'Ada Lovelace', email: 'ada@example.com'},
             }),
+            attribution: null,
             dateLinked: '2026-06-08T23:11:32.000000Z',
             status: 'merged',
           },
@@ -45,6 +44,10 @@ describe('LinkedPullRequests', () => {
               repository,
               externalUrl: 'https://github.com/example/widget-app/pull/124',
             }),
+            attribution: {
+              type: 'seer',
+              id: 'seer',
+            },
             dateLinked: '2026-06-08T23:10:32.000000Z',
             status: 'closed',
           },
@@ -53,7 +56,7 @@ describe('LinkedPullRequests', () => {
     });
 
     render(<LinkedPullRequests group={group} />, {
-      organization: organizationWithFeature,
+      organization,
     });
 
     const list = await screen.findByRole('list', {name: 'Linked pull requests'});
@@ -74,9 +77,15 @@ describe('LinkedPullRequests', () => {
     expect(within(list).getByText('#123')).toBeInTheDocument();
     expect(within(list).getByText('#124')).toBeInTheDocument();
     expect(within(list).getAllByText(REPOSITORY_NAME)).toHaveLength(2);
-    expect(linkedPullRequest.querySelectorAll('svg')).toHaveLength(2);
     expect(within(list).getByText('Merged')).toBeInTheDocument();
     expect(within(list).getByText('Closed')).toBeInTheDocument();
+    expect(within(linkedPullRequest).getByText('AL')).toBeInTheDocument();
+    expect(
+      within(linkedPullRequest).getByLabelText('Pull request author: Ada Lovelace')
+    ).toHaveAttribute('title', 'Pull request author: Ada Lovelace');
+    expect(
+      within(list).getByLabelText('Pull request created by Seer')
+    ).toBeInTheDocument();
     const mergedStatus = within(list).getByLabelText('Pull request status: Merged');
     const closedStatus = within(list).getByLabelText('Pull request status: Closed');
     expect(mergedStatus).toBeInTheDocument();

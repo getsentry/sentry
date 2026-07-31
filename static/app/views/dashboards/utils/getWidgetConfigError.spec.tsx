@@ -57,17 +57,6 @@ describe('getWidgetConfigError', () => {
     expect(getWidgetConfigError(widget)).toBeUndefined();
   });
 
-  it('returns an error when the dataset does not support the display type', () => {
-    // Issues don't support big number widgets.
-    const widget = WidgetFixture({
-      displayType: DisplayType.BIG_NUMBER,
-      widgetType: WidgetType.ISSUE,
-      queries: [WidgetQueryFixture({aggregates: ['count()']})],
-    });
-
-    expect(getWidgetConfigError(widget)).toBeDefined();
-  });
-
   it('returns an error for heat map widgets on an unsupported dataset', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.HEATMAP,
@@ -90,12 +79,76 @@ describe('getWidgetConfigError', () => {
     expect(getWidgetConfigError(widget)).toBeDefined();
   });
 
+  it('returns an error for heat map widgets with no aggregates', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.HEATMAP,
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [WidgetQueryFixture({aggregates: []})],
+    });
+
+    expect(getWidgetConfigError(widget)).toBe(
+      'This widget is missing a metric to visualize.'
+    );
+  });
+
   it('returns undefined for heat map widgets with a resolvable metric', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.HEATMAP,
       widgetType: WidgetType.TRACEMETRICS,
       queries: [
         WidgetQueryFixture({aggregates: ['count(value,test_metric,distribution,none)']}),
+      ],
+    });
+
+    expect(getWidgetConfigError(widget)).toBeUndefined();
+  });
+
+  it('returns an error for heat map widgets with a non-distribution metric', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.HEATMAP,
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [
+        WidgetQueryFixture({aggregates: ['count(value,test_metric,counter,none)']}),
+      ],
+    });
+
+    expect(getWidgetConfigError(widget)).toBe(
+      'Heatmaps can only visualize distribution metrics.'
+    );
+  });
+
+  it('returns an error for trace metric widgets whose aggregate has no metric', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.TRACEMETRICS,
+      // `sum(value)` is the placeholder aggregate — no metric name/type encoded.
+      queries: [WidgetQueryFixture({aggregates: ['sum(value)']})],
+    });
+
+    expect(getWidgetConfigError(widget)).toBe(
+      'This widget is missing a metric to visualize.'
+    );
+  });
+
+  it('nudges to finish the equation when a blank equation is the only aggregate', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.TRACEMETRICS,
+      // The blank equation was stripped during conversion, leaving no aggregates.
+      queries: [WidgetQueryFixture({aggregates: []})],
+    });
+
+    expect(getWidgetConfigError(widget, {hasBlankEquation: true})).toBe(
+      'Enter an equation to preview results'
+    );
+  });
+
+  it('returns undefined for a trace metric widget with a resolvable metric', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [
+        WidgetQueryFixture({aggregates: ['sum(value,test_metric,distribution,none)']}),
       ],
     });
 
