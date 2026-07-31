@@ -189,7 +189,7 @@ export function IssueListActions({
     return uniqProjects.length === 1 ? uniqProjects[0] : undefined;
   }, [selectedIdsSet]);
   const theme = useTheme();
-  const disableActions = useMedia(`(width < ${theme.breakpoints.md})`);
+  const disableActions = useMedia(`(width < ${theme.breakpoints.sm})`);
   const area = useAnalyticsArea();
   const numIssues = selectedIdsSet.size;
 
