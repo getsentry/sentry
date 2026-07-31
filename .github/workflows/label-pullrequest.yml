@@ -5,12 +5,19 @@ on:
   pull_request_target:
 
 jobs:
-  label-pullrequest:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
-      pull-requests: write
-    name: labels pull requests (frontend / backend)
-    runs-on: ubuntu-24.04
+      pull-requests: read
+    outputs:
+      frontend_all: ${{ steps.changes.outputs.frontend_all }}
+      backend_src: ${{ steps.changes.outputs.backend_src }}
+      api_url_codegen_count: ${{ steps.changes.outputs.api_url_codegen_count }}
+      embed_widget_codegen_count: ${{ steps.changes.outputs.embed_widget_codegen_count }}
+      frontend_all_count: ${{ steps.changes.outputs.frontend_all_count }}
+      backend_src_count: ${{ steps.changes.outputs.backend_src_count }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
@@ -23,15 +30,22 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
+  label-pullrequest:
+    needs: files-changed
+    permissions:
+      pull-requests: write
+    name: labels pull requests (frontend / backend)
+    runs-on: ubuntu-24.04
+    steps:
       - name: Add frontend label
         uses: getsentry/action-add-labels@ca568508c6e91387909cb3661e4cd965aa2f3a89
-        if: steps.changes.outputs.frontend_all == 'true'
+        if: needs.files-changed.outputs.frontend_all == 'true'
         with:
           labels: 'Scope: Frontend'
 
       - name: Add backend label
         uses: getsentry/action-add-labels@ca568508c6e91387909cb3661e4cd965aa2f3a89
-        if: steps.changes.outputs.backend_src == 'true'
+        if: needs.files-changed.outputs.backend_src == 'true'
         with:
           labels: 'Scope: Backend'
 
@@ -46,10 +60,10 @@ jobs:
       - name: Add frontend/backend warning comment
         uses: peter-evans/create-or-update-comment@b95e16d2859ad843a14218d1028da5b2c4cbc4b4
         if: >
-          fromJSON(steps.changes.outputs.frontend_all_count) >
-          fromJSON(steps.changes.outputs.api_url_codegen_count) &&
-          fromJSON(steps.changes.outputs.backend_src_count) >
-          fromJSON(steps.changes.outputs.embed_widget_codegen_count) &&
+          fromJSON(needs.files-changed.outputs.frontend_all_count) >
+          fromJSON(needs.files-changed.outputs.api_url_codegen_count) &&
+          fromJSON(needs.files-changed.outputs.backend_src_count) >
+          fromJSON(needs.files-changed.outputs.embed_widget_codegen_count) &&
           steps.fc.outputs.comment-id == 0
         with:
           issue-number: ${{ github.event.pull_request.number }}
