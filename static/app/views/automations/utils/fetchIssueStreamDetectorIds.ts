@@ -39,8 +39,10 @@ export async function fetchAllProjectsDetectorId({
 }): Promise<string | undefined> {
   const {json: detectors} = await queryClient.fetchQuery(
     detectorListApiOptions(organization, {
-      query: 'type:issue_stream',
+      type: 'issue_stream',
+      query: 'name:"All Projects"',
       includeIssueStreamDetectors: true,
+      limit: 1,
     })
   );
 
