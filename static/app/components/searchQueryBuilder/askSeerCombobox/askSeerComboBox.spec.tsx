@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 import {mutationOptions} from '@tanstack/react-query';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -166,6 +167,44 @@ describe('AskSeerComboBox', () => {
     expect(header).toBeInTheDocument();
   });
 
+  it('shows that Seer is still processing after the popover closes', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      method: 'POST',
+      body: new Promise(() => {}),
+    });
+
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
+      </SearchQueryBuilderProvider>,
+      {organization}
+    );
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.type(input, 'test{Enter}');
+
+    expect(await screen.findByText('Let me think about that...')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', {name: 'Seer is processing your query'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(document.body);
+
+    const processingIcon = await screen.findByRole('img', {
+      name: 'Seer is processing your query',
+    });
+    expect(processingIcon).toHaveAttribute('fill', ThemeFixture().tokens.content.accent);
+    expect(processingIcon.querySelector('animateMotion')).toBeInTheDocument();
+    expect(screen.queryByText('Let me think about that...')).not.toBeInTheDocument();
+  });
+
   it('only shows the reworked footer after results are displayed', async () => {
     const reworkedOrganization = {
       ...organization,
@@ -304,6 +343,14 @@ describe('AskSeerComboBox', () => {
     expect(filter).toBeInTheDocument();
     expect(screen.getByText('Do any of these look right to you?')).toBeInTheDocument();
     expect(screen.queryByText('Time Range')).not.toBeInTheDocument();
+
+    await userEvent.click(document.body);
+
+    const successIcon = await screen.findByRole('img', {
+      name: 'Seer processed your query',
+    });
+    expect(successIcon).toHaveAttribute('fill', ThemeFixture().tokens.content.success);
+    expect(successIcon.querySelector('animateMotion')).not.toBeInTheDocument();
   });
 
   it('wraps long query tokens', async () => {
@@ -523,7 +570,16 @@ describe('AskSeerComboBox', () => {
     expect(screen.getByRole('img', {name: 'Error'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Try again'}));
+    await userEvent.click(document.body);
+
+    const errorIcon = await screen.findByRole('img', {
+      name: 'Seer could not process your query',
+    });
+    expect(errorIcon).toHaveAttribute('fill', ThemeFixture().tokens.content.danger);
+    expect(errorIcon.querySelector('animateMotion')).not.toBeInTheDocument();
+
+    await userEvent.click(input);
+    await userEvent.click(await screen.findByRole('button', {name: 'Try again'}));
 
     await waitFor(() => expect(queryRequest).toHaveBeenCalledTimes(2));
   });
