@@ -129,10 +129,10 @@ def get_detectors_for_event_data(
     if features.has("organizations:workflow-engine-all-projects-detector", organization):
         try:
             all_projects_detector = Detector.get_all_projects_detector_for_org(organization.id)
-        except Detector.DoesNotExist:
+        except (Detector.DoesNotExist, Detector.MultipleObjectsReturned):
             metrics.incr("workflow_engine.detectors.error", tags={"detector_type": "all_projects"})
             logger.exception(
-                "All projects detector not found for event",
+                "Single all projects detector not found for event",
                 extra={"organization_id": organization.id, "group_id": event_data.group.id},
             )
 
