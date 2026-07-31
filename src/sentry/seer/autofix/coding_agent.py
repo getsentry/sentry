@@ -4,7 +4,7 @@ import logging
 import re
 import secrets
 import string
-from typing import Any
+from typing import Any, NamedTuple
 
 from rest_framework.exceptions import NotFound, ValidationError
 
@@ -21,7 +21,7 @@ from sentry.integrations.coding_agent.utils import get_coding_agent_providers
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
-from sentry.models.pullrequest import PullRequestAttributionSignalType
+from sentry.models.pullrequest import PullRequestAttributionSignalType, parse_pull_request_url
 from sentry.pr_metrics.attribution import attribute_delegated_agent_pull_request
 from sentry.seer.autofix.coding_agent_handoffs import sync_coding_agent_status
 from sentry.seer.autofix.constants import CodingAgentStatus
@@ -263,6 +263,7 @@ def poll_github_copilot_agents(
                         description=pr_info.title,
                         repo_provider="github",
                         repo_full_name=f"{owner}/{repo}",
+                        pr_number=pr_info.number,
                         pr_url=pr_url,
                         branch_name=branch_name,
                     )
@@ -480,15 +481,27 @@ def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None
     return client
 
 
+class ExtractedAgentResult(NamedTuple):
+    """A GitHub PR or branch URL found in a Claude Code session, and what it identifies.
+
+    Exactly one of ``pr_number`` and ``branch_name`` is set whenever ``url`` is; a branch
+    URL means the agent ran with auto_create_pr=False.
+    """
+
+    url: str | None = None
+    text_block: str | None = None
+    branch_name: str | None = None
+    pr_number: int | None = None
+
+
 def extract_result_from_events(
     events: list[ClaudeSessionEvent],
-) -> tuple[str | None, str | None, str | None]:
+) -> ExtractedAgentResult:
     """Extract a GitHub PR or branch URL and its surrounding text block from session events.
 
-    Returns:
-        Tuple of (url, text_block, branch_name). branch_name is populated when the agent
-        returned a branch URL instead of a PR URL (i.e. auto_create_pr=False).
-        text_block is the full text content of the agent event block that contained the URL.
+    The patterns only locate a URL inside the agent's prose; what a PR URL means is left to
+    :func:`parse_pull_request_url`, which ``pr_pattern`` is strictly narrower than -- so
+    every URL it finds parses.
     """
     pr_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/pull/\d+")
     branch_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/tree/([-\w./]*[-\w])")
@@ -501,12 +514,23 @@ def extract_result_from_events(
                 text = block.get("text", "")
                 pr_match = pr_pattern.search(text)
                 if pr_match:
-                    return pr_match.group(0), text, None
+                    pr_url = pr_match.group(0)
+                    parsed_pr = parse_pull_request_url(pr_url)
+                    assert parsed_pr is not None  # pr_pattern only matches parseable URLs
+                    return ExtractedAgentResult(
+                        url=pr_url,
+                        text_block=text,
+                        pr_number=parsed_pr.number,
+                    )
                 branch_match = branch_pattern.search(text)
                 if branch_match:
-                    return branch_match.group(0), text, branch_match.group(1)
+                    return ExtractedAgentResult(
+                        url=branch_match.group(0),
+                        text_block=text,
+                        branch_name=branch_match.group(1),
+                    )
 
-    return None, None, None
+    return ExtractedAgentResult()
 
 
 def build_result_from_events(
@@ -517,12 +541,10 @@ def build_result_from_events(
     new_status: CodingAgentStatus,
 ) -> tuple[Any | None, CodingAgentStatus]:
     result = None
-    pr_url = None
-    branch_name = None
-    description: str | None = None
+    extracted = ExtractedAgentResult()
     if new_status == CodingAgentStatus.COMPLETED:
-        pr_url, description, branch_name = extract_result_from_events(events)
-        if not pr_url:
+        extracted = extract_result_from_events(events)
+        if not extracted.url:
             logger.warning(
                 "coding_agent.claude_code.no_result_url_in_response",
                 extra={"agent_id": agent_id},
@@ -532,11 +554,12 @@ def build_result_from_events(
     try:
         result = client.build_result_from_session(
             agent_name=agent_name,
-            pr_url=pr_url,
+            pr_url=extracted.url,
         )
         if result:
-            result.description = description or ""
-            result.branch_name = branch_name
+            result.description = extracted.text_block or ""
+            result.branch_name = extracted.branch_name
+            result.pr_number = extracted.pr_number
     except Exception:
         logger.exception(
             "coding_agent.claude_code.build_result_error",
