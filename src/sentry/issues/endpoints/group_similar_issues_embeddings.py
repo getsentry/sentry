@@ -18,7 +18,6 @@ from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.seer.similarity.config import get_grouping_model_version, should_skip_seer_fallback
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
@@ -136,12 +135,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         logger.info("Similar issues embeddings parameters", extra=similar_issues_params)
 
-        viewer_context = SeerViewerContext(
-            organization_id=group.project.organization.id, user_id=request.user.id
-        )
-        results, _model_used = get_similarity_data_from_seer(
-            similar_issues_params, viewer_context=viewer_context
-        )
+        results, _model_used = get_similarity_data_from_seer(similar_issues_params)
 
         analytics.record(
             GroupSimilarIssuesEmbeddingsCountEvent(

@@ -120,7 +120,7 @@ def observe_viewer_context_propagation(
 ) -> None:
     """Emit a ``viewer_context.observation`` counter for the current ViewerContext at *point*.
 
-    Tags: ``point``, ``actor_type``, ``has_user_id``, ``has_org_id``, ``expected``,
+    Tags: ``point``, ``actor_type``, ``has_user_id``, ``has_org_id``, ``has_project_id``, ``expected``,
     plus any *extra_attributes* the caller provides (e.g. ``method`` for RPC dispatch
     points where we want per-method breakdown). Callers are responsible for keeping
     extra-attribute cardinality bounded — values must come from a closed set.
@@ -143,10 +143,12 @@ def observe_viewer_context_propagation(
         actor_type = "none"
         has_user = False
         has_org = False
+        has_project = False
     else:
         actor_type = ctx.actor_type.value
         has_user = ctx.user_id is not None
         has_org = ctx.organization_id is not None
+        has_project = ctx.project_id is not None
 
     # Fixed tags layered on top of extras so callers can't accidentally swap
     # `point` / `actor_type` / etc. and corrupt the metric's cardinality story.
@@ -157,6 +159,7 @@ def observe_viewer_context_propagation(
             "actor_type": actor_type,
             "has_user_id": str(has_user).lower(),
             "has_org_id": str(has_org).lower(),
+            "has_project_id": str(has_project).lower(),
             "expected": str(expected).lower(),
         }
     )

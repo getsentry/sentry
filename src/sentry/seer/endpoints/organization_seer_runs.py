@@ -51,7 +51,6 @@ def _fetch_run_outputs(
     organization: Organization,
     *,
     questions: Sequence[Question],
-    user_id: int | None,
 ) -> dict[int, list[RunQuestionOutput]]:
     qualifying = [
         run
@@ -65,7 +64,6 @@ def _fetch_run_outputs(
         [run.seer_run_state_id for run in qualifying],
         organization,
         questions=questions,
-        user_id=user_id,
     )
 
     def to_output(q: RunQuestion) -> RunQuestionOutput:
@@ -224,7 +222,6 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
                     runs,
                     organization,
                     questions=run_questions,
-                    user_id=request.user.id,
                 )
                 for run, data in zip(runs, serialized):
                     data["outputs"] = outputs_by_run_id.get(run.id, [])

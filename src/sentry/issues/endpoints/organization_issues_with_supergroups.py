@@ -94,7 +94,7 @@ class OrganizationIssuesWithSupergroupsEndpoint(OrganizationEndpoint):
                 # breaking the stream.
                 try:
                     supergroup_data = get_supergroups_by_group_ids(
-                        organization, [int(g["id"]) for g in groups], user_id=request.user.id
+                        organization, [int(g["id"]) for g in groups]
                     )
                 except SeerApiError:
                     logger.exception("issues_with_supergroups.seer_fetch_failed")

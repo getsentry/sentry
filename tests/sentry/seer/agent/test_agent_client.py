@@ -555,9 +555,7 @@ class TestSeerAgentClient(TestCase):
 
         assert result.run_id == 123
         assert result.status == "processing"
-        mock_fetch.assert_called_once_with(
-            123, self.organization, viewer_context=client.viewer_context
-        )
+        mock_fetch.assert_called_once_with(123, self.organization)
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.poll_until_done")
@@ -577,9 +575,7 @@ class TestSeerAgentClient(TestCase):
 
         assert result.run_id == 123
         assert result.status == "completed"
-        mock_poll.assert_called_once_with(
-            123, self.organization, 1.0, 30.0, viewer_context=client.viewer_context
-        )
+        mock_poll.assert_called_once_with(123, self.organization, 1.0, 30.0)
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.fetch_run_status")
@@ -1355,13 +1351,16 @@ class TestStartFeatureRun(TestCase):
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     def test_flush_false_enqueues_without_dispatch(self, mock_request, _mock_access) -> None:
-        client = SeerAgentClient(self.organization, self.user)
-        run = client.start_feature_run(
-            feature_id="night_shift",
-            payload={"candidates": [1, 2]},
-            title="Agentic triage (2 candidates)",
-            flush=False,
-        )
+        from sentry.viewer_context import ViewerContext, viewer_context_scope
+
+        with viewer_context_scope(ViewerContext(organization_id=self.organization.id)):
+            client = SeerAgentClient(self.organization, self.user)
+            run = client.start_feature_run(
+                feature_id="night_shift",
+                payload={"candidates": [1, 2]},
+                title="Agentic triage (2 candidates)",
+                flush=False,
+            )
 
         mock_request.assert_not_called()
         assert run.type == SeerRunType.FEATURE_RUN

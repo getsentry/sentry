@@ -7,7 +7,6 @@ from sentry import features
 from sentry.models.group import Group
 from sentry.seer.signed_seer_api import (
     LlmGenerateRequest,
-    SeerViewerContext,
     make_llm_generate_request,
 )
 from sentry.services.eventstore.models import GroupEvent
@@ -63,9 +62,9 @@ class GeneratedExternalIssueDetails(TypedDict):
 
 
 def _make_generate_external_issue_details_request(
-    group: Group, event: Any | None = None, viewer_context: SeerViewerContext | None = None
+    group: Group, event: Any | None = None
 ) -> GeneratedExternalIssueDetails | None:
-    logging_ctx: dict[str, Any] = {"group_id": group.id, "viewer_context": viewer_context}
+    logging_ctx: dict[str, Any] = {"group_id": group.id}
     context = _build_event_context(group, event=event)
 
     body = LlmGenerateRequest(
@@ -85,7 +84,7 @@ def _make_generate_external_issue_details_request(
             "required": ["title", "description"],
         },
     )
-    response = make_llm_generate_request(body, timeout=10, viewer_context=viewer_context)
+    response = make_llm_generate_request(body, timeout=10)
     logging_ctx["status_code"] = response.status
     if response.status >= 400:
         logger.warning("external_issues.seer_request_failed", extra=logging_ctx)
@@ -131,10 +130,7 @@ def maybe_generate_external_issue_details(
         return empty_result
 
     try:
-        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=user.id)
-        result = _make_generate_external_issue_details_request(
-            group, event=event, viewer_context=viewer_context
-        )
+        result = _make_generate_external_issue_details_request(group, event=event)
     except Exception:
         logger.error("external_issues.generate_issue_details_failed", exc_info=True)
         return empty_result

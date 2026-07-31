@@ -142,7 +142,9 @@ def make_signed_seer_api_request(
     }
 
     resolved = _resolve_viewer_context(viewer_context)
-    observe_viewer_context_propagation("seer_rpc_out", ctx=resolved)
+    observe_viewer_context_propagation(
+        "seer_rpc_out", ctx=resolved, extra_attributes={"seer_path": path}
+    )
     if resolved:
         try:
             headers["X-Viewer-Context"] = encode_viewer_context(resolved)
@@ -580,7 +582,7 @@ def make_lightweight_rca_cluster_request(
 
 def make_supergroups_get_request(
     body: SupergroupsGetRequest,
-    viewer_context: SeerViewerContext,
+    viewer_context: SeerViewerContext | None = None,
     timeout: int | float | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
@@ -594,7 +596,7 @@ def make_supergroups_get_request(
 
 def make_supergroups_get_by_group_ids_request(
     body: SupergroupsGetByGroupIdsRequest,
-    viewer_context: SeerViewerContext,
+    viewer_context: SeerViewerContext | None = None,
     timeout: int | float | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(

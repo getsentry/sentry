@@ -57,7 +57,6 @@ from sentry.seer.models import (
 )
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.seer.context_engine_index import build_service_map, index_org_project_knowledge
 from sentry.tasks.seer.explorer_index import dispatch_explorer_index_projects
 from sentry.users.models.user import User
@@ -360,8 +359,6 @@ class SeerAgentClient:
 
         self.enable_pr_context_tools = enable_pr_context_tools
 
-        self.viewer_context = self._build_viewer_context()
-
         # Validate that category_key and category_value are provided together
         if category_key == "" or category_value == "":
             raise ValueError("category_key and category_value cannot be empty strings")
@@ -372,12 +369,6 @@ class SeerAgentClient:
         has_access, error = has_seer_access_with_detail(organization, user)
         if not has_access:
             raise SeerPermissionError(error or "Access denied")
-
-    def _build_viewer_context(self) -> SeerViewerContext:
-        context = SeerViewerContext(organization_id=self.organization.id)
-        if self.user and hasattr(self.user, "id") and self.user.id is not None:
-            context["user_id"] = self.user.id
-        return context
 
     def start_run(
         self,
@@ -518,7 +509,6 @@ class SeerAgentClient:
             run_type=SeerRunType.EXPLORER,
             body=chat_body,
             on_run_created=_create_agent_run,
-            viewer_context=self.viewer_context,
             user_id=user_id,
             referrer=metadata.get("referrer") if metadata else None,
             flush=True,
@@ -576,7 +566,6 @@ class SeerAgentClient:
                 payload=payload,
                 agent_run_options=self._build_agent_run_options(),
             ),
-            viewer_context=self.viewer_context,
             user_id=user_id,
             referrer=feature_id,
             flush=flush,
@@ -775,7 +764,7 @@ class SeerAgentClient:
         ):
             agent_run_options["enable_streaming"] = True
 
-        response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
+        response = make_agent_chat_request(chat_body)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
@@ -813,10 +802,9 @@ class SeerAgentClient:
                 self.organization,
                 poll_interval,
                 poll_timeout,
-                viewer_context=self.viewer_context,
             )
         else:
-            state = fetch_run_status(run_id, self.organization, viewer_context=self.viewer_context)
+            state = fetch_run_status(run_id, self.organization)
 
         return state
 
@@ -912,7 +900,7 @@ class SeerAgentClient:
         if query is not None:
             runs_body["query"] = query
 
-        response = make_agent_runs_request(runs_body, viewer_context=self.viewer_context)
+        response = make_agent_runs_request(runs_body)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
@@ -927,7 +915,7 @@ class SeerAgentClient:
             run_id=run_id,
             organization_id=self.organization.id,
         )
-        return make_agent_repos_request(body, viewer_context=self.viewer_context)
+        return make_agent_repos_request(body)
 
     def push_changes(
         self,
@@ -984,7 +972,7 @@ class SeerAgentClient:
             organization_id=self.organization.id,
             payload=payload,
         )
-        response = make_agent_update_request(update_body, viewer_context=self.viewer_context)
+        response = make_agent_update_request(update_body)
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
 
@@ -995,7 +983,7 @@ class SeerAgentClient:
         start_time = time.time()
 
         while True:
-            state = fetch_run_status(run_id, self.organization, viewer_context=self.viewer_context)
+            state = fetch_run_status(run_id, self.organization)
 
             # Check if any PRs are still being created
             any_creating = any(

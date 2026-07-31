@@ -48,6 +48,7 @@ from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
 from sentry.utils import metrics
 from sentry.utils.strings import strip_lone_surrogates
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,21 @@ agent_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
     timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
+
+
+def _serialize_viewer_context_for_outbox(
+    explicit: SeerViewerContext | None,
+) -> dict[str, Any] | None:
+    """Serialize viewer context for outbox payload, falling back to contextvar."""
+    if explicit is not None:
+        return dict(explicit)
+    vc = get_viewer_context()
+    if vc is None:
+        return None
+    result: dict[str, Any] = {"organization_id": vc.organization_id}
+    if vc.user_id is not None:
+        result["user_id"] = vc.user_id
+    return result
 
 
 class AgentStateRequest(TypedDict):
@@ -250,7 +266,7 @@ def enqueue_seer_run(
     organization: Organization,
     run_type: SeerRunType,
     body: Mapping[str, Any],
-    viewer_context: SeerViewerContext | None,
+    viewer_context: SeerViewerContext | None = None,
     user_id: int | None = None,
     referrer: str | None = None,
     flush: bool = True,
@@ -287,7 +303,7 @@ def enqueue_seer_run(
                 payload=_sanitize_json_strings(
                     {
                         "body": dict(body),
-                        "viewer_context": dict(viewer_context) if viewer_context else None,
+                        "viewer_context": _serialize_viewer_context_for_outbox(viewer_context),
                     }
                 ),
             ).save()

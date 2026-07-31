@@ -17,7 +17,6 @@ from sentry.models.organization import Organization
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
     CreateCacheRequest,
-    SeerViewerContext,
     make_create_cache_request,
 )
 
@@ -33,14 +32,12 @@ class OrganizationTraceExplorerAIPermission(OrganizationPermission):
     }
 
 
-def fire_setup_request(
-    org_id: int, project_ids: list[int], viewer_context: SeerViewerContext | None = None
-) -> None:
+def fire_setup_request(org_id: int, project_ids: list[int]) -> None:
     """
     Sends a request to seer to create the initial cached prompt / setup the AI models
     """
     body = CreateCacheRequest(org_id=org_id, project_ids=project_ids)
-    response = make_create_cache_request(body, viewer_context=viewer_context)
+    response = make_create_cache_request(body)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
 
@@ -97,7 +94,6 @@ class TraceExplorerAISetup(OrganizationEndpoint):
                 {"detail": "Seer is not properly configured."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
-        fire_setup_request(organization.id, validated_project_ids, viewer_context=viewer_context)
+        fire_setup_request(organization.id, validated_project_ids)
 
         return Response({"status": "ok"})

@@ -104,7 +104,6 @@ def _get_answer(
     run_id: int,
     question: str,
     *,
-    user_id: int | None,
     timeout: int | float | None,
 ) -> str:
     """Return the cached answer for one question, or ask Seer and cache it.
@@ -123,7 +122,6 @@ def _get_answer(
             _ONESHOT_ID,
             {"run_id": run_id, "question": question},
             organization,
-            user_id=user_id,
             timeout=timeout,
         )
     except Exception:
@@ -145,7 +143,6 @@ def get_run_questions(
     organization: Organization,
     *,
     questions: Sequence[Question] = QUESTIONS,
-    user_id: int | None = None,
     timeout: int | float | None = None,
 ) -> dict[int, list[RunQuestion]]:
     """Answer ``questions`` about each run in ``run_ids``.
@@ -163,9 +160,7 @@ def get_run_questions(
     with ContextPropagatingThreadPoolExecutor(max_workers=_MAX_WORKERS) as executor:
         answers = list(
             executor.map(
-                lambda task: _get_answer(
-                    organization, task[0], task[1].question, user_id=user_id, timeout=timeout
-                ),
+                lambda task: _get_answer(organization, task[0], task[1].question, timeout=timeout),
                 tasks,
             )
         )
