@@ -12,9 +12,8 @@ export function ReplayPanel({image, noCenter, children, ...props}: Props) {
   return (
     <Panel {...props}>
       <Flex
-        align="start"
-        direction="row"
-        display={{zero: 'block', xl: 'flex'}}
+        align={{zero: 'stretch', xl: 'start'}}
+        direction={{zero: 'column', xl: 'row'}}
         justify="center"
         margin={{zero: '0', xl: '0 auto'}}
         maxWidth={{xl: '1000px'}}
