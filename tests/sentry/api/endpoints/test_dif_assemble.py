@@ -217,6 +217,7 @@ class DifAssembleEndpoint(APITestCase):
                 "chunks": chunks,
                 "checksum": total_checksum,
                 "debug_id": None,
+                "use_objectstore": False,
             }
         )
 
@@ -250,7 +251,16 @@ class DifAssembleEndpoint(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data[checksum] == {"state": ChunkFileState.CREATED, "missingChunks": []}
-        assemble_task.apply_async.assert_called_once()
+        assemble_task.apply_async.assert_called_once_with(
+            kwargs={
+                "project_id": self.project.id,
+                "name": "test",
+                "debug_id": None,
+                "checksum": checksum,
+                "chunks": [chunk_checksum],
+                "use_objectstore": True,
+            }
+        )
         assert chunk_checksum not in get_chunk_upload_objectstore_intents(
             self.organization.id, [chunk_checksum]
         )
@@ -318,6 +328,7 @@ class DifAssembleEndpoint(APITestCase):
                 name="crash.sym",
                 checksum=checksum,
                 chunks=[checksum],
+                use_objectstore=True,
             )
 
         assemble_task.assert_called_once()
@@ -435,6 +446,7 @@ class DifAssembleEndpoint(APITestCase):
                 name="/proguard/mapping-00000000-0000-0000-0000-000000000000.txt",
                 checksum=checksum,
                 chunks=chunks,
+                use_objectstore=True,
             )
 
             first_dif = ProjectDebugFile.objects.get(

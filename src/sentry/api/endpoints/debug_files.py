@@ -637,7 +637,10 @@ def batch_assemble(project: Project, files: AssembleRequestPayload):
             chunks_to_check[chunk].add(checksum)
 
     # 4. Find missing chunks and group them per checksum.
-    if features.has("organizations:objectstore-debugfiles-exclusive-write", project.organization):
+    use_objectstore = features.has(
+        "organizations:objectstore-debugfiles-exclusive-write", project.organization
+    )
+    if use_objectstore:
         all_missing_chunks = find_missing_objectstore_chunks(
             project.organization.id, chunks_to_check.keys()
         )
@@ -676,6 +679,7 @@ def batch_assemble(project: Project, files: AssembleRequestPayload):
                 "debug_id": debug_id,
                 "checksum": checksum,
                 "chunks": chunks,
+                "use_objectstore": use_objectstore,
             }
         )
 

@@ -205,6 +205,7 @@ class AssembleDifTest(BaseAssembleTest):
                 name="crash.sym",
                 checksum=checksum,
                 chunks=[checksum],
+                use_objectstore=True,
             )
 
         dif = ProjectDebugFile.objects.get(project_id=self.project.id, checksum=checksum)
@@ -254,6 +255,7 @@ class AssembleDifTest(BaseAssembleTest):
                 name="crash.sym",
                 checksum=checksum,
                 chunks=[checksum],
+                use_objectstore=True,
             )
 
         status, detail = get_assemble_status(AssembleTask.DIF, self.project.id, checksum)
@@ -262,6 +264,33 @@ class AssembleDifTest(BaseAssembleTest):
         assert not ProjectDebugFile.objects.filter(project_id=self.project.id).exists()
         assert not File.objects.filter(type="project.dif").exists()
         assert not FileBlobIndex.objects.exists()
+
+    @patch("sentry.tasks.assemble.assemble_file", wraps=assemble_file)
+    def test_objectstore_assembly_falls_back_to_fileblob_when_chunk_is_missing(
+        self, assemble_from_file: MagicMock
+    ) -> None:
+        sym_file = self.load_fixture("crash.sym")
+        chunk = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
+        checksum = sha1(sym_file).hexdigest()
+
+        assemble_dif(
+            project_id=self.project.id,
+            name="crash.sym",
+            checksum=checksum,
+            chunks=[chunk.checksum],
+            use_objectstore=True,
+        )
+
+        dif = ProjectDebugFile.objects.get(project_id=self.project.id, checksum=checksum)
+        assert (dif.file_id or dif.storage_path) is not None
+        assemble_from_file.assert_called_once_with(
+            AssembleTask.DIF,
+            self.project,
+            "crash.sym",
+            checksum,
+            [chunk.checksum],
+            file_type="project.dif",
+        )
 
     def test_assemble_debug_id_override(self) -> None:
         sym_file = self.load_fixture("crash.sym")
