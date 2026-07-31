@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -173,39 +173,62 @@ const LogsSearchSection = memo(function LogsSearchSection({
       <ExploreBodySearch>
         <Layout.Main width="full">
           <Grid
-            columns={{zero: '1fr', '3xl': 'minmax(300px, auto) 1fr min-content'}}
+            areas={{
+              zero: `
+                "filters"
+                "search"
+                "actions"
+              `,
+              xl: `
+                "filters actions"
+                "search search"
+              `,
+              '3xl': '"filters search actions"',
+            }}
+            columns={{
+              zero: '100%',
+              xl: '1fr auto',
+              '3xl': 'minmax(300px, auto) 1fr min-content',
+            }}
             gap="md"
+            width="100%"
           >
-            <StyledPageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter
-                {...datePageFilterProps}
-                searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
+            <Container area="filters">
+              <StyledPageFilterBar condensed>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter />
+                <DatePageFilter
+                  {...datePageFilterProps}
+                  searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
+                />
+              </StyledPageFilterBar>
+            </Container>
+            <Container area="search">
+              <LogsSearchBar
+                tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
               />
-            </StyledPageFilterBar>
-            <LogsSearchBar
-              tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
-            />
+            </Container>
             {saveAsItems.length > 0 && (
-              <DropdownMenu
-                items={saveAsItems}
-                trigger={triggerProps => (
-                  <Button
-                    {...triggerProps}
-                    variant="primary"
-                    aria-label={t('Save as')}
-                    onClick={e => {
-                      e.stopPropagation();
-                      e.preventDefault();
+              <Flex area="actions" align="start" justifySelf="end">
+                <DropdownMenu
+                  items={saveAsItems}
+                  trigger={triggerProps => (
+                    <Button
+                      {...triggerProps}
+                      variant="primary"
+                      aria-label={t('Save as')}
+                      onClick={e => {
+                        e.stopPropagation();
+                        e.preventDefault();
 
-                      triggerProps.onClick?.(e);
-                    }}
-                  >
-                    {t('Save as')}
-                  </Button>
-                )}
-              />
+                        triggerProps.onClick?.(e);
+                      }}
+                    >
+                      {t('Save as')}
+                    </Button>
+                  )}
+                />
+              </Flex>
             )}
           </Grid>
         </Layout.Main>
