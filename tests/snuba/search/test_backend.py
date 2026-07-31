@@ -3742,6 +3742,10 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
 
         control_query_params = control_bulk_query.call_args.args[0]
         assert len(control_query_params) == 3
+        assert all(
+            params.kwargs["orderby"] == ["-last_seen", "group_id"]
+            for params in control_query_params
+        )
 
         merged_query_params = merged_bulk_query.call_args.args[0]
         assert len(merged_query_params) == 2
@@ -3753,10 +3757,39 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         issue_platform_params = next(
             params for params in merged_query_params if params.dataset == Dataset.IssuePlatform
         )
+        assert issue_platform_params.kwargs["orderby"] == ["-last_seen", "-group_id"]
         assert set(issue_platform_params.filter_keys["occurrence_type_id"]) >= {
             ProfileFileIOGroupType.type_id,
             PerformanceNPlusOneGroupType.type_id,
         }
+
+        with (
+            self.feature(group_type.build_visible_feature_name()),
+            self.feature("organizations:issue-search-merged-generic-query"),
+        ):
+            first_page = self.make_query(
+                search_filter_query=query,
+                limit=2,
+                count_hits=True,
+            )
+            second_page = self.make_query(
+                search_filter_query=query,
+                limit=2,
+                count_hits=True,
+                cursor=first_page.next,
+            )
+            third_page = self.make_query(
+                search_filter_query=query,
+                limit=2,
+                count_hits=True,
+                cursor=second_page.next,
+            )
+
+        assert first_page.hits == len(expected_groups)
+        assert second_page.hits == len(expected_groups)
+        assert third_page.hits == len(expected_groups)
+        assert set([*first_page, *second_page, *third_page]) == expected_groups
+        assert len([*first_page, *second_page, *third_page]) == len(expected_groups)
 
     def test_error_generic_query(self) -> None:
         results = self.make_query(search_filter_query="my_tag:1")
