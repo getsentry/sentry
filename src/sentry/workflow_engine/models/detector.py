@@ -89,6 +89,23 @@ class DetectorManager(BaseManager["Detector"]):
     def by_organization(self, organization_id: int) -> DetectorQuerySet:
         return self.get_queryset().by_organization(organization_id)
 
+    def by_organization(self, organization_id: int) -> BaseQuerySet[Detector]:
+        """
+        Returns a queryset of detectors scoped to the given organization.
+        Project-scoped detectors are matched via project__organization.
+        Null-project (all-projects) detectors are matched via config__organization_id.
+        """
+        from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+
+        return self.get_queryset().filter(
+            Q(project__organization_id=organization_id)
+            | Q(
+                project__isnull=True,
+                type=IssueStreamGroupType.slug,
+                config__organization_id=organization_id,
+            )
+        )
+
 
 @cell_silo_model
 class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):

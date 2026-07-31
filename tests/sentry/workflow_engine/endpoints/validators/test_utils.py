@@ -65,16 +65,16 @@ class TestValidateDetectorsExistAndHavePermissions(TestCase):
                 [other_detector.id], self.organization, request
             )
 
-    def test_null_project_detector_from_other_org_permission_denied(self) -> None:
+    def test_null_project_detector_from_other_org_not_found(self) -> None:
         """
-        A null-project detector belonging to another org should be rejected
-        by the permission check since the user won't have access.
+        A null-project detector belonging to another org should not be found
+        since the query scopes by config__organization_id.
         """
         other_org = self.create_organization()
         other_all_projects_detector = ensure_default_all_projects_detector(other_org.id)
         request = self._make_request_with_access(NoAccess())
 
-        with pytest.raises(PermissionDenied):
+        with pytest.raises(ValidationError, match="do not exist"):
             validate_detectors_exist_and_have_permissions(
                 [other_all_projects_detector.id], self.organization, request
             )
