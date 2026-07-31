@@ -24,12 +24,11 @@ from sentry.utils.codeowners import MAX_RAW_LENGTH
 class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer[ProjectCodeOwners]):
     code_mapping_id = serializers.IntegerField(required=True)
     raw = serializers.CharField(required=True)
-    organization_integration_id = serializers.IntegerField(required=False)
     date_updated = serializers.CharField(required=False)
 
     class Meta:
         model = ProjectCodeOwners
-        fields = ["raw", "code_mapping_id", "organization_integration_id", "date_updated"]
+        fields = ["raw", "code_mapping_id", "date_updated"]
 
     def get_max_length(self) -> int:
         return MAX_RAW_LENGTH

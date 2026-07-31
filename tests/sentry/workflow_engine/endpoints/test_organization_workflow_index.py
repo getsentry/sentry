@@ -1286,7 +1286,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             "conditions": [
                 {
                     "type": Condition.SEER_ACTIVITY_TRIGGER,
-                    "comparison": ["rca_started"],
+                    "comparison": ["rca_completed"],
                     "conditionResult": True,
                 }
             ],

@@ -15,7 +15,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/group';
-import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
+import {GroupStatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -53,28 +53,24 @@ interface ResolveActionsProps {
   hasRelease: boolean;
   hasSemverReleaseFeature: boolean;
   onUpdate: (data: GroupStatusResolution) => void;
+  project: Project | undefined;
   confirmLabel?: string;
   confirmMessage?: React.ReactNode;
   disableDropdown?: boolean;
   disableResolveInRelease?: boolean;
   disabled?: boolean;
-  isAutoResolved?: boolean;
-  isResolved?: boolean;
   latestRelease?: Project['latestRelease'];
   multipleProjectsSelected?: boolean;
   priority?: 'primary';
   projectFetchError?: boolean;
-  projectSlug?: string;
   shouldConfirm?: boolean;
   size?: 'xs' | 'sm';
 }
 
 export function ResolveActions({
   size = 'xs',
-  isResolved = false,
-  isAutoResolved = false,
   confirmLabel = t('Resolve'),
-  projectSlug,
+  project,
   hasRelease,
   latestRelease,
   confirmMessage,
@@ -89,6 +85,7 @@ export function ResolveActions({
   onUpdate,
 }: ResolveActionsProps) {
   const {openModal} = useModal();
+  const projectSlug = project?.slug;
 
   const organization = useOrganization();
 
@@ -164,39 +161,7 @@ export function ResolveActions({
     });
   }
 
-  function renderResolved() {
-    return (
-      <Tooltip
-        title={
-          isAutoResolved
-            ? t(
-                'This event is resolved due to the Auto Resolve configuration for this project'
-              )
-            : t('Unresolve')
-        }
-      >
-        <Button
-          variant="primary"
-          size="xs"
-          aria-label={t('Unresolve')}
-          disabled={isAutoResolved}
-          onClick={() =>
-            onUpdate({
-              status: GroupStatus.UNRESOLVED,
-              statusDetails: {},
-              substatus: GroupSubstatus.ONGOING,
-            })
-          }
-        />
-      </Tooltip>
-    );
-  }
-
   function renderDropdownMenu() {
-    if (isResolved) {
-      return renderResolved();
-    }
-
     const shouldDisplayCta = !hasRelease && !multipleProjectsSelected;
     const actionTitle = shouldDisplayCta
       ? t('Set up release tracking in order to use this feature.')
@@ -339,13 +304,9 @@ export function ResolveActions({
         onSelected={(statusDetails: ResolvedStatusDetails) =>
           handleAnotherExistingReleaseResolution(statusDetails)
         }
-        projectSlug={projectSlug}
+        project={project}
       />
     ));
-  }
-
-  if (isResolved) {
-    return renderResolved();
   }
 
   return (

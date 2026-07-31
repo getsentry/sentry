@@ -1,10 +1,11 @@
-import {Fragment, type PropsWithChildren} from 'react';
+import {Fragment, type PropsWithChildren, useEffect} from 'react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
+import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
@@ -140,24 +141,74 @@ function StoryDetail() {
   );
 }
 
+function useStoriesFavicon() {
+  useEffect(() => {
+    const faviconNode = document.querySelector<HTMLLinkElement>(
+      'link[rel="icon"][type="image/png"]'
+    );
+    if (!faviconNode) {
+      return () => {};
+    }
+
+    const originalHref = faviconNode.href;
+    const url = new URL(originalHref);
+    const storiesFaviconPath = `${url.origin}${url.pathname.replace(/\/[^/]+$/, '/favicon-stories.png')}`;
+
+    const applyStoriesFavicon = () => {
+      if (faviconNode.href !== storiesFaviconPath) {
+        faviconNode.href = storiesFaviconPath;
+      }
+    };
+
+    applyStoriesFavicon();
+
+    const observer = new MutationObserver(mutations => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'href') {
+          applyStoriesFavicon();
+        }
+      }
+    });
+
+    observer.observe(faviconNode, {
+      attributes: true,
+      attributeFilter: ['href'],
+    });
+
+    return () => {
+      observer.disconnect();
+      faviconNode.href = originalHref;
+    };
+  }, []);
+}
+
+const storiesTracking: React.ComponentProps<typeof TrackingContextProvider>['value'] =
+  () => props => {
+    // eslint-disable-next-line no-console
+    console.log('analyticsEvent', props);
+  };
+
 function StoriesLayout(props: PropsWithChildren) {
+  useStoriesFavicon();
   return (
-    <Fragment>
-      <GlobalStoryStyles key="global-story-styles" />
-      <RouteAnalyticsContextProvider>
-        <GlobalDrawer>
-          <OrganizationContainer>
-            <Layout>
-              <HeaderContainer>
-                <StoryHeader />
-              </HeaderContainer>
-              <StorySidebar />
-              {props.children}
-            </Layout>
-          </OrganizationContainer>
-        </GlobalDrawer>
-      </RouteAnalyticsContextProvider>
-    </Fragment>
+    <TrackingContextProvider value={storiesTracking}>
+      <Fragment>
+        <GlobalStoryStyles key="global-story-styles" />
+        <RouteAnalyticsContextProvider>
+          <GlobalDrawer>
+            <OrganizationContainer>
+              <Layout>
+                <HeaderContainer>
+                  <StoryHeader />
+                </HeaderContainer>
+                <StorySidebar />
+                {props.children}
+              </Layout>
+            </OrganizationContainer>
+          </GlobalDrawer>
+        </RouteAnalyticsContextProvider>
+      </Fragment>
+    </TrackingContextProvider>
   );
 }
 

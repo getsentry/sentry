@@ -16,27 +16,33 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
+import {
+  getAriaSort,
+  SortableHeaderCell,
+} from 'sentry/components/tables/sortableHeaderCell';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {ColumnType} from 'sentry/utils/discover/fields';
+import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {isRateLimitError} from 'sentry/utils/requestError/requestError';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useElementOffset} from 'sentry/utils/useElementOffset';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   TableBodyCell,
   TableHead,
-  TableHeadCellContent,
   TableRow,
   TableStatus,
   useTableStyles,
@@ -66,7 +72,9 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
 import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
+import {LogsRateLimitError} from 'sentry/views/explore/logs/tables/logsRateLimitError';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
+import {useLogsTableColumnWidths} from 'sentry/views/explore/logs/tables/useLogsTableColumnWidths';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -77,9 +85,12 @@ import {
   getLogBodySearchTerms,
   getLogRowTimestampMillis,
   getTableHeaderLabel,
+  isErrorLogRow,
   isRegularLogResponseItem,
   logsFieldAlignment,
+  mergeRowsByTimestampDescending,
   quantizeTimestampToMinutes,
+  type ErrorLogRowItem,
   type LogTableRowItem,
 } from 'sentry/views/explore/logs/utils';
 import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/logsReplayUtils';
@@ -108,6 +119,7 @@ type LogsTableProps = {
     showVerticalScrollbar?: boolean;
   };
   emptyRenderer?: () => React.ReactNode;
+  injectedErrorRows?: ErrorLogRowItem[];
   localOnlyItemFilters?: {
     filterText: string;
     filteredItems: OurLogsResponseItem[];
@@ -116,6 +128,7 @@ type LogsTableProps = {
   showCellActions?: boolean;
   showExploreSimilarSpansLink?: boolean;
   stringAttributes?: TagCollection;
+  validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 };
 
 const {info, fmt} = Sentry.logger;
@@ -133,8 +146,10 @@ export function LogsInfiniteTable({
   embeddedStyling,
   embeddedOptions,
   additionalData,
+  injectedErrorRows,
   showCellActions,
   showExploreSimilarSpansLink,
+  validatedFieldTypes = {},
 }: LogsTableProps) {
   const location = useLocation();
   const linkedRowId = decodeScalar(location.query[LOGS_ROW_ID_KEY]);
@@ -145,9 +160,11 @@ export function LogsInfiniteTable({
   const {
     isPending,
     isEmpty,
-    meta,
+    meta: rawMeta,
     data: originalData,
     isError,
+    error,
+    refetch,
     fetchNextPage,
     fetchPreviousPage,
     isFetchingNextPage,
@@ -159,9 +176,24 @@ export function LogsInfiniteTable({
     resumeAutoFetch,
     totalPayloadBytes,
   } = useLogsPageDataQueryResult();
+  const meta = useMemo(
+    () =>
+      addValidatedFieldTypesToLogsMeta({
+        meta: rawMeta,
+        validatedFieldTypes,
+      }),
+    [rawMeta, validatedFieldTypes]
+  );
 
   const baseData = localOnlyItemFilters?.filteredItems ?? originalData;
   const baseDataLength = useBox(baseData.length);
+
+  const sortBys = useQueryParamsSortBys();
+  const hasInjectedErrorRows =
+    !!injectedErrorRows?.length &&
+    sortBys.length === 1 &&
+    sortBys[0]!.field === logsTimestampDescendingSortBy.field &&
+    sortBys[0]!.kind === logsTimestampDescendingSortBy.kind;
 
   const pseudoRowIndex = useMemo(() => {
     if (
@@ -183,6 +215,7 @@ export function LogsInfiniteTable({
   }, [additionalData, baseData, isPending, isError]);
 
   const data = useMemo(() => {
+    let withEvent: LogTableRowItem[];
     if (
       !additionalData?.event ||
       !baseData ||
@@ -191,22 +224,38 @@ export function LogsInfiniteTable({
       isError ||
       pseudoRowIndex === -1
     ) {
-      return baseData || [];
+      withEvent = baseData || [];
+    } else {
+      withEvent = [...baseData];
+      const newSelectedIndex =
+        pseudoRowIndex === -2 ? baseDataLength.current : pseudoRowIndex;
+      withEvent.splice(
+        newSelectedIndex,
+        0,
+        createPseudoLogResponseItem(
+          additionalData.event,
+          additionalData.event.projectID || ''
+        )
+      );
     }
 
-    const newData: LogTableRowItem[] = [...baseData];
-    const newSelectedIndex =
-      pseudoRowIndex === -2 ? baseDataLength.current : pseudoRowIndex;
-    newData.splice(
-      newSelectedIndex,
-      0,
-      createPseudoLogResponseItem(
-        additionalData.event,
-        additionalData.event.projectID || ''
-      )
-    );
-    return newData;
-  }, [baseData, additionalData, isPending, isError, pseudoRowIndex, baseDataLength]);
+    if (!hasInjectedErrorRows || isPending) {
+      return withEvent;
+    }
+
+    return mergeRowsByTimestampDescending(withEvent, injectedErrorRows);
+  }, [
+    baseData,
+    additionalData,
+    isPending,
+    isError,
+    pseudoRowIndex,
+    baseDataLength,
+    hasInjectedErrorRows,
+    injectedErrorRows,
+  ]);
+
+  const isEmptyWithoutInjectedErrors = isEmpty && !hasInjectedErrorRows;
 
   // Calculate quantized start and end times for replay links
   const {logStart, logEnd} = useMemo(() => {
@@ -271,24 +320,17 @@ export function LogsInfiniteTable({
   const scrollFetchDisabled = isFunctionScrolling || autorefreshEnabled;
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    fields.slice(),
-    tableRef,
-    {
-      minimumColumnWidth: 50,
-      prefixColumnWidth: 'min-content',
-      staticColumnWidths: {
-        [OurLogKnownFieldKey.MESSAGE]: 'minmax(90px,1fr)',
-      },
-    }
-  );
 
   const estimateSize = useCallback(
     (index: number) => {
       const logItemId = data?.[index]?.[OurLogKnownFieldKey.ID];
-      const estimatedHeight =
-        expandedLogRowsHeights[logItemId ?? ''] ?? LOGS_GRID_BODY_ROW_HEIGHT;
-      return estimatedHeight;
+      const expandedDetailsHeight = expandedLogRowsHeights[logItemId ?? ''];
+      // A virtual item is the collapsed row plus, when expanded, its details
+      // panel rendered as a sibling row. The stored height only covers the
+      // details panel, so add the base row height back for the full item.
+      return expandedDetailsHeight === undefined
+        ? LOGS_GRID_BODY_ROW_HEIGHT
+        : LOGS_GRID_BODY_ROW_HEIGHT + expandedDetailsHeight;
     },
     [expandedLogRowsHeights, data]
   );
@@ -316,9 +358,14 @@ export function LogsInfiniteTable({
     getItemKey,
   });
 
+  // @tanstack/react-virtual does not rebuild its measurements cache when
+  // estimateSize returns new values, so re-measure whenever an expanded row's
+  // height changes. Without this the total size and item offsets keep treating
+  // expanded rows as collapsed, which desyncs the scroll range and leaves large
+  // blank gaps.
   useLayoutEffect(() => {
     virtualizer.measure();
-  }, [virtualizer]);
+  }, [virtualizer, expandedLogRowsHeights]);
 
   const virtualItems = virtualizer.getVirtualItems();
 
@@ -386,6 +433,24 @@ export function LogsInfiniteTable({
 
   const {scrollDirection, scrollOffset, isScrolling} = virtualizer;
 
+  const staticColumnWidths = useLogsTableColumnWidths({
+    fields,
+    tableRef,
+    isPending,
+    isScrolling,
+    dataLength: data?.length ?? 0,
+  });
+
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+    fields.slice(),
+    tableRef,
+    {
+      minimumColumnWidth: 50,
+      prefixColumnWidth: 'min-content',
+      staticColumnWidths,
+    }
+  );
+
   useEffect(() => {
     if (isFunctionScrolling && !isScrolling && scrollOffset === 0) {
       setTimeout(() => {
@@ -450,7 +515,9 @@ export function LogsInfiniteTable({
     });
   }, []);
   const handleExpandHeight = useCallback((logItemId: string, estimatedHeight: number) => {
-    setExpandedLogRowsHeights(prev => ({...prev, [logItemId]: estimatedHeight}));
+    setExpandedLogRowsHeights(prev =>
+      prev[logItemId] === estimatedHeight ? prev : {...prev, [logItemId]: estimatedHeight}
+    );
   }, []);
   const handleCollapse = useCallback((logItemId: string) => {
     setExpandedLogRows(prev => {
@@ -533,13 +600,13 @@ export function LogsInfiniteTable({
   );
 
   // For replay context, render empty states outside the table for proper centering
-  if (hasReplay && (isPending || isError || isEmpty)) {
+  if (hasReplay && (isPending || isError || isEmptyWithoutInjectedErrors)) {
     return (
       <Fragment>
         <Flex justify="center" align="center" height="100%" minHeight="200px">
           {isPending && <LoadingRenderer />}
-          {isError && <ErrorRenderer />}
-          {isEmpty &&
+          {isError && <ErrorRenderer error={error} onRetry={refetch} />}
+          {isEmptyWithoutInjectedErrors &&
             (emptyRenderer ? (
               emptyRenderer()
             ) : (
@@ -550,7 +617,13 @@ export function LogsInfiniteTable({
     );
   }
 
-  if (originalData.length < 20 && originalData.length > 0 && !isPending && !isError) {
+  if (
+    !hasInjectedErrorRows &&
+    originalData.length < 20 &&
+    originalData.length > 0 &&
+    !isPending &&
+    !isError
+  ) {
     if (virtualItems.length !== originalData.length) {
       info(
         fmt`Mismatch in virtualItems.length and data.length: virtualItems.length: ${virtualItems.length}, data.length: ${originalData.length}`
@@ -576,6 +649,7 @@ export function LogsInfiniteTable({
             numberAttributes={numberAttributes}
             stringAttributes={stringAttributes}
             booleanAttributes={booleanAttributes}
+            validatedFieldTypes={validatedFieldTypes}
             onResizeMouseDown={onResizeMouseDown}
           />
         )}
@@ -606,9 +680,9 @@ export function LogsInfiniteTable({
               totalPayloadBytes={totalPayloadBytes}
             />
           )}
-          {!hasReplay && isError && <ErrorRenderer />}
+          {!hasReplay && isError && <ErrorRenderer error={error} onRetry={refetch} />}
           {!hasReplay &&
-            isEmpty &&
+            isEmptyWithoutInjectedErrors &&
             (emptyRenderer ? (
               emptyRenderer()
             ) : (
@@ -639,6 +713,7 @@ export function LogsInfiniteTable({
               <Fragment key={virtualRow.key}>
                 <LogRowContent
                   dataRow={dataRow as OurLogsResponseItem}
+                  errorRow={isErrorLogRow(dataRow) ? dataRow.__error : undefined}
                   meta={meta}
                   highlightTerms={highlightTerms}
                   embedded={embedded}
@@ -708,8 +783,12 @@ function LogsTableHeader({
   booleanAttributes,
   numberAttributes,
   stringAttributes,
+  validatedFieldTypes = {},
   onResizeMouseDown,
-}: Pick<LogsTableProps, 'numberAttributes' | 'stringAttributes' | 'booleanAttributes'> & {
+}: Pick<
+  LogsTableProps,
+  'numberAttributes' | 'stringAttributes' | 'booleanAttributes' | 'validatedFieldTypes'
+> & {
   isFrozen: boolean;
   onResizeMouseDown: (e: React.MouseEvent<HTMLDivElement>, index: number) => void;
 }) {
@@ -718,17 +797,19 @@ function LogsTableHeader({
   const setSortBys = useSetQueryParamsSortBys();
 
   const {data, meta, isError, isPending} = useLogsPageDataQueryResult();
+  const resolvedMeta = useMemo(
+    () => addValidatedFieldTypesToLogsMeta({meta, validatedFieldTypes}),
+    [meta, validatedFieldTypes]
+  );
   const pinningEnabled = !!useLogsPinning();
   return (
     <TableHead>
       <LogTableRow>
-        <FirstTableHeadCell isFirst align="left">
-          <TableHeadCellContent isFrozen />
-        </FirstTableHeadCell>
+        <FirstTableHeadCell isFirst align="left" />
         {fields.map((field, index) => {
           const direction = sortBys.find(s => s.field === field)?.kind;
 
-          const fieldType = meta?.fields?.[field];
+          const fieldType = resolvedMeta.fields[field];
           const align = logsFieldAlignment(field, fieldType);
           const headerLabel = getTableHeaderLabel(
             field,
@@ -749,12 +830,14 @@ function LogsTableHeader({
           return (
             <LogTableHeadCell
               align={index === 0 ? 'left' : align}
+              aria-sort={getAriaSort(direction)}
               key={index}
               isFirst={index === 0}
               reservePinGutter={pinningEnabled && index === fields.length - 1}
             >
-              <TableHeadCellContent
-                onClick={
+              <SortableHeaderCell
+                direction={direction}
+                onSort={
                   isFrozen
                     ? undefined
                     : () => {
@@ -770,24 +853,9 @@ function LogsTableHeader({
                         }
                       }
                 }
-                isFrozen={isFrozen}
               >
-                <Tooltip showOnlyOnOverflow title={headerLabel}>
-                  {headerLabel}
-                </Tooltip>
-                {defined(direction) && (
-                  <IconArrow
-                    size="xs"
-                    direction={
-                      direction === 'desc'
-                        ? 'down'
-                        : direction === 'asc'
-                          ? 'up'
-                          : undefined
-                    }
-                  />
-                )}
-              </TableHeadCellContent>
+                {headerLabel}
+              </SortableHeaderCell>
               {index !== fields.length - 1 && (
                 <GridResizer
                   dataRows={!isError && !isPending && data ? data.length : 0}
@@ -802,10 +870,14 @@ function LogsTableHeader({
   );
 }
 
-function ErrorRenderer() {
+function ErrorRenderer({error, onRetry}: {error?: unknown; onRetry?: () => void}) {
   return (
     <TableStatus>
-      <IconWarning variant="muted" size="lg" />
+      {isRateLimitError(error) ? (
+        <LogsRateLimitError onRetry={onRetry} />
+      ) : (
+        <IconWarning variant="muted" size="lg" />
+      )}
     </TableStatus>
   );
 }
@@ -847,6 +919,37 @@ export function LoadingRenderer({
       </Stack>
     </TableStatus>
   );
+}
+
+export function addValidatedFieldTypesToLogsMeta({
+  meta,
+  validatedFieldTypes,
+}: {
+  meta: EventsMetaType | undefined;
+  validatedFieldTypes: Partial<Record<string, FieldValueType>>;
+}): EventsMetaType {
+  const fields: Record<string, ColumnType> = {...meta?.fields};
+
+  for (const [field, fieldType] of Object.entries(validatedFieldTypes)) {
+    const definitionType = fieldValueTypeToColumnType(
+      getFieldDefinition(field, 'log')?.valueType ?? undefined
+    );
+    const columnType =
+      definitionType ?? fields[field] ?? fieldValueTypeToColumnType(fieldType);
+    if (columnType) {
+      fields[field] = columnType;
+    }
+  }
+
+  return {...meta, fields, units: meta?.units ?? {}};
+}
+
+function fieldValueTypeToColumnType(fieldType?: FieldValueType): ColumnType | undefined {
+  if (!fieldType || fieldType === FieldValueType.NEVER) {
+    return undefined;
+  }
+
+  return fieldType;
 }
 
 const StyledLoadingIndicator = styled(LoadingIndicator)<{

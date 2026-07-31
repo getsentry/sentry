@@ -47,7 +47,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconEllipsis} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct, tctCode} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
+import {DataCategory, type PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -74,7 +74,9 @@ import {generateQueryWithTag} from 'sentry/utils/queryString';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -105,6 +107,8 @@ import {
 import Table from 'sentry/views/discover/table';
 import {
   generateTitle,
+  getDiscoverDeprecation,
+  getDiscoverDeprecationEnabled,
   getTransactionsDeprecation,
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
@@ -368,11 +372,25 @@ export class Results extends Component<Props, State> {
     this.setState({needConfirmation: false, confirmedQuery: false});
   };
 
+  // Transactions are no longer supported in Discover once the deprecation is
+  // fully enabled. A bookmarked saved transactions query can still land directly
+  // on this results page, so hard-block every transactions query (table, chart,
+  // total count, and tags) and point users to their migrated queries instead.
+  isTransactionsUnsupported() {
+    const {organization, location} = this.props;
+    const {savedQueryDataset} = this.state;
+    return (
+      getDiscoverDeprecation(organization) &&
+      getDatasetFromLocationOrSavedQueryDataset(location, savedQueryDataset) ===
+        DiscoverDatasets.TRANSACTIONS
+    );
+  }
+
   async fetchTotalCount() {
     const {api, organization, location, getAiQueryRunId} = this.props;
     const {eventView, confirmedQuery} = this.state;
 
-    if (!confirmedQuery || !eventView.isValid()) {
+    if (!confirmedQuery || !eventView.isValid() || this.isTransactionsUnsupported()) {
       return;
     }
 
@@ -597,11 +615,11 @@ export class Results extends Component<Props, State> {
 
   getDocumentTitle(): string {
     const {eventView} = this.state;
-    const {isHomepage} = this.props;
+    const {isHomepage, organization} = this.props;
     if (!eventView) {
       return '';
     }
-    return generateTitle({eventView, isHomepage});
+    return generateTitle({eventView, isHomepage, organization});
   }
 
   setError = (error: string, errorCode: number) => {
@@ -647,6 +665,8 @@ export class Results extends Component<Props, State> {
       tips,
     } = this.state;
     const hasDatasetSelectorFeature = hasDatasetSelector(organization);
+
+    const transactionsUnsupported = this.isTransactionsUnsupported();
 
     const query = eventView.query;
     const title = this.getDocumentTitle();
@@ -694,6 +714,7 @@ export class Results extends Component<Props, State> {
                   selection={selection}
                 />
                 {savedQueryDataset === SavedQueryDatasets.ERRORS &&
+                  !getDiscoverDeprecationEnabled(organization) &&
                   getTransactionsDeprecation(organization) && (
                     <Alert.Container>
                       <Alert variant="info">
@@ -726,52 +747,69 @@ export class Results extends Component<Props, State> {
                     />
                   )}
                 </CustomMeasurementsContext.Consumer>
-                <MetricsCardinalityProvider
-                  organization={organization}
-                  location={location}
-                >
-                  <ResultsChart
-                    api={api}
+                {!transactionsUnsupported && (
+                  <MetricsCardinalityProvider
+                    organization={organization}
+                    location={location}
+                  >
+                    <ResultsChart
+                      api={api}
+                      organization={organization}
+                      eventView={eventView}
+                      location={location}
+                      onAxisChange={this.handleYAxisChange}
+                      onDisplayChange={this.handleDisplayChange}
+                      onTopEventsChange={this.handleTopEventsChange}
+                      onIntervalChange={this.handleIntervalChange}
+                      total={totalValues}
+                      confirmedQuery={confirmedQuery}
+                      yAxis={yAxisArray}
+                    />
+                  </MetricsCardinalityProvider>
+                )}
+              </Top>
+              <Layout.Main
+                width={showTags && !transactionsUnsupported ? 'twothirds' : 'full'}
+              >
+                {transactionsUnsupported ? (
+                  <Alert.Container>
+                    <Alert variant="info">
+                      {tct(
+                        'Your saved transactions queries are no longer available in this UI. Try them out in the [exploreLink:Explore Queries] page instead.',
+                        {
+                          exploreLink: <Link to="/explore/saved-queries/" />,
+                        }
+                      )}
+                    </Alert>
+                  </Alert.Container>
+                ) : (
+                  <Table
                     organization={organization}
                     eventView={eventView}
                     location={location}
-                    onAxisChange={this.handleYAxisChange}
-                    onDisplayChange={this.handleDisplayChange}
-                    onTopEventsChange={this.handleTopEventsChange}
-                    onIntervalChange={this.handleIntervalChange}
-                    total={totalValues}
+                    title={title}
+                    setError={this.setError}
+                    onChangeShowTags={this.handleChangeShowTags}
+                    showTags={showTags}
                     confirmedQuery={confirmedQuery}
-                    yAxis={yAxisArray}
+                    onCursor={this.handleCursor}
+                    isHomepage={isHomepage}
+                    setTips={this.setTips}
+                    queryDataset={savedQueryDataset}
+                    setSplitDecision={(value?: SavedQueryDatasets) => {
+                      if (
+                        hasDatasetSelectorFeature &&
+                        value !== SavedQueryDatasets.DISCOVER &&
+                        value !== savedQuery?.dataset
+                      ) {
+                        this.setSplitDecision(value);
+                      }
+                    }}
+                    dataset={hasDatasetSelectorFeature ? eventView.dataset : undefined}
                   />
-                </MetricsCardinalityProvider>
-              </Top>
-              <Layout.Main width={showTags ? 'twothirds' : 'full'}>
-                <Table
-                  organization={organization}
-                  eventView={eventView}
-                  location={location}
-                  title={title}
-                  setError={this.setError}
-                  onChangeShowTags={this.handleChangeShowTags}
-                  showTags={showTags}
-                  confirmedQuery={confirmedQuery}
-                  onCursor={this.handleCursor}
-                  isHomepage={isHomepage}
-                  setTips={this.setTips}
-                  queryDataset={savedQueryDataset}
-                  setSplitDecision={(value?: SavedQueryDatasets) => {
-                    if (
-                      hasDatasetSelectorFeature &&
-                      value !== SavedQueryDatasets.DISCOVER &&
-                      value !== savedQuery?.dataset
-                    ) {
-                      this.setSplitDecision(value);
-                    }
-                  }}
-                  dataset={hasDatasetSelectorFeature ? eventView.dataset : undefined}
-                />
+                )}
               </Layout.Main>
-              {showTags ? (
+              {showTags && !transactionsUnsupported ? (
                 <TagsTable
                   confirmedQuery={confirmedQuery}
                   eventView={eventView}
@@ -1396,6 +1434,11 @@ function DiscoverPageFilters({
   isHomepage?: boolean;
 }) {
   const {projects} = useProjects();
+  // use the same data category as spans so the time period options across discover and traces are the same
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.ERRORS],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
     location,
@@ -1431,7 +1474,7 @@ function DiscoverPageFilters({
       <PageFilterBar condensed>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
-        <DatePageFilter />
+        <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <Flex gap="md" align="center">
         {!shouldHideCreateAlert && (
@@ -1564,6 +1607,9 @@ export default function ResultsContainer() {
   const location = useLocation();
   const navigate = useNavigate();
   const {addAlert} = useGlobalAlerts();
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.ERRORS],
+  });
 
   /**
    * Block `<Results>` from mounting until GSH is ready since there are API
@@ -1581,6 +1627,7 @@ export default function ResultsContainer() {
       disablePersistence={
         organization.features.includes('discover-query') && !!location.query.id
       }
+      maxPickableDays={maxPickableDays.maxPickableDays}
       skipLoadLastUsed={false}
       // The Discover Results component will manage URL params, including page filters state
       // This avoids an unnecessary re-render when forcing a project filter for team plan users

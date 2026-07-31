@@ -182,7 +182,7 @@ export const performanceConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: {
     resources: {
       description: t(
-        'A Large HTTP Payload issue occurs when an http payload size consistently exceeds a threshold of 300KB'
+        'A Large HTTP Payload issue occurs when an http payload size consistently exceeds a threshold of 300kB'
       ),
       links: [
         {

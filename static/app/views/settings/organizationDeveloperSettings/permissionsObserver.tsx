@@ -29,12 +29,10 @@ type Props = {
   onEventsChange?: (events: WebhookSubscription[]) => void;
   onScopesChange?: (scopes: Scope[]) => void;
   permissionErrors?: Partial<Record<PermissionResource, string>>;
-  webhookDisabled?: boolean;
 };
 
 export function PermissionsObserver({
   appPublished = false,
-  webhookDisabled = false,
   events: initialEvents,
   newApp,
   scopes,
@@ -124,7 +122,6 @@ export function PermissionsObserver({
             permissions={permissions}
             events={events}
             onChange={handleEventChange}
-            webhookDisabled={webhookDisabled}
           />
         </PanelBody>
       </Panel>

@@ -246,7 +246,7 @@ describe('MetricPanel', () => {
 
     const equationOrg = {
       ...organization,
-      features: [...organization.features, 'data-browsing-heat-map-widget'],
+      features: [...organization.features],
     };
 
     render(
@@ -269,7 +269,7 @@ describe('MetricPanel', () => {
     expect(chartTypeSelect).toBeInTheDocument();
     await userEvent.click(chartTypeSelect);
     expect(await screen.findByText('Type')).toBeInTheDocument();
-    const heatMapOption = await screen.findByRole('option', {name: 'Heat Map'});
+    const heatMapOption = await screen.findByRole('option', {name: 'Heatmap'});
     expect(heatMapOption).toHaveAttribute('aria-disabled', 'true');
   });
 
@@ -289,7 +289,7 @@ describe('MetricPanel', () => {
 
     const heatMapOrg = {
       ...organization,
-      features: [...organization.features, 'data-browsing-heat-map-widget'],
+      features: [...organization.features],
     };
 
     render(
@@ -305,7 +305,7 @@ describe('MetricPanel', () => {
 
     const chartTypeSelect = await screen.findByTestId('metric-panel-chart-type-select');
     await userEvent.click(chartTypeSelect);
-    const heatMapOption = await screen.findByRole('option', {name: 'Heat Map'});
+    const heatMapOption = await screen.findByRole('option', {name: 'Heatmap'});
     expect(heatMapOption).toHaveAttribute('aria-disabled', 'true');
   });
 

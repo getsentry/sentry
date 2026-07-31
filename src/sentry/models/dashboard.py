@@ -187,6 +187,68 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
                 )
             return True
 
+    def insert_favorite_dashboard_alphabetically(
+        self,
+        organization: Organization,
+        user_id: int,
+        dashboard: Dashboard,
+    ) -> bool:
+        """
+        Inserts a favorited dashboard at the position of the next prebuilt favorited
+        dashboard whose title sorts after this one, shifting later positions by 1. Falls
+        back to appending at the end when nothing sorts later.
+        """
+        with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
+            existing = (
+                self.filter(
+                    organization=organization,
+                    user_id=user_id,
+                    dashboard=dashboard,
+                )
+                .select_for_update()
+                .first()
+            )
+
+            if existing and existing.favorited:
+                return False
+
+            next_prebuilt = (
+                self.filter(
+                    organization=organization,
+                    user_id=user_id,
+                    favorited=True,
+                    position__isnull=False,
+                    dashboard__prebuilt_id__isnull=False,
+                    dashboard__title__gt=dashboard.title,
+                )
+                .order_by("position")
+                .first()
+            )
+
+            position: int
+            if next_prebuilt is None or next_prebuilt.position is None:
+                position = self.get_last_position(organization, user_id) + 1
+            else:
+                position = next_prebuilt.position
+                self.filter(
+                    organization=organization,
+                    user_id=user_id,
+                    position__gte=position,
+                ).update(position=models.F("position") + 1)
+
+            if existing:
+                existing.favorited = True
+                existing.position = position
+                existing.save(update_fields=["favorited", "position"])
+            else:
+                self.create(
+                    organization=organization,
+                    user_id=user_id,
+                    dashboard=dashboard,
+                    position=position,
+                )
+            return True
+
     def unfavorite_dashboard(
         self, organization: Organization, user_id: int, dashboard: Dashboard
     ) -> bool:
@@ -248,6 +310,25 @@ class DashboardFavoriteUser(DefaultFieldsModel):
                 name="sentry_dashboardfavoriteuser_user_org_position_uniq_deferred",
                 deferrable=models.Deferrable.DEFERRED,
             ),
+        ]
+
+
+@cell_silo_model
+class DashboardLastVisited(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+    last_visited = models.DateTimeField(null=False, default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardlastvisited"
+        constraints = [
+            UniqueConstraint(
+                fields=["user_id", "dashboard_id"],
+                name="sentry_dashboardlastvisited_unique_per_user_dashboard",
+            )
         ]
 
 
@@ -346,7 +427,7 @@ class Dashboard(Model):
             )
 
     @classmethod
-    def incremental_title(cls, organization, name):
+    def incremental_title(cls, organization: Organization, name: str) -> str:
         """
         Given a dashboard name that migh already exist, returns a new unique name that does not exist, by appending the word "copy" and an integer if necessary.
         """

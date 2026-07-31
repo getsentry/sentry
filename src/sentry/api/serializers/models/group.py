@@ -19,6 +19,10 @@ from sentry.constants import LOG_LEVELS
 from sentry.eventtypes import EventTypeStr
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.issues.derived.serialization import (
+    GroupDerivedDataResponse,
+    get_bulk_group_derived_data,
+)
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.commit import Commit
 from sentry.models.environment import Environment
@@ -45,6 +49,7 @@ from sentry.notifications.types import NotificationSettingEnum
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
+from sentry.services.eventstore.reprocessing.base import ReprocessingInfo
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
@@ -87,7 +92,6 @@ class GroupAnnotation(TypedDict):
 
 
 class GroupStatusDetailsResponseOptional(TypedDict, total=False):
-    autoResolved: bool
     ignoreCount: int
     ignoreUntil: datetime
     ignoreUserCount: int
@@ -98,7 +102,7 @@ class GroupStatusDetailsResponseOptional(TypedDict, total=False):
     inRelease: str
     inCommit: str
     pendingEvents: int
-    info: Any
+    info: ReprocessingInfo | None
 
 
 class GroupProjectResponse(TypedDict):
@@ -114,6 +118,7 @@ class BaseGroupResponseOptional(TypedDict, total=False):
     userCount: int
     firstSeen: datetime | None
     lastSeen: datetime | None
+    derivedData: GroupDerivedDataResponse
 
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
@@ -362,6 +367,12 @@ class GroupSerializerBase(Serializer, ABC):
 
         snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
+        derived_data_by_group_id = (
+            get_bulk_group_derived_data({item.id for item in item_list})
+            if self._expand("derivedData")
+            else {}
+        )
+
         result = {}
         for item in item_list:
             active_date = item.active_at or item.first_seen
@@ -395,6 +406,9 @@ class GroupSerializerBase(Serializer, ABC):
             }
             if snuba_stats is not None:
                 result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
+
+            if item.id in derived_data_by_group_id:
+                result[item]["derived_data"] = derived_data_by_group_id[item.id]
 
             if seen_stats:
                 result[item].update(seen_stats.get(item, {}))
@@ -450,6 +464,8 @@ class GroupSerializerBase(Serializer, ABC):
         # This attribute is currently feature gated
         if "is_unhandled" in attrs:
             group_dict["isUnhandled"] = attrs["is_unhandled"]
+        if "derived_data" in attrs:
+            group_dict["derivedData"] = attrs["derived_data"]
         if is_seen_stats(attrs):
             group_dict.update(self._convert_seen_stats(attrs))
         return group_dict
@@ -506,16 +522,6 @@ class GroupSerializerBase(Serializer, ABC):
                 )
             else:
                 status = GroupStatus.UNRESOLVED
-        # If the issue is UNRESOLVED but has resolved_at set, it means the user manually
-        # unresolved it after it was resolved. We should respect that and not override
-        # the status back to RESOLVED.
-        if status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age() and not obj.resolved_at:
-            # When an issue is over the auto-resolve age but the task has not yet run
-            # Only show as auto-resolved if this group type has auto-resolve enabled
-            if obj.issue_type.enable_auto_resolve:
-                status = GroupStatus.RESOLVED
-                status_details["autoResolved"] = True
-
         status_label: GroupStatusStr
         if status == GroupStatus.RESOLVED:
             status_label = "resolved"
@@ -961,6 +967,7 @@ SKIP_SNUBA_FIELDS = frozenset(
         "issue.seer_actionability",
         "issue.seer_last_run",
         "issue.progress",
+        "issue.autofix_state",
     )
 )
 

@@ -12,6 +12,7 @@ import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import {readStorageValue} from 'sentry/utils/useSessionStorage';
 
 import type {Subscription} from 'getsentry/types';
+import {isTrial} from 'getsentry/utils/billing';
 
 import {trackAmplitudeEvent} from './trackAmplitudeEvent';
 import {trackMarketingEvent} from './trackMarketingEvent';
@@ -149,6 +150,9 @@ export function rawTrackAnalyticsEvent(
   {eventKey, eventName, organization, subscription, ...data}: Params,
   options?: Options
 ) {
+  if (!eventKey && !eventName) {
+    return;
+  }
   try {
     // apply custom function map parameters
     const {mapValuesFn} = options || {};
@@ -197,7 +201,7 @@ export function rawTrackAnalyticsEvent(
         data.can_trial = subscription.canTrial;
       }
       if (data.is_trial === undefined) {
-        data.is_trial = subscription.isTrial;
+        data.is_trial = isTrial(subscription);
       }
       // we can add more fields but we should be carefull about which ones to add
       // since Amplitude is an external vendor
@@ -212,15 +216,17 @@ export function rawTrackAnalyticsEvent(
     // Prepare reloads data payload. If the organization_id is passed we include
     // that in the data payload.
     const user = ConfigStore.get('user');
-    const reloadData = {
-      user_id: coerceNumber(user?.id),
-      org_id: organization_id,
-      allow_no_schema: true,
-      sent_at: (time || Date.now()).toString(),
-      ...data,
-    };
 
-    trackReloadEvent(eventKey, reloadData);
+    if (eventKey) {
+      const reloadData = {
+        user_id: coerceNumber(user?.id),
+        org_id: organization_id,
+        allow_no_schema: true,
+        sent_at: (time || Date.now()).toString(),
+        ...data,
+      };
+      trackReloadEvent(eventKey, reloadData);
+    }
     if (eventName && organization_id !== undefined) {
       const orgAge = getOrganizationAge(organization);
       const userAge = getUserAge(user);

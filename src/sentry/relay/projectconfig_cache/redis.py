@@ -64,7 +64,7 @@ class RedisProjectConfigCache(ProjectConfigCache):
 
     def delete_many(self, public_keys):
         # Note: Those are multiple pipelines, one per cluster node
-        with self.cluster.pipeline() as p:
+        with self.cluster.pipeline(transaction=False) as p:
             for public_key in public_keys:
                 p.delete(self.__get_redis_key(public_key), self.__get_redis_rev_key(public_key))
             return_values = p.execute()

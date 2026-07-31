@@ -17,7 +17,12 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
-import {classifyTagKey, FieldKind, FieldValueType} from 'sentry/utils/fields';
+import {
+  classifyTagKey,
+  FieldKind,
+  FieldValueType,
+  prettifyTagKey,
+} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
 import {
@@ -28,6 +33,7 @@ import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {removeHiddenKeys} from 'sentry/views/explore/utils';
 import {
   sortKnownAttributes,
   sortSearchedAttributes,
@@ -95,8 +101,24 @@ export function ColumnEditorModal({
     closeModal();
   }
 
+  function canReorderColumn(oldIndex: number, newIndex: number) {
+    if (!requiredTags?.length) {
+      return true;
+    }
+
+    const startIndex = Math.min(oldIndex, newIndex);
+    const endIndex = Math.max(oldIndex, newIndex);
+    return !tempColumns
+      .slice(startIndex, endIndex + 1)
+      .some(column => requiredTags.includes(column));
+  }
+
   return (
-    <DragNDropContext columns={tempColumns} setColumns={setTempColumns}>
+    <DragNDropContext
+      columns={tempColumns}
+      setColumns={setTempColumns}
+      canReorder={canReorderColumn}
+    >
       {({insertColumn, updateColumnAtIndex, deleteColumnAtIndex, editableColumns}) => (
         <Fragment>
           <Header closeButton data-test-id="editor-header">
@@ -183,6 +205,7 @@ function ColumnEditorRow({
 }: ColumnEditorRowProps) {
   const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
     id: column.id,
+    disabled: required,
   });
 
   const [search, setSearch] = useState('');
@@ -314,7 +337,12 @@ function ColumnEditorRow({
       }}
       {...attributes}
     >
-      <StyledDragReorderButton size="sm" iconSize="sm" {...listeners} />
+      <StyledDragReorderButton
+        size="sm"
+        iconSize="sm"
+        disabled={required}
+        {...listeners}
+      />
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}
@@ -377,26 +405,18 @@ function buildColumnOptions({
   traceItemType,
   validatedFieldTypes,
 }: BuildColumnOptionsParams) {
+  const hidden = new Set(hiddenKeys);
   return buildAttributeOptions({
-    numberTags,
-    stringTags,
-    booleanTags,
+    numberTags: removeHiddenKeys(numberTags, hidden),
+    stringTags: removeHiddenKeys(stringTags, hidden),
+    booleanTags: removeHiddenKeys(booleanTags, hidden),
     traceItemType,
-    extraColumns: columns,
+    extraColumns: columns.filter(
+      column => !hidden.has(column) && !hidden.has(prettifyTagKey(column))
+    ),
     extraColumnKind: column =>
       fieldKindFromFieldType(validatedFieldTypes?.[column]) ?? classifyTagKey(column),
-  })
-    .filter(option => {
-      const hidden = hiddenKeys ?? [];
-      if (hidden.includes(option.value)) {
-        return false;
-      }
-      if (typeof option.label === 'string' && hidden.includes(option.label)) {
-        return false;
-      }
-      return true;
-    })
-    .toSorted((a, b) => sortKnownAttributes(a, b, traceItemType));
+  }).toSorted((a, b) => sortKnownAttributes(a, b, traceItemType));
 }
 
 function fieldKindFromFieldType(fieldType?: FieldValueType) {

@@ -14,8 +14,42 @@ from packaging.version import parse as parse_version
 from sentry.models.project import Project
 from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
 from sentry.utils.http import absolute_uri
+from sentry.utils.numbers import validate_bigint
 
 logger = logging.getLogger(__name__)
+
+# Zero-padding width per period-separated component. Must stay in sync with
+# launchpad's _BUILD_NUMBER_COMPONENT_WIDTH in artifact_processor._parse_build_number.
+_BUILD_NUMBER_COMPONENT_WIDTH = 6
+
+
+def parse_build_number(build: str) -> int | None:
+    """Parse a build number into the sortable int launchpad stores on the artifact.
+
+    Mirrors launchpad's ``_parse_build_number``: plain integers pass through, two
+    or three period-separated integers (e.g. "1.2.3") are packed by zero-padding
+    each component, and anything else (or a value too large for the build_number
+    column) returns None.
+    """
+    build = build.strip()
+
+    # isdecimal(), not isdigit(): isdigit() matches chars like "²" that int() rejects.
+    if build.isdecimal():
+        value = int(build)
+    else:
+        parts = build.split(".")
+        if not (
+            2 <= len(parts) <= 3
+            and all(p.isdecimal() and len(p) <= _BUILD_NUMBER_COMPONENT_WIDTH for p in parts)
+        ):
+            return None
+        parts += ["0"] * (3 - len(parts))
+        value = sum(
+            int(part) * 10 ** (_BUILD_NUMBER_COMPONENT_WIDTH * (2 - i))
+            for i, part in enumerate(parts)
+        )
+
+    return value if validate_bigint(value) else None
 
 
 @dataclass(frozen=True)

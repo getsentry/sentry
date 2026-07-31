@@ -21,6 +21,8 @@ from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry import analytics, features
 from sentry.analytics.events.weekly_report import WeeklyReportSent
+from sentry.charts import backend as charts
+from sentry.charts.types import ChartType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
@@ -37,7 +39,12 @@ from sentry.tasks.summaries.metrics import (
 from sentry.tasks.summaries.organization_report_context_factory import (
     OrganizationReportContextFactory,
 )
-from sentry.tasks.summaries.utils import ONE_DAY, PAST_ISSUES_LINK_BOOST, OrganizationReportContext
+from sentry.tasks.summaries.utils import (
+    ONE_DAY,
+    PAST_ISSUES_LINK_BOOST,
+    OrganizationReportContext,
+    ProjectContext,
+)
 from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.types.group import GroupSubStatus
@@ -245,16 +252,21 @@ def prepare_organization_report(
 
         # Cache after delivery so a failed attempt doesn't poison the
         # previous-week lookup on retry.
-        if not dry_run and features.has(
-            "organizations:weekly-report-week-over-week-metric", ctx.organization
+        if (
+            not dry_run
+            and not email_override
+            and features.has("organizations:weekly-report-week-over-week-metric", ctx.organization)
         ):
             try:
                 project_metrics: dict[int, dict[str, int]] = {}
                 for project_id, project_ctx in ctx.projects_context_map.items():
-                    project_metrics[project_id] = {
+                    values: dict[str, int] = {
                         "e": project_ctx.accepted_error_count,
                         "i": project_ctx.total_substatus_count,
                     }
+                    if ctx.spans_count_by_project:
+                        values["s"] = ctx.spans_count_by_project.get(project_id, 0)
+                    project_metrics[project_id] = values
                 if project_metrics:
                     cache_project_metrics(organization_id, project_metrics)
             except Exception:
@@ -344,16 +356,21 @@ class OrganizationReportBatch:
             lifecycle.add_extra("user_id", user_id)
 
             if template_context and user_id:
-                dupe_check = _DuplicateDeliveryCheck(self, user_id, self.ctx.timestamp)
-                if not dupe_check.check_for_duplicate_delivery():
-                    was_sent = self.send_email(template_ctx=template_context, user_id=user_id)
-
-                    # Record delivery if email was sent successfully
-                    if was_sent:
-                        dupe_check.record_delivery()
+                # Admin sends (email_override) bypass duplicate detection so
+                # support/debugging re-sends always go through.
+                if self.email_override:
+                    self.send_email(template_ctx=template_context, user_id=user_id)
                 else:
-                    lifecycle.record_halt(WeeklyReportHaltReason.DUPLICATE_DELIVERY)
-                    metrics.incr("weekly_report.email.skipped", tags={"reason": "duplicate"})
+                    dupe_check = _DuplicateDeliveryCheck(self, user_id, self.ctx.timestamp)
+                    if not dupe_check.check_for_duplicate_delivery():
+                        was_sent = self.send_email(template_ctx=template_context, user_id=user_id)
+
+                        # Record delivery if email was sent successfully
+                        if was_sent:
+                            dupe_check.record_delivery()
+                    else:
+                        lifecycle.record_halt(WeeklyReportHaltReason.DUPLICATE_DELIVERY)
+                        metrics.incr("weekly_report.email.skipped", tags={"reason": "duplicate"})
 
     def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> bool:
         local_start, local_end = get_local_dates(self.ctx, user_id)
@@ -366,7 +383,10 @@ class OrganizationReportBatch:
             context=template_ctx,
             headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},
         )
-        if self.dry_run:
+        # Admin sends (email_override) always deliver the email regardless of
+        # dry_run so the admin tool is useful for debugging.  The dry_run
+        # script (schedule_organizations) never sets email_override.
+        if self.dry_run and not self.email_override:
             metrics.incr("weekly_report.email.skipped", tags={"reason": "dry_run"})
             return False
 
@@ -524,7 +544,7 @@ def _pct_change(current: int, previous: int) -> dict[str, str] | None:
     change = (current - previous) / previous
     pct = round(change * 100)
     if pct == 0:
-        return None
+        return {"arrow": "", "pct": "—0%", "bg_color": "#F0F0F2", "text_color": "#80708F"}
     if change > 0:
         return {"arrow": "↑", "pct": f"{abs(pct)}%", "bg_color": "#F9F0D2", "text_color": "#A45200"}
     return {"arrow": "↓", "pct": f"{abs(pct)}%", "bg_color": "#E3F7E3", "text_color": "#008900"}
@@ -588,10 +608,47 @@ def get_local_dates(ctx: OrganizationReportContext, user_id: int) -> tuple[datet
     return (local_start, local_end)
 
 
+CHART_PALETTE = ["#7553FF", "#3A1873", "#F0369A", "#FF9838", "#FFD00E"]
+
+
+def _top_spans_chart_url(
+    table: list[dict[str, Any]],
+    ctx: OrganizationReportContext,
+    spans_chart_cache: dict[frozenset[str], str | None] | None,
+) -> str | None:
+    if not table or not charts.is_enabled():
+        return None
+
+    cache_key = frozenset(span["name"] for span in table)
+    if spans_chart_cache is not None and cache_key in spans_chart_cache:
+        return spans_chart_cache[cache_key]
+
+    chart_data: dict[str, Any] = {"stats": {}}
+    for i, span in enumerate(table):
+        ts_data = ctx.top_spans_timeseries.get(span["name"], {})
+        data_points = [[ts, [{"count": p95}]] for ts, p95 in sorted(ts_data.items())]
+        chart_data["stats"][span["name"]] = {"data": data_points, "order": i}
+
+    chart_url = None
+    try:
+        chart_url = charts.generate_chart(
+            ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE,
+            chart_data,
+            size={"width": 600, "height": 200},
+        )
+    except Exception:
+        logger.exception("weekly_report.spans_chart.generation_failed")
+
+    if spans_chart_cache is not None:
+        spans_chart_cache[cache_key] = chart_url
+    return chart_url
+
+
 def render_template_context(
     ctx,
     user_id: int | None,
     excluded_project_ids: set[int] | None = None,
+    spans_chart_cache: dict[frozenset[str], str | None] | None = None,
 ) -> dict[str, Any] | None:
     # Serialize ctx for template, and calculate view parameters (like graph bar heights)
     # Fetch the list of projects associated with the user.
@@ -612,7 +669,27 @@ def render_template_context(
     local_start, local_end = get_local_dates(ctx, user_id)
 
     # Render the first section of the email where we had the table showing the
-    # number of accepted errors/transactions for each project.
+    # number of errors, new/escalating/regressed issues for each project.
+    def _substatus_url(project_ctx: ProjectContext, query: str) -> str:
+        return project_ctx.project.get_absolute_url(
+            params={
+                "referrer": "weekly_report",
+                "notification_uuid": notification_uuid,
+                "query": query,
+            }
+        )
+
+    def _multi_project_substatus_url(project_ctxs: list[ProjectContext], query: str) -> str:
+        path = f"/organizations/{ctx.organization.slug}/issues/"
+        params = [
+            ("referrer", "weekly_report"),
+            ("notification_uuid", notification_uuid),
+            ("query", query),
+        ]
+        for pc in project_ctxs:
+            params.append(("project", pc.project.id))
+        return ctx.organization.absolute_url(path, query=urlencode(params))
+
     def trends():
         # Given an iterator of event counts, sum up their accepted errors/transaction counts.
         def sum_error_counts(project_ctxs):
@@ -645,8 +722,11 @@ def render_template_context(
                 "color": project_breakdown_colors[i],
                 "accepted_error_count": project_ctx.accepted_error_count,
                 "new_substatus_count": project_ctx.new_substatus_count,
+                "new_substatus_url": _substatus_url(project_ctx, "is:new"),
                 "escalating_substatus_count": project_ctx.escalating_substatus_count,
+                "escalating_substatus_url": _substatus_url(project_ctx, "is:escalating"),
                 "regression_substatus_count": project_ctx.regression_substatus_count,
+                "regression_substatus_url": _substatus_url(project_ctx, "is:regressed"),
             }
             for i, project_ctx in enumerate(projects_taken)
         ]
@@ -659,11 +739,18 @@ def render_template_context(
                     "color": other_color,
                     "accepted_error_count": others_error,
                     "new_substatus_count": sum(p.new_substatus_count for p in projects_not_taken),
+                    "new_substatus_url": _multi_project_substatus_url(projects_not_taken, "is:new"),
                     "escalating_substatus_count": sum(
                         p.escalating_substatus_count for p in projects_not_taken
                     ),
+                    "escalating_substatus_url": _multi_project_substatus_url(
+                        projects_not_taken, "is:escalating"
+                    ),
                     "regression_substatus_count": sum(
                         p.regression_substatus_count for p in projects_not_taken
+                    ),
+                    "regression_substatus_url": _multi_project_substatus_url(
+                        projects_not_taken, "is:regressed"
                     ),
                 }
             )
@@ -676,11 +763,20 @@ def render_template_context(
                     "new_substatus_count": sum(
                         p.new_substatus_count for p in projects_associated_with_user
                     ),
+                    "new_substatus_url": _multi_project_substatus_url(
+                        projects_associated_with_user, "is:new"
+                    ),
                     "escalating_substatus_count": sum(
                         p.escalating_substatus_count for p in projects_associated_with_user
                     ),
+                    "escalating_substatus_url": _multi_project_substatus_url(
+                        projects_associated_with_user, "is:escalating"
+                    ),
                     "regression_substatus_count": sum(
                         p.regression_substatus_count for p in projects_associated_with_user
+                    ),
+                    "regression_substatus_url": _multi_project_substatus_url(
+                        projects_associated_with_user, "is:regressed"
                     ),
                 }
             )
@@ -737,7 +833,7 @@ def render_template_context(
     def top_issues():
         def all_issues():
             for project_ctx in user_projects:
-                for group, count in project_ctx.key_errors_by_group:
+                for group, count in project_ctx.key_error_issues:
                     display = get_group_display(group)
                     (
                         substatus,
@@ -787,16 +883,16 @@ def render_template_context(
     def past_issues():
         def all_past_issues():
             for project_ctx in user_projects:
-                for group, count, has_linked_pr_or_commit in project_ctx.past_resolved_issues:
+                for group, count, resolution_label in project_ctx.past_resolved_issues:
                     display = get_group_display(group)
                     yield {
                         "count": count,
                         "group": group,
                         "title": display["title"],
                         "message": display["message"],
-                        "has_linked_pr_or_commit": has_linked_pr_or_commit,
+                        "resolution_label": resolution_label,
                         "_relevance": count
-                        * (PAST_ISSUES_LINK_BOOST if has_linked_pr_or_commit else 1),
+                        * (PAST_ISSUES_LINK_BOOST if resolution_label != "Resolved" else 1),
                     }
 
         return heapq.nlargest(3, all_past_issues(), lambda d: d["_relevance"])
@@ -821,21 +917,86 @@ def render_template_context(
             "total_substatus_count": total_substatus_count,
         }
 
+    def top_spans():
+        user_total_spans_count = sum(
+            count for pid, count in ctx.spans_count_by_project.items() if pid in user_project_ids
+        )
+        if (
+            not features.has("organizations:weekly-report-spans-chart", ctx.organization)
+            or ctx.organization.flags.enhanced_privacy
+            or user_total_spans_count == 0
+        ):
+            return {"total_spans_count": 0, "top_spans_table": [], "spans_chart_url": None}
+
+        project_by_id = {p.project.id: p.project for p in user_projects}
+        table: list[dict[str, Any]] = []
+        for span in ctx.top_spans:
+            span_project_id = ctx.top_spans_projects.get(span["name"])
+            if span_project_id not in user_project_ids:
+                continue
+            project = project_by_id.get(span_project_id)
+            span_query = urlencode(
+                {
+                    "query": 'span.name:"{}"'.format(
+                        span["name"].replace("\\", "\\\\").replace('"', '\\"')
+                    ),
+                    "project": span_project_id,
+                    "visualize": json.dumps(
+                        {"yAxes": ["p95(span.duration)", "sum(span.duration)"]}
+                    ),
+                    "referrer": "weekly_report",
+                    "notification_uuid": notification_uuid,
+                }
+            )
+            span_url = ctx.organization.absolute_url(
+                f"/organizations/{ctx.organization.slug}/explore/traces/",
+                query=span_query,
+            )
+            color = CHART_PALETTE[len(table)] if len(table) < len(CHART_PALETTE) else ""
+            table.append(
+                {
+                    "name": span["name"],
+                    "p95": span["p95"],
+                    "sum": span["sum"],
+                    "project_slugs": project.slug if project else "",
+                    "url": span_url,
+                    "color": color,
+                }
+            )
+        chart_url = _top_spans_chart_url(table, ctx, spans_chart_cache)
+
+        prev_week_total_spans_count = sum(
+            count
+            for pid, count in ctx.prev_week_spans_count_by_project.items()
+            if pid in user_project_ids
+        )
+        return {
+            "total_spans_count": user_total_spans_count,
+            "top_spans_table": table,
+            "spans_chart_url": chart_url,
+            "spans_pct_change": _pct_change(user_total_spans_count, prev_week_total_spans_count),
+        }
+
     show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
 
-    errors_discover_query = urlencode(
-        [
-            ("field", "title"),
-            ("field", "event.type"),
-            ("field", "project"),
-            ("field", "user.display"),
-            ("field", "timestamp"),
-            ("dataset", "errors"),
-            ("sort", "-timestamp"),
-            ("referrer", "weekly_report"),
-            ("notification_uuid", notification_uuid),
-        ]
-    )
+    errors_discover_params: list[tuple[str, str | int]] = [
+        ("field", "title"),
+        ("field", "event.type"),
+        ("field", "project"),
+        ("field", "user.display"),
+        ("field", "timestamp"),
+        ("dataset", "errors"),
+        ("sort", "-timestamp"),
+        ("referrer", "weekly_report"),
+        ("notification_uuid", notification_uuid),
+    ]
+    for pc in user_projects:
+        errors_discover_params.append(("project", pc.project.id))
+    errors_discover_query = urlencode(errors_discover_params)
+
+    view_all_issues_url = _multi_project_substatus_url(user_projects, "is:unresolved")
+
+    user_project_ids = {p.project.id for p in user_projects}
 
     return {
         "organization": ctx.organization,
@@ -849,11 +1010,13 @@ def render_template_context(
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
         "errors_discover_query": errors_discover_query,
+        "view_all_issues_url": view_all_issues_url,
         "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
         "show_week_over_week_metric": features.has(
             "organizations:weekly-report-week-over-week-metric", ctx.organization
         ),
         "notification_settings_link": "/settings/account/notifications/reports/",
+        **top_spans(),
     }
 
 
@@ -862,19 +1025,20 @@ def prepare_template_context(
 ) -> list[Mapping[str, Any]] | list:
     exclusions_by_user: dict[int, set[int]] = {}
     valid_user_ids = [uid for uid in user_ids if uid is not None]
-    if valid_user_ids and features.has(
-        "organizations:weekly-report-project-exclusions", ctx.organization
-    ):
+    if valid_user_ids:
         for exc_user_id, exc_project_id in WeeklyReportProjectExclusion.objects.filter(
             user_id__in=valid_user_ids,
             project__organization_id=ctx.organization.id,
         ).values_list("user_id", "project_id"):
             exclusions_by_user.setdefault(exc_user_id, set()).add(exc_project_id)
 
+    spans_chart_cache: dict[frozenset[str], str | None] = {}
     user_template_context_by_user_id_list = []
     for user_id in user_ids:
         excluded = exclusions_by_user.get(user_id) if isinstance(user_id, int) else None
-        template_ctx = render_template_context(ctx, user_id, excluded_project_ids=excluded)
+        template_ctx = render_template_context(
+            ctx, user_id, excluded_project_ids=excluded, spans_chart_cache=spans_chart_cache
+        )
         if not template_ctx:
             logger.debug(
                 "Skipping report for %s to <User: %s>, no qualifying reports to deliver.",

@@ -17,7 +17,7 @@ jobs:
           persist-credentials: false
 
       - name: Check for file changes
-        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         id: changes
         with:
           token: ${{ github.token }}
@@ -46,8 +46,10 @@ jobs:
       - name: Add frontend/backend warning comment
         uses: peter-evans/create-or-update-comment@b95e16d2859ad843a14218d1028da5b2c4cbc4b4
         if: >
-          steps.changes.outputs.frontend_all == 'true' &&
-          steps.changes.outputs.backend_src == 'true' &&
+          fromJSON(steps.changes.outputs.frontend_all_count) >
+          fromJSON(steps.changes.outputs.api_url_codegen_count) &&
+          fromJSON(steps.changes.outputs.backend_src_count) >
+          fromJSON(steps.changes.outputs.embed_widget_codegen_count) &&
           steps.fc.outputs.comment-id == 0
         with:
           issue-number: ${{ github.event.pull_request.number }}

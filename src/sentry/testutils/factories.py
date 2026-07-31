@@ -32,6 +32,8 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry.ai_monitoring.models import AIConversationMetadata
+from sentry.ai_monitoring.utils import clamp_conversation_id_for_storage, conversation_id_hash
 from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
@@ -64,6 +66,7 @@ from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.integration_feature import (
@@ -73,7 +76,9 @@ from sentry.integrations.models.integration_feature import (
 )
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils.hostname import instance_hostname
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -90,7 +95,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.custominboundfilter import CustomInboundFilter
-from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
@@ -106,7 +111,10 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
@@ -136,6 +144,7 @@ from sentry.notifications.models.notificationaction import (
     ActionTrigger,
     NotificationAction,
 )
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.preprod.models import (
@@ -149,8 +158,16 @@ from sentry.preprod.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotMetrics,
 )
+from sentry.seer.autofix.constants import CodingAgentStatus
+from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.seer.models.project_repository import SeerProjectRepository
-from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
+from sentry.seer.models.run import (
+    SeerAgentRun,
+    SeerRun,
+    SeerRunCodingAgentHandoff,
+    SeerRunPullRequest,
+    SeerRunType,
+)
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -613,6 +630,22 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_project_bookmark(project, user):
         return ProjectBookmark.objects.create(project_id=project.id, user_id=user.id)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_ai_conversation_metadata(
+        project: Project,
+        conversation_id: str,
+        title: str | None = None,
+        title_source_timestamp: datetime | None = None,
+    ) -> AIConversationMetadata:
+        return AIConversationMetadata.objects.create(
+            project_id=project.id,
+            conversation_id=clamp_conversation_id_for_storage(conversation_id),
+            conversation_id_hash=conversation_id_hash(conversation_id),
+            title=title,
+            title_source_timestamp=title_source_timestamp,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -1187,8 +1220,8 @@ class Factories:
                         op="db",
                         desc="",
                         type=group_type,
-                        parent_span_ids=None,
-                        cause_span_ids=None,
+                        parent_span_ids=[],
+                        cause_span_ids=[],
                         offender_span_ids=[],
                         evidence_data={},
                         evidence_display=[],
@@ -1291,6 +1324,12 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_group_activity(group, *args, **kwargs):
         return Activity.objects.create(group=group, project=group.project, *args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_subscription(group, **kwargs):
+        kwargs.setdefault("project", group.project)
+        return GroupSubscription.objects.create(group=group, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -1433,7 +1472,8 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def add_user_permission(user, permission):
-        UserPermission.objects.create(user=user, permission=permission)
+        with outbox_runner():
+            UserPermission.objects.create(user=user, permission=permission)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -1809,6 +1849,27 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_resolution(group, release, **kwargs):
+        return GroupResolution.objects.create(
+            group=group,
+            release=release,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_link(group, linked_id, linked_type=None, relationship=None, **kwargs):
+        return GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=linked_type or GroupLink.LinkedType.commit,
+            linked_id=linked_id,
+            relationship=relationship or GroupLink.Relationship.references,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_integration_external_issue(group=None, integration=None, key=None, **kwargs):
         external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id, integration_id=integration.id, key=key, **kwargs
@@ -2030,6 +2091,35 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_gcp_service_account(
+        organization: Organization,
+        service_account_email: str,
+        **kwargs: Any,
+    ) -> GcpServiceAccount:
+        return GcpServiceAccount.objects.create(
+            organization_id=organization.id,
+            service_account_email=service_account_email,
+            **kwargs,
+        )
+
+    @staticmethod
+    def create_organization_contributor(
+        organization: Organization,
+        integration: Integration | RpcIntegration,
+        external_identifier: str,
+        **kwargs: Any,
+    ) -> OrganizationContributors:
+        kwargs.setdefault("provider", integration.provider)
+        kwargs.setdefault("hostname", instance_hostname(integration))
+
+        return OrganizationContributors.objects.create(
+            organization=organization,
+            external_identifier=external_identifier,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_provider_integration(**integration_params: Any) -> Integration:
         return Integration.objects.create(**integration_params)
 
@@ -2189,6 +2279,11 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_notification_setting_option(*args, **kwargs) -> NotificationSettingOption:
+        return NotificationSettingOption.objects.create(*args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_notification_settings_provider(*args, **kwargs) -> NotificationSettingProvider:
         return NotificationSettingProvider.objects.create(*args, **kwargs)
 
@@ -2319,6 +2414,25 @@ class Factories:
             title = petname.generate(2, " ", letters=10).title()
         return Dashboard.objects.create(
             organization=organization, title=title, created_by_id=created_by.id, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_dashboard_favorite_user(
+        dashboard: Dashboard,
+        user: User,
+        organization: Organization | None = None,
+        position: int | None = None,
+        **kwargs,
+    ) -> DashboardFavoriteUser:
+        if organization is None:
+            organization = dashboard.organization
+        return DashboardFavoriteUser.objects.create(
+            dashboard=dashboard,
+            user_id=user.id,
+            organization=organization,
+            position=position,
+            **kwargs,
         )
 
     @staticmethod
@@ -2988,6 +3102,16 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_agent_write_grant(organization, user, session_id: str = "s1", **kwargs):
+        return SeerAgentWriteGrant.objects.create(
+            organization=organization,
+            user_id=user.id,
+            agent_session_id=session_id,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_seer_run(organization, type: str = SeerRunType.EXPLORER, **kwargs) -> SeerRun:
         kwargs.setdefault("last_triggered_at", timezone.now())
         return SeerRun.objects.create(organization=organization, type=type, **kwargs)
@@ -2997,3 +3121,22 @@ class Factories:
         run: SeerRun, title: str = "Test run", source: str = "chat", **kwargs
     ) -> SeerAgentRun:
         return SeerAgentRun.objects.create(run=run, title=title, source=source, **kwargs)
+
+    @staticmethod
+    def create_seer_run_coding_agent_handoff(
+        seer_run: SeerRun,
+        provider: str = "github_copilot_agent",
+        agent_id: str | None = None,
+        status: str = CodingAgentStatus.PENDING,
+        **kwargs,
+    ) -> SeerRunCodingAgentHandoff:
+        if agent_id is None:
+            agent_id = uuid4().hex
+        return SeerRunCodingAgentHandoff.objects.create(
+            seer_run=seer_run, provider=provider, agent_id=agent_id, status=status, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_run_pull_request(run: SeerRun, pull_request, **kwargs) -> SeerRunPullRequest:
+        return SeerRunPullRequest.objects.create(seer_run=run, pull_request=pull_request, **kwargs)

@@ -9,7 +9,7 @@ import zstandard
 from django.db import connections
 from django.http import HttpResponse, StreamingHttpResponse
 from django.urls import reverse
-from objectstore_client import Client, RequestError, Session, Usecase
+from objectstore_client import Client, Session, Usecase
 from pytest_django.live_server_helper import LiveServer
 
 from sentry.hybridcloud.apigateway_async import proxy as proxy_mod
@@ -79,18 +79,19 @@ class ObjectstoreEndpointTest(TransactionTestCase):
         assert object_key is not None
 
         retrieved = session.get(object_key)
+        assert retrieved is not None
         assert retrieved.payload.read() == b"test data"
 
         new_key = session.put(b"new data", key=object_key)
         assert new_key == object_key
 
         retrieved = session.get(object_key)
+        assert retrieved is not None
         assert retrieved.payload.read() == b"new data"
 
         session.delete(object_key)
 
-        with pytest.raises(RequestError):
-            session.get(object_key)
+        assert session.get(object_key) is None
 
     def test_uncompressed(self) -> None:
         session = self.get_session()
@@ -99,6 +100,7 @@ class ObjectstoreEndpointTest(TransactionTestCase):
         assert object_key is not None
 
         retrieved = session.get(object_key)
+        assert retrieved is not None
         assert retrieved.payload.read() == b"test data"
 
     def test_accept_encoding_passthrough(self) -> None:
@@ -155,6 +157,7 @@ class ObjectstoreEndpointTest(TransactionTestCase):
         assert object_key is not None
 
         retrieved = session.get(object_key)
+        assert retrieved is not None
         assert retrieved.payload.read() == data
 
 

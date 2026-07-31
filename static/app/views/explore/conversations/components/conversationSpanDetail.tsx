@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
@@ -136,11 +136,9 @@ export function ConversationSpanDetail({
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
           <AiSpanStatusIcon node={node} />
-          <Tooltip title={title} showOnlyOnOverflow skipWrapper>
-            <Text size="lg" bold ellipsis>
-              {title}
-            </Text>
-          </Tooltip>
+          <InfoText title={title} mode="overflowOnly" size="lg" bold>
+            {title}
+          </InfoText>
         </Flex>
         {onClose ? (
           <Button
@@ -333,15 +331,38 @@ function OutputTab({
   attributes: SpanAttributes;
   node: AITraceSpanNode;
 }) {
-  const {responseText, responseObject, toolCalls} = getAIOutputData(node, attributes);
+  const {reasoningText, responseText, responseObject, toolCalls} = getAIOutputData(
+    node,
+    attributes
+  );
   const toolOutput = getAIToolOutput(node, attributes);
 
-  if (!responseText && !responseObject && !toolCalls && !toolOutput) {
+  // Reasoning is supplementary to the actual output, so clip it when there is
+  // other content; when it is the only output, show it in full.
+  const clipReasoning = Boolean(
+    responseText || responseObject || toolCalls || toolOutput
+  );
+
+  if (!reasoningText && !responseText && !responseObject && !toolCalls && !toolOutput) {
     return <EmptyTab message={t('No output for this span')} />;
   }
 
   return (
     <Fragment>
+      {reasoningText ? (
+        <Fragment>
+          <TraceDrawerComponents.MultilineTextLabel>
+            {t('Thinking')}
+          </TraceDrawerComponents.MultilineTextLabel>
+          <AIContentRenderer
+            key={`${node.id}:reasoning-text`}
+            text={reasoningText}
+            maxJsonDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
+            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            clip={clipReasoning}
+          />
+        </Fragment>
+      ) : null}
       {responseText ? (
         <Fragment>
           <TraceDrawerComponents.MultilineTextLabel>

@@ -149,12 +149,6 @@ class Team(ReplicatedCellModel):
     def __str__(self) -> str:
         return f"{self.name} ({self.slug})"
 
-    def handle_async_replication(self, shard_identifier: int) -> None:
-        from sentry.hybridcloud.services.replica import control_replica_service
-        from sentry.organizations.services.organization.serial import serialize_rpc_team
-
-        control_replica_service.upsert_replicated_team(team=serialize_rpc_team(self))
-
     def save(self, *args, **kwargs):
         if not self.slug:
             lock = locks.get(f"slug:team:{self.organization_id}", duration=5, name="team_slug")

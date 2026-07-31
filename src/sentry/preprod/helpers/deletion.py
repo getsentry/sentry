@@ -152,9 +152,10 @@ def _collect_snapshot_objectstore_keys(
         keys.append((org_id, project_id, comparison_key))
         try:
             session = get_preprod_session(org_id, project_id)
-            comp_manifest = ComparisonManifest(
-                **orjson.loads(session.get(comparison_key).payload.read())
-            )
+            response = session.get(comparison_key)
+            if response is None:
+                raise FileNotFoundError("Comparison manifest does not exist in objectstore")
+            comp_manifest = ComparisonManifest(**orjson.loads(response.payload.read()))
             for img in comp_manifest.images.values():
                 if img.diff_mask_key:
                     keys.append((org_id, project_id, img.diff_mask_key))

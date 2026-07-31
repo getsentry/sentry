@@ -9,19 +9,15 @@ from django.db.models.signals import post_save, pre_save
 from sentry import analytics, features
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.analytics import IntegrationResolveCommitEvent, IntegrationResolvePREvent
+from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
     ActionSource,
     GroupActionActor,
     action_context_scope,
-    publish_action,
+    get_action_context,
 )
-from sentry.issues.action_log.types import (
-    GroupAction,
-    PullRequestClosedAction,
-    PullRequestMergedAction,
-    PullRequestReopenedAction,
-    PullRequestUnlinkedAction,
-)
+from sentry.issues.action_log.types import GroupActorType
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -33,9 +29,12 @@ from sentry.models.grouphistory import (
 )
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
-from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestLifecycleState,
+    is_open_pull_request_state,
+)
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
@@ -44,7 +43,6 @@ from sentry.signals import buffer_incr_complete
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType
 from sentry.users.services.user import RpcUser
-from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import get_option_from_list, user_option_service
 
 logger = logging.getLogger(__name__)
@@ -86,7 +84,9 @@ def remove_resolved_pull_request_link(link: GroupLink, pull_request: PullRequest
         )
 
 
-def _find_pull_request_author_user(author: CommitAuthor, organization_id: int) -> RpcUser | None:
+def _find_pull_request_author_user(
+    author: CommitAuthor, organization_id: int, integration_id: int | None
+) -> RpcUser | None:
     if author.organization_id != organization_id:
         return None
 
@@ -94,28 +94,19 @@ def _find_pull_request_author_user(author: CommitAuthor, organization_id: int) -
     if users:
         return users[0]
 
-    # Commit resolution generally has a real commit author email, so find_users()
-    # can match an org member by verified email. PR webhooks can create authors
-    # from a GitHub actor with a placeholder email, so use the same ExternalActor
-    # fallback that serializes PR authors.
-    # Keep this lazy; receivers are imported during process initialization.
-    from sentry.api.serializers.models.release import get_author_users_by_external_actors
+    # Commit resolution usually has a real author email, so find_users() can
+    # match an organization member by verified email. PR webhooks may instead
+    # create an author with a placeholder email, so fall back to the shared SCM
+    # actor lookup also used to attribute PR lifecycle activity.
+    username = author.get_username_from_external_id()
+    if username is None or integration_id is None:
+        return None
 
-    external_actor_users, _ = get_author_users_by_external_actors(
-        [author],
-        organization_id,
+    return find_user_for_scm_actor(
+        organization_id=organization_id,
+        integration_id=integration_id,
+        username=username,
     )
-    user_id = external_actor_users.get(author)
-    if user_id is None:
-        return None
-
-    user_id_int = int(user_id)
-    if not OrganizationMember.objects.filter(
-        organization_id=organization_id, user_id=user_id_int
-    ).exists():
-        return None
-
-    return user_service.get_user(user_id=user_id_int)
 
 
 def resolved_in_commit(instance: Commit, created, **kwargs):
@@ -209,7 +200,20 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
                 if acting_user is not None:
                     activity_kwargs["user_id"] = acting_user.id
 
-                Activity.objects.create(**activity_kwargs)
+                action_context = get_action_context()
+                if action_context is not None:
+                    source = action_context.source
+                    actor = action_context.actor
+                else:
+                    source = ActionSource.SYSTEM
+                    actor = (
+                        GroupActionActor.user(acting_user.id)
+                        if acting_user is not None
+                        else SYSTEM_ACTOR
+                    )
+
+                with action_context_scope(source=source, actor=actor):
+                    Activity.objects.create(**activity_kwargs)
 
         except IntegrityError:
             pass
@@ -246,7 +250,11 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
     except Repository.DoesNotExist:
         repo = None
     acting_user = (
-        _find_pull_request_author_user(instance.author, instance.organization_id)
+        _find_pull_request_author_user(
+            instance.author,
+            instance.organization_id,
+            repo.integration_id if repo is not None else None,
+        )
         if instance.author
         else None
     )
@@ -269,14 +277,25 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                             group=group, assigned_to=acting_user, acting_user=acting_user
                         )
 
-                Activity.objects.create(
-                    project_id=group.project_id,
-                    group=group,
-                    type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
-                    ident=instance.id,
-                    user_id=acting_user.id if acting_user else None,
-                    data={"pull_request": instance.id},
-                )
+                pr_action_context = get_action_context()
+                if pr_action_context is not None:
+                    pr_source = pr_action_context.source
+                    pr_actor = pr_action_context.actor
+                else:
+                    pr_source = ActionSource.SYSTEM
+                    pr_actor = (
+                        GroupActionActor.user(acting_user.id) if acting_user else SYSTEM_ACTOR
+                    )
+
+                with action_context_scope(source=pr_source, actor=pr_actor):
+                    Activity.objects.create(
+                        project_id=group.project_id,
+                        group=group,
+                        type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+                        ident=instance.id,
+                        user_id=acting_user.id if acting_user else None,
+                        data={"pull_request": instance.id},
+                    )
                 record_group_history(
                     group, GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST, actor=acting_user
                 )
@@ -291,13 +310,6 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                         organization_id=repo.organization_id,
                     )
                 )
-
-
-def _is_open_pull_request_state(state: str | None) -> bool:
-    return state is None or state in (
-        PullRequestLifecycleState.OPEN,
-        PullRequestLifecycleState.LOCKED,
-    )
 
 
 def _groups_with_other_open_prs(group_ids: Sequence[int], *, pull_request_id: int) -> set[int]:
@@ -326,21 +338,17 @@ def _groups_with_other_open_prs(group_ids: Sequence[int], *, pull_request_id: in
         for pr_id, state in PullRequest.objects.filter(id__in=sibling_pr_ids).values_list(
             "id", "state"
         )
-        if _is_open_pull_request_state(state)
+        if is_open_pull_request_state(state)
     }
     return {group_id for group_id, linked_id in sibling_links if linked_id in open_pr_ids}
 
 
-_PULL_REQUEST_ACTION_TYPES: dict[ActivityType, type[GroupAction]] = {
-    ActivityType.PULL_REQUEST_CLOSED: PullRequestClosedAction,
-    ActivityType.PULL_REQUEST_REOPENED: PullRequestReopenedAction,
-    ActivityType.PULL_REQUEST_MERGED: PullRequestMergedAction,
-    ActivityType.PULL_REQUEST_UNLINKED: PullRequestUnlinkedAction,
-}
-
-
 def _create_pull_request_activities(
-    group_ids: Sequence[int], *, pull_request_id: int, activity_type: ActivityType
+    group_ids: Sequence[int],
+    *,
+    pull_request_id: int,
+    activity_type: ActivityType,
+    user_id: int | None = None,
 ) -> None:
     try:
         groups = list(
@@ -363,7 +371,6 @@ def _create_pull_request_activities(
                 [group.id for group in groups], pull_request_id=pull_request_id
             )
 
-        action_type = _PULL_REQUEST_ACTION_TYPES[activity_type]
         for group in groups:
             data: dict[str, int | bool] = {"pull_request": pull_request_id}
             if has_other_open_prs_by_group is not None:
@@ -374,13 +381,8 @@ def _create_pull_request_activities(
                 group=group,
                 type=activity_type.value,
                 ident=str(pull_request_id),
+                user_id=user_id,
                 data=data,
-            )
-            publish_action(
-                action_type(**data),
-                source=ActionSource.SYSTEM,
-                group_id=group.id,
-                project=group.project,
             )
     except Exception:
         logger.exception(
@@ -392,7 +394,7 @@ def _create_pull_request_activities(
 def _get_pull_request_activity_type_from_state(
     state: str | None,
 ) -> ActivityType | None:
-    if _is_open_pull_request_state(state):
+    if is_open_pull_request_state(state):
         return ActivityType.PULL_REQUEST_REOPENED
 
     match state:
@@ -413,8 +415,8 @@ def pull_request_state_changing(instance: PullRequest, **kwargs: object) -> None
         old_state = (
             PullRequest.objects.filter(pk=instance.pk).values_list("state", flat=True).first()
         )
-        previous_is_open = _is_open_pull_request_state(old_state)
-        is_open = _is_open_pull_request_state(instance.state)
+        previous_is_open = is_open_pull_request_state(old_state)
+        is_open = is_open_pull_request_state(instance.state)
         if previous_is_open == is_open:
             return
 
@@ -431,11 +433,18 @@ def pull_request_state_changing(instance: PullRequest, **kwargs: object) -> None
         if not group_ids:
             return
 
+        action_context = get_action_context()
+        user_id = (
+            action_context.actor.actor_id
+            if action_context is not None and action_context.actor.actor_type == GroupActorType.USER
+            else None
+        )
         transaction.on_commit(
             lambda: _create_pull_request_activities(
                 group_ids,
                 pull_request_id=instance.id,
                 activity_type=activity_type,
+                user_id=user_id,
             ),
             router.db_for_write(PullRequest),
         )

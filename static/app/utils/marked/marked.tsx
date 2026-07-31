@@ -177,6 +177,17 @@ export const sanitizedMarked = (src: string): string => {
 };
 
 /**
+ * Renders markdown to sanitized HTML and returns its visible text, stripping
+ * markdown syntax and any HTML/XML tags. Use when markdown must be shown as
+ * plain text (e.g. a single-line title) rather than rendered.
+ */
+export function markdownToPlainText(src: string): string {
+  const html = sanitizedMarked(src);
+  const text = new DOMParser().parseFromString(html, 'text/html').body.textContent ?? '';
+  return text.trim();
+}
+
+/**
  * Renders a single line of markdown not wrapped in a paragraph tag.
  * WARNING: Does not apply any syntax highlighting.
  */
@@ -187,3 +198,46 @@ export const singleLineRenderer = (text: string): string => {
     renderer: new NoParagraphRenderer(),
   });
 };
+
+/**
+ * Whether markdown renders any output a reader can see. Some valid markdown
+ * collapses to nothing — most commonly a bare or empty code fence (```), which
+ * renders an empty `<pre><code>` box. Callers can fall back to showing the raw
+ * text so the content isn't swallowed into a blank space. See TET-2670.
+ */
+export function markdownRendersVisibleContent(text: string): boolean {
+  if (text.trim().length === 0) {
+    return false;
+  }
+  return MarkedLexer.lex(text).some(hasVisibleToken);
+}
+
+// A token renders something visible if it is a rule/image/table, or it (or a
+// descendant) carries non-whitespace text. An empty code fence and bare
+// whitespace are the notable tokens that carry none.
+function hasVisibleToken(token: Token): boolean {
+  switch (token.type) {
+    case 'space':
+      return false;
+    // Images render nothing in this app: `sanitizeHtml` strips `<img>` (not in
+    // ALLOWED_TAGS), and its `alt` is dropped along with it. So image-only
+    // content must fall back to raw text, not count as visible. This needs an
+    // explicit case ahead of `default` — an image token carries its alt as
+    // child text tokens, which the default branch would otherwise treat as
+    // visible text.
+    case 'image':
+      return false;
+    case 'hr':
+    case 'table':
+      return true;
+    case 'list':
+      return token.items.some(hasVisibleToken);
+    default:
+      if ('tokens' in token && token.tokens && token.tokens.length > 0) {
+        return token.tokens.some(hasVisibleToken);
+      }
+      return 'text' in token && typeof token.text === 'string'
+        ? token.text.trim().length > 0
+        : false;
+  }
+}

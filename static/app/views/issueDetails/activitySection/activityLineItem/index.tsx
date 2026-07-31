@@ -1,46 +1,55 @@
 import {useMemo} from 'react';
 
 import {TimeSince} from 'sentry/components/timeSince';
-import type {Group, GroupActivity} from 'sentry/types/group';
+import {GroupActivityType, type Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {ActivityLineActor} from './actor';
-import {ActivityLineBody} from './body';
-import {getCompactGroupActivityItem} from './compactActivityItem';
+import type {ActivityFeedItem} from './activityFeedItem';
+import {getActivityItem} from './activityItem';
 import {ActivityLineHeadline, ActivityLineRow} from './layout';
 import {ActivityLineMarker} from './progressMarker';
 
 interface ActivityLineProps {
   group: Group;
-  item: GroupActivity;
+  item: ActivityFeedItem;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
 export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProps) {
   const organization = useOrganization();
+  const showProgress = organization.features.includes('issue-activity-progress');
   const {issueCategory, project} = group;
-  const compactItem = useMemo(
+  const {activity} = item;
+  const activityItem = useMemo(
     () =>
-      getCompactGroupActivityItem({
-        activity: item,
+      getActivityItem({
+        item,
         organization,
         project,
         issueCategory,
       }),
     [item, issueCategory, organization, project]
   );
-  const timestamp = <TimeSince date={item.dateCreated} unitStyle={timestampUnitStyle} />;
+  const timestamp = (
+    <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
+  );
+  const actorActivity =
+    item.type === GroupActivityType.SEER_ITERATION_COMPLETED
+      ? item.startedActivity
+      : activity;
 
   return (
     <ActivityLineRow>
-      <ActivityLineMarker item={item} />
-      <ActivityLineActor item={item} />
+      <ActivityLineMarker
+        actorItem={actorActivity}
+        item={activity}
+        showProgress={showProgress}
+      />
       <ActivityLineHeadline
-        title={compactItem.title}
-        details={compactItem.details}
+        title={activityItem.title}
+        details={activityItem.details}
         timestamp={timestamp}
       />
-      <ActivityLineBody subtext={compactItem.subtext} />
     </ActivityLineRow>
   );
 }

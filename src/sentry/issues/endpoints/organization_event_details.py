@@ -147,6 +147,8 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
+
         average_columns = request.GET.getlist("averageColumn", [])
         if (
             all(col in VALID_AVERAGE_COLUMNS for col in average_columns)
