@@ -1,14 +1,20 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {
   DebugMetaSearchProvider,
   useDebugMetaSearch,
 } from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
+import {NativeStackTraceViewStateProvider} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
 import {NATIVE_DISPLAY_OPTION} from 'sentry/components/stackTrace/native/nativeDisplayOptionsPersistence';
 import {NativeStackTraceFrames} from 'sentry/components/stackTrace/native/nativeStackTraceFrames';
 import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
-import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
 import type {StackTraceMeta, StackTraceView} from 'sentry/components/stackTrace/types';
 import {ImageStatus} from 'sentry/types/debugImage';
 import {EntryType, EventOrGroupType, type Event, type Frame} from 'sentry/types/event';
@@ -91,33 +97,33 @@ function renderFrames(
   {
     defaultView = 'app',
     defaultIsNewestFirst = true,
-    displayOptionsStorageKey,
     groupingCurrentLevel,
     meta,
+    storageKey,
   }: {
     defaultIsNewestFirst?: boolean;
     defaultView?: StackTraceView;
-    displayOptionsStorageKey?: string;
     groupingCurrentLevel?: number;
     meta?: StackTraceMeta;
+    storageKey?: string;
   } = {}
 ) {
   return render(
-    <StackTraceViewStateProvider
+    <NativeStackTraceViewStateProvider
       platform="cocoa"
       defaultView={defaultView}
       defaultIsNewestFirst={defaultIsNewestFirst}
+      storageKey={storageKey}
     >
       <NativeStackTraceProvider
         event={event}
         stacktrace={stacktrace}
-        displayOptionsStorageKey={displayOptionsStorageKey}
         groupingCurrentLevel={groupingCurrentLevel}
         meta={meta}
       >
         <NativeStackTraceFrames />
       </NativeStackTraceProvider>
-    </StackTraceViewStateProvider>
+    </NativeStackTraceViewStateProvider>
   );
 }
 
@@ -144,11 +150,11 @@ function renderFramesWithDebugMeta(stacktrace: StacktraceType, event: Event) {
       }}
     >
       <DebugMetaSearchProvider>
-        <StackTraceViewStateProvider platform="cocoa">
+        <NativeStackTraceViewStateProvider platform="cocoa">
           <NativeStackTraceProvider event={event} stacktrace={stacktrace}>
             <NativeStackTraceFrames />
           </NativeStackTraceProvider>
-        </StackTraceViewStateProvider>
+        </NativeStackTraceViewStateProvider>
         <DebugMetaSearchProbe />
         <div id={SectionKey.DEBUGMETA} />
       </DebugMetaSearchProvider>
@@ -344,7 +350,7 @@ describe('NativeFrameRow', () => {
       ],
     };
     renderFrames(stacktrace, makeEvent(stacktrace), {
-      displayOptionsStorageKey: storageKey,
+      storageKey,
     });
 
     expect(screen.getByText('_mangled_symbol')).toBeInTheDocument();
@@ -547,7 +553,11 @@ describe('NativeFrameRow', () => {
 
     renderFramesWithDebugMeta(stacktrace, makeEvent(stacktrace, [makeImage()]));
 
-    await userEvent.click(screen.getByText('+0x12abc'));
+    const addressButton = screen.getByRole('button', {
+      name: 'Go to images loaded for address +0x12abc',
+    });
+    addressButton.focus();
+    await userEvent.keyboard('{Enter}');
 
     expect(screen.getByTestId('debug-meta-search-term')).toHaveTextContent(
       '11111111-1111-1111-1111-111111111111!0x100012abc'
@@ -579,9 +589,15 @@ describe('NativeFrameRow', () => {
     // last in-app frame in the original array, and the auto-expanded one)
     // shows up first.
     const titles = screen.getAllByTestId('native-stack-trace-frame-title');
-    expect(titles[0]).toHaveAttribute('aria-expanded', 'true');
-    expect(titles[1]).toHaveAttribute('aria-expanded', 'false');
-    expect(titles[2]).toHaveAttribute('aria-expanded', 'false');
+    expect(
+      within(titles[0]!).getByRole('button', {name: 'Collapse frame details'})
+    ).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      within(titles[1]!).getByRole('button', {name: 'Expand frame details'})
+    ).toHaveAttribute('aria-expanded', 'false');
+    expect(
+      within(titles[2]!).getByRole('button', {name: 'Expand frame details'})
+    ).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('auto-expands the first in-app frame when oldest frames are shown first', () => {
@@ -603,9 +619,13 @@ describe('NativeFrameRow', () => {
 
     const titles = screen.getAllByTestId('native-stack-trace-frame-title');
     expect(titles[0]).toHaveTextContent('app_first');
-    expect(titles[0]).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      within(titles[0]!).getByRole('button', {name: 'Collapse frame details'})
+    ).toHaveAttribute('aria-expanded', 'true');
     expect(titles[2]).toHaveTextContent('app_last');
-    expect(titles[2]).toHaveAttribute('aria-expanded', 'false');
+    expect(
+      within(titles[2]!).getByRole('button', {name: 'Expand frame details'})
+    ).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('allows a single empty native frame to expand to the empty details message', async () => {
@@ -629,14 +649,20 @@ describe('NativeFrameRow', () => {
     renderFrames(stacktrace, makeEvent(stacktrace));
 
     const title = screen.getByTestId('native-stack-trace-frame-title');
-    expect(title).toHaveAttribute('aria-expanded', 'false');
+    const expandButton = within(title).getByRole('button', {
+      name: 'Expand frame details',
+    });
+    expect(expandButton).toHaveAttribute('aria-expanded', 'false');
     expect(
       screen.queryByText('No additional details are available for this frame.')
     ).not.toBeInTheDocument();
 
-    await userEvent.click(title);
+    expandButton.focus();
+    await userEvent.keyboard('{Enter}');
 
-    expect(title).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      within(title).getByRole('button', {name: 'Collapse frame details'})
+    ).toHaveAttribute('aria-expanded', 'true');
     expect(
       screen.getByText('No additional details are available for this frame.')
     ).toBeInTheDocument();

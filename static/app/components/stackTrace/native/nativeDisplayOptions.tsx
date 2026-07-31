@@ -5,6 +5,7 @@ import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceCon
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
+import {useNativeDisplayOptionsContext} from './nativeDisplayOptionsContext';
 import {NATIVE_DISPLAY_OPTION} from './nativeDisplayOptionsPersistence';
 import {useNativeStackTraceContext} from './nativeStackTraceContext';
 
@@ -24,28 +25,17 @@ const SORT_OPTION_VALUES = ['newest', 'oldest'] as const;
  * benefit from them.
  */
 export function NativeDisplayOptions() {
-  const {
-    view,
-    setView,
-    hasMinifiedStacktrace,
-    isMinified,
-    setIsMinified,
-    isNewestFirst,
-    setIsNewestFirst,
-    platform,
-  } = useStackTraceViewState();
+  const {view, hasMinifiedStacktrace, isMinified, isNewestFirst, platform} =
+    useStackTraceViewState();
   const {
     absoluteAddresses,
     absoluteFilePaths,
-    hasAbsoluteAddresses,
-    hasAbsoluteFilePaths,
-    hasVerboseFunctionNames,
-    persistDisplayOptions,
-    setAbsoluteAddresses,
-    setAbsoluteFilePaths,
-    setVerboseFunctionNames,
+    prefersMinified,
+    updateDisplayOptions,
     verboseFunctionNames,
-  } = useNativeStackTraceContext();
+  } = useNativeDisplayOptionsContext();
+  const {hasAbsoluteAddresses, hasAbsoluteFilePaths, hasVerboseFunctionNames} =
+    useNativeStackTraceContext();
 
   const isJavaScriptPlatform =
     platform?.startsWith('javascript') || platform?.startsWith('node');
@@ -94,37 +84,36 @@ export function NativeDisplayOptions() {
           ? ('full' as const)
           : ('app' as const);
 
-    setView(nextView);
-
     // Mutually exclusive sort selection.
     const newSortVals = vals.filter(v =>
       SORT_OPTION_VALUES.includes(v as (typeof SORT_OPTION_VALUES)[number])
     );
     const newSortVal =
       newSortVals.find(v => v !== currentSortVal) ?? newSortVals[0] ?? currentSortVal;
-    setIsNewestFirst(newSortVal === 'newest');
-
-    const nextIsMinified = vals.includes(NATIVE_DISPLAY_OPTION.MINIFIED);
+    const nextPrefersMinified = hasMinifiedStacktrace
+      ? vals.includes(NATIVE_DISPLAY_OPTION.MINIFIED)
+      : prefersMinified;
     let nextAbsoluteAddresses = absoluteAddresses;
     let nextAbsoluteFilePaths = absoluteFilePaths;
     let nextVerboseFunctionNames = verboseFunctionNames;
 
-    setIsMinified(nextIsMinified);
     if (!isRawView && nextView !== 'raw') {
-      nextAbsoluteAddresses = vals.includes(NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES);
-      nextAbsoluteFilePaths = vals.includes(NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS);
-      nextVerboseFunctionNames = vals.includes(
-        NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES
-      );
-      setAbsoluteAddresses(nextAbsoluteAddresses);
-      setAbsoluteFilePaths(nextAbsoluteFilePaths);
-      setVerboseFunctionNames(nextVerboseFunctionNames);
+      nextAbsoluteAddresses = hasAbsoluteAddresses
+        ? vals.includes(NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES)
+        : absoluteAddresses;
+      nextAbsoluteFilePaths = hasAbsoluteFilePaths
+        ? vals.includes(NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS)
+        : absoluteFilePaths;
+      nextVerboseFunctionNames = hasVerboseFunctionNames
+        ? vals.includes(NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES)
+        : verboseFunctionNames;
     }
 
-    persistDisplayOptions({
+    updateDisplayOptions({
       absoluteAddresses: nextAbsoluteAddresses,
       absoluteFilePaths: nextAbsoluteFilePaths,
-      isMinified: nextIsMinified,
+      isNewestFirst: newSortVal === 'newest',
+      prefersMinified: nextPrefersMinified,
       verboseFunctionNames: nextVerboseFunctionNames,
       view: nextView,
     });

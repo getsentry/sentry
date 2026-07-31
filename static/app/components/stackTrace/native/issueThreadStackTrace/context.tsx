@@ -9,13 +9,9 @@ import {
 import type {ReactNode} from 'react';
 
 import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
-import {
-  getNativeDisplayOptionDefaults,
-  useNativeDisplayOptionsStorage,
-} from 'sentry/components/stackTrace/native/nativeDisplayOptionsPersistence';
+import {NativeStackTraceViewStateProvider} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
 import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
 import {createStackTraceRowPolicy} from 'sentry/components/stackTrace/rowPolicy';
-import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import type {Event, Thread} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -101,12 +97,6 @@ export function IssueThreadStackTraceProviders({
     () => getActiveThreadStackTraceModel({activeThread, event}),
     [activeThread, event]
   );
-  const [persistedOptions] = useNativeDisplayOptionsStorage(storageKey);
-  const {defaultIsMinified, defaultView} = getNativeDisplayOptionDefaults({
-    defaultView: activeThreadModel.defaultView,
-    hasMinifiedStacktrace: activeThreadModel.hasMinifiedStacktrace,
-    persistedOptions,
-  });
   const rowPolicy = useMemo(
     () => createStackTraceRowPolicy({groupingCurrentLevel}),
     [groupingCurrentLevel]
@@ -182,16 +172,17 @@ export function IssueThreadStackTraceProviders({
 
   return (
     <IssueThreadStackTraceContext.Provider value={contextValue}>
-      <StackTraceViewStateProvider
+      <NativeStackTraceViewStateProvider
         platform={activeThreadModel.platform}
         hasMinifiedStacktrace={activeThreadModel.hasMinifiedStacktrace}
-        defaultView={defaultView}
-        defaultIsMinified={defaultIsMinified}
+        defaultView={activeThreadModel.defaultView}
         defaultIsNewestFirst={activeThreadModel.defaultIsNewestFirst}
+        storageKey={storageKey}
       >
         {activeThreadModel.stacktrace ? (
           activeThreadUsesNativeStackTrace ? (
             <NativeStackTraceProvider
+              key={activeThread?.id ?? 'no-active-thread'}
               event={event}
               stacktrace={activeThreadModel.stacktrace}
               minifiedStacktrace={activeThreadModel.minifiedStacktrace}
@@ -199,12 +190,12 @@ export function IssueThreadStackTraceProviders({
               hasScmSourceContext={hasScmSourceContext}
               meta={activeThreadModel.stacktraceMeta}
               platform={activeThreadModel.platform}
-              displayOptionsStorageKey={storageKey}
             >
               {children}
             </NativeStackTraceProvider>
           ) : (
             <StackTraceProvider
+              key={activeThread?.id ?? 'no-active-thread'}
               event={event}
               stacktrace={activeThreadModel.stacktrace}
               minifiedStacktrace={activeThreadModel.minifiedStacktrace}
@@ -219,7 +210,7 @@ export function IssueThreadStackTraceProviders({
         ) : (
           children
         )}
-      </StackTraceViewStateProvider>
+      </NativeStackTraceViewStateProvider>
     </IssueThreadStackTraceContext.Provider>
   );
 }

@@ -12,22 +12,19 @@ export const NATIVE_DISPLAY_OPTION = {
 type NativePersistedDisplayOption =
   (typeof NATIVE_DISPLAY_OPTION)[keyof typeof NATIVE_DISPLAY_OPTION];
 
-const NO_PERSIST_KEY = '__no_persist_native_stacktrace_display__';
-
-export function useNativeDisplayOptionsStorage(storageKey: string | undefined) {
-  return useLocalStorageState<NativePersistedDisplayOption[]>(
-    storageKey ?? NO_PERSIST_KEY,
-    []
-  );
+export function useNativeDisplayOptionsStorage(storageKey: string) {
+  return useLocalStorageState<NativePersistedDisplayOption[]>(storageKey, []);
 }
 
 export function getNativeDisplayOptionDefaults({
+  defaultIsMinified = false,
   defaultView = 'app',
   hasMinifiedStacktrace,
   persistedOptions,
 }: {
   hasMinifiedStacktrace: boolean;
   persistedOptions: NativePersistedDisplayOption[];
+  defaultIsMinified?: boolean;
   defaultView?: StackTraceView;
 }) {
   return {
@@ -38,7 +35,8 @@ export function getNativeDisplayOptionDefaults({
       NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS
     ),
     defaultIsMinified:
-      hasMinifiedStacktrace && persistedOptions.includes(NATIVE_DISPLAY_OPTION.MINIFIED),
+      hasMinifiedStacktrace &&
+      (defaultIsMinified || persistedOptions.includes(NATIVE_DISPLAY_OPTION.MINIFIED)),
     defaultVerboseFunctionNames: persistedOptions.includes(
       NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES
     ),

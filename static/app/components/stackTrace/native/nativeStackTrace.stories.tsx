@@ -2,7 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -14,10 +14,7 @@ import {
   ExceptionHeader,
 } from 'sentry/components/stackTrace/exceptionHeader';
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
-import {
-  StackTraceViewStateProvider,
-  useStackTraceFrameContext,
-} from 'sentry/components/stackTrace/stackTraceContext';
+import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
 import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import {IconChevron, IconCopy, IconGithub} from 'sentry/icons';
@@ -38,10 +35,7 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {NativeDefaultActions} from './frame/actions/nativeDefaultActions';
 import {NativeDisplayOptions} from './nativeDisplayOptions';
-import {
-  getNativeDisplayOptionDefaults,
-  useNativeDisplayOptionsStorage,
-} from './nativeDisplayOptionsPersistence';
+import {NativeStackTraceViewStateProvider} from './nativeDisplayOptionsContext';
 import {NativeStackTraceFrames} from './nativeStackTraceFrames';
 import {NativeStackTraceProvider} from './nativeStackTraceProvider';
 import {RawDownloadAction} from './rawDownloadAction';
@@ -173,26 +167,15 @@ function StoryProvider({
   event: Event;
   stacktrace: StacktraceType;
 }) {
-  const [persistedOptions] = useNativeDisplayOptionsStorage(DISPLAY_OPTIONS_STORAGE_KEY);
-  const {defaultIsMinified, defaultView} = getNativeDisplayOptionDefaults({
-    hasMinifiedStacktrace: false,
-    persistedOptions,
-  });
-
   return (
-    <StackTraceViewStateProvider
+    <NativeStackTraceViewStateProvider
       platform={event.platform}
-      defaultView={defaultView}
-      defaultIsMinified={defaultIsMinified}
+      storageKey={DISPLAY_OPTIONS_STORAGE_KEY}
     >
-      <NativeStackTraceProvider
-        event={event}
-        stacktrace={stacktrace}
-        displayOptionsStorageKey={DISPLAY_OPTIONS_STORAGE_KEY}
-      >
+      <NativeStackTraceProvider event={event} stacktrace={stacktrace}>
         {children}
       </NativeStackTraceProvider>
-    </StackTraceViewStateProvider>
+    </NativeStackTraceViewStateProvider>
   );
 }
 
@@ -613,11 +596,6 @@ function ActiveThreadFrames({event, thread}: {event: Event; thread: NamedThread}
 function NativeIssueStackTraceStory() {
   const {event, threads} = useMemo(() => makeMultiThreadData(), []);
   const [activeThread, setActiveThread] = useState(threads[0]!);
-  const [persistedOptions] = useNativeDisplayOptionsStorage(DISPLAY_OPTIONS_STORAGE_KEY);
-  const {defaultIsMinified, defaultView} = getNativeDisplayOptionDefaults({
-    hasMinifiedStacktrace: false,
-    persistedOptions,
-  });
 
   const handleChange = (direction: 'previous' | 'next') => {
     const currentIndex = threads.findIndex(thread => thread.id === activeThread.id);
@@ -668,30 +646,25 @@ function NativeIssueStackTraceStory() {
   return (
     // Re-key on the active thread so view state (app/full/raw) resets per thread
     // and the provider sees the correct default platform.
-    <StackTraceViewStateProvider
+    <NativeStackTraceViewStateProvider
       key={activeThread.id}
       platform={activeThread.platform}
-      defaultView={defaultView}
-      defaultIsMinified={defaultIsMinified}
+      storageKey={DISPLAY_OPTIONS_STORAGE_KEY}
     >
-      <NativeStackTraceProvider
-        event={event}
-        stacktrace={stacktrace}
-        displayOptionsStorageKey={DISPLAY_OPTIONS_STORAGE_KEY}
-      >
+      <NativeStackTraceProvider event={event} stacktrace={stacktrace}>
         <FoldSection
           title={t('Stack Trace')}
           sectionKey={SectionKey.EXCEPTION}
           actions={sectionActions}
         >
-          <Flex direction="column" gap="lg">
-            <Flex direction="column" gap="sm">
+          <Stack gap="lg">
+            <Stack gap="sm">
               <ExceptionHeader type="EXC_BAD_ACCESS" module="CrashyApp" />
               <ExceptionDescription
                 value="Attempted to dereference garbage pointer 0x0000000000000001"
                 mechanism={{handled: false, type: 'mach', synthetic: false}}
               />
-            </Flex>
+            </Stack>
             <Flex align="center" gap="md" wrap="wrap">
               <ButtonBar>
                 <Button
@@ -725,9 +698,9 @@ function NativeIssueStackTraceStory() {
               )}
             </Flex>
             <ActiveThreadFrames event={event} thread={activeThread} />
-          </Flex>
+          </Stack>
         </FoldSection>
       </NativeStackTraceProvider>
-    </StackTraceViewStateProvider>
+    </NativeStackTraceViewStateProvider>
   );
 }

@@ -1,71 +1,56 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useMemo} from 'react';
 
 import {createStackTraceRowPolicy} from 'sentry/components/stackTrace/rowPolicy';
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import type {
-  StackTraceProviderProps,
-  StackTraceView,
-} from 'sentry/components/stackTrace/types';
+import type {StackTraceProviderProps} from 'sentry/components/stackTrace/types';
 
-import {
-  getNativeDisplayOptionDefaults,
-  getNativeDisplayOptions,
-  useNativeDisplayOptionsStorage,
-} from './nativeDisplayOptionsPersistence';
 import {analyzeNativeFrames} from './nativeFrameAnalysis';
-import {
-  NativeStackTraceContext,
-  type NativeStackTraceDisplayOptions,
-  type NativeStackTraceContextValue,
-} from './nativeStackTraceContext';
+import {NativeStackTraceContext} from './nativeStackTraceContext';
+import type {NativeStackTraceContextValue} from './nativeStackTraceContext';
 
-interface NativeStackTraceProviderProps extends StackTraceProviderProps {
-  displayOptionsStorageKey?: string;
+interface NativeStackTraceProviderProps extends Pick<
+  StackTraceProviderProps,
+  | 'children'
+  | 'collapseAll'
+  | 'event'
+  | 'exceptionIndex'
+  | 'frameSourceMapDebuggerData'
+  | 'hasScmSourceContext'
+  | 'hideSourceMapDebugger'
+  | 'maxDepth'
+  | 'meta'
+  | 'minifiedStacktrace'
+  | 'platform'
+  | 'stacktrace'
+> {
   groupingCurrentLevel?: number;
-  inheritedDisplayOptions?: NativeStackTraceDisplayOptions;
   isHoverPreviewed?: boolean;
 }
 
 export function NativeStackTraceProvider({
   children,
-  displayOptionsStorageKey,
+  collapseAll,
+  event,
+  exceptionIndex,
+  frameSourceMapDebuggerData,
   groupingCurrentLevel,
-  inheritedDisplayOptions,
+  hasScmSourceContext,
+  hideSourceMapDebugger,
   isHoverPreviewed = false,
-  ...stackTraceProps
+  maxDepth,
+  meta,
+  minifiedStacktrace,
+  platform,
+  stacktrace,
 }: NativeStackTraceProviderProps) {
-  const {event, minifiedStacktrace, stacktrace} = stackTraceProps;
-  const {hasMinifiedStacktrace, isMinified, isNewestFirst, view} =
-    useStackTraceViewState();
+  const {isMinified, isNewestFirst} = useStackTraceViewState();
   const activeStacktrace =
     isMinified && minifiedStacktrace ? minifiedStacktrace : stacktrace;
   const activeFrames = useMemo(
     () => activeStacktrace.frames ?? [],
     [activeStacktrace.frames]
   );
-  const [persistedOptions, setPersistedOptions] = useNativeDisplayOptionsStorage(
-    displayOptionsStorageKey
-  );
-  const {
-    defaultAbsoluteAddresses,
-    defaultAbsoluteFilePaths,
-    defaultVerboseFunctionNames,
-  } = getNativeDisplayOptionDefaults({
-    hasMinifiedStacktrace,
-    persistedOptions,
-  });
-
-  const [localAbsoluteAddresses, setLocalAbsoluteAddresses] = useState(
-    defaultAbsoluteAddresses
-  );
-  const [localAbsoluteFilePaths, setLocalAbsoluteFilePaths] = useState(
-    defaultAbsoluteFilePaths
-  );
-  const [localVerboseFunctionNames, setLocalVerboseFunctionNames] = useState(
-    defaultVerboseFunctionNames
-  );
-
   const {
     imageByFrameIndex,
     maxLengthOfRelativeAddress,
@@ -95,65 +80,8 @@ export function NativeStackTraceProvider({
     [groupingCurrentLevel]
   );
 
-  const persistLocalDisplayOptions = useCallback(
-    (
-      options: Partial<{
-        absoluteAddresses: boolean;
-        absoluteFilePaths: boolean;
-        isMinified: boolean;
-        verboseFunctionNames: boolean;
-        view: StackTraceView;
-      }>
-    ) => {
-      if (!displayOptionsStorageKey) {
-        return;
-      }
-
-      setPersistedOptions(
-        getNativeDisplayOptions({
-          absoluteAddresses: options.absoluteAddresses ?? localAbsoluteAddresses,
-          absoluteFilePaths: options.absoluteFilePaths ?? localAbsoluteFilePaths,
-          isMinified: options.isMinified ?? isMinified,
-          verboseFunctionNames: options.verboseFunctionNames ?? localVerboseFunctionNames,
-          view: options.view ?? view,
-        })
-      );
-    },
-    [
-      displayOptionsStorageKey,
-      isMinified,
-      localAbsoluteAddresses,
-      localAbsoluteFilePaths,
-      localVerboseFunctionNames,
-      setPersistedOptions,
-      view,
-    ]
-  );
-  const localDisplayOptions = useMemo<NativeStackTraceDisplayOptions>(
-    () => ({
-      absoluteAddresses: localAbsoluteAddresses,
-      absoluteFilePaths: localAbsoluteFilePaths,
-      persistDisplayOptions: persistLocalDisplayOptions,
-      setAbsoluteAddresses: setLocalAbsoluteAddresses,
-      setAbsoluteFilePaths: setLocalAbsoluteFilePaths,
-      setVerboseFunctionNames: setLocalVerboseFunctionNames,
-      verboseFunctionNames: localVerboseFunctionNames,
-    }),
-    [
-      localAbsoluteAddresses,
-      localAbsoluteFilePaths,
-      localVerboseFunctionNames,
-      persistLocalDisplayOptions,
-    ]
-  );
-
-  // Nested native stack traces should share the user-controlled display
-  // options from their parent, while keeping frame analysis local below.
-  const displayOptions = inheritedDisplayOptions ?? localDisplayOptions;
-
   const value = useMemo<NativeStackTraceContextValue>(
     () => ({
-      ...displayOptions,
       hasAbsoluteAddresses,
       hasAbsoluteFilePaths,
       hasAnyStatusIcons,
@@ -163,7 +91,6 @@ export function NativeStackTraceProvider({
       maxLengthOfRelativeAddress,
     }),
     [
-      displayOptions,
       hasAbsoluteAddresses,
       hasAbsoluteFilePaths,
       hasAnyStatusIcons,
@@ -176,10 +103,20 @@ export function NativeStackTraceProvider({
 
   return (
     <StackTraceProvider
-      {...stackTraceProps}
+      collapseAll={collapseAll}
       defaultExpandedFrameIndex={defaultExpandedFrameIndex}
       emptySourceNotation
+      event={event}
+      exceptionIndex={exceptionIndex}
+      frameSourceMapDebuggerData={frameSourceMapDebuggerData}
+      hasScmSourceContext={hasScmSourceContext}
+      hideSourceMapDebugger={hideSourceMapDebugger}
+      maxDepth={maxDepth}
+      meta={meta}
+      minifiedStacktrace={minifiedStacktrace}
+      platform={platform}
       rowPolicy={rowPolicy}
+      stacktrace={stacktrace}
     >
       <NativeStackTraceContext.Provider value={value}>
         {children}

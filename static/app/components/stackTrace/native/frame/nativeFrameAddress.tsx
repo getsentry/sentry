@@ -1,8 +1,9 @@
-import styled from '@emotion/styled';
-
+import {Button} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
+import {useNativeDisplayOptionsContext} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
 import {useNativeStackTraceContext} from 'sentry/components/stackTrace/native/nativeStackTraceContext';
 import {
   useStackTraceContext,
@@ -91,8 +92,8 @@ function getDisplayAddress({
 export function NativeFrameAddress() {
   const {frame, frameIndex, platform} = useStackTraceFrameContext();
   const {frames} = useStackTraceContext();
-  const {absoluteAddresses, imageByFrameIndex, maxLengthOfRelativeAddress} =
-    useNativeStackTraceContext();
+  const {absoluteAddresses} = useNativeDisplayOptionsContext();
+  const {imageByFrameIndex, maxLengthOfRelativeAddress} = useNativeStackTraceContext();
   const {isClickable, onClick} = useGoToImagesLoaded();
 
   const image = imageByFrameIndex.get(frameIndex) ?? null;
@@ -108,21 +109,30 @@ export function NativeFrameAddress() {
     maxLengthOfRelativeAddress,
   });
   const tooltip = getAddressTooltip({inlineFrame, foundByStackScanning});
+  const canNavigate = isClickable && !!displayAddress;
 
-  const cell = (
-    <AddressText
-      isClickable={isClickable}
-      onClick={
-        isClickable
-          ? e => {
-              e.preventDefault();
-              onClick(e);
-            }
-          : undefined
-      }
+  const address = (
+    <Text
+      as="span"
+      ellipsis
+      monospace
+      size="xs"
+      variant={canNavigate ? 'accent' : undefined}
     >
       {displayAddress}
-    </AddressText>
+    </Text>
+  );
+  const cell = canNavigate ? (
+    <Button
+      aria-label={t('Go to images loaded for address %s', displayAddress)}
+      size="zero"
+      variant="transparent"
+      onClick={onClick}
+    >
+      {address}
+    </Button>
+  ) : (
+    address
   );
 
   if (!tooltip) {
@@ -131,16 +141,3 @@ export function NativeFrameAddress() {
 
   return <Tooltip title={tooltip}>{cell}</Tooltip>;
 }
-
-const AddressText = styled('span')<{isClickable: boolean}>`
-  display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-family: ${p => p.theme.font.family.mono};
-  font-size: ${p => p.theme.font.size.xs};
-  font-style: inherit;
-  white-space: nowrap;
-  color: ${p =>
-    p.isClickable ? p.theme.tokens.interactive.link.accent.rest : 'inherit'};
-`;

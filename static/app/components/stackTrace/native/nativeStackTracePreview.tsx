@@ -1,8 +1,8 @@
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {NativeIssueFrameActions} from 'sentry/components/stackTrace/native/frame/actions/nativeIssueActions';
+import {NativeStackTraceViewStateProvider} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
 import {NativeStackTraceFrames} from 'sentry/components/stackTrace/native/nativeStackTraceFrames';
 import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
-import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
@@ -21,7 +21,7 @@ export function NativeStackTracePreview({
   stacktrace,
 }: NativeStackTracePreviewProps) {
   return (
-    <StackTraceViewStateProvider platform={platform}>
+    <NativeStackTraceViewStateProvider platform={platform}>
       <NativeStackTraceProvider
         collapseAll
         event={event}
@@ -36,6 +36,6 @@ export function NativeStackTracePreview({
           frameContextComponent={FrameContent}
         />
       </NativeStackTraceProvider>
-    </StackTraceViewStateProvider>
+    </NativeStackTraceViewStateProvider>
   );
 }

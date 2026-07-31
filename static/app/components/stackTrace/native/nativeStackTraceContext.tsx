@@ -1,27 +1,8 @@
-import {createContext, useContext, useMemo} from 'react';
+import {createContext, useContext} from 'react';
 
-import type {StackTraceView} from 'sentry/components/stackTrace/types';
 import type {Image} from 'sentry/types/debugImage';
 
-interface NativeDisplayOptionState {
-  absoluteAddresses: boolean;
-  absoluteFilePaths: boolean;
-  isMinified: boolean;
-  verboseFunctionNames: boolean;
-  view: StackTraceView;
-}
-
 export interface NativeStackTraceContextValue {
-  /**
-   * Render absolute instruction addresses instead of `+offset` from image
-   * load address. User-toggleable via NativeDisplayOptions.
-   */
-  absoluteAddresses: boolean;
-  /**
-   * Render the absolute file path instead of the basename. User-toggleable
-   * via NativeDisplayOptions.
-   */
-  absoluteFilePaths: boolean;
   /**
    * True when at least one frame has an `instructionAddr`. The
    * absoluteAddresses toggle is meaningless without one.
@@ -60,61 +41,14 @@ export interface NativeStackTraceContextValue {
    * up across all rows. Computed once over every frame in the stacktrace.
    */
   maxLengthOfRelativeAddress: number;
-  persistDisplayOptions: (options: Partial<NativeDisplayOptionState>) => void;
-  setAbsoluteAddresses: (value: boolean) => void;
-  setAbsoluteFilePaths: (value: boolean) => void;
-  setVerboseFunctionNames: (value: boolean) => void;
-  /**
-   * Render `frame.rawFunction` (mangled symbol) instead of the demangled
-   * `frame.function` when both are present. User-toggleable via
-   * NativeDisplayOptions.
-   */
-  verboseFunctionNames: boolean;
 }
-
-export type NativeStackTraceDisplayOptions = Pick<
-  NativeStackTraceContextValue,
-  | 'absoluteAddresses'
-  | 'absoluteFilePaths'
-  | 'persistDisplayOptions'
-  | 'setAbsoluteAddresses'
-  | 'setAbsoluteFilePaths'
-  | 'setVerboseFunctionNames'
-  | 'verboseFunctionNames'
->;
 
 export const NativeStackTraceContext = createContext<NativeStackTraceContextValue | null>(
   null
 );
 
-function useOptionalNativeStackTraceContext(): NativeStackTraceContextValue | null {
-  return useContext(NativeStackTraceContext);
-}
-
-export function useInheritedNativeDisplayOptions():
-  | NativeStackTraceDisplayOptions
-  | undefined {
-  const context = useOptionalNativeStackTraceContext();
-
-  return useMemo(() => {
-    if (!context) {
-      return;
-    }
-
-    return {
-      absoluteAddresses: context.absoluteAddresses,
-      absoluteFilePaths: context.absoluteFilePaths,
-      persistDisplayOptions: context.persistDisplayOptions,
-      setAbsoluteAddresses: context.setAbsoluteAddresses,
-      setAbsoluteFilePaths: context.setAbsoluteFilePaths,
-      setVerboseFunctionNames: context.setVerboseFunctionNames,
-      verboseFunctionNames: context.verboseFunctionNames,
-    };
-  }, [context]);
-}
-
 export function useNativeStackTraceContext(): NativeStackTraceContextValue {
-  const value = useOptionalNativeStackTraceContext();
+  const value = useContext(NativeStackTraceContext);
   if (!value) {
     throw new Error(
       'useNativeStackTraceContext must be used within NativeStackTraceProvider'

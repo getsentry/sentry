@@ -5,13 +5,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {NativeDisplayOptions} from 'sentry/components/stackTrace/native/nativeDisplayOptions';
-import {
-  getNativeDisplayOptionDefaults,
-  useNativeDisplayOptionsStorage,
-} from 'sentry/components/stackTrace/native/nativeDisplayOptionsPersistence';
+import {NativeStackTraceViewStateProvider} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
 import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
 import {RawDownloadAction} from 'sentry/components/stackTrace/native/rawDownloadAction';
-import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
@@ -51,27 +47,19 @@ describe('NativeStackTraceProvider', () => {
     hasMinifiedStacktrace?: boolean;
     stacktrace?: StacktraceType;
   }) {
-    const [persistedOptions] = useNativeDisplayOptionsStorage(storageKey);
-    const {defaultIsMinified, defaultView} = getNativeDisplayOptionDefaults({
-      hasMinifiedStacktrace,
-      persistedOptions,
-    });
-
     return (
-      <StackTraceViewStateProvider
+      <NativeStackTraceViewStateProvider
         hasMinifiedStacktrace={hasMinifiedStacktrace}
         platform="cocoa"
-        defaultView={defaultView}
-        defaultIsMinified={defaultIsMinified}
+        storageKey={storageKey}
       >
         <NativeStackTraceProvider
           event={EventFixture({platform: 'cocoa'})}
           stacktrace={stacktraceProp}
-          displayOptionsStorageKey={storageKey}
         >
           {children}
         </NativeStackTraceProvider>
-      </StackTraceViewStateProvider>
+      </NativeStackTraceViewStateProvider>
     );
   }
 
@@ -115,6 +103,28 @@ describe('NativeStackTraceProvider', () => {
     await waitFor(() => {
       expect(JSON.parse(localStorageWrapper.getItem(storageKey)!)).toEqual([
         'absolute-addresses',
+      ]);
+    });
+  });
+
+  it('preserves the minified preference when the current stack has no minified data', async () => {
+    localStorageWrapper.setItem(storageKey, JSON.stringify(['minified']));
+
+    render(
+      <PersistedNativeStackTrace stacktrace={stacktraceWithAddress}>
+        <NativeDisplayOptions />
+      </PersistedNativeStackTrace>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'Absolute Addresses'})
+    );
+
+    await waitFor(() => {
+      expect(JSON.parse(localStorageWrapper.getItem(storageKey)!)).toEqual([
+        'absolute-addresses',
+        'minified',
       ]);
     });
   });

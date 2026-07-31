@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {t, tn} from 'sentry/locale';
 import type {EntryThreads, Event} from 'sentry/types/event';
@@ -58,11 +58,11 @@ export function IssueThreadStackTrace({
         actions={<IssueThreadStackTraceActions />}
         disableCollapsePersistence={hasMoreThanOneThread}
       >
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           <ThreadSummary />
           <ActiveThreadStackTrace />
           <IssueThreadStackTraceSuspectCommits />
-        </Flex>
+        </Stack>
       </FoldSection>
     </IssueThreadStackTraceProviders>
   );

@@ -6,6 +6,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getLeadHint, trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {useNativeDisplayOptionsContext} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
 import {useNativeStackTraceContext} from 'sentry/components/stackTrace/native/nativeStackTraceContext';
 import {
   useStackTraceContext,
@@ -65,7 +66,6 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
   const {
     event,
     frame,
-    frameContextId,
     frameIndex,
     isExpandable,
     isExpanded,
@@ -75,8 +75,8 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
   } = useStackTraceFrameContext();
   const {meta} = useStackTraceContext();
   const {view} = useStackTraceViewState();
-  const {absoluteFilePaths, hasAnyStatusIcons, verboseFunctionNames} =
-    useNativeStackTraceContext();
+  const {absoluteFilePaths, verboseFunctionNames} = useNativeDisplayOptionsContext();
+  const {hasAnyStatusIcons} = useNativeStackTraceContext();
   const [isHovering, setIsHovering] = useState(false);
 
   const isDartAsync = isDartAsyncSuspension(frame);
@@ -100,8 +100,6 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
         isInAppFrame={frame.inApp}
         isSubFrame={isSubFrame}
         hasStatusColumn={hasAnyStatusIcons}
-        aria-expanded={isExpandable ? isExpanded : undefined}
-        aria-controls={isExpandable ? frameContextId : undefined}
         onClick={() => {
           const selectedText = window.getSelection()?.toString();
           if (isExpandable && !selectedText) {
