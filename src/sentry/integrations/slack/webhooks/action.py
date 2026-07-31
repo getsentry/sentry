@@ -132,16 +132,27 @@ def update_group(
     return resp
 
 
-def get_rule(slack_request: SlackActionRequest) -> Rule | None:
+def get_rule(slack_request: SlackActionRequest, organization_id: int) -> Rule | None:
     """Get the rule that fired"""
     rule_id = slack_request.callback_data.get("rule")
     if not rule_id:
         return None
     try:
-        rule = Rule.objects.get(id=rule_id)
+        # `callback_data` originates from the Slack message payload, so the rule id is
+        # attacker-influenceable. Scope the lookup to the organization the integration is
+        # installed on so a rule belonging to another organization can never be resolved.
+        rule = Rule.objects.get(id=rule_id, project__organization_id=organization_id)
         # We need to add the legacy_rule_id field to the rule data since the message builder will use it to build the link to the rule
         rule.data["actions"][0]["legacy_rule_id"] = rule.id
     except Rule.DoesNotExist:
+        _logger.info(
+            "slack.action.invalid-rule",
+            extra={
+                **slack_request.logging_data,
+                "rule_id": rule_id,
+                "organization_id": organization_id,
+            },
+        )
         return None
     return rule
 
@@ -359,7 +370,7 @@ class SlackActionEndpoint(Endpoint):
         if not group:
             return self.respond(status=403)
 
-        rule = get_rule(slack_request)
+        rule = get_rule(slack_request, group.project.organization_id)
         identity = slack_request.get_identity()
         # Determine the acting user by Slack identity.
         identity_user = slack_request.get_identity_user()
