@@ -112,9 +112,7 @@ describe('ConversationOnboarding deployment target', () => {
 
     render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
 
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Copy instructions'})
-    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Copy instructions'}));
 
     expect(trackAnalytics).toHaveBeenCalledWith('onboarding.ai_prompt_copied', {
       organization,
