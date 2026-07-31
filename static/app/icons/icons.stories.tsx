@@ -997,6 +997,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'copyId',
+        groups: ['action'],
+        keywords: ['duplicate', 'clone', 'clipboard', 'id', 'identifier'],
+        name: 'CopyId',
+        defaultProps: {},
+      },
+      {
         id: 'delete',
         groups: ['action'],
         keywords: ['trash', 'can', 'dumpster', 'remove', 'erase', 'clear'],
@@ -1645,13 +1652,13 @@ export function IconsStories() {
         .
       </Text>
       <StyledSticky>
-        <Flex padding="xl 0" direction="column" gap="lg">
+        <Stack padding="xl 0" gap="lg">
           <Input
             value={searchTerm}
             placeholder="Search icons by name or keyword"
             onChange={e => setSearchTerm(e.target.value.toLowerCase())}
           />
-        </Flex>
+        </Stack>
       </StyledSticky>
       <Heading as="h5" size="xl" variant="primary">
         Icon Variants
@@ -1903,7 +1910,7 @@ function Section(props: CategorySectionProps) {
   }
 
   return (
-    <Flex as="section" direction="column" gap="xl">
+    <Stack as="section" gap="xl">
       <Container padding="xl 0 0 0">
         <Heading as="h5" size="xl" style={{scrollMarginTop: '128px'}}>
           {props.title}
@@ -1920,7 +1927,7 @@ function Section(props: CategorySectionProps) {
       >
         {filteredIcons.map(icon => props.renderIcon(icon))}
       </Grid>
-    </Flex>
+    </Stack>
   );
 }
 

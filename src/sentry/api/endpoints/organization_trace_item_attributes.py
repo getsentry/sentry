@@ -42,7 +42,7 @@ from sentry.api.endpoints.organization_trace_item_attributes_types import (
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.utils import handle_query_errors
+from sentry.api.utils import default_start_end_dates, handle_query_errors
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
@@ -74,8 +74,10 @@ from sentry.search.eap.types import (
     SupportedTraceItemType,
 )
 from sentry.search.eap.utils import (
+    can_expose_attribute,
     can_expose_attribute_to_api,
     get_secondary_aliases,
+    is_internal_sentry_convention_attribute,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
 )
@@ -430,6 +432,20 @@ def build_sentry_attribute_context(
     return result
 
 
+def is_known_attribute(name: str, definitions: ColumnDefinitions) -> bool:
+    """
+    Whether ``name`` is an attribute Sentry defines — a column public/secondary
+    alias, a virtual context, a column internal name, or a sentry-conventions
+    entry (keyed by either public or internal name). Custom names resolve to
+    none of these and return False.
+    """
+    if name in definitions.columns or name in definitions.contexts:
+        return True
+    if name in {column.internal_name for column in definitions.columns.values()}:
+        return True
+    return ATTRIBUTE_METADATA.get(name) is not None
+
+
 def as_attribute_key(
     name: str,
     attr_type: Literal["string", "number", "boolean"],
@@ -512,6 +528,34 @@ def can_expose_trace_item_attribute_to_api(
         attribute_key["name"],
         item_type,
         include_internal=include_internal,
+    )
+
+
+def _can_expose_data_attribute_to_api(
+    name: str,
+    attribute_key: TraceItemAttributeKey,
+    item_type: SupportedTraceItemType,
+    include_internal: bool = False,
+) -> bool:
+    """Whether an attribute found in a customer's data may be exposed.
+
+    A user-sent attribute whose name collides with a reserved public alias is
+    surfaced under an explicit ``tags[...]`` key that references only the user's
+    column. Its exposure is gated on the attribute's own name, so a private
+    reserved *column* it merely shadows doesn't suppress it (e.g. a customer's
+    ``organization.id``, which shadows the private ``sentry.organization_id``).
+    Internal sentry *conventions* are still hidden unless ``include_internal``.
+    """
+    if attribute_key["attributeSource"]["source_type"] == AttributeSourceType.USER.value:
+        if not can_expose_attribute(name, item_type, include_internal=include_internal):
+            return False
+        if include_internal:
+            return True
+        return not is_internal_sentry_convention_attribute(name, item_type)
+    return can_expose_attribute_to_api(
+        name, item_type, include_internal=include_internal
+    ) and can_expose_trace_item_attribute_to_api(
+        attribute_key, item_type, include_internal=include_internal
     )
 
 
@@ -798,30 +842,30 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
     ) -> list[TraceItemAttributeKey]:
         attribute_keys = {}
         for attribute in rpc_response.attributes:
-            if attribute.name and can_expose_attribute_to_api(
+            if not attribute.name:
+                continue
+            attr_key = as_attribute_key(
                 attribute.name,
+                attribute_type,
                 trace_item_type,
-                include_internal=include_internal,
-            ):
-                attr_key = as_attribute_key(
+                include_context=include_context,
+            )
+            if (
+                _can_expose_data_attribute_to_api(
                     attribute.name,
-                    attribute_type,
+                    attr_key,
                     trace_item_type,
-                    include_context=include_context,
+                    include_internal=include_internal,
                 )
-                if (
-                    not is_sentry_convention_replacement_attribute(
-                        attr_key["name"], trace_item_type
-                    )
-                    # Remove anything where the public alias doesn't match the substring
-                    # This can happen when the public alias is different, but that's handled by
-                    # aliased_attributes
-                    and (substring_match in attr_key["name"] if substring_match else True)
-                    and can_expose_trace_item_attribute_to_api(
-                        attr_key, trace_item_type, include_internal=include_internal
-                    )
-                ):
-                    attribute_keys[attr_key["key"]] = attr_key
+                and not is_sentry_convention_replacement_attribute(
+                    attr_key["name"], trace_item_type
+                )
+                # Remove anything where the public alias doesn't match the substring
+                # This can happen when the public alias is different, but that's handled by
+                # aliased_attributes
+                and (substring_match in attr_key["name"] if substring_match else True)
+            ):
+                attribute_keys[attr_key["key"]] = attr_key
         # We need to exclude any aliased attributes here since because of pagination they might have already been seen
         # earlier
         for aliased_attr in exclude_attributes:
@@ -1222,6 +1266,17 @@ def adjust_start_end_window(start_date: datetime, end_date: datetime) -> tuple[d
     start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
     end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
     return start_date, end_date
+
+
+def full_retention_window() -> tuple[datetime, datetime]:
+    """
+    The widest window we can query, used by context existence checks that must
+    always look at all of an org's data regardless of any `statsPeriod`/`start`/
+    `end` filters passed on the request. Anchored to the default (max) stats
+    period so a narrow user-supplied range can't cause a false negative.
+    """
+    start_date, end_date = default_start_end_dates()
+    return adjust_start_end_window(start_date, end_date)
 
 
 class OrganizationTraceItemAttributeValidateQuerySerializer(serializers.Serializer):

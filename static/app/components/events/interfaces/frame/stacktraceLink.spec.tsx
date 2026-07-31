@@ -70,9 +70,7 @@ describe('StacktraceLink', () => {
     render(
       <StacktraceLink frame={frame} event={event} line="foo()" disableSetup={false} />
     );
-    expect(
-      await screen.findByRole('button', {name: 'Set up Code Mapping'})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Set up Code Mapping')).toBeInTheDocument();
   });
 
   it('should hide stacktrace link error state on minified javascript frames', async () => {

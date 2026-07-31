@@ -25,7 +25,7 @@ describe('getRequestErrorUserMessage', () => {
       status: 429,
     } as ResponseMeta);
     expect(getRequestErrorUserMessage(err)).toBe(
-      'API requests have been temporarily rate-limited. Please wait a moment and try again.'
+      'API requests have been temporarily rate-limited. Please wait a few minutes and try again.'
     );
   });
 

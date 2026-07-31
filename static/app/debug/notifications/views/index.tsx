@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {DebugNotificationsExample} from 'sentry/debug/notifications/components/debugNotificationsExample';
@@ -46,9 +46,9 @@ export default function DebugNotificationsIndex() {
           <SidebarContainer>
             <DebugNotificationsSidebar />
           </SidebarContainer>
-          <Flex direction="column" area="body">
+          <Stack area="body">
             {selectedRegistration ? (
-              <Flex direction="column" gap="xl" padding="2xl" maxWidth="2000px">
+              <Stack gap="xl" padding="2xl" maxWidth="2000px">
                 <Heading as="h2" variant="success">
                   <Flex gap="md" align="center">
                     {selectedRegistration.source}
@@ -60,26 +60,21 @@ export default function DebugNotificationsIndex() {
                   gap="2xl"
                   position="relative"
                 >
-                  <Flex
-                    direction="column"
-                    position="relative"
-                    minWidth="400px"
-                    justify="start"
-                  >
+                  <Stack position="relative" minWidth="400px" justify="start">
                     <EmailPreview registration={selectedRegistration} />
                     <SlackPreview registration={selectedRegistration} />
                     <DiscordPreview registration={selectedRegistration} />
                     <TeamsPreview registration={selectedRegistration} />
-                  </Flex>
+                  </Stack>
                   <ExampleContainer>
                     <DebugNotificationsExample registration={selectedRegistration} />
                   </ExampleContainer>
                 </Grid>
-              </Flex>
+              </Stack>
             ) : (
               <DebugNotificationsLanding />
             )}
-          </Flex>
+          </Stack>
         </Grid>
       </OrganizationContainer>
     </RouteAnalyticsContextProvider>

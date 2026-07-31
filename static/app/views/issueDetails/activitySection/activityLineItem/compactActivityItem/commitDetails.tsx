@@ -1,8 +1,8 @@
 import moment from 'moment-timezone';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t, tct, tn} from 'sentry/locale';
 import type {GroupActivity} from 'sentry/types/group';
@@ -23,9 +23,11 @@ function ReleaseOverflow({releases}: {releases: BaseRelease[]}) {
   const hiddenCount = count - visibleReleases.length;
 
   return (
-    <Tooltip
-      skipWrapper
+    <InfoText
       maxWidth={320}
+      as="span"
+      density="comfortable"
+      variant="muted"
       title={
         <Stack gap="xs">
           {visibleReleases.map(release => (
@@ -41,10 +43,8 @@ function ReleaseOverflow({releases}: {releases: BaseRelease[]}) {
         </Stack>
       }
     >
-      <Text as="span" size="sm" variant="muted">
-        {tn('%s other', '%s others', count)}
-      </Text>
-    </Tooltip>
+      {tn('%s other', '%s others', count)}
+    </InfoText>
   );
 }
 
@@ -69,7 +69,7 @@ export function getResolvedInCommitDetails(
   const commitChip = <CommitChip commit={commit} />;
 
   if (!firstRelease) {
-    return tct('by commit [commit] on [provider]', {
+    return tct('by [commit] on [provider]', {
       commit: commitChip,
       provider,
     });
@@ -85,20 +85,17 @@ export function getResolvedInCommitDetails(
   const otherReleases = deployedReleases.slice(1);
 
   if (otherReleases.length === 0) {
-    return tct('by commit [commit] on [provider], released in [release]', {
+    return tct('by [commit] on [provider], released in [release]', {
       commit: commitChip,
       provider,
       release: releaseChip,
     });
   }
 
-  return tct(
-    'by commit [commit] on [provider], released in [release] and [otherReleases]',
-    {
-      commit: commitChip,
-      otherReleases: <ReleaseOverflow releases={otherReleases} />,
-      provider,
-      release: releaseChip,
-    }
-  );
+  return tct('by [commit] on [provider], released in [release] and [otherReleases]', {
+    commit: commitChip,
+    otherReleases: <ReleaseOverflow releases={otherReleases} />,
+    provider,
+    release: releaseChip,
+  });
 }

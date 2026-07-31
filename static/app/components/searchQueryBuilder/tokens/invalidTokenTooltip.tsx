@@ -28,7 +28,7 @@ function getForceVisible({
   hasWarning: boolean;
   isFocused: boolean;
   isInvalid: boolean;
-  forceVisible?: boolean;
+  forceVisible?: TooltipProps['forceVisible'];
 }) {
   if (!isInvalid && !hasTokenWarning && !hasWarning) {
     return false;

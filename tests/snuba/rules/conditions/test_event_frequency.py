@@ -741,8 +741,9 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         self.assertDoesNotPass(rule, event, is_new=False)
 
     def test_comparison_empty_comparison_period(self) -> None:
-        # Test data is 1 event in the current period and 0 events in the comparison period. This
-        # should always result in 0 and never fire.
+        # Test data is 1 event in the current period and 0 events in the comparison period. With no
+        # baseline to compare against, the current count reads as an N*100% increase (here 100%), so
+        # it fires above a 0% threshold but not above a 100% threshold.
         event = self.add_event(
             data={
                 "fingerprint": ["something_random"],
@@ -758,7 +759,7 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
             "comparisonInterval": "1d",
         }
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event, is_new=False)
+        self.assertPasses(rule, event, is_new=False)
 
         data = {
             "interval": "1h",
@@ -915,8 +916,9 @@ class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTe
         self.assertDoesNotPass(rule, event, is_new=False)
 
     def test_comparison_empty_comparison_period(self) -> None:
-        # Test data is 1 event in the current period and 0 events in the comparison period. This
-        # should always result in 0 and never fire.
+        # Test data is 1 event in the current period and 0 events in the comparison period. With no
+        # baseline to compare against, the current count reads as an N*100% increase (here 100%), so
+        # it fires above a 0% threshold but not above a 100% threshold.
         event = self.add_event(
             data={
                 "fingerprint": ["something_random"],
@@ -926,34 +928,42 @@ class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTe
             timestamp=before_now(minutes=1),
         )
         data = {
-            "filter_match": "all",
-            "conditions": [
-                {
-                    "interval": "1h",
-                    "value": 0,
-                    "comparisonType": "percent",
-                    "comparisonInterval": "1d",
-                }
-            ],
+            "interval": "1h",
+            "value": 0,
+            "comparisonType": "percent",
+            "comparisonInterval": "1d",
+            "id": "EventFrequencyConditionWithConditions",
         }
         rule = self.get_rule(
-            data=data, rule=Rule(environment_id=None, project_id=self.project.id, data=data)
+            data=data,
+            rule=Rule(
+                environment_id=None,
+                project_id=self.project.id,
+                data={
+                    "conditions": [data],
+                    "filter_match": "all",
+                },
+            ),
         )
-        self.assertDoesNotPass(rule, event, is_new=False)
+        self.assertPasses(rule, event, is_new=False)
 
         data = {
-            "filter_match": "all",
-            "conditions": [
-                {
-                    "interval": "1h",
-                    "value": 100,
-                    "comparisonType": "percent",
-                    "comparisonInterval": "1d",
-                }
-            ],
+            "interval": "1h",
+            "value": 100,
+            "comparisonType": "percent",
+            "comparisonInterval": "1d",
+            "id": "EventFrequencyConditionWithConditions",
         }
         rule = self.get_rule(
-            data=data, rule=Rule(environment_id=None, project_id=self.project.id, data=data)
+            data=data,
+            rule=Rule(
+                environment_id=None,
+                project_id=self.project.id,
+                data={
+                    "conditions": [data],
+                    "filter_match": "all",
+                },
+            ),
         )
         self.assertDoesNotPass(rule, event, is_new=False)
 

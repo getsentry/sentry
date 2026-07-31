@@ -8,10 +8,14 @@ from taskbroker_client.retry import Retry
 
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.preprod.integration_utils import get_commit_context_client
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
-from sentry.preprod.snapshots.utils import build_changes_map
+from sentry.preprod.snapshots.utils import (
+    SnapshotChangeCriteria,
+    evaluate_snapshot_changes_by_artifact_id,
+)
 from sentry.preprod.vcs.pr_comments.snapshot_templates import (
     format_missing_base_snapshot_pr_comment,
     format_snapshot_pr_comment,
@@ -20,7 +24,11 @@ from sentry.preprod.vcs.pr_comments.snapshot_templates import (
 )
 from sentry.preprod.vcs.pr_comments.tasks import (
     lock_pr_comparisons_for_update,
+    resolve_pr_comment_context,
     save_pr_comment_result,
+)
+from sentry.preprod.vcs.status_checks.snapshots.config import (
+    get_snapshot_approval_policy,
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
@@ -36,6 +44,15 @@ POST_ON_CHANGED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_change
 POST_ON_RENAMED_OPTION_KEY = "sentry:preprod_snapshot_pr_comments_post_on_renamed"
 
 
+def get_snapshot_pr_comment_reporting_criteria(project: Project) -> SnapshotChangeCriteria:
+    return SnapshotChangeCriteria(
+        added=project.get_option(POST_ON_ADDED_OPTION_KEY, default=False),
+        removed=project.get_option(POST_ON_REMOVED_OPTION_KEY, default=True),
+        changed=project.get_option(POST_ON_CHANGED_OPTION_KEY, default=True),
+        renamed=project.get_option(POST_ON_RENAMED_OPTION_KEY, default=False),
+    )
+
+
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_snapshot_pr_comment",
     namespace=preprod_tasks,
@@ -49,54 +66,19 @@ def create_preprod_snapshot_pr_comment_task(
     is_timeout_check: bool = False,
     **kwargs: Any,
 ) -> None:
-    try:
-        artifact = PreprodArtifact.objects.select_related(
-            "mobile_app_info",
-            "commit_comparison",
-            "project",
-            "project__organization",
-        ).get(id=preprod_artifact_id)
-    except PreprodArtifact.DoesNotExist:
-        logger.exception(
-            "preprod.snapshot_pr_comments.create.artifact_not_found",
-            extra={"preprod_artifact_id": preprod_artifact_id, "caller": caller},
-        )
-        return
-
-    if not artifact.commit_comparison:
-        logger.info(
-            "preprod.snapshot_pr_comments.create.no_commit_comparison",
-            extra={"preprod_artifact_id": artifact.id},
-        )
-        return
-
-    commit_comparison = artifact.commit_comparison
-    if (
-        not commit_comparison.pr_number
-        or not commit_comparison.head_repo_name
-        or not commit_comparison.provider
-    ):
-        logger.info(
-            "preprod.snapshot_pr_comments.create.no_pr_info",
-            extra={
-                "preprod_artifact_id": artifact.id,
-                "pr_number": commit_comparison.pr_number,
-                "head_repo_name": commit_comparison.head_repo_name,
-            },
-        )
-        return
-
-    if not artifact.project.get_option(ENABLED_OPTION_KEY):
-        logger.info(
-            "preprod.snapshot_pr_comments.create.project_disabled",
-            extra={"preprod_artifact_id": artifact.id, "project_id": artifact.project.id},
-        )
-        return
-
-    organization = artifact.project.organization
-    client = get_commit_context_client(
-        organization, commit_comparison.head_repo_name, commit_comparison.provider
+    ctx = resolve_pr_comment_context(
+        preprod_artifact_id,
+        log_prefix="preprod.snapshot_pr_comments",
+        enabled_option_key=ENABLED_OPTION_KEY,
+        caller=caller,
+        feature_flag=None,
+        with_build_configuration=False,
     )
+    if ctx is None:
+        return
+    artifact, commit_comparison, organization, head_repo_name, pr_number, provider = ctx
+
+    client = get_commit_context_client(organization, head_repo_name, provider)
     if not client:
         logger.info(
             "preprod.snapshot_pr_comments.create.no_client",
@@ -109,8 +91,8 @@ def create_preprod_snapshot_pr_comment_task(
     with transaction.atomic(db_alias):
         cc, existing_comment_id = lock_pr_comparisons_for_update(
             organization_id=commit_comparison.organization_id,
-            head_repo_name=commit_comparison.head_repo_name,
-            pr_number=commit_comparison.pr_number,
+            head_repo_name=head_repo_name,
+            pr_number=pr_number,
             target_id=commit_comparison.id,
             comment_type="snapshots",
         )
@@ -137,14 +119,14 @@ def create_preprod_snapshot_pr_comment_task(
             c.head_snapshot_metrics_id: c for c in comparisons_qs
         }
 
-        approvals_map: dict[int, PreprodComparisonApproval] = {}
+        approvals_by_artifact_id: dict[int, PreprodComparisonApproval] = {}
         approval_qs = PreprodComparisonApproval.objects.filter(
             preprod_artifact_id__in=artifact_ids,
             preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
         )
         for approval in approval_qs:
-            approvals_map[approval.preprod_artifact_id] = approval
+            approvals_by_artifact_id[approval.preprod_artifact_id] = approval
 
         base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(all_artifacts)
 
@@ -179,31 +161,36 @@ def create_preprod_snapshot_pr_comment_task(
                     all_artifacts, snapshot_metrics_map, project=artifact.project
                 )
         else:
-            post_on_added = artifact.project.get_option(POST_ON_ADDED_OPTION_KEY, default=False)
-            post_on_removed = artifact.project.get_option(POST_ON_REMOVED_OPTION_KEY, default=True)
-            post_on_changed = artifact.project.get_option(POST_ON_CHANGED_OPTION_KEY, default=True)
-            post_on_renamed = artifact.project.get_option(POST_ON_RENAMED_OPTION_KEY, default=False)
-            changes_map = build_changes_map(
+            reporting_criteria = get_snapshot_pr_comment_reporting_criteria(artifact.project)
+            reportable_changes_by_artifact_id = evaluate_snapshot_changes_by_artifact_id(
                 all_artifacts,
                 snapshot_metrics_map,
                 comparisons_map,
-                fail_on_added=post_on_added,
-                fail_on_removed=post_on_removed,
-                fail_on_changed=post_on_changed,
-                fail_on_renamed=post_on_renamed,
+                reporting_criteria,
+            )
+            approval_policy = get_snapshot_approval_policy(artifact.project)
+            approval_requirements_by_artifact_id = (
+                evaluate_snapshot_changes_by_artifact_id(
+                    all_artifacts,
+                    snapshot_metrics_map,
+                    comparisons_map,
+                    approval_policy.criteria,
+                )
+                if approval_policy.enabled
+                else {}
             )
 
-            has_changes = any(changes_map.values())
-            # Failed comparisons and errored images are absent from changes_map
-            # (which only tracks SUCCESS state with diffs), so check
-            # comparisons_map directly to avoid suppressing these reports.
+            has_reportable_changes = any(reportable_changes_by_artifact_id.values())
+            # Failed comparisons and errored images are absent from
+            # reportable_changes_by_artifact_id (which only tracks SUCCESS state with diffs), so
+            # check comparisons_map directly to avoid suppressing these reports.
             has_failures_or_errors = any(
                 c.state == PreprodSnapshotComparison.State.FAILED
                 or (c.state == PreprodSnapshotComparison.State.SUCCESS and c.images_errored > 0)
                 for c in comparisons_map.values()
             )
             # Suppress brand-new comments on uneventful runs to avoid PR noise.
-            if not (has_changes or has_failures_or_errors or existing_comment_id):
+            if not (has_reportable_changes or has_failures_or_errors or existing_comment_id):
                 logger.info(
                     "preprod.snapshot_pr_comments.create.skipped_no_diff",
                     extra={"preprod_artifact_id": artifact.id},
@@ -215,16 +202,17 @@ def create_preprod_snapshot_pr_comment_task(
                 snapshot_metrics_map,
                 comparisons_map,
                 base_artifact_map,
-                changes_map,
-                approvals_map=approvals_map,
+                reportable_changes_by_artifact_id,
+                approval_requirements_by_artifact_id=approval_requirements_by_artifact_id,
+                approvals_by_artifact_id=approvals_by_artifact_id,
                 project=artifact.project,
             )
 
     post_snapshot_pr_comment_task.delay(
         organization_id=organization.id,
-        repo_name=commit_comparison.head_repo_name,
-        provider=commit_comparison.provider,
-        pr_number=commit_comparison.pr_number,
+        repo_name=head_repo_name,
+        provider=provider,
+        pr_number=pr_number,
         commit_comparison_id=cc_id,
         artifact_id=artifact.id,
         comment_body=comment_body,

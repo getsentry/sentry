@@ -1,4 +1,5 @@
 import React from 'react';
+import qs from 'query-string';
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -16,17 +17,24 @@ import {
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {FieldValueType} from 'sentry/utils/fields';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LOGS_FIELDS_KEY,
   LOGS_QUERY_KEY,
+  LOGS_ROW_ID_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {
+  addValidatedFieldTypesToLogsMeta,
+  LogsInfiniteTable,
+} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {createErrorLogRow} from 'sentry/views/explore/logs/utils';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 jest.mock('@tanstack/react-virtual', () => {
   return {
@@ -61,6 +69,29 @@ jest.mock('@tanstack/react-virtual', () => {
       isScrolling: false,
     }),
   };
+});
+
+describe('addValidatedFieldTypesToLogsMeta', () => {
+  it('preserves known field definitions and response metadata over validation types', () => {
+    const meta = addValidatedFieldTypesToLogsMeta({
+      meta: {
+        fields: {
+          [OurLogKnownFieldKey.PAYLOAD_SIZE]: FieldValueType.NUMBER,
+          'custom.duration': FieldValueType.STRING,
+        },
+        units: {},
+      },
+      validatedFieldTypes: {
+        [OurLogKnownFieldKey.PAYLOAD_SIZE]: FieldValueType.NUMBER,
+        'custom.duration': FieldValueType.NUMBER,
+      },
+    });
+
+    expect(meta.fields).toEqual({
+      [OurLogKnownFieldKey.PAYLOAD_SIZE]: FieldValueType.SIZE,
+      'custom.duration': FieldValueType.STRING,
+    });
+  });
 });
 
 describe('LogsInfiniteTable', () => {
@@ -356,6 +387,31 @@ describe('LogsInfiniteTable', () => {
     });
   });
 
+  it('shows a rate limit message and retry button when the query is rate limited', async () => {
+    MockApiClient.clearMockResponses();
+    const mockResponse = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 429,
+    });
+
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
+
+    expect(
+      await screen.findByText(
+        'Your organization has had a lot of activity. Wait a few seconds and then try again.'
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    await waitFor(() => {
+      expect(mockResponse).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it('quantizes log timestamps for replay links', async () => {
     const replayId = 'abc123def456';
     const replayId2 = 'abc123eef457';
@@ -491,7 +547,7 @@ describe('LogsInfiniteTable', () => {
     await screen.findByText('abc123ee');
   });
 
-  it('renders a pin button on a hovered row when ourlogs-pinning is enabled', async () => {
+  it('renders a pin button on a row when hovering', async () => {
     renderWithProviders(
       <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
       {
@@ -515,19 +571,6 @@ describe('LogsInfiniteTable', () => {
     expect(
       await within(firstRow!).findByRole('button', {name: 'Pin log row'})
     ).toBeInTheDocument();
-  });
-
-  it('does not render a pin button when ourlogs-pinning is disabled', async () => {
-    renderWithProviders(
-      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
-    );
-
-    const [firstRow] = await screen.findAllByTestId('log-table-row');
-    await userEvent.hover(firstRow!);
-
-    expect(
-      within(firstRow!).queryByRole('button', {name: 'Pin log row'})
-    ).not.toBeInTheDocument();
   });
 
   it('marks the row as pinned when its id is in the logsPinned query', async () => {
@@ -554,6 +597,94 @@ describe('LogsInfiniteTable', () => {
     expect(screen.getByTestId('pinned-logs-table-body').contains(firstRow ?? null)).toBe(
       true
     );
+  });
+
+  it('highlights and expands the row referenced by the logsRowId param', async () => {
+    const traceItemRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/1/`,
+      method: 'GET',
+      body: {
+        itemId: '1',
+        links: null,
+        meta: {},
+        timestamp: mockLogsData[0]![OurLogKnownFieldKey.TIMESTAMP],
+        attributes: [],
+      },
+    });
+
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_FIELDS_KEY]: visibleColumnFields,
+              [LOGS_SORT_BYS_KEY]: '-timestamp',
+              [LOGS_ROW_ID_KEY]: '1',
+            },
+          },
+        },
+      }
+    );
+
+    const rows = await screen.findAllByTestId('log-table-row');
+    const linkedRow = rows.find(row => within(row).queryByText('test log body 1'))!;
+    const otherRow = rows.find(row => within(row).queryByText('test log body 2'))!;
+
+    expect(linkedRow).toHaveAttribute('data-row-linked', 'true');
+    expect(otherRow).not.toHaveAttribute('data-row-linked', 'true');
+    // The linked row is expanded on load: its detail actions render and its
+    // full details are fetched.
+    expect(await screen.findByRole('button', {name: 'Copy as JSON'})).toBeInTheDocument();
+    await waitFor(() => expect(traceItemRequest).toHaveBeenCalled());
+  });
+
+  it('expands the linked row when navigation adds logsRowId', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/2/`,
+      method: 'GET',
+      body: {
+        itemId: '2',
+        links: null,
+        meta: {},
+        timestamp: mockLogsData[1]![OurLogKnownFieldKey.TIMESTAMP],
+        attributes: [],
+      },
+    });
+
+    const {router} = renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_FIELDS_KEY]: visibleColumnFields,
+              [LOGS_SORT_BYS_KEY]: '-timestamp',
+            },
+          },
+        },
+      }
+    );
+
+    await screen.findAllByTestId('log-table-row');
+    // Nothing is expanded before a logsRowId is present.
+    expect(screen.queryByRole('button', {name: 'Copy as JSON'})).not.toBeInTheDocument();
+
+    router.navigate(
+      `/organizations/${organization.slug}/explore/logs/?${qs.stringify({
+        [LOGS_FIELDS_KEY]: visibleColumnFields,
+        [LOGS_SORT_BYS_KEY]: '-timestamp',
+        [LOGS_ROW_ID_KEY]: '2',
+      })}`
+    );
+
+    // The newly linked row expands in place: its detail actions now render.
+    expect(await screen.findByRole('button', {name: 'Copy as JSON'})).toBeInTheDocument();
+    const rows = screen.getAllByTestId('log-table-row');
+    const newlyLinkedRow = rows.find(row => within(row).queryByText('test log body 2'))!;
+    expect(newlyLinkedRow).toHaveAttribute('data-row-linked', 'true');
   });
 
   it('links the body instance hover state when the pinned instance is hovered', async () => {
@@ -622,6 +753,142 @@ describe('LogsInfiniteTable', () => {
       expect(pinnedRow).toHaveAttribute('data-row-hover-linked', 'true');
     });
     expect(tbodyRow).toHaveAttribute('data-row-hover-linked', 'true');
+  });
+
+  it('interleaves injected error rows and links them to the issue when clicked', async () => {
+    const traceError: TraceTree.TraceError = {
+      event_id: 'abc123def456',
+      issue: 'JAVASCRIPT-1',
+      issue_id: 42,
+      level: 'error',
+      message: 'Boom happened',
+      project_id: Number(project.id),
+      project_slug: project.slug,
+      span: 'span1',
+      title: 'TypeError: Boom happened',
+      // Newest timestamp so the merge places it at the top (rendered) row.
+      timestamp: new Date('2100-01-01T00:00:00Z').getTime() / 1000,
+    };
+
+    const {router} = renderWithProviders(
+      <LogsInfiniteTable
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        injectedErrorRows={[createErrorLogRow(traceError)]}
+      />
+    );
+
+    const errorRow = (await screen.findByText('TypeError: Boom happened')).closest(
+      '[data-test-id="log-table-row"]'
+    );
+    expect(errorRow).not.toBeNull();
+
+    await userEvent.click(errorRow!);
+
+    expect(router.location.pathname).toBe(
+      `/organizations/${organization.slug}/issues/42/events/abc123def456/`
+    );
+  });
+
+  it('renders injected error rows without the empty state when the logs query is empty', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}},
+      },
+    });
+
+    const traceError: TraceTree.TraceError = {
+      event_id: 'abc123def456',
+      issue: 'JAVASCRIPT-1',
+      issue_id: 42,
+      level: 'error',
+      message: 'Boom happened',
+      project_id: Number(project.id),
+      project_slug: project.slug,
+      span: 'span1',
+      title: 'TypeError: Boom happened',
+      timestamp: new Date('2100-01-01T00:00:00Z').getTime() / 1000,
+    };
+
+    renderWithProviders(
+      <LogsInfiniteTable
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        injectedErrorRows={[createErrorLogRow(traceError)]}
+      />
+    );
+
+    expect(await screen.findByText('TypeError: Boom happened')).toBeInTheDocument();
+    expect(screen.queryByText('No logs found')).not.toBeInTheDocument();
+  });
+
+  it('renders injected error rows when the logs query fails', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 500,
+    });
+
+    const traceError: TraceTree.TraceError = {
+      event_id: 'abc123def456',
+      issue: 'JAVASCRIPT-1',
+      issue_id: 42,
+      level: 'error',
+      message: 'Boom happened',
+      project_id: Number(project.id),
+      project_slug: project.slug,
+      span: 'span1',
+      title: 'TypeError: Boom happened',
+      timestamp: new Date('2100-01-01T00:00:00Z').getTime() / 1000,
+    };
+
+    renderWithProviders(
+      <LogsInfiniteTable
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        injectedErrorRows={[createErrorLogRow(traceError)]}
+      />
+    );
+
+    expect(await screen.findByText('TypeError: Boom happened')).toBeInTheDocument();
+  });
+
+  it('skips injected error rows when the table is not sorted by timestamp descending', async () => {
+    const traceError: TraceTree.TraceError = {
+      event_id: 'abc123def456',
+      issue: 'JAVASCRIPT-1',
+      issue_id: 42,
+      level: 'error',
+      message: 'Boom happened',
+      project_id: Number(project.id),
+      project_slug: project.slug,
+      span: 'span1',
+      title: 'TypeError: Boom happened',
+      timestamp: new Date('2100-01-01T00:00:00Z').getTime() / 1000,
+    };
+
+    renderWithProviders(
+      <LogsInfiniteTable
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        injectedErrorRows={[createErrorLogRow(traceError)]}
+      />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/logs/`,
+            query: {
+              [LOGS_FIELDS_KEY]: visibleColumnFields,
+              [LOGS_SORT_BYS_KEY]: '-severity',
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByText('test log body 1')).toBeInTheDocument();
+    expect(screen.queryByText('TypeError: Boom happened')).not.toBeInTheDocument();
   });
 
   it('cycles column sort: unsorted → desc → asc → reset to default timestamp desc', async () => {

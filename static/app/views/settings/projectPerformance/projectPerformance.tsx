@@ -627,7 +627,7 @@ export function ProjectPerformance() {
     const formatSize = (value: number | ''): string => {
       return value
         ? value < 1000000
-          ? `${value / 1000}KB`
+          ? `${value / 1000}kB`
           : `${value / 1000000}MB`
         : '';
     };

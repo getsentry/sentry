@@ -58,11 +58,29 @@ def maybe_multiprocess_step(
         )
 
 
+def maybe_backpressure_step(
+    health_checker: HealthChecker,
+    next_step: ProcessingStrategy[FilteredPayload | TOutput],
+    is_recovery: bool,
+) -> ProcessingStrategy[FilteredPayload | TOutput]:
+    """
+    Returns a backpressure step if the consumer is not a recovery consumer.
+    Recovery consumers are designed to free space in Redis by only processing events
+    which already have keys in Redis (implying the events are stuck), meaning they cannot
+    add more memory to Redis and are safe to run even when backpressure is engaged.
+    """
+    if is_recovery:
+        return next_step
+    else:
+        return create_backpressure_step(health_checker=health_checker, next_step=next_step)
+
+
 class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
         self,
         consumer_type: str,
         reprocess_only_stuck_events: bool,
+        reprocess_only_events_not_in_nodestore: bool,
         stop_at_timestamp: int | None,
         num_processes: int,
         max_batch_size: int,
@@ -70,9 +88,15 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         input_block_size: int | None,
         output_block_size: int | None,
     ):
+        if reprocess_only_stuck_events and reprocess_only_events_not_in_nodestore:
+            raise ValueError(
+                "`reprocess_only_stuck_events` and `reprocess_only_events_not_in_nodestore` "
+                "are mutually exclusive"
+            )
         self.consumer_type = consumer_type
         self.is_attachment_topic = consumer_type == ConsumerType.Attachments
         self.reprocess_only_stuck_events = reprocess_only_stuck_events
+        self.reprocess_only_events_not_in_nodestore = reprocess_only_events_not_in_nodestore
         self.stop_at_timestamp = stop_at_timestamp
 
         self.multi_process = None
@@ -105,9 +129,14 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 process_simple_event_message,
                 consumer_type=self.consumer_type,
                 reprocess_only_stuck_events=self.reprocess_only_stuck_events,
+                reprocess_only_events_not_in_nodestore=self.reprocess_only_events_not_in_nodestore,
             )
             next_step = maybe_multiprocess_step(mp, event_function, final_step, self._pool)
-            return create_backpressure_step(health_checker=self.health_checker, next_step=next_step)
+            return maybe_backpressure_step(
+                health_checker=self.health_checker,
+                next_step=next_step,
+                is_recovery=self.reprocess_only_stuck_events,
+            )
 
         # The `attachments` topic is a bit different, as it allows multiple event types:
         # - `attachment_chunk`: chunks of an attachment
@@ -123,6 +152,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         processing_function = partial(
             process_attachments_and_events,
             reprocess_only_stuck_events=self.reprocess_only_stuck_events,
+            reprocess_only_events_not_in_nodestore=self.reprocess_only_events_not_in_nodestore,
         )
         step_2 = maybe_multiprocess_step(
             mp, processing_function, final_step, self._attachments_pool
@@ -153,7 +183,11 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         )
         step_1 = maybe_multiprocess_step(mp, attachment_function, filter_step, self._pool)
 
-        return create_backpressure_step(health_checker=self.health_checker, next_step=step_1)
+        return maybe_backpressure_step(
+            health_checker=self.health_checker,
+            next_step=step_1,
+            is_recovery=self.reprocess_only_stuck_events,
+        )
 
     def shutdown(self) -> None:
         self._pool.close()
@@ -170,6 +204,7 @@ class IngestTransactionsStrategyFactory(ProcessingStrategyFactory[KafkaPayload])
     def __init__(
         self,
         reprocess_only_stuck_events: bool,
+        reprocess_only_events_not_in_nodestore: bool,
         stop_at_timestamp: int | None,
         num_processes: int,
         max_batch_size: int,
@@ -177,8 +212,14 @@ class IngestTransactionsStrategyFactory(ProcessingStrategyFactory[KafkaPayload])
         input_block_size: int | None,
         output_block_size: int | None,
     ):
+        if reprocess_only_stuck_events and reprocess_only_events_not_in_nodestore:
+            raise ValueError(
+                "`reprocess_only_stuck_events` and `reprocess_only_events_not_in_nodestore` "
+                "are mutually exclusive"
+            )
         self.consumer_type = ConsumerType.Transactions
         self.reprocess_only_stuck_events = reprocess_only_stuck_events
+        self.reprocess_only_events_not_in_nodestore = reprocess_only_events_not_in_nodestore
         self.stop_at_timestamp = stop_at_timestamp
 
         self.multi_process = None
@@ -204,9 +245,14 @@ class IngestTransactionsStrategyFactory(ProcessingStrategyFactory[KafkaPayload])
             process_simple_event_message,
             consumer_type=self.consumer_type,
             reprocess_only_stuck_events=self.reprocess_only_stuck_events,
+            reprocess_only_events_not_in_nodestore=self.reprocess_only_events_not_in_nodestore,
         )
         next_step = maybe_multiprocess_step(mp, event_function, final_step, self._pool)
-        return create_backpressure_step(health_checker=self.health_checker, next_step=next_step)
+        return maybe_backpressure_step(
+            health_checker=self.health_checker,
+            next_step=next_step,
+            is_recovery=self.reprocess_only_stuck_events,
+        )
 
     def shutdown(self) -> None:
         self._pool.close()

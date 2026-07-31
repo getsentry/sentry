@@ -690,8 +690,7 @@ class APITestCaseMixin:
                     ret += chunk
                 return ret
 
-            def build_request(self, method, url, headers, params, content, timeout):
-                assert not params
+            def build_request(self, method, url, *, headers, content, timeout, **kwargs):
                 target = getattr(self.client, method.lower())
                 content_type = headers.pop("Content-Type", "application/octet-stream")
                 extra: Mapping[str, Any] = {
@@ -3435,10 +3434,13 @@ def span_to_trace_item(span) -> TraceItem:
 
     timestamp.FromMilliseconds(span["start_timestamp_ms"])
 
+    if "gen_ai.conversation.id" in span.get("data", {}) and "ai_conversation_id" not in span:
+        assert False, "gen_ai.conversation.id is deprecated.  Use the newer indexed one instead."
     return TraceItem(
         organization_id=span["organization_id"],
         project_id=span["project_id"],
         item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+        conversation_id=span.get("ai_conversation_id", ""),
         timestamp=timestamp,
         trace_id=span["trace_id"],
         item_id=hex_to_item_id(span["span_id"]),

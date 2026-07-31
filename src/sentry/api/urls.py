@@ -41,6 +41,9 @@ from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
 )
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
+from sentry.api.endpoints.organization_trace_item_attribute_context import (
+    OrganizationTraceItemAttributeContextEndpoint,
+)
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpoint,
     OrganizationTraceItemAttributeValidateEndpoint,
@@ -49,7 +52,13 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
 from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
     OrganizationTraceItemsAttributesRankedEndpoint,
 )
-from sentry.api.endpoints.organization_trace_item_stats import OrganizationTraceItemsStatsEndpoint
+from sentry.api.endpoints.organization_trace_item_metric_context import (
+    OrganizationTraceItemMetricContextEndpoint,
+)
+from sentry.api.endpoints.organization_trace_item_metrics import (
+    OrganizationTraceItemMetricsEndpoint,
+)
+from sentry.api.endpoints.organization_trace_item_stats import OrganizationTraceItemStatsEndpoint
 from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
@@ -146,6 +155,10 @@ from sentry.dashboards.endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsEndpoint
+from sentry.dashboards.endpoints.organization_dashboards_starred import (
+    OrganizationDashboardsStarredEndpoint,
+    OrganizationDashboardsStarredOrderEndpoint,
+)
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
@@ -277,9 +290,6 @@ from sentry.integrations.api.endpoints.organization_repository_details import (
 from sentry.integrations.api.endpoints.organization_repository_platforms import (
     OrganizationRepositoryPlatformsEndpoint,
 )
-from sentry.integrations.api.endpoints.organization_repository_platforms_test import (
-    OrganizationRepositoryPlatformsTestEndpoint,
-)
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
@@ -301,7 +311,6 @@ from sentry.issues.endpoints import (
     GroupTombstoneEndpoint,
     OrganizationDeriveCodeMappingsEndpoint,
     OrganizationGroupIndexEndpoint,
-    OrganizationGroupIndexProgressEndpoint,
     OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewDetailsEndpoint,
     OrganizationGroupSearchViewDetailsStarredEndpoint,
@@ -322,6 +331,7 @@ from sentry.issues.endpoints import (
     ShortIdLookupEndpoint,
     TeamGroupsOldEndpoint,
 )
+from sentry.issues.endpoints.debug_group_derived_data import DebugGroupDerivedDataEndpoint
 from sentry.issues.endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from sentry.issues.endpoints.event_owners import EventOwnersEndpoint
 from sentry.issues.endpoints.event_reprocessable import EventReprocessableEndpoint
@@ -507,6 +517,8 @@ from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_repos import GroupAutofixReposEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.seer.endpoints.issue_view_title_generate import IssueViewTitleGenerateEndpoint
+from sentry.seer.endpoints.organization_agent_approve import OrganizationAgentApproveEndpoint
+from sentry.seer.endpoints.organization_agent_token import OrganizationAgentTokenEndpoint
 from sentry.seer.endpoints.organization_autofix_automation_settings import (
     OrganizationAutofixAutomationSettingsEndpoint,
 )
@@ -516,9 +528,6 @@ from sentry.seer.endpoints.organization_seer_agent_chat import (
 )
 from sentry.seer.endpoints.organization_seer_agent_pr_groups import (
     OrganizationSeerAgentPRGroupsEndpoint,
-)
-from sentry.seer.endpoints.organization_seer_agent_runs import (
-    OrganizationSeerAgentRunsEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_agent_update import (
     OrganizationSeerAgentUpdateEndpoint,
@@ -1308,6 +1317,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         include(create_group_urls("sentry-api-0-organization-group")),
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/issues/(?P<issue_id>[^/]+)/derived-data/debug/$",
+        DebugGroupDerivedDataEndpoint.as_view(),
+        name="sentry-api-0-organization-group-derived-data-debug",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/(?P<issue_id>[^/]+)/pull-requests/$",
         GroupPullRequestsEndpoint.as_view(),
         name="sentry-api-0-organization-group-pull-requests",
@@ -1517,6 +1531,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-dashboards",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/starred/$",
+        OrganizationDashboardsStarredEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboard-starred",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/starred/order/$",
+        OrganizationDashboardsStarredOrderEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboard-starred-order",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/widgets/$",
         OrganizationDashboardWidgetDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-widget-details",
@@ -1702,6 +1726,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-events-anomalies",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agent/token/$",
+        OrganizationAgentTokenEndpoint.as_view(),
+        name="sentry-api-0-organization-agent-token",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agent/approve/$",
+        OrganizationAgentApproveEndpoint.as_view(),
+        name="sentry-api-0-organization-agent-approve",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/traces/$",
         OrganizationTracesEndpoint.as_view(),
         name="sentry-api-0-organization-traces",
@@ -1737,6 +1771,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-trace-item-attributes-validate",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/(?P<key>[^/]+)/context/$",
+        OrganizationTraceItemAttributeContextEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-attribute-context",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/trace-items/metrics/(?P<metric>[^/]+)/context/$",
+        OrganizationTraceItemMetricContextEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-metric-context",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/(?P<key>[^/]+)/values/$",
         OrganizationTraceItemAttributeValuesEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-attribute-values",
@@ -1747,8 +1791,13 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-trace-item-attributes-ranked",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/trace-items/metrics/$",
+        OrganizationTraceItemMetricsEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-metrics",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/stats/$",
-        OrganizationTraceItemsStatsEndpoint.as_view(),
+        OrganizationTraceItemStatsEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-stats",
     ),
     re_path(
@@ -1902,11 +1951,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/issues-stats/$",
         OrganizationGroupIndexStatsEndpoint.as_view(),
         name="sentry-api-0-organization-group-index-stats",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/issues-progress/$",
-        OrganizationGroupIndexProgressEndpoint.as_view(),
-        name="sentry-api-0-organization-group-index-progress",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/issues-with-supergroups/$",
@@ -2198,11 +2242,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-repository-platforms",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/platforms-test/$",
-        OrganizationRepositoryPlatformsTestEndpoint.as_view(),
-        name="sentry-api-0-organization-repository-platforms-test",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/legacy-webhooks/$",
         OrganizationLegacyWebhooksEndpoint.as_view(),
         name="sentry-api-0-organization-legacy-webhooks",
@@ -2352,11 +2391,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/(?P<run_id>[^/]+)/$",
         OrganizationSeerAgentChatEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-chat-run-id",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-runs/$",
-        OrganizationSeerAgentRunsEndpoint.as_view(),
-        name="sentry-api-0-organization-seer-explorer-runs",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/runs/$",

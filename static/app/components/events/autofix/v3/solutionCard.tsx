@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
@@ -82,12 +82,12 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
               <Container as="ol" margin="0">
                 {artifact.data.steps.map((step, index) => (
                   <li key={index}>
-                    <Flex direction="column">
+                    <Stack>
                       <Markdown raw={step.title} />
                       <Text size="sm" variant="muted">
                         {step.description}
                       </Text>
-                    </Flex>
+                    </Stack>
                   </li>
                 ))}
               </Container>

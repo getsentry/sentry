@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import type {TreeLike} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 
 import {VirtualizedTreeNode} from './VirtualizedTreeNode';

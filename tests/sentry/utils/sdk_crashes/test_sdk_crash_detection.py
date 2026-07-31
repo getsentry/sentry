@@ -1,9 +1,13 @@
 import abc
 from collections.abc import Callable, Collection, Sequence
+from typing import cast
 from unittest.mock import MagicMock, call, patch
 
 import pytest
 
+from fixtures.sdk_crash_detection.crash_event_android import (
+    get_crash_event as get_android_crash_event,
+)
 from fixtures.sdk_crash_detection.crash_event_cocoa import get_crash_event
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.services.eventstore.models import Event
@@ -13,7 +17,10 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.store_transaction import store_transaction
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
-from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
+from sentry.utils.sdk_crashes.sdk_crash_detection import (
+    get_hybrid_sdk,
+    sdk_crash_detection,
+)
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
     SDKCrashDetectionConfig,
     build_sdk_crash_detection_configs,
@@ -24,11 +31,82 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
     {
         "issues.sdk_crash_detection.cocoa.project_id": 1234,
         "issues.sdk_crash_detection.cocoa.sample_rate": 1.0,
+        "issues.sdk_crash_detection.java.project_id": 3,
+        "issues.sdk_crash_detection.java.sample_rate": 1.0,
         "issues.sdk_crash_detection.react-native.project_id": 2,
+        "issues.sdk_crash_detection.react-native.sample_rate": 1.0,
     }
 )
 def build_sdk_configs() -> Sequence[SDKCrashDetectionConfig]:
     return build_sdk_crash_detection_configs()
+
+
+@pytest.mark.parametrize(
+    ("sdk_name", "hybrid_sdk_name", "package_name"),
+    [
+        ("sentry.cocoa.flutter", "sentry.dart.flutter", "pub:sentry_flutter"),
+        ("sentry.java.android.flutter", "sentry.dart.flutter", "pub:sentry_flutter"),
+        (
+            "sentry.cocoa.react-native",
+            "sentry.javascript.react-native",
+            "npm:@sentry/react-native",
+        ),
+        (
+            "sentry.java.android.react-native",
+            "sentry.javascript.react-native",
+            "npm:@sentry/react-native",
+        ),
+    ],
+)
+def test_get_hybrid_sdk(sdk_name: str, hybrid_sdk_name: str, package_name: str) -> None:
+    packages = [
+        {"name": "cocoapods:Sentry", "version": "8.2.0"},
+        {"name": package_name, "version": "9.24.0"},
+    ]
+    hybrid_sdk_packages = {
+        sdk_name: (hybrid_sdk_name, package_name),
+    }
+
+    assert get_hybrid_sdk(sdk_name, packages, hybrid_sdk_packages) == (
+        hybrid_sdk_name,
+        "9.24.0",
+    )
+
+
+@pytest.mark.parametrize(
+    "packages",
+    [
+        None,
+        [],
+        [
+            {"name": "pub:sentry_flutter", "version": "9.23.0"},
+            {"name": "pub:sentry_flutter", "version": "9.24.0"},
+        ],
+    ],
+)
+def test_get_hybrid_sdk_rejects_ambiguous_versions(packages: object) -> None:
+    hybrid_sdk_packages = {
+        "sentry.cocoa.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
+    }
+
+    assert get_hybrid_sdk("sentry.cocoa.flutter", packages, hybrid_sdk_packages) is None
+
+
+def test_get_hybrid_sdk_exits_early_without_configured_packages() -> None:
+    assert get_hybrid_sdk("sentry.cocoa.flutter", object(), {}) is None
+
+
+@django_db_all
+def test_react_native_native_sdks_have_hybrid_package_attribution() -> None:
+    hybrid_sdk_packages = {
+        sdk_name: package
+        for config in build_sdk_configs()
+        for sdk_name, package in config.hybrid_sdk_packages.items()
+    }
+
+    expected = ("sentry.javascript.react-native", "npm:@sentry/react-native")
+    assert hybrid_sdk_packages["sentry.cocoa.react-native"] == expected
+    assert hybrid_sdk_packages["sentry.java.android.react-native"] == expected
 
 
 class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
@@ -97,7 +175,7 @@ class PerformanceEventTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
 
         incr.assert_called_with(
             "post_process.sdk_crash_monitoring.sdk_event",
-            tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+            tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0", "is_anr_or_apphang": "false"},
         )
 
         # Ensure that no counter is incremented
@@ -140,6 +218,127 @@ def test_sdks_detected(
         assert mock_sdk_crash_reporter.report.call_count == 1
     else:
         assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@django_db_all
+@pytest.mark.snuba
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+@patch("sentry.utils.metrics.incr")
+def test_flutter_sdk_version_attributed_without_replacing_native_version(
+    incr: MagicMock,
+    mock_sdk_crash_reporter: MagicMock,
+    store_event: Callable[[dict[str, Collection[str]]], Event],
+) -> None:
+    event_data = get_crash_event()
+    set_path(event_data, "sdk", "name", value="sentry.cocoa.flutter")
+    set_path(
+        event_data,
+        "sdk",
+        "packages",
+        value=[
+            {"name": "cocoapods:Sentry", "version": "8.2.0"},
+            {"name": "pub:sentry_flutter", "version": "9.24.0"},
+            {"name": "untrusted-package", "version": "1.0.0"},
+        ],
+    )
+    event = store_event(event_data)
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=build_sdk_configs())
+
+    reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
+    assert reported_event_data["sdk"] == {
+        "name": "sentry.cocoa.flutter",
+        "version": "8.2.0",
+    }
+    assert reported_event_data["tags"] == [
+        ("hybrid_sdk_name", "sentry.dart.flutter"),
+        ("hybrid_sdk_version", "9.24.0"),
+    ]
+    assert reported_event_data["release"] == "8.2.0"
+    metric_tags = {
+        "sdk_name": "sentry.cocoa.flutter",
+        "sdk_version": "8.2.0",
+        "is_anr_or_apphang": "false",
+        "hybrid_sdk_name": "sentry.dart.flutter",
+        "hybrid_sdk_version": "9.24.0",
+    }
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.sdk_event",
+        tags=metric_tags,
+    )
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.detecting_sdk_crash",
+        tags=metric_tags,
+    )
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.sdk_crash_detected",
+        tags=metric_tags,
+    )
+
+
+@django_db_all
+@pytest.mark.snuba
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+@patch("sentry.utils.metrics.incr")
+@pytest.mark.parametrize(
+    ("sdk_name", "event_factory"),
+    [
+        ("sentry.cocoa.react-native", get_crash_event),
+        ("sentry.java.android.react-native", get_android_crash_event),
+    ],
+)
+def test_react_native_sdk_version_attributed_without_replacing_native_version(
+    incr: MagicMock,
+    mock_sdk_crash_reporter: MagicMock,
+    store_event: Callable[[dict[str, Collection[str]]], Event],
+    sdk_name: str,
+    event_factory: Callable[[], dict[str, object]],
+) -> None:
+    event_data = cast(dict[str, Collection[str]], event_factory())
+    set_path(event_data, "sdk", "name", value=sdk_name)
+    set_path(
+        event_data,
+        "sdk",
+        "packages",
+        value=[
+            {"name": "npm:@sentry/react-native", "version": "8.19.0"},
+            {"name": "untrusted-package", "version": "1.0.0"},
+        ],
+    )
+    event = store_event(event_data)
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=build_sdk_configs())
+
+    native_sdk_version = get_path(event_data, "sdk", "version")
+    reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
+    assert reported_event_data["sdk"] == {
+        "name": sdk_name,
+        "version": native_sdk_version,
+    }
+    assert reported_event_data["tags"] == [
+        ("hybrid_sdk_name", "sentry.javascript.react-native"),
+        ("hybrid_sdk_version", "8.19.0"),
+    ]
+    assert reported_event_data["release"] == native_sdk_version
+    metric_tags = {
+        "sdk_name": sdk_name,
+        "sdk_version": native_sdk_version,
+        "is_anr_or_apphang": "false",
+        "hybrid_sdk_name": "sentry.javascript.react-native",
+        "hybrid_sdk_version": "8.19.0",
+    }
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.sdk_event",
+        tags=metric_tags,
+    )
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.detecting_sdk_crash",
+        tags=metric_tags,
+    )
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.sdk_crash_detected",
+        tags=metric_tags,
+    )
 
 
 class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
@@ -253,18 +452,47 @@ def test_should_increment_counters_for_sdk_crash(incr, sdk_crash_reporter, store
         [
             call(
                 "post_process.sdk_crash_monitoring.sdk_event",
-                tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+                tags={
+                    "sdk_name": "sentry.cocoa",
+                    "sdk_version": "8.2.0",
+                    "is_anr_or_apphang": "false",
+                },
             ),
             call(
                 "post_process.sdk_crash_monitoring.detecting_sdk_crash",
-                tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+                tags={
+                    "sdk_name": "sentry.cocoa",
+                    "sdk_version": "8.2.0",
+                    "is_anr_or_apphang": "false",
+                },
             ),
             call(
                 "post_process.sdk_crash_monitoring.sdk_crash_detected",
-                tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+                tags={
+                    "sdk_name": "sentry.cocoa",
+                    "sdk_version": "8.2.0",
+                    "is_anr_or_apphang": "false",
+                },
             ),
         ],
         any_order=True,
+    )
+
+
+@django_db_all
+@pytest.mark.snuba
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+@patch("sentry.utils.metrics.incr")
+def test_anr_event_tags_is_anr_or_apphang_true(incr, sdk_crash_reporter, store_event) -> None:
+    event_data = get_crash_event()
+    event_data["exception"]["values"][0]["mechanism"]["type"] = "ANR"  # type: ignore[index]
+    event = store_event(data=event_data)
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=build_sdk_configs())
+
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.sdk_event",
+        tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0", "is_anr_or_apphang": "true"},
     )
 
 
@@ -286,11 +514,19 @@ def test_should_only_increment_detecting_counter_for_non_crash_event(
         [
             call(
                 "post_process.sdk_crash_monitoring.sdk_event",
-                tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+                tags={
+                    "sdk_name": "sentry.cocoa",
+                    "sdk_version": "8.2.0",
+                    "is_anr_or_apphang": "false",
+                },
             ),
             call(
                 "post_process.sdk_crash_monitoring.detecting_sdk_crash",
-                tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+                tags={
+                    "sdk_name": "sentry.cocoa",
+                    "sdk_version": "8.2.0",
+                    "is_anr_or_apphang": "false",
+                },
             ),
         ],
         any_order=True,
@@ -341,7 +577,7 @@ def test_should_increment_counter_for_non_crash_event(
 
     incr.assert_called_with(
         "post_process.sdk_crash_monitoring.sdk_event",
-        tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+        tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0", "is_anr_or_apphang": "false"},
     )
 
     # Ensure that no counter is incremented

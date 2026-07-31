@@ -13,19 +13,27 @@ import {Timeline} from 'sentry/components/timeline';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Group, GroupActivity} from 'sentry/types/group';
-import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
+import {
+  GroupActivityType,
+  SEER_ACTIVITY_TYPES,
+  type Group,
+  type GroupActivity,
+} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
+import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
 import {
-  ActivityLine,
+  collapseSeerActivityPairs,
+  type ActivityFeedItem,
+} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
+import {
   ActivityLineNote,
   isActivityNote,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
 import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
@@ -41,7 +49,7 @@ interface TimelineItemProps {
   group: Group;
   handleDelete: (item: GroupActivity) => Promise<void>;
   inputVariant: 'compact' | 'full';
-  item: GroupActivity;
+  item: ActivityFeedItem;
   size: 'sm' | 'md';
   teams: Team[];
   onCommentEdited?: (activity: GroupActivity[]) => void;
@@ -60,16 +68,17 @@ function TimelineItem({
 }: TimelineItemProps) {
   const organization = useOrganization();
   const useActivityLineItems = organization.features.includes('issue-activity-feed-v2');
+  const {activity} = item;
 
   if (useActivityLineItems) {
-    if (isActivityNote(item)) {
+    if (isActivityNote(activity)) {
       // Keep note mutations wired from ActivitySection until the v2 note API settles.
       return (
         <ActivityLineNote
-          activity={item}
+          activity={activity}
           group={group}
           inputVariant={inputVariant}
-          onDelete={() => handleDelete(item)}
+          onDelete={() => handleDelete(activity)}
           onCommentEdited={onCommentEdited}
           timestampUnitStyle={timestampUnitStyle}
         />
@@ -77,18 +86,13 @@ function TimelineItem({
     }
 
     return (
-      <ActivityLine
-        item={item}
-        group={group}
-        inputVariant={inputVariant}
-        timestampUnitStyle={timestampUnitStyle}
-      />
+      <ActivityLine item={item} group={group} timestampUnitStyle={timestampUnitStyle} />
     );
   }
 
   return (
     <LegacyTimelineItemWithEditing
-      item={item}
+      item={activity}
       handleDelete={handleDelete}
       onCommentEdited={onCommentEdited}
       group={group}
@@ -100,7 +104,9 @@ function TimelineItem({
   );
 }
 
-function LegacyTimelineItemWithEditing(props: TimelineItemProps) {
+type LegacyTimelineItemProps = Omit<TimelineItemProps, 'item'> & {item: GroupActivity};
+
+function LegacyTimelineItemWithEditing(props: LegacyTimelineItemProps) {
   const [editing, setEditing] = useState(false);
 
   return <LegacyTimelineItem {...props} editing={editing} setEditing={setEditing} />;
@@ -117,17 +123,9 @@ function LegacyTimelineItem({
   timestampUnitStyle,
   editing,
   setEditing,
-}: {
+}: LegacyTimelineItemProps & {
   editing: boolean;
-  group: Group;
-  handleDelete: (item: GroupActivity) => Promise<void>;
-  inputVariant: 'compact' | 'full';
-  item: GroupActivity;
   setEditing: (editing: boolean) => void;
-  size: 'sm' | 'md';
-  teams: Team[];
-  onCommentEdited?: (activity: GroupActivity[]) => void;
-  timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }) {
   const organization = useOrganization();
   const {title, message} = getGroupActivityItem(
@@ -221,6 +219,60 @@ interface ActivitySectionProps {
   variant?: 'sidebar' | 'standalone';
 }
 
+function isDuplicatePullRequestActivity(
+  activity: GroupActivity,
+  adjacentActivity: GroupActivity | undefined
+): boolean {
+  switch (activity.type) {
+    // REFERENCED_IN_COMMIT should be hidden if there is an adjacent PULL_REQUEST_MERGED activity with the same pull request
+    case GroupActivityType.REFERENCED_IN_COMMIT: {
+      if (adjacentActivity?.type !== GroupActivityType.PULL_REQUEST_MERGED) {
+        return false;
+      }
+
+      const pullRequest = activity.data.commit?.pullRequest;
+      const adjacentPullRequest = adjacentActivity.data.pullRequest;
+      if (!pullRequest || !adjacentPullRequest) {
+        return false;
+      }
+
+      return (
+        pullRequest.id === adjacentPullRequest.id &&
+        pullRequest.repository.id === adjacentPullRequest.repository.id
+      );
+    }
+    case GroupActivityType.SEER_PR_CREATED: {
+      if (adjacentActivity?.type !== GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST) {
+        return false;
+      }
+
+      const adjacentPullRequest = adjacentActivity.data.pullRequest;
+      if (!adjacentPullRequest) {
+        return false;
+      }
+
+      return Boolean(
+        activity.data.pull_requests?.some(
+          pullRequest =>
+            pullRequest.pull_request.pr_url === adjacentPullRequest.externalUrl
+        )
+      );
+    }
+    default:
+      return false;
+  }
+}
+
+function removeAdjacentDuplicatePullRequestActivities(
+  activities: GroupActivity[]
+): GroupActivity[] {
+  return activities.filter(
+    (activity, index) =>
+      !isDuplicatePullRequestActivity(activity, activities[index - 1]) &&
+      !isDuplicatePullRequestActivity(activity, activities[index + 1])
+  );
+}
+
 export function ActivitySection({
   group,
   filterComments,
@@ -282,20 +334,23 @@ export function ActivitySection({
       )
     : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
 
-  const filteredActivities = visibleActivities.filter(
-    item => !filterComments || item.type === GroupActivityType.NOTE
-  );
+  const filteredActivities = removeAdjacentDuplicatePullRequestActivities(
+    visibleActivities
+  ).filter(item => !filterComments || item.type === GroupActivityType.NOTE);
+  const displayedActivities: ActivityFeedItem[] = useActivityLineItems
+    ? collapseSeerActivityPairs(filteredActivities)
+    : filteredActivities.map(activity => ({type: 'activity', activity}));
   const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
   const timestampUnitStyle = variant === 'sidebar' ? 'short' : undefined;
 
-  const renderActivityItem = (item: GroupActivity) => (
+  const renderActivityItem = (item: ActivityFeedItem) => (
     <TimelineItem
       item={item}
       handleDelete={handleDelete}
       onCommentEdited={onCommentEdited}
       group={group}
       teams={teams}
-      key={item.id}
+      key={item.activity.id}
       size={size}
       inputVariant={inputVariant}
       timestampUnitStyle={timestampUnitStyle}
@@ -322,11 +377,11 @@ export function ActivitySection({
     />
   );
 
-  const timeline = renderActivityList(filteredActivities.map(renderActivityItem));
+  const timeline = renderActivityList(displayedActivities.map(renderActivityItem));
   const hiddenActivityCount =
-    filteredActivities.length >= 5 ? filteredActivities.length - 3 : 0;
+    displayedActivities.length >= 5 ? displayedActivities.length - 3 : 0;
   const sidebarVisibleActivities =
-    hiddenActivityCount > 0 ? filteredActivities.slice(0, 3) : filteredActivities;
+    hiddenActivityCount > 0 ? displayedActivities.slice(0, 3) : displayedActivities;
   const sidebarActivityItems = (
     <Fragment>
       {sidebarVisibleActivities.map(renderActivityItem)}
@@ -431,13 +486,15 @@ const ActivityLineList = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
+  container-name: activity-list;
+  container-type: inline-size;
 
   &::before {
     content: '';
     position: absolute;
     left: 10.5px;
     top: 11px;
-    bottom: 0;
+    bottom: 11px;
     width: 0;
     border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   }

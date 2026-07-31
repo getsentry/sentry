@@ -398,7 +398,7 @@ describe('formatUsageWithUnits', () => {
       formatUsageWithUnits(1000, DataCategory.ATTACHMENTS, {
         useUnitScaling: true,
       })
-    ).toBe('1 KB');
+    ).toBe('1 kB');
     expect(
       formatUsageWithUnits(MILLION, DataCategory.ATTACHMENTS, {
         useUnitScaling: true,
@@ -1002,7 +1002,7 @@ describe('isNewPayingCustomer', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_team',
-      isTrial: true,
+      trialPlan: 'am3_team',
       isFree: false,
     });
     expect(isNewPayingCustomer(subscription, organization)).toBe(false);

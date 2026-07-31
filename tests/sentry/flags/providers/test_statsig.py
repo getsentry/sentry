@@ -295,6 +295,43 @@ def test_handle_unsupported_events() -> None:
     assert len(logs) == 0
 
 
+def test_handle_exposure_event_with_nested_user() -> None:
+    logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle(
+        {
+            "data": [
+                {
+                    "eventName": "statsig::gate_exposure",
+                    "timestamp": 1739400185198,
+                    "metadata": {"gate": "my_gate", "gateValue": "true"},
+                    "user": {
+                        "userID": "user-1",
+                        "customIDs": {"stableID": "abc"},
+                        "custom": {"tier": "gold"},
+                        "statsigEnvironment": {"tier": "production"},
+                    },
+                    "value": "",
+                    "timeUUID": "not-a-valid-uuid",
+                },
+                {
+                    "user": {"name": "johndoe", "email": "john@sentry.io"},
+                    "timestamp": 1739400185233,
+                    "eventName": "statsig::config_change",
+                    "metadata": {
+                        "type": "Gate",
+                        "name": "gate1",
+                        "action": "updated",
+                    },
+                },
+            ]
+        }
+    )
+
+    # The exposure event is discarded; the config_change is still recorded.
+    assert len(logs) == 1
+    assert logs[0]["flag"] == "gate1"
+    assert logs[0]["created_by"] == "john@sentry.io"
+
+
 def test_handle_unsupported_config_changes() -> None:
     logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle(
         {

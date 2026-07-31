@@ -17,6 +17,7 @@ from sentry import options
 from sentry.integrations.github.webhook import GitHubIntegrationsWebhookEndpoint
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.utils.hostname import instance_hostname
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.seer.code_review.utils import get_pr_author_id
@@ -204,7 +205,8 @@ class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
         if pr_author_external_id:
             OrganizationContributors.objects.get_or_create(
                 organization_id=self.organization.id,
-                integration_id=integration.id,
+                provider=integration.provider,
+                hostname=instance_hostname(integration),
                 external_identifier=pr_author_external_id,
                 defaults={
                     "alias": (

@@ -70,7 +70,6 @@ export enum PlanName {
   BUSINESS_BUNDLE = 'Business Bundle',
   TEAM_SPONSORED = 'Sponsored Team',
   BUSINESS_SPONSORED = 'Sponsored Business',
-  ENTERPRISE_TEAM = 'Enterprise (Team)',
   ENTERPRISE_BUSINESS = 'Enterprise (Business)',
 }
 
@@ -307,17 +306,12 @@ export type Subscription = {
   // GDPR Info
   gdprDetails: GDPRDetails | null;
   hadCustomDynamicSampling: boolean;
-  hasDismissedForcedTrialNotice: boolean;
   hasDismissedTrialEndingNotice: boolean;
   hasMigratedToBillingPlatform: boolean;
-  hasRestrictedIntegration: boolean | null;
   id: string;
 
   // Added by SubscriptionStore to show/hide a UI element
   isEnterpriseTrial: boolean;
-  // was the trial forced on to the org to rectify access to premium features
-  isExemptFromForcedTrial: boolean;
-  isForcedTrial: boolean;
   isFree: boolean;
 
   // Subscription flags
@@ -326,12 +320,10 @@ export type Subscription = {
 
   isPartner: boolean;
   isPastDue: boolean;
-  isPerformancePlanTrial: boolean;
   isSelfServePartner: boolean;
   isSponsored: boolean;
   isSuspended: boolean;
 
-  isTrial: boolean;
   lastTrialEnd: string | null;
   membersDeactivatedFromLimit: number;
   name: string;
@@ -614,8 +606,14 @@ type CamelToSnake<
         ? `${Prev extends '' ? '' : Prev extends 'lower' ? '_' : ''}${Lowercase<First>}`
         : Rest extends `${infer Next}${infer _Tail}`
           ? Next extends Lowercase<Next>
-            ? `${Prev extends '' ? '' : '_'}${Lowercase<First>}${CamelToSnake<Rest, 'upper'>}`
-            : `${Prev extends 'lower' ? '_' : ''}${Lowercase<First>}${CamelToSnake<Rest, 'upper'>}`
+            ? `${Prev extends '' ? '' : '_'}${Lowercase<First>}${CamelToSnake<
+                Rest,
+                'upper'
+              >}`
+            : `${Prev extends 'lower' ? '_' : ''}${Lowercase<First>}${CamelToSnake<
+                Rest,
+                'upper'
+              >}`
           : never
       : `${First}${CamelToSnake<Rest, Prev>}`
   : S;
@@ -789,12 +787,10 @@ export type BillingHistory = {
 
 export type PreviewData = {
   atPeriodEnd: boolean;
-  balanceChange: number;
   billedAmount: number;
   creditApplied: number;
   effectiveAt: string;
   invoiceItems: PreviewInvoiceItem[];
-  newBalance: number;
   previewToken: string;
   proratedAmount: number;
   /** Only set by the next-bill preview: the plan/period the bill covers is annual. */

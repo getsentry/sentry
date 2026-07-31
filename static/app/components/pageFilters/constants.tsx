@@ -26,6 +26,11 @@ const DATE_TIME = {
 
 export const DATE_TIME_KEYS = [...Object.values(DATE_TIME), 'statsPeriod'];
 
+export const ALL_DATE_TIME_QUERY_KEYS = [
+  ...DATE_TIME_KEYS,
+  ...Object.values(PAGE_URL_PARAM),
+];
+
 export const ALL_ACCESS_PROJECTS = -1;
 
 /**

@@ -78,6 +78,7 @@ from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError,
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
+from sentry.taskworker.timeout import InnerTimeoutError
 from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -88,11 +89,12 @@ from sentry.utils.sentry_apps import send_and_save_webhook_request
 from sentry.utils.sentry_apps.service_hook_manager import (
     create_or_update_service_hooks_for_installation,
 )
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.sentry_apps.tasks.sentry_apps")
 
 
-_SENTRY_APP_WEBHOOK_RETRY_ON = (RequestException,)
+_SENTRY_APP_WEBHOOK_RETRY_ON = (RequestException, InnerTimeoutError)
 _SENTRY_APP_WEBHOOK_RETRY_IGNORE = (
     ClientError,
     SentryAppSentryError,
@@ -108,6 +110,7 @@ _SENTRY_APP_WEBHOOK_SILENCED = (
     ApiTimeoutError,
     ConnectionError,
     HTTPError,
+    InnerTimeoutError,
     # Anything not retriable should be silenced by default
     *_SENTRY_APP_WEBHOOK_RETRY_IGNORE,
 )
@@ -447,7 +450,7 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
     silo_mode=SiloMode.CELL,
     silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
 )
-@sentry_sdk.trace(name="process_resource_change_bound")
+@trace(name="process_resource_change_bound")
 def process_resource_change_bound(
     action: str, sender: str, instance_id: str, **kwargs: Any
 ) -> None:
@@ -561,7 +564,7 @@ def workflow_notification(
 
         install, issue, user = webhook_data
         data = kwargs.get("data", {})
-        data.update({"issue": serialize(issue)})
+        data.update({"issue": _webhook_issue_data(group=issue, serialized_group=serialize(issue))})
 
     send_webhooks(installation=install, event=event, data=data, actor=user)
 

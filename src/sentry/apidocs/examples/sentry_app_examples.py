@@ -18,6 +18,13 @@ class SentryAppExamples:
                     }
                 ],
                 "events": ["issue"],
+                "webhookEvents": [
+                    "issue.assigned",
+                    "issue.created",
+                    "issue.ignored",
+                    "issue.resolved",
+                    "issue.unresolved",
+                ],
                 "isAlertable": False,
                 "isDisabled": False,
                 "metadata": "",
@@ -59,6 +66,13 @@ class SentryAppExamples:
                     }
                 ],
                 "events": ["issue"],
+                "webhookEvents": [
+                    "issue.assigned",
+                    "issue.created",
+                    "issue.ignored",
+                    "issue.resolved",
+                    "issue.unresolved",
+                ],
                 "isAlertable": False,
                 "isDisabled": False,
                 "metadata": "",
@@ -118,6 +132,13 @@ class SentryAppExamples:
                         }
                     ],
                     "events": ["issue"],
+                    "webhookEvents": [
+                        "issue.assigned",
+                        "issue.created",
+                        "issue.ignored",
+                        "issue.resolved",
+                        "issue.unresolved",
+                    ],
                     "isAlertable": False,
                     "isDisabled": False,
                     "metadata": "",
@@ -142,7 +163,8 @@ class SentryAppExamples:
                     "allowedOrigins": [],
                     "author": "ACME Corp",
                     "avatars": [],
-                    "events": ["issue", "event"],
+                    "events": ["issue"],
+                    "webhookEvents": ["issue.resolved"],
                     "isAlertable": False,
                     "isDisabled": False,
                     "metadata": "",

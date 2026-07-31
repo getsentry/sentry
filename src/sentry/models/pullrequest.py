@@ -12,6 +12,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -25,6 +26,7 @@ from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
+from sentry.models.repository import Repository
 from sentry.utils.groupreference import find_referenced_groups
 
 if TYPE_CHECKING:
@@ -39,6 +41,13 @@ class PullRequestLifecycleState(models.TextChoices):
     SUPERSEDED = "superseded"
 
 
+def is_open_pull_request_state(state: str | None) -> bool:
+    return state is None or state in (
+        PullRequestLifecycleState.OPEN,
+        PullRequestLifecycleState.LOCKED,
+    )
+
+
 class PullRequestAttributionSignalType(models.TextChoices):
     SENTRY_APP = "sentry_app"
     SEER_DELEGATED_CURSOR = "seer_delegated:cursor"
@@ -46,7 +55,6 @@ class PullRequestAttributionSignalType(models.TextChoices):
     SEER_DELEGATED_CLAUDE_CODE = "seer_delegated:claude_code"
     SEER_DELEGATED_UNKNOWN = "seer_delegated:unknown"
     MCP = "mcp"
-    UNKNOWN = "unknown"
 
 
 class PullRequestAttributionSource(models.TextChoices):
@@ -59,12 +67,22 @@ class PullRequestVerdict(models.TextChoices):
     MERGED_UNCHANGED = "merged_unchanged"
     MERGED_WITH_ITERATION = "merged_with_iteration"
     CLOSED_UNMERGED = "closed_unmerged"
+    # Open PR with no engagement for 4 weeks; emitted by the stale-detection
+    # cron, not the webhook.
+    ABANDONED = "abandoned"
     # Transient, internal: a terminal event whose outcome a judge must decide has
     # been claimed and forwarded to Seer, but the judged verdict hasn't returned.
     # Reuses the verdict column as the redelivery guard so a redelivered terminal
     # event won't forward twice; Seer's callback overwrites it with a real verdict.
     # Never a judge *result* — the callback rejects it coming back from Seer.
     JUDGE_IN_PROGRESS = "judge_in_progress"
+    # Transient, internal: a terminal event has been claimed at the close/merge
+    # webhook and an emission task scheduled, but the cooldown window (during which
+    # late attribution and activity settle) hasn't elapsed yet. Reuses the verdict
+    # column as the redelivery guard so a redelivered terminal event won't schedule
+    # a second task; the cooldown task overwrites it with a real verdict (or the
+    # JUDGE_IN_PROGRESS sentinel). Never a judge *result*.
+    WAITING_EVENT_COOLDOWN = "waiting_event_cooldown"
 
 
 # SCM providers that can legitimately back a Repository. A reporting source (Seer, a
@@ -110,7 +128,7 @@ def parse_pull_request_number(url: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
-def _normalize_scm_provider(provider: str | None) -> str | None:
+def normalize_scm_provider(provider: str | None) -> str | None:
     """Normalize a reported SCM provider to Sentry's unprefixed form, or None if unusable.
 
     Returns None for the ``"unknown"`` sentinel (the source couldn't resolve the repo) and
@@ -180,9 +198,7 @@ class PullRequestManager(BaseManager["PullRequest"]):
         rather than through an SCM installation (e.g. Seer-created and delegated-agent
         attribution).
         """
-        from sentry.models.repository import Repository
-
-        normalized_provider = _normalize_scm_provider(provider)
+        normalized_provider = normalize_scm_provider(provider)
         provider_unmappable = (
             normalized_provider is not None and normalized_provider not in _KNOWN_SCM_PROVIDERS
         )
@@ -203,6 +219,32 @@ class PullRequestManager(BaseManager["PullRequest"]):
             key=str(key),
         )
         return ResolvedPullRequest(pull_request, "resolved", provider_unmappable)
+
+    def for_provider_pr(
+        self, *, external_id: str, integration_id: int, key: int | str
+    ) -> list[PullRequest]:
+        """Every ``PullRequest`` row for one provider-side PR, across all orgs
+        sharing the repository.
+
+        A repo connected to N orgs via one shared installation has one ``Repository``
+        per org, all with the same ``integration_id`` and ``external_id``, so one
+        provider PR fans out to one row per org. Returns them all so callers treat the
+        provider PR as the unit, not the per-org row.
+
+        Keyed on ``integration_id`` (the shared installation) rather than provider, so
+        a numeric ``external_id`` reused across provider hosts — e.g. two GitHub
+        Enterprise instances — doesn't over-match. Filters repos like the SCM webhook
+        (all but ``HIDDEN``), so the set is the rows that can emit and includes the
+        caller's own PR. Cell-local. ``[]`` when no repo matches.
+        """
+        repo_ids = list(
+            Repository.objects.exclude(status=ObjectStatus.HIDDEN)
+            .filter(external_id=external_id, integration_id=integration_id)
+            .values_list("id", flat=True)
+        )
+        if not repo_ids:
+            return []
+        return list(self.filter(repository_id__in=repo_ids, key=str(key)))
 
 
 @cell_silo_model
@@ -251,7 +293,6 @@ class PullRequest(Model):
         return find_referenced_groups(text, self.organization_id)
 
     def get_external_url(self) -> str | None:
-        from sentry.models.repository import Repository
         from sentry.plugins.base import bindings
 
         repository = Repository.objects.get(id=self.repository_id)
@@ -387,16 +428,19 @@ class PullRequestActivityType(models.TextChoices):
     AUTO_MERGE_ENABLED = "auto_merge_enabled"
     CHECK_RUN_COMPLETED = "check_run_completed"
     CHECK_SUITE_COMPLETED = "check_suite_completed"
+    CLOSED = "closed"
     COMMENT_CREATED = "comment_created"
-    COMMENT_DELETED = "comment_deleted"
     COMMENT_EDITED = "comment_edited"
     CONVERTED_TO_DRAFT = "converted_to_draft"
     DEQUEUED = "dequeued"
+    EDITED = "edited"
     ENQUEUED = "enqueued"
     LABELED = "labeled"
     LOCKED = "locked"
+    MERGED = "merged"
     OPENED = "opened"
     READY_FOR_REVIEW = "ready_for_review"
+    REOPENED = "reopened"
     REVIEW_DISMISSED = "review_dismissed"
     REVIEW_REQUESTED = "review_requested"
     REVIEW_REQUEST_REMOVED = "review_request_removed"
@@ -431,6 +475,32 @@ class PullRequestActivity(DefaultFieldsModel):
         unique_together = (("pull_request", "webhook_id"),)
 
     __repr__ = sane_repr("pull_request_id", "event_type")
+
+
+@cell_silo_model
+class PullRequestActivityLog(DefaultFieldsModel):
+    """One reduced activity document per PR — the 1:1 replacement for the
+    per-webhook-event ``PullRequestActivity`` rows (see
+    ``sentry.pr_metrics.activity_doc`` for the document shape and reducer).
+
+    A dedicated 1:1 model rather than a field on ``PullRequestMetrics``: the doc
+    is swept at the terminal emit while the metrics row must survive, and
+    ``handle_metrics`` rewrites the metrics row on every ``pull_request`` webhook.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    pull_request = models.OneToOneField(
+        "sentry.PullRequest", on_delete=models.CASCADE, related_name="activity_log"
+    )
+    # Column is TOAST-compressed with lz4 (set in migration 1133).
+    data = models.JSONField(default=dict)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pullrequest_activity_log"
+
+    __repr__ = sane_repr("pull_request_id")
 
 
 @cell_silo_model
@@ -476,6 +546,22 @@ class PullRequestMetrics(DefaultFieldsModel):
     participants_count = BoundedPositiveIntegerField(default=0)
     reviews_count = BoundedPositiveIntegerField(default=0)
     is_assigned = models.BooleanField(default=False)
+    # Human-involvement splits derived from the activity log at the terminal event
+    # (see ``pr_metrics.emit``). ``reviews_count`` = reviews_bot_count +
+    # reviews_human_count. Pushes count push events (opened + synchronize), not
+    # individual commits, split by the pusher's account class. All 0 when activity
+    # isn't tracked.
+    reviews_bot_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    reviews_human_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    pushes_bot_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    pushes_human_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    # Who opened / closed the PR, by account class: True = Bot, False = human, null
+    # = the event was never recorded (activity not tracked, or a missed webhook).
+    # ``opened_and_closed_by_same_actor`` compares the opener's and closer's logins;
+    # null when either side is unknown.
+    opened_by_bot = models.BooleanField(null=True)
+    closed_by_bot = models.BooleanField(null=True)
+    opened_and_closed_by_same_actor = models.BooleanField(null=True)
 
     class Meta:
         app_label = "sentry"

@@ -13,7 +13,6 @@ from fixtures.gitlab import (
     GitLabTestCase,
 )
 from sentry.models.organization import Organization
-from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.code_review.models import SeerCodeReviewTaskRequestForPrReview
@@ -141,11 +140,11 @@ class _MergeRequestHandlerTestBase(GitLabTestCase):
             code_review_triggers=trigger_values,
         )
 
-        OrganizationContributors.objects.get_or_create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
             external_identifier="51",
-            defaults={"alias": "root"},
+            alias="root",
         )
 
         self.repo = repo
@@ -1015,11 +1014,11 @@ class MergeRequestNoteEventTest(GitLabTestCase):
                 CodeReviewTrigger.ON_READY_FOR_REVIEW.value,
             ],
         )
-        OrganizationContributors.objects.get_or_create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
             external_identifier="51",
-            defaults={"alias": "root"},
+            alias="root",
         )
         self.repo = repo
 

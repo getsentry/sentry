@@ -47,10 +47,7 @@ type Props = DefaultProps & {
   triggers: Trigger[];
   anomalies?: Anomaly[];
   comparisonSeriesName?: string;
-  includePrevious?: boolean;
   isExtrapolatedData?: boolean;
-  maxValue?: number;
-  minValue?: number;
   minutesThresholdToDisplaySeconds?: number;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;

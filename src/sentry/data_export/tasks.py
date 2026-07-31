@@ -42,7 +42,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import export_tasks
 from sentry.utils import json, metrics
 from sentry.utils.db import atomic_transaction
-from sentry.utils.tracing import start_span
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -169,7 +169,7 @@ def export_chunk_to_stored_blobs(
     batch_size: int = SNUBA_MAX_RESULTS,
 ) -> AssembleChunkResult:
     """One activation: fill up to MAX_FRAGMENTS_PER_BATCH fragments and persist a blob chunk."""
-    with start_span(op="export.chunk", name=f"offset={offset}"):
+    with start_span(op="export.chunk", name=f"offset={offset}") as span:
         output_mode = OutputMode.from_value(data_export.export_format)
         processor = get_processor(
             data_export,
@@ -177,6 +177,16 @@ def export_chunk_to_stored_blobs(
             output_mode,
             page_token=page_token,
         )
+        csv_headers = [str(header) for header in processor.header_fields]
+        set_span_data(span, "data_export.csv_headers", csv_headers)
+        if first_page:
+            sentry_sdk.logger.info(
+                "dataexport.csv_headers",
+                attributes={
+                    "data_export.data_export_id": data_export.id,
+                    "data_export.csv_headers": csv_headers,
+                },
+            )
 
         with tempfile.TemporaryFile(mode="w+b") as tf:
             writer = FileWriter(
@@ -731,7 +741,7 @@ def merge_export_blobs(
         "requested_rows": export_limit,
         "actual_rows": actual_rows,
     }
-    with start_span(op="merge", name="merge"):
+    with start_span(op="merge", name="merge") as span:
         try:
             data_export = ExportedData.objects.get(id=data_export_id)
         except ExportedData.DoesNotExist:
@@ -760,10 +770,12 @@ def merge_export_blobs(
                 )
                 size = 0
                 file_checksum = sha1(b"")
+                blob_offsets: list[int] = []
 
                 for export_blob in ExportedDataBlob.objects.filter(
                     data_export=data_export
                 ).order_by("offset"):
+                    blob_offsets.append(int(export_blob.offset))
                     blob = FileBlob.objects.get(pk=export_blob.blob_id)
                     FileBlobIndex.objects.create(file=file, blob=blob, offset=size)
                     size += blob.size
@@ -776,6 +788,15 @@ def merge_export_blobs(
 
                     if blob.checksum != blob_checksum.hexdigest():
                         raise AssembleChecksumMismatch("Checksum mismatch")
+
+                set_span_data(span, "data_export.blob_offsets", blob_offsets)
+                sentry_sdk.logger.info(
+                    "dataexport.blob_offsets",
+                    attributes={
+                        "data_export.data_export_id": data_export_id,
+                        "data_export.blob_offsets": blob_offsets,
+                    },
+                )
 
                 file.size = size
                 file.checksum = file_checksum.hexdigest()

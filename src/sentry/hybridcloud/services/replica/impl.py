@@ -12,14 +12,12 @@ from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.models import (
     ApiKeyReplica,
     ApiTokenReplica,
-    ExternalActorReplica,
     OrgAuthTokenReplica,
 )
 from sentry.hybridcloud.outbox.base import ReplicatedCellModel, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.project_key_mapping import RpcProjectKeyMapping
 from sentry.hybridcloud.services.replica.service import CellReplicaService, ControlReplicaService
-from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -29,14 +27,8 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organization import Organization
 from sentry.models.organizationavatarreplica import OrganizationAvatarReplica
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.projectkeymapping import ProjectKeyMapping
-from sentry.models.team import Team
-from sentry.models.teamreplica import TeamReplica
-from sentry.notifications.services import RpcExternalActor
-from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -280,57 +272,6 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
 
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
-    def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:
-        try:
-            if external_actor.user_id is not None:
-                # Validating existence of user
-                User.objects.get(id=external_actor.user_id)
-            integration = Integration.objects.get(id=external_actor.integration_id)
-        except (User.DoesNotExist, Integration.DoesNotExist):
-            return
-
-        destination = ExternalActorReplica(
-            externalactor_id=external_actor.id,
-            external_id=external_actor.external_id,
-            external_name=external_actor.external_name,
-            organization_id=external_actor.organization_id,
-            user_id=external_actor.user_id,
-            provider=external_actor.provider,
-            team_id=external_actor.team_id,
-            integration_id=integration.id,
-        )
-        handle_replication(ExternalActor, destination, "externalactor_id")
-
-    def remove_replicated_organization_member_team(
-        self, *, organization_id: int, organization_member_team_id: int
-    ) -> None:
-        OrganizationMemberTeamReplica.objects.filter(
-            organization_id=organization_id, organizationmemberteam_id=organization_member_team_id
-        ).delete()
-
-    def upsert_replicated_organization_member_team(self, *, omt: RpcOrganizationMemberTeam) -> None:
-        destination = OrganizationMemberTeamReplica(
-            team_id=omt.team_id,
-            role=omt.role,
-            organization_id=omt.organization_id,
-            organizationmember_id=omt.organizationmember_id,
-            organizationmemberteam_id=omt.id,
-            is_active=omt.is_active,
-        )
-
-        handle_replication(OrganizationMemberTeam, destination, fk="organizationmemberteam_id")
-
-    def upsert_replicated_team(self, *, team: RpcTeam) -> None:
-        destination = TeamReplica(
-            team_id=team.id,
-            organization_id=team.organization_id,
-            slug=team.slug,
-            name=team.name,
-            status=team.status,
-        )
-
-        handle_replication(Team, destination)
-
     def upsert_project_key_mapping(self, *, project_key: RpcProjectKeyMapping) -> bool:
         try:
             with transaction.atomic(router.db_for_write(ProjectKeyMapping)):
