@@ -87,7 +87,6 @@ export function useAdjacentTraceNavigation({
     available: isTraceAvailable,
     id: traceSpanId,
     trace: traceId,
-    isLoading: isTraceLoading,
   } = useFindAdjacentTrace({
     direction,
     adjacentTraceEndTimestamp,
@@ -104,7 +103,7 @@ export function useAdjacentTraceNavigation({
     ariaLabel,
     icon,
     tooltip,
-    disabled: !traceId || isTraceLoading || !isTraceAvailable,
+    disabled: !traceId || !isTraceAvailable,
     onClick: () => traceDispatch({type: 'minimize drawer', payload: true}),
     to: getTraceDetailsUrl({
       traceSlug: traceId ?? '',

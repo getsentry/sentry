@@ -318,6 +318,12 @@ user can step through a list of items, such as issues, replays, or traces. Each
 direction has an `ariaLabel`, an optional `to` URL, an optional `disabled` flag,
 and an optional `tooltip`. When `to` is omitted, that chevron is disabled.
 
+Keep `pagination` present even when neither direction is navigable, rather than
+dropping it once the data resolves — the chevrons hold their space from the first
+render, so the title doesn't shift when a destination appears. Give the disabled
+state a `tooltip` too: it is what explains the feature to someone whose current
+item happens to have no neighbours.
+
 The `tooltip` takes a `title` plus an optional `isHoverable` — set the latter
 when the title holds interactive content, so the tooltip stays open long enough
 to reach it.

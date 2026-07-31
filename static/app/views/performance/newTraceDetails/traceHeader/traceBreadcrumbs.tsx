@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -26,7 +27,7 @@ interface TraceBreadcrumbsProps {
   organization: Organization;
   traceSlug: string;
   project?: Project;
-  /** Omitted while the trace is still loading, which hides prev/next navigation. */
+  /** Omitted while the trace is still loading; prev/next then render disabled. */
   rootEventResults?: TraceRootEventQueryResults;
 }
 
@@ -51,18 +52,18 @@ function useTraceParentItems(organization: Organization) {
 }
 
 /**
- * Prev/next navigation between the traces of the same session. Returns
- * undefined when the root event carries no linked-trace attributes, in which
- * case the chevrons are left out entirely rather than rendered disabled.
+ * Prev/next navigation between the traces of the same session. Always returned so
+ * the chevrons hold their space, disabled when there is nowhere to go.
  */
 function useTracePagination(rootEventResults?: TraceRootEventQueryResults) {
   const rootEvent = rootEventResults?.data;
-  const hasLinkedTraces = isTraceItemDetailsResponse(rootEvent) && !!rootEvent.timestamp;
+  const hasTraceAttributes =
+    isTraceItemDetailsResponse(rootEvent) && !!rootEvent.timestamp;
 
   // Both lookups run unconditionally to keep hook order stable. Without
   // attributes they resolve to a disabled query.
-  const attributes = hasLinkedTraces ? rootEvent.attributes : [];
-  const currentTraceStartTimestamp = hasLinkedTraces
+  const attributes = hasTraceAttributes ? rootEvent.attributes : [];
+  const currentTraceStartTimestamp = hasTraceAttributes
     ? new Date(rootEvent.timestamp).getTime() / 1000
     : 0;
 
@@ -79,12 +80,10 @@ function useTracePagination(rootEventResults?: TraceRootEventQueryResults) {
 
   // Both tooltips end in a "Learn More" docs link, so they have to stay
   // hoverable for the link to be reachable.
-  return hasLinkedTraces
-    ? {
-        previous: {...previous, tooltip: {title: previous.tooltip, isHoverable: true}},
-        next: {...next, tooltip: {title: next.tooltip, isHoverable: true}},
-      }
-    : undefined;
+  return {
+    previous: {...previous, tooltip: {title: previous.tooltip, isHoverable: true}},
+    next: {...next, tooltip: {title: next.tooltip, isHoverable: true}},
+  };
 }
 
 export function TraceBreadcrumbs({
@@ -124,7 +123,9 @@ export function TraceBreadcrumbs({
                 avatarSize={16}
                 avatarProps={{hasTooltip: true, tooltip: project.slug}}
               />
-            ) : undefined,
+            ) : (
+              <Placeholder width="16px" height="16px" />
+            ),
             pagination,
             trailingActions: [
               {
