@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -29,6 +29,7 @@ import type {Scope} from 'sentry/types/core';
 import {AI_DETECTED_ISSUE_TYPES, IssueTitle, IssueType} from 'sentry/types/group';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
@@ -36,7 +37,7 @@ import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -197,33 +198,42 @@ export function ProjectPerformance() {
     data: threshold,
     isPending: isPendingThreshold,
     isError: isErrorThreshold,
-  } = useApiQuery<ProjectThreshold>(
-    getThresholdQueryKey(organization.slug, projectSlug),
-    {
-      staleTime: 0,
-    }
+  } = useQuery(
+    apiOptions.as<ProjectThreshold>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
+      {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+        staleTime: 0,
+      }
+    )
   );
 
   const {
     data: performanceIssueSettings,
     isPending: isPendingPerformanceIssueSettings,
     isError: isErrorPerformanceIssueSettings,
-  } = useApiQuery<ProjectPerformanceSettings>(
-    getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-    {
-      staleTime: 0,
-    }
+  } = useQuery(
+    apiOptions.as<ProjectPerformanceSettings>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
+      {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+        staleTime: 0,
+      }
+    )
   );
 
   const {
     data: general,
     isPending: isPendingGeneral,
     isError: isErrorGeneral,
-  } = useApiQuery<GeneralSettings>(
-    getGeneralSettingsQueryKey(organization.slug, projectSlug),
-    {
-      staleTime: 0,
-    }
+  } = useQuery(
+    apiOptions.as<GeneralSettings>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
+      {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+        staleTime: 0,
+      }
+    )
   );
 
   const {mutate: resetThresholdSettings, isPending: isPendingResetThresholdSettings} =
@@ -311,66 +321,46 @@ export function ProjectPerformance() {
     th => !performanceIssueSettings[th]
   );
 
-  const getRetentionPrioritiesData = (...data: any) => {
-    return {
-      dynamicSamplingBiases: Object.entries(data[1].form).map(([key, value]) => ({
-        id: key,
-        active: value,
-      })),
-    };
-  };
-
-  function getRetentionPrioritiesFormFields(): Field[] {
-    const fields = [
-      {
-        name: 'boostLatestRelease',
-        type: 'boolean' as const,
-        label: retentionPrioritiesLabels.boostLatestRelease,
-        help: t(
-          'Captures more transactions for your new releases as they are being adopted'
-        ),
-        getData: getRetentionPrioritiesData,
-      },
-      {
-        name: 'boostEnvironments',
-        type: 'boolean' as const,
-        label: retentionPrioritiesLabels.boostEnvironments,
-        help: t(
-          'Captures more traces from environments that contain "debug", "dev", "local", "qa", and "test"'
-        ),
-        getData: getRetentionPrioritiesData,
-      },
-      {
-        name: 'boostLowVolumeTransactions',
-        type: 'boolean' as const,
-        label: retentionPrioritiesLabels.boostLowVolumeTransactions,
-        help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
-        getData: getRetentionPrioritiesData,
-      },
-      {
-        name: 'ignoreHealthChecks',
-        type: 'boolean' as const,
-        label: retentionPrioritiesLabels.ignoreHealthChecks,
-        help: t('Captures fewer of your health checks transactions'),
-        getData: getRetentionPrioritiesData,
-      },
-    ];
-    if (
-      hasDynamicSamplingCustomFeature(organization) &&
-      organization.features.includes('dynamic-sampling-minimum-sample-rate')
-    ) {
-      fields.push({
-        name: 'minimumSampleRate',
-        type: 'boolean' as const,
-        label: retentionPrioritiesLabels.minimumSampleRate,
-        help: t(
-          'If higher than the trace sample rate, use the project sample rate for spans instead of the trace sample rate.'
-        ),
-        getData: getRetentionPrioritiesData,
-      });
-    }
-    return fields;
-  }
+  const retentionPriorityFields = [
+    {
+      name: 'boostLatestRelease',
+      label: retentionPrioritiesLabels.boostLatestRelease,
+      hintText: t(
+        'Captures more transactions for your new releases as they are being adopted'
+      ),
+    },
+    {
+      name: 'boostEnvironments',
+      label: retentionPrioritiesLabels.boostEnvironments,
+      hintText: t(
+        'Captures more traces from environments that contain "debug", "dev", "local", "qa", and "test"'
+      ),
+    },
+    {
+      name: 'boostLowVolumeTransactions',
+      label: retentionPrioritiesLabels.boostLowVolumeTransactions,
+      hintText: t(
+        "Balance high-volume endpoints so they don't drown out low-volume ones"
+      ),
+    },
+    {
+      name: 'ignoreHealthChecks',
+      label: retentionPrioritiesLabels.ignoreHealthChecks,
+      hintText: t('Captures fewer of your health checks transactions'),
+    },
+    ...(hasDynamicSamplingCustomFeature(organization) &&
+    organization.features.includes('dynamic-sampling-minimum-sample-rate')
+      ? [
+          {
+            name: 'minimumSampleRate',
+            label: retentionPrioritiesLabels.minimumSampleRate,
+            hintText: t(
+              'If higher than the trace sample rate, use the project sample rate for spans instead of the trace sample rate.'
+            ),
+          },
+        ]
+      : []),
+  ] as const;
 
   const performanceIssueDetectorAdminFieldMapping: Record<string, Field> = {
     [IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: {
@@ -1262,54 +1252,64 @@ export function ProjectPerformance() {
         </Flex>
       </FieldGroup>
       <Feature features="organizations:dynamic-sampling">
-        <Form
-          saveOnBlur
-          allowUndo
-          initialData={
-            project.dynamicSamplingBiases?.reduce<Record<string, boolean>>(
-              (acc, bias) => {
-                acc[bias.id] = bias.active;
-                return acc;
-              },
-              {}
-            ) ?? {}
-          }
-          onSubmitSuccess={(response, _instance, id, change) => {
-            ProjectsStore.onUpdateSuccess(response);
-            trackAnalytics(
-              change?.new === true
-                ? 'dynamic_sampling_settings.priority_enabled'
-                : 'dynamic_sampling_settings.priority_disabled',
-              {
-                organization,
-                project_id: project.id,
-                id: id as DynamicSamplingBiasType,
+        <FieldGroup title={t('Sampling Priorities')}>
+          {retentionPriorityFields.map(priority => (
+            <AutoSaveForm
+              key={priority.name}
+              name={priority.name}
+              schema={z.object({[priority.name]: z.boolean()})}
+              initialValue={
+                project.dynamicSamplingBiases?.find(bias => bias.id === priority.name)
+                  ?.active ?? false
               }
-            );
-          }}
-          apiMethod="PUT"
-          apiEndpoint={projectEndpoint}
-        >
-          <Access access={requiredScopes} project={project}>
-            {({hasAccess}) => (
-              <JsonForm
-                title={t('Sampling Priorities')}
-                fields={getRetentionPrioritiesFormFields()}
-                disabled={!hasAccess}
-                renderFooter={() => (
-                  <Actions>
-                    <LinkButton
-                      external
-                      href="https://docs.sentry.io/product/performance/performance-at-scale/"
-                    >
-                      {t('Read docs')}
-                    </LinkButton>
-                  </Actions>
-                )}
-              />
-            )}
-          </Access>
-        </Form>
+              mutationOptions={{
+                mutationFn: (data: Record<string, boolean>) =>
+                  fetchMutation({
+                    url: projectEndpoint,
+                    method: 'PUT',
+                    data: {
+                      dynamicSamplingBiases: Object.entries(data).map(([id, active]) => ({
+                        id,
+                        active,
+                      })),
+                    },
+                  }),
+                onSuccess: (response, variables) => {
+                  ProjectsStore.onUpdateSuccess(response);
+                  const active = variables[priority.name];
+                  trackAnalytics(
+                    active
+                      ? 'dynamic_sampling_settings.priority_enabled'
+                      : 'dynamic_sampling_settings.priority_disabled',
+                    {
+                      organization,
+                      project_id: project.id,
+                      id: priority.name as DynamicSamplingBiasType,
+                    }
+                  );
+                },
+              }}
+            >
+              {field => (
+                <field.Layout.Row label={priority.label} hintText={priority.hintText}>
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={!hasWriteAccess}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveForm>
+          ))}
+          <Flex justify="end">
+            <LinkButton
+              external
+              href="https://docs.sentry.io/product/performance/performance-at-scale/"
+            >
+              {t('Read docs')}
+            </LinkButton>
+          </Flex>
+        </FieldGroup>
       </Feature>
       <Fragment>
         {isSuperUser && (
@@ -1401,7 +1401,7 @@ export function ProjectPerformance() {
           </FieldGroup>
         )}
         <Form
-          allowUndo
+          allowUndo={false}
           initialData={performanceIssueSettings}
           apiMethod="PUT"
           apiEndpoint={performanceIssuesEndpoint}
