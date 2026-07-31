@@ -36,6 +36,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
+import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -70,7 +71,7 @@ const CHART_VISUALIZATIONS = {
 
 type ChartVisualizationKey = keyof typeof CHART_VISUALIZATIONS;
 
-type ChartTypeKey = 'line' | 'bar';
+type ChartTypeKey = 'line' | 'area' | 'bar';
 
 const VISUALIZATION_OPTIONS = Object.entries(CHART_VISUALIZATIONS).map(
   ([value, {label}]) => ({value: value as ChartVisualizationKey, label})
@@ -78,11 +79,13 @@ const VISUALIZATION_OPTIONS = Object.entries(CHART_VISUALIZATIONS).map(
 
 const CHART_TYPE_OPTIONS = [
   {value: 'line' as const, label: t('Line')},
+  {value: 'area' as const, label: t('Area')},
   {value: 'bar' as const, label: t('Bar')},
 ];
 
 const CHART_TYPE_TO_DISPLAY_TYPE: Record<ChartTypeKey, DisplayType> = {
   line: DisplayType.LINE,
+  area: DisplayType.AREA,
   bar: DisplayType.BAR,
 };
 
@@ -90,7 +93,11 @@ const visualizationParser = parseAsStringLiteral(
   Object.keys(CHART_VISUALIZATIONS) as ChartVisualizationKey[]
 ).withDefault('cost');
 
-const chartTypeParser = parseAsStringLiteral(['line', 'bar'] as const).withDefault('bar');
+const chartTypeParser = parseAsStringLiteral([
+  'line',
+  'area',
+  'bar',
+] as const).withDefault('bar');
 
 const collapsedParser = parseAsBoolean.withDefault(false);
 
@@ -123,7 +130,8 @@ export function ConversationsChart() {
     if (!timeSeries) {
       return [];
     }
-    const PlottableConstructor = chartType === 'line' ? Line : Bars;
+    const PlottableConstructor =
+      chartType === 'line' ? Line : chartType === 'area' ? Area : Bars;
     return [
       new PlottableConstructor(markDelayedData(timeSeries, INGESTION_DELAY), {
         alias: label,
