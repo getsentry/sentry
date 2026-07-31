@@ -210,7 +210,10 @@ export function ReleaseComparisonChart({
         api.requestPromise(url, {
           query: {
             field: ['count()'],
-            query: new MutableSearch([`release:${release.version}`]).formatString(),
+            query: new MutableSearch([
+              'event.type:error',
+              `release:${release.version}`,
+            ]).formatString(),
             dataset: DiscoverDatasets.ERRORS,
             ...commonQuery,
           },
@@ -218,7 +221,7 @@ export function ReleaseComparisonChart({
         api.requestPromise(url, {
           query: {
             field: ['count()'],
-            query: '',
+            query: new MutableSearch(['event.type:error']).formatString(),
             dataset: DiscoverDatasets.ERRORS,
             ...commonQuery,
           },
