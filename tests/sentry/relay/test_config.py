@@ -17,6 +17,7 @@ from sentry.dynamic_sampling import (
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
+from sentry.ingest.inbound_filters import CUSTOM_INBOUND_FILTER_ID_PREFIX
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.projectteam import ProjectTeam
@@ -250,12 +251,12 @@ def test_project_config_custom_inbound_filters_v2(
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
     cfg_generic = get_path(cfg, "config", "filterSettings", "generic", "filters") or []
-    custom_filters = [f for f in cfg_generic if f["id"].startswith("custom-inbound-filter-")]
+    custom_filters = [f for f in cfg_generic if f["id"].startswith(CUSTOM_INBOUND_FILTER_ID_PREFIX)]
 
     if has_custom_filters and has_inbound_filters_v2:
         assert custom_filters == [
             {
-                "id": f"custom-inbound-filter-{active_filter.id}",
+                "id": f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{active_filter.id}",
                 "isEnabled": True,
                 "condition": {"op": "glob", "name": "event.release", "value": ["1.2.3"]},
             }
