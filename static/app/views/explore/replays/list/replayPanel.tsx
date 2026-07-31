@@ -1,6 +1,6 @@
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {Panel} from 'sentry/components/panels/panel';
 
@@ -11,6 +11,13 @@ interface Props extends React.ComponentProps<typeof Panel> {
 }
 
 export function ReplayPanel({image, noCenter, children, ...props}: Props) {
+  const theme = useTheme();
+  const illustrationMargin = useResponsivePropValue({
+    zero: `${theme.space.xl} auto`,
+    xl: `120px ${theme.space['2xl']} ${theme.space['2xl']}`,
+  });
+  const isCentered = !image && !noCenter;
+
   return (
     <Panel {...props}>
       <Flex
@@ -32,33 +39,25 @@ export function ReplayPanel({image, noCenter, children, ...props}: Props) {
             minWidth={150}
             position="relative"
           >
-            {imageProps => <IlloBox {...imageProps}>{image}</IlloBox>}
+            {imageProps => (
+              <Container {...imageProps} style={{margin: illustrationMargin}}>
+                {image}
+              </Container>
+            )}
           </Container>
         ) : null}
         <Container flex={{xl: 2}} minWidth="0">
           {contentProps => (
-            <StyledBox {...contentProps} centered={!image && !noCenter}>
+            <Container
+              {...contentProps}
+              maxWidth={isCentered ? 600 : undefined}
+              style={{textAlign: isCentered ? 'center' : undefined, zIndex: 1}}
+            >
               {children}
-            </StyledBox>
+            </Container>
           )}
         </Container>
       </Flex>
     </Panel>
   );
 }
-
-const StyledBox = styled('div')<{centered?: boolean}>`
-  z-index: 1;
-
-  ${p => (p.centered ? 'text-align: center;' : '')}
-  ${p => (p.centered ? 'max-width: 600px;' : '')}
-`;
-
-const IlloBox = styled(StyledBox)`
-  margin: ${p => p.theme.space.xl} auto;
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    margin: 120px ${p => p.theme.space['2xl']} ${p => p.theme.space['2xl']}
-      ${p => p.theme.space['2xl']};
-  }
-`;
