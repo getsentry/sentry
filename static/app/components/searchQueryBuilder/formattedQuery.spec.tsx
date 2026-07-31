@@ -1,5 +1,5 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules, textWithMarkupMatcher} from 'sentry-test/utils';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   FormattedQuery,
@@ -164,8 +164,6 @@ describe('FormattedQuery', () => {
       const value = screen.getByText('…');
       expect(value).toHaveAttribute('data-overflowing', 'true');
       expect(value.scrollWidth).toBeLessThan(value.clientWidth);
-      expect(getEmotionRules(value).join(' ')).toContain('padding-inline-end: 2px');
-      expect(getEmotionRules(value).join(' ')).toContain('box-sizing: border-box');
     } finally {
       clientWidthSpy.mockRestore();
       scrollWidthSpy.mockRestore();

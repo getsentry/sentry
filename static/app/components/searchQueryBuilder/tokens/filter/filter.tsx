@@ -500,7 +500,7 @@ const FilterMultiValueTruncated = styled('div')`
   overflow: hidden;
   padding-inline-end: 2px;
   max-width: 110px;
-  width: 100%;
+  width: fit-content;
   min-width: 0;
 `;
 
