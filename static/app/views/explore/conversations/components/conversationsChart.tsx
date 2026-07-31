@@ -289,9 +289,7 @@ function ContextMenu({
 
     const disableAddToDashboard = !organization.features.includes('dashboards-edit');
 
-    const newAlertLabel = organization.features.includes('workflow-engine-ui')
-      ? t('Create a Monitor')
-      : t('Create an Alert');
+    const newAlertLabel = t('Create a Monitor');
 
     return [
       {

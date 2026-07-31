@@ -100,7 +100,7 @@ export function ChartContextMenu({
           organization,
           alertsUrls,
           submenu: true,
-          label: getCreateAlertForLabel(organization),
+          label: getCreateAlertForLabel(),
         })
       );
     }
