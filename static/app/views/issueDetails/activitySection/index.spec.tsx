@@ -151,7 +151,7 @@ describe('ActivitySection', () => {
 
     render(
       <GroupDataContextProvider group={group} project={group.project}>
-        <ActivitySection group={group} variant="standalone" size="md" />
+        <ActivitySection group={group} variant="standalone" />
       </GroupDataContextProvider>
     );
 
@@ -297,10 +297,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
         <ActivitySection group={activityGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('User note')).toBeInTheDocument();
@@ -334,10 +331,7 @@ describe('ActivitySection', () => {
         project={createIssueGroup.project}
       >
         <ActivitySection group={createIssueGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('Test Issue')).toBeInTheDocument();
@@ -382,10 +376,7 @@ describe('ActivitySection', () => {
         project={createIssueGroup.project}
       >
         <ActivitySection group={createIssueGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('Created GitHub issue')).toBeInTheDocument();
@@ -423,10 +414,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={assignedGroup} project={assignedGroup.project}>
         <ActivitySection group={assignedGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     const timeline = await screen.findByTestId('activity-timeline');
@@ -472,10 +460,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={assignedGroup} project={assignedGroup.project}>
         <ActivitySection group={assignedGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByRole('img', {name: 'backend'})).toHaveAttribute(
@@ -516,10 +501,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={assignedGroup} project={assignedGroup.project}>
         <ActivitySection group={assignedGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('#frontend (deleted)')).toBeInTheDocument();
@@ -556,10 +538,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={assignedGroup} project={assignedGroup.project}>
         <ActivitySection group={assignedGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByRole('img', {name: 'David Cramer'})).toHaveAttribute(
@@ -593,10 +572,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={assignedGroup} project={assignedGroup.project}>
         <ActivitySection group={assignedGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(screen.getByText('Assigned')).toBeInTheDocument();
@@ -686,10 +662,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={editGroup} project={editGroup.project}>
         <ActivitySection group={editGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
     expect(await screen.findByText('Group Test')).toBeInTheDocument();
 
@@ -754,7 +727,7 @@ describe('ActivitySection', () => {
       await screen.findByText('This note came from my sentry app')
     ).toBeInTheDocument();
     expect(screen.getByTestId('upload-avatar')).toBeInTheDocument();
-    expect(screen.getByText(sentryApp.name)).toBeInTheDocument();
+    expect(screen.getByText(`${sentryApp.name} commented`)).toBeInTheDocument();
     // We should not show the user, if a sentry app is attached
     expect(screen.queryByText(newUser.name)).not.toBeInTheDocument();
   });
@@ -877,7 +850,7 @@ describe('ActivitySection', () => {
         group={updatedActivityGroup}
         project={updatedActivityGroup.project}
       >
-        <ActivitySection group={updatedActivityGroup} variant="standalone" size="md" />
+        <ActivitySection group={updatedActivityGroup} variant="standalone" />
       </GroupDataContextProvider>
     );
 
@@ -924,7 +897,6 @@ describe('ActivitySection', () => {
         <ActivitySection
           group={updatedActivityGroup}
           variant="standalone"
-          size="md"
           filterComments
         />
       </GroupDataContextProvider>
@@ -1093,38 +1065,34 @@ describe('ActivitySection', () => {
       expectedCopy: ['Autofix triggered'],
       expectedMarker: 'Activity update',
     },
-  ])(
-    'renders $name v2 activity copy',
-    async ({activity, expectedCopy, expectedMarker}) => {
-      const activityGroup = GroupFixture({
-        id: '1339',
-        activity: [activity],
-        project,
-      });
+  ])('renders $name activity copy', async ({activity, expectedCopy, expectedMarker}) => {
+    const activityGroup = GroupFixture({
+      id: '1339',
+      activity: [activity],
+      project,
+    });
 
-      render(
-        <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
-          <ActivitySection group={activityGroup} variant="standalone" size="md" />
-        </GroupDataContextProvider>,
-        {
-          organization: OrganizationFixture({
-            features: [
-              'display-seer-actions-as-issue-activities',
-              'issue-activity-feed-v2',
-              ...(expectedMarker ? ['issue-activity-progress'] : []),
-            ],
-          }),
-        }
-      );
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} variant="standalone" />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({
+          features: [
+            'display-seer-actions-as-issue-activities',
+            ...(expectedMarker ? ['issue-activity-progress'] : []),
+          ],
+        }),
+      }
+    );
 
-      for (const copy of expectedCopy) {
-        expect(await screen.findByText(copy)).toBeInTheDocument();
-      }
-      if (expectedMarker) {
-        expect(screen.getByRole('img', {name: expectedMarker})).toBeInTheDocument();
-      }
+    for (const copy of expectedCopy) {
+      expect(await screen.findByText(copy)).toBeInTheDocument();
     }
-  );
+    if (expectedMarker) {
+      expect(screen.getByRole('img', {name: expectedMarker})).toBeInTheDocument();
+    }
+  });
 
   it('renders reprocessed events as a linked activity update', () => {
     const activityGroup = GroupFixture({
@@ -1142,9 +1110,8 @@ describe('ActivitySection', () => {
 
     render(
       <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
-        <ActivitySection group={activityGroup} variant="standalone" size="md" />
-      </GroupDataContextProvider>,
-      {organization: OrganizationFixture({features: ['issue-activity-feed-v2']})}
+        <ActivitySection group={activityGroup} variant="standalone" />
+      </GroupDataContextProvider>
     );
 
     expect(screen.getByText('Reprocessed')).toBeInTheDocument();
@@ -1169,11 +1136,11 @@ describe('ActivitySection', () => {
 
     render(
       <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
-        <ActivitySection group={activityGroup} variant="standalone" size="md" />
+        <ActivitySection group={activityGroup} variant="standalone" />
       </GroupDataContextProvider>,
       {
         organization: OrganizationFixture({
-          features: ['issue-activity-feed-v2', 'issue-activity-progress'],
+          features: ['issue-activity-progress'],
         }),
       }
     );
@@ -1208,9 +1175,8 @@ describe('ActivitySection', () => {
 
     render(
       <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
-        <ActivitySection group={activityGroup} variant="standalone" size="md" />
-      </GroupDataContextProvider>,
-      {organization: OrganizationFixture({features: ['issue-activity-feed-v2']})}
+        <ActivitySection group={activityGroup} variant="standalone" />
+      </GroupDataContextProvider>
     );
 
     expect(screen.getByText(copy)).toBeInTheDocument();
@@ -1240,10 +1206,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={resolvedGroup} project={resolvedGroup.project}>
         <ActivitySection group={resolvedGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
     expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
       'Resolved in 1.0.0 via Jira Server'
@@ -1314,10 +1277,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={resolvedGroup} project={resolvedGroup.project}>
         <ActivitySection group={resolvedGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
@@ -1359,10 +1319,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={resolvedGroup} project={resolvedGroup.project}>
         <ActivitySection group={resolvedGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
@@ -1398,7 +1355,7 @@ describe('ActivitySection', () => {
         <ActivitySection group={referencedGroup} />
       </GroupDataContextProvider>
     );
-    expect(await screen.findByText('Referenced in Commit')).toBeInTheDocument();
+    expect(await screen.findByText('Referenced in')).toBeInTheDocument();
     expect(screen.getByText('f7f395d')).toBeInTheDocument();
   });
 
@@ -1436,10 +1393,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={referencedGroup} project={referencedGroup.project}>
         <ActivitySection group={referencedGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
@@ -1649,10 +1603,7 @@ describe('ActivitySection', () => {
       </GroupDataContextProvider>,
       {
         organization: OrganizationFixture({
-          features: [
-            'display-seer-actions-as-issue-activities',
-            'issue-activity-feed-v2',
-          ],
+          features: ['display-seer-actions-as-issue-activities'],
         }),
       }
     );
@@ -1698,10 +1649,7 @@ describe('ActivitySection', () => {
         project={resolvedCommitGroup.project}
       >
         <ActivitySection group={resolvedCommitGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('Resolved')).toBeInTheDocument();
@@ -1750,10 +1698,7 @@ describe('ActivitySection', () => {
         project={resolvedCommitGroup.project}
       >
         <ActivitySection group={resolvedCommitGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('Resolved')).toBeInTheDocument();
@@ -1791,10 +1736,7 @@ describe('ActivitySection', () => {
         project={resolvedCommitGroup.project}
       >
         <ActivitySection group={resolvedCommitGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('Resolved')).toBeInTheDocument();
@@ -1833,13 +1775,11 @@ describe('ActivitySection', () => {
       </GroupDataContextProvider>,
       {organization: org}
     );
-    expect(await screen.findByText('Root Cause Analysis')).toBeInTheDocument();
-    expect(screen.getByText('Seer completed root cause analysis')).toBeInTheDocument();
-    expect(screen.getByText('Autofix')).toBeInTheDocument();
-    expect(screen.getByText('Autofix was triggered from Slack')).toBeInTheDocument();
+    expect(await screen.findByText('Root cause found')).toBeInTheDocument();
+    expect(screen.getByText('Autofix triggered from Slack')).toBeInTheDocument();
   });
 
-  it('collapses Seer activity pairs across other activity in the v2 feed', async () => {
+  it('collapses Seer activity pairs across other activity', async () => {
     const seerGroup = GroupFixture({
       id: '1343',
       activity: [
@@ -1902,10 +1842,7 @@ describe('ActivitySection', () => {
       </GroupDataContextProvider>,
       {
         organization: OrganizationFixture({
-          features: [
-            'display-seer-actions-as-issue-activities',
-            'issue-activity-feed-v2',
-          ],
+          features: ['display-seer-actions-as-issue-activities'],
         }),
       }
     );
@@ -1955,10 +1892,7 @@ describe('ActivitySection', () => {
       </GroupDataContextProvider>,
       {
         organization: OrganizationFixture({
-          features: [
-            'display-seer-actions-as-issue-activities',
-            'issue-activity-feed-v2',
-          ],
+          features: ['display-seer-actions-as-issue-activities'],
         }),
       }
     );
@@ -2003,7 +1937,7 @@ describe('ActivitySection', () => {
     expect(screen.queryByText('Autofix was triggered')).not.toBeInTheDocument();
   });
 
-  it('does not collapse hidden Seer activities in the v2 feed', () => {
+  it('does not collapse hidden Seer activities', () => {
     const seerGroup = GroupFixture({
       id: '1343',
       activity: [
@@ -2028,54 +1962,11 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
         <ActivitySection group={seerGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(screen.queryByText('Root cause found')).not.toBeInTheDocument();
     expect(screen.queryByText('Root cause analysis started')).not.toBeInTheDocument();
-  });
-
-  it('does not render Seer PR created activity in timeline', () => {
-    const seerPrGroup = GroupFixture({
-      id: '1344',
-      activity: [
-        {
-          type: GroupActivityType.SEER_PR_CREATED,
-          id: 'seer-pr-1',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {
-            run_id: 456,
-            pull_requests: [
-              {
-                provider: 'github',
-                pull_request: {
-                  pr_number: 42,
-                  pr_url: 'https://github.com/org/repo/pull/42',
-                },
-                repo_name: 'org/repo',
-              },
-            ],
-          },
-          user: null,
-        },
-      ],
-      project,
-    });
-
-    const org = OrganizationFixture({
-      features: ['display-seer-actions-as-issue-activities'],
-    });
-
-    render(
-      <GroupDataContextProvider group={seerPrGroup} project={seerPrGroup.project}>
-        <ActivitySection group={seerPrGroup} />
-      </GroupDataContextProvider>,
-      {organization: org}
-    );
-    expect(screen.queryByText('Pull Request Created')).not.toBeInTheDocument();
   });
 
   it('collapses Seer PR iteration activity when feature flag is enabled', async () => {
@@ -2118,7 +2009,7 @@ describe('ActivitySection', () => {
     });
 
     const org = OrganizationFixture({
-      features: ['display-seer-actions-as-issue-activities', 'issue-activity-feed-v2'],
+      features: ['display-seer-actions-as-issue-activities'],
     });
 
     render(
@@ -2140,87 +2031,6 @@ describe('ActivitySection', () => {
       'href',
       'https://github.com/org/repo/pull/42'
     );
-  });
-
-  it('hides Seer PR iteration activity when feature flag is disabled', () => {
-    const seerIterationGroup = GroupFixture({
-      id: '1347',
-      activity: [
-        {
-          type: GroupActivityType.SEER_ITERATION_STARTED,
-          id: 'seer-iteration-3',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {run_id: 456, iteration_index: 1},
-          user: null,
-        },
-      ],
-      project,
-    });
-
-    render(
-      <GroupDataContextProvider
-        group={seerIterationGroup}
-        project={seerIterationGroup.project}
-      >
-        <ActivitySection group={seerIterationGroup} />
-      </GroupDataContextProvider>
-    );
-    expect(screen.queryByText('PR Iteration')).not.toBeInTheDocument();
-  });
-
-  it('renders PR author name when activity user is null', async () => {
-    const prGroup = GroupFixture({
-      id: '1345',
-      activity: [
-        {
-          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
-          id: 'pr-author-1',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {
-            pullRequest: PullRequestFixture({
-              author: {name: 'Shashank N Jarmale', email: 'shash@sentry.io'},
-            }),
-          },
-          user: null,
-        },
-      ],
-      project,
-    });
-
-    render(
-      <GroupDataContextProvider group={prGroup} project={prGroup.project}>
-        <ActivitySection group={prGroup} />
-      </GroupDataContextProvider>
-    );
-    expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
-    expect(screen.getByText('Shashank N Jarmale')).toBeInTheDocument();
-    expect(screen.queryByText('Sentry')).not.toBeInTheDocument();
-  });
-
-  it('falls back to Sentry when PR has no author', async () => {
-    const prGroup = GroupFixture({
-      id: '1346',
-      activity: [
-        {
-          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
-          id: 'pr-author-2',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {
-            pullRequest: PullRequestFixture(),
-          },
-          user: null,
-        },
-      ],
-      project,
-    });
-
-    render(
-      <GroupDataContextProvider group={prGroup} project={prGroup.project}>
-        <ActivitySection group={prGroup} />
-      </GroupDataContextProvider>
-    );
-    expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
-    expect(screen.getByText('Sentry')).toBeInTheDocument();
   });
 
   it('does not render missing pull request details in activity line items', async () => {
@@ -2250,75 +2060,11 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={prGroup} project={prGroup.project}>
         <ActivitySection group={prGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findAllByText('Referenced in pull request')).toHaveLength(2);
     expect(screen.queryByText('in a pull request')).not.toBeInTheDocument();
-  });
-
-  it('falls back to Sentry for bot authors with @localhost email', async () => {
-    const prGroup = GroupFixture({
-      id: '1347',
-      activity: [
-        {
-          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
-          id: 'pr-author-3',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {
-            pullRequest: PullRequestFixture({
-              author: {name: 'sentry[bot]', email: 'sentry[bot]@localhost'},
-            }),
-          },
-          user: null,
-        },
-      ],
-      project,
-    });
-
-    render(
-      <GroupDataContextProvider group={prGroup} project={prGroup.project}>
-        <ActivitySection group={prGroup} />
-      </GroupDataContextProvider>
-    );
-    expect(await screen.findByText('Pull Request Created')).toBeInTheDocument();
-    expect(screen.getByText('Sentry')).toBeInTheDocument();
-    expect(screen.queryByText('sentry[bot]')).not.toBeInTheDocument();
-  });
-
-  it.each([
-    [GroupActivityType.PULL_REQUEST_CLOSED, 'Pull Request Closed'],
-    [GroupActivityType.PULL_REQUEST_REOPENED, 'Pull Request Reopened'],
-    [GroupActivityType.PULL_REQUEST_MERGED, 'Pull Request Merged'],
-    [GroupActivityType.PULL_REQUEST_UNLINKED, 'Pull Request Unlinked'],
-  ] as const)('renders %s in the legacy activity UI', async (type, title) => {
-    const pullRequest = PullRequestFixture();
-    const prGroup = GroupFixture({
-      activity: [
-        {
-          type,
-          id: `pr-${type}`,
-          dateCreated: '2020-01-01T00:00:00',
-          data: {pullRequest},
-          user: null,
-        },
-      ],
-      project,
-    });
-
-    render(
-      <GroupDataContextProvider group={prGroup} project={prGroup.project}>
-        <ActivitySection group={prGroup} />
-      </GroupDataContextProvider>
-    );
-
-    expect(await screen.findByText(title)).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', {name: 'example/repo-name #3: Fix first issue'})
-    ).toHaveAttribute('href', pullRequest.externalUrl);
   });
 
   it.each([
@@ -2326,7 +2072,7 @@ describe('ActivitySection', () => {
     [GroupActivityType.PULL_REQUEST_REOPENED, 'reopened'],
     [GroupActivityType.PULL_REQUEST_MERGED, 'merged'],
     [GroupActivityType.PULL_REQUEST_UNLINKED, 'unlinked'],
-  ] as const)('renders %s in the new activity UI', async (type, action) => {
+  ] as const)('renders %s in the activity UI', async (type, action) => {
     const pullRequest = PullRequestFixture();
     const prGroup = GroupFixture({
       activity: [
@@ -2344,10 +2090,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={prGroup} project={prGroup.project}>
         <ActivitySection group={prGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
