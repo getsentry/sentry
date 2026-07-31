@@ -193,7 +193,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
             gap="md"
             width="100%"
           >
-            <Container area="filters">
+            <Container area="filters" justifySelf="start">
               <StyledPageFilterBar condensed>
                 <ProjectPageFilter />
                 <EnvironmentPageFilter />
