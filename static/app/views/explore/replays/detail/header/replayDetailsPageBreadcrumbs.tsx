@@ -112,7 +112,7 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                 previous: {
                   ariaLabel: t('Previous replay based on search query'),
                   tooltip: previousReplay
-                    ? {title: t('Previous replay based on search query')}
+                    ? t('Previous replay based on search query')
                     : undefined,
                   to: previousReplay
                     ? {
@@ -132,7 +132,7 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                 next: {
                   ariaLabel: t('Next replay based on search query'),
                   tooltip: nextReplay
-                    ? {title: t('Next replay based on search query')}
+                    ? t('Next replay based on search query')
                     : undefined,
                   to: nextReplay
                     ? {

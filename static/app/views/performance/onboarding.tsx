@@ -10,8 +10,10 @@ import tourCorrelate from 'sentry-images/spot/performance-tour-correlate.svg';
 import tourMetrics from 'sentry-images/spot/performance-tour-metrics.svg';
 import tourTrace from 'sentry-images/spot/performance-tour-trace.svg';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {UnsupportedAlert} from 'sentry/components/alerts/unsupportedAlert';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -24,6 +26,7 @@ import {
 } from 'sentry/components/modals/featureTourModal';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
@@ -63,6 +66,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
@@ -72,11 +76,23 @@ import {traceAnalytics} from './newTraceDetails/traceAnalytics';
 const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';
 
+const AI_SETUP_PROMPT = 'Please enable Sentry tracing in my app.';
+
+const INSTALL_PLUGIN_COMMAND = `npx @sentry/ai install "${AI_SETUP_PROMPT}"`;
+
+const AGENT_PLUGIN_DOCS_URL = 'https://docs.sentry.io/ai/agent-plugin/';
+
+const TRACING_DOCS_URL = 'https://docs.sentry.io/concepts/key-terms/tracing/';
+
 const docsLink = (
   <LinkButton external href={performanceSetupUrl}>
     {t('Setup')}
   </LinkButton>
 );
+
+function doesNotSupportPerformance(project: Project) {
+  return project.platform ? withoutPerformanceSupport.has(project.platform) : false;
+}
 
 export const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   {
@@ -168,8 +184,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
   const hasPerformanceOnboarding = currentPlatform
     ? withPerformanceOnboarding.has(currentPlatform)
     : false;
-  const noPerformanceSupport =
-    currentPlatform && withoutPerformanceSupport.has(currentPlatform);
+  const noPerformanceSupport = doesNotSupportPerformance(project);
 
   let setupButton = (
     <LinkButton
@@ -267,11 +282,26 @@ const ButtonList = styled((props: GridProps) => (
 
 function OnboardingPanel({
   project,
+  receivedFirstTrace,
   children,
 }: {
   children: React.ReactNode;
   project: Project;
+  receivedFirstTrace: boolean;
 }) {
+  const organization = useOrganization();
+
+  const noPerformanceSupport = doesNotSupportPerformance(project);
+
+  const trackPromptCopied = (source: 'install_command' | 'prompt') => {
+    trackAnalytics('onboarding.ai_prompt_copied', {
+      organization,
+      platform: project.platform ?? 'unknown',
+      product: 'traces',
+      source,
+    });
+  };
+
   return (
     <Panel>
       <PanelBody>
@@ -280,43 +310,73 @@ function OnboardingPanel({
             <div>
               <HeaderWrapper>
                 <HeaderText>
-                  <Title>{t('Query for Traces, Get Answers')}</Title>
+                  <Title>{t('Tracing in Sentry')}</Title>
                   <SubTitle>
-                    {t(
-                      'You can query and aggregate spans to create metrics that help you debug busted API calls, slow image loads, or any other metrics you’d like to track.'
+                    {tct(
+                      'Use [tracingLink:tracing] to understand how requests and operations flow through your services and agents, and where they slow down or fail.',
+                      {tracingLink: <ExternalLink href={TRACING_DOCS_URL} />}
                     )}
                   </SubTitle>
                   <BulletList>
                     <li>
                       {t(
-                        'Find traces tied to a user complaint and pinpoint exactly what broke'
+                        'See related errors, logs, replays, and metrics alongside each trace'
                       )}
                     </li>
                     <li>
                       {t(
-                        'Debug persistent issues by investigating API payloads, cache sizes, user tokens, and more'
+                        'Find slow services and operations in the trace view and spot where a problem originated'
                       )}
                     </li>
-                    <li>
-                      {t(
-                        'Track any span attribute as a metric to catch slowdowns before they escalate'
-                      )}
-                    </li>
+                    <li>{t('Inspect model calls and tool calls in AI agents')}</li>
                   </BulletList>
                 </HeaderText>
                 <Image src={emptyTraceImg} />
               </HeaderWrapper>
               <Divider />
               <Body>
+                {noPerformanceSupport ? null : (
+                  <AiSetup>
+                    <BodyTitle>
+                      <Flex align="center" gap="sm">
+                        {t('AI-Assisted Setup')}
+                        <FeatureBadge type="experimental" />
+                      </Flex>
+                    </BodyTitle>
+                    <SubTitle>
+                      {tct(
+                        'First, run this command to install the [pluginLink:Sentry plugin]:',
+                        {pluginLink: <ExternalLink href={AGENT_PLUGIN_DOCS_URL} />}
+                      )}
+                    </SubTitle>
+                    <Container marginTop="md" marginBottom="2xl">
+                      <OnboardingCodeSnippet
+                        language="bash"
+                        onCopy={() => trackPromptCopied('install_command')}
+                      >
+                        {INSTALL_PLUGIN_COMMAND}
+                      </OnboardingCodeSnippet>
+                    </Container>
+                    <SubTitle>{t('Then paste this in your agent of choice:')}</SubTitle>
+                    <Container marginTop="md" marginBottom="2xl">
+                      <OnboardingCodeSnippet
+                        language="text"
+                        onCopy={() => trackPromptCopied('prompt')}
+                      >
+                        {AI_SETUP_PROMPT}
+                      </OnboardingCodeSnippet>
+                    </Container>
+                    {receivedFirstTrace ? (
+                      <EventReceivedIndicator />
+                    ) : (
+                      <EventWaitingIndicator />
+                    )}
+                  </AiSetup>
+                )}
                 <Setup>{children}</Setup>
-                <Preview>
-                  <BodyTitle>{t('Preview a Sentry Trace')}</BodyTitle>
-                  <Arcade
-                    src="https://demo.arcade.software/BPVB65UiYCxixEw8bnmj?embed"
-                    loading="lazy"
-                    allowFullScreen
-                  />
-                </Preview>
+                {noPerformanceSupport ? null : (
+                  <OrDivider aria-hidden>{t('OR')}</OrDivider>
+                )}
               </Body>
             </div>
           </TabSelectionScope>
@@ -339,15 +399,13 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
 
-  const doesNotSupportPerformance = project.platform
-    ? withoutPerformanceSupport.has(project.platform)
-    : false;
+  const noPerformanceSupport = doesNotSupportPerformance(project);
 
   const firstIssue = useEventWaiter({
     eventType: 'transaction',
     organization,
     project,
-    disabled: doesNotSupportPerformance,
+    disabled: noPerformanceSupport,
   });
   const received = !!firstIssue;
 
@@ -386,17 +444,10 @@ export function Onboarding({organization, project}: OnboardingProps) {
     traceAnalytics.trackTracingOnboarding(
       organization,
       currentPlatform.id,
-      !doesNotSupportPerformance,
+      !noPerformanceSupport,
       withPerformanceOnboarding.has(currentPlatform.id)
     );
-  }, [
-    currentPlatform,
-    isLoading,
-    dsn,
-    projectKeyId,
-    organization,
-    doesNotSupportPerformance,
-  ]);
+  }, [currentPlatform, isLoading, dsn, projectKeyId, organization, noPerformanceSupport]);
 
   const performanceDocs = docs?.performanceOnboarding;
 
@@ -404,9 +455,9 @@ export function Onboarding({organization, project}: OnboardingProps) {
     return <LoadingIndicator />;
   }
 
-  if (doesNotSupportPerformance) {
+  if (noPerformanceSupport) {
     return (
-      <OnboardingPanel project={project}>
+      <OnboardingPanel project={project} receivedFirstTrace={received}>
         <div>
           {tct(
             'Fiddlesticks. Performance isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
@@ -435,12 +486,11 @@ export function Onboarding({organization, project}: OnboardingProps) {
 
   if (!currentPlatform || !performanceDocs || !dsn || !projectKeyId) {
     return (
-      <OnboardingPanel project={project}>
+      <OnboardingPanel project={project} receivedFirstTrace={received}>
         <div>
-          {tct(
-            'Fiddlesticks. The tracing onboarding checklist isn’t available for your [project] project yet, but for now, go to Sentry docs for installation details.',
-            {project: project.slug}
-          )}
+          {tct('Read the docs to instrument tracing in your [platform] project', {
+            platform: currentPlatform?.name || project.slug,
+          })}
         </div>
         <br />
         <div>
@@ -491,14 +541,8 @@ export function Onboarding({organization, project}: OnboardingProps) {
 
   const steps = [...installSteps, ...configureSteps, ...verifySteps];
 
-  const eventWaitingIndicator = received ? (
-    <EventReceivedIndicator />
-  ) : (
-    <EventWaitingIndicator />
-  );
-
   return (
-    <OnboardingPanel project={project}>
+    <OnboardingPanel project={project} receivedFirstTrace={received}>
       <SetupTitle project={project} />
       <GuidedSteps
         initialStep={decodeInteger(location.query.guidedStep)}
@@ -537,7 +581,6 @@ export function Onboarding({organization, project}: OnboardingProps) {
               </StepIndexProvider>
               {index === steps.length - 1 ? (
                 <Fragment>
-                  {eventWaitingIndicator}
                   <GuidedSteps.ButtonWrapper>
                     <GuidedSteps.BackButton size="md" />
                     {received ? (
@@ -589,11 +632,14 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   flex-grow: 1;
   font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.colors.pink500};
+  /* Keeps the pulsing dot clear of the centered "OR" divider. */
+  padding-right: ${p => p.theme.space['3xl']};
 `;
 
 const PulsingIndicator = styled('div')`
   ${pulsingIndicatorStyles};
   margin-left: ${p => p.theme.space.md};
+  flex-shrink: 0;
 `;
 
 const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
@@ -644,7 +690,7 @@ const HeaderText = styled('div')`
   }
 `;
 
-const Setup = styled('div')`
+const AiSetup = styled('div')`
   padding: ${p => p.theme.space['3xl']};
 
   &:after {
@@ -657,8 +703,22 @@ const Setup = styled('div')`
   }
 `;
 
-const Preview = styled('div')`
+const Setup = styled('div')`
   padding: ${p => p.theme.space['3xl']};
+`;
+
+const OrDivider = styled('div')`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  padding: ${p => p.theme.space.sm};
+  background: ${p => p.theme.tokens.background.primary};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  letter-spacing: 0.05em;
 `;
 
 const Body = styled('div')`
@@ -691,12 +751,4 @@ const Divider = styled('hr')`
   border: none;
   margin-top: 0;
   margin-bottom: 0;
-`;
-
-const Arcade = styled('iframe')`
-  width: 750px;
-  max-width: 100%;
-  margin-top: ${p => p.theme.space['2xl']};
-  height: 522px;
-  border: 0;
 `;

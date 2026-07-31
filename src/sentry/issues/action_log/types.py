@@ -146,6 +146,7 @@ class ActionSource(StrEnum):
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
     PERFORCE = "perforce"
+    EMAIL = "email"
     UNKNOWN = (
         "unknown"  # fallback when ActionContext is missing; indicates a gap in instrumentation
     )

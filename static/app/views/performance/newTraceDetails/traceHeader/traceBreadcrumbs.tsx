@@ -78,12 +78,7 @@ function useTracePagination(rootEventResults?: TraceRootEventQueryResults) {
     currentTraceStartTimestamp,
   });
 
-  // Both tooltips end in a "Learn More" docs link, so they have to stay
-  // hoverable for the link to be reachable.
-  return {
-    previous: {...previous, tooltip: {title: previous.tooltip, isHoverable: true}},
-    next: {...next, tooltip: {title: next.tooltip, isHoverable: true}},
-  };
+  return {previous, next};
 }
 
 export function TraceBreadcrumbs({
