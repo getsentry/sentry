@@ -69,7 +69,7 @@ export function ReplayOnboardingPanel() {
       {hasSelectedProjects && allSelectedProjectsUnsupported && (
         <ReplayUnsupportedAlert projectSlug={selectedProjects[0]!.slug} />
       )}
-      <ReplayPanel image={<HeroImage />}>
+      <ReplayPanel image={<HeroImage src={emptyStateImg} />}>
         <OnboardingCTAHook organization={organization}>
           <SetupReplaysCTA
             primaryAction={primaryAction}
@@ -277,11 +277,7 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
   );
 }
 
-function HeroImage() {
-  return <StyledHeroImage src={emptyStateImg} />;
-}
-
-const StyledHeroImage = styled('img')`
+const HeroImage = styled('img')`
   @container (min-width: ${p => p.theme.container.xl}) {
     position: absolute;
     top: 0;
