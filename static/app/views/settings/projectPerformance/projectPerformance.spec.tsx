@@ -7,6 +7,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -53,6 +54,20 @@ const manageDetectorData = [
   },
   {label: 'Web Vitals Detection', key: 'web_vitals_detection_enabled'},
 ];
+
+async function expandAllDetectorSettings() {
+  const detectorSettings = document.getElementById('detector-threshold-settings');
+  if (!detectorSettings) {
+    throw new Error('Detector settings were not rendered');
+  }
+
+  const collapsedGroups = within(detectorSettings).queryAllByRole('button', {
+    expanded: false,
+  });
+  for (const group of collapsedGroups) {
+    await userEvent.click(group);
+  }
+}
 
 describe('projectPerformance', () => {
   const org = OrganizationFixture({
@@ -415,10 +430,7 @@ describe('projectPerformance', () => {
       expect(screen.getByText(title)).toBeInTheDocument();
 
       // Open collapsed panels
-      const chevrons = screen.getAllByTestId('form-panel-collapse-chevron');
-      for (const chevron of chevrons) {
-        await userEvent.click(chevron);
-      }
+      await expandAllDetectorSettings();
 
       // Some of the sliders have the same label, so use an index as well
       const slider = screen.getAllByRole('slider', {name: sliderIdentifier.label})[
@@ -436,9 +448,9 @@ describe('projectPerformance', () => {
       // Slide value on range slider.
       act(() => slider.focus());
       const indexDelta = newValueIndex - indexOfValue;
-      await userEvent.keyboard(
-        indexDelta > 0 ? `{ArrowRight>${indexDelta}}` : `{ArrowLeft>${-indexDelta}}`
-      );
+      for (let index = 0; index < Math.abs(indexDelta); index++) {
+        await userEvent.keyboard(indexDelta > 0 ? '{ArrowRight}' : '{ArrowLeft}');
+      }
       await userEvent.tab();
 
       expect(slider).toHaveValue(newValueIndex.toString());
@@ -518,10 +530,7 @@ describe('projectPerformance', () => {
       let toggle = screen.queryByRole<HTMLInputElement>('checkbox', {name: label});
       expect(toggle).not.toBeInTheDocument();
 
-      const chevrons = screen.getAllByTestId('form-panel-collapse-chevron');
-      for (const chevron of chevrons) {
-        await userEvent.click(chevron);
-      }
+      await expandAllDetectorSettings();
 
       const mockPut = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/performance-issues/configure/',
@@ -586,10 +595,7 @@ describe('projectPerformance', () => {
       let toggle = screen.queryByRole<HTMLInputElement>('checkbox', {name: label});
       expect(toggle).not.toBeInTheDocument();
 
-      const chevrons = screen.getAllByTestId('form-panel-collapse-chevron');
-      for (const chevron of chevrons) {
-        await userEvent.click(chevron);
-      }
+      await expandAllDetectorSettings();
 
       toggle = screen.queryByRole<HTMLInputElement>('checkbox', {name: label});
       expect(toggle).toBeDisabled();

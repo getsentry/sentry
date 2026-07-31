@@ -1,32 +1,32 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Access, hasEveryAccess} from 'sentry/components/acl/access';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {Confirm} from 'sentry/components/confirm';
-import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import {Form} from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
-import type {Field, JsonFormObject} from 'sentry/components/forms/types';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelFooter} from 'sentry/components/panels/panelFooter';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Scope} from 'sentry/types/core';
 import {AI_DETECTED_ISSUE_TYPES, IssueTitle, IssueType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -75,7 +75,31 @@ export const allowedCountValues: number[] = [5, 10, 20, 50, 100];
 
 export const projectDetectorSettingsId = 'detector-threshold-settings';
 
-type ProjectPerformanceSettings = Record<string, number | boolean>;
+type ProjectPerformanceSettingValue = boolean | number | string;
+type ProjectPerformanceSettings = Record<string, ProjectPerformanceSettingValue>;
+
+type DetectorFieldConfig = {
+  label: string;
+  name: DetectorConfigAdmin | DetectorConfigCustomer;
+  type: 'boolean' | 'range' | 'string';
+  allowedValues?: readonly number[];
+  defaultValue?: ProjectPerformanceSettingValue;
+  disabled?: boolean;
+  disabledReason?: string | null;
+  flexibleControlStateSize?: boolean;
+  formatLabel?: (value: number | '') => React.ReactNode;
+  help?: string;
+  placeholder?: string;
+  showTickLabels?: boolean;
+  tickValues?: number[];
+  visible?: boolean;
+};
+
+type DetectorFieldGroup = {
+  fields: DetectorFieldConfig[];
+  title: string;
+  initiallyCollapsed?: boolean;
+};
 
 enum DetectorConfigAdmin {
   N_PLUS_DB_ENABLED = 'n_plus_one_db_queries_detection_enabled',
@@ -173,6 +197,155 @@ const regressionAdminSchema = z.object({
 });
 
 type GeneralSettings = {enable_images?: boolean};
+
+function DetectorAutoSaveField({
+  endpoint,
+  field,
+  initialValue,
+  organization,
+  organizationSlug,
+  projectSlug,
+  queryClient,
+}: {
+  endpoint: string;
+  field: DetectorFieldConfig;
+  initialValue: ProjectPerformanceSettingValue;
+  organization: Organization;
+  organizationSlug: string;
+  projectSlug: string;
+  queryClient: QueryClient;
+}) {
+  if (field.visible === false) {
+    return null;
+  }
+
+  const disabled = field.disabled ? (field.disabledReason ?? true) : false;
+  const mutationOptions = {
+    mutationFn: (data: ProjectPerformanceSettings) =>
+      fetchMutation<ProjectPerformanceSettings>({
+        url: endpoint,
+        method: 'PUT',
+        data,
+      }),
+    onSuccess: (
+      _data: ProjectPerformanceSettings,
+      variables: ProjectPerformanceSettings
+    ) => {
+      setApiQueryData<ProjectPerformanceSettings>(
+        queryClient,
+        getPerformanceIssueSettingsQueryKey(organizationSlug, projectSlug),
+        previous => ({...previous, ...variables})
+      );
+
+      const [thresholdKey, thresholdValue] = Object.entries(variables)[0] ?? [];
+      if (thresholdKey && typeof thresholdValue === 'number') {
+        trackAnalytics('performance_views.project_issue_detection_threshold_changed', {
+          organization,
+          project_slug: projectSlug,
+          threshold_key: thresholdKey,
+          threshold_value: thresholdValue,
+        });
+      }
+    },
+  };
+
+  if (field.type === 'boolean') {
+    const schema = z.object({[field.name]: z.boolean()});
+    return (
+      <AutoSaveForm
+        name={field.name}
+        schema={schema}
+        initialValue={Boolean(initialValue)}
+        mutationOptions={mutationOptions}
+      >
+        {formField => (
+          <formField.Layout.Row label={field.label} hintText={field.help}>
+            <formField.Switch
+              checked={formField.state.value}
+              onChange={formField.handleChange}
+              disabled={disabled}
+            />
+          </formField.Layout.Row>
+        )}
+      </AutoSaveForm>
+    );
+  }
+
+  if (field.type === 'string') {
+    const schema = z.object({[field.name]: z.string()});
+    return (
+      <AutoSaveForm
+        name={field.name}
+        schema={schema}
+        initialValue={typeof initialValue === 'string' ? initialValue : ''}
+        mutationOptions={mutationOptions}
+      >
+        {formField => (
+          <formField.Layout.Row label={field.label} hintText={field.help}>
+            <formField.Input
+              value={formField.state.value}
+              onChange={formField.handleChange}
+              placeholder={field.placeholder}
+              disabled={disabled}
+            />
+          </formField.Layout.Row>
+        )}
+      </AutoSaveForm>
+    );
+  }
+
+  const allowedValues = field.allowedValues ?? [];
+  const numericValue =
+    typeof initialValue === 'number' ? initialValue : Number(field.defaultValue);
+  const schema = z.object({[field.name]: z.number()});
+
+  return (
+    <AutoSaveForm
+      name={field.name}
+      schema={schema}
+      initialValue={numericValue}
+      mutationOptions={mutationOptions}
+    >
+      {formField => {
+        const valueIndex = Math.max(allowedValues.indexOf(formField.state.value), 0);
+        const formattedValue = field.formatLabel?.(formField.state.value);
+
+        return (
+          <formField.Layout.Row label={field.label} hintText={field.help}>
+            <Stack flexGrow={1} gap="xs">
+              <formField.Range
+                aria-label={field.label}
+                value={valueIndex}
+                onChange={index => {
+                  const value = allowedValues[index];
+                  if (value !== undefined) {
+                    formField.handleChange(value);
+                  }
+                }}
+                min={0}
+                max={Math.max(allowedValues.length - 1, 0)}
+                step={1}
+                ticks={
+                  field.tickValues
+                    ? {values: field.tickValues, labels: field.showTickLabels}
+                    : undefined
+                }
+                formatOptions="hidden"
+                aria-valuetext={
+                  typeof formattedValue === 'string' ? formattedValue : undefined
+                }
+                disabled={disabled}
+              />
+              <Text align="right" size="sm" variant="muted">
+                {formattedValue ?? formField.state.value}
+              </Text>
+            </Stack>
+          </formField.Layout.Row>
+        );
+      }}
+    </AutoSaveForm>
+  );
+}
 
 export function ProjectPerformance() {
   const api = useApi({persistInFlight: true});
@@ -289,9 +462,9 @@ export function ProjectPerformance() {
     isPendingResetThresholds
   ) {
     return (
-      <LoadingIndicatorContainer>
+      <Container padding="lg">
         <LoadingIndicator />
-      </LoadingIndicatorContainer>
+      </Container>
     );
   }
 
@@ -362,198 +535,78 @@ export function ProjectPerformance() {
       : []),
   ] as const;
 
-  const performanceIssueDetectorAdminFieldMapping: Record<string, Field> = {
+  const performanceIssueDetectorAdminFieldMapping: Record<string, DetectorFieldConfig> = {
     [IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: {
       name: DetectorConfigAdmin.N_PLUS_DB_ENABLED,
       type: 'boolean',
       label: t('N+1 DB Queries Detection'),
       defaultValue: true,
-      onChange: value => {
-        setApiQueryData<ProjectPerformanceSettings>(
-          queryClient,
-          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-          data => ({
-            ...data!,
-            n_plus_one_db_queries_detection_enabled: value,
-          })
-        );
-      },
     },
     [IssueTitle.PERFORMANCE_SLOW_DB_QUERY]: {
       name: DetectorConfigAdmin.SLOW_DB_ENABLED,
       type: 'boolean',
       label: t('Slow DB Queries Detection'),
       defaultValue: true,
-      onChange: value => {
-        setApiQueryData<ProjectPerformanceSettings>(
-          queryClient,
-          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-          data => ({
-            ...data!,
-            slow_db_queries_detection_enabled: value,
-          })
-        );
-      },
     },
     [IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS]: {
       name: DetectorConfigAdmin.N_PLUS_ONE_API_CALLS_ENABLED,
       type: 'boolean',
       label: t('N+1 API Calls Detection'),
       defaultValue: true,
-      onChange: value => {
-        setApiQueryData<ProjectPerformanceSettings>(
-          queryClient,
-          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-          data => ({
-            ...data!,
-            n_plus_one_api_calls_detection_enabled: value,
-          })
-        );
-      },
     },
     [IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET]: {
       name: DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED,
       type: 'boolean',
       label: t('Large Render Blocking Asset Detection'),
       defaultValue: true,
-      onChange: value => {
-        setApiQueryData<ProjectPerformanceSettings>(
-          queryClient,
-          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-          data => ({
-            ...data!,
-            large_render_blocking_asset_detection_enabled: value,
-          })
-        );
-      },
     },
     [IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: {
       name: DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED,
       type: 'boolean',
       label: t('Consecutive DB Queries Detection'),
       defaultValue: true,
-      onChange: value => {
-        setApiQueryData<ProjectPerformanceSettings>(
-          queryClient,
-          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-          data => ({
-            ...data!,
-            consecutive_db_queries_detection_enabled: value,
-          })
-        );
-      },
     },
     [IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD]: {
       name: DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED,
       type: 'boolean',
       label: t('Large HTTP Payload Detection'),
       defaultValue: true,
-      onChange: value => {
-        setApiQueryData<ProjectPerformanceSettings>(
-          queryClient,
-          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-          data => ({
-            ...data!,
-            large_http_payload_detection_enabled: value,
-          })
-        );
-      },
     },
     [IssueTitle.PERFORMANCE_DB_MAIN_THREAD]: {
       name: DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED,
       type: 'boolean',
       label: t('DB on Main Thread Detection'),
       defaultValue: true,
-      onChange: value => {
-        setApiQueryData<ProjectPerformanceSettings>(
-          queryClient,
-          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-          data => ({
-            ...data!,
-            db_on_main_thread_detection_enabled: value,
-          })
-        );
-      },
     },
     [IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD]: {
       name: DetectorConfigAdmin.FILE_IO_ENABLED,
       type: 'boolean',
       label: t('File I/O on Main Thread Detection'),
       defaultValue: true,
-      onChange: value => {
-        setApiQueryData<ProjectPerformanceSettings>(
-          queryClient,
-          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-          data => ({
-            ...data!,
-            file_io_on_main_thread_detection_enabled: value,
-          })
-        );
-      },
     },
     [IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET]: {
       name: DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED,
       type: 'boolean',
       label: t('Uncompressed Assets Detection'),
       defaultValue: true,
-      onChange: value => {
-        setApiQueryData<ProjectPerformanceSettings>(
-          queryClient,
-          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-          data => ({
-            ...data!,
-            uncompressed_assets_detection_enabled: value,
-          })
-        );
-      },
     },
     [IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP]: {
       name: DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED,
       type: 'boolean',
       label: t('Consecutive HTTP Detection'),
       defaultValue: true,
-      onChange: value => {
-        setApiQueryData<ProjectPerformanceSettings>(
-          queryClient,
-          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-          data => ({
-            ...data!,
-            consecutive_http_spans_detection_enabled: value,
-          })
-        );
-      },
     },
     [IssueTitle.PERFORMANCE_HTTP_OVERHEAD]: {
       name: DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED,
       type: 'boolean',
       label: t('HTTP/1.1 Overhead Detection'),
       defaultValue: true,
-      onChange: value => {
-        setApiQueryData<ProjectPerformanceSettings>(
-          queryClient,
-          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-          data => ({
-            ...data!,
-            http_overhead_detection_enabled: value,
-          })
-        );
-      },
     },
     [IssueTitle.QUERY_INJECTION_VULNERABILITY]: {
       name: DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED,
       type: 'boolean',
       label: t('Potential Database Query Injection Vulnerability Detection'),
       defaultValue: true,
-      onChange: value => {
-        setApiQueryData<ProjectPerformanceSettings>(
-          queryClient,
-          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-          data => ({
-            ...data!,
-            db_query_injection_detection_enabled: value,
-          })
-        );
-      },
       visible: organization.features.includes(
         'issue-query-injection-vulnerability-visible'
       ),
@@ -563,16 +616,6 @@ export function ProjectPerformance() {
       type: 'boolean',
       label: t('Web Vitals Detection'),
       defaultValue: true,
-      onChange: value => {
-        setApiQueryData<ProjectPerformanceSettings>(
-          queryClient,
-          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-          data => ({
-            ...data!,
-            web_vitals_detection_enabled: value,
-          })
-        );
-      },
       visible: hasWebVitalsSeerSuggestions,
     },
     ['AI Detected']: {
@@ -581,16 +624,6 @@ export function ProjectPerformance() {
       label: t('AI Issue Detection'),
       help: t('Controls whether or not Sentry runs AI issue detection on your traces.'),
       defaultValue: true,
-      onChange: value => {
-        setApiQueryData<ProjectPerformanceSettings>(
-          queryClient,
-          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-          data => ({
-            ...data!,
-            ai_issue_detection_enabled: value,
-          })
-        );
-      },
       visible: hasAIIssueDetection,
     },
   };
@@ -605,7 +638,7 @@ export function ProjectPerformance() {
     }
   };
 
-  const project_owner_detector_settings = (hasAccess: boolean): JsonFormObject[] => {
+  const getProjectDetectorSettings = (hasAccess: boolean): DetectorFieldGroup[] => {
     const disabledText = t('Detection of this issue has been disabled.');
 
     const disabledReason = hasAccess ? disabledText : null;
@@ -633,7 +666,7 @@ export function ProjectPerformance() {
 
     const issueType = safeGetQsParam('issueType');
 
-    const baseDetectorFields: JsonFormObject[] = [
+    const baseDetectorFields: DetectorFieldGroup[] = [
       {
         title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
         fields: [
@@ -1075,8 +1108,7 @@ export function ProjectPerformance() {
 
     // If the organization can manage detectors, add the admin field to the existing settings
     return baseDetectorFields.map(fieldGroup => {
-      const manageField =
-        performanceIssueDetectorAdminFieldMapping[fieldGroup.title as string];
+      const manageField = performanceIssueDetectorAdminFieldMapping[fieldGroup.title];
 
       return manageField
         ? {
@@ -1264,7 +1296,7 @@ export function ProjectPerformance() {
               }
               mutationOptions={{
                 mutationFn: (data: Record<string, boolean>) =>
-                  fetchMutation({
+                  fetchMutation<Project>({
                     url: projectEndpoint,
                     method: 'PUT',
                     data: {
@@ -1400,106 +1432,51 @@ export function ProjectPerformance() {
             </AutoSaveForm>
           </FieldGroup>
         )}
-        <Form
-          allowUndo={false}
-          initialData={performanceIssueSettings}
-          apiMethod="PUT"
-          apiEndpoint={performanceIssuesEndpoint}
-          saveOnBlur
-          onSubmitSuccess={(option: Record<string, number>) => {
-            const [threshold_key, threshold_value] = Object.entries(option)[0]!;
-
-            trackAnalytics(
-              'performance_views.project_issue_detection_threshold_changed',
-              {
-                organization,
-                project_slug: projectSlug,
-                threshold_key,
-                threshold_value,
-              }
-            );
-          }}
-        >
-          <Access access={requiredScopes} project={project}>
-            {({hasAccess}) => (
-              <div id={projectDetectorSettingsId}>
-                <StyledPanelHeader>
-                  {t('Performance Issues - Detector Threshold Settings')}
-                </StyledPanelHeader>
-                <StyledJsonForm
-                  forms={project_owner_detector_settings(hasAccess)}
-                  collapsible
-                />
-                <StyledPanelFooter>
-                  <Actions>
-                    <Confirm
-                      message={t(
-                        'Are you sure you wish to reset all detector thresholds?'
-                      )}
-                      onConfirm={() => resetThresholds()}
-                      disabled={!hasAccess || areAllConfigurationsDisabled}
-                    >
-                      <Button>{t('Reset All Thresholds')}</Button>
-                    </Confirm>
-                  </Actions>
-                </StyledPanelFooter>
-              </div>
-            )}
-          </Access>
-        </Form>
+        <Container id={projectDetectorSettingsId}>
+          <FieldGroup title={t('Performance Issues - Detector Threshold Settings')}>
+            <Stack gap="sm">
+              {getProjectDetectorSettings(hasWriteAccess).map(group => (
+                <Disclosure key={group.title} defaultExpanded={!group.initiallyCollapsed}>
+                  <Disclosure.Title>{group.title}</Disclosure.Title>
+                  <Disclosure.Content>
+                    <Stack gap="sm">
+                      {group.fields.map(field => (
+                        <DetectorAutoSaveField
+                          key={field.name}
+                          field={field}
+                          initialValue={
+                            performanceIssueSettings[field.name] ??
+                            field.defaultValue ??
+                            (field.type === 'boolean'
+                              ? false
+                              : field.type === 'string'
+                                ? ''
+                                : 0)
+                          }
+                          endpoint={performanceIssuesEndpoint}
+                          organization={organization}
+                          organizationSlug={organization.slug}
+                          projectSlug={projectSlug}
+                          queryClient={queryClient}
+                        />
+                      ))}
+                    </Stack>
+                  </Disclosure.Content>
+                </Disclosure>
+              ))}
+            </Stack>
+            <Flex justify="end">
+              <Confirm
+                message={t('Are you sure you wish to reset all detector thresholds?')}
+                onConfirm={() => resetThresholds()}
+                disabled={!hasWriteAccess || areAllConfigurationsDisabled}
+              >
+                <Button>{t('Reset All Thresholds')}</Button>
+              </Confirm>
+            </Flex>
+          </FieldGroup>
+        </Container>
       </Fragment>
     </Fragment>
   );
 }
-
-const Actions = styled(PanelItem)`
-  justify-content: flex-end;
-`;
-
-const StyledPanelHeader = styled(PanelHeader)`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-bottom: none;
-`;
-
-const StyledJsonForm = styled(JsonForm)`
-  ${Panel} {
-    margin-bottom: 0;
-    border-radius: 0;
-    border-bottom: 0;
-  }
-
-  ${FieldWrapper} {
-    border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-
-  ${FieldWrapper} + ${FieldWrapper} {
-    border-top: 0;
-  }
-
-  ${Panel} + ${Panel} {
-    border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-
-  ${PanelHeader} {
-    border-bottom: 0;
-    text-transform: none;
-    margin-bottom: 0;
-    background: none;
-    padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl};
-  }
-`;
-
-const StyledPanelFooter = styled(PanelFooter)`
-  background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: 0 0 calc(${p => p.theme.radius.md} - 1px)
-    calc(${p => p.theme.radius.md} - 1px);
-
-  ${Actions} {
-    padding: ${p => p.theme.space.lg};
-  }
-`;
-
-const LoadingIndicatorContainer = styled('div')`
-  margin: 18px 18px 0;
-`;
