@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from sentry.dashboards.endpoints.organization_dashboards import (
@@ -2734,6 +2736,51 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", url, data=self._single_widget_dashboard("Open Org"))
         assert response.status_code == 201, response.data
         assert Dashboard.objects.filter(organization=org, title="Open Org").exists()
+
+    @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
+    def test_post_validate_only_looks_up_fallback_project_once(
+        self, mock_in_test_environment
+    ) -> None:
+        """The fallback runs per widget query, so its lookup must be cached."""
+        assert self.project  # the fixture is lazy; the org needs a project
+        teamless_user = self.create_user()
+        self.create_member(
+            organization=self.organization, user=teamless_user, role="member", teams=[]
+        )
+        self.login_as(teamless_user)
+
+        data = {
+            "title": "Many Widgets",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": f"Widget {i}",
+                    "queries": [
+                        {
+                            "name": f"q{j}",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                        for j in range(2)
+                    ],
+                }
+                for i in range(5)
+            ],
+        }
+
+        with CaptureQueriesContext(connection) as queries:
+            response = self.do_request("post", self.url + "?validateOnly=1", data=data)
+        assert response.status_code == 200, response.data
+
+        fallback_lookups = [
+            q["sql"]
+            for q in queries.captured_queries
+            if 'FROM "sentry_project"' in q["sql"] and "LIMIT 1" in q["sql"]
+        ]
+        assert len(fallback_lookups) == 1, fallback_lookups
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validate_only_does_not_error_for_organization_without_projects(

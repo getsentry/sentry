@@ -53,6 +53,8 @@ AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
 AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
 EQUATION_PREFIX = "equation|"
 
+_FALLBACK_PROJECT_IDS_KEY = "_validation_fallback_project_ids"
+
 OnDemandExtractionState = DashboardWidgetQueryOnDemand.OnDemandExtractionState
 DATASET_SOURCE_MAP = {source[1]: source[0] for source in DatasetSourcesTypes.as_choices()}
 
@@ -374,14 +376,21 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
         if project_ids:
             return project_ids
 
-        fallback_id = (
-            Project.objects.filter(
-                organization_id=self.context["organization"].id, status=ObjectStatus.ACTIVE
+        # Cached in the (request-scoped, tree-wide) serializer context because
+        # this runs once per widget query, up to MAX_WIDGETS times per request.
+        if _FALLBACK_PROJECT_IDS_KEY not in self.context:
+            fallback_id = (
+                Project.objects.filter(
+                    organization_id=self.context["organization"].id, status=ObjectStatus.ACTIVE
+                )
+                .values_list("id", flat=True)
+                .first()
             )
-            .values_list("id", flat=True)
-            .first()
-        )
-        return [fallback_id] if fallback_id is not None else []
+            self.context[_FALLBACK_PROJECT_IDS_KEY] = (
+                [fallback_id] if fallback_id is not None else []
+            )
+
+        return self.context[_FALLBACK_PROJECT_IDS_KEY]
 
     def _get_attr(self, data, attr, empty_value=None):
         value = data.get(attr)
