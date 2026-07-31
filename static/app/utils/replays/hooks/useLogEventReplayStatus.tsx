@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
@@ -20,20 +20,28 @@ export function useLogEventReplayStatus({readerResult}: Props) {
   });
   const organization = useOrganization();
 
-  const {fetchError, attachmentError} = readerResult;
+  const {fetchError, attachmentError, isPending} = readerResult;
   const hasError = Boolean(fetchError) || Boolean(attachmentError?.length);
   const is404 =
     isNotFoundError(fetchError) || Boolean(attachmentError?.some(isNotFoundError));
 
+  const hasLoggedRef = useRef(false);
+
   useEffect(() => {
-    if (hasError) {
+    if (isPending) {
+      return;
+    }
+    if (hasError && !hasLoggedRef.current) {
+      hasLoggedRef.current = true;
       trackAnalytics('replay.render-missing-replay-alert', {
         organization,
         surface: 'issue details - clip preview',
         is_404: is404,
       });
+    } else if (!hasError) {
+      hasLoggedRef.current = false;
     }
-  }, [organization, hasError, is404]);
+  }, [organization, hasError, is404, isPending]);
 }
 
 function getReplayAnalyticsStatus({
