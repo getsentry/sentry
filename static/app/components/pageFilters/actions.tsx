@@ -104,6 +104,23 @@ function mergeDatetime(
   return datetime;
 }
 
+/**
+ * A filter can be adjusted more than once during initialization (e.g. invalid
+ * projects are dropped, then the empty selection falls back to All Projects).
+ * Only the last adjustment describes the value we ended up with, so earlier
+ * ones would read as contradictory reasons for the same change.
+ */
+function lastAdjustmentPerFilter(
+  adjustments: PageFilterAdjustment[]
+): PageFilterAdjustment[] {
+  return adjustments.filter(
+    (adjustment, index) =>
+      !adjustments.some(
+        (other, otherIndex) => other.filter === adjustment.filter && otherIndex > index
+      )
+  );
+}
+
 export type InitializeUrlStateParams = {
   location: Location;
   memberProjects: Project[];
@@ -201,7 +218,7 @@ export function initializeUrlState({
   const hasProjectOrEnvironmentInUrl =
     Object.keys(pick(queryParams, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])).length > 0;
 
-  const adjustments: PageFilterAdjustment[] = [];
+  let adjustments: PageFilterAdjustment[] = [];
 
   /**
    * Check to make sure that the project ID exists in the projects list. Invalid project
@@ -345,6 +362,10 @@ export function initializeUrlState({
   if (newProject) {
     pageFilters.projects = newProject;
     project = newProject;
+
+    // The forced project replaces whatever the branches above picked, so any
+    // explanation of how they picked it no longer describes the selection.
+    adjustments = adjustments.filter(adjustment => adjustment.filter !== 'projects');
   }
 
   let shouldUseMaxPickableDays = false;
@@ -402,7 +423,11 @@ export function initializeUrlState({
     }
   }
 
-  PageFiltersStore.onInitializeUrlState(pageFilters, shouldPersist, adjustments);
+  PageFiltersStore.onInitializeUrlState(
+    pageFilters,
+    shouldPersist,
+    lastAdjustmentPerFilter(adjustments)
+  );
   if (shouldUpdateLocalStorage) {
     setPageFiltersStorage(
       organization.slug,

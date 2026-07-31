@@ -465,6 +465,50 @@ describe('PageFilters ActionCreators', () => {
       );
     });
 
+    it('keeps only the last adjustment when a filter is adjusted twice', () => {
+      // Dropping the inaccessible project empties the selection, which then
+      // falls back to All Projects. Only the fallback describes the result.
+      initializeUrlState({
+        organization,
+        location: {...router.location, query: {project: '999'}},
+        navigate,
+        memberProjects: [],
+        nonMemberProjects: [
+          ProjectFixture({id: '10', isMember: false}),
+          ProjectFixture({id: '11', isMember: false}),
+        ],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({projects: [-1]}),
+        true,
+        [{filter: 'projects', reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS}]
+      );
+    });
+
+    it('drops project adjustments when a forced project replaces the selection', () => {
+      const singleProject = ProjectFixture({id: '42', isMember: true});
+      const forced = ProjectFixture({id: '7', slug: 'forced-project'});
+
+      initializeUrlState({
+        organization,
+        location: router.location,
+        navigate,
+        memberProjects: [singleProject],
+        nonMemberProjects: [],
+        shouldForceProject: true,
+        forceProject: forced,
+      });
+
+      // The single-project auto-select is overwritten by the forced project, so
+      // explaining it would describe a selection that isn't in effect.
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({projects: [7]}),
+        true,
+        []
+      );
+    });
+
     it('records an adjustment when nonexistent environments are dropped from the URL', () => {
       initializeUrlState({
         organization,
