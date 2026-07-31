@@ -61,6 +61,39 @@ function getProgressActivities(activities: GroupActivity[]): GroupActivity[] {
   return activities.slice(0, MAX_ITEMS).toReversed();
 }
 
+type IconMapping =
+  (typeof groupActivityTypeIconMapping)[keyof typeof groupActivityTypeIconMapping];
+
+function ActivityIcon({
+  item,
+  iconMapping,
+}: {
+  iconMapping: IconMapping;
+  item: GroupActivity;
+}) {
+  const componentFunction =
+    item.type === GroupActivityType.NOTE ? undefined : iconMapping.componentFunction;
+  const IconComponent = componentFunction
+    ? componentFunction({
+        data: item.data,
+        user: item.user,
+        sentry_app: item.sentry_app,
+      })
+    : (iconMapping.Component ?? null);
+
+  if (!IconComponent) {
+    return null;
+  }
+
+  return (
+    <IconComponent
+      {...iconMapping.defaultProps}
+      {...iconMapping.propsFunction?.(item.data)}
+      size="xs"
+    />
+  );
+}
+
 function ProgressActivityItem({group, item}: {group: Group; item: GroupActivity}) {
   const organization = useOrganization();
   const theme = useTheme();
@@ -76,30 +109,13 @@ function ProgressActivityItem({group, item}: {group: Group; item: GroupActivity}
   );
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
-  const componentFunction =
-    item.type === GroupActivityType.NOTE ? undefined : iconMapping?.componentFunction;
-  const Icon = componentFunction
-    ? componentFunction({
-        data: item.data,
-        user: item.user,
-        sentry_app: item.sentry_app,
-      })
-    : (iconMapping?.Component ?? null);
 
   return (
     <Timeline.Item
       title={title}
       timestamp={<Timestamp date={item.dateCreated} unitStyle="extraShort" />}
       colorConfig={colorConfig}
-      icon={
-        Icon && (
-          <Icon
-            {...iconMapping.defaultProps}
-            {...iconMapping.propsFunction?.(item.data)}
-            size="xs"
-          />
-        )
-      }
+      icon={iconMapping && <ActivityIcon item={item} iconMapping={iconMapping} />}
     >
       {typeof message === 'string' ? (
         <NoteBody text={message} />
