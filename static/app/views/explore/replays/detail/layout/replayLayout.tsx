@@ -1,8 +1,8 @@
-import {useLayoutEffect, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack, type Responsive, useResponsivePropValue} from '@sentry/scraps/layout';
-import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
+import {SplitPanel} from '@sentry/scraps/splitPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -120,15 +120,6 @@ function ReplayLayoutBody({
   const splitPanelDefaultSize = isHorizontal
     ? width * 0.5
     : (height - DIVIDER_SIZE) * 0.5;
-  const splitPanelRef = useRef<SplitPanelHandle>(null);
-  const previousOrientation = useRef(isHorizontal);
-
-  useLayoutEffect(() => {
-    if (previousOrientation.current !== isHorizontal) {
-      splitPanelRef.current?.setSize(splitPanelDefaultSize);
-    }
-    previousOrientation.current = isHorizontal;
-  }, [isHorizontal, splitPanelDefaultSize]);
 
   if (layout === LayoutKey.NO_VIDEO) {
     return (
@@ -145,7 +136,6 @@ function ReplayLayoutBody({
       <Stack wrap="nowrap" minHeight="0" ref={measureRef}>
         {hasSize ? (
           <SplitPanel
-            ref={splitPanelRef}
             orientation={splitPanelOrientation}
             defaultSize={splitPanelDefaultSize}
             minSize={isHorizontal ? MIN_SIDEBAR_WIDTH : MIN_VIDEO_HEIGHT}
