@@ -173,8 +173,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not request.user.is_authenticated:
             return Detector.objects.none()
 
-        include_all_projects = features.has(
-            "organizations:workflow-engine-all-projects-detector", organization
+        include_all_projects = (
+            features.has("organizations:workflow-engine-all-projects-detector", organization)
+            and request.method == "GET"
         )
 
         if raw_idlist := request.GET.getlist("id"):
