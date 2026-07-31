@@ -1,5 +1,3 @@
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {
@@ -29,12 +27,8 @@ const footerChromeProps = {
   height: FOOTER_HEIGHT,
   background: 'primary',
   borderTop: 'secondary',
+  style: {zIndex: 100},
 } as const satisfies ContainerProps;
-
-// z-index is the only chrome property with no layout prop.
-const zIndexStyles = css`
-  z-index: 100;
-`;
 
 export function GenericFooter(
   props: React.ComponentProps<typeof motion.div> & FlexProps
@@ -49,7 +43,7 @@ export function GridFooter(props: React.ComponentProps<typeof motion.div> & Grid
     // A separate element from the grid below: an element can't query itself, and
     // this is the outermost node the footer owns, so its containment can't
     // re-anchor a `position: fixed` ancestor.
-    <FooterChrome {...footerChromeProps} containerType="inline-size">
+    <Container {...footerChromeProps} containerType="inline-size">
       <MotionGrid
         height="100%"
         // Below xl the hidden slots leave a single visible child. Flowing in
@@ -60,18 +54,9 @@ export function GridFooter(props: React.ComponentProps<typeof motion.div> & Grid
         {...motionProps}
         {...props}
       />
-    </FooterChrome>
+    </Container>
   );
 }
 
-// Styled rather than composed: the render-prop form replaces the element instead
-// of wrapping it, so it can't host the callers' children.
-const MotionFlex = motion.create(styled(Flex)`
-  ${zIndexStyles};
-`);
-
-const FooterChrome = styled(Container)`
-  ${zIndexStyles};
-`;
-
+const MotionFlex = motion.create(Flex);
 const MotionGrid = motion.create(Grid);
