@@ -106,6 +106,7 @@ def produce_preprod_size_metric_to_eap(
         "build_configuration_name": (
             artifact.build_configuration.name if artifact.build_configuration else None
         ),
+        "install_groups": artifact.extras.get("install_groups") if artifact.extras else None,
     }
 
     if artifact.commit_comparison is not None:
@@ -199,6 +200,7 @@ def produce_preprod_build_distribution_to_eap(
         "build_configuration_name": (
             artifact.build_configuration.name if artifact.build_configuration else None
         ),
+        "install_groups": artifact.extras.get("install_groups") if artifact.extras else None,
     }
 
     if artifact.extras:
