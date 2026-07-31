@@ -4,7 +4,6 @@ import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
-import {useRecentSearches} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useRecentSearches';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {
@@ -119,11 +118,10 @@ function getFiltersFromRecentSearches(
  * searches but not in the current query.
  * Orders by highest count of filter key occurrences.
  */
-export function useRecentSearchFilters() {
+export function useRecentSearchFilters(recentSearchesData: RecentSearch[] | undefined) {
   const {parsedQuery} = useSearchQueryBuilderState();
   const {filterKeys, getFieldDefinition, filterKeyAliases} =
     useSearchQueryBuilderConfig();
-  const {data: recentSearchesData} = useRecentSearches();
 
   const filters = useMemo(
     () =>

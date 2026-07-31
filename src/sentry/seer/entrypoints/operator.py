@@ -1,5 +1,8 @@
 import logging
+from datetime import datetime
 from typing import Any, NotRequired, TypedDict
+
+from django.utils import timezone
 
 from sentry import features, options
 from sentry.constants import DataCategory
@@ -231,6 +234,7 @@ class SeerAutofixOperator[CachePayloadT]:
 
             try:
                 if not run_id:
+                    triggered_at = timezone.now()
                     with action_context_scope(ActionSource.SLACK, GroupActionActor.user(user.id)):
                         run = trigger_autofix_agent(
                             group=group,
@@ -246,6 +250,7 @@ class SeerAutofixOperator[CachePayloadT]:
                             user_id=user.id,
                             data={"referrer": AutofixReferrer.SLACK.value},
                             send_notification=False,
+                            datetime=triggered_at,
                         )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
                     trigger_push_changes(
@@ -594,6 +599,7 @@ def _create_seer_activity(
     event_type: SentryAppEventType,
     event_payload: dict[str, Any],
     activity_attribution: SeerActivityAttribution | None = None,
+    activity_datetime: datetime | None = None,
 ) -> None:
     activity_type = SEER_EVENT_TO_ACTIVITY_TYPE.get(event_type)
     if not activity_type:
@@ -641,6 +647,7 @@ def _create_seer_activity(
         user_id=actor_user_id,
         data=activity_data if activity_data else None,
         send_notification=False,
+        datetime=activity_datetime,
     )
 
 
@@ -656,6 +663,7 @@ def process_autofix_updates(
     event_payload: dict[str, Any],
     organization_id: int,
     activity_attribution: SeerActivityAttribution | None = None,
+    activity_datetime: str | None = None,
 ) -> None:
     """
     Use the registry to iterate over all entrypoints and check if this payload's run_id or group_id
@@ -716,7 +724,15 @@ def process_autofix_updates(
 
         try:
             with action_context_scope(action_source, action_actor):
-                _create_seer_activity(group, event_type, event_payload, iteration_attribution)
+                _create_seer_activity(
+                    group,
+                    event_type,
+                    event_payload,
+                    activity_attribution=iteration_attribution,
+                    activity_datetime=(
+                        datetime.fromisoformat(activity_datetime) if activity_datetime else None
+                    ),
+                )
         except Exception:
             logger.exception(
                 "seer.activity_creation_failed",

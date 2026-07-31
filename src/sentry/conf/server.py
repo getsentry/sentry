@@ -970,7 +970,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.autofix",
     "sentry.tasks.seer.pr_iteration",
     "sentry.tasks.beacon",
-    "sentry.tasks.check_am2_compatibility",
     "sentry.tasks.clear_expired_resolutions",
     "sentry.tasks.clear_expired_rulesnoozes",
     "sentry.tasks.clear_expired_snoozes",
