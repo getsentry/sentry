@@ -23,6 +23,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_apps.external_issues.external_issue_creator import ExternalIssueCreator
 from sentry.sentry_apps.external_issues.issue_link_creator import IssueLinkCreator
+from sentry.sentry_apps.external_requests.issue_link_requester import IssueRequestActionType
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
@@ -43,6 +44,7 @@ from sentry.sentry_apps.services.cell.serial import (
 )
 from sentry.sentry_apps.services.cell.service import SentryAppCellService
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
+from sentry.signals import external_issue_created, external_issue_linked
 from sentry.tsdb.base import TSDBModel
 from sentry.users.services.user import RpcUser
 
@@ -174,10 +176,9 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         except (SentryAppIntegratorError, SentryAppSentryError) as e:
             return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
 
+        is_create = action == IssueRequestActionType.CREATE
         action_cls = (
-            CreatePlatformExternalIssueAction
-            if action == "create"
-            else LinkPlatformExternalIssueAction
+            CreatePlatformExternalIssueAction if is_create else LinkPlatformExternalIssueAction
         )
         publish_action(
             action_cls(
@@ -189,6 +190,15 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             group_id=group.id,
             project=group.project,
             actor=actor,
+        )
+
+        signal = external_issue_created if is_create else external_issue_linked
+        signal.send_robust(
+            project=group.project,
+            group=group,
+            user=user,
+            external_issue=external_issue,
+            sender=self.__class__,
         )
 
         return RpcPlatformExternalIssueResult(
@@ -272,6 +282,14 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             group_id=group.id,
             project=group.project,
             actor=actor,
+        )
+
+        external_issue_created.send_robust(
+            project=group.project,
+            group=group,
+            user=user,
+            external_issue=external_issue,
+            sender=self.__class__,
         )
 
         return RpcPlatformExternalIssueResult(

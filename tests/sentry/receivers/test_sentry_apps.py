@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 from sentry.constants import SentryAppInstallationStatus
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.escalating.escalating import manage_issue_states
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.activity import Activity
@@ -13,6 +14,7 @@ from sentry.models.groupinbox import GroupInboxReason
 from sentry.models.grouplink import GroupLink
 from sentry.models.release import Release
 from sentry.models.repository import Repository
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.signals import BetterSignal, external_issue_created, external_issue_linked
 from sentry.silo.base import SiloMode
@@ -420,13 +422,17 @@ class TestExternalIssueWebhooks(APITestCase):
         )
 
     def fire(
-        self, signal: BetterSignal, user: User | None = None, rule_label: str | None = None
+        self,
+        signal: BetterSignal,
+        external_issue: ExternalIssue | PlatformExternalIssue,
+        user: User | None = None,
+        rule_label: str | None = None,
     ) -> None:
         signal.send_robust(
             project=self.project,
             group=self.issue,
             user=user,
-            external_issue=self.external_issue,
+            external_issue=external_issue,
             rule_label=rule_label,
             sender=self.__class__,
         )
@@ -493,4 +499,25 @@ class TestExternalIssueWebhooks(APITestCase):
             external_issue_id=self.external_issue.id,
             external_issue_kind="integration",
             rule_label="My rule",
+        )
+
+    def test_marks_a_custom_integrations_issue_as_platform(self, delay: MagicMock) -> None:
+        install = self.install_app(["issue.external_issue_created"])
+        platform_issue = self.create_platform_external_issue(
+            group=self.issue,
+            service_type="my-app",
+            display_name="app#123",
+            web_url="https://example.com/issues/123",
+        )
+
+        self.fire(external_issue_created, platform_issue, user=self.user)
+
+        delay.assert_called_once_with(
+            installation_id=install.id,
+            issue_id=self.issue.id,
+            type="issue.external_issue_created",
+            user_id=self.user.id,
+            external_issue_id=platform_issue.id,
+            external_issue_kind="platform",
+            rule_label=None,
         )

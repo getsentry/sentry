@@ -84,7 +84,9 @@ SELECT_OPTIONS_SCHEMA = {
 ISSUE_LINKER_SCHEMA = {
     "type": "object",
     "properties": {
-        "webUrl": {"type": "string"},
+        # We store this and hand it to other apps, so reject anything that isn't
+        # a plain http(s) link -- matching the `URLField` on the sibling endpoint.
+        "webUrl": {"type": "string", "pattern": "^https?://"},
         "identifier": {"type": "string"},
         "project": {"type": "string"},
     },

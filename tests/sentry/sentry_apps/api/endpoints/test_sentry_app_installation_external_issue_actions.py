@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 import responses
 from django.urls import reverse
 
@@ -62,6 +64,84 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
             "displayName": "ProjectName#issue-1",
             "webUrl": "https://example.com/project/issue-id",
         }
+
+    @responses.activate
+    @patch("sentry.sentry_apps.tasks.sentry_apps.build_external_issue_webhook.delay")
+    def test_notifies_subscribed_sentry_apps_on_link(self, delay: MagicMock) -> None:
+        self.login_as(user=self.user)
+        subscriber = self.create_sentry_app(
+            organization=self.org, events=["issue.external_issue_linked"]
+        )
+        subscriber_install = self.create_sentry_app_installation(
+            organization=self.org, slug=subscriber.slug
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/link-issues",
+            json={
+                "project": "ProjectName",
+                "webUrl": "https://example.com/project/issue-id",
+                "identifier": "issue-1",
+            },
+            status=200,
+            content_type="application/json",
+        )
+
+        response = self.client.post(
+            self.url,
+            data={
+                "groupId": self.group.id,
+                "action": "link",
+                "fields": {"title": "Hello"},
+                "uri": "/link-issues",
+            },
+            format="json",
+        )
+        assert response.status_code == 200
+
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            external_issue = PlatformExternalIssue.objects.get()
+
+        delay.assert_called_once_with(
+            installation_id=subscriber_install.id,
+            issue_id=self.group.id,
+            type="issue.external_issue_linked",
+            user_id=self.user.id,
+            external_issue_id=external_issue.id,
+            external_issue_kind="platform",
+            rule_label=None,
+        )
+
+    @responses.activate
+    def test_rejects_a_web_url_the_app_returns_with_a_bad_scheme(self) -> None:
+        self.login_as(user=self.user)
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/create-issues",
+            json={
+                "project": "ProjectName",
+                "webUrl": "javascript:alert(1)",
+                "identifier": "issue-1",
+            },
+            status=200,
+            content_type="application/json",
+        )
+
+        response = self.client.post(
+            self.url,
+            data={
+                "groupId": self.group.id,
+                "action": "create",
+                "fields": {"title": "Hello"},
+                "uri": "/create-issues",
+            },
+            format="json",
+        )
+
+        # Treated like any other malformed response from the app.
+        assert response.status_code == 500
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert not PlatformExternalIssue.objects.exists()
 
     @responses.activate
     def test_external_issue_doesnt_get_created(self) -> None:

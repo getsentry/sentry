@@ -109,6 +109,34 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         )
         assert response.status_code == 403
 
+    @patch("sentry.sentry_apps.tasks.sentry_apps.build_external_issue_webhook.delay")
+    def test_notifies_subscribed_sentry_apps(self, delay: MagicMock) -> None:
+        self._set_up_sentry_app("Testin", ["event:write"])
+        subscriber = self.create_sentry_app(
+            organization=self.org, events=["issue.external_issue_created"]
+        )
+        subscriber_install = self.create_sentry_app_installation(
+            organization=self.org, slug=subscriber.slug
+        )
+
+        response = self.client.post(
+            self.url, data=self._post_data(), HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+        assert response.status_code == 200
+
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            external_issue = PlatformExternalIssue.objects.get()
+
+        delay.assert_called_once_with(
+            installation_id=subscriber_install.id,
+            issue_id=self.group.id,
+            type="issue.external_issue_created",
+            user_id=self.sentry_app.proxy_user_id,
+            external_issue_id=external_issue.id,
+            external_issue_kind="platform",
+            rule_label=None,
+        )
+
     @patch(
         "sentry.sentry_apps.external_issues.external_issue_creator.PlatformExternalIssue.objects.update_or_create"
     )

@@ -2253,7 +2253,12 @@ class TestExternalIssueWebhook(TestCase):
         )
 
     def run_task(
-        self, event: str, user_id: int | None = None, rule_label: str | None = None
+        self,
+        event: str,
+        user_id: int | None = None,
+        rule_label: str | None = None,
+        external_issue_id: int | None = None,
+        external_issue_kind: str = "integration",
     ) -> None:
         if external_issue_id is None:
             external_issue_id = self.external_issue.id
@@ -2262,7 +2267,8 @@ class TestExternalIssueWebhook(TestCase):
             issue_id=self.issue.id,
             type=event,
             user_id=user_id,
-            external_issue_id=self.external_issue.id,
+            external_issue_id=external_issue_id,
+            external_issue_kind=external_issue_kind,
             rule_label=rule_label,
         )
 
@@ -2328,5 +2334,54 @@ class TestExternalIssueWebhook(TestCase):
 
         with pytest.raises(SentryAppSentryError):
             self.run_task("issue.external_issue_created", user_id=self.user.id)
+
+        assert not safe_urlopen.called
+
+    def test_sends_the_platform_shape_for_a_custom_integration(
+        self, safe_urlopen: MagicMock
+    ) -> None:
+        platform_issue = self.create_platform_external_issue(
+            group=self.issue,
+            service_type=self.sentry_app.slug,
+            display_name="app#123",
+            web_url="https://example.com/issues/123",
+        )
+
+        self.run_task(
+            "issue.external_issue_created",
+            user_id=self.user.id,
+            external_issue_id=platform_issue.id,
+            external_issue_kind="platform",
+        )
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["data"]["external_issue_kind"] == "platform"
+        assert data["data"]["external_issue"] == {
+            "id": str(platform_issue.id),
+            "issueId": str(self.issue.id),
+            "serviceType": self.sentry_app.slug,
+            "displayName": "app#123",
+            "webUrl": "https://example.com/issues/123",
+        }
+
+    def test_will_not_send_a_platform_issue_belonging_to_another_group(
+        self, safe_urlopen: MagicMock
+    ) -> None:
+        other_issue = self.create_group(project=self.project)
+        unrelated = self.create_platform_external_issue(
+            group=other_issue,
+            service_type=self.sentry_app.slug,
+            display_name="app#456",
+            web_url="https://example.com/issues/456",
+        )
+
+        with pytest.raises(SentryAppSentryError):
+            self.run_task(
+                "issue.external_issue_created",
+                user_id=self.user.id,
+                external_issue_id=unrelated.id,
+                external_issue_kind="platform",
+            )
 
         assert not safe_urlopen.called
