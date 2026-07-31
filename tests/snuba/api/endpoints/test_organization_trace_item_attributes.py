@@ -203,6 +203,34 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert "test.attribute2" in keys
         assert "severity" in keys
 
+    def test_user_sent_level_attribute_is_escaped(self) -> None:
+        logs = [
+            self.create_ourlog(
+                extra_data={"body": "log message", "severity_text": "info"},
+                organization=self.organization,
+                project=self.project,
+                attributes={"level": {"string_value": "CRITICAL-CUSTOM"}},
+            ),
+        ]
+        self.store_eap_items(logs)
+
+        response = self.do_request(query={"attributeType": "string"})
+
+        assert response.status_code == 200, response.content
+        by_key = {item["key"]: item for item in response.data}
+        assert by_key["tags[level,string]"] == {
+            "key": "tags[level,string]",
+            "name": "level",
+            "attributeSource": {"source_type": "user"},
+            "attributeType": "string",
+        }
+        assert "level" not in by_key
+        assert by_key["severity"]["secondaryAliases"] == [
+            "level",
+            "log.severity_text",
+            "severity_text",
+        ]
+
     def test_body_attribute(self) -> None:
         logs = [
             self.create_ourlog(
