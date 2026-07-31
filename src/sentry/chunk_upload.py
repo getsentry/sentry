@@ -13,12 +13,16 @@ if TYPE_CHECKING:
     from sentry_redis_tools.clients import RedisCluster
 
 
-CHUNK_UPLOAD_OBJECTSTORE_INTENT_TTL = timedelta(days=1)
+CHUNK_UPLOAD_OBJECTSTORE_TTL = timedelta(days=1)
 CHUNK_UPLOAD_OBJECTSTORE_EXPIRY_SAFETY_WINDOW = timedelta(hours=1)
 
 
 def get_chunk_upload_objectstore_intent_key(organization_id: int, checksum: str) -> str:
     return f"chunk-upload-objectstore:{organization_id}:{checksum}"
+
+
+def get_chunk_upload_objectstore_mode_key(organization_id: int) -> str:
+    return f"chunk-upload-objectstore-mode:{organization_id}"
 
 
 def _get_assemble_redis_cluster() -> RedisCluster:
@@ -38,9 +42,23 @@ def set_chunk_upload_objectstore_intents(organization_id: int, checksums: Iterab
         pipeline.set(
             name=get_chunk_upload_objectstore_intent_key(organization_id, checksum),
             value="1",
-            ex=CHUNK_UPLOAD_OBJECTSTORE_INTENT_TTL,
+            ex=CHUNK_UPLOAD_OBJECTSTORE_TTL,
         )
     pipeline.execute()
+
+
+def get_chunk_upload_objectstore_mode(organization_id: int, use_objectstore: bool) -> bool:
+    """Pins the Objectstore assembly mode for an organization during the rollout."""
+    client = _get_assemble_redis_cluster()
+    key = get_chunk_upload_objectstore_mode_key(organization_id)
+    mode = client.get(key)
+    if mode is None:
+        value = b"1" if use_objectstore else b"0"
+        if client.set(key, value, ex=CHUNK_UPLOAD_OBJECTSTORE_TTL, nx=True):
+            return use_objectstore
+        mode = client.get(key)
+
+    return mode == b"1"
 
 
 def get_chunk_upload_objectstore_intents(

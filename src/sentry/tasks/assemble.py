@@ -88,10 +88,6 @@ class TemporaryAssembleResult(NamedTuple):
     size: int
 
 
-class ObjectstoreChunkMissing(Exception):
-    pass
-
-
 @trace
 def assemble_objectstore_chunks_to_temp(
     project: Project, name: str, checksum: str, chunks: list[str]
@@ -106,8 +102,10 @@ def assemble_objectstore_chunks_to_temp(
         for chunk_checksum in chunks:
             response = session.get(chunk_checksum)
             if response is None:
+                # The chunk expired or was deleted after manifest discovery. Let the client rediscover it.
+                delete_assemble_status(AssembleTask.DIF, project.id, checksum)
                 temp_file.close()
-                raise ObjectstoreChunkMissing
+                return None
 
             with response.payload:
                 while data := response.payload.read(65536):
@@ -324,26 +322,12 @@ def assemble_dif(
 
     file = None
     delete_file = False
-    tmp = None
 
     try:
         project = Project.objects.filter(id=project_id).get()
         set_assemble_status(AssembleTask.DIF, project_id, checksum, ChunkFileState.ASSEMBLING)
 
-        if use_objectstore:
-            try:
-                tmp = assemble_objectstore_chunks_to_temp(project, name, checksum, chunks)
-            except ObjectstoreChunkMissing:
-                logger.warning(
-                    "assemble_dif.objectstore_chunk_missing_falling_back_to_fileblob",
-                    extra={"project_id": project_id, "checksum": checksum},
-                )
-                # TODO: Remove this fallback after objectstore-exclusive DIF assembly has fully rolled out.
-            else:
-                if tmp is None:
-                    return
-
-        if not use_objectstore or tmp is None:
+        if not use_objectstore:
             # Assemble the chunks into a temporary file
             rv = assemble_file(
                 AssembleTask.DIF, project, name, checksum, chunks, file_type="project.dif"
@@ -380,6 +364,10 @@ def assemble_dif(
                 # Only if `dif.file is file` we want to avoid the deletion, given that the new DIF will be backed by `File` that up until now we considered temporary.
                 delete_file = dif.file is not file
         else:
+            tmp = assemble_objectstore_chunks_to_temp(project, name, checksum, chunks)
+            if tmp is None:
+                return
+
             with tmp.file:
                 # We only permit split difs to hit this endpoint.
                 # The client is required to split them up first or we error.

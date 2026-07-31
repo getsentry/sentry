@@ -44,7 +44,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
-from sentry.chunk_upload import find_missing_objectstore_chunks
+from sentry.chunk_upload import find_missing_objectstore_chunks, get_chunk_upload_objectstore_mode
 from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
 from sentry.debug_files.debug_files import maybe_renew_debug_files
 from sentry.debug_files.upload import find_missing_fileblob_chunks
@@ -637,8 +637,13 @@ def batch_assemble(project: Project, files: AssembleRequestPayload):
             chunks_to_check[chunk].add(checksum)
 
     # 4. Find missing chunks and group them per checksum.
-    use_objectstore = features.has(
-        "organizations:objectstore-debugfiles-exclusive-write", project.organization
+    if not chunks_to_check:
+        return file_response
+
+    # TODO: Remove the rollout mode pinning after Objectstore-only DIF assembly is fully rolled out.
+    use_objectstore = get_chunk_upload_objectstore_mode(
+        project.organization.id,
+        features.has("organizations:objectstore-debugfiles-exclusive-write", project.organization),
     )
     if use_objectstore:
         all_missing_chunks = find_missing_objectstore_chunks(

@@ -265,32 +265,18 @@ class AssembleDifTest(BaseAssembleTest):
         assert not File.objects.filter(type="project.dif").exists()
         assert not FileBlobIndex.objects.exists()
 
-    @patch("sentry.tasks.assemble.assemble_file", wraps=assemble_file)
-    def test_objectstore_assembly_falls_back_to_fileblob_when_chunk_is_missing(
-        self, assemble_from_file: MagicMock
-    ) -> None:
-        sym_file = self.load_fixture("crash.sym")
-        chunk = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
-        checksum = sha1(sym_file).hexdigest()
+    def test_objectstore_assembly_clears_status_when_chunk_is_missing(self) -> None:
+        checksum = sha1(b"missing staged chunk").hexdigest()
 
         assemble_dif(
             project_id=self.project.id,
             name="crash.sym",
             checksum=checksum,
-            chunks=[chunk.checksum],
+            chunks=[checksum],
             use_objectstore=True,
         )
 
-        dif = ProjectDebugFile.objects.get(project_id=self.project.id, checksum=checksum)
-        assert (dif.file_id or dif.storage_path) is not None
-        assemble_from_file.assert_called_once_with(
-            AssembleTask.DIF,
-            self.project,
-            "crash.sym",
-            checksum,
-            [chunk.checksum],
-            file_type="project.dif",
-        )
+        assert get_assemble_status(AssembleTask.DIF, self.project.id, checksum) == (None, None)
 
     def test_assemble_debug_id_override(self) -> None:
         sym_file = self.load_fixture("crash.sym")
