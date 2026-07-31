@@ -335,7 +335,6 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 try:
                     session.put(chunk, key=checksum)
                 except Exception:
-                    delete_chunk_upload_objectstore_intents(organization.id, uploaded_checksums)
                     logger.exception("chunkupload.objectstore_upload_failed")
                     logger.info(
                         "chunkupload.end", extra={"status": status.HTTP_500_INTERNAL_SERVER_ERROR}
