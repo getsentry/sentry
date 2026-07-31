@@ -101,6 +101,7 @@ def _process_batch(
     batch_size: int,
     *,
     persist: bool = True,
+    processing_mode: ProcessingStrategy | None = None,
 ) -> bool:
     """
     Process up to `batch_size` entries for a group. Updates derived in place.
@@ -151,6 +152,17 @@ def _process_batch(
     ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
 
     if updated:
+        if processing_mode is not None:
+            now = timezone.now()
+            tags = {"mode": processing_mode.value}
+            for entry in entries:
+                age_seconds = (now - entry.date_added).total_seconds()
+                metrics.distribution(
+                    "issues.derived.incremental_processing_latency",
+                    age_seconds,
+                    tags=tags,
+                    unit="second",
+                )
         # Features updated in this batch (not total; a feature appears at most once per batch)
         for f in result.updated:
             metrics.incr(
@@ -204,6 +216,7 @@ def _drain_log(
     *,
     time_limit: timedelta,
     persist: bool = True,
+    processing_mode: ProcessingStrategy | None = None,
 ) -> bool:
     """Process pending log entries into *derived*, batching as needed.
 
@@ -214,7 +227,9 @@ def _drain_log(
     When *persist* is False, batches update only the in-memory object.
     """
     deadline = time.monotonic() + time_limit.total_seconds()
-    while _process_batch(pipeline, derived, batch_size, persist=persist):
+    while _process_batch(
+        pipeline, derived, batch_size, persist=persist, processing_mode=processing_mode
+    ):
         if time.monotonic() >= deadline:
             return False
     return True
@@ -230,6 +245,7 @@ def process_group_log(
     batch_size: int = DEFAULT_BATCH_SIZE,
     pipeline: Pipeline[GroupActionLogEntry] | None = None,
     timeout: timedelta | None = None,
+    processing_mode: ProcessingStrategy | None = None,
 ) -> GroupDerivedData:
     """Fully drain all pending entries for a group's row.
 
@@ -243,12 +259,14 @@ def process_group_log(
         derived = _ensure_derived(group_id, p.pipeline_hash)
 
     if timeout is not None:
-        drained = _drain_log(derived, p, batch_size, time_limit=timeout)
+        drained = _drain_log(
+            derived, p, batch_size, time_limit=timeout, processing_mode=processing_mode
+        )
         if not drained:
             raise GroupLogTimeout(group_id)
     else:
         # No timeout — drain to completion.
-        while _process_batch(p, derived, batch_size):
+        while _process_batch(p, derived, batch_size, processing_mode=processing_mode):
             pass
 
     return derived
@@ -265,12 +283,12 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
       INLINE — try to process all pending actions quickly; fall back to ASYNC
     """
     if strategy is ProcessingStrategy.ASYNC:
-        process_group_log_task.delay(group_id)
+        process_group_log_task.delay(group_id, incremental=True)
         return
 
     if strategy is ProcessingStrategy.SYNC:
         try:
-            process_group_log(group_id)
+            process_group_log(group_id, processing_mode=strategy)
         except ObjectDoesNotExist:
             pass
         return
@@ -286,12 +304,12 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
         except ObjectDoesNotExist:
             return
 
-        has_more = _process_batch(pipeline, derived, INLINE_BATCH_SIZE)
+        has_more = _process_batch(pipeline, derived, INLINE_BATCH_SIZE, processing_mode=strategy)
     if has_more:
         # Derived data will be stale for any code running between now and
         # when the task completes.
         metrics.incr("issues.derived.inline_fallback_to_async")
-        process_group_log_task.delay(group_id)
+        process_group_log_task.delay(group_id, incremental=True)
 
 
 # ---------------------------------------------------------------------------

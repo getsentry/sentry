@@ -52,13 +52,14 @@ def _stale_pipeline_filter(qs: BaseQuerySet[Group], pipeline_hash: str) -> BaseQ
     namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
 )
-def process_group_log_task(group_id: int, **kwargs: object) -> None:
+def process_group_log_task(group_id: int, incremental: bool = False, **kwargs: object) -> None:
     """Drain all pending action log entries for a single group into its derived data."""
-    from sentry.issues.derived.processing import process_group_log
+    from sentry.issues.derived.processing import ProcessingStrategy, process_group_log
     from sentry.models.group import Group
 
+    mode = ProcessingStrategy.ASYNC if incremental else None
     try:
-        process_group_log(group_id)
+        process_group_log(group_id, processing_mode=mode)
     except Group.DoesNotExist:
         logger.info("process_group_log_task.group_not_found", extra={"group_id": group_id})
 
