@@ -4,6 +4,7 @@ import re
 import shutil
 import tempfile
 import uuid
+from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence, Set
 from typing import TYPE_CHECKING, NotRequired, TypedDict, TypeGuard, cast
 
@@ -620,7 +621,7 @@ def batch_assemble(project: Project, files: AssembleRequestPayload):
         }
 
     # 3. Compute all the chunks that have to be checked for existence.
-    chunks_to_check: dict[str, set[str]] = {}
+    chunks_to_check: defaultdict[str, set[str]] = defaultdict(set)
     for checksum, file in list(files_to_check.items()):
         name, debug_id, chunks = get_file_info(file)
 
@@ -633,7 +634,7 @@ def batch_assemble(project: Project, files: AssembleRequestPayload):
 
         # Map each chunk back to its source file checksum.
         for chunk in chunks:
-            chunks_to_check.setdefault(chunk, set()).add(checksum)
+            chunks_to_check[chunk].add(checksum)
 
     # 4. Find missing chunks and group them per checksum.
     if features.has("organizations:objectstore-debugfiles-exclusive-write", project.organization):
