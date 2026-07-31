@@ -50,7 +50,9 @@ def filter_existing_replay_ids(
                 Condition(Column("replay_id"), Op.IN, list(replay_ids)),
             ],
             having=[
+                # Must include the first sequence otherwise the replay is too old.
                 Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
+                # Require non-archived replays.
                 Condition(Column("is_archived"), Op.EQ, 0),
             ],
             groupby=[Column("replay_id")],
