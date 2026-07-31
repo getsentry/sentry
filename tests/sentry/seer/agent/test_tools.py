@@ -11,11 +11,14 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.api import client
 from sentry.constants import ObjectStatus
+from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.projectownership import ProjectOwnership
@@ -24,6 +27,7 @@ from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.testutils import mock_replay, mock_replay_click
 from sentry.search.utils import parse_iso_timestamp
 from sentry.seer.agent.tools import (
+    _DETECTOR_OPEN_PERIODS_LIMIT,
     EVENT_TIMESERIES_RESOLUTIONS,
     _get_issue_event_timeseries,
     _get_recommended_event,
@@ -54,6 +58,9 @@ from sentry.seer.sentry_data_models import (
     IssueDetailsResponse,
 )
 from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQuery
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import (
     APITestCase,
     APITransactionTestCase,
@@ -65,8 +72,11 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.activity import ActivityType
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.samples import load_data
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
@@ -1754,6 +1764,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert isinstance(result["user_activity"], list | None)
         assert isinstance(result["project_id"], int)
         assert isinstance(result["project_slug"], str)
+        assert isinstance(result.get("detector_context"), dict | None)
 
     # --- basic shape and group lookup ---
 
@@ -2034,6 +2045,323 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         )
 
         assert result is None
+
+    # --- detector context ---
+
+    _PRE_DETECTOR_CONTEXT_KEYS = {
+        "issue",
+        "event_timeseries",
+        "timeseries_stats_period",
+        "timeseries_interval",
+        "tags_overview",
+        "user_activity",
+        "project_id",
+        "project_slug",
+    }
+
+    def _create_metric_detector_chain(self, group: Group):
+        """Detector + trigger condition + snuba query chain + DetectorGroup for `group`."""
+        condition_group = self.create_data_condition_group()
+        self.create_data_condition(
+            comparison=100,
+            type=Condition.GREATER,
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=condition_group,
+        )
+        detector = self.create_detector(
+            project=self.project,
+            type=MetricIssue.slug,
+            name="API error spike",
+            description="Fires when errors spike above baseline",
+            # The extra key is deliberate: the metric config schema is permissive
+            # (no additionalProperties: False), so stored config can carry keys the
+            # schema never declared — none of it may reach the LLM-facing payload.
+            config={
+                "detection_type": "percent",
+                "comparison_delta": 3600,
+                "secret_token": "do-not-expose",
+            },
+            workflow_condition_group=condition_group,
+        )
+        subscription = self._create_snuba_subscription_data_source(detector)
+        self.create_detector_group(detector=detector, group=group)
+        return detector, subscription
+
+    def _create_snuba_subscription_data_source(self, detector):
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.ERROR,
+            dataset=Dataset.Events,
+            query="level:error",
+            aggregate="count()",
+            time_window=timedelta(minutes=5),
+            resolution=timedelta(minutes=1),
+            environment=self.environment,
+        )
+        subscription = create_snuba_subscription(self.project, "test_seer_tools", snuba_query)
+        data_source = self.create_data_source(
+            organization=self.organization,
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+            source_id=str(subscription.id),
+        )
+        self.create_data_source_detector(data_source=data_source, detector=detector)
+        return subscription
+
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_error_issue_has_no_detector_context(self, mock_tags, mock_ts):
+        """Error issues never carry detector_context — even with the project's error
+        detector associated — and their response keys are unchanged."""
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+
+        error_detector = self.create_detector(project=self.project)
+        self.create_detector_group(detector=error_detector, group=group)
+
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        assert set(result.dict().keys()) == self._PRE_DETECTOR_CONTEXT_KEYS
+
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_metric_issue_detector_context(self, mock_tags, mock_ts):
+        """A metric issue with a full detector chain returns the complete context block."""
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        detector, _ = self._create_metric_detector_chain(group)
+
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        self._assert_issue_response_shape(result)
+        detector_context = result["detector_context"]
+        assert detector_context["id"] == str(detector.id)
+        assert detector_context["name"] == "API error spike"
+        assert detector_context["description"] == "Fires when errors spike above baseline"
+        assert detector_context["type"] == MetricIssue.slug
+        assert detector_context["enabled"] is True
+        assert detector_context["detection_type"] == "percent"
+        assert detector_context["comparison_delta_seconds"] == 3600
+        # Raw detector config must not be exposed — only the hoisted typed fields.
+        assert "config" not in detector_context
+        assert "do-not-expose" not in str(result.dict())
+        assert detector_context["conditions"] == [
+            {
+                "type": Condition.GREATER.value,
+                "comparison": 100,
+                "condition_result": DetectorPriorityLevel.HIGH.value,
+                "triggers_priority": "high",
+            }
+        ]
+        assert detector_context["snuba_query"] == {
+            "dataset": Dataset.Events.value,
+            "query": "level:error",
+            "aggregate": "count()",
+            "time_window_seconds": 300,
+            "environment": self.environment.name,
+            "event_types": ["error"],
+        }
+        assert len(detector_context["open_periods"]) == 1
+        assert detector_context["open_periods"][0]["is_open"] is True
+        assert detector_context["open_periods_truncated"] is False
+
+        # A second snuba data source makes the monitored query ambiguous: the
+        # exactly-one contract nulls snuba_query but keeps the rest of the block.
+        self._create_snuba_subscription_data_source(detector)
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+        assert result is not None
+        detector_context = result["detector_context"]
+        assert detector_context["snuba_query"] is None
+        assert detector_context["name"] == "API error spike"
+
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_metric_issue_detector_context_normalizes_migrated_percent_config(
+        self, mock_tags, mock_ts
+    ):
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        detector, _ = self._create_metric_detector_chain(group)
+        detector.update(
+            config={
+                "detection_type": "static",
+                "comparison_delta": 3600,
+            }
+        )
+
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        detector_context = result["detector_context"]
+        assert detector_context["detection_type"] == "percent"
+        assert detector_context["comparison_delta_seconds"] == 3600
+
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_detector_context_open_periods_scoped_and_capped(self, mock_tags, mock_ts):
+        """start/end scope the open-period list to overlapping periods; the list is
+        capped at the most recent _DETECTOR_OPEN_PERIODS_LIMIT with a truncation flag."""
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+
+        group = self.create_group(
+            project=self.project,
+            type=MetricIssue.type_id,
+            first_seen=before_now(days=60),
+            create_open_period=False,
+        )
+        self._create_metric_detector_chain(group)
+
+        # Non-overlapping closed periods, one per day: days 60..1, each an hour long.
+        total = _DETECTOR_OPEN_PERIODS_LIMIT + 2
+        for days_ago in range(1, total + 1):
+            date_started = before_now(days=days_ago)
+            GroupOpenPeriod.objects.create(
+                group=group,
+                project=self.project,
+                date_started=date_started,
+                date_ended=date_started + timedelta(hours=1),
+            )
+
+        # A window covering only the periods from 5 and 4 days ago.
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+            start=before_now(days=5, hours=1).isoformat(),
+            end=before_now(days=3, hours=23).isoformat(),
+        )
+        assert result is not None
+        open_periods = result["detector_context"]["open_periods"]
+        assert len(open_periods) == 2
+        assert result["detector_context"]["open_periods_truncated"] is False
+
+        # No window: all periods overlap, capped most-recent-first.
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+        assert result is not None
+        open_periods = result["detector_context"]["open_periods"]
+        assert len(open_periods) == _DETECTOR_OPEN_PERIODS_LIMIT
+        assert result["detector_context"]["open_periods_truncated"] is True
+        starts = [period["start"] for period in open_periods]
+        assert starts == sorted(starts, reverse=True)
+
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_uptime_issue_detector_context(self, mock_tags, mock_ts):
+        """Non-metric detector types get the block too (no category gate), with
+        snuba_query null — and no data-source payload (URL/headers/body) ever leaks."""
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+
+        uptime_subscription = self.create_uptime_subscription(
+            url="https://internal.example.com/health",
+            headers=[("Authorization", "Bearer super-secret-token")],
+            body="secret-request-body",
+        )
+        detector = self.create_uptime_detector(
+            project=self.project,
+            name="Health check",
+            uptime_subscription=uptime_subscription,
+        )
+        group = self.create_group(project=self.project, type=UptimeDomainCheckFailure.type_id)
+        self.create_detector_group(detector=detector, group=group)
+
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        detector_context = result["detector_context"]
+        assert detector_context["id"] == str(detector.id)
+        assert detector_context["name"] == "Health check"
+        assert detector_context["type"] == UptimeDomainCheckFailure.slug
+        assert detector_context["detection_type"] is None
+        assert detector_context["comparison_delta_seconds"] is None
+        assert detector_context["snuba_query"] is None
+        assert "config" not in detector_context
+        priorities = sorted(
+            condition["triggers_priority"] for condition in detector_context["conditions"]
+        )
+        assert priorities == ["high", "ok"]
+
+        # Credential guard: nothing from the uptime request definition may appear.
+        payload = str(result.dict())
+        assert "super-secret-token" not in payload
+        assert "secret-request-body" not in payload
+        assert "internal.example.com" not in payload
+
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_detector_context_absent_without_association(self, mock_tags, mock_ts):
+        """No DetectorGroup row (even with a same-type detector in the project — no
+        inference) and a null association (deleted detector) both omit the block."""
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        self.create_detector(project=self.project, type=MetricIssue.slug, name="Unrelated")
+
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+        assert result is not None
+        assert "detector_context" not in result.dict()
+
+        other_group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        self.create_detector_group(detector=None, group=other_group)
+
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(other_group.id),
+        )
+        assert result is not None
+        assert "detector_context" not in result.dict()
+
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_detector_context_failure_isolated(self, mock_tags, mock_ts):
+        """An unexpected detector-context failure doesn't break the RPC."""
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        self._create_metric_detector_chain(group)
+
+        with patch(
+            "sentry.seer.agent.tools.DetectorGroup.objects.get_from_cache",
+            side_effect=RuntimeError("boom"),
+        ):
+            result = get_issue_details(
+                organization_id=self.organization.id,
+                issue_id=str(group.id),
+            )
+
+        assert result is not None
+        assert "detector_context" not in result.dict()
 
 
 class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
