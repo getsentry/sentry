@@ -422,7 +422,8 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
 
   const hasResults = queries.length > 0;
   const isDisplayingResults = !isPending && !isError && hasResults;
-  const showQueryStatus = !state.isOpen && (isPending || isError || hasResults);
+  const showQueryStatus =
+    hasAskSeerUxRework && !state.isOpen && (isPending || isError || hasResults);
   const queryStatusLabel = isPending
     ? t('Seer is processing your query')
     : isError
