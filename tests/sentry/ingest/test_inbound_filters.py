@@ -3,6 +3,9 @@ from django.test import override_settings
 from sentry_relay.processing import is_glob_match, validate_rule_condition
 
 from sentry.ingest.inbound_filters import (
+    ACTIVE_GENERIC_FILTERS,
+    CUSTOM_INBOUND_FILTER_ID_PREFIX,
+    InboundFilterFeatures,
     _chunk_load_error_filter,
     _custom_error_filter,
     _error_message_condition,
@@ -152,7 +155,7 @@ def test_custom_error_filter_omitted_without_custom_values(default_project: Proj
     assert default_project.get_option("filters:custom-error") == "1"
 
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[]):
-        generic_filters = get_generic_filters(default_project)
+        generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
 
     # Other default filters keep the config non-empty; only custom-error is omitted.
     assert generic_filters is not None
@@ -165,7 +168,7 @@ def test_custom_error_filter_emitted_with_custom_values(default_project: Project
     assert default_project.get_option("filters:custom-error") == "1"
 
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS):
-        generic_filters = get_generic_filters(default_project)
+        generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
 
     assert generic_filters is not None
     filter_ids = {f["id"] for f in generic_filters["filters"]}
@@ -368,3 +371,74 @@ def test_custom_inbound_filters_are_ordered_by_id(default_project, factories) ->
     assert [generic_filter["id"] for generic_filter in generic_filters] == [
         f"cif-{custom_filter.id}" for custom_filter in created
     ]
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    ("filter_features", "expected_ids"),
+    [
+        pytest.param(InboundFilterFeatures(), [], id="no_features"),
+        pytest.param(
+            InboundFilterFeatures(ourlogs_ingestion=True, tracemetrics_ingestion=True),
+            [],
+            id="inner_features_without_the_outer_one",
+        ),
+        pytest.param(
+            InboundFilterFeatures(custom_inbound_filters=True),
+            [],
+            id="outer_feature_alone",
+        ),
+        pytest.param(
+            InboundFilterFeatures(custom_inbound_filters=True, ourlogs_ingestion=True),
+            ["log-message"],
+            id="log_messages",
+        ),
+        pytest.param(
+            InboundFilterFeatures(custom_inbound_filters=True, tracemetrics_ingestion=True),
+            ["trace-metric-name"],
+            id="trace_metric_names",
+        ),
+        pytest.param(
+            InboundFilterFeatures(custom_inbound_filters=True, inbound_filters_v2=True),
+            ["cif"],
+            id="custom_inbound_filters_v2",
+        ),
+        pytest.param(
+            InboundFilterFeatures(True, True, True, True),
+            ["log-message", "trace-metric-name", "cif"],
+            id="every_feature",
+        ),
+    ],
+)
+def test_get_generic_filters_gates_each_source_on_its_feature(
+    default_project, factories, filter_features, expected_ids
+) -> None:
+    for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
+        default_project.update_option(f"filters:{builtin_filter_id}", "0")
+    default_project.update_option("sentry:log_messages", ["some log"])
+    default_project.update_option("sentry:trace_metric_names", ["some.metric"])
+    custom_filter = factories.create_project_custom_inbound_filter(
+        default_project, conditions=[{"type": "release", "value": ["1.*"]}]
+    )
+
+    generic_filters = get_generic_filters(default_project, filter_features)
+
+    if not expected_ids:
+        assert generic_filters is None
+        return
+
+    assert generic_filters is not None
+    assert [f["id"] for f in generic_filters["filters"]] == [
+        f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{custom_filter.id}" if id == "cif" else id
+        for id in expected_ids
+    ]
+
+
+@django_db_all
+def test_get_generic_filters_omits_gated_sources_without_configuration(default_project) -> None:
+    for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
+        default_project.update_option(f"filters:{builtin_filter_id}", "0")
+
+    assert (
+        get_generic_filters(default_project, InboundFilterFeatures(True, True, True, True)) is None
+    )

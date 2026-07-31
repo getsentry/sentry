@@ -1,4 +1,5 @@
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from typing import Any, cast
 
 from django.conf import settings
@@ -429,8 +430,23 @@ ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], RuleCondition | None]]]
 ]
 
 
+@dataclass(frozen=True)
+class InboundFilterFeatures:
+    """
+    Whether each of a project's feature-gated inbound filters is enabled.
+
+    ``custom_inbound_filters`` gates the other three, and additionally gates the
+    legacy ``releases`` and ``errorMessages`` filter settings built by the caller.
+    """
+
+    custom_inbound_filters: bool = False
+    ourlogs_ingestion: bool = False
+    tracemetrics_ingestion: bool = False
+    inbound_filters_v2: bool = False
+
+
 def get_generic_filters(
-    project: Project, base_generic_filters: list[GenericFilter] | None = None
+    project: Project, filter_features: InboundFilterFeatures
 ) -> GenericFiltersConfig | None:
     """
     Computes the generic inbound filters configuration for inbound filters.
@@ -440,8 +456,14 @@ def get_generic_filters(
     hardcoded set of rules, specific to each type.
     """
     generic_filters: list[GenericFilter] = []
-    if base_generic_filters:
-        generic_filters.extend(base_generic_filters)
+
+    if filter_features.custom_inbound_filters:
+        if filter_features.ourlogs_ingestion:
+            generic_filters += _log_messages_generic_filters(project)
+        if filter_features.tracemetrics_ingestion:
+            generic_filters += _trace_metric_names_generic_filters(project)
+        if filter_features.inbound_filters_v2:
+            generic_filters += get_custom_inbound_filter_generic_filters(project)
 
     for generic_filter_id, generic_filter_fn in ACTIVE_GENERIC_FILTERS:
         # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
@@ -469,34 +491,40 @@ def get_generic_filters(
     }
 
 
-def get_log_messages_generic_filter(log_messages: list[str]) -> GenericFilter | None:
+def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
+    log_messages = project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}")
     if not log_messages:
-        return None
+        return []
 
-    return {
-        "id": "log-message",
-        "isEnabled": True,
-        "condition": {
-            "op": "glob",
-            "name": "log.body",
-            "value": log_messages,
-        },
-    }
+    return [
+        {
+            "id": "log-message",
+            "isEnabled": True,
+            "condition": {
+                "op": "glob",
+                "name": "log.body",
+                "value": log_messages,
+            },
+        }
+    ]
 
 
-def get_trace_metric_names_generic_filter(trace_metric_names: list[str]) -> GenericFilter | None:
+def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]:
+    trace_metric_names = project.get_option(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}")
     if not trace_metric_names:
-        return None
+        return []
 
-    return {
-        "id": "trace-metric-name",
-        "isEnabled": True,
-        "condition": {
-            "op": "glob",
-            "name": "trace_metric.name",
-            "value": trace_metric_names,
-        },
-    }
+    return [
+        {
+            "id": "trace-metric-name",
+            "isEnabled": True,
+            "condition": {
+                "op": "glob",
+                "name": "trace_metric.name",
+                "value": trace_metric_names,
+            },
+        }
+    ]
 
 
 CUSTOM_INBOUND_FILTER_ID_PREFIX = "cif-"
