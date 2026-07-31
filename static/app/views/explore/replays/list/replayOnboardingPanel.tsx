@@ -250,7 +250,7 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
         )}
         action={
           <Stack gap="3xl" width="100%">
-            <ButtonList>
+            <ButtonList justify={{zero: 'center', xl: 'start'}}>
               {renderCTA()}
               <LinkButton
                 href={
