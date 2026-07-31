@@ -126,7 +126,7 @@ export function useFindAdjacentTrace({
         id: spanId,
         trace: traceId,
         available: !!spanId && !!traceId && !isError,
-        isLoading: isPending,
+        isLoading: enabled && isPending,
       };
     }
 
@@ -143,6 +143,7 @@ export function useFindAdjacentTrace({
     adjacentTraceId,
     adjacentTraceSpanId,
     data,
+    enabled,
     isError,
     isPending,
   ]);

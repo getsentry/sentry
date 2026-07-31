@@ -11,6 +11,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -88,6 +89,8 @@ interface BreadcrumbPaginationItem {
 interface BreadcrumbItemPaginationProps {
   next: BreadcrumbPaginationItem;
   previous: BreadcrumbPaginationItem;
+  /** Renders chevron-sized skeletons while the destinations resolve. */
+  loading?: boolean;
 }
 
 export interface BreadcrumbItemPageTitleProps {
@@ -118,7 +121,13 @@ export function BreadcrumbItemPageTitle({
 
   return (
     <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px">
-      {pagination && (
+      {pagination?.loading && (
+        <Flex as="span" align="center" aria-hidden>
+          <Placeholder width="20px" height="20px" style={{margin: '0 2px'}} />
+          <Placeholder width="20px" height="20px" style={{margin: '0 2px'}} />
+        </Flex>
+      )}
+      {pagination && !pagination.loading && (
         <Flex as="span" align="center">
           <Tooltip
             title={pagination.previous.tooltip}

@@ -57,6 +57,7 @@ function useTraceParentItems(organization: Organization) {
  * the chevrons hold their space, disabled when there is nowhere to go.
  */
 function useTracePagination(rootEventResults?: TraceRootEventQueryResults) {
+  const isRootEventPending = !rootEventResults || rootEventResults.isPending;
   const rootEvent = rootEventResults?.data;
   const hasTraceAttributes =
     isTraceItemDetailsResponse(rootEvent) && !!rootEvent.timestamp;
@@ -79,7 +80,11 @@ function useTracePagination(rootEventResults?: TraceRootEventQueryResults) {
     currentTraceStartTimestamp,
   });
 
-  return {previous, next};
+  return {
+    previous,
+    next,
+    loading: isRootEventPending || previous.isLoading || next.isLoading,
+  };
 }
 
 export function TraceBreadcrumbs({
