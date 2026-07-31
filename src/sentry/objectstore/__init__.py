@@ -24,7 +24,7 @@ from sentry.utils.env import in_test_environment
 
 __all__ = [
     "get_attachments_session",
-    "get_debug_file_chunks_session",
+    "get_chunk_upload_session",
     "get_debug_files_session",
     "parse_accept_encoding",
 ]
@@ -73,8 +73,8 @@ _ATTACHMENTS_USECASE: Usecase | None = None
 _DEBUG_FILES_USECASE = Usecase(
     "debug_files", compression="none", expiration_policy=TimeToIdle(timedelta(days=90))
 )
-_DEBUG_FILE_CHUNKS_USECASE = Usecase(
-    "debug_file_chunks", compression="none", expiration_policy=TimeToLive(timedelta(days=1))
+_CHUNK_UPLOAD_USECASE = Usecase(
+    "chunk-upload", compression="none", expiration_policy=TimeToLive(timedelta(days=1))
 )
 _PROFILE_ATTACHMENTS_USECASE: Usecase | None = None
 _PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToIdle(timedelta(days=30)))
@@ -132,8 +132,8 @@ def get_debug_files_session(org: int, project: int) -> Session:
     return get_client().session(_DEBUG_FILES_USECASE, org=org, project=project)
 
 
-def get_debug_file_chunks_session(org: int) -> Session:
-    return get_client().session(_DEBUG_FILE_CHUNKS_USECASE, org=org)
+def get_chunk_upload_session(org: int) -> Session:
+    return get_client().session(_CHUNK_UPLOAD_USECASE, org=org)
 
 
 def get_profile_attachments_usecase() -> Usecase:

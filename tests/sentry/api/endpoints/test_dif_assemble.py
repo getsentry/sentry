@@ -1,21 +1,19 @@
 from hashlib import sha1
 from unittest.mock import MagicMock, patch
+from uuid import uuid4
 
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from sentry.debug_files.upload import (
-    debug_file_chunk_key,
-    get_debug_file_chunk_upload_intents,
-)
+from sentry.chunk_upload import get_chunk_upload_objectstore_intents
 from sentry.models.apitoken import ApiToken
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.models.files.fileblobowner import FileBlobOwner
-from sentry.objectstore import get_debug_file_chunks_session
+from sentry.objectstore import get_chunk_upload_session
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -241,9 +239,7 @@ class DifAssembleEndpoint(APITestCase):
         content = b"staged debug file chunk"
         chunk_checksum = sha1(content).hexdigest()
         checksum = sha1(content).hexdigest()
-        get_debug_file_chunks_session(self.organization.id).put(
-            content, key=debug_file_chunk_key(chunk_checksum)
-        )
+        get_chunk_upload_session(self.organization.id).put(content, key=chunk_checksum)
 
         with self.feature("organizations:objectstore-debugfiles-exclusive-write"):
             response = self.client.post(
@@ -255,7 +251,7 @@ class DifAssembleEndpoint(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data[checksum] == {"state": ChunkFileState.CREATED, "missingChunks": []}
         assemble_task.apply_async.assert_called_once()
-        assert chunk_checksum not in get_debug_file_chunk_upload_intents(
+        assert chunk_checksum not in get_chunk_upload_objectstore_intents(
             self.organization.id, [chunk_checksum]
         )
 
@@ -277,7 +273,7 @@ class DifAssembleEndpoint(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data[first_checksum]["missingChunks"] == [missing_chunk]
         assert response.data[second_checksum]["missingChunks"] == [missing_chunk]
-        assert missing_chunk in get_debug_file_chunk_upload_intents(
+        assert missing_chunk in get_chunk_upload_objectstore_intents(
             self.organization.id, [missing_chunk]
         )
 
@@ -285,7 +281,9 @@ class DifAssembleEndpoint(APITestCase):
     def test_objectstore_chunk_upload_and_assembly_end_to_end(
         self, assemble_task: MagicMock
     ) -> None:
-        contents = self.load_fixture("crash.sym")
+        contents = self.load_fixture("crash.sym").replace(
+            b" crash\n", f" crash-{uuid4().hex}\n".encode(), 1
+        )
         checksum = sha1(contents).hexdigest()
         manifest = {checksum: {"name": "crash.sym", "chunks": [checksum]}}
         chunk_upload_url = reverse("sentry-api-0-chunk-upload", args=[self.organization.slug])
@@ -422,9 +420,7 @@ class DifAssembleEndpoint(APITestCase):
     def test_objectstore_assemble_reuses_existing_proguard_without_file(self) -> None:
         file_contents = b"proguard mapping"
         checksum = sha1(file_contents).hexdigest()
-        get_debug_file_chunks_session(self.organization.id).put(
-            file_contents, key=debug_file_chunk_key(checksum)
-        )
+        get_chunk_upload_session(self.organization.id).put(file_contents, key=checksum)
         chunks = [checksum]
 
         with self.feature(

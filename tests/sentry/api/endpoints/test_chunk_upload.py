@@ -20,15 +20,14 @@ from sentry.api.endpoints.chunk import (
     MAX_REQUEST_SIZE,
 )
 from sentry.api.utils import generate_locality_url
-from sentry.debug_files.upload import (
-    debug_file_chunk_key,
-    get_debug_file_chunk_upload_intents,
-    set_debug_file_chunk_upload_intents,
+from sentry.chunk_upload import (
+    get_chunk_upload_objectstore_intents,
+    set_chunk_upload_objectstore_intents,
 )
 from sentry.models.apitoken import ApiToken
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.utils import MAX_FILE_SIZE
-from sentry.objectstore import get_debug_file_chunks_session
+from sentry.objectstore import get_chunk_upload_session
 from sentry.silo.base import SiloMode
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import APITestCase
@@ -266,7 +265,7 @@ class ChunkUploadTest(APITestCase):
     def test_upload_marked_debug_file_chunk_to_objectstore(self) -> None:
         content = b"debug file chunk"
         checksum = sha1(content).hexdigest()
-        set_debug_file_chunk_upload_intents(self.organization.id, [checksum])
+        set_chunk_upload_objectstore_intents(self.organization.id, [checksum])
 
         response = self.client.post(
             self.url,
@@ -277,13 +276,13 @@ class ChunkUploadTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert FileBlob.objects.filter(checksum=checksum).exists()
-        stored = get_debug_file_chunks_session(self.organization.id).get(
-            debug_file_chunk_key(checksum)
-        )
+        stored = get_chunk_upload_session(self.organization.id).get(checksum)
         assert stored is not None
         with stored.payload:
             assert stored.payload.read() == content
-        assert checksum not in get_debug_file_chunk_upload_intents(self.organization.id, [checksum])
+        assert checksum not in get_chunk_upload_objectstore_intents(
+            self.organization.id, [checksum]
+        )
 
     def test_upload_unmarked_chunk_does_not_write_to_objectstore(self) -> None:
         content = b"ordinary chunk"
@@ -298,14 +297,11 @@ class ChunkUploadTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert FileBlob.objects.filter(checksum=checksum).exists()
-        assert (
-            get_debug_file_chunks_session(self.organization.id).get(debug_file_chunk_key(checksum))
-            is None
-        )
+        assert get_chunk_upload_session(self.organization.id).get(checksum) is None
 
     def test_upload_marked_chunk_keeps_intent_on_checksum_failure(self) -> None:
         checksum = sha1(b"expected").hexdigest()
-        set_debug_file_chunk_upload_intents(self.organization.id, [checksum])
+        set_chunk_upload_objectstore_intents(self.organization.id, [checksum])
 
         response = self.client.post(
             self.url,
@@ -315,7 +311,7 @@ class ChunkUploadTest(APITestCase):
         )
 
         assert response.status_code == 400, response.content
-        assert checksum in get_debug_file_chunk_upload_intents(self.organization.id, [checksum])
+        assert checksum in get_chunk_upload_objectstore_intents(self.organization.id, [checksum])
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_upload_launchpad_auth(self) -> None:

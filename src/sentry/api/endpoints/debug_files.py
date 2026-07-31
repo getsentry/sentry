@@ -43,9 +43,10 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
+from sentry.chunk_upload import find_missing_objectstore_chunks
 from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
 from sentry.debug_files.debug_files import maybe_renew_debug_files
-from sentry.debug_files.upload import find_missing_fileblob_chunks, find_missing_objectstore_chunks
+from sentry.debug_files.upload import find_missing_fileblob_chunks
 from sentry.lang.native.sources import record_last_upload
 from sentry.models.debugfile import (
     ProguardArtifactRelease,

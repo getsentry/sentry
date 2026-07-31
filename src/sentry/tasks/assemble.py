@@ -23,7 +23,6 @@ from sentry.debug_files.artifact_bundles import (
     index_artifact_bundles_for_release,
 )
 from sentry.debug_files.tasks import backfill_artifact_bundle_db_indexing
-from sentry.debug_files.upload import debug_file_chunk_key
 from sentry.models.artifactbundle import (
     NULL_STRING,
     ArtifactBundle,
@@ -37,7 +36,7 @@ from sentry.models.files.file import File
 from sentry.models.files.utils import MAX_FILE_SIZE, MAX_OBJECTSTORE_DEBUG_FILE_SIZE
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.objectstore import get_debug_file_chunks_session
+from sentry.objectstore import get_chunk_upload_session
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import attachments_tasks
@@ -98,11 +97,11 @@ def assemble_objectstore_chunks_to_temp(
     temp_file = tempfile.NamedTemporaryFile()
     actual_checksum = hashlib.sha1()
     actual_size = 0
-    session = get_debug_file_chunks_session(project.organization_id)
+    session = get_chunk_upload_session(project.organization_id)
 
     try:
         for chunk_checksum in chunks:
-            response = session.get(debug_file_chunk_key(chunk_checksum))
+            response = session.get(chunk_checksum)
             if response is None:
                 # The chunk expired or was deleted after manifest discovery. Let the client rediscover it.
                 delete_assemble_status(AssembleTask.DIF, project.id, checksum)

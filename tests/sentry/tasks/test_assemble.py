@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 
 from django.core.files.base import ContentFile
 
-from sentry.debug_files.upload import debug_file_chunk_key
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleIndexingState,
@@ -22,7 +21,7 @@ from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.models.files.fileblobowner import FileBlobOwner
-from sentry.objectstore import get_debug_file_chunks_session
+from sentry.objectstore import get_chunk_upload_session
 from sentry.tasks.assemble import (
     ArtifactBundlePostAssembler,
     AssembleResult,
@@ -193,9 +192,7 @@ class AssembleDifTest(BaseAssembleTest):
     def test_objectstore_assembly_bypasses_file(self) -> None:
         sym_file = self.load_fixture("crash.sym")
         checksum = sha1(sym_file).hexdigest()
-        get_debug_file_chunks_session(self.organization.id).put(
-            sym_file, key=debug_file_chunk_key(checksum)
-        )
+        get_chunk_upload_session(self.organization.id).put(sym_file, key=checksum)
 
         with self.feature(
             {
@@ -226,9 +223,9 @@ class AssembleDifTest(BaseAssembleTest):
         second_checksum = sha1(second_chunk).hexdigest()
         contents = first_chunk + second_chunk + first_chunk
         checksum = sha1(contents).hexdigest()
-        session = get_debug_file_chunks_session(self.organization.id)
-        session.put(first_chunk, key=debug_file_chunk_key(first_checksum))
-        session.put(second_chunk, key=debug_file_chunk_key(second_checksum))
+        session = get_chunk_upload_session(self.organization.id)
+        session.put(first_chunk, key=first_checksum)
+        session.put(second_chunk, key=second_checksum)
 
         result = assemble_objectstore_chunks_to_temp(
             self.project,
@@ -249,9 +246,7 @@ class AssembleDifTest(BaseAssembleTest):
         upload.side_effect = RuntimeError
         sym_file = self.load_fixture("crash.sym")
         checksum = sha1(sym_file).hexdigest()
-        get_debug_file_chunks_session(self.organization.id).put(
-            sym_file, key=debug_file_chunk_key(checksum)
-        )
+        get_chunk_upload_session(self.organization.id).put(sym_file, key=checksum)
 
         with self.feature("organizations:objectstore-debugfiles-exclusive-write"):
             assemble_dif(
