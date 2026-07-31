@@ -319,7 +319,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         if marked_checksums:
             files_by_checksum = dict(zip(checksums, files, strict=True))
             session = get_chunk_upload_session(organization.id)
-            uploaded_checksums = set()
+            uploaded_checksums: set[str] = set()
 
             for checksum in marked_checksums:
                 chunk = files_by_checksum[checksum]
