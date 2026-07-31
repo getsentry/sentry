@@ -126,6 +126,27 @@ describe('FormattedQuery', () => {
     expect(screen.queryByText(path)).not.toBeInTheDocument();
   });
 
+  it('shows the full filter value when it fits beyond the fallback length', () => {
+    const path = '/api/0/organizations/{organization_id_or_slug}/events/';
+    const clientWidthSpy = jest
+      .spyOn(Element.prototype, 'clientWidth', 'get')
+      .mockReturnValue(1000);
+    const scrollWidthSpy = jest
+      .spyOn(Element.prototype, 'scrollWidth', 'get')
+      .mockImplementation(function (this: Element) {
+        return (this.textContent?.length ?? 0) * 10 + 2;
+      });
+
+    try {
+      render(<FormattedQuery {...defaultProps} query={`transaction:${path}`} />);
+
+      expect(screen.getByText(path)).not.toHaveAttribute('data-overflowing');
+    } finally {
+      clientWidthSpy.mockRestore();
+      scrollWidthSpy.mockRestore();
+    }
+  });
+
   it('preserves a short filter value that exactly fits its natural width', () => {
     const clientWidthSpy = jest
       .spyOn(Element.prototype, 'clientWidth', 'get')
@@ -194,6 +215,32 @@ describe('FormattedQuery', () => {
     }
   });
 
+  it('preserves distinguishing prefixes in truncated multi-value filters', () => {
+    const clientWidthSpy = jest
+      .spyOn(Element.prototype, 'clientWidth', 'get')
+      .mockReturnValue(69);
+    const scrollWidthSpy = jest
+      .spyOn(Element.prototype, 'scrollWidth', 'get')
+      .mockImplementation(function (this: Element) {
+        return (this.textContent?.length ?? 0) * 10 + 2;
+      });
+
+    try {
+      render(
+        <FormattedQuery
+          {...defaultProps}
+          query="browser.name:[/foo/shared,/bar/shared]"
+        />
+      );
+
+      expect(screen.getByText('/fo…ed')).toHaveAttribute('data-overflowing', 'true');
+      expect(screen.getByText('/ba…ed')).toHaveAttribute('data-overflowing', 'true');
+    } finally {
+      clientWidthSpy.mockRestore();
+      scrollWidthSpy.mockRestore();
+    }
+  });
+
   it('tightens and restores middle-ellipsis as available width changes', () => {
     const path = '/api/0/organizations/{organization_id_or_slug}/events/';
     const capped = '/api/0…{organization_id_or_slug}/events/';
@@ -246,12 +293,12 @@ describe('FormattedQuery', () => {
       expect(screen.getByText('…events/')).toBeInTheDocument();
       expect(screen.queryByText(capped)).not.toBeInTheDocument();
 
-      clientWidth = 500;
+      clientWidth = 1000;
       act(() => {
         resizeCallback?.([], {} as ResizeObserver);
       });
 
-      expect(screen.getByText(capped)).toBeInTheDocument();
+      expect(screen.getByText(path)).toBeInTheDocument();
     } finally {
       window.ResizeObserver = originalResizeObserver;
       if (originalClientWidth) {

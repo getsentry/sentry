@@ -56,38 +56,61 @@ interface FilterValueProps extends SearchQueryTokenProps {
 }
 
 const FILTER_VALUE_ELLIPSIS_DELIMITER = /[\s\-:/]/;
-const FILTER_VALUE_MAX_LENGTH = 40;
-const FILTER_MULTI_VALUE_MAX_LENGTH = 20;
+const FILTER_VALUE_FALLBACK_MAX_LENGTH = 40;
+const FILTER_MULTI_VALUE_FALLBACK_MAX_LENGTH = 20;
 const ELLIPSIS = '\u2026';
+
+function ellipsizeFilterValue(value: string, maxLength: number, multi: boolean): string {
+  if (!multi) {
+    return middleEllipsis(value, maxLength, FILTER_VALUE_ELLIPSIS_DELIMITER);
+  }
+
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  if (maxLength <= 2) {
+    return `${value.slice(0, Math.max(0, maxLength - 1))}${ELLIPSIS}`;
+  }
+
+  const visibleLength = maxLength - 1;
+  const prefixLength = Math.ceil(visibleLength / 2);
+  const suffixLength = Math.floor(visibleLength / 2);
+  return `${value.slice(0, prefixLength)}${ELLIPSIS}${value.slice(-suffixLength)}`;
+}
 
 /**
  * Fit middle-ellipsis to the element's available width.
  *
- * Always starts from the character cap so that when the constraint loosens
+ * Always starts from the full value so that when the constraint loosens
  * (e.g. the window grows), content can reclaim width before we measure.
  */
 function fitMiddleEllipsisToElement(
   value: string,
-  maxLengthCap: number,
-  element: HTMLElement
+  fallbackMaxLength: number,
+  element: HTMLElement,
+  multi: boolean
 ): string {
-  const maxLength = Math.min(value.length, maxLengthCap);
-  if (maxLength <= 0) {
+  if (value.length <= 0) {
     return value;
   }
 
   const previousText = element.textContent;
   const previousWidth = element.style.width;
-  const capped = middleEllipsis(value, maxLength, FILTER_VALUE_ELLIPSIS_DELIMITER);
+  const fallback = ellipsizeFilterValue(value, fallbackMaxLength, multi);
 
   try {
-    // Expand to the cap first so content-sized ancestors can grow up to their
+    // Expand to the full value first so content-sized ancestors can grow up to their
     // max-width when the window/search bar is no longer constraining them.
-    element.textContent = capped;
+    element.textContent = value;
     element.style.width = '';
 
-    if (element.clientWidth <= 0 || element.scrollWidth <= element.clientWidth) {
-      return capped;
+    if (element.clientWidth <= 0) {
+      return fallback;
+    }
+
+    if (element.scrollWidth <= element.clientWidth) {
+      return value;
     }
 
     // Lock and reuse the constrained width so temporary candidate text cannot
@@ -98,13 +121,13 @@ function fitMiddleEllipsisToElement(
     element.style.width = `${availableWidth}px`;
 
     let low = 1;
-    let high = maxLength;
+    let high = value.length;
     element.textContent = ELLIPSIS;
     let best = element.scrollWidth <= availableWidth ? ELLIPSIS : '';
 
     while (low <= high) {
       const mid = Math.floor((low + high) / 2);
-      const candidate = middleEllipsis(value, mid, FILTER_VALUE_ELLIPSIS_DELIMITER);
+      const candidate = ellipsizeFilterValue(value, mid, multi);
       element.textContent = candidate;
       if (element.scrollWidth <= availableWidth) {
         best = candidate;
@@ -123,16 +146,16 @@ function fitMiddleEllipsisToElement(
 
 function TruncatedFilterDisplayValue({
   value,
-  maxLengthCap,
-  multi,
+  fallbackMaxLength,
+  multi = false,
 }: {
-  maxLengthCap: number;
+  fallbackMaxLength: number;
   value: string;
   multi?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [displayValue, setDisplayValue] = useState(() =>
-    middleEllipsis(value, maxLengthCap, FILTER_VALUE_ELLIPSIS_DELIMITER)
+    ellipsizeFilterValue(value, fallbackMaxLength, multi)
   );
 
   useLayoutEffect(() => {
@@ -148,7 +171,7 @@ function TruncatedFilterDisplayValue({
       }
       isFitting = true;
       try {
-        const next = fitMiddleEllipsisToElement(value, maxLengthCap, element);
+        const next = fitMiddleEllipsisToElement(value, fallbackMaxLength, element, multi);
         setDisplayValue(prev => (prev === next ? prev : next));
       } finally {
         isFitting = false;
@@ -171,7 +194,7 @@ function TruncatedFilterDisplayValue({
     const observer = new ResizeObserver(update);
     observer.observe(observed);
     return () => observer.disconnect();
-  }, [value, maxLengthCap]);
+  }, [value, fallbackMaxLength, multi]);
 
   const Truncated = multi ? FilterMultiValueTruncated : FilterValueSingleTruncatedValue;
 
@@ -191,7 +214,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
     return (
       <TruncatedFilterDisplayValue
         value={prettifyTagKey(token.value.text)}
-        maxLengthCap={FILTER_VALUE_MAX_LENGTH}
+        fallbackMaxLength={FILTER_VALUE_FALLBACK_MAX_LENGTH}
       />
     );
   }
@@ -206,7 +229,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
         return (
           <TruncatedFilterDisplayValue
             value={formatFilterValue({token: items[0]!.value, valueType})}
-            maxLengthCap={FILTER_VALUE_MAX_LENGTH}
+            fallbackMaxLength={FILTER_VALUE_FALLBACK_MAX_LENGTH}
           />
         );
       }
@@ -219,7 +242,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
             <Fragment key={index}>
               <TruncatedFilterDisplayValue
                 value={formatFilterValue({token: item.value!, valueType})}
-                maxLengthCap={FILTER_MULTI_VALUE_MAX_LENGTH}
+                fallbackMaxLength={FILTER_MULTI_VALUE_FALLBACK_MAX_LENGTH}
                 multi
               />
               {index !== items.length - 1 && index < maxItems - 1 ? (
@@ -242,7 +265,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       return (
         <TruncatedFilterDisplayValue
           value={formatFilterValue({token: token.value, valueType})}
-          maxLengthCap={FILTER_VALUE_MAX_LENGTH}
+          fallbackMaxLength={FILTER_VALUE_FALLBACK_MAX_LENGTH}
         />
       );
     }
