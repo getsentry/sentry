@@ -4,12 +4,7 @@ import styled from '@emotion/styled';
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {
-  Container,
-  Grid,
-  type GridProps,
-  useResponsivePropValue,
-} from '@sentry/scraps/layout';
+import {Container, Grid, type GridProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -283,26 +278,6 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
 }
 
 function HeroImage() {
-  const style = useResponsivePropValue({
-    zero: {},
-    xl: {
-      transform: 'translateX(-50%)',
-      userSelect: 'none',
-    },
-    '3xl': {
-      transform: 'translateX(-55%)',
-      userSelect: 'none',
-    },
-    '4xl': {
-      transform: 'translateX(-60%)',
-      userSelect: 'none',
-    },
-    '5xl': {
-      transform: 'translateX(-65%)',
-      userSelect: 'none',
-    },
-  });
-
   return (
     <Container
       bottom={{xl: 0}}
@@ -314,10 +289,29 @@ function HeroImage() {
       top={{xl: 0}}
       width={{xl: 220, '3xl': 300, '4xl': 380, '5xl': 420}}
     >
-      {containerProps => <img {...containerProps} src={emptyStateImg} style={style} />}
+      {containerProps => <StyledHeroImage {...containerProps} src={emptyStateImg} />}
     </Container>
   );
 }
+
+const StyledHeroImage = styled('img')`
+  @container (min-width: ${p => p.theme.container.xl}) {
+    user-select: none;
+    transform: translateX(-50%);
+  }
+
+  @container (min-width: ${p => p.theme.container['3xl']}) {
+    transform: translateX(-55%);
+  }
+
+  @container (min-width: ${p => p.theme.container['4xl']}) {
+    transform: translateX(-60%);
+  }
+
+  @container (min-width: ${p => p.theme.container['5xl']}) {
+    transform: translateX(-65%);
+  }
+`;
 
 const ButtonList = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
