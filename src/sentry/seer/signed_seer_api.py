@@ -145,6 +145,11 @@ def make_signed_seer_api_request(
     observe_viewer_context_propagation(
         "seer_rpc_out", ctx=resolved, extra_attributes={"seer_path": path}
     )
+    if resolved and resolved.organization_id is not None and resolved.project_id is None:
+        logger.warning(
+            "seer.viewer_context_missing_project_id",
+            extra={"seer_path": path, "organization_id": resolved.organization_id},
+        )
     if resolved:
         try:
             headers["X-Viewer-Context"] = encode_viewer_context(resolved)
