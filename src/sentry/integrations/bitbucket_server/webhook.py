@@ -28,7 +28,12 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.shared_integrations.exceptions import ApiHostError, ApiUnauthorized, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiHostError,
+    ApiUnauthorized,
+    IntegrationError,
+)
 from sentry.web.frontend.base import cell_silo_view
 
 logger = logging.getLogger("sentry.webhooks")
@@ -110,6 +115,11 @@ class PushEventWebhook(BitbucketServerWebhook):
                 except ApiUnauthorized as e:
                     lifecycle.record_halt(halt_reason=e)
                     raise BadRequest()
+                except ApiError as e:
+                    if e.code == 404:
+                        lifecycle.record_halt(halt_reason=e)
+                        continue
+                    raise
                 except Exception as e:
                     sentry_sdk.capture_exception(e)
                     raise
