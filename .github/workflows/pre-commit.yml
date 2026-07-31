@@ -30,6 +30,8 @@ jobs:
     name: pre-commit lint
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - # get a non-default github token so that any changes are verified by CI
         if: env.SECRET_ACCESS == 'true'
@@ -41,8 +43,9 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - name: Get changed files
         id: changes
-        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         with:
+          token: ''
           # Enable listing of files matching each filter.
           # Paths to files will be available in `${FILTER_NAME}_files` output variable.
           list-files: json

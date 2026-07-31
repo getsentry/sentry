@@ -17,14 +17,16 @@ jobs:
     name: (Optional) Shows the difference between the prod and dev schema
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Check for python file changes
-        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         id: changes
         with:
-          token: ${{ github.token }}
+          token: ''
           filters: .github/file-filters.yml
 
       - name: Setup sentry env
