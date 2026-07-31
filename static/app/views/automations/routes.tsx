@@ -1,23 +1,16 @@
-import {Outlet} from 'react-router-dom';
-
-import {Redirect} from 'sentry/components/redirect';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import type {SentryRouteObject} from 'sentry/router/types';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 export const automationRoutes: SentryRouteObject = {
   path: 'alerts/',
   children: [
     {
-      component: RedirectToRuleList,
       children: [
         {index: true, component: make(() => import('sentry/views/automations/list'))},
       ],
     },
     {
       path: 'new',
-      component: RedirectToNewRule,
       children: [
         {
           index: true,
@@ -27,7 +20,6 @@ export const automationRoutes: SentryRouteObject = {
     },
     {
       path: ':automationId/',
-      component: RedirectToRuleList,
       children: [
         {
           index: true,
@@ -41,41 +33,3 @@ export const automationRoutes: SentryRouteObject = {
     },
   ],
 };
-
-function RedirectToRuleList() {
-  const organization = useOrganization();
-
-  const shouldRedirect = !organization.features.includes('workflow-engine-ui');
-
-  if (shouldRedirect) {
-    return (
-      <Redirect
-        to={makeAlertsPathname({
-          path: '/rules/',
-          organization,
-        })}
-      />
-    );
-  }
-
-  return <Outlet />;
-}
-
-function RedirectToNewRule() {
-  const organization = useOrganization();
-
-  const shouldRedirect = !organization.features.includes('workflow-engine-ui');
-
-  if (shouldRedirect) {
-    return (
-      <Redirect
-        to={makeAlertsPathname({
-          path: '/new/',
-          organization,
-        })}
-      />
-    );
-  }
-
-  return <Outlet />;
-}
