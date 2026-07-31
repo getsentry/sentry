@@ -45,17 +45,20 @@ describe('RawDownloadAction', () => {
     expect(screen.queryByRole('button', {name: 'Download'})).not.toBeInTheDocument();
   });
 
-  it('does not render for console native platforms', () => {
-    render(
-      <StackTraceViewStateProvider defaultView="raw" platform="playstation">
-        <RawDownloadAction
-          eventId="event-id"
-          organization={organization}
-          projectSlug="project-slug"
-        />
-      </StackTraceViewStateProvider>
-    );
+  it.each(['nintendo-switch', 'playstation', 'xbox'] as const)(
+    'renders for %s crash reports',
+    platform => {
+      render(
+        <StackTraceViewStateProvider defaultView="raw" platform={platform}>
+          <RawDownloadAction
+            eventId="event-id"
+            organization={organization}
+            projectSlug="project-slug"
+          />
+        </StackTraceViewStateProvider>
+      );
 
-    expect(screen.queryByRole('button', {name: 'Download'})).not.toBeInTheDocument();
-  });
+      expect(screen.getByRole('button', {name: 'Download'})).toBeInTheDocument();
+    }
+  );
 });
