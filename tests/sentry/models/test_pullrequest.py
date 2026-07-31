@@ -16,7 +16,7 @@ from sentry.models.pullrequest import (
     CommentType,
     PullRequest,
     PullRequestCommit,
-    parse_pull_request_number,
+    parse_pull_request_url,
 )
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
@@ -665,23 +665,58 @@ class ForProviderPrTest(TestCase):
         assert self._for_provider_pr(integration_id=self.integration_id + 1) == []
 
 
-class ParsePullRequestNumberTest(TestCase):
-    def test_extracts_number_from_supported_url_shapes(self) -> None:
-        # Each provider segment the regex recognizes must yield the trailing number.
-        cases = [
-            ("https://github.com/getsentry/sentry/pull/42", 42),
-            ("https://github.com/getsentry/sentry/pulls/7", 7),
-            ("https://gitlab.com/getsentry/sentry/merge_requests/13", 13),
-        ]
-        for url, expected in cases:
-            assert parse_pull_request_number(url) == expected
+class ParsePullRequestUrlTest(TestCase):
+    def test_parses_each_provider_url_shape(self) -> None:
+        cases = {
+            "https://github.com/getsentry/sentry/pull/42": (42, "github.com", "getsentry/sentry"),
+            "https://github.com/getsentry/sentry/pulls/7": (7, "github.com", "getsentry/sentry"),
+            "https://gitlab.com/gs/sentry/merge_requests/13": (13, "gitlab.com", "gs/sentry"),
+            # GitLab nests projects under subgroups and separates the MR path with "/-/", so
+            # the repo name spans the subgroups but excludes the separator.
+            "https://gitlab.com/grp/sub/proj/-/merge_requests/3": (3, "gitlab.com", "grp/sub/proj"),
+            "https://gitlab.com/grp/sub/proj/merge_requests/3": (3, "gitlab.com", "grp/sub/proj"),
+        }
+        for url, expected in cases.items():
+            assert parse_pull_request_url(url) == expected, url
 
-    def test_returns_none_when_no_pr_segment(self) -> None:
-        # A branch/tree URL or a number-less path must not be mistaken for a PR.
+    def test_parses_past_trailing_url_segments(self) -> None:
+        # A PR URL stays a PR URL with a subpath, query, or fragment appended.
+        for url in [
+            "https://github.com/o/r/pull/5/files",
+            "https://github.com/o/r/pull/5?w=1",
+            "https://github.com/o/r/pull/5#issuecomment-1",
+        ]:
+            assert parse_pull_request_url(url) == (5, "github.com", "o/r"), url
+
+    def test_normalizes_the_host(self) -> None:
+        # Callers compare host to a known value, so casing, port and userinfo must not survive.
+        cases = {
+            "https://GitHub.com/o/r/pull/5": (5, "github.com", "o/r"),
+            "https://github.com:443/o/r/pull/5": (5, "github.com", "o/r"),
+            "https://user@github.com/o/r/pull/5": (5, "github.com", "o/r"),
+            # The real host is what follows the userinfo, not what precedes it.
+            "https://github.com@evil.com/o/r/pull/5": (5, "evil.com", "o/r"),
+        }
+        for url, expected in cases.items():
+            assert parse_pull_request_url(url) == expected, url
+
+    def test_returns_none_when_not_a_pr_url(self) -> None:
         cases = [
+            # A branch/tree URL or a number-less path must not be mistaken for a PR.
             "https://github.com/getsentry/sentry/tree/123",
             "https://github.com/getsentry/sentry/pulls",
             "https://github.com/getsentry/sentry",
+            # The number must end its path segment, not merely start it.
+            "https://github.com/o/r/pull/12x",
+            # Only https, so a parsed host can be trusted.
+            "http://github.com/o/r/pull/5",
+            # A PR URL smuggled into another URL's query string is not this URL's PR.
+            "https://evil.com/x?u=https://github.com/o/r/pull/5",
+            # A PR segment needs a repo above it; "pull" alone is not an owner/repo.
+            "https://github.com/pull/5",
+            # Malformed authority — urlsplit raises rather than returning a host.
+            "https://[::1/o/r/pull/5",
+            "",
         ]
         for url in cases:
-            assert parse_pull_request_number(url) is None
+            assert parse_pull_request_url(url) is None, url
