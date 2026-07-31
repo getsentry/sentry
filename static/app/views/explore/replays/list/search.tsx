@@ -16,7 +16,12 @@ export function ReplaysSearch() {
   });
 
   return (
-    <Container flex="1" minWidth={{zero: 'auto', xl: 267}} maxWidth="100%" width="auto">
+    <Container
+      flex="1"
+      minWidth={{zero: 'auto', xl: '267px'}}
+      maxWidth="100%"
+      width="auto"
+    >
       <ReplaySearchBar
         organization={organization}
         pageFilters={selection}
