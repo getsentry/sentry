@@ -42,6 +42,12 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             ),
         ),
         ResolvedAttribute(
+            public_alias="level",
+            internal_name="sentry.severity_text",
+            search_type="string",
+            secondary_alias=True,
+        ),
+        ResolvedAttribute(
             public_alias="message",
             internal_name="sentry.body",
             search_type="string",

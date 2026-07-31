@@ -330,7 +330,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 "attributeSource": {
                     "source_type": "sentry",
                 },
-                "secondaryAliases": ["log.severity_text", "severity_text"],
+                "secondaryAliases": ["level", "log.severity_text", "severity_text"],
                 "attributeType": "string",
             },
         ]
