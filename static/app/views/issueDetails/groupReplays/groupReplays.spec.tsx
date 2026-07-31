@@ -451,7 +451,7 @@ describe('GroupReplays', () => {
       // Expect the first row to have the correct href
       expect(
         screen.getByRole('link', {
-          name: 'T testDisplayName default project-slug 346789a7 14 days ago',
+          name: 'T testDisplayName project-slug 346789a7 14 days ago',
         })
       ).toHaveAttribute(
         'href',
@@ -461,7 +461,7 @@ describe('GroupReplays', () => {
       // Expect the second row to have the correct href
       expect(
         screen.getByRole('link', {
-          name: 'T testDisplayName default project-slug b05dae9b 7 days ago',
+          name: 'T testDisplayName project-slug b05dae9b 7 days ago',
         })
       ).toHaveAttribute(
         'href',

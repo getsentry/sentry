@@ -395,7 +395,11 @@ export function FrameworkSuggestionModal({
                                 checked={selectedFramework?.key === platform.id}
                                 readOnly
                               />
-                              <PlatformListItemIcon size={24} platform={platform.id} />
+                              <PlatformListItemIcon
+                                size={24}
+                                platform={platform.id}
+                                alt=""
+                              />
                               {platform.name}
                             </RadioLabel>
                           </PlatformListItem>
@@ -440,6 +444,7 @@ function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
         radius={8}
         offset={-74}
         format="lg"
+        alt=""
       />
       <TopFrameworkIcon
         size={84}
@@ -448,6 +453,7 @@ function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
         radius={8}
         offset={+74}
         format="lg"
+        alt=""
       />
       <TopFrameworkIcon
         size={84}
@@ -456,6 +462,7 @@ function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
         radius={8}
         offset={0}
         format="lg"
+        alt=""
       />
     </TopFrameworksImageWrapper>
   );

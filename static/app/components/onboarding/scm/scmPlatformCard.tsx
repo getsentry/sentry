@@ -38,7 +38,7 @@ export function ScmPlatformCard({
       <ScmSelectableContainer isSelected={isSelected} padding="lg">
         <Flex gap="md" align="center">
           <Flex flexShrink={0}>
-            <PlatformIcon platform={platform} size={28} />
+            <PlatformIcon platform={platform} size={28} alt="" />
           </Flex>
           <Stack maxWidth="100%" flexShrink={1} flexGrow={1} overflow="hidden">
             <InfoText title={name} mode="overflowOnly" bold textWrap="nowrap">

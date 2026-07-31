@@ -19,7 +19,9 @@ describe('ProjectList', () => {
       <ProjectList projectSlugs={['project1', 'project2']} maxVisibleProjects={2} />
     );
 
-    expect(await screen.findAllByRole('img')).toHaveLength(2);
+    // Project avatars render decorative platform icons (alt=""), so they are
+    // queried by test id rather than the img role.
+    expect(await screen.findAllByTestId(/^platform-icon-/)).toHaveLength(2);
   });
 
   it('renders the collapsed projects when there is overflow', async () => {
@@ -31,7 +33,7 @@ describe('ProjectList', () => {
     );
 
     // Should show project 1 and the collapsed badge
-    expect(await screen.findAllByRole('img')).toHaveLength(1);
+    expect(await screen.findAllByTestId(/^platform-icon-/)).toHaveLength(1);
     expect(screen.getByText('+2')).toBeInTheDocument();
 
     // Hovering should show the collapsed projects

@@ -581,7 +581,7 @@ describe('ScmCreateProject', () => {
     await userEvent.keyboard('sentry');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
 
-    expect(await screen.findByRole('radio', {name: 'python Python Language'})).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'Python Language'})).toBeChecked();
     await waitFor(() => {
       expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
     });
@@ -630,7 +630,7 @@ describe('ScmCreateProject', () => {
     await userEvent.keyboard('sentry');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
 
-    expect(await screen.findByRole('radio', {name: 'python Python Language'})).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'Python Language'})).toBeChecked();
     await waitFor(() => {
       expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
     });
@@ -644,7 +644,7 @@ describe('ScmCreateProject', () => {
 
     expect(await screen.findByText('Search SDKs...')).toBeInTheDocument();
     expect(
-      screen.queryByRole('radio', {name: 'python Python Language'})
+      screen.queryByRole('radio', {name: 'Python Language'})
     ).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('');
     expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
