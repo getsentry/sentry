@@ -312,7 +312,7 @@ def assemble_dif(
     from sentry.models.debugfile import (
         BadDif,
         create_dif_from_file,
-        create_objectstore_dif_from_id,
+        create_dif_from_id,
         detect_single_dif_from_path,
     )
     from sentry.models.project import Project
@@ -384,13 +384,7 @@ def assemble_dif(
                     return
 
                 tmp.file.seek(0)
-                dif, created = create_objectstore_dif_from_id(
-                    project,
-                    meta,
-                    tmp.file,
-                    tmp.checksum,
-                    tmp.size,
-                )
+                dif, created = create_dif_from_id(project, meta, fileobj=tmp.file)
 
         if created:
             record_last_upload(project)

@@ -55,7 +55,6 @@ from sentry.models.debugfile import (
     build_proguard_reupload_dif_meta,
     create_dif_from_id,
     create_files_from_dif_zip,
-    create_objectstore_dif_from_id,
     get_debug_id_from_dif_request,
 )
 from sentry.models.files.file import File
@@ -865,25 +864,13 @@ def _clone_proguard_debug_file_for_reupload(
         dif, created = create_dif_from_id(project, meta, file=debug_file.file)
     else:
         # Source content lives in Objectstore (exclusively, or dual-written with
-        # reads enabled). Spool once, then write via the matching create path.
-        assert debug_file.checksum is not None
+        # reads enabled). Spool it so the shared DIF writer can inspect it.
         source_fileobj = debug_file.get_file()
         try:
             with tempfile.TemporaryFile() as tmp:
                 shutil.copyfileobj(source_fileobj, tmp)
                 tmp.seek(0)
-                if debug_file.file is None:
-                    # Objectstore-only: stay exclusive (no File row).
-                    assert debug_file.file_size is not None
-                    dif, created = create_objectstore_dif_from_id(
-                        project,
-                        meta,
-                        tmp,
-                        debug_file.checksum,
-                        debug_file.file_size,
-                    )
-                else:
-                    dif, created = create_dif_from_id(project, meta, fileobj=tmp)
+                dif, created = create_dif_from_id(project, meta, fileobj=tmp)
         finally:
             source_fileobj.close()
 

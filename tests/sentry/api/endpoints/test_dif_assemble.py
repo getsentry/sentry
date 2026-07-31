@@ -659,3 +659,34 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
         assert second_dif.file_id is not None
         assert second_dif.storage_path is None
         assert second_dif.get_file().read() == file_contents
+
+    def test_clone_file_backed_source_to_objectstore_exclusive(self) -> None:
+        file_contents = b"proguard mapping"
+        checksum = sha1(file_contents).hexdigest()
+        blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
+        chunks = [blob.checksum]
+
+        with self.feature({"organizations:objectstore-debugfiles-write": False}):
+            self._assemble_source(checksum, chunks)
+
+        first_dif = ProjectDebugFile.objects.get(
+            project_id=self.project.id,
+            debug_id="00000000-0000-0000-0000-000000000000",
+        )
+        assert first_dif.file_id is not None
+        assert first_dif.storage_path is None
+
+        with self.feature("organizations:objectstore-debugfiles-exclusive-write"):
+            response = self._clone_request(checksum, chunks)
+
+        assert response.status_code == 200, response.content
+        assert response.data[checksum]["state"] == ChunkFileState.OK
+
+        second_dif = ProjectDebugFile.objects.get(
+            project_id=self.project.id,
+            debug_id="11111111-1111-1111-1111-111111111111",
+        )
+        assert second_dif.file_id is None
+        assert second_dif.storage_path is not None
+        assert second_dif.get_file().read() == file_contents
+        assert File.objects.filter(type="project.dif", checksum=checksum).count() == 1
