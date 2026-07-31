@@ -26,7 +26,6 @@ export interface AdjacentTraceNavigation {
   ariaLabel: string;
   disabled: boolean;
   icon: React.ReactNode;
-  isLoading: boolean;
   onClick: () => void;
   to: LinkProps['to'];
   tooltip: React.ReactNode;
@@ -88,7 +87,6 @@ export function useAdjacentTraceNavigation({
     available: isTraceAvailable,
     id: traceSpanId,
     trace: traceId,
-    isLoading,
   } = useFindAdjacentTrace({
     direction,
     adjacentTraceEndTimestamp,
@@ -105,7 +103,6 @@ export function useAdjacentTraceNavigation({
     ariaLabel,
     icon,
     tooltip,
-    isLoading,
     disabled: !traceId || !isTraceAvailable,
     onClick: () => traceDispatch({type: 'minimize drawer', payload: true}),
     to: getTraceDetailsUrl({

@@ -318,10 +318,11 @@ user can step through a list of items, such as issues, replays, or traces. Each
 direction has an `ariaLabel`, an optional `to` URL, an optional `disabled` flag,
 and an optional `tooltip`. When `to` is omitted, that chevron is disabled.
 
-Set `loading` while the destinations are still resolving to render chevron-sized
-skeletons in their place, so the row keeps its width instead of popping in. Give
-the disabled state a `tooltip` too: it is what explains the feature to someone
-whose current item happens to have no neighbours.
+Keep `pagination` present even when neither direction is navigable, rather than
+dropping it once the data resolves — the chevrons hold their space from the first
+render, so the title doesn't shift when a destination appears. Give the disabled
+state a `tooltip` too: it is what explains the feature to someone whose current
+item happens to have no neighbours.
 
 <Storybook.Demo>
   <BreadcrumbListDemo
