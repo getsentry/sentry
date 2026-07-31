@@ -79,13 +79,17 @@ export const SEER_EMBED_SCHEMAS = {
       'Display numeric data as a compact Sentry-style chart. Use this when the answer ' +
       'contains a meaningful time series or category comparison with at least three points. ' +
       'Use x_axis "time" with ISO 8601 timestamps and "category" for named buckets. ' +
+      'For heatmaps, each series is a row and each point is a colored cell. ' +
+      'For wheels, use one category series whose points are the ring segments. ' +
       'Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.',
     level: ['block'],
     schema: z
       .object({
         title: z.string().min(1),
         subtitle: z.string().optional(),
-        visualization: z.enum(['line', 'area', 'bar']).default('line'),
+        visualization: z
+          .enum(['line', 'area', 'bar', 'heatmap', 'wheel'])
+          .default('line'),
         x_axis: z.enum(['time', 'category']).default('time'),
         y_axis_unit: z
           .enum(['number', 'percentage', 'duration', 'bytes'])
@@ -110,24 +114,82 @@ export const SEER_EMBED_SCHEMAS = {
           .max(5),
       })
       .superRefine((chart, context) => {
-        if (chart.x_axis !== 'time') {
+        if (chart.x_axis === 'time') {
+          chart.series.forEach((series, seriesIndex) => {
+            series.data.forEach((point, pointIndex) => {
+              if (
+                typeof point.x === 'string' &&
+                !isoTimestampSchema.safeParse(point.x).success
+              ) {
+                context.addIssue({
+                  code: 'custom',
+                  message: 'Time-axis string values must be ISO 8601 timestamps',
+                  path: ['series', seriesIndex, 'data', pointIndex, 'x'],
+                });
+              }
+            });
+          });
+        }
+
+        if (chart.visualization === 'heatmap') {
+          chart.series.forEach((series, seriesIndex) => {
+            series.data.forEach((point, pointIndex) => {
+              if (point.y >= 0) {
+                return;
+              }
+              context.addIssue({
+                code: 'custom',
+                message: 'Heatmap values must be non-negative',
+                path: ['series', seriesIndex, 'data', pointIndex, 'y'],
+              });
+            });
+          });
+        }
+
+        if (chart.visualization !== 'wheel') {
           return;
         }
 
-        chart.series.forEach((series, seriesIndex) => {
-          series.data.forEach((point, pointIndex) => {
-            if (
-              typeof point.x === 'string' &&
-              !isoTimestampSchema.safeParse(point.x).success
-            ) {
-              context.addIssue({
-                code: 'custom',
-                message: 'Time-axis string values must be ISO 8601 timestamps',
-                path: ['series', seriesIndex, 'data', pointIndex, 'x'],
-              });
-            }
+        if (chart.x_axis !== 'category') {
+          context.addIssue({
+            code: 'custom',
+            message: 'Wheel charts require a category x-axis',
+            path: ['x_axis'],
+          });
+        }
+        if (chart.series.length !== 1) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Wheel charts require exactly one series',
+            path: ['series'],
+          });
+        }
+
+        const points = chart.series[0]?.data ?? [];
+        if (points.length < 2 || points.length > 12) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Wheel charts require between 2 and 12 points',
+            path: ['series', 0, 'data'],
+          });
+        }
+        points.forEach((point, pointIndex) => {
+          if (point.y >= 0) {
+            return;
+          }
+          context.addIssue({
+            code: 'custom',
+            message: 'Wheel chart values must be non-negative',
+            path: ['series', 0, 'data', pointIndex, 'y'],
           });
         });
+        if (points.reduce((total, point) => total + point.y, 0) <= 0) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Wheel chart values must have a positive total',
+            path: ['series', 0, 'data'],
+          });
+        }
       }),
     examples: [
       {
