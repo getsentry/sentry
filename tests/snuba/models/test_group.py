@@ -13,12 +13,12 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     ProfileFileIOGroupType,
 )
-from sentry.models.group import Group, bulk_get_latest_event_ids
+from sentry.models.group import Group, _normalize_replay_id, bulk_get_latest_event_ids
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
-from sentry.utils.snuba import bulk_snuba_queries
+from sentry.utils.snuba import SnubaError, bulk_snuba_queries
 from tests.sentry.issues.test_utils import OccurrenceTestMixin, SearchIssueTestMixin
 
 
@@ -418,6 +418,28 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         assert (
             _get_recommended(self.group, verify_replay_exists=True).event_id == lower_event.event_id
         )
+
+    @patch(VERIFY_REPLAY_FILTER)
+    def test_recommended_event_verify_replay_query_error_falls_back(
+        self, mock_filter: MagicMock
+    ) -> None:
+        mock_filter.side_effect = SnubaError("boom")
+        assert (
+            _get_recommended(self.group, verify_replay_exists=True).event_id
+            == self.event_b.event_id
+        )
+
+    def test_normalize_replay_id_handles_dashed_and_dashless(self) -> None:
+        assert (
+            _normalize_replay_id("550e8400-e29b-41d4-a716-446655440000")
+            == "550e8400e29b41d4a716446655440000"
+        )
+        assert (
+            _normalize_replay_id("550e8400e29b41d4a716446655440000")
+            == "550e8400e29b41d4a716446655440000"
+        )
+        assert _normalize_replay_id(None) is None
+        assert _normalize_replay_id("not-a-uuid") is None
 
     def test_latest_event(self) -> None:
         # No filter

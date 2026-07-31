@@ -447,7 +447,7 @@ def _normalize_replay_id(replay_id: str | None) -> str | None:
     if not replay_id:
         return None
     try:
-        return uuid.UUID(hex=replay_id, version=4).hex
+        return uuid.UUID(hex=replay_id).hex
     except ValueError:
         return None
 
@@ -462,6 +462,7 @@ def _select_event_with_existing_replay(
     Select an event with a replay id after it has been verified to exist in the replays dataset.
     """
     from sentry.replays.usecases.replay_existence import filter_existing_replay_ids
+    from sentry.utils.snuba import SnubaError
 
     replay_id_to_event: dict[str, Event] = {}
     for event in events:
@@ -477,14 +478,22 @@ def _select_event_with_existing_replay(
         )
         return events[0]
 
-    with metrics.timer("issue_details.recommended_event.replay_verify_duration"):
-        existing_replay_ids = filter_existing_replay_ids(
-            project_ids=[group.project.id],
-            start=start,
-            end=end,
-            replay_ids=list(replay_id_to_event.keys()),
-            tenant_ids={"organization_id": group.project.organization_id},
+    try:
+        with metrics.timer("issue_details.recommended_event.replay_verify_duration"):
+            existing_replay_ids = filter_existing_replay_ids(
+                project_ids=[group.project.id],
+                start=start,
+                end=end,
+                replay_ids=list(replay_id_to_event.keys()),
+                tenant_ids={"organization_id": group.project.organization_id},
+            )
+    except SnubaError:
+        logger.exception("issue_details.recommended_event.replay_verify_error")
+        metrics.incr(
+            "issue_details.recommended_event.replay_verify",
+            tags={"outcome": "query_error"},
         )
+        return events[0]
 
     for replay_id, event in replay_id_to_event.items():
         if replay_id in existing_replay_ids:
