@@ -4,6 +4,7 @@ import logging
 from collections.abc import Mapping
 from typing import TypedDict, cast
 
+from django.core.cache import cache
 from django.db.models import Exists, OuterRef
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,8 +14,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.pullrequest import (
+    KNOWN_MERGEABLE_STATES,
     LinkedPullRequestResponse,
     LinkedPullRequestSerializer,
+    PullRequestMergeableState,
     PullRequestStatus,
     get_stored_pull_request_status,
 )
@@ -30,10 +33,16 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_LIMIT = 5
 
+# How long a provider PR lookup is reused before refetching. Mergeability can
+# flip whenever checks finish, so keep this short — it only needs to absorb
+# bursts of page renders, not stay fresh for long.
+PROVIDER_PR_CACHE_TTL = 120
+
 
 class ProviderPullRequestResponse(TypedDict, total=False):
     draft: bool
     merged: bool
+    mergeable_state: str
     state: str
 
 
@@ -103,18 +112,42 @@ def _fetch_pull_request_status_response(
     state = response.get("state")
     if isinstance(state, str):
         provider_response["state"] = state
+    mergeable_state = response.get("mergeable_state")
+    if isinstance(mergeable_state, str):
+        provider_response["mergeable_state"] = mergeable_state.lower()
 
     return provider_response
 
 
-def _get_provider_pull_request_status(
+def _fetch_provider_pull_request_cached(
+    pull_request: PullRequest, repository: Repository
+) -> ProviderPullRequestResponse | None:
+    """Provider PR lookup with a short-lived cache.
+
+    Open PRs are looked up on every request (mergeability changes as checks
+    finish); the cache only absorbs bursts of renders so a page of cards
+    doesn't spend provider rate limit per re-render.
+    """
+    cache_key = f"group-pull-requests:provider-pr:{repository.integration_id}:{pull_request.id}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cast(ProviderPullRequestResponse, cached)
+
+    response = _fetch_pull_request_status_response(pull_request, repository)
+    if response is not None:
+        cache.set(cache_key, response, PROVIDER_PR_CACHE_TTL)
+    return response
+
+
+def _get_provider_pull_request_info(
     pull_request: PullRequest, repository: Repository | None
-) -> PullRequestStatus:
+) -> tuple[PullRequestStatus | None, PullRequestMergeableState | None]:
+    """Live status + merge readiness; (None, None) when the provider is unavailable."""
     if repository is None:
-        return "unknown"
+        return None, None
 
     try:
-        response = _fetch_pull_request_status_response(pull_request, repository)
+        response = _fetch_provider_pull_request_cached(pull_request, repository)
     except Exception:
         logger.info(
             "group_pull_requests.status_fetch_failed",
@@ -125,31 +158,51 @@ def _get_provider_pull_request_status(
                 "repository_id": pull_request.repository_id,
             },
         )
-        return "unknown"
+        return None, None
 
     if response is None:
-        return "unknown"
+        return None, None
 
-    if response.get("merged"):
-        return "merged"
+    status: PullRequestStatus = "unknown"
     state = response.get("state")
-    if state == "closed":
-        return "closed"
-    if response.get("draft"):
-        return "draft"
-    if state == "open":
-        return "open"
-    return "unknown"
+    if response.get("merged"):
+        status = "merged"
+    elif state == "closed":
+        status = "closed"
+    elif response.get("draft"):
+        status = "draft"
+    elif state == "open":
+        status = "open"
+
+    mergeable_state: PullRequestMergeableState | None = None
+    raw_mergeable_state = response.get("mergeable_state")
+    # Merge readiness is only meaningful while the PR can still be merged.
+    if raw_mergeable_state and status not in ("merged", "closed"):
+        mergeable_state = cast(
+            PullRequestMergeableState,
+            raw_mergeable_state if raw_mergeable_state in KNOWN_MERGEABLE_STATES else "unknown",
+        )
+
+    return status, mergeable_state
 
 
-def _get_pull_request_status(
+def _get_pull_request_state(
     pull_request: PullRequest, repository: Repository | None
-) -> PullRequestStatus:
-    stored_status = get_stored_pull_request_status(pull_request)
-    if stored_status is not None:
-        return stored_status
+) -> tuple[PullRequestStatus, PullRequestMergeableState | None]:
+    """Resolve a PR's lifecycle status and merge readiness.
 
-    return _get_provider_pull_request_status(pull_request, repository)
+    Terminal PRs (merged/closed) are answered from the stored, webhook-kept
+    fields without a provider round-trip. Everything else asks the provider —
+    the stored row can't answer merge readiness — falling back to the stored
+    status when the provider is unavailable.
+    """
+    stored_status = get_stored_pull_request_status(pull_request)
+    if stored_status in ("merged", "closed"):
+        return stored_status, None
+
+    provider_status, mergeable_state = _get_provider_pull_request_info(pull_request, repository)
+    status = provider_status or stored_status or "unknown"
+    return status, mergeable_state
 
 
 @cell_silo_endpoint
@@ -188,12 +241,14 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
         ]
 
         date_linked_by_pr_id = {link.linked_id: link.datetime for link in group_links}
-        status_by_pr_id = {
-            pull_request.id: _get_pull_request_status(
+        status_by_pr_id: dict[int, PullRequestStatus] = {}
+        mergeable_state_by_pr_id: dict[int, PullRequestMergeableState | None] = {}
+        for pull_request in pull_requests:
+            status, mergeable_state = _get_pull_request_state(
                 pull_request, repositories_by_id.get(pull_request.repository_id)
             )
-            for pull_request in pull_requests
-        }
+            status_by_pr_id[pull_request.id] = status
+            mergeable_state_by_pr_id[pull_request.id] = mergeable_state
 
         # serialize() infers the base PullRequestSerializerResponse from the
         # parent's generic; LinkedPullRequestSerializer returns the narrower type.
@@ -205,6 +260,7 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
                 serializer=LinkedPullRequestSerializer(
                     date_linked_by_pr_id=date_linked_by_pr_id,
                     status_by_pr_id=status_by_pr_id,
+                    mergeable_state_by_pr_id=mergeable_state_by_pr_id,
                 ),
             ),
         )

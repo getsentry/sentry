@@ -19,6 +19,18 @@ from sentry.pr_metrics.attribution import is_seer_attribution
 
 PullRequestStatus = Literal["merged", "open", "closed", "draft", "unknown"]
 
+# GitHub's mergeable_state, lowercased: "clean" is ready to merge, "unstable"
+# has failing checks but is technically mergeable, "blocked" is waiting on
+# required checks/reviews, "dirty" has conflicts, "behind" needs a rebase.
+# Anything the provider adds later collapses to "unknown".
+PullRequestMergeableState = Literal[
+    "clean", "unstable", "blocked", "dirty", "behind", "draft", "has_hooks", "unknown"
+]
+
+KNOWN_MERGEABLE_STATES: frozenset[str] = frozenset(
+    ("clean", "unstable", "blocked", "dirty", "behind", "draft", "has_hooks")
+)
+
 
 def get_stored_pull_request_status(pull_request: PullRequest) -> PullRequestStatus | None:
     if pull_request.state == PullRequestLifecycleState.MERGED:
@@ -57,6 +69,9 @@ LinkedPullRequestAttributionResponse = LinkedPullRequestSeerAttributionResponse
 class LinkedPullRequestResponse(PullRequestSerializerResponse):
     attribution: LinkedPullRequestAttributionResponse | None
     dateLinked: datetime
+    # Merge readiness from the provider; None for terminal PRs or when the
+    # provider fetch was unavailable.
+    mergeableState: PullRequestMergeableState | None
 
 
 def get_users_for_pull_requests(item_list, user=None):
@@ -131,9 +146,11 @@ class LinkedPullRequestSerializer(PullRequestSerializer):
         *,
         date_linked_by_pr_id: Mapping[int, datetime],
         status_by_pr_id: Mapping[int, PullRequestStatus],
+        mergeable_state_by_pr_id: Mapping[int, PullRequestMergeableState | None] | None = None,
     ) -> None:
         self.date_linked_by_pr_id = date_linked_by_pr_id
         self.status_by_pr_id = status_by_pr_id
+        self.mergeable_state_by_pr_id = mergeable_state_by_pr_id or {}
 
     def get_attrs(self, item_list, user, **kwargs):
         attrs = super().get_attrs(item_list, user)
@@ -155,4 +172,5 @@ class LinkedPullRequestSerializer(PullRequestSerializer):
             "attribution": attrs["attribution"],
             "dateLinked": self.date_linked_by_pr_id[obj.id],
             "status": self.status_by_pr_id[obj.id],
+            "mergeableState": self.mergeable_state_by_pr_id.get(obj.id),
         }
