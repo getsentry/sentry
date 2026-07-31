@@ -278,37 +278,37 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
 }
 
 function HeroImage() {
-  return (
-    <Container
-      bottom={{xl: 0}}
-      left={{xl: '50%'}}
-      marginBottom={{xl: 'auto'}}
-      marginTop={{xl: 'auto'}}
-      minWidth={{'3xl': 300, '4xl': 380, '5xl': 420}}
-      position={{xl: 'absolute'}}
-      top={{xl: 0}}
-      width={{xl: 220, '3xl': 300, '4xl': 380, '5xl': 420}}
-    >
-      {containerProps => <StyledHeroImage {...containerProps} src={emptyStateImg} />}
-    </Container>
-  );
+  return <StyledHeroImage src={emptyStateImg} />;
 }
 
 const StyledHeroImage = styled('img')`
   @container (min-width: ${p => p.theme.container.xl}) {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 220px;
+    margin-top: auto;
+    margin-bottom: auto;
     user-select: none;
     transform: translateX(-50%);
   }
 
   @container (min-width: ${p => p.theme.container['3xl']}) {
+    min-width: 300px;
+    width: 300px;
     transform: translateX(-55%);
   }
 
   @container (min-width: ${p => p.theme.container['4xl']}) {
+    min-width: 380px;
+    width: 380px;
     transform: translateX(-60%);
   }
 
   @container (min-width: ${p => p.theme.container['5xl']}) {
+    min-width: 420px;
+    width: 420px;
     transform: translateX(-65%);
   }
 `;
