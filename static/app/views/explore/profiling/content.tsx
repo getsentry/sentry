@@ -4,7 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
@@ -172,14 +172,16 @@ function ProfilingContentInner() {
           <ProfilingContentPageHeader />
           <ExploreBodySearch>
             <Layout.Main width="full">
-              <PageFilterBar condensed>
-                <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                <DatePageFilter
-                  {...datePageFilterProps}
-                  resetParamsOnChange={CURSOR_PARAMS}
-                />
-              </PageFilterBar>
+              <Container display="inline-flex" maxWidth="100%">
+                <PageFilterBar condensed>
+                  <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                  <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                  <DatePageFilter
+                    {...datePageFilterProps}
+                    resetParamsOnChange={CURSOR_PARAMS}
+                  />
+                </PageFilterBar>
+              </Container>
             </Layout.Main>
           </ExploreBodySearch>
           <ExploreBodyContent>
