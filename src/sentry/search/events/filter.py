@@ -25,7 +25,6 @@ from sentry.models.releases.util import SemverFilter
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
-    ERROR_HAS_CONTINUOUS_PROFILE_ALIAS,
     ERROR_UNHANDLED_ALIAS,
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
@@ -33,6 +32,7 @@ from sentry.search.events.constants import (
     NO_CONVERSION_FIELDS,
     OPERATOR_NEGATION_MAP,
     OPERATOR_TO_DJANGO,
+    PROFILER_ID_ALIAS,
     PROFILER_ID_CONTEXT_COLUMN,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
@@ -246,29 +246,16 @@ def _error_handled_filter_converter(
     raise InvalidSearchQuery("Invalid value for error.handled condition. Accepted values are 1, 0")
 
 
-def _error_has_continuous_profile_filter_converter(
+def _profiler_id_filter_converter(
     search_filter: SearchFilter,
     name: str,
     params: FilterConvertParams | None,
 ) -> list[Any]:
-    value = search_filter.value.value
-    # A missing key in the contexts map reads as '' rather than NULL, so comparing against
-    # '' is enough to tell "has a profiler id" from "has none".
-    if search_filter.value.raw_value == "":
-        # `has:` already parses as '!=' against an empty value, i.e. "is set".
-        return [PROFILER_ID_CONTEXT_COLUMN, search_filter.operator, ""]
-    if value in ("1", 1):
-        operator = "!="
-    elif value in ("0", 0):
-        operator = "="
-    else:
-        raise InvalidSearchQuery(
-            f"Invalid value for {ERROR_HAS_CONTINUOUS_PROFILE_ALIAS} condition. "
-            "Accepted values are 1, 0"
-        )
-    if search_filter.operator == "!=":
-        operator = OPERATOR_NEGATION_MAP[operator]
-    return [PROFILER_ID_CONTEXT_COLUMN, operator, ""]
+    # This converter is only reached by the errors/issue platform group-search path (this
+    # alias resolves to a real, indexed column on transactions elsewhere). A missing key in
+    # the contexts map reads as '' rather than NULL, so a plain '' comparison is enough to
+    # express "has"/"doesn't have" a profiler id - no `ifNull` needed.
+    return [PROFILER_ID_CONTEXT_COLUMN, search_filter.operator, search_filter.value.value]
 
 
 def _team_key_transaction_filter_converter(
@@ -560,7 +547,7 @@ key_conversion_map: dict[
     USER_DISPLAY_ALIAS: _user_display_filter_converter,
     ERROR_UNHANDLED_ALIAS: _error_unhandled_filter_converter,
     "error.handled": _error_handled_filter_converter,
-    ERROR_HAS_CONTINUOUS_PROFILE_ALIAS: _error_has_continuous_profile_filter_converter,
+    PROFILER_ID_ALIAS: _profiler_id_filter_converter,
     TEAM_KEY_TRANSACTION_ALIAS: _team_key_transaction_filter_converter,
     RELEASE_STAGE_ALIAS: _release_stage_filter_converter,
     SEMVER_ALIAS: _semver_filter_converter,

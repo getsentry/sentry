@@ -298,7 +298,7 @@ class StreamGroupSerializerTestCase(APITestCase, BaseMetricsTestCase):
                 stats_period="24h",
                 organization_id=group.project.organization_id,
                 search_filters=[
-                    SearchFilter(SearchKey("error.has_continuous_profile"), "=", SearchValue("1")),
+                    SearchFilter(SearchKey("profiler.id"), "!=", SearchValue("")),
                 ],
             ),
             request=self.make_request(),

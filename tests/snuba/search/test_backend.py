@@ -2421,84 +2421,6 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             data["contexts"] = {"profile": {"type": "profile", "profiler_id": profiler_id}}
         return self.store_event(data=data, project_id=self.project.id)
 
-    def test_error_has_continuous_profile(self) -> None:
-        profiled = self._store_event_with_profiler_id(
-            fingerprint="has-profile",
-            event_id="d" * 32,
-            module="group3",
-            profiler_id="b" * 32,
-        )
-        not_profiled = self._store_event_with_profiler_id(
-            fingerprint="no-profile",
-            event_id="e" * 32,
-            module="group4",
-            profiler_id=None,
-        )
-
-        results = self.make_query(
-            search_filter_query="environment:production error.has_continuous_profile:1"
-        )
-        assert set(results) == {profiled.group}
-
-        results = self.make_query(
-            search_filter_query="environment:production error.has_continuous_profile:0"
-        )
-        assert set(results) == {self.group1, not_profiled.group}
-
-    def test_error_has_continuous_profile_boolean_values(self) -> None:
-        # The field is declared as a boolean in the UI, so the search bar emits true/false.
-        profiled = self._store_event_with_profiler_id(
-            fingerprint="has-profile",
-            event_id="d" * 32,
-            module="group3",
-            profiler_id="b" * 32,
-        )
-        not_profiled = self._store_event_with_profiler_id(
-            fingerprint="no-profile",
-            event_id="e" * 32,
-            module="group4",
-            profiler_id=None,
-        )
-
-        results = self.make_query(
-            search_filter_query="environment:production error.has_continuous_profile:true"
-        )
-        assert set(results) == {profiled.group}
-
-        results = self.make_query(
-            search_filter_query="environment:production error.has_continuous_profile:false"
-        )
-        assert set(results) == {self.group1, not_profiled.group}
-
-        results = self.make_query(
-            search_filter_query="environment:production !error.has_continuous_profile:true"
-        )
-        assert set(results) == {self.group1, not_profiled.group}
-
-    def test_error_has_continuous_profile_negated(self) -> None:
-        profiled = self._store_event_with_profiler_id(
-            fingerprint="has-profile",
-            event_id="d" * 32,
-            module="group3",
-            profiler_id="b" * 32,
-        )
-        not_profiled = self._store_event_with_profiler_id(
-            fingerprint="no-profile",
-            event_id="e" * 32,
-            module="group4",
-            profiler_id=None,
-        )
-
-        results = self.make_query(
-            search_filter_query="environment:production !error.has_continuous_profile:1"
-        )
-        assert set(results) == {self.group1, not_profiled.group}
-
-        results = self.make_query(
-            search_filter_query="environment:production !error.has_continuous_profile:0"
-        )
-        assert set(results) == {profiled.group}
-
     def test_error_has_continuous_profile_has_filter(self) -> None:
         profiled = self._store_event_with_profiler_id(
             fingerprint="has-profile",
@@ -2513,19 +2435,30 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             profiler_id=None,
         )
 
-        results = self.make_query(
-            search_filter_query="environment:production has:error.has_continuous_profile"
-        )
+        results = self.make_query(search_filter_query="environment:production has:profiler.id")
         assert set(results) == {profiled.group}
 
-        results = self.make_query(
-            search_filter_query="environment:production !has:error.has_continuous_profile"
-        )
+        results = self.make_query(search_filter_query="environment:production !has:profiler.id")
         assert set(results) == {self.group1, not_profiled.group}
 
-    def test_error_has_continuous_profile_rejects_invalid_value(self) -> None:
-        with pytest.raises(InvalidSearchQuery):
-            self.make_query(search_filter_query="error.has_continuous_profile:maybe")
+    def test_error_has_continuous_profile_exact_value(self) -> None:
+        profiled = self._store_event_with_profiler_id(
+            fingerprint="has-profile",
+            event_id="d" * 32,
+            module="group3",
+            profiler_id="b" * 32,
+        )
+        self._store_event_with_profiler_id(
+            fingerprint="no-profile",
+            event_id="e" * 32,
+            module="group4",
+            profiler_id=None,
+        )
+
+        results = self.make_query(
+            search_filter_query=f"environment:production profiler.id:{'b' * 32}"
+        )
+        assert set(results) == {profiled.group}
 
     def test_null_promoted_tags(self) -> None:
         tag_event = self.store_event(

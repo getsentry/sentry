@@ -28,7 +28,10 @@ TEAM_KEY_TRANSACTION_ALIAS = "team_key_transaction"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
 ERROR_HANDLED_ALIAS = "error.handled"
 EVENT_TYPE_ALIAS = "event.type"
-ERROR_HAS_CONTINUOUS_PROFILE_ALIAS = "error.has_continuous_profile"
+# On errors/issue platform events `profiler.id` resolves to a contexts map lookup rather
+# than a real column, so a missing value reads as '' instead of NULL - needs its own
+# converter that always targets the raw contexts expression, not the dataset-resolved alias.
+PROFILER_ID_ALIAS = "profiler.id"
 PROFILER_ID_CONTEXT_COLUMN = "contexts[profile.profiler_id]"
 USER_DISPLAY_ALIAS = "user.display"
 PROJECT_ALIAS = "project"

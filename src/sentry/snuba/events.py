@@ -780,17 +780,19 @@ class Columns(Enum):
         alias="profile.id",
     )
 
-    # For continuous profiles
+    # For continuous profiles. Promoted to a real column on transactions; errors and
+    # issue platform events read it from the contexts map instead.
     PROFILER_ID = Column(
         group_name=None,
-        event_name=None,
+        event_name="contexts[profile.profiler_id]",
         transaction_name="profiler_id",
         discover_name="profiler_id",
-        issue_platform_name=None,  # TODO: This doesn't exist yet
+        issue_platform_name="contexts[profile.profiler_id]",
         alias="profiler.id",
     )
-    # `profiler.id` above is promoted on transactions only, and errors read it from the
-    # contexts map instead
+    # Identity-mapped so the raw contexts expression above can be used directly as a
+    # snuba condition column (e.g. from `_profiler_id_filter_converter`) without being
+    # mistaken for an unregistered tag.
     PROFILER_ID_CONTEXT = Column(
         group_name=None,
         event_name="contexts[profile.profiler_id]",

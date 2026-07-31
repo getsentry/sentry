@@ -1970,7 +1970,6 @@ default_config = SearchConfig(
     boolean_keys={
         "error.handled",
         "error.unhandled",
-        "error.has_continuous_profile",
         "error.main_thread",
         "stack.in_app",
         "is_application",
