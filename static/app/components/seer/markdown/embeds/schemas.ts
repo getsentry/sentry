@@ -1,5 +1,7 @@
 import {z} from 'zod';
 
+const isoTimestampSchema = z.iso.datetime({offset: true});
+
 type SeerEmbedLevel = 'inline' | 'block';
 
 export interface SeerEmbedExample {
@@ -70,6 +72,87 @@ export const SEER_EMBED_SCHEMAS = {
     examples: [
       {label: 'User', data: {id: '1', type: 'user', name: 'Jane Doe'}},
       {label: 'Team', data: {id: '2', type: 'team', name: 'platform'}},
+    ],
+  },
+  chart: {
+    description:
+      'Display numeric data as a compact Sentry-style chart. Use this when the answer ' +
+      'contains a meaningful time series or category comparison with at least three points. ' +
+      'Use x_axis "time" with ISO 8601 timestamps and "category" for named buckets. ' +
+      'Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.',
+    level: ['block'],
+    schema: z
+      .object({
+        title: z.string().min(1),
+        subtitle: z.string().optional(),
+        visualization: z.enum(['line', 'area', 'bar']).default('line'),
+        x_axis: z.enum(['time', 'category']).default('time'),
+        y_axis_unit: z
+          .enum(['number', 'percentage', 'duration', 'bytes'])
+          .default('number'),
+        y_axis_label: z.string().optional(),
+        series: z
+          .array(
+            z.object({
+              name: z.string(),
+              data: z
+                .array(
+                  z.object({
+                    x: z.union([z.string(), z.number()]),
+                    y: z.number(),
+                  })
+                )
+                .min(1)
+                .max(200),
+            })
+          )
+          .min(1)
+          .max(5),
+      })
+      .superRefine((chart, context) => {
+        if (chart.x_axis !== 'time') {
+          return;
+        }
+
+        chart.series.forEach((series, seriesIndex) => {
+          series.data.forEach((point, pointIndex) => {
+            if (
+              typeof point.x === 'string' &&
+              !isoTimestampSchema.safeParse(point.x).success
+            ) {
+              context.addIssue({
+                code: 'custom',
+                message: 'Time-axis string values must be ISO 8601 timestamps',
+                path: ['series', seriesIndex, 'data', pointIndex, 'x'],
+              });
+            }
+          });
+        });
+      }),
+    examples: [
+      {
+        label: 'Error volume',
+        data: {
+          title: 'Error volume',
+          subtitle: 'Last 6 hours',
+          visualization: 'area',
+          x_axis: 'time',
+          y_axis_unit: 'number',
+          series: [
+            {
+              name: 'Errors',
+              data: [
+                {x: '2026-07-30T12:00:00Z', y: 12},
+                {x: '2026-07-30T13:00:00Z', y: 18},
+                {x: '2026-07-30T14:00:00Z', y: 15},
+                {x: '2026-07-30T15:00:00Z', y: 31},
+                {x: '2026-07-30T16:00:00Z', y: 46},
+                {x: '2026-07-30T17:00:00Z', y: 38},
+              ],
+            },
+          ],
+        },
+      },
     ],
   },
 } as const satisfies Record<string, SeerEmbedSchema>;
