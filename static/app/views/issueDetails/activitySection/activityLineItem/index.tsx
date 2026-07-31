@@ -33,10 +33,12 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
   const timestamp = (
     <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
   );
-  const actorActivity =
-    item.type === GroupActivityType.SEER_ITERATION_COMPLETED
-      ? item.startedActivity
-      : activity;
+  let actorActivity = activity;
+  if (item.type === GroupActivityType.SEER_ITERATION_COMPLETED) {
+    actorActivity = item.startedActivity;
+  } else if (item.type === 'activity' && item.actorActivity) {
+    actorActivity = item.actorActivity;
+  }
 
   return (
     <ActivityLineRow>

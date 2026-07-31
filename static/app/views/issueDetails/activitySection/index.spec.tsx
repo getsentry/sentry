@@ -1609,6 +1609,7 @@ describe('ActivitySection', () => {
     );
 
     expect(await screen.findByText('Referenced in pull request')).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'Seer activity'})).toBeInTheDocument();
     expect(screen.getAllByRole('link', {name: `#${pullRequest.id}`})).toHaveLength(1);
   });
 

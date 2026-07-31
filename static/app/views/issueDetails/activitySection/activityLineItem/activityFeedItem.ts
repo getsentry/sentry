@@ -29,6 +29,7 @@ export type ActivityFeedItem =
   | {
       activity: GroupActivity;
       type: 'activity';
+      actorActivity?: GroupActivity;
     }
   | CollapsedSeerActivity;
 
