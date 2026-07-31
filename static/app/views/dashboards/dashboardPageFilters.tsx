@@ -1,27 +1,34 @@
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {DataCategory} from 'sentry/types/core';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/dashboards/data';
-import {useDashboardMaxPickableDays} from 'sentry/views/dashboards/hooks/useDashboardMaxPickableDays';
-import type {Widget} from 'sentry/views/dashboards/types';
+
+const ALL_DASHBOARD_DATA_CATEGORIES = [
+  DataCategory.SPANS,
+  DataCategory.TRANSACTIONS,
+  DataCategory.ERRORS,
+  DataCategory.LOG_ITEM,
+  DataCategory.TRACE_METRICS,
+] as const;
 
 interface DashboardPageFiltersProps {
   children: React.ReactNode;
-  widgets: Widget[];
   skipLoadLastUsed?: boolean;
 }
 
 export function DashboardPageFilters({
   children,
-  widgets,
   skipLoadLastUsed,
 }: DashboardPageFiltersProps) {
-  const {maxPickableDays, maxDateRange} = useDashboardMaxPickableDays(widgets);
+  const {maxPickableDays} = useMaxPickableDays({
+    dataCategories: ALL_DASHBOARD_DATA_CATEGORIES,
+  });
 
   return (
     <PageFiltersContainer
       disablePersistence
       skipLoadLastUsed={skipLoadLastUsed}
       maxPickableDays={maxPickableDays}
-      maxDateRange={maxDateRange}
       defaultSelection={{
         datetime: {
           start: null,

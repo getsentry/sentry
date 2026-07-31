@@ -1082,7 +1082,7 @@ class DashboardDetail extends Component<Props, State> {
     const {pageAlerts, organization, dashboard, location} = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     return (
-      <DashboardPageFilters widgets={dashboard.widgets}>
+      <DashboardPageFilters>
         <Stack flex={1} padding="2xl 3xl">
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
@@ -1495,12 +1495,7 @@ class DashboardDetail extends Component<Props, State> {
         {this.isEmbedded ? (
           pageContent
         ) : (
-          <DashboardPageFilters
-            skipLoadLastUsed
-            widgets={(modifiedDashboard ?? dashboard).widgets}
-          >
-            {pageContent}
-          </DashboardPageFilters>
+          <DashboardPageFilters skipLoadLastUsed>{pageContent}</DashboardPageFilters>
         )}
       </SentryDocumentTitle>
     );
