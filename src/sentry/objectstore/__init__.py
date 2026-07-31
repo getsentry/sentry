@@ -74,7 +74,7 @@ _DEBUG_FILES_USECASE = Usecase(
     "debug_files", compression="none", expiration_policy=TimeToIdle(timedelta(days=90))
 )
 _CHUNK_UPLOAD_USECASE = Usecase(
-    "chunk-upload", compression="none", expiration_policy=TimeToLive(timedelta(days=1))
+    "chunk-upload", compression="none", expiration_policy=TimeToLive(timedelta(hours=25))
 )
 _PROFILE_ATTACHMENTS_USECASE: Usecase | None = None
 _PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToIdle(timedelta(days=30)))
