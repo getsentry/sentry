@@ -394,6 +394,12 @@ def generate_project_derived_data(
     if not group_ids:
         return
 
+    metrics.incr(
+        "issues.derived.generate_project_scheduled",
+        sample_rate=1.0,
+        tags={"stale_only": str(stale_only)},
+    )
+
     if len(group_ids) >= _MAX_PROJECT_GROUPS:
         logger.error(
             "generate_project_derived_data.too_many_groups",
