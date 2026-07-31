@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Op, Or
 from snuba_sdk.legacy import is_condition, parse_condition
 
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
@@ -233,9 +234,19 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                     return Response(error_response, status=400)
 
         elif event_id == "recommended":
+            verify_replay_exists = features.has(
+                "organizations:issue-details-verify-recommended-replay",
+                organization,
+                actor=request.user,
+            )
             with metrics.timer(metric, tags={"type": "helpful", "query": bool(query)}):
                 try:
-                    event = group.get_recommended_event(conditions=conditions, start=start, end=end)
+                    event = group.get_recommended_event(
+                        conditions=conditions,
+                        start=start,
+                        end=end,
+                        verify_replay_exists=verify_replay_exists,
+                    )
                 except ValueError:
                     return Response(error_response, status=400)
 

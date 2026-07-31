@@ -262,8 +262,14 @@ def _get_recommended(
     conditions: Sequence[Condition] | None = None,
     start: datetime | None = None,
     end: datetime | None = None,
+    verify_replay_exists: bool = False,
 ) -> GroupEvent:
-    ret = g.get_recommended_event(conditions=conditions, start=start, end=end)
+    ret = g.get_recommended_event(
+        conditions=conditions,
+        start=start,
+        end=end,
+        verify_replay_exists=verify_replay_exists,
+    )
     assert ret is not None
     return ret
 
@@ -375,6 +381,42 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
                 self.group, start=before_now(hours=1), end=before_now(seconds=90)
             ).event_id
             == self.event_b.event_id
+        )
+
+    VERIFY_REPLAY_FILTER = "sentry.replays.usecases.replay_existence.filter_existing_replay_ids"
+
+    @patch(VERIFY_REPLAY_FILTER)
+    def test_recommended_event_verify_replay_missing_falls_back(
+        self, mock_filter: MagicMock
+    ) -> None:
+        # No replay exists -> fall back to the top-ranked event (current behavior).
+        mock_filter.return_value = set()
+        assert (
+            _get_recommended(self.group, verify_replay_exists=True).event_id
+            == self.event_b.event_id
+        )
+
+    @patch(VERIFY_REPLAY_FILTER)
+    def test_recommended_event_verify_replay_prefers_existing(self, mock_filter: MagicMock) -> None:
+        # A lower-ranked event (replay + processing errors) whose replay exists is
+        # preferred over the top-ranked event whose replay is missing.
+        lower_replay_id = uuid.uuid4().hex
+        lower_event = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "timestamp": before_now(minutes=4).isoformat(),
+                "fingerprint": ["group-1"],
+                "environment": "production",
+                "contexts": {"replay": {"replay_id": lower_replay_id}},
+                "errors": [{"type": "one"}, {"type": "two"}],
+                "message": "Error: Division by zero",
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        mock_filter.return_value = {lower_replay_id}
+        assert (
+            _get_recommended(self.group, verify_replay_exists=True).event_id == lower_event.event_id
         )
 
     def test_latest_event(self) -> None:
