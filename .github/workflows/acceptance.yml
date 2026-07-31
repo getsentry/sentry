@@ -27,6 +27,9 @@ jobs:
     name: detect what files changed
     runs-on: ubuntu-24.04
     timeout-minutes: 3
+    permissions:
+      contents: read
+      pull-requests: read
     # Map a step output to a job output
     outputs:
       acceptance: ${{ steps.changes.outputs.acceptance }}

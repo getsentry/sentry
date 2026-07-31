@@ -21,6 +21,9 @@ jobs:
     name: detect what files changed
     runs-on: ubuntu-24.04
     timeout-minutes: 3
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
     steps:
