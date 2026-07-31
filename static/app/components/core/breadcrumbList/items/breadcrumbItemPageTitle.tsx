@@ -122,13 +122,9 @@ export function BreadcrumbItemPageTitle({
   return (
     <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px">
       {pagination?.loading && (
-        <Flex as="span" align="center" aria-hidden>
-          <Flex as="span" width="24px" height="24px" align="center" justify="center">
-            <Placeholder width="18px" height="18px" />
-          </Flex>
-          <Flex as="span" width="24px" height="24px" align="center" justify="center">
-            <Placeholder width="18px" height="18px" />
-          </Flex>
+        <Flex as="span" align="center" gap="2xs" aria-hidden>
+          <Placeholder width="24px" height="24px" />
+          <Placeholder width="24px" height="24px" />
         </Flex>
       )}
       {pagination && !pagination.loading && (
