@@ -145,14 +145,6 @@ def get_rule(slack_request: SlackActionRequest, organization_id: int) -> Rule | 
         # We need to add the legacy_rule_id field to the rule data since the message builder will use it to build the link to the rule
         rule.data["actions"][0]["legacy_rule_id"] = rule.id
     except Rule.DoesNotExist:
-        _logger.info(
-            "slack.action.invalid-rule",
-            extra={
-                **slack_request.logging_data,
-                "rule_id": rule_id,
-                "organization_id": organization_id,
-            },
-        )
         return None
     return rule
 
