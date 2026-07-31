@@ -83,9 +83,9 @@ export function FirstEventFooter({
         </SkipOnboardingLink>
       )}
       <Flex align="center" justify="center" display={{zero: 'none', xl: 'flex'}}>
-        {({className}) => (
+        {(flexProps) => (
           <motion.div
-            className={className}
+            {...flexProps}
             initial="initial"
             animate="animate"
             exit="exit"
