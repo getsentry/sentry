@@ -137,14 +137,20 @@ function LegacyTimelineItem({
   );
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
-  const componentFunction = iconMapping?.componentFunction;
-  const Icon = componentFunction
-    ? componentFunction({
+  const Icon = iconMapping?.Component ?? null;
+  const iconNode = iconMapping?.renderIcon
+    ? iconMapping.renderIcon({
         data: item.data,
         user: item.user,
         sentry_app: item.sentry_app,
       })
-    : (iconMapping?.Component ?? null);
+    : Icon && (
+        <Icon
+          {...iconMapping.defaultProps}
+          {...iconMapping.propsFunction?.(item.data)}
+          size="xs"
+        />
+      );
 
   return (
     <ActivityTimelineItem
@@ -163,15 +169,7 @@ function LegacyTimelineItem({
         </TitleRow>
       }
       timestamp={<Timestamp date={item.dateCreated} unitStyle={timestampUnitStyle} />}
-      icon={
-        Icon && (
-          <Icon
-            {...iconMapping.defaultProps}
-            {...iconMapping.propsFunction?.(item.data)}
-            size="xs"
-          />
-        )
-      }
+      icon={iconNode}
     >
       {item.type === GroupActivityType.NOTE && editing ? (
         <ActivityNoteInput

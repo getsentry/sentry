@@ -44,12 +44,12 @@ import {GroupActivityType} from 'sentry/types/group';
 interface IconWithDefaultProps {
   Component: React.ComponentType<SVGIconProps> | null;
   defaultProps: {locked?: boolean; type?: string};
-  componentFunction?: (props: {
+  propsFunction?: (data: GroupActivity['data']) => Record<string, unknown>;
+  renderIcon?: (props: {
     data: GroupActivity['data'];
     sentry_app: GroupActivity['sentry_app'];
     user: GroupActivity['user'];
-  }) => React.ComponentType<SVGIconProps>;
-  propsFunction?: (data: GroupActivity['data']) => Record<string, unknown>;
+  }) => React.ReactNode;
 }
 
 export const groupActivityTypeIconMapping: Record<
@@ -59,13 +59,11 @@ export const groupActivityTypeIconMapping: Record<
   [GroupActivityType.NOTE]: {
     Component: IconChat,
     defaultProps: {},
-    componentFunction: ({user, sentry_app}) => {
+    renderIcon: ({user, sentry_app}) => {
       if (sentry_app) {
-        return function () {
-          return <SentryAppAvatar sentryApp={sentry_app} />;
-        };
+        return <SentryAppAvatar sentryApp={sentry_app} />;
       }
-      return user ? () => <StyledUserAvatar user={user} /> : IconChat;
+      return user ? <StyledUserAvatar user={user} /> : <IconChat size="xs" />;
     },
   },
   [GroupActivityType.SET_RESOLVED]: {Component: IconCheckmark, defaultProps: {}},
@@ -109,21 +107,21 @@ export const groupActivityTypeIconMapping: Record<
   [GroupActivityType.SET_REGRESSION]: {Component: IconFire, defaultProps: {}},
   [GroupActivityType.CREATE_ISSUE]: {
     Component: IconAdd,
-    componentFunction: ({data}) => {
+    renderIcon: ({data}) => {
       const provider = (data as GroupActivityCreateIssue['data']).provider;
       switch (provider) {
         case 'GitHub':
-          return IconGithub;
+          return <IconGithub size="xs" />;
         case 'GitLab':
-          return IconGitlab;
+          return <IconGitlab size="xs" />;
         case 'Bitbucket':
-          return IconBitbucket;
+          return <IconBitbucket size="xs" />;
         case 'Jira':
-          return IconJira;
+          return <IconJira size="xs" />;
         case 'Asana':
-          return IconAsana;
+          return <IconAsana size="xs" />;
         default:
-          return IconAdd;
+          return <IconAdd size="xs" />;
       }
     },
     defaultProps: {},
