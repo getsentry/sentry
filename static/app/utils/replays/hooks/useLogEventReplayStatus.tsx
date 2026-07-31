@@ -2,6 +2,7 @@ import {useEffect} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
@@ -19,14 +20,20 @@ export function useLogEventReplayStatus({readerResult}: Props) {
   });
   const organization = useOrganization();
 
+  const {fetchError, attachmentError} = readerResult;
+  const hasError = Boolean(fetchError) || Boolean(attachmentError?.length);
+  const is404 =
+    isNotFoundError(fetchError) || Boolean(attachmentError?.some(isNotFoundError));
+
   useEffect(() => {
-    if (readerResult.fetchError) {
+    if (hasError) {
       trackAnalytics('replay.render-missing-replay-alert', {
         organization,
         surface: 'issue details - clip preview',
+        is_404: is404,
       });
     }
-  }, [organization, readerResult.fetchError]);
+  }, [organization, hasError, is404]);
 }
 
 function getReplayAnalyticsStatus({
