@@ -4,7 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
@@ -172,14 +172,16 @@ function ProfilingContentInner() {
           <ProfilingContentPageHeader />
           <ExploreBodySearch>
             <Layout.Main width="full">
-              <PageFilterBar condensed>
-                <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                <DatePageFilter
-                  {...datePageFilterProps}
-                  resetParamsOnChange={CURSOR_PARAMS}
-                />
-              </PageFilterBar>
+              <Container display="inline-flex" maxWidth="100%">
+                <PageFilterBar condensed>
+                  <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                  <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                  <DatePageFilter
+                    {...datePageFilterProps}
+                    resetParamsOnChange={CURSOR_PARAMS}
+                  />
+                </PageFilterBar>
+              </Container>
             </Layout.Main>
           </ExploreBodySearch>
           <ExploreBodyContent>
@@ -191,7 +193,7 @@ function ProfilingContentInner() {
                   {organization.features.includes(
                     'profiling-global-suspect-functions'
                   ) && (
-                    <WidgetsContainer>
+                    <Grid columns={{zero: '1fr', xl: '1fr 1fr'}} gap="xl">
                       <LandingWidgetSelector
                         cursorName={LEFT_WIDGET_CURSOR}
                         widgetHeight="410px"
@@ -210,7 +212,7 @@ function ProfilingContentInner() {
                         storageKey="profiling-landing-widget-1"
                         onDataState={updateWidget2DataState}
                       />
-                    </WidgetsContainer>
+                    </Grid>
                   )}
                   <Stack gap="lg">
                     <Tabs value={tab} onChange={onTabChange}>
@@ -436,15 +438,6 @@ const LandingAggregateFlamegraphContainer = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-`;
-
-const WidgetsContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.xl};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr;
-  }
 `;
 
 const StyledPagination = styled(Pagination)`
