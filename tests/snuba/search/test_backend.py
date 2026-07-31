@@ -3665,6 +3665,99 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
 
         assert list(results) == [group_info.group]
 
+    def test_merge_default_category_queries(self) -> None:
+        with (
+            self.feature("organizations:issue-search-merged-generic-query"),
+            mock.patch(
+                "sentry.search.snuba.executors.bulk_raw_query", wraps=snuba.bulk_raw_query
+            ) as bulk_query,
+        ):
+            results = self.make_query(search_filter_query="my_tag:1")
+
+        assert set(results) == {
+            self.profile_group_1,
+            self.profile_group_2,
+            self.error_group_1,
+            self.error_group_2,
+        }
+        query_params = bulk_query.call_args.args[0]
+        assert len(query_params) == 2
+        assert {params.dataset for params in query_params} == {
+            Dataset.Events,
+            Dataset.IssuePlatform,
+        }
+
+    def test_merge_generic_category_queries(self) -> None:
+        group_type = PerformanceNPlusOneGroupType
+        with (
+            mock.patch.object(group_type, "noise_config", new=NoiseConfig(0, timedelta(minutes=1))),
+            self.feature(group_type.build_ingest_feature_name()),
+        ):
+            _, group_info = self.process_occurrence(
+                event_id=uuid.uuid4().hex,
+                project_id=self.project.id,
+                type=group_type.type_id,
+                fingerprint=["merged generic query"],
+                event_data={
+                    "title": "some problem",
+                    "platform": "python",
+                    "tags": {"my_tag": "1"},
+                    "timestamp": before_now(minutes=1).isoformat(),
+                    "received": before_now(minutes=1).isoformat(),
+                },
+            )
+        assert group_info is not None
+
+        query = (
+            f"issue.type:[{ProfileFileIOGroupType.slug},"
+            f"{PerformanceNPlusOneGroupType.slug},error] my_tag:1"
+        )
+        expected_groups = {
+            self.profile_group_1,
+            self.profile_group_2,
+            group_info.group,
+            self.error_group_1,
+            self.error_group_2,
+        }
+
+        with (
+            self.feature(group_type.build_visible_feature_name()),
+            mock.patch(
+                "sentry.search.snuba.executors.bulk_raw_query", wraps=snuba.bulk_raw_query
+            ) as control_bulk_query,
+        ):
+            control_results = self.make_query(search_filter_query=query)
+
+        with (
+            self.feature(group_type.build_visible_feature_name()),
+            self.feature("organizations:issue-search-merged-generic-query"),
+            mock.patch(
+                "sentry.search.snuba.executors.bulk_raw_query", wraps=snuba.bulk_raw_query
+            ) as merged_bulk_query,
+        ):
+            merged_results = self.make_query(search_filter_query=query)
+
+        assert set(control_results) == expected_groups
+        assert set(merged_results) == expected_groups
+
+        control_query_params = control_bulk_query.call_args.args[0]
+        assert len(control_query_params) == 3
+
+        merged_query_params = merged_bulk_query.call_args.args[0]
+        assert len(merged_query_params) == 2
+        assert {params.dataset for params in merged_query_params} == {
+            Dataset.Events,
+            Dataset.IssuePlatform,
+        }
+
+        issue_platform_params = next(
+            params for params in merged_query_params if params.dataset == Dataset.IssuePlatform
+        )
+        assert set(issue_platform_params.filter_keys["occurrence_type_id"]) >= {
+            ProfileFileIOGroupType.type_id,
+            PerformanceNPlusOneGroupType.type_id,
+        }
+
     def test_error_generic_query(self) -> None:
         results = self.make_query(search_filter_query="my_tag:1")
         assert list(results) == [
