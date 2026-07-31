@@ -146,9 +146,7 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
       style={
         isSelected
           ? {
-              outline: `2px solid ${
-                tool.hasError ? theme.tokens.content.danger : theme.tokens.focus.default
-              }`,
+              outline: `2px solid ${theme.tokens.focus.default}`,
               outlineOffset: '-2px',
             }
           : undefined
