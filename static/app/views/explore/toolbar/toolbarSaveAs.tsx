@@ -46,6 +46,7 @@ import {
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {foldConditionalAggregateIntoQuery} from 'sentry/views/explore/utils/conditionalAggregate';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
@@ -312,14 +313,30 @@ export function ToolbarSaveAs() {
             organization,
             mode,
             location,
-            queries: visualizeFunctions.map(visual => ({
-              query,
-              groupBys,
-              sortBys,
-              yAxes: [visual.yAxis],
-              chartType: visual.chartType,
-              caseInsensitive: caseInsensitive ? '1' : undefined,
-            })),
+            queries: visualizeFunctions.map(visual => {
+              if (!organization.features.includes('explore-conditional-aggregates')) {
+                return {
+                  query,
+                  groupBys,
+                  sortBys,
+                  yAxes: [visual.yAxis],
+                  chartType: visual.chartType,
+                  caseInsensitive: caseInsensitive ? '1' : undefined,
+                };
+              }
+              const folded = foldConditionalAggregateIntoQuery({
+                query,
+                yAxis: visual.yAxis,
+              });
+              return {
+                query: folded.query,
+                groupBys,
+                sortBys,
+                yAxes: [folded.yAxis],
+                chartType: visual.chartType,
+                caseInsensitive: caseInsensitive ? '1' : undefined,
+              };
+            }),
           })}
           tooltipProps={
             hasCrossEvents

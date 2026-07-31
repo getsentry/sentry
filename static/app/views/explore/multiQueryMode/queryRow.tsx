@@ -119,7 +119,7 @@ const QueryConstructionSection = styled('div')`
 const DropDownGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, auto)) min-content;
-  align-items: end;
+  align-items: start;
   gap: ${p => p.theme.space.md};
 `;
 

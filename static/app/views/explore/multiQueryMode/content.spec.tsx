@@ -103,6 +103,56 @@ describe('MultiQueryModeContent', () => {
     expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
   });
 
+  it('does not show per-series visualize filter bars', async () => {
+    function Component() {
+      return <MultiQueryModeContent />;
+    }
+
+    render(<Component />);
+
+    await screen.findByTestId('section-visualize-0');
+    expect(
+      screen.queryByRole('textbox', {name: 'Filter spans for this series'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('section-visualize-filter-0')).not.toBeInTheDocument();
+  });
+
+  it('folds leftover _if filters into the row query on load', async () => {
+    let queries: any;
+    function Component() {
+      queries = useReadQueriesFromLocation();
+      return null;
+    }
+
+    render(<Component />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/traces/compare',
+          query: {
+            queries: JSON.stringify({
+              groupBys: ['span.op'],
+              query: 'span.op:http',
+              sortBys: ['-avg_if(`span.status:error`,span.duration)'],
+              yAxes: ['avg_if(`span.status:error`,span.duration)'],
+            }),
+          },
+        },
+      },
+    });
+
+    await waitFor(() => {
+      expect(queries).toEqual([
+        expect.objectContaining({
+          query: '(span.op:http) (span.status:error)',
+          yAxes: ['avg(span.duration)'],
+          sortBys: [{field: 'avg(span.duration)', kind: 'desc'}],
+          groupBys: ['span.op'],
+        }),
+      ]);
+    });
+  });
+
   it('changes to count(span.duration) when using count', async () => {
     let queries: any;
     function Component() {

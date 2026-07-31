@@ -7,6 +7,10 @@ import {
   useDeleteQueryAtIndex,
   useDuplicateQueryAtIndex,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {
+  Section,
+  SectionHeader,
+} from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
 
 type Props = {
   index: number;
@@ -18,27 +22,31 @@ export function MenuSection({index, totalQueryRows}: Props) {
   const duplicateQuery = useDuplicateQueryAtIndex();
 
   return (
-    <DropdownMenu
-      items={[
-        {
-          key: 'delete-query',
-          label: t('Delete Query'),
-          onAction: () => deleteQuery(index),
-          disabled: totalQueryRows === 1,
-        },
-        {
-          key: 'duplicate-query',
-          label: t('Duplicate Query'),
-          onAction: () => duplicateQuery(index),
-        },
-      ]}
-      trigger={triggerProps => (
-        <Button
-          {...triggerProps}
-          aria-label={t('More options')}
-          icon={<IconEllipsis size="xs" />}
-        />
-      )}
-    />
+    <Section>
+      {/* Match SectionHeader height so the menu aligns with sibling selects. */}
+      <SectionHeader aria-hidden="true">&nbsp;</SectionHeader>
+      <DropdownMenu
+        items={[
+          {
+            key: 'delete-query',
+            label: t('Delete Query'),
+            onAction: () => deleteQuery(index),
+            disabled: totalQueryRows === 1,
+          },
+          {
+            key: 'duplicate-query',
+            label: t('Duplicate Query'),
+            onAction: () => duplicateQuery(index),
+          },
+        ]}
+        trigger={triggerProps => (
+          <Button
+            {...triggerProps}
+            aria-label={t('More options')}
+            icon={<IconEllipsis size="xs" />}
+          />
+        )}
+      />
+    </Section>
   );
 }

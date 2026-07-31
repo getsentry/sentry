@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
@@ -7,8 +7,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
-import type {ParsedFunction} from 'sentry/utils/discover/fields';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {updateVisualizeAggregate} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
@@ -23,6 +21,10 @@ import {
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  buildConditionalAggregate,
+  parseConditionalAggregate,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 type Props = {
@@ -35,7 +37,18 @@ export function VisualizeSection({query, index}: Props) {
   const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
   const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
 
-  const parsedFunction = findFirstFunction(query.yAxes);
+  const yAxis = query.yAxes.find(axis => defined(parseConditionalAggregate(axis))) ?? '';
+  const conditionalAggregate = useMemo(() => parseConditionalAggregate(yAxis), [yAxis]);
+
+  const parsedFunction = useMemo(() => {
+    if (!conditionalAggregate) {
+      return null;
+    }
+    return {
+      name: conditionalAggregate.name,
+      arguments: conditionalAggregate.arguments,
+    };
+  }, [conditionalAggregate]);
 
   const options = useVisualizeFields({
     numberTags,
@@ -68,56 +81,56 @@ export function VisualizeSection({query, index}: Props) {
           <SectionLabel>{t('Visualize')}</SectionLabel>
         </Tooltip>
       </SectionHeader>
-      <Fragment>
-        <StyledPageFilterBar>
-          <CompactSelect
-            options={aggregateOptions}
-            value={parsedFunction?.name ?? ''}
-            onChange={newAggregate => {
-              const newYAxis = updateVisualizeAggregate({
-                newAggregate: newAggregate.value,
-                oldAggregate: parsedFunction!.name,
-                oldArguments: parsedFunction!.arguments,
+      <StyledPageFilterBar>
+        <CompactSelect
+          options={aggregateOptions}
+          value={parsedFunction?.name ?? ''}
+          onChange={newAggregate => {
+            if (!parsedFunction) {
+              return;
+            }
+            const newYAxis = updateVisualizeAggregate({
+              newAggregate: newAggregate.value,
+              oldAggregate: parsedFunction.name,
+              oldArguments: parsedFunction.arguments,
+            });
+            // Compare mode folds series filters into the row query on navigate;
+            // do not re-apply `_if` when changing the aggregate here.
+            updateYAxis({yAxes: [newYAxis]});
+          }}
+        />
+        <CompactSelect
+          search={{
+            highlight: true,
+            filter: (option, searchText) => {
+              return sortSearchedAttributes({
+                fieldDefinitionType: TraceItemDataset.SPANS,
+                option,
+                searchText,
               });
-              updateYAxis({yAxes: [newYAxis]});
-            }}
-          />
-          <CompactSelect
-            search={{
-              highlight: true,
-              filter: (option, searchText) => {
-                return sortSearchedAttributes({
-                  fieldDefinitionType: TraceItemDataset.SPANS,
-                  option,
-                  searchText,
-                });
-              },
-            }}
-            options={options}
-            value={parsedFunction?.arguments?.[0] ?? ''}
-            onChange={newField => {
-              const newYAxis = `${parsedFunction!.name}(${newField.value})`;
-              updateYAxis({yAxes: [newYAxis]});
-            }}
-            disabled={options.length === 1}
-          />
-        </StyledPageFilterBar>
-      </Fragment>
+            },
+          }}
+          options={options}
+          value={parsedFunction?.arguments?.[0] ?? ''}
+          onChange={newField => {
+            if (!parsedFunction) {
+              return;
+            }
+            updateYAxis({
+              yAxes: [
+                buildConditionalAggregate({
+                  name: parsedFunction.name,
+                  arguments: [newField.value],
+                  filter: '',
+                }),
+              ],
+            });
+          }}
+          disabled={options.length === 1}
+        />
+      </StyledPageFilterBar>
     </Section>
   );
-}
-
-function findFirstFunction(
-  yAxes: ReadableExploreQueryParts['yAxes']
-): ParsedFunction | undefined {
-  for (const yAxis of yAxes) {
-    const parsed = parseFunction(yAxis);
-    if (defined(parsed)) {
-      return parsed;
-    }
-  }
-
-  return undefined;
 }
 
 const StyledPageFilterBar = styled(PageFilterBar)`

@@ -160,6 +160,49 @@ export function withReadableConditionalFilter(yAxis: string): string {
 }
 
 /**
+ * AND together search query strings. Empty parts are dropped. Multiple parts are
+ * parenthesized so OR clauses in either side keep the intended precedence.
+ */
+export function andSearchQueries(...queries: string[]): string {
+  const parts = queries.map(q => q.trim()).filter(Boolean);
+  if (parts.length === 0) {
+    return '';
+  }
+  if (parts.length === 1) {
+    return parts[0]!;
+  }
+  return parts.map(q => `(${q})`).join(' ');
+}
+
+/**
+ * Fold an Explore-style `_if` filter into the top-level search query for compare mode.
+ *
+ * Compare queries do not show per-series filter bars, so navigating from Explore
+ * merges the series condition into `query` and strips `_if` from the yAxis.
+ */
+export function foldConditionalAggregateIntoQuery({
+  query,
+  yAxis,
+}: {
+  query: string;
+  yAxis: string;
+}): {query: string; yAxis: string} {
+  const conditional = parseConditionalAggregate(yAxis);
+  if (!conditional) {
+    return {query, yAxis};
+  }
+
+  return {
+    query: andSearchQueries(query, conditional.filter),
+    yAxis: buildConditionalAggregate({
+      name: conditional.name,
+      arguments: conditional.arguments,
+      filter: '',
+    }),
+  };
+}
+
+/**
  * Whether a visualize aggregate can use the `_if` span-search filter bar.
  *
  * Uses {@link NO_ARGUMENT_SPAN_AGGREGATES} (epm, eps, failure_rate, failure_count, …)
