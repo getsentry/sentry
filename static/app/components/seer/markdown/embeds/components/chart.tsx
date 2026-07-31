@@ -9,7 +9,9 @@ import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
-type ChartUnit = 'number' | 'percentage' | 'duration' | 'bytes';
+import type {ChartSeries, ChartUnit} from './chartTypes';
+import {HeatmapChart} from './heatmapChart';
+import {WheelChart} from './wheelChart';
 
 function formatValue(value: number, unit: ChartUnit): string {
   switch (unit) {
@@ -36,7 +38,7 @@ export const Chart = defineSeerEmbed({
     y_axis_label: yAxisLabel,
     series,
   }) {
-    const chartSeries = series.map(item => ({
+    const chartSeries: ChartSeries[] = series.map(item => ({
       seriesName: item.name,
       data: item.data.map(point => ({
         name:
@@ -78,6 +80,17 @@ export const Chart = defineSeerEmbed({
           <AreaChart {...chartProps} />
         ) : visualization === 'bar' ? (
           <BarChart {...chartProps} />
+        ) : visualization === 'heatmap' ? (
+          <HeatmapChart
+            series={chartSeries}
+            valueFormatter={value => formatValue(value, yAxisUnit)}
+            xAxis={xAxis}
+          />
+        ) : visualization === 'wheel' ? (
+          <WheelChart
+            series={chartSeries[0]!}
+            valueFormatter={value => formatValue(value, yAxisUnit)}
+          />
         ) : (
           <LineChart {...chartProps} />
         )}

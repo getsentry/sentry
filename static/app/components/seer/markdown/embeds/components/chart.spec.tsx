@@ -5,6 +5,9 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 
+import {HeatmapChart} from './heatmapChart';
+import {WheelChart} from './wheelChart';
+
 jest.mock('sentry/components/charts/areaChart', () => ({
   AreaChart: jest.fn(() => null),
 }));
@@ -13,6 +16,12 @@ jest.mock('sentry/components/charts/barChart', () => ({
 }));
 jest.mock('sentry/components/charts/lineChart', () => ({
   LineChart: jest.fn(() => null),
+}));
+jest.mock('./heatmapChart', () => ({
+  HeatmapChart: jest.fn(() => null),
+}));
+jest.mock('./wheelChart', () => ({
+  WheelChart: jest.fn(() => null),
 }));
 
 describe('Chart embed', () => {
@@ -68,12 +77,179 @@ describe('Chart embed', () => {
     }
   );
 
+  it('renders a heatmap from the shared series schema', () => {
+    const raw = `{% chart %}${JSON.stringify({
+      title: 'Latency by browser',
+      visualization: 'heatmap',
+      x_axis: 'time',
+      y_axis_unit: 'duration',
+      series: [
+        {
+          name: 'Chrome',
+          data: [
+            {x: '2026-07-30T12:00:00Z', y: 120},
+            {x: '2026-07-30T13:00:00Z', y: 480},
+          ],
+        },
+        {
+          name: 'Safari',
+          data: [
+            {x: '2026-07-30T12:00:00Z', y: 150},
+            {x: '2026-07-30T13:00:00Z', y: 520},
+          ],
+        },
+      ],
+    })}{% /chart %}`;
+
+    render(<SeerMarkdown raw={raw} />);
+
+    expect(jest.mocked(HeatmapChart)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        xAxis: 'time',
+        series: [
+          {
+            seriesName: 'Chrome',
+            data: [
+              {name: Date.parse('2026-07-30T12:00:00Z'), value: 120},
+              {name: Date.parse('2026-07-30T13:00:00Z'), value: 480},
+            ],
+          },
+          {
+            seriesName: 'Safari',
+            data: [
+              {name: Date.parse('2026-07-30T12:00:00Z'), value: 150},
+              {name: Date.parse('2026-07-30T13:00:00Z'), value: 520},
+            ],
+          },
+        ],
+      }),
+      undefined
+    );
+  });
+
+  it('renders a wheel from one category series', () => {
+    const raw = `{% chart %}${JSON.stringify({
+      title: 'Issue status',
+      visualization: 'wheel',
+      x_axis: 'category',
+      series: [
+        {
+          name: 'Issues',
+          data: [
+            {x: 'Resolved', y: 70},
+            {x: 'Unresolved', y: 30},
+          ],
+        },
+      ],
+    })}{% /chart %}`;
+
+    render(<SeerMarkdown raw={raw} />);
+
+    expect(jest.mocked(WheelChart)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        series: {
+          seriesName: 'Issues',
+          data: [
+            {name: 'Resolved', value: 70},
+            {name: 'Unresolved', value: 30},
+          ],
+        },
+      }),
+      undefined
+    );
+  });
+
   it('does not render invalid time-axis values', () => {
     const raw = `{% chart %}${JSON.stringify({
       title: 'Error volume',
       x_axis: 'time',
       series: [{name: 'Errors', data: [{x: 'not-a-timestamp', y: 12}]}],
     })}{% /chart %}`;
+
+    render(<SeerMarkdown raw={raw} />);
+
+    expect(screen.queryByTestId('seer-chart-embed')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    {
+      visualization: 'heatmap',
+      x_axis: 'category',
+      series: [{name: 'A', data: [{x: 'one', y: -1}]}],
+    },
+    {
+      visualization: 'wheel',
+      x_axis: 'time',
+      series: [
+        {
+          name: 'A',
+          data: [
+            {x: '2026-07-30T12:00:00Z', y: 1},
+            {x: '2026-07-30T13:00:00Z', y: 2},
+          ],
+        },
+      ],
+    },
+    {
+      visualization: 'wheel',
+      x_axis: 'category',
+      series: [
+        {
+          name: 'A',
+          data: [
+            {x: 'one', y: 1},
+            {x: 'two', y: 2},
+          ],
+        },
+        {
+          name: 'B',
+          data: [
+            {x: 'one', y: 3},
+            {x: 'two', y: 4},
+          ],
+        },
+      ],
+    },
+    {
+      visualization: 'wheel',
+      x_axis: 'category',
+      series: [{name: 'A', data: [{x: 'one', y: 1}]}],
+    },
+    {
+      visualization: 'wheel',
+      x_axis: 'category',
+      series: [
+        {name: 'A', data: Array.from({length: 13}, (_, index) => ({x: index, y: 1}))},
+      ],
+    },
+    {
+      visualization: 'wheel',
+      x_axis: 'category',
+      series: [
+        {
+          name: 'A',
+          data: [
+            {x: 'one', y: -1},
+            {x: 'two', y: 2},
+          ],
+        },
+      ],
+    },
+    {
+      visualization: 'wheel',
+      x_axis: 'category',
+      series: [
+        {
+          name: 'A',
+          data: [
+            {x: 'one', y: 0},
+            {x: 'two', y: 0},
+          ],
+        },
+      ],
+    },
+  ])('does not render invalid shared-schema visualizations', chart => {
+    const raw = `{% chart %}${JSON.stringify({title: 'Invalid', ...chart})}{% /chart %}`;
 
     render(<SeerMarkdown raw={raw} />);
 
