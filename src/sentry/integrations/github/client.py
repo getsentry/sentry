@@ -152,6 +152,7 @@ class GitHubApiRequestType(StrEnum):
     GET_LANGUAGES = "get_languages"
     GET_LABELS = "get_labels"
     GET_ORGANIZATION_MEMBERSHIPS_FOR_USER = "get_organization_memberships_for_user"
+    GET_PR_CI_STATUSES = "get_pr_ci_statuses"
     GET_PULL_REQUEST = "get_pull_request"
     GET_PULL_REQUEST_COMMENTS = "get_pull_request_comments"
     GET_PULL_REQUEST_FILES = "get_pull_request_files"
@@ -170,6 +171,27 @@ class GitHubApiRequestType(StrEnum):
     UPDATE_COMMENT = "update_comment"
     UPDATE_ISSUE_ASSIGNEES = "update_issue_assignees"
     UPDATE_ISSUE_STATUS = "update_issue_status"
+
+
+def _make_pr_ci_status_query(index: int) -> str:
+    # One repository alias per PR: GraphQL allows only one pullRequest(number:) per repository field.
+    return f"""
+    repo{index}: repository(owner: $o{index}, name: $n{index}) {{
+        pr{index}: pullRequest(number: $p{index}) {{
+            commits(last: 1) {{ nodes {{ commit {{ statusCheckRollup {{ state }} }} }} }}
+        }}
+    }}"""
+
+
+def _extract_rollup_state(response: Mapping[str, Any], index: int) -> str | None:
+    # Read defensively: any level may be null on partial failures (deleted PR, no access, no checks).
+    repo = (response.get("data") or {}).get(f"repo{index}") or {}
+    pull_request = repo.get(f"pr{index}") or {}
+    nodes = (pull_request.get("commits") or {}).get("nodes") or []
+    if not nodes:
+        return None
+    rollup = ((nodes[0] or {}).get("commit") or {}).get("statusCheckRollup") or {}
+    return rollup.get("state")
 
 
 class GithubSetupApiClient(IntegrationProxyClient):
@@ -1214,6 +1236,55 @@ class GitHubBaseClient(
                 "organization_integration_id": self.org_integration_id,
             },
         )
+
+    def get_pr_ci_statuses(self, pull_requests: Sequence[tuple[str, str, int]]) -> list[str | None]:
+        """Batch-fetch each PR head commit's statusCheckRollup state via one GraphQL query.
+
+        ``pull_requests`` is a list of ``(owner, name, number)`` triples; the returned list is
+        positional (one rollup ``state`` string, or ``None`` when the commit has no checks or the
+        alias could not be resolved). Never let one null alias poison the batch.
+        """
+        if not pull_requests:
+            return []
+
+        try:
+            rate_limit = self.get_rate_limit(specific_resource="graphql")
+        except ApiError:
+            # Some GitHub instances don't enforce rate limiting and will respond with a 404.
+            pass
+        else:
+            if rate_limit.remaining < MINIMUM_REQUESTS:
+                raise ApiRateLimitedError("Not enough requests remaining for GitHub")
+
+        variable_names: list[str] = []
+        variables: dict[str, str | int] = {}
+        pr_queries = ""
+        for index, (owner, name, number) in enumerate(pull_requests):
+            variable_names += [f"$o{index}: String!", f"$n{index}: String!", f"$p{index}: Int!"]
+            variables[f"o{index}"] = owner
+            variables[f"n{index}"] = name
+            variables[f"p{index}"] = number
+            pr_queries += _make_pr_ci_status_query(index)
+        query = f"""query ({", ".join(variable_names)}) {{{pr_queries}\n}}"""
+
+        response = self.post(
+            path="/graphql",
+            data={"query": query, "variables": variables},
+            allow_text=False,
+            api_request_type=GitHubApiRequestType.GET_PR_CI_STATUSES,
+        )
+        if not is_graphql_response(response):
+            raise ApiError("Response is not JSON")
+
+        errors = response.get("errors", [])
+        if errors:
+            if any(error.get("type") == "RATE_LIMITED" for error in errors):
+                raise ApiRateLimitedError("GitHub rate limit exceeded")
+            # data present means a partial success (missing/renamed repo); absent means a bad query.
+            if not response.get("data"):
+                raise ApiError("\n".join(error.get("message", "") for error in errors))
+
+        return [_extract_rollup_state(response, index) for index in range(len(pull_requests))]
 
     def create_check_run(self, repo: str, data: dict[str, Any]) -> Any:
         """

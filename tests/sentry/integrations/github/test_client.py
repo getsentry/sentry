@@ -1448,6 +1448,134 @@ class GitHubCommitContextClientTest(TestCase):
             self.github_client.create_check_run(repo_name, check_data)
 
 
+class GitHubGetPrCiStatusesTest(TestCase):
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def setUp(self, get_jwt):
+        ten_days = timezone.now() + timedelta(days=10)
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="Github Test Org",
+            external_id="1",
+            metadata={"access_token": "12345token", "expires_at": ten_days.isoformat()},
+        )
+        install = get_installation_of_type(
+            GitHubIntegration, self.integration, self.organization.id
+        )
+        self.github_client = install.get_client()
+        # The graphql bucket check fires before the POST, so /graphql is always responses.calls[1].
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            body=orjson.dumps(
+                {
+                    "resources": {
+                        "graphql": {
+                            "limit": 5000,
+                            "used": 1,
+                            "remaining": 4999,
+                            "reset": 1613064000,
+                        }
+                    }
+                }
+            ).decode(),
+            status=200,
+            content_type="application/json",
+        )
+
+    def _add_graphql(self, data, errors=None, status=200):
+        body: dict = {"data": data}
+        if errors is not None:
+            body["errors"] = errors
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json=body,
+            status=status,
+            content_type="application/json",
+        )
+
+    @staticmethod
+    def _rollup(state):
+        return {"commits": {"nodes": [{"commit": {"statusCheckRollup": {"state": state}}}]}}
+
+    @responses.activate
+    def test_builds_query_and_returns_states(self) -> None:
+        query = """query ($o0: String!, $n0: String!, $p0: Int!, $o1: String!, $n1: String!, $p1: Int!) {
+    repo0: repository(owner: $o0, name: $n0) {
+        pr0: pullRequest(number: $p0) {
+            commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
+        }
+    }
+    repo1: repository(owner: $o1, name: $n1) {
+        pr1: pullRequest(number: $p1) {
+            commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
+        }
+    }
+}"""
+        # Two PRs sharing a repo still get one repository alias each (repo0/repo1).
+        self._add_graphql(
+            {
+                "repo0": {"pr0": self._rollup("SUCCESS")},
+                "repo1": {"pr1": self._rollup("FAILURE")},
+            }
+        )
+
+        result = self.github_client.get_pr_ci_statuses(
+            [("getsentry", "sentry", 7), ("getsentry", "sentry", 9)]
+        )
+
+        assert result == ["SUCCESS", "FAILURE"]
+        assert orjson.loads(responses.calls[1].request.body)["query"] == query
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
+            "o0": "getsentry",
+            "n0": "sentry",
+            "p0": 7,
+            "o1": "getsentry",
+            "n1": "sentry",
+            "p1": 9,
+        }
+
+    @responses.activate
+    def test_empty_input_makes_no_request(self) -> None:
+        assert self.github_client.get_pr_ci_statuses([]) == []
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_partial_null_alias_is_isolated(self) -> None:
+        self._add_graphql(
+            {
+                "repo0": None,
+                "repo1": {"pr1": self._rollup("PENDING")},
+            }
+        )
+        result = self.github_client.get_pr_ci_statuses([("o", "a", 1), ("o", "b", 2)])
+        assert result == [None, "PENDING"]
+
+    @responses.activate
+    def test_null_rollup_and_empty_nodes_are_none(self) -> None:
+        self._add_graphql(
+            {
+                "repo0": {"pr0": {"commits": {"nodes": [{"commit": {"statusCheckRollup": None}}]}}},
+                "repo1": {"pr1": {"commits": {"nodes": []}}},
+            }
+        )
+        result = self.github_client.get_pr_ci_statuses([("o", "a", 1), ("o", "b", 2)])
+        assert result == [None, None]
+
+    @responses.activate
+    def test_rate_limited_error_raises(self) -> None:
+        self._add_graphql({}, errors=[{"type": "RATE_LIMITED", "message": "over limit"}])
+        with pytest.raises(ApiRateLimitedError):
+            self.github_client.get_pr_ci_statuses([("o", "a", 1)])
+
+    @responses.activate
+    def test_error_without_data_raises_api_error(self) -> None:
+        self._add_graphql({}, errors=[{"message": "Bad query"}])
+        with pytest.raises(ApiError):
+            self.github_client.get_pr_ci_statuses([("o", "a", 1)])
+
+
 class GitHubClientFileBlameBase(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def setUp(self, get_jwt):
