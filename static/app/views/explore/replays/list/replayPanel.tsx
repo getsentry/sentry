@@ -1,6 +1,4 @@
-import {useTheme} from '@emotion/react';
-
-import {Container, Flex, useResponsivePropValue} from '@sentry/scraps/layout';
+import styled from '@emotion/styled';
 
 import {Panel} from 'sentry/components/panels/panel';
 
@@ -11,53 +9,59 @@ interface Props extends React.ComponentProps<typeof Panel> {
 }
 
 export function ReplayPanel({image, noCenter, children, ...props}: Props) {
-  const theme = useTheme();
-  const illustrationMargin = useResponsivePropValue({
-    zero: `${theme.space.xl} auto`,
-    xl: `120px ${theme.space['2xl']} ${theme.space['2xl']}`,
-  });
-  const isCentered = !image && !noCenter;
-
   return (
     <Panel {...props}>
-      <Flex
-        align={{zero: 'stretch', xl: 'start'}}
-        direction={{zero: 'column', xl: 'row'}}
-        justify={{zero: 'start', xl: 'center'}}
-        margin={{xl: '0 auto'}}
-        maxWidth={{xl: 1000}}
-        minHeight={{xl: 300, '3xl': 350}}
-        padding="2xl"
-        position="relative"
-        wrap="wrap"
-      >
-        {image ? (
-          <Container
-            flex={{xl: 1}}
-            maxWidth={300}
-            minHeight={100}
-            minWidth={150}
-            position="relative"
-          >
-            {imageProps => (
-              <Container {...imageProps} style={{margin: illustrationMargin}}>
-                {image}
-              </Container>
-            )}
-          </Container>
-        ) : null}
-        <Container flex={{xl: 2}} minWidth="0">
-          {contentProps => (
-            <Container
-              {...contentProps}
-              maxWidth={isCentered ? 600 : undefined}
-              style={{textAlign: isCentered ? 'center' : undefined, zIndex: 1}}
-            >
-              {children}
-            </Container>
-          )}
-        </Container>
-      </Flex>
+      <Container>
+        {image ? <IlloBox>{image}</IlloBox> : null}
+        <StyledBox centered={!image && !noCenter}>{children}</StyledBox>
+      </Container>
     </Panel>
   );
 }
+
+const Container = styled('div')`
+  padding: ${p => p.theme.space['2xl']};
+  position: relative;
+
+  @container (min-width: ${p => p.theme.container.xl}) {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+    min-height: 300px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  @container (min-width: ${p => p.theme.container['3xl']}) {
+    min-height: 350px;
+  }
+`;
+
+const StyledBox = styled('div')<{centered?: boolean}>`
+  min-width: 0;
+  z-index: 1;
+
+  ${p => (p.centered ? 'text-align: center;' : '')}
+  ${p => (p.centered ? 'max-width: 600px;' : '')}
+
+  @container (min-width: ${p => p.theme.container.xl}) {
+    flex: 2;
+  }
+`;
+
+const IlloBox = styled(StyledBox)`
+  position: relative;
+  min-height: 100px;
+  max-width: 300px;
+  min-width: 150px;
+  margin: ${p => p.theme.space.xl} auto;
+
+  @container (min-width: ${p => p.theme.container.xl}) {
+    flex: 1;
+    margin: 120px ${p => p.theme.space['2xl']} ${p => p.theme.space['2xl']}
+      ${p => p.theme.space['2xl']};
+    max-width: auto;
+  }
+`;
