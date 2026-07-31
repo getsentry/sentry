@@ -83,7 +83,7 @@ export function FirstEventFooter({
         </SkipOnboardingLink>
       )}
       <Flex align="center" justify="center" display={{zero: 'none', xl: 'flex'}}>
-        {(flexProps) => (
+        {flexProps => (
           <motion.div
             {...flexProps}
             initial="initial"
@@ -200,7 +200,7 @@ function SkipOnboardingLink(props: LinkProps) {
       margin="auto 3xl"
       whiteSpace="nowrap"
     >
-      {(containerProps) => <Link {...containerProps} {...props} />}
+      {containerProps => <Link {...containerProps} {...props} />}
     </Container>
   );
 }
